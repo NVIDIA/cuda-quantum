@@ -317,7 +317,6 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
 FROM cpp_tests
-COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 
 # Installing a minimal set of CUDA development dependencies.
 RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \

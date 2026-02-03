@@ -61,4 +61,3 @@ RUN bash /makeself/makeself.sh --gzip --sha256 --license /cuda-quantum/LICENSE \
 
 FROM scratch
 COPY --from=assets install_cuda_quantum* . 
-COPY --from=assets /cuda-quantum/wheelhouse/* . 

@@ -41,6 +41,10 @@ jobs:
       packages: write
       id-token: write
 
+    strategy:
+      matrix:
+        tools: ["cpp", "python"]
+
     outputs:
       image_hash: ${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
       artifact_name: ${{ steps.config.outputs.artifact_name }}
@@ -133,8 +137,28 @@ jobs:
             network=host
             image=moby/buildkit:v0.19.0
 
+      - name: Build assets
+        id: assets_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/build/assets.Dockerfile
+          target: ${{ matrix.tools }}_tests
+          build-args: |
+            release_version=${{ steps.config.outputs.cudaq_version }}
+            base_image=${{ inputs.platform_base_image }}
+            cuda_version=${{ inputs.cuda_version }}
+          tags: localhost:5000/cuda-quantum-assets:${{ matrix.tools }}_tests
+          platforms: ${{ inputs.platform }}
+          cache-from: |
+            ${{ inputs.build_cache }}
+            ${{ steps.config.outputs.additional_build_caches }}
+          cache-to: "type=local,dest=/tmp/.buildcache,mode=max,ignore-error=true"
+          push: false
+
       - name: Extract metadata
         id: metadata
+        if: matrix.tools == 'cpp'
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.config.outputs.image_name }}
@@ -150,8 +174,9 @@ jobs:
             org.opencontainers.image.title=cuda-quantum-assets
             org.opencontainers.image.description=Pre-built Linux binaries for CUDA Quantum
 
-      - name: Build assets
+      - name: Build assets image
         id: docker_build
+        if: matrix.tools == 'cpp'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -163,25 +188,24 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platform }}
-          cache-from: |
-            ${{ inputs.build_cache }}
-            ${{ steps.config.outputs.additional_build_caches }}
+          cache-from: type=local,src=/tmp/.buildcache
           push: true
 
       - name: Install Cosign
-        if: inputs.environment
+        if: inputs.environment && matrix.tools == 'cpp'
         uses: sigstore/cosign-installer@v3.3.0
         with:
           cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment
+        if: inputs.environment && matrix.tools == 'cpp'
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Build installer
+        if: matrix.tools == 'cpp'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -191,10 +215,19 @@ jobs:
           platforms: ${{ inputs.platform }}
           outputs: type=local,dest=/tmp/install
 
-      - name: Upload installer
+      - name: Extract artifacts
+        run: |
+          if ${{ matrix.tools == 'python' }}; then
+            mkdir /tmp/install
+            docker run --name assets cuda-quantum-assets:${{ matrix.tools }}_tests
+            docker cp assets:/cuda-quantum/wheelhouse /tmp/install
+            docker rm -f assets
+          fi
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.config.outputs.artifact_name }}
+          name: ${{ steps.config.outputs.artifact_name }}-${{ matrix.tools }}
           path: /tmp/install
           retention-days: 1
           if-no-files-found: error
@@ -316,10 +349,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Load cuda-quantum installer
+      - name: Load C++ artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build_installer.outputs.artifact_name }}
+          name: ${{ needs.build_installer.outputs.artifact_name }}-cpp
+          path: /tmp/install
+
+      - name: Load Python artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_installer.outputs.artifact_name }}-python
           path: /tmp/install
 
       - name: Install in clean environment
@@ -574,7 +613,7 @@ jobs:
             })
 
             res.data.artifacts
-              .filter(({ name }) => name === '${{ needs.build_installer.outputs.artifact_name }}')
+              .filter(({ name }) => name === '${{ needs.build_installer.outputs.artifact_name }}-cpp' || name === '${{ needs.build_installer.outputs.artifact_name }}-python')
               .forEach(({ id }) => {
                 github.rest.actions.deleteArtifact({
                   owner: context.repo.owner,
