@@ -8,8 +8,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <gmock/gmock-matchers.h>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
