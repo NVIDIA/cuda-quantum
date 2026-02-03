@@ -9,8 +9,8 @@
 #include "cudaq/ptsbe/ConditionalSamplingStrategy.h"
 #include "cudaq/ptsbe/ExhaustiveSamplingStrategy.h"
 #include "cudaq/ptsbe/OrderedSamplingStrategy.h"
-#include "cudaq/ptsbe/ProbabilisticSamplingStrategy.h"
 #include "cudaq/ptsbe/PTSSamplingStrategy.h"
+#include "cudaq/ptsbe/ProbabilisticSamplingStrategy.h"
 #include <gtest/gtest.h>
 
 using namespace cudaq::ptsbe;
@@ -51,9 +51,9 @@ std::vector<NoisePoint> createThreeOperatorNoisePoints() {
   np.qubits = {0};
   np.op_name = "h";
   np.kraus_operators = {
-      {1.0, 0.0, 0.0, 1.0},  // I
-      {0.0, 1.0, 1.0, 0.0},  // X
-      {0.0, -1.0, 1.0, 0.0}  // Y
+      {1.0, 0.0, 0.0, 1.0}, // I
+      {0.0, 1.0, 1.0, 0.0}, // X
+      {0.0, -1.0, 1.0, 0.0} // Y
   };
   // 70% I, 20% X, 10% Y
   np.probabilities = {0.7, 0.2, 0.1};
@@ -116,8 +116,7 @@ TEST(ProbabilisticSamplingStrategyTest, Reproducibility) {
   for (std::size_t i = 0; i < trajectories1.size(); ++i) {
     EXPECT_EQ(trajectories1[i].kraus_selections.size(),
               trajectories2[i].kraus_selections.size());
-    for (std::size_t j = 0; j < trajectories1[i].kraus_selections.size();
-         ++j) {
+    for (std::size_t j = 0; j < trajectories1[i].kraus_selections.size(); ++j) {
       EXPECT_EQ(trajectories1[i].kraus_selections[j].kraus_operator_index,
                 trajectories2[i].kraus_selections[j].kraus_operator_index);
     }
@@ -142,8 +141,8 @@ TEST(ProbabilisticSamplingStrategyTest, ProbabilityCalculation) {
   for (const auto &traj : trajectories) {
     double expected_prob = 1.0;
     for (std::size_t i = 0; i < traj.kraus_selections.size(); ++i) {
-      auto idx =
-          static_cast<std::size_t>(traj.kraus_selections[i].kraus_operator_index);
+      auto idx = static_cast<std::size_t>(
+          traj.kraus_selections[i].kraus_operator_index);
       expected_prob *= noise_points[i].probabilities[idx];
     }
     EXPECT_NEAR(traj.probability, expected_prob, 1e-9);
