@@ -28,7 +28,7 @@ aggregateResults(const std::vector<cudaq::sample_result> &results) {
 template <typename ScalarType>
 std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
-                    const PTSBatch &batch) {
+                   const PTSBatch &batch) {
   if (!simulator.getExecutionContext())
     throw std::runtime_error(
         "samplePTSBEGeneric requires ExecutionContext to be set. "
@@ -83,8 +83,8 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<double> &, const PTSBatch &);
 
 /// @brief Helper template for compile-time concept dispatch
 template <typename SimulatorType>
-std::vector<cudaq::sample_result>
-dispatchPTSBE(SimulatorType &sim, const PTSBatch &batch) {
+std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
+                                                const PTSBatch &batch) {
   if constexpr (PTSBECapable<SimulatorType>) {
     return sim.sampleWithPTSBE(batch);
   } else {
@@ -111,7 +111,8 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
 }
 
 std::vector<cudaq::sample_result>
-samplePTSBEWithLifecycle(const PTSBatch &batch, const std::string &contextType) {
+samplePTSBEWithLifecycle(const PTSBatch &batch,
+                         const std::string &contextType) {
   auto *sim = nvqir::getCircuitSimulatorInternal();
 
   cudaq::ExecutionContext ctx(contextType, batch.totalShots());

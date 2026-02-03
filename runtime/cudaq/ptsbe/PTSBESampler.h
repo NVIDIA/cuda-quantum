@@ -93,7 +93,8 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   for (const auto &q : inst.targets)
     targets.push_back(q.id);
 
-  return GateTask<ScalarType>(inst.name, matrix, controls, targets, typedParams);
+  return GateTask<ScalarType>(inst.name, matrix, controls, targets,
+                              typedParams);
 }
 
 /// @brief Convert entire kernel trace to simulator task list
@@ -228,7 +229,7 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 template <typename ScalarType>
 std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
-                    const PTSBatch &batch);
+                   const PTSBatch &batch);
 
 /// @brief Execute PTSBE batch on current simulator
 ///
@@ -260,6 +261,6 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 /// @throws std::runtime_error if simulator cast fails or gate conversion fails
 std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch,
-                          const std::string &contextType = "sample");
+                         const std::string &contextType = "sample");
 
 } // namespace cudaq::ptsbe

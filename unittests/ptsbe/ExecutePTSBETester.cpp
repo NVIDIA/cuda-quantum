@@ -26,7 +26,7 @@ using QppSimulator =
 /// cleanup that would otherwise need to be repeated in each test.
 template <typename SimulatorType>
 std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
-                                                const PTSBatch &batch) {
+                                               const PTSBatch &batch) {
   cudaq::ExecutionContext ctx("sample", batch.totalShots());
   sim.setExecutionContext(&ctx);
   sim.allocateQubits(batch.kernelTrace.getNumQudits());
