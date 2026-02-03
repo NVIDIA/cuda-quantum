@@ -68,20 +68,20 @@ void from_json(const json& j, Session& p) {
   //     }
   // };
 
-  get_safe("id", p.id);
-  get_safe("name", p.name);
-  get_safe("platform_id", p.platform_id);
-  get_safe("created_at", p.created_at);
-  get_safe("started_at", p.started_at);
-  get_safe("updated_at", p.updated_at);
-  get_safe("terminated_at", p.terminated_at);
-  get_safe("max_duration", p.max_duration);
-  get_safe("max_idle_duration", p.max_idle_duration);
-  get_safe("status", p.status);
-  get_safe("project_id", p.project_id);
-  get_safe("deduplication_id", p.deduplication_id);
-  get_safe("progress_message", p.progress_message);
-  get_safe("parameters", p.parameters);
+  get_safe(j, "id", p.id);
+  get_safe(j, "name", p.name);
+  get_safe(j, "platform_id", p.platform_id);
+  get_safe(j, "created_at", p.created_at);
+  get_safe(j, "started_at", p.started_at);
+  get_safe(j, "updated_at", p.updated_at);
+  get_safe(j, "terminated_at", p.terminated_at);
+  get_safe(j, "max_duration", p.max_duration);
+  get_safe(j, "max_idle_duration", p.max_idle_duration);
+  get_safe(j, "status", p.status);
+  get_safe(j, "project_id", p.project_id);
+  get_safe(j, "deduplication_id", p.deduplication_id);
+  get_safe(j, "progress_message", p.progress_message);
+  get_safe(j, "parameters", p.parameters);
 }
 
 void to_json(json& j, const Session& p) {
@@ -119,10 +119,10 @@ void from_json(const json& j, Model& p) {
   //     }
   // };
 
-  get_safe("id", p.id);
-  get_safe("project_id", p.project_id);
-  get_safe("url", p.url);
-  get_safe("created_at", p.created_at);
+  get_safe(j, "id", p.id);
+  get_safe(j, "project_id", p.project_id);
+  get_safe(j, "url", p.url);
+  get_safe(j, "created_at", p.created_at);
 }
 
 void to_json(json& j, const Session& p) {
@@ -170,16 +170,16 @@ void from_json(const json& j, Job& p) {
     //     }
     // };
 
-    get_safe("id", p.id);
-    get_safe("name", p.name);
-    get_safe("session_id", p.session_id);
-    get_safe("created_at", p.created_at);
-    get_safe("started_at", p.started_at);
-    get_safe("updated_at", p.updated_at);
-    get_safe("status", p.status);
-    get_safe("progress_message", p.progress_message);
-    get_safe("model_id", p.model_id);
-    get_safe("parameters", p.parameters);
+    get_safe(j, "id", p.id);
+    get_safe(j, "name", p.name);
+    get_safe(j, "session_id", p.session_id);
+    get_safe(j, "created_at", p.created_at);
+    get_safe(j, "started_at", p.started_at);
+    get_safe(j, "updated_at", p.updated_at);
+    get_safe(j, "status", p.status);
+    get_safe(j, "progress_message", p.progress_message);
+    get_safe(j, "model_id", p.model_id);
+    get_safe(j, "parameters", p.parameters);
 }
 
 void to_json(json& j, const Job& p) {
@@ -221,10 +221,10 @@ void from_json(const json& j, JobResult& p) {
   //     }
   // };
 
-  get_safe("job_id", p.job_id);
-  get_safe("result", p.result);
-  get_safe("url", p.url);
-  get_safe("created_at", p.created_at);
+  get_safe(j, "job_id", p.job_id);
+  get_safe(j, "result", p.result);
+  get_safe(j, "url", p.url);
+  get_safe(j, "created_at", p.created_at);
 }
 
 void to_json(json& j, const JobResult& p) {
