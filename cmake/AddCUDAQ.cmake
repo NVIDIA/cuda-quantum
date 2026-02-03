@@ -86,3 +86,31 @@ function(add_target_mapping_arch providerName name)
   install(FILES ${name} DESTINATION targets/mapping/${providerName})
   configure_file(${name} ${CMAKE_BINARY_DIR}/targets/mapping/${providerName}/${name} COPYONLY)
 endfunction()
+
+function(install_cudaq_dialect_headers dialect_name)
+  # Parse the list of header files from the remaining arguments
+  set(header_files ${ARGN})
+  file(RELATIVE_PATH rel_source_dir ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+
+  # Install the handwritten source headers
+  install(
+    FILES ${header_files}
+    DESTINATION ${rel_source_dir}
+    COMPONENT ${dialect_name}Dialect
+  )
+  
+  # Generate the list of corresponding TableGen-generated header files
+  set(generated_headers)
+  foreach(header ${header_files})
+    # Remove the .h extension and add .h.inc
+    get_filename_component(header_base ${header} NAME_WE)
+    list(APPEND generated_headers ${CMAKE_CURRENT_BINARY_DIR}/${header_base}.h.inc)
+  endforeach()
+  
+  # Install the TableGen-generated headers
+  install(
+    FILES ${generated_headers}
+    DESTINATION ${rel_source_dir}
+    COMPONENT ${dialect_name}Dialect
+  )
+endfunction()
