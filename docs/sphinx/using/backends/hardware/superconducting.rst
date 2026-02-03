@@ -559,9 +559,6 @@ Supported parameters:
 
 - ``api_key``: Authentication token. If not provided explicitly, it is read from the
   ``TII_API_TOKEN`` environment variable.
-- ``url``: URL of the TII cloud server. Defaults to the production endpoint
-  https://tii.qibo.science.
-- ``version``: Backend version (optional).
 - ``device``: Quantum device on which the job is executed (required).
 - ``project``: User project associated with the job (required).
 - ``verbatim``: Currently unused; should be set to ``false``.
