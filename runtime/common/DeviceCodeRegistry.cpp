@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <map>
 #include <shared_mutex>
 #include <string>

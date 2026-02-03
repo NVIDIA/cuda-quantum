@@ -14,7 +14,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "helpers/MQPUUtils.h"
 #include "utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"

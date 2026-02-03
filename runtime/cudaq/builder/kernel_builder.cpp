@@ -18,7 +18,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform/nvqpp_interface.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"

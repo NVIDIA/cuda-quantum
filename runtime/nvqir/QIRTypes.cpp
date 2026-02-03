@@ -9,7 +9,7 @@
 #include "QIRTypes.h"
 #include "NVQIRUtil.h"
 #include "common/FmtCore.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>

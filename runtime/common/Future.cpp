@@ -10,7 +10,7 @@
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <thread>
 
 namespace cudaq::details {

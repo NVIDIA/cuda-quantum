@@ -20,7 +20,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
 #include "llvm/ADT/ScopeExit.h"

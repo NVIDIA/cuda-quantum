@@ -11,7 +11,7 @@
 #include "CuDensityMatUtils.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <memory>
 #include <mutex>
 

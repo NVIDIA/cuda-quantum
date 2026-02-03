@@ -10,7 +10,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "cudaq/platform.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include <functional>
 #include <pybind11/functional.h>

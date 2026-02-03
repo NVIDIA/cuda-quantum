@@ -15,7 +15,7 @@
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/remote_capabilities.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace mlir {

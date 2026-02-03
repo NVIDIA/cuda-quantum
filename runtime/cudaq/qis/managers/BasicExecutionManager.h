@@ -9,7 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/execution_manager.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include <complex>
 #include <functional>

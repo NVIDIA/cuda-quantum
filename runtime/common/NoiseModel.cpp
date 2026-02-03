@@ -10,7 +10,7 @@
 #include "FmtCore.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <numeric>
 #include <optional>
 

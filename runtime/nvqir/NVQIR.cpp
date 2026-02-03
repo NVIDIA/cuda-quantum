@@ -14,7 +14,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 // TODO: do we want to avoid including this here?
 #include "resourcecounter/ResourceCounter.h"
 #include <cmath>

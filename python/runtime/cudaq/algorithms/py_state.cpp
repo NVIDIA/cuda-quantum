@@ -11,7 +11,7 @@
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
 #include "cudaq/algorithms/get_state.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"

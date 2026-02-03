@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq/distributed/mpi_plugin.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <cassert>
 #include <cudensitymat.h>
 #include <dlfcn.h>

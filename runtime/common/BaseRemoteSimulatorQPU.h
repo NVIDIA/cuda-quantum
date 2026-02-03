@@ -21,7 +21,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"

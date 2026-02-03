@@ -13,7 +13,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>

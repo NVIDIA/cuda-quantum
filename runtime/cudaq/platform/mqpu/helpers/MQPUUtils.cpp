@@ -9,7 +9,7 @@
 #include "MQPUUtils.h"
 #include "common/FmtCore.h"
 #include "common/RestClient.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Program.h"
 #include <arpa/inet.h>

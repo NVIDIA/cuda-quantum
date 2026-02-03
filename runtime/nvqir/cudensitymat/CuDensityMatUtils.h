@@ -8,7 +8,7 @@
 
 #pragma once
 #include "CuDensityMatErrorHandling.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <chrono>
 #include <complex>
 #include <concepts>

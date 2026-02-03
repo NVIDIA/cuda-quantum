@@ -11,7 +11,7 @@
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/IR/BuiltinOps.h"
 #include <iostream>
 #include <shared_mutex>

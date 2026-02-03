@@ -7,7 +7,7 @@
  ******************************************************************************/
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>

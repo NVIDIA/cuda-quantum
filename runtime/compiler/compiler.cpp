@@ -17,7 +17,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
