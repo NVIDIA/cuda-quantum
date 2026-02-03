@@ -47,16 +47,19 @@ struct NoisePoint {
 
 /// @brief Compute total trajectory space with overflow protection
 ///
-/// Calculates the combinatoric product of operator counts across all noise points.
-/// For N noise points with k_i operators each: total = k_1 × k_2 × ... × k_N
+/// Calculates the combinatoric product of operator counts across all noise
+/// points. For N noise points with k_i operators each: total = k_1 × k_2 × ...
+/// × k_N
 ///
 /// @param noise_points Noise information from circuit analysis
-/// @return Total number of unique trajectories, capped at 2^40 (~1 trillion cap) to prevent overflow
-inline std::size_t computeTotalTrajectories(std::span<const NoisePoint> noise_points) {
+/// @return Total number of unique trajectories, capped at 2^40 (~1 trillion
+/// cap) to prevent overflow
+inline std::size_t
+computeTotalTrajectories(std::span<const NoisePoint> noise_points) {
   constexpr std::size_t MAX_SAFE = std::size_t(1) << 40;
   std::size_t total = 1;
 
-  for (const auto& np : noise_points) {
+  for (const auto &np : noise_points) {
     std::size_t count = np.kraus_operators.size();
     if (total > MAX_SAFE / count) {
       return MAX_SAFE;

@@ -538,25 +538,14 @@ TEST(NoisePointTest, FullUnitaryMixtureValidation) {
   double p0 = 0.7, p1 = 0.1, p2 = 0.1, p3 = 0.1;
   std::complex<double> i{0.0, 1.0};
 
-  np.kraus_operators.push_back({
-    std::sqrt(p0), 0.0,
-    0.0, std::sqrt(p0)
-  });
+  np.kraus_operators.push_back({std::sqrt(p0), 0.0, 0.0, std::sqrt(p0)});
 
-  np.kraus_operators.push_back({
-    0.0, std::sqrt(p1),
-    std::sqrt(p1), 0.0
-  });
+  np.kraus_operators.push_back({0.0, std::sqrt(p1), std::sqrt(p1), 0.0});
 
-  np.kraus_operators.push_back({
-    0.0, -i * std::sqrt(p2),
-    i * std::sqrt(p2), 0.0
-  });
+  np.kraus_operators.push_back(
+      {0.0, -i * std::sqrt(p2), i * std::sqrt(p2), 0.0});
 
-  np.kraus_operators.push_back({
-    std::sqrt(p3), 0.0,
-    0.0, -std::sqrt(p3)
-  });
+  np.kraus_operators.push_back({std::sqrt(p3), 0.0, 0.0, -std::sqrt(p3)});
 
   np.probabilities = {p0, p1, p2, p3};
 
@@ -571,15 +560,9 @@ TEST(NoisePointTest, NonUnitaryKrausOperators) {
 
   double gamma = 0.3;
 
-  np.kraus_operators.push_back({
-    1.0, 0.0,
-    0.0, std::sqrt(1.0 - gamma)
-  });
+  np.kraus_operators.push_back({1.0, 0.0, 0.0, std::sqrt(1.0 - gamma)});
 
-  np.kraus_operators.push_back({
-    0.0, std::sqrt(gamma),
-    0.0, 0.0
-  });
+  np.kraus_operators.push_back({0.0, std::sqrt(gamma), 0.0, 0.0});
 
   np.probabilities = {1.0 - gamma, gamma};
 

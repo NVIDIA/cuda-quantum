@@ -47,7 +47,7 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
 // If so, it returns all the unitaries and the probabilities associated with
 // each one of those unitaries.
 std::optional<std::pair<std::vector<double>,
-                               std::vector<std::vector<std::complex<double>>>>>
+                        std::vector<std::vector<std::complex<double>>>>>
 computeUnitaryMixture(
     const std::vector<std::vector<std::complex<double>>> &krausOps,
     double tol) {

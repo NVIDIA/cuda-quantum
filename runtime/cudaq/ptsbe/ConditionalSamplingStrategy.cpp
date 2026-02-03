@@ -36,7 +36,8 @@ ConditionalSamplingStrategy::generateTrajectories(
   std::size_t max_attempts = actual_target * 100;
   std::size_t attempts = 0;
 
-  // Sample until we have max_trajectories unique trajectories that pass the predicate
+  // Sample until we have max_trajectories unique trajectories that pass the
+  // predicate
   while (results.size() < max_trajectories && attempts < max_attempts) {
     attempts++;
 
@@ -50,36 +51,33 @@ ConditionalSamplingStrategy::generateTrajectories(
     selections.reserve(noise_points.size());
     pattern.reserve(noise_points.size());
 
-    // Sample trajectory: for each noise point, choose which Kraus operator to apply
-    for (const auto& noise_point : noise_points) {
+    // Sample trajectory: for each noise point, choose which Kraus operator to
+    // apply
+    for (const auto &noise_point : noise_points) {
       // Use discrete distribution to sample according to operator probabilities
       // This ensures high-probability errors are sampled more often
       std::discrete_distribution<std::size_t> dist(
-        noise_point.probabilities.begin(),
-        noise_point.probabilities.end()
-      );
+          noise_point.probabilities.begin(), noise_point.probabilities.end());
       std::size_t sampled_idx = dist(rng_);
       pattern.push_back(sampled_idx);
 
-      // Build KrausSelection: "at circuit_location, apply Kraus operator #sampled_idx"
-      // The actual unitary matrix is noise_point.kraus_operators[sampled_idx]
-      // Conversion to simulator task happens later in PTSBEInterface::krausSelectionToTask()
+      // Build KrausSelection: "at circuit_location, apply Kraus operator
+      // #sampled_idx" The actual unitary matrix is
+      // noise_point.kraus_operators[sampled_idx] Conversion to simulator task
+      // happens later in PTSBEInterface::krausSelectionToTask()
       selections.push_back(KrausSelection{
-        noise_point.circuit_location,
-        noise_point.qubits,
-        noise_point.op_name,
-        static_cast<KrausOperatorType>(sampled_idx)
-      });
+          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
+          static_cast<KrausOperatorType>(sampled_idx)});
 
       probability *= noise_point.probabilities[sampled_idx];
     }
 
     if (seen_patterns.insert(pattern).second) {
       auto trajectory = KrausTrajectory::builder()
-                        .setId(trajectory_id)
-                        .setSelections(std::move(selections))
-                        .setProbability(probability)
-                        .build();
+                            .setId(trajectory_id)
+                            .setSelections(std::move(selections))
+                            .setProbability(probability)
+                            .build();
 
       if (predicate_(trajectory)) {
         results.push_back(std::move(trajectory));

@@ -43,16 +43,18 @@ public:
   ///
   /// @param noise_points Noise information from circuit analysis. Each entry
   ///                     represents a location in the circuit where noise can
-  ///                     be applied, with associated Kraus operators and probabilities.
+  ///                     be applied, with associated Kraus operators and
+  ///                     probabilities.
   /// @param max_trajectories Maximum number of unique trajectories to generate.
-  ///                         May return fewer if the predicate is very restrictive
-  ///                         or if the attempt limit is reached.
+  ///                         May return fewer if the predicate is very
+  ///                         restrictive or if the attempt limit is reached.
   ///
   /// @return Vector of unique trajectories that pass the predicate filter.
   ///         Trajectories are ordered by sampling order (not by probability).
   ///
   /// Algorithm:
-  /// 1. For each noise point, randomly sample a Kraus operator based on probabilities
+  /// 1. For each noise point, randomly sample a Kraus operator based on
+  /// probabilities
   /// 2. Build a complete trajectory from all sampled operators
   /// 3. Check if trajectory pattern is unique
   /// 4. Apply predicate filter

@@ -23,12 +23,13 @@ bool NoisePoint::isUnitaryMixture(double tolerance) const {
   if (probabilities.size() != kraus_operators.size())
     return false;
 
-  auto validated_result = cudaq::computeUnitaryMixture(kraus_operators, tolerance);
+  auto validated_result =
+      cudaq::computeUnitaryMixture(kraus_operators, tolerance);
 
   if (!validated_result.has_value())
     return false;
 
-  const auto& validated_probs = validated_result->first;
+  const auto &validated_probs = validated_result->first;
 
   for (std::size_t i = 0; i < probabilities.size(); ++i) {
     if (std::abs(probabilities[i] - validated_probs[i]) > tolerance)
