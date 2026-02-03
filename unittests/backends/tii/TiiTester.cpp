@@ -10,7 +10,7 @@
 #include "cudaq/algorithm.h"
 #include "gtest/gtest.h"
 
-std::string backendString = "qibo;";
+std::string backendString = "tii;";
 
 bool result_maps_are_matching(
     const std::unordered_map<std::string, std::size_t> &results,
@@ -24,7 +24,7 @@ bool result_maps_are_matching(
   return true;
 }
 
-TEST(QiboTester, checkSimpleCircuitSync) {
+TEST(TiiTester, checkSimpleCircuitSync) {
   // Initialize the platform
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -45,7 +45,7 @@ TEST(QiboTester, checkSimpleCircuitSync) {
   EXPECT_TRUE(result_maps_are_matching(counts.to_map(), expected));
 }
 
-TEST(QiboTester, checkSimpleCircuitAsync) {
+TEST(TiiTester, checkSimpleCircuitAsync) {
   // Initialize the platform
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -67,8 +67,8 @@ TEST(QiboTester, checkSimpleCircuitAsync) {
 }
 
 int main(int argc, char **argv) {
-  setenv("QIBO_API_TOKEN", "api_key", 0);
-  setenv("QIBO_API_URL", "http://localhost:62450", 0);
+  setenv("TII_API_TOKEN", "api_key", 0);
+  setenv("TII_API_URL", "http://localhost:62450", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;

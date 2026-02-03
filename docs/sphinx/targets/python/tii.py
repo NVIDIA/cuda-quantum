@@ -1,7 +1,7 @@
 import cudaq
 
 # Set the target at the beginning of the program.
-cudaq.set_target("qibo")
+cudaq.set_target("tii")
 
 
 # Create the kernel.
@@ -13,6 +13,6 @@ def kernel():
     mz(qvector)
 
 
-# Execute on synchronously on the Qibo cloud and print out the results.
+# Execute on synchronously on the TII cloud and print out the results.
 counts = cudaq.sample(kernel)
 print(counts)

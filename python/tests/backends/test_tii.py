@@ -15,12 +15,12 @@ from multiprocessing import Process
 import cudaq
 from cudaq import spin
 
-skipIfqiboNotInstalled = pytest.mark.skipif(
-    not (cudaq.has_target("qibo")),
-    reason='Could not find `qibo` in installation')
+skipIfTiiNotInstalled = pytest.mark.skipif(
+    not (cudaq.has_target("tii")),
+    reason='Could not find `tii` in installation')
 
 try:
-    from utils.mock_qpu.qibo import startServer
+    from utils.mock_qpu.tii import startServer
 except:
     print("Mock qpu not available, skipping Provider Name tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
@@ -32,7 +32,7 @@ port = 62450
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # Set the targeted QPU
-    cudaq.set_target('qibo',
+    cudaq.set_target('tii',
                     url=f'http://localhost:{port}',
                     api_key="test_key")
 
@@ -46,7 +46,7 @@ def startUpMockServer():
     # Kill the server
     p.terminate()
 
-def test_qibo_sample():
+def test_tii_sample():
     # Create the kernel
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)

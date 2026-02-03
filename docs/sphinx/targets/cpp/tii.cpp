@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --library-mode --target qibo qibo.cpp
+// nvq++ --library-mode --target tii tii.cpp
 // ./a.out
 // ```
 
@@ -17,7 +17,7 @@ struct bell_state {
 };
 
 int main() {
-  // OR: Submit to Qibo synchronously.
+  // OR: Submit to TII synchronously.
   auto result_counts = cudaq::sample(bell_state{});
   result_counts.dump();
 }

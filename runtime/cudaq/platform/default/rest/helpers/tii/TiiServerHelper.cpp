@@ -48,22 +48,22 @@ std::string getEnvVar(const std::string &key, const std::string &defaultVal,
   return std::string(env_var);
 }
 
-/// @brief The QiboServerHelper class extends the ServerHelper class
-/// to handle interactions with the Qibo server for submitting and
+/// @brief The TiiServerHelper class extends the ServerHelper class
+/// to handle interactions with the TII server for submitting and
 /// retrieving quantum computation jobs.
-class QiboServerHelper : public ServerHelper {
-  static constexpr const char *DEFAULT_URL = "https://cloud.qibo.science";
+class TiiServerHelper : public ServerHelper {
+  static constexpr const char *DEFAULT_URL = "https://tii.qibo.science";
   static constexpr const char *DEFAULT_VERSION = "0.2.2";
 
 public:
-  const std::string name() const override { return "qibo"; }
+  const std::string name() const override { return "tii"; }
 
-  /// @brief Return POST/GET headers required for the Qibo server.
+  /// @brief Return POST/GET headers required for the TII server.
   RestHeaders getHeaders() override {
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
 
-    headers["x-api-token"] = getEnvVar("QIBO_API_TOKEN", "", true);
+    headers["x-api-token"] = getEnvVar("TII_API_TOKEN", "", true);
     if (backendConfig.count("api_key"))
       headers["x-api-token"] = backendConfig["api_key"];
     headers["x-qibo-client-version"] = backendConfig["version"];
@@ -71,16 +71,16 @@ public:
     return headers;
   }
 
-  /// @brief Initialize the Qibo server with the provided configuration.
+  /// @brief Initialize the TII server with the provided configuration.
   void initialize(BackendConfig config) override {
-    CUDAQ_INFO("Initializing Qibo Backend");
+    CUDAQ_INFO("Initializing TII Backend");
     backendConfig = config;
 
     if (!backendConfig.count("url"))
-      backendConfig["url"] = getEnvVar("QIBO_API_URL", DEFAULT_URL, false);
-    auto qibo_url = backendConfig["url"];
+      backendConfig["url"] = getEnvVar("TII_API_URL", DEFAULT_URL, false);
+    auto tii_url = backendConfig["url"];
     // append a trailing slash to complete the path later
-    backendConfig["url"] = qibo_url.ends_with("/") ? qibo_url : qibo_url + "/";
+    backendConfig["url"] = tii_url.ends_with("/") ? tii_url : tii_url + "/";
     if (!backendConfig.count("version"))
       backendConfig["version"] = DEFAULT_VERSION;
     if (!backendConfig.count("verbatim"))
@@ -110,7 +110,7 @@ public:
                            std::vector<ServerMessage>{job});
   }
 
-  /// @brief Extract job id from the GET returned by the Qibo server.
+  /// @brief Extract job id from the GET returned by the TII server.
   std::string extractJobId(ServerMessage &postResponse) override {
     if (!postResponse.contains("pid"))
       return "";
@@ -118,7 +118,7 @@ public:
     return postResponse.at("pid");
   }
 
-  /// @brief Track job id on the Qibo server.
+  /// @brief Track job id on the TII server.
   std::string constructGetJobPath(ServerMessage &postResponse) override {
     return extractJobId(postResponse);
   }
@@ -174,4 +174,4 @@ public:
 } // namespace cudaq
 
 // Register the server helper in the CUDA-Q server helper factory
-CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QiboServerHelper, qibo)
+CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::TiiServerHelper, tii)

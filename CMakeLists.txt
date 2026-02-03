@@ -108,9 +108,9 @@ if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
   set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
 endif()
 
-# Enable Qibo target by default.
-if (NOT DEFINED CUDAQ_ENABLE_QIBO_BACKEND)
-  set(CUDAQ_ENABLE_QIBO_BACKEND ON CACHE BOOL "Enable building the Qibo target.")
+# Enable TII target by default.
+if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
+  set(CUDAQ_ENABLE_TII_BACKEND ON CACHE BOOL "Enable building the TII target.")
 endif()
 
 # Enable Quantum Machines target by default.

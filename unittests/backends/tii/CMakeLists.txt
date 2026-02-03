@@ -6,10 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_backend_unittest_executable(test_qibo 
-  SOURCES QiboTester.cpp
-  BACKEND qibo
+add_backend_unittest_executable(test_tii 
+  SOURCES TiiTester.cpp
+  BACKEND tii
   )
 
-configure_file("QiboStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/qibo/QiboStartServerAndTest.sh" @ONLY)
-add_test(NAME qibo-tests COMMAND bash QiboStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/qibo/)
+configure_file("TiiStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/tii/TiiStartServerAndTest.sh" @ONLY)
+add_test(NAME tii-tests COMMAND bash TiiStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/tii/)

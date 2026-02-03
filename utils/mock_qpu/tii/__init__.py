@@ -9,7 +9,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 
-class QiboMockServer(BaseHTTPRequestHandler):
+class TiiMockServer(BaseHTTPRequestHandler):
     def _set_headers(self, status_code=200):
         self.send_response(status_code)
         self.send_header('Content-type', 'application/json')
@@ -51,7 +51,7 @@ class QiboMockServer(BaseHTTPRequestHandler):
 
 def startServer(port=62450):
     server_address = ('', port)
-    httpd = HTTPServer(server_address, QiboMockServer)
+    httpd = HTTPServer(server_address, TiiMockServer)
     print(f'Starting mock server on port {port}...')
     httpd.serve_forever()
 

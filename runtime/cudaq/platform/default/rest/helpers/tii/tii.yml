@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: "qibo"
-description: "CUDA-Q target for Qibo."
+name: "tii"
+description: "CUDA-Q target for TII."
 
 config:
   # Tell DefaultQuantumPlatform what QPU subtype to use
@@ -34,22 +34,22 @@ target-arguments:
     required: true
     type: string
     platform-arg: api_key
-    help-string: "API key for Qibo."
+    help-string: "API key for TII."
   - key: url
     required: false
     type: string
     platform-arg: url
-    help-string: "Specify Qibo API server URL."
+    help-string: "Specify TII API server URL."
   - key: device
     required: false
     type: string
     platform-arg: device
-    help-string: "Specify the Qibo quantum device to use."
+    help-string: "Specify the TII quantum device to use."
   - key: project
     required: false
     type: string
     platform-arg: project
-    help-string: "Specify the Qibo project to use."
+    help-string: "Specify the TII project to use."
   - key: verbatim
     required: false
     type: string

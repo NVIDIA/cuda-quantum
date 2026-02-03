@@ -17,7 +17,7 @@ MOCK_QPU_PORTS = {
     "infleqtion": 62447,
     "quantum_machines": 62448,
     "qci": 62449,
-    "qibo": 62450,
+    "tii": 62450,
 }
 
 
