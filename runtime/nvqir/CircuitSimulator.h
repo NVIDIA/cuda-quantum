@@ -1274,7 +1274,6 @@ public:
 
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);
-    auto bitResult = measureResult == true ? "1" : "0";
 
     // Return the result
     return measureResult;
