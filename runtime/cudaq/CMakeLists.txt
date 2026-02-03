@@ -31,6 +31,10 @@ add_library(${LIBRARY_NAME}
     ptsbe/PTSBESampleIntegration.cpp
     ptsbe/PTSBESampler.cpp
     ptsbe/ShotAllocationStrategy.cpp
+    ptsbe/ProbabilisticSamplingStrategy.cpp
+    ptsbe/ExhaustiveSamplingStrategy.cpp
+    ptsbe/OrderedSamplingStrategy.cpp
+    ptsbe/ConditionalSamplingStrategy.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})

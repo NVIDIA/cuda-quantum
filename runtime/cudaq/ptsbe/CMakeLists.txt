@@ -15,6 +15,10 @@ set(PTSBE_SOURCES
     PTSBESampleIntegration.cpp
     PTSBESampler.cpp
     ShotAllocationStrategy.cpp
+    ProbabilisticSamplingStrategy.cpp
+    ExhaustiveSamplingStrategy.cpp
+    OrderedSamplingStrategy.cpp
+    ConditionalSamplingStrategy.cpp
 )
 
 # Install headers
@@ -25,5 +29,10 @@ install(FILES
     PTSBEResult.h
     PTSBESampleIntegration.h
     ShotAllocationStrategy.h
+    PTSSamplingStrategy.h
+    ProbabilisticSamplingStrategy.h
+    ExhaustiveSamplingStrategy.h
+    OrderedSamplingStrategy.h
+    ConditionalSamplingStrategy.h
     DESTINATION include/cudaq/ptsbe
 )
