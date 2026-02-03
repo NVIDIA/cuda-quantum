@@ -48,54 +48,54 @@ struct Session {
   std::string deduplication_id = "";
   std::string progress_message = "";
   std::string parameters = "";
-
-  friend void from_json(const json& j, Session& p) {
-      auto get_safe = [&](const char* key, std::string& target) {
-          if (j.contains(key) && !j[key].is_null()) {
-              j.at(key).get_to(target);
-          } else {
-              target = "";
-          }
-      };
-
-      get_safe("id", p.id);
-      get_safe("name", p.name);
-      get_safe("platform_id", p.platform_id);
-      get_safe("created_at", p.created_at);
-      get_safe("started_at", p.started_at);
-      get_safe("updated_at", p.updated_at);
-      get_safe("terminated_at", p.terminated_at);
-      get_safe("max_duration", p.max_duration);
-      get_safe("max_idle_duration", p.max_idle_duration);
-      get_safe("status", p.status);
-      get_safe("project_id", p.project_id);
-      get_safe("deduplication_id", p.deduplication_id);
-      get_safe("progress_message", p.progress_message);
-      get_safe("parameters", p.parameters);
-  }
 };
+
+void from_json(const json& j, Session& p) {
+  auto get_safe = [&](const char* key, std::string& target) {
+      if (j.contains(key) && !j[key].is_null()) {
+          j.at(key).get_to(target);
+      } else {
+          target = "";
+      }
+  };
+
+  get_safe("id", p.id);
+  get_safe("name", p.name);
+  get_safe("platform_id", p.platform_id);
+  get_safe("created_at", p.created_at);
+  get_safe("started_at", p.started_at);
+  get_safe("updated_at", p.updated_at);
+  get_safe("terminated_at", p.terminated_at);
+  get_safe("max_duration", p.max_duration);
+  get_safe("max_idle_duration", p.max_idle_duration);
+  get_safe("status", p.status);
+  get_safe("project_id", p.project_id);
+  get_safe("deduplication_id", p.deduplication_id);
+  get_safe("progress_message", p.progress_message);
+  get_safe("parameters", p.parameters);
+}
 
 struct Model {
   std::string id = "";
   std::string created_at = "";
   std::string url = "";
   std::string project_id = "";
-
-  friend void from_json(const json& j, Model& p) {
-    auto get_safe = [&](const char* key, std::string& target) {
-        if (j.contains(key) && !j[key].is_null()) {
-            j.at(key).get_to(target);
-        } else {
-            target = "";
-        }
-    };
-
-    get_safe("id", p.id);
-    get_safe("project_id", p.project_id);
-    get_safe("url", p.url);
-    get_safe("created_at", p.created_at);
-  }
 };
+
+void from_json(const json& j, Model& p) {
+  auto get_safe = [&](const char* key, std::string& target) {
+      if (j.contains(key) && !j[key].is_null()) {
+          j.at(key).get_to(target);
+      } else {
+          target = "";
+      }
+  };
+
+  get_safe("id", p.id);
+  get_safe("project_id", p.project_id);
+  get_safe("url", p.url);
+  get_safe("created_at", p.created_at);
+}
 
 struct Job {
   std::string id = "";
@@ -112,28 +112,28 @@ struct Job {
   inline bool is_finished() const {
     return status == "completed" || status == "error" || status == "cancelled";
   }
-
-  friend void from_json(const json& j, Job& p) {
-      auto get_safe = [&](const char* key, std::string& target) {
-          if (j.contains(key) && !j[key].is_null()) {
-              j.at(key).get_to(target);
-          } else {
-              target = "";
-          }
-      };
-
-      get_safe("id", p.id);
-      get_safe("name", p.name);
-      get_safe("session_id", p.session_id);
-      get_safe("created_at", p.created_at);
-      get_safe("started_at", p.started_at);
-      get_safe("updated_at", p.updated_at);
-      get_safe("status", p.status);
-      get_safe("progress_message", p.progress_message);
-      get_safe("model_id", p.model_id);
-      get_safe("parameters", p.parameters);
-  }
 };
+
+void from_json(const json& j, Job& p) {
+    auto get_safe = [&](const char* key, std::string& target) {
+        if (j.contains(key) && !j[key].is_null()) {
+            j.at(key).get_to(target);
+        } else {
+            target = "";
+        }
+    };
+
+    get_safe("id", p.id);
+    get_safe("name", p.name);
+    get_safe("session_id", p.session_id);
+    get_safe("created_at", p.created_at);
+    get_safe("started_at", p.started_at);
+    get_safe("updated_at", p.updated_at);
+    get_safe("status", p.status);
+    get_safe("progress_message", p.progress_message);
+    get_safe("model_id", p.model_id);
+    get_safe("parameters", p.parameters);
+}
 
 struct JobResult {
   std::string job_id = "";
@@ -148,20 +148,20 @@ struct JobResult {
   inline bool has_download_url() const {
     return !url.empty();
   }
-
-  friend void from_json(const json& j, JobResult& p) {
-    auto get_safe = [&](const char* key, std::string& target) {
-        if (j.contains(key) && !j[key].is_null()) {
-            j.at(key).get_to(target);
-        } else {
-            target = "";
-        }
-    };
-
-    get_safe("job_id", p.job_id);
-    get_safe("result", p.result);
-    get_safe("url", p.url);
-    get_safe("created_at", p.created_at);
-  }
 };
+
+void from_json(const json& j, JobResult& p) {
+  auto get_safe = [&](const char* key, std::string& target) {
+      if (j.contains(key) && !j[key].is_null()) {
+          j.at(key).get_to(target);
+      } else {
+          target = "";
+      }
+  };
+
+  get_safe("job_id", p.job_id);
+  get_safe("result", p.result);
+  get_safe("url", p.url);
+  get_safe("created_at", p.created_at);
+}
 } // namespace cudaq::qaas::v1alpha1
