@@ -153,6 +153,59 @@ def test_observe():
     print(res.expectation())
 
 
+def test_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel1(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    @cudaq.kernel
+    def kernel2(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+        mz(q)
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel1, s)
+    counts = cudaq.sample(kernel2, s)
+    assert '10' in counts
+    assert len(counts) == 1
+
+
+def test_state_preparation():
+    shots = 10000
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_state_preparation_builder():
+    shots = 10000
+    kernel, state = cudaq.make_kernel(list[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
 def test_exp_pauli():
 
     @cudaq.kernel
