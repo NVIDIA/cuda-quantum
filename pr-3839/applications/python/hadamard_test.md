@@ -1840,7 +1840,7 @@ The code below builds two CUDA-Q kernels corresponding to
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -1963,7 +1963,7 @@ basis.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [4]:
 :::
 :::
 

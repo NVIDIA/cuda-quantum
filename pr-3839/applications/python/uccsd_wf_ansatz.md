@@ -1769,7 +1769,7 @@ CUDA-Q to calclate the ground state energy for chemical systems.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [5]:
 :::
 :::
 

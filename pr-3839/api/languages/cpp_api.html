@@ -5025,6 +5025,12 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb">
+<span class="target" id="classcudaq_1_1qvector_1a1207f490dab570c43527a9563d29d57a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qvector</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq7complexE" title="cudaq::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">vector</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">validate</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct a <code class="docutils literal notranslate"><span class="pre">qvector</span></code> from an input state vector. The number of qubits is determined by the size of the input vector. If <code class="docutils literal notranslate"><span class="pre">validate</span></code> is set, it will check the norm of input state vector. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector7qvectorERK5state">
 <span class="target" id="classcudaq_1_1qvector_1a0fd2545386af75c0d1aed18c8b3b50ef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qvector</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7qvector7qvectorERK5state" title="cudaq::qvector::qvector::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">state</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector7qvectorERK5state" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Construct a <code class="docutils literal notranslate"><span class="pre">qvector</span></code> from a pre-existing <code class="docutils literal notranslate"><span class="pre">state</span></code>. This <code class="docutils literal notranslate"><span class="pre">state</span></code> could be constructed with <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1state_1a2e9b7d521f974822246d180d43160d2e"><span class="std std-ref"><span class="pre">state::from_data</span></span></a></code> or retrieved from an cudaq::get_state. </p>
@@ -7054,16 +7060,17 @@ like this:</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization2E">
 <span class="target" id="classcudaq_1_1depolarization2"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq15depolarization2E" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>A 2-qubit depolarization error that applies one of the following errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ. </p>
+<dd><p>A 2-qubit depolarization error that applies one of the following errors with equal probability. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ. </p>
+<p>Nielsen &amp; Chuang, “Quantum Computation and Quantum Information” (2010), Section 8.3.4, Equation 8.106: E(ρ) = (1-p)ρ + (p/d²-1)∑ P_i ρ P_i where d=4 for 2 qubits, giving (p/15) for each of the 15 non-identity two-qubit Pauli operators P_i. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization215depolarization2EK4real">
 <span class="target" id="classcudaq_1_1depolarization2_1aa0a6744f70184f41dc6218cebb886d07"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization2</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">probability</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15depolarization215depolarization2EK4real" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Construct a two qubit Kraus channel that applies a depolarization channel on either qubit independently. </p>
+<dd><p>Construct a two qubit depolarization channel. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>probability</strong> – The probability of any depolarizing error happening in the 2 qubits. (Setting this to 1.0 ensures that “II” cannot happen; maximal mixing occurs at p = 0.9375.) </p>
+<dd class="field-odd"><p><strong>probability</strong> – The total probability p of depolarization. With p=1, the channel produces a maximally mixed state. Each of the 15 non-identity Pauli errors occurs with probability p/15. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -7074,7 +7081,7 @@ like this:</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization214num_parametersE">
 <span class="target" id="classcudaq_1_1depolarization2_1a7e554ebbab167ebf683771b4537091a9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq15depolarization214num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Number of parameters. The 1 parameter is the probability that each one of the 15 error possibilities list above will occur. Only 1 of the 15 possible errors will happen (at most). </p>
+<dd><p>Number of parameters. The 1 parameter is the total depolarization probability p. Each of the 15 Pauli errors occurs with probability p/15. </p>
 </dd></dl>
 
 <dl class="cpp var">
