@@ -131,6 +131,8 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
   }
 
   try {
+    CUDAQ_INFO("Create Session request: {}", payload.dump());
+
     auto response = m_client.post(m_baseUrl, "/sessions", payload, headers,
                                   m_logging, m_secure);
     return response.get<Session>();
@@ -163,6 +165,8 @@ Job V1Alpha1Client::createJob(const std::string &sessionId,
   payload["name"] = name;
 
   try {
+    CUDAQ_INFO("Create Job request: {}", payload.dump());
+
     auto response = m_client.post(m_baseUrl, "/jobs", payload, headers,
                                   m_logging, m_secure);
     return response.get<Job>();
@@ -202,15 +206,17 @@ V1Alpha1Client::listJobResults(const std::string &jobId) {
   }
 }
 
-Model V1Alpha1Client::createModel(const std::string &payload) {
+Model V1Alpha1Client::createModel(const std::string &data) {
   auto headers = getHeaders();
-  json reqBody;
+  json payload;
 
-  reqBody["project_id"] = m_projectId;
-  reqBody["payload"] = payload;
+  payload["project_id"] = m_projectId;
+  payload["payload"] = data;
 
   try {
-    auto response = m_client.post(m_baseUrl, "/models", reqBody, headers,
+    CUDAQ_INFO("Create Model request: {}", payload.dump());
+
+    auto response = m_client.post(m_baseUrl, "/models", payload, headers,
                                   m_logging, m_secure);
     return response.get<Model>();
   } catch (const std::exception &e) {
