@@ -25,10 +25,12 @@ std::string getValueOrDefault(const BackendConfig &config,
   CUDAQ_INFO("Retrieving key {} or env {}", key, envKey);
 
   auto it = config.find(key);
-  auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
-  auto providedValue = (it != config.end()) ? it->second : envValue;
+  // auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
+  auto providedValue = (it != config.end()) ? it->second : defaultValue;
 
-  return !providedValue.empty() ? providedValue : defaultValue;
+  return providedValue;
+
+  // return !providedValue.empty() ? providedValue : defaultValue;
 }
 
 std::string serializeParametersToQio(size_t nb_shots) {
