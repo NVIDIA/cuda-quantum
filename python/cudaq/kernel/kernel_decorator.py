@@ -611,7 +611,7 @@ class PyKernelDecorator(object):
                 # get the value associated with the variable named "a" in the
                 # current context.
                 if isinstance(a, dict):
-                    # Lifted arg is a registered C++ kernel, load and capture it
+                    # Lifted argument is a registered C++ kernel, load and capture it
                     [linkedKernel,
                      maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
                          self.qkeModule, a['linkedKernel'])
@@ -696,7 +696,7 @@ class PyKernelDecorator(object):
             if callingMod != self.defModule:
                 resMod = self.defModule
             if isinstance(la, dict):
-                # Lifted arg is a registered C++ kernel, load and capture it
+                # Lifted argument is a registered C++ kernel, load and capture it
                 [linkedKernel,
                  maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
                      self.qkeModule, la['linkedKernel'])
