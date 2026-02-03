@@ -27,8 +27,14 @@ ProbabilisticSamplingStrategy::generateTrajectories(
 
   std::set<std::vector<std::size_t>> seen_patterns;
 
+  // Total possible unique trajectories with overflow protection
+  // If we want more trajectories than exist, cap at total to avoid infinite
+  // sampling
+  std::size_t total_possible = computeTotalTrajectories(noise_points);
+  std::size_t actual_target = std::min(max_trajectories, total_possible);
+
   std::size_t trajectory_id = 0;
-  std::size_t max_attempts = max_trajectories * 100;
+  std::size_t max_attempts = actual_target * 10;
   std::size_t attempts = 0;
 
   while (results.size() < max_trajectories && attempts < max_attempts) {
@@ -61,6 +67,11 @@ ProbabilisticSamplingStrategy::generateTrajectories(
                             .setProbability(probability)
                             .build();
       results.push_back(std::move(trajectory));
+
+      // If we've found all possible unique trajectories, stop
+      if (results.size() >= total_possible) {
+        break;
+      }
     }
   }
 

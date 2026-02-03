@@ -167,6 +167,103 @@ TEST(ProbabilisticSamplingStrategyTest, Clone) {
   EXPECT_GT(trajectories.size(), 0);
 }
 
+TEST(ProbabilisticSamplingStrategyTest, RequestMoreThanPossible) {
+  std::vector<NoisePoint> noise_points;
+  
+  for (int i = 0; i < 2; ++i) {
+    NoisePoint np;
+    np.circuit_location = i;
+    np.qubits = {0};
+    np.op_name = "h";
+    np.kraus_operators = {
+        {1.0, 0.0, 0.0, 1.0}, // I
+        {0.0, 1.0, 1.0, 0.0}  // X
+    };
+    np.probabilities = {0.5, 0.5};
+    noise_points.push_back(np);
+  }
+  
+  ProbabilisticSamplingStrategy strategy(42);
+  
+  auto trajectories = strategy.generateTrajectories(noise_points, 100);
+  
+  EXPECT_EQ(trajectories.size(), 4);
+  
+  std::set<std::string> patterns;
+  for (const auto &traj : trajectories) {
+    std::string pattern;
+    for (const auto &sel : traj.kraus_selections) {
+      pattern += std::to_string(static_cast<std::size_t>(sel.kraus_operator_index));
+    }
+    patterns.insert(pattern);
+  }
+  EXPECT_EQ(patterns.size(), 4);
+}
+
+TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
+  std::vector<NoisePoint> noise_points;
+  
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+  np.kraus_operators = {
+      {1.0, 0.0, 0.0, 1.0}, // I
+      {0.0, 1.0, 1.0, 0.0}, // X
+      {0.0, -1.0, 1.0, 0.0} // Y
+  };
+  np.probabilities = {0.34, 0.33, 0.33};
+  noise_points.push_back(np);
+  
+  ProbabilisticSamplingStrategy strategy(42);
+  
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+  
+  EXPECT_EQ(trajectories.size(), 3);
+  
+  std::set<std::size_t> operator_indices;
+  for (const auto &traj : trajectories) {
+    EXPECT_EQ(traj.kraus_selections.size(), 1);
+    operator_indices.insert(static_cast<std::size_t>(traj.kraus_selections[0].kraus_operator_index));
+  }
+  EXPECT_EQ(operator_indices.size(), 3);
+}
+
+TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
+  std::vector<NoisePoint> noise_points;
+  
+  for (int i = 0; i < 10; ++i) {
+    NoisePoint np;
+    np.circuit_location = i;
+    np.qubits = {0};
+    np.op_name = "h";
+    np.kraus_operators = {
+        {1.0, 0.0, 0.0, 1.0},
+        {0.0, 1.0, 1.0, 0.0},
+        {0.0, -1.0, 1.0, 0.0},
+        {1.0, 0.0, 0.0, -1.0}
+    };
+    np.probabilities = {0.25, 0.25, 0.25, 0.25};
+    noise_points.push_back(np);
+  }
+  
+  ProbabilisticSamplingStrategy strategy(42);
+  
+  auto trajectories = strategy.generateTrajectories(noise_points, 50);
+  
+  EXPECT_EQ(trajectories.size(), 50);
+  
+  std::set<std::vector<std::size_t>> patterns;
+  for (const auto &traj : trajectories) {
+    std::vector<std::size_t> pattern;
+    for (const auto &sel : traj.kraus_selections) {
+      pattern.push_back(static_cast<std::size_t>(sel.kraus_operator_index));
+    }
+    patterns.insert(pattern);
+  }
+  EXPECT_EQ(patterns.size(), 50);
+}
+
 TEST(ExhaustiveSamplingStrategyTest, GeneratesAllTrajectories) {
   auto noise_points = createSimpleNoisePoints();
   ExhaustiveSamplingStrategy strategy;
