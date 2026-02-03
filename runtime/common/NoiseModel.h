@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <functional>
 #include <math.h>
+#include <optional>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -98,6 +99,28 @@ static constexpr const char *noise_model_strings[] = {
     "depolarization2"};
 
 std::string get_noise_model_type_name(noise_model_type type);
+
+/// @brief Check whether a matrix is a scaled unitary matrix, i.e., `k * U`
+/// where U is a unitary matrix. If so, returns the `k` factor.
+/// Otherwise, returns std::nullopt.
+///
+/// @param mat Flattened row-major matrix
+/// @param eps Numerical tolerance for comparisons
+/// @return Scale factor k if matrix is k*U where U is unitary, nullopt otherwise
+std::optional<double>
+isScaledUnitary(const std::vector<std::complex<double>> &mat,
+                double eps = 1e-6);
+
+/// @brief Determine if a vector of Kraus operators forms a valid unitary mixture.
+/// If so, returns the unitaries and their probabilities.
+///
+/// @param krausOps Vector of Kraus operator matrices
+/// @param tol Numerical tolerance for validation
+/// @return Pair of (probabilities, unitary_matrices) if valid, nullopt otherwise
+std::optional<std::pair<std::vector<double>,
+                        std::vector<std::vector<std::complex<double>>>>>
+computeUnitaryMixture(const std::vector<std::vector<std::complex<double>>> &krausOps,
+                      double tol = 1e-6);
 
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix

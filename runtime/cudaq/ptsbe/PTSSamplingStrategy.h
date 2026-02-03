@@ -38,15 +38,34 @@ struct NoisePoint {
   /// @brief Probabilities for each Kraus operator
   std::vector<double> probabilities;
 
-  /// @brief Check if this is a unitary mixture channel
-  /// @return true if all probabilities sum to ~1.0
-  [[nodiscard]] bool isUnitaryMixture() const {
-    double sum = 0.0;
-    for (auto p : probabilities)
-      sum += p;
-    return std::abs(sum - 1.0) < 1e-9;
-  }
+  /// @brief Check if this noise channel is a valid unitary mixture
+  ///
+  /// @param tolerance Numerical tolerance for comparisons (default: 1e-6)
+  /// @return true if valid unitary mixture, false otherwise
+  [[nodiscard]] bool isUnitaryMixture(double tolerance = 1e-6) const;
 };
+
+/// @brief Compute total trajectory space with overflow protection
+///
+/// Calculates the combinatoric product of operator counts across all noise points.
+/// For N noise points with k_i operators each: total = k_1 × k_2 × ... × k_N
+///
+/// @param noise_points Noise information from circuit analysis
+/// @return Total number of unique trajectories, capped at 2^40 (~1 trillion cap) to prevent overflow
+inline std::size_t computeTotalTrajectories(std::span<const NoisePoint> noise_points) {
+  constexpr std::size_t MAX_SAFE = std::size_t(1) << 40;
+  std::size_t total = 1;
+
+  for (const auto& np : noise_points) {
+    std::size_t count = np.kraus_operators.size();
+    if (total > MAX_SAFE / count) {
+      return MAX_SAFE;
+    }
+    total *= count;
+  }
+
+  return total;
+}
 
 /// @brief Base class for trajectory sampling strategies
 /// The sampling strategy receives processed noise information from the engine

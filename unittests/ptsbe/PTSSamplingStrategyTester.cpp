@@ -421,6 +421,39 @@ TEST(ConditionalSamplingStrategyTest, EmptyNoisePoints) {
   EXPECT_EQ(trajectories.size(), 0);
 }
 
+TEST(ConditionalSamplingStrategyTest, ReproducibilityWithSeed) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
+
+  ConditionalSamplingStrategy strategy1(predicate, 12345);
+  ConditionalSamplingStrategy strategy2(predicate, 12345);
+  ConditionalSamplingStrategy strategy3(predicate, 54321);
+
+  auto trajectories1 = strategy1.generateTrajectories(noise_points, 4);
+  auto trajectories2 = strategy2.generateTrajectories(noise_points, 4);
+  auto trajectories3 = strategy3.generateTrajectories(noise_points, 4);
+
+  EXPECT_EQ(trajectories1.size(), trajectories2.size());
+  for (size_t i = 0; i < trajectories1.size(); ++i) {
+    EXPECT_EQ(trajectories1[i].trajectory_id, trajectories2[i].trajectory_id);
+    EXPECT_NEAR(trajectories1[i].probability, trajectories2[i].probability,
+                cudaq::PROBABILITY_EPSILON);
+  }
+
+  bool different = false;
+  if (trajectories1.size() != trajectories3.size()) {
+    different = true;
+  } else {
+    for (size_t i = 0; i < trajectories1.size(); ++i) {
+      if (trajectories1[i].trajectory_id != trajectories3[i].trajectory_id) {
+        different = true;
+        break;
+      }
+    }
+  }
+}
+
 TEST(ConditionalSamplingStrategyTest, StrategyName) {
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
   ConditionalSamplingStrategy strategy(predicate);
@@ -494,4 +527,61 @@ TEST(NoisePointTest, IsUnitaryMixtureWithTolerance) {
   np.probabilities = {0.33333333, 0.33333333, 0.33333334};
 
   EXPECT_TRUE(np.isUnitaryMixture());
+}
+
+TEST(NoisePointTest, FullUnitaryMixtureValidation) {
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+
+  double p0 = 0.7, p1 = 0.1, p2 = 0.1, p3 = 0.1;
+  std::complex<double> i{0.0, 1.0};
+
+  np.kraus_operators.push_back({
+    std::sqrt(p0), 0.0,
+    0.0, std::sqrt(p0)
+  });
+
+  np.kraus_operators.push_back({
+    0.0, std::sqrt(p1),
+    std::sqrt(p1), 0.0
+  });
+
+  np.kraus_operators.push_back({
+    0.0, -i * std::sqrt(p2),
+    i * std::sqrt(p2), 0.0
+  });
+
+  np.kraus_operators.push_back({
+    std::sqrt(p3), 0.0,
+    0.0, -std::sqrt(p3)
+  });
+
+  np.probabilities = {p0, p1, p2, p3};
+
+  EXPECT_TRUE(np.isUnitaryMixture());
+}
+
+TEST(NoisePointTest, NonUnitaryKrausOperators) {
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+
+  double gamma = 0.3;
+
+  np.kraus_operators.push_back({
+    1.0, 0.0,
+    0.0, std::sqrt(1.0 - gamma)
+  });
+
+  np.kraus_operators.push_back({
+    0.0, std::sqrt(gamma),
+    0.0, 0.0
+  });
+
+  np.probabilities = {1.0 - gamma, gamma};
+
+  EXPECT_FALSE(np.isUnitaryMixture());
 }
