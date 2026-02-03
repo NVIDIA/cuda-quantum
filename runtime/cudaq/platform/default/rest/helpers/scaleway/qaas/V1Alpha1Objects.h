@@ -26,12 +26,11 @@ struct Platform {
   int64_t max_circuit_count;
   std::string availability;
   std::string metadata;
-  bool is_bookable = false;
 
   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
       Platform, id, version, name, provider_name, backend_name, type,
       technology, max_qubit_count, max_shot_count, max_circuit_count,
-      availability, metadata, description, documentation_url, is_bookable)
+      availability, metadata)
 };
 
 struct Session {
@@ -49,14 +48,13 @@ struct Session {
   std::string deduplication_id = "";
   std::string progress_message = "";
   std::string booking_id = "";
-  std::string model_id = "";
   std::string parameters = "";
 
   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
       Session, id, name, platform_id, created_at, started_at, updated_at,
-      terminated_at, max_idle_duration, max_duration, waiting_job_count,
-      finished_job_count, status, project_id, deduplication_id, origin_type,
-      origin_id, progress_message, booking_id, model_id, parameters)
+      terminated_at, max_idle_duration, max_duration,
+      status, project_id, deduplication_id,
+      progress_message, booking_id, parameters)
 };
 
 struct Model {
@@ -83,7 +81,7 @@ struct Job {
 
   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
       Job, id, name, session_id, created_at, started_at, updated_at, status,
-      progress_message, job_duration, result_distribution, model_id, parameters)
+      progress_message, model_id, parameters)
 
   inline bool is_finished() const {
     return status == "completed" || status == "error" || status == "cancelled";
