@@ -12,6 +12,7 @@
 
 # Source files
 set(PTSBE_SOURCES
+    PTSBESampleIntegration.cpp
     PTSBESampler.cpp
     ShotAllocationStrategy.cpp
 )

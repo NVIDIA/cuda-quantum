@@ -14,7 +14,6 @@
 #include "nvqir/Gates.h"
 #include <concepts>
 #include <cstddef>
-#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -240,40 +239,6 @@ template <typename ScalarType>
 std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
                     const PTSBatch &batch);
-
-/// @brief Execute PTSBE with lifecycle management (templated for direct sim)
-///
-/// Templated version for use when you have a direct simulator reference.
-/// Handles full lifecycle: context, allocation, execution, cleanup.
-///
-/// @tparam SimulatorType Simulator type
-/// @param simulator Circuit simulator instance
-/// @param batch PTSBE specification
-/// @param contextType ExecutionContext type (default: "sample")
-/// @return Per-trajectory sample results
-template <typename SimulatorType>
-std::vector<cudaq::sample_result>
-samplePTSBEWithLifecycle(SimulatorType &simulator, const PTSBatch &batch,
-                          const std::string &contextType = "sample") {
-  cudaq::ExecutionContext ctx(contextType, batch.totalShots());
-  simulator.setExecutionContext(&ctx);
-  simulator.allocateQubits(batch.kernelTrace.getNumQudits());
-
-  // Concept dispatch: use custom sampleWithPTSBE if available
-  std::vector<cudaq::sample_result> results;
-  if constexpr (PTSBECapable<SimulatorType>) {
-    results = simulator.sampleWithPTSBE(batch);
-  } else {
-    results = samplePTSBEGeneric(simulator, batch);
-  }
-
-  std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  simulator.deallocateQubits(qubitIds);
-  simulator.resetExecutionContext();
-
-  return results;
-}
 
 /// @brief Execute PTSBE batch on current simulator
 ///
