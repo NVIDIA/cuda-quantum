@@ -15,6 +15,28 @@
 using json = nlohmann::json;
 using namespace cudaq::qaas::v1alpha1;
 
+long parseDurationToSeconds(const std::string& input) {
+    std::regex re(R"((\d+)([smhd]))");
+    std::smatch match;
+
+    long total_seconds = 0;
+    std::string s = input;
+
+    while (std::regex_search(s, match, re)) {
+        long value = std::stol(match[1]);
+        char unit = match[2].str()[0];
+
+        if (unit == 's') total_seconds += value;
+        else if (unit == 'm') total_seconds += value * 60;
+        else if (unit == 'h') total_seconds += value * 3600;
+        else if (unit == 'd') total_seconds += value * 86400;
+
+        s = match.suffix().str();
+    }
+
+    return total_seconds;
+}
+
 V1Alpha1Client::V1Alpha1Client(const std::string projectId,
                                 const std::string secretKey, std::string url,
                                 bool secure, bool logging) :
@@ -97,8 +119,8 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
   if (!modelId.empty())
     payload["model_id"] = modelId;
 
-  payload["max_duration"] = maxDuration;
-  payload["max_idle_duration"] = maxIdleDuration;
+  payload["max_duration"] = parseDurationToSeconds(maxDuration) + "s";
+  payload["max_idle_duration"] = parseDurationToSeconds(maxIdleDuration) + "s";
 
   if (!parameters.empty()) {
     try {
