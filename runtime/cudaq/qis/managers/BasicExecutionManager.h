@@ -29,11 +29,6 @@ namespace cudaq {
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
 protected:
-  /// @brief Return true if we are in tracer mode
-  bool isInTracerMode() {
-    return executionContext && executionContext->name == "tracer";
-  }
-
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.
@@ -43,9 +38,6 @@ protected:
 
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::vector<Instruction>;
-
-  /// @brief The current execution context, e.g. sampling or observation
-  cudaq::ExecutionContext *executionContext = nullptr;
 
   /// @brief Store qudits for delayed deletion under certain execution contexts
   std::vector<QuditInfo> contextQuditIdsForDeletion;
@@ -74,13 +66,6 @@ protected:
   /// all qudits in the vector.
   virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
-  /// @brief Subtype-specific handler for when the execution context changes
-  virtual void handleExecutionContextChanged() = 0;
-
-  /// @brief Subtype-specific handler for when the current execution context has
-  /// ended.
-  virtual void handleExecutionContextEnded() = 0;
-
   /// @brief Subtype-specific method for affecting the execution of a queued
   /// instruction.
   virtual void executeInstruction(const Instruction &inst) = 0;
@@ -100,29 +85,24 @@ public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
 
-  void setExecutionContext(cudaq::ExecutionContext *_ctx) override {
-    executionContext = _ctx;
-    handleExecutionContextChanged();
+  void beginExecution() override {
+    ScopedTraceWithContext("BasicExecutionManager::beginExecution");
     instructionQueue.clear();
   }
 
-  void resetExecutionContext() override {
-    ScopedTraceWithContext("BasicExecutionManager::resetExecutionContext");
+  void finalizeExecutionContext(ExecutionContext &ctx) override {
+    assert(&ctx == cudaq::getExecutionContext() &&
+           "cannot finalize non-current execution context");
+    ScopedTraceWithContext("BasicExecutionManager::finalizeExecutionContext");
     synchronize();
+  }
 
-    if (!executionContext)
-      return;
-
-    // Do any final post-processing before
-    // we deallocate the qudits
-    handleExecutionContextEnded();
-
+  void endExecution() override {
     deallocateQudits(contextQuditIdsForDeletion);
     for (auto &q : contextQuditIdsForDeletion)
       returnIndex(q.id);
 
     contextQuditIdsForDeletion.clear();
-    executionContext = nullptr;
   }
 
   std::size_t allocateQudit(std::size_t quditLevels) override {
@@ -134,7 +114,7 @@ public:
   }
 
   void returnQudit(const QuditInfo &qid) override {
-    if (!executionContext) {
+    if (!cudaq::getExecutionContext()) {
       deallocateQudit(qid);
       returnIndex(qid.id);
       return;
@@ -260,8 +240,8 @@ public:
       }
 
       auto &&[name, params, controls, targets, op] = instruction;
-      executionContext->kernelTrace.appendInstruction(name, params, controls,
-                                                      targets);
+      cudaq::getExecutionContext()->kernelTrace.appendInstruction(
+          name, params, controls, targets);
     }
     instructionQueue.clear();
   }
@@ -281,6 +261,7 @@ public:
   cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     synchronize();
     measureSpinOp(op);
+    auto executionContext = cudaq::getExecutionContext();
     return std::make_pair(executionContext->expectationValue.value(),
                           executionContext->result);
   }

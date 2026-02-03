@@ -14,14 +14,9 @@ namespace cudaq {
 void RemoteSimulationState::execute() const {
   if (!state) {
     auto &platform = cudaq::get_platform();
-    // Save the outer execution context (if any) so we can restore it after.
-    auto *outerContext = platform.get_exec_ctx();
     // Create an execution context, indicate this is for
     // extracting the state representation
     ExecutionContext context("extract-state");
-    // Perform the usual pattern set the context,
-    // execute and then reset
-    platform.set_exec_ctx(&context);
     // Redirect remote platform log (if any)
     // Note: due to the lazy-evaluation mechanism, the execution on the remote
     // platform may occur during accessor API calls (e.g., amplitude, overlap).
@@ -29,12 +24,9 @@ void RemoteSimulationState::execute() const {
     // potential logging of the result of the API call.
     std::ostringstream remoteLogCout;
     platform.setLogStream(remoteLogCout);
-    platform.launchKernel(kernelName, args);
-    platform.reset_exec_ctx();
+    platform.with_execution_context(
+        context, [&]() { platform.launchKernel(kernelName, args); });
     platform.resetLogStream();
-    // Restore the outer context if there was one.
-    if (outerContext)
-      platform.set_exec_ctx(outerContext);
     // Cache the info log if any.
     platformExecutionLog = remoteLogCout.str();
     state = std::move(context.simulationState);
@@ -149,8 +141,6 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
     return state->getAmplitudes(basisStates);
   }
   auto &platform = cudaq::get_platform();
-  // Save the outer execution context (if any) so we can restore it after.
-  auto *outerContext = platform.get_exec_ctx();
   // Create an execution context, indicate this is for
   // extracting the state representation
   ExecutionContext context("extract-state");
@@ -160,12 +150,8 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   context.amplitudeMaps = std::move(amplitudeMaps);
   // Perform the usual pattern set the context,
   // execute and then reset
-  platform.set_exec_ctx(&context);
-  platform.launchKernel(kernelName, args);
-  platform.reset_exec_ctx();
-  // Restore the outer context if there was one.
-  if (outerContext)
-    platform.set_exec_ctx(outerContext);
+  platform.with_execution_context(
+      context, [&]() { platform.launchKernel(kernelName, args); });
   std::vector<std::complex<double>> amplitudes;
   amplitudes.reserve(basisStates.size());
   for (const auto &basisState : basisStates)
@@ -190,19 +176,14 @@ RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
 
   const auto &otherState = dynamic_cast<const RemoteSimulationState &>(other);
   auto &platform = cudaq::get_platform();
-  // Save the outer execution context (if any) so we can restore it after.
-  auto *outerContext = platform.get_exec_ctx();
   ExecutionContext context("state-overlap");
   context.overlapComputeStates =
       std::make_pair(static_cast<const cudaq::SimulationState *>(this),
                      static_cast<const cudaq::SimulationState *>(&otherState));
-  platform.set_exec_ctx(&context);
-  [[maybe_unused]] auto dynamicResult =
-      platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, {});
-  platform.reset_exec_ctx();
-  // Restore the outer context if there was one.
-  if (outerContext)
-    platform.set_exec_ctx(outerContext);
+  platform.with_execution_context(context, [&]() {
+    [[maybe_unused]] auto dynamicResult =
+        platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, {});
+  });
   assert(context.overlapResult.has_value());
   return context.overlapResult.value();
 }

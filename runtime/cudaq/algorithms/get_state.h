@@ -42,21 +42,11 @@ state extractState(KernelFunctor &&kernel) {
   // This can only be done in simulation
   if (!platform.is_simulator())
     throw std::runtime_error("Cannot use get_state on a physical QPU.");
-  // Save the outer execution context (if any) so we can restore it after.
-  auto *outerContext = platform.get_exec_ctx();
   // Create an execution context, indicate this is for
   // extracting the state representation
   ExecutionContext context("extract-state");
 
-  // Perform the usual pattern set the context,
-  // execute and then reset
-  platform.set_exec_ctx(&context);
-  kernel();
-  platform.reset_exec_ctx();
-
-  // Restore the outer context if there was one.
-  if (outerContext)
-    platform.set_exec_ctx(outerContext);
+  platform.with_execution_context(context, std::forward<KernelFunctor>(kernel));
 
   // Return the state data. Since the ExecutionContext
   // is done being used, we'll move the simulation state
@@ -90,9 +80,8 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         context.asyncExec = true;
         context.qpuId = qpu_id;
         // Set the platform and the qpu id.
-        platform.set_exec_ctx(&context);
-        func();
-        platform.reset_exec_ctx();
+        platform.with_execution_context(context,
+                                        std::forward<KernelFunctor>(func));
         // Extract state data
         p.set_value(state(context.simulationState.release()));
       });

@@ -74,18 +74,8 @@ def __broadcastSample(kernel,
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
-        cudaq_runtime.setExecutionContext(ctx)
-        try:
+        with ctx:
             kernel(*a)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         res = ctx.result
         results.append(res)
 
@@ -183,21 +173,11 @@ def sample(kernel,
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.explicitMeasurements = explicit_measurements
     ctx.allowJitEngineCaching = True
-    cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
-        try:
+        with ctx:
             kernel(*args)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         # If the platform is a hardware QPU, launch only once
         countsTotalIsZero = counts.get_total_shots() == 0
         resultTotalWasReached = ctx.result.get_total_shots() == shots_count
@@ -218,9 +198,6 @@ def sample(kernel,
                   "loop.")
             break
         ctx.result.clear()
-        if counts.get_total_shots() < shots_count:
-            cudaq_runtime.setExecutionContext(ctx)
-
     cudaq_runtime.unset_noise()
     ctx.unset_jit_engine()
     return counts
