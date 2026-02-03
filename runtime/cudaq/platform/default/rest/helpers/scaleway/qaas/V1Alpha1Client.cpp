@@ -119,8 +119,8 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
   if (!modelId.empty())
     payload["model_id"] = modelId;
 
-  payload["max_duration"] = parseDurationToSeconds(maxDuration) + "s";
-  payload["max_idle_duration"] = parseDurationToSeconds(maxIdleDuration) + "s";
+  payload["max_duration"] = std::to_string(parseDurationToSeconds(maxDuration)) + "s";
+  payload["max_idle_duration"] = std::to_string(parseDurationToSeconds(maxIdleDuration)) + "s";
 
   if (!parameters.empty()) {
     try {
