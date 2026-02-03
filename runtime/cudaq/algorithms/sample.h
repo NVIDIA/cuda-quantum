@@ -288,16 +288,8 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   platform.set_noise(&options.noise);
 
   sample_result ret;
-  // TODO: Only have added PTSBE to this core sample method right now.
-  // If we agree on the approach I will add to others.
   if (options.use_ptsbe) {
-    if (options.noise.empty())
-      throw std::runtime_error(
-          "PTSBE requires a noise model to be set. Please provide a noise "
-          "model in sample_options.");
-    if (!platform.is_simulator())
-      throw std::runtime_error("PTSBE is only supported on simulators.");
-    ret = ptsbe::runSamplingPTSBE(
+        ret = ptsbe::runSamplingPTSBE(
         [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
         kernelName, shots);
   } else {
@@ -410,6 +402,14 @@ async_sample_result sample_async(const sample_options &options,
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
+
+  if (options.use_ptsbe) {
+    return ptsbe::runSamplingAsyncPTSBE(
+        [&kernel, ... args = std::forward<Args>(args)]() mutable {
+          kernel(std::forward<Args>(args)...);
+        },
+        platform, kernelName, options.shots, qpu_id);
+  }
 
   auto ret = details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
@@ -534,21 +534,36 @@ std::vector<sample_result> sample(const sample_options &options,
 
   platform.set_noise(&options.noise);
 
+  // Validate PTSBE upfront so exceptions are thrown in calling thread
+  if (options.use_ptsbe)
+    ptsbe::validatePTSBEPreconditions(platform);
+
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.
   details::BroadcastFunctorType<sample_result, Args...> functor =
-      [&, explicit_mz = options.explicit_measurements](
-          std::size_t qpuId, std::size_t counter, std::size_t N,
-          Args &...singleIterParameters) -> sample_result {
+      [&, explicit_mz = options.explicit_measurements,
+       use_ptsbe = options.use_ptsbe](std::size_t qpuId, std::size_t counter,
+                                      std::size_t N,
+                                      Args &...singleIterParameters)
+      -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
-    auto ret = details::runSampling(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   platform, kernelName, shots, explicit_mz, qpuId, nullptr,
-                   counter, N)
-                   .value();
-    return ret;
+
+    if (use_ptsbe) {
+      return ptsbe::runSamplingPTSBE(
+          [&kernel, &singleIterParameters...]() mutable {
+            kernel(std::forward<Args>(singleIterParameters)...);
+          },
+          platform, kernelName, shots);
+    }
+
+    // Standard path
+    return details::runSampling(
+               [&kernel, &singleIterParameters...]() mutable {
+                 kernel(std::forward<Args>(singleIterParameters)...);
+               },
+               platform, kernelName, shots, explicit_mz, qpuId, nullptr,
+               counter, N)
+        .value();
   };
 
   // Broadcast the executions and return the results.

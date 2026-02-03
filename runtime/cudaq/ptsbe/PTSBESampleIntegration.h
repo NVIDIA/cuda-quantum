@@ -25,8 +25,10 @@
 
 #include "PTSBESampler.h"
 #include "common/ExecutionContext.h"
+#include "common/Future.h"
 #include "cudaq/platform.h"
 #include "cudaq/simulators.h"
+#include <optional>
 #include <stdexcept>
 
 namespace cudaq::ptsbe {
@@ -59,14 +61,18 @@ bool hasConditionalFeedback(const std::string &kernelName,
 /// @param kernelName Name of the kernel being validated
 /// @param ctx ExecutionContext populated after kernel tracing
 /// @throws std::runtime_error if kernel is not eligible for PTSBE
-void validatePTSBEEligibility(const std::string &kernelName,
-                              const ExecutionContext &ctx);
+void validatePTSBEKernel(const std::string &kernelName,
+                         const ExecutionContext &ctx);
 
 /// @brief Check if context indicates mid-circuit measurements (legacy API)
 bool hasMidCircuitMeasurements(const ExecutionContext &ctx);
 
 /// @brief Throw if mid-circuit measurements detected (legacy API)
 void throwIfMidCircuitMeasurements(const ExecutionContext &ctx);
+
+/// @brief Validate platform preconditions for PTSBE execution
+void validatePTSBEPreconditions(quantum_platform &platform,
+                                std::optional<std::size_t> qpu_id = std::nullopt);
 
 /// @brief Extract measurement qubits from kernel trace
 ///
@@ -88,11 +94,14 @@ std::vector<std::size_t> extractMeasureQubits(const Trace &trace);
 /// @param kernelName Name of the kernel (for diagnostics and MCM detection)
 /// @param shots Number of shots for trajectory allocation
 /// @return Aggregated sample_result from all trajectories
-/// @throws std::runtime_error if dynamic circuit detected or not implemented
+/// @throws std::runtime_error if platform is not a simulator, noise model is
+///         missing, or dynamic circuit detected
 template <typename KernelFunctor>
 sample_result
 runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                  const std::string &kernelName, std::size_t shots) {
+  validatePTSBEPreconditions(platform);
+
   // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext traceCtx("tracer");
   platform.set_exec_ctx(&traceCtx);
@@ -100,7 +109,7 @@ runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   platform.reset_exec_ctx();
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
-  validatePTSBEEligibility(kernelName, traceCtx);
+  validatePTSBEKernel(kernelName, traceCtx);
 
   // Stage 2: Construct PTSBatch from trace
   PTSBatch batch;
@@ -139,6 +148,42 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   batch.kernelTrace = std::move(traceCtx.kernelTrace);
   batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
   return batch;
+}
+
+/// @brief Run PTSBE sampling asynchronously
+///
+/// Internal function called from cudaq::sample_async() when use_ptsbe=true.
+/// Creates a KernelExecutionTask that runs PTSBE and enqueues it for async
+/// execution.
+///
+/// PTSBE does not support remote execution - this function will reject
+/// remote platforms.
+///
+/// @tparam KernelFunctor Wrapped kernel functor type
+/// @param wrappedKernel Functor that invokes the quantum kernel
+/// @param platform Reference to the quantum platform
+/// @param kernelName Name of the kernel (for diagnostics and MCM detection)
+/// @param shots Number of shots for trajectory allocation
+/// @param qpu_id The QPU ID to execute on
+/// @return async_result<sample_result> that resolves to the sampling result
+/// @throws std::runtime_error if platform is remote (PTSBE is local-only)
+template <typename KernelFunctor>
+async_result<sample_result>
+runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                      const std::string &kernelName, std::size_t shots,
+                      std::size_t qpu_id = 0) {
+  // Validate upfront so exceptions are thrown in calling thread
+  validatePTSBEPreconditions(platform, qpu_id);
+
+  // Create async task that runs PTSBE
+  KernelExecutionTask task(
+      [shots, kernelName, &platform,
+       kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
+        return runSamplingPTSBE(kernel, platform, kernelName, shots);
+      });
+
+  return async_result<sample_result>(
+      details::future(platform.enqueueAsyncTask(qpu_id, task)));
 }
 
 /// @brief PTSBE sample implementation (convenience wrapper for testing)

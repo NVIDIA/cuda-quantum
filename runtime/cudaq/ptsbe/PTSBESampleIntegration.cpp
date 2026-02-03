@@ -25,8 +25,8 @@ bool hasConditionalFeedback(const std::string &kernelName,
   return !ctx.registerNames.empty();
 }
 
-void validatePTSBEEligibility(const std::string &kernelName,
-                              const ExecutionContext &ctx) {
+void validatePTSBEKernel(const std::string &kernelName,
+                         const ExecutionContext &ctx) {
   if (hasConditionalFeedback(kernelName, ctx)) {
     throw std::runtime_error(
         "PTSBE does not support dynamic circuits. "
@@ -47,6 +47,22 @@ void throwIfMidCircuitMeasurements(const ExecutionContext &ctx) {
         "Circuits with conditional logic based on measurement outcomes "
         "cannot be pre-trajectory sampled.");
   }
+}
+
+void validatePTSBEPreconditions(quantum_platform &platform,
+                                std::optional<std::size_t> qpu_id) {
+  if (qpu_id && platform.is_remote(*qpu_id))
+    throw std::runtime_error(
+        "PTSBE does not support remote execution. Use a local simulator.");
+
+  if (!platform.is_simulator())
+    throw std::runtime_error("PTSBE is only supported on simulators.");
+
+  const auto *noise = platform.get_noise();
+  if (!noise || noise->empty())
+    throw std::runtime_error(
+        "PTSBE requires a noise model to be set. Please provide a noise "
+        "model in sample_options.");
 }
 
 std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {

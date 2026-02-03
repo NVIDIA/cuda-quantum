@@ -13,6 +13,7 @@
     !defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 #include "CUDAQTestUtils.h"
+#include "cudaq/algorithms/broadcast.h"
 #include "cudaq/algorithms/sample.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
 
@@ -174,9 +175,16 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
 // PTSBE is now fully implemented. With no trajectories generated (POC doesn't
 // have noise model integration yet), it returns an empty result.
 CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsEmptyWithNoTrajectories) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+  auto &platform = cudaq::get_platform();
+  platform.set_noise(&noise);
+
   auto result = sampleWithPTSBE(bellKernel, 1000);
   // No trajectories = empty result
   EXPECT_EQ(result.size(), 0);
+
+  platform.reset_noise();
 }
 
 // Test that a batch with valid trace but no trajectories returns empty results
@@ -255,6 +263,97 @@ CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesParameterizedKernel) {
   EXPECT_EQ(count, 2);
   // 2 qubits
   EXPECT_EQ(batch.measureQubits.size(), 2);
+}
+
+// Test that sample_async() with use_ptsbe=true requires a noise model
+CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithUsePTSBERequiresNoiseModel) {
+  cudaq::sample_options options;
+  options.shots = 1000;
+  options.use_ptsbe = true;
+  // No noise model set
+
+  try {
+    auto future = cudaq::sample_async(options, 0, bellKernel);
+    future.get();
+    FAIL() << "Expected exception not thrown";
+  } catch (const std::runtime_error &e) {
+    std::string msg = e.what();
+    EXPECT_TRUE(msg.find("noise model") != std::string::npos);
+  }
+}
+
+// Test async PTSBE with noise model (returns empty since no trajectories)
+CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithPTSBEAndNoiseModel) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.01));
+
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.use_ptsbe = true;
+  options.noise = noise;
+
+  // Should not throw - PTSBE path with valid noise model
+  auto future = cudaq::sample_async(options, 0, bellKernel);
+  auto result = future.get();
+  // With no trajectories generated (POC), result is empty
+  EXPECT_EQ(result.size(), 0);
+}
+
+// Test that broadcast sample with use_ptsbe=true requires a noise model
+CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithUsePTSBERequiresNoiseModel) {
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.use_ptsbe = true;
+  // No noise model set
+
+  auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
+
+  EXPECT_THROW(cudaq::sample(options, rotationKernel, std::move(params)),
+               std::runtime_error);
+}
+
+// Test broadcast PTSBE with noise model (returns empty results since no
+// trajectories)
+CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithPTSBEAndNoiseModel) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
+
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.use_ptsbe = true;
+  options.noise = noise;
+
+  auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
+
+  // Should not throw - PTSBE path with valid noise model
+  auto results = cudaq::sample(options, rotationKernel, std::move(params));
+  // Returns one result per parameter set
+  EXPECT_EQ(results.size(), 3);
+  // With no trajectories generated (POC), each result is empty
+  for (const auto &result : results) {
+    EXPECT_EQ(result.size(), 0);
+  }
+}
+
+// Test broadcast PTSBE result count matches parameter count
+CUDAQ_TEST(PTSBESampleTest, BroadcastPTSBEResultCountMatchesParams) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
+
+  cudaq::sample_options options;
+  options.shots = 50;
+  options.use_ptsbe = true;
+  options.noise = noise;
+
+  // Test with different parameter counts
+  auto params5 =
+      cudaq::make_argset(std::vector<double>{0.1, 0.2, 0.3, 0.4, 0.5});
+  auto results5 = cudaq::sample(options, rotationKernel, std::move(params5));
+  EXPECT_EQ(results5.size(), 5);
+
+  auto params1 = cudaq::make_argset(std::vector<double>{1.57});
+  auto results1 = cudaq::sample(options, rotationKernel, std::move(params1));
+  EXPECT_EQ(results1.size(), 1);
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
