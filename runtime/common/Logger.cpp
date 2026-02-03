@@ -96,6 +96,7 @@ namespace details {
 void trace(const std::string_view msg) { spdlog::trace(msg); }
 void info(const std::string_view msg) { spdlog::info(msg); }
 void warn(const std::string_view msg) { spdlog::warn(msg); }
+void error(const std::string_view msg) { spdlog::error(msg); }
 void debug(const std::string_view msg) {
 #ifdef CUDAQ_DEBUG
   spdlog::debug(msg);

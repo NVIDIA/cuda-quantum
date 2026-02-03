@@ -698,14 +698,11 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 // user and about the kernel when executed.
 void __quantum__qis__trap(std::int64_t code) {
   if (code == 0) {
-    CUDAQ_WARN("could not autogenerate the adjoint of a kernel");
-    throw std::runtime_error("could not autogenerate the adjoint of a kernel");
+    CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
   } else if (code == 1) {
-    CUDAQ_WARN("unsupported return type from entry-point kernel");
-    throw std::runtime_error("unsupported return type from entry-point kernel");
+    CUDAQ_ERROR("unsupported return type from entry-point kernel");
   } else {
-    CUDAQ_WARN("code generation failure for target");
-    throw std::runtime_error("code generation failure for target");
+    CUDAQ_ERROR("code generation failure for target");
   }
 }
 

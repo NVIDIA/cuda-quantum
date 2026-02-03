@@ -85,7 +85,7 @@ public:
     detail::setExecutionContext(&ctx);
     beginExecution();
 
-    auto cleanup = [&]() {
+    auto cleanup = [this, &ctx, &outerContext]() {
       detail::try_finally(
           [this, &ctx] {
             finalizeExecutionContext(ctx);
