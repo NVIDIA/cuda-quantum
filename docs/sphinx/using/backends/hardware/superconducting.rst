@@ -529,3 +529,66 @@ To see a complete example of using Quantum Circuits' backends, please take a loo
         depend on the selected simulator.  
         
         Any environment variables must be set prior to setting the target or running "`import cudaq`".
+
+TII
++++
+
+.. _tii-backend:
+
+TII offers the possibility to execute CUDA-Q on its superconducting qubits.
+Additionally, the same infrastructure allows to simulate circuits using Qibo: https://qibo.science
+
+Set-up credentials
+
+In order to access TII hardware, a registration is required.
+New accounts can be created here: https://tii.qibo.science
+Authentication can be performed using email and password.
+
+After the first login, users can generate access tokens.
+The personal access token is used as authentication method when using the backend and can be set
+as environment variable (``TII_API_TOKEN``) for convenience.
+
+Parameters
+``````````
+
+Other mandatory parameters are the quantum device on which to execute circuits and
+the project assigned to the user.
+Here is a full list of supported parameters:
+
+- ``api_key``: contains the authentication key. It can be set from environment variables (``TII_API_TOKEN``).
+- ``url``: contains the url of the TII cloud server. The default value points to the current production server at https://tii.qibo.science
+- ``version``: version of the backend (optional).
+- ``device``: hardware device used by the job (required).
+- ``project``: project assigned to the user (required).
+- ``verbatim``: currently not used (set to ``false``).
+
+Submitting jobs
+```````````````
+
+.. tab:: Python
+
+    To set which quantum device is used by the TII backend, ``cudaq.set_target()`` must be invoked first.
+    Assuming that you want to run the circuit on the 5 quibits of the QW11q chip controlled by the line "B",
+    under the "personal" project:
+
+    .. code:: python
+
+        cudaq.set_target("tii", device="qw11q-b", project="personal")
+
+    If the ``TII_API_TOKEN`` variable hasn't been set yet, it can be provided to ``cudaq.set_target()``:
+
+    .. code:: python
+
+        cudaq.set_target("tii", api_key="my_authentication_token", device="qw11q-b", project="personal")
+
+.. tab:: C++
+
+    C++ programs must first be compiled using ``nvq++``.
+
+    When compiling the program, the quantum device and project used by the TII backend must be specified.
+
+    .. code:: bash
+
+        nvq++ --target tii --tii-device qw11q-b --tii-project personal main.cpp -o main.x
+
+    The ``TII_API_TOKEN`` variable must be set when executing the code.
