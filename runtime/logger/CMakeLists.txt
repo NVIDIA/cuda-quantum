@@ -8,7 +8,7 @@
 
 add_library(cudaq-logger
   SHARED
-    Logger.cpp
+    logger.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-logger)
 
