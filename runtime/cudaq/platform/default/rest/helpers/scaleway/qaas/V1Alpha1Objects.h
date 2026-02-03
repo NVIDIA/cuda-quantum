@@ -35,12 +35,41 @@ struct Platform {
   int64_t max_circuit_count = 0;
   std::string availability = "";
   std::string metadata = "";
-
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
-      Platform, id, version, name, provider_name, backend_name, type,
-      technology, max_qubit_count, max_shot_count, max_circuit_count,
-      availability, metadata)
 };
+
+void from_json(const json& j, Platform& p) {
+  get_safe(j, "id", p.id);
+  get_safe(j, "name", p.name);
+  get_safe(j, "version", p.version);
+  get_safe(j, "provider_name", p.provider_name);
+  get_safe(j, "backend_name", p.backend_name);
+  get_safe(j, "type", p.type);
+  get_safe(j, "technology", p.technology);
+  get_safe(j, "availability", p.availability);
+  get_safe(j, "metadata", p.metadata);
+  get_safe(j, "status", p.status);
+  get_safe(j, "max_qubit_count", p.max_qubit_count);
+  get_safe(j, "max_shot_count", p.max_shot_count);
+  get_safe(j, "max_circuit_count", p.max_circuit_count);
+}
+
+void to_json(json& j, const Platform& p) {
+    j = json{
+      {"id", p.id},
+      {"name", p.name},
+      {"version", p.version},
+      {"provider_name", p.provider_name},
+      {"backend_name", p.backend_name},
+      {"type", p.type},
+      {"technology", p.technology},
+      {"availability", p.availability},
+      {"metadata", p.metadata},
+      {"status", p.status},
+      {"max_qubit_count", p.max_qubit_count},
+      {"max_shot_count", p.max_shot_count},
+      {"max_circuit_count", p.max_circuit_count}
+    };
+}
 
 struct Session {
   std::string id = "";
