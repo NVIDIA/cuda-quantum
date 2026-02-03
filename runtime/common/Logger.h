@@ -20,12 +20,13 @@ bool isTimingTagEnabled(int tag);
 namespace details {
 // This enum must match spdlog::level enums. This is checked via static_assert
 // in Logger.cpp.
-enum class LogLevel { trace, debug, info, warn };
+enum class LogLevel { trace, debug, info, warn, error };
 bool should_log(const LogLevel logLevel);
 void trace(const std::string_view msg);
 void info(const std::string_view msg);
 void debug(const std::string_view msg);
 void warn(const std::string_view msg);
+void error(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
 } // namespace details
 
@@ -62,6 +63,7 @@ std::string pathToFileName(const std::string_view fullFilePath);
 
 CUDAQ_LOGGER_DEDUCTION_STRUCT(info);
 CUDAQ_LOGGER_DEDUCTION_STRUCT(warn);
+CUDAQ_LOGGER_DEDUCTION_STRUCT(error);
 
 #ifdef CUDAQ_DEBUG
 CUDAQ_LOGGER_DEDUCTION_STRUCT(debug);
@@ -272,6 +274,12 @@ public:
 
 // The following macros avoid the unnecessary processing cost of argument
 // evaluation and string formation until after the log level check is done.
+#define CUDAQ_ERROR(...)                                                       \
+  do {                                                                         \
+    ::cudaq::error(__VA_ARGS__);                                               \
+    throw std::runtime_error(__VA_ARGS__);                                     \
+  } while (false)
+
 #define CUDAQ_WARN(...)                                                        \
   do {                                                                         \
     if (::cudaq::details::should_log(::cudaq::details::LogLevel::warn)) {      \

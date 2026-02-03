@@ -933,48 +933,65 @@ public:
 };
 
 /// @brief A 2-qubit depolarization error that applies one of the following
-/// errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX,
-/// ZY, and ZZ.
+/// errors with equal probability. Possible errors: IX, IY, IZ, XI, XX, XY, XZ,
+/// YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.
+///
+/// Nielsen & Chuang, "Quantum Computation and Quantum Information" (2010),
+/// Section 8.3.4, Equation 8.106:
+///   E(ρ) = (1-p)ρ + (p/d²-1)∑ P_i ρ P_i
+/// where d=4 for 2 qubits, giving (p/15) for each of the 15 non-identity
+/// two-qubit Pauli operators P_i.
 class depolarization2 : public kraus_channel {
 public:
-  /// @brief Number of parameters. The 1 parameter is the probability that each
-  /// one of the 15 error possibilities list above will occur. Only 1 of the 15
-  /// possible errors will happen (at most).
+  /// @brief Number of parameters. The 1 parameter is the total depolarization
+  /// probability p. Each of the 15 Pauli errors occurs with probability p/15.
   constexpr static std::size_t num_parameters = 1;
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
   depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
-    auto three = static_cast<cudaq::real>(3.);
+    auto fifteen = static_cast<cudaq::real>(15.);
     auto negOne = static_cast<cudaq::real>(-1.);
     auto probability = p[0];
 
-    std::vector<std::vector<cudaq::complex>> singleQubitKraus = {
-        {std::sqrt(1 - probability), 0, 0, std::sqrt(1 - probability)},
-        {0, std::sqrt(probability / three), std::sqrt(probability / three), 0},
-        {0, cudaq::complex{0, negOne * std::sqrt(probability / three)},
-         cudaq::complex{0, std::sqrt(probability / three)}, 0},
-        {std::sqrt(probability / three), 0, 0,
-         negOne * std::sqrt(probability / three)}};
+    std::vector<std::vector<cudaq::complex>> paulis = {
+        // I
+        {1, 0, 0, 1},
+        // X
+        {0, 1, 1, 0},
+        // Y
+        {0, cudaq::complex{0, negOne}, cudaq::complex{0, 1}, 0},
+        // Z
+        {1, 0, 0, negOne}};
 
-    // Generate 2-qubit Kraus operators
-    ops.reserve(singleQubitKraus.size() * singleQubitKraus.size());
-    for (const auto &k1 : singleQubitKraus) {
-      for (const auto &k2 : singleQubitKraus) {
-        ops.push_back(details::kron(k1, 2, 2, k2, 2, 2));
+    ops.reserve(16);
+    for (std::size_t i = 0; i < 4; ++i) {
+      for (std::size_t j = 0; j < 4; ++j) {
+        auto kron_product = details::kron(paulis[i], 2, 2, paulis[j], 2, 2);
+
+        if (i == 0 && j == 0) {
+          for (auto &elem : kron_product) {
+            elem *= std::sqrt(1 - probability);
+          }
+        } else {
+          for (auto &elem : kron_product) {
+            elem *= std::sqrt(probability / fifteen);
+          }
+        }
+        ops.push_back(kron_product);
       }
     }
+
     this->parameters.push_back(probability);
     noise_type = cudaq::noise_model_type::depolarization2;
     validateCompleteness();
     generateUnitaryParameters();
   }
 
-  /// @brief Construct a two qubit Kraus channel that applies a depolarization
-  /// channel on either qubit independently.
+  /// @brief Construct a two qubit depolarization channel.
   ///
-  /// @param probability The probability of any depolarizing error happening in
-  /// the 2 qubits. (Setting this to 1.0 ensures that "II" cannot happen;
-  /// maximal mixing occurs at p = 0.9375.)
+  /// @param probability The total probability p of depolarization.
+  /// With p=1, the channel produces a maximally mixed state.
+  /// Each of the 15 non-identity Pauli errors occurs with probability p/15.
   depolarization2(const real probability)
       : depolarization2(std::vector<cudaq::real>{probability}) {}
   REGISTER_KRAUS_CHANNEL(
