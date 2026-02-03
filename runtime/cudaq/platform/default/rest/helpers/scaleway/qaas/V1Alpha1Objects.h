@@ -134,7 +134,7 @@ struct Job {
           }
       };
 
-      get_safe("id", p.job_id);
+      get_safe("id", p.id);
       get_safe("name", p.name);
       get_safe("session_id", p.session_id);
       get_safe("created_at", p.created_at);
