@@ -14,20 +14,20 @@ using json = nlohmann::json;
 namespace cudaq::qaas::v1alpha1 {
 
 struct Platform {
-  std::string id;
-  std::string version;
-  std::string name;
-  std::string provider_name;
-  std::string backend_name;
-  std::string type;
-  std::string technology;
-  int64_t max_qubit_count;
-  int64_t max_shot_count;
-  int64_t max_circuit_count;
-  std::string availability;
-  std::string metadata;
+  std::string id = "";
+  std::string version = "";
+  std::string name = "";
+  std::string provider_name = "";
+  std::string backend_name = "";
+  std::string type = "";
+  std::string technology = "";
+  int64_t max_qubit_count = 0;
+  int64_t max_shot_count = 0;
+  int64_t max_circuit_count = 0;
+  std::string availability = "";
+  std::string metadata = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Platform, id, version, name, provider_name, backend_name, type,
       technology, max_qubit_count, max_shot_count, max_circuit_count,
       availability, metadata)
@@ -47,14 +47,13 @@ struct Session {
   std::string project_id = "";
   std::string deduplication_id = "";
   std::string progress_message = "";
-  std::string booking_id = "";
   std::string parameters = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Session, id, name, platform_id, created_at, started_at, updated_at,
       terminated_at, max_idle_duration, max_duration,
       status, project_id, deduplication_id,
-      progress_message, booking_id, parameters)
+      progress_message, parameters)
 };
 
 struct Model {
@@ -63,7 +62,7 @@ struct Model {
   std::string url = "";
   std::string project_id = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
                                               project_id)
 };
 
@@ -79,7 +78,7 @@ struct Job {
   std::string model_id = "";
   std::string parameters = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Job, id, name, session_id, created_at, started_at, updated_at, status,
       progress_message, model_id, parameters)
 
@@ -94,7 +93,7 @@ struct JobResult {
   std::string url = "";
   std::string created_at = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
                                               created_at)
 
   inline bool has_inline_result() const {
