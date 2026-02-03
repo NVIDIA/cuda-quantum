@@ -60,14 +60,6 @@ struct Session {
 };
 
 void from_json(const json& j, Session& p) {
-  // auto get_safe = [&](const char* key, std::string& target) {
-  //     if (j.contains(key) && !j[key].is_null()) {
-  //         j.at(key).get_to(target);
-  //     } else {
-  //         target = "";
-  //     }
-  // };
-
   get_safe(j, "id", p.id);
   get_safe(j, "name", p.name);
   get_safe(j, "platform_id", p.platform_id);
@@ -111,36 +103,18 @@ struct Model {
 };
 
 void from_json(const json& j, Model& p) {
-  // auto get_safe = [&](const char* key, std::string& target) {
-  //     if (j.contains(key) && !j[key].is_null()) {
-  //         j.at(key).get_to(target);
-  //     } else {
-  //         target = "";
-  //     }
-  // };
-
   get_safe(j, "id", p.id);
   get_safe(j, "project_id", p.project_id);
   get_safe(j, "url", p.url);
   get_safe(j, "created_at", p.created_at);
 }
 
-void to_json(json& j, const Session& p) {
+void to_json(json& j, const Model& p) {
     j = json{
         {"id", p.id},
-        {"name", p.name},
-        {"platform_id", p.platform_id},
         {"created_at", p.created_at},
-        {"started_at", p.started_at},
-        {"updated_at", p.updated_at},
-        {"terminated_at", p.terminated_at},
-        {"max_idle_duration", p.max_idle_duration},
-        {"max_duration", p.max_duration},
-        {"status", p.status},
-        {"project_id", p.project_id},
-        {"deduplication_id", p.deduplication_id},
-        {"progress_message", p.progress_message},
-        {"parameters", p.parameters}
+        {"url", p.url},
+        {"project_id", p.project_id}
     };
 }
 
@@ -162,24 +136,16 @@ struct Job {
 };
 
 void from_json(const json& j, Job& p) {
-    // auto get_safe = [&](const char* key, std::string& target) {
-    //     if (j.contains(key) && !j[key].is_null()) {
-    //         j.at(key).get_to(target);
-    //     } else {
-    //         target = "";
-    //     }
-    // };
-
-    get_safe(j, "id", p.id);
-    get_safe(j, "name", p.name);
-    get_safe(j, "session_id", p.session_id);
-    get_safe(j, "created_at", p.created_at);
-    get_safe(j, "started_at", p.started_at);
-    get_safe(j, "updated_at", p.updated_at);
-    get_safe(j, "status", p.status);
-    get_safe(j, "progress_message", p.progress_message);
-    get_safe(j, "model_id", p.model_id);
-    get_safe(j, "parameters", p.parameters);
+  get_safe(j, "id", p.id);
+  get_safe(j, "name", p.name);
+  get_safe(j, "session_id", p.session_id);
+  get_safe(j, "created_at", p.created_at);
+  get_safe(j, "started_at", p.started_at);
+  get_safe(j, "updated_at", p.updated_at);
+  get_safe(j, "status", p.status);
+  get_safe(j, "progress_message", p.progress_message);
+  get_safe(j, "model_id", p.model_id);
+  get_safe(j, "parameters", p.parameters);
 }
 
 void to_json(json& j, const Job& p) {
@@ -213,14 +179,6 @@ struct JobResult {
 };
 
 void from_json(const json& j, JobResult& p) {
-  // auto get_safe = [&](const char* key, std::string& target) {
-  //     if (j.contains(key) && !j[key].is_null()) {
-  //         j.at(key).get_to(target);
-  //     } else {
-  //         target = "";
-  //     }
-  // };
-
   get_safe(j, "job_id", p.job_id);
   get_safe(j, "result", p.result);
   get_safe(j, "url", p.url);
