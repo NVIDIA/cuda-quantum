@@ -47,7 +47,6 @@ void from_json(const json& j, Platform& p) {
   get_safe(j, "technology", p.technology);
   get_safe(j, "availability", p.availability);
   get_safe(j, "metadata", p.metadata);
-  get_safe(j, "status", p.status);
   get_safe(j, "max_qubit_count", p.max_qubit_count);
   get_safe(j, "max_shot_count", p.max_shot_count);
   get_safe(j, "max_circuit_count", p.max_circuit_count);
@@ -64,7 +63,6 @@ void to_json(json& j, const Platform& p) {
       {"technology", p.technology},
       {"availability", p.availability},
       {"metadata", p.metadata},
-      {"status", p.status},
       {"max_qubit_count", p.max_qubit_count},
       {"max_shot_count", p.max_shot_count},
       {"max_circuit_count", p.max_circuit_count}
