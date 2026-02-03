@@ -21,9 +21,8 @@ auto kernel_with_conditional_on_function = []() __qpu__ {
 };
 
 int main() {
-  cudaq::sample_options options{.shots = 10, .explicit_measurements = true};
-  cudaq::sample(options, kernel_with_conditional_on_function);
+  cudaq::sample(kernel_with_conditional_on_function);
   return 0;
 }
 
-// FAIL: not supported on a kernel with conditional logic on a measurement result
+// FAIL: no longer support kernels that branch on measurement results
