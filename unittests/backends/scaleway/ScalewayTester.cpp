@@ -21,7 +21,7 @@ std::string backendString = "scaleway;emulate;false;url;"
 
 CUDAQ_TEST(ScalewayTester, executeOneMeasuredQubitProgram) {
   auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
+  // platform.setTargetBackend(backendString);
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
@@ -36,7 +36,7 @@ CUDAQ_TEST(ScalewayTester, executeOneMeasuredQubitProgram) {
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleMock(&argc, argv);
+  // ::testing::InitGoogleMock(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;
 }

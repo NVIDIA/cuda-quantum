@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: scaleway
+name: "scaleway"
 description: "CUDA-Q target for Scaleway Quantum-as-a-Service."
 
 config:
@@ -19,10 +19,9 @@ config:
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
-  # jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "lower-to-cfg,decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   # Tell the rest-qpu that we are generating QIR.
-  codegen-emission: openqasm2
+  codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
