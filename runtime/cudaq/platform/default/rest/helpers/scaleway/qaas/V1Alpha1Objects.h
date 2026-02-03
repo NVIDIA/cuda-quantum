@@ -13,6 +13,15 @@ using json = nlohmann::json;
 
 namespace cudaq::qaas::v1alpha1 {
 
+template <typename T>
+void get_safe(const json& j, const char* key, T& target, const T& default_val = T{}) {
+    if (j.contains(key) && !j[key].is_null()) {
+        j.at(key).get_to(target);
+    } else {
+        target = default_val;
+    }
+}
+
 struct Platform {
   std::string id = "";
   std::string version = "";
@@ -51,13 +60,13 @@ struct Session {
 };
 
 void from_json(const json& j, Session& p) {
-  auto get_safe = [&](const char* key, std::string& target) {
-      if (j.contains(key) && !j[key].is_null()) {
-          j.at(key).get_to(target);
-      } else {
-          target = "";
-      }
-  };
+  // auto get_safe = [&](const char* key, std::string& target) {
+  //     if (j.contains(key) && !j[key].is_null()) {
+  //         j.at(key).get_to(target);
+  //     } else {
+  //         target = "";
+  //     }
+  // };
 
   get_safe("id", p.id);
   get_safe("name", p.name);
@@ -75,6 +84,25 @@ void from_json(const json& j, Session& p) {
   get_safe("parameters", p.parameters);
 }
 
+void to_json(json& j, const Session& p) {
+    j = json{
+        {"id", p.id},
+        {"name", p.name},
+        {"platform_id", p.platform_id},
+        {"created_at", p.created_at},
+        {"started_at", p.started_at},
+        {"updated_at", p.updated_at},
+        {"terminated_at", p.terminated_at},
+        {"max_idle_duration", p.max_idle_duration},
+        {"max_duration", p.max_duration},
+        {"status", p.status},
+        {"project_id", p.project_id},
+        {"deduplication_id", p.deduplication_id},
+        {"progress_message", p.progress_message},
+        {"parameters", p.parameters}
+    };
+}
+
 struct Model {
   std::string id = "";
   std::string created_at = "";
@@ -83,18 +111,37 @@ struct Model {
 };
 
 void from_json(const json& j, Model& p) {
-  auto get_safe = [&](const char* key, std::string& target) {
-      if (j.contains(key) && !j[key].is_null()) {
-          j.at(key).get_to(target);
-      } else {
-          target = "";
-      }
-  };
+  // auto get_safe = [&](const char* key, std::string& target) {
+  //     if (j.contains(key) && !j[key].is_null()) {
+  //         j.at(key).get_to(target);
+  //     } else {
+  //         target = "";
+  //     }
+  // };
 
   get_safe("id", p.id);
   get_safe("project_id", p.project_id);
   get_safe("url", p.url);
   get_safe("created_at", p.created_at);
+}
+
+void to_json(json& j, const Session& p) {
+    j = json{
+        {"id", p.id},
+        {"name", p.name},
+        {"platform_id", p.platform_id},
+        {"created_at", p.created_at},
+        {"started_at", p.started_at},
+        {"updated_at", p.updated_at},
+        {"terminated_at", p.terminated_at},
+        {"max_idle_duration", p.max_idle_duration},
+        {"max_duration", p.max_duration},
+        {"status", p.status},
+        {"project_id", p.project_id},
+        {"deduplication_id", p.deduplication_id},
+        {"progress_message", p.progress_message},
+        {"parameters", p.parameters}
+    };
 }
 
 struct Job {
@@ -115,13 +162,13 @@ struct Job {
 };
 
 void from_json(const json& j, Job& p) {
-    auto get_safe = [&](const char* key, std::string& target) {
-        if (j.contains(key) && !j[key].is_null()) {
-            j.at(key).get_to(target);
-        } else {
-            target = "";
-        }
-    };
+    // auto get_safe = [&](const char* key, std::string& target) {
+    //     if (j.contains(key) && !j[key].is_null()) {
+    //         j.at(key).get_to(target);
+    //     } else {
+    //         target = "";
+    //     }
+    // };
 
     get_safe("id", p.id);
     get_safe("name", p.name);
@@ -133,6 +180,21 @@ void from_json(const json& j, Job& p) {
     get_safe("progress_message", p.progress_message);
     get_safe("model_id", p.model_id);
     get_safe("parameters", p.parameters);
+}
+
+void to_json(json& j, const Job& p) {
+    j = json{
+        {"id", p.id},
+        {"name", p.name},
+        {"session_id", p.session_id},
+        {"created_at", p.created_at},
+        {"started_at", p.started_at},
+        {"updated_at", p.updated_at},
+        {"status", p.status},
+        {"progress_message", p.progress_message},
+        {"model_id", p.model_id},
+        {"parameters", p.parameters}
+    };
 }
 
 struct JobResult {
@@ -151,17 +213,27 @@ struct JobResult {
 };
 
 void from_json(const json& j, JobResult& p) {
-  auto get_safe = [&](const char* key, std::string& target) {
-      if (j.contains(key) && !j[key].is_null()) {
-          j.at(key).get_to(target);
-      } else {
-          target = "";
-      }
-  };
+  // auto get_safe = [&](const char* key, std::string& target) {
+  //     if (j.contains(key) && !j[key].is_null()) {
+  //         j.at(key).get_to(target);
+  //     } else {
+  //         target = "";
+  //     }
+  // };
 
   get_safe("job_id", p.job_id);
   get_safe("result", p.result);
   get_safe("url", p.url);
   get_safe("created_at", p.created_at);
 }
+
+void to_json(json& j, const JobResult& p) {
+    j = json{
+        {"job_id", p.job_id},
+        {"result", p.result},
+        {"url", p.url},
+        {"created_at", p.created_at}
+    };
+}
+
 } // namespace cudaq::qaas::v1alpha1
