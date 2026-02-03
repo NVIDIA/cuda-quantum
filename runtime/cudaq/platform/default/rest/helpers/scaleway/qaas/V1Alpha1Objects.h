@@ -54,7 +54,7 @@ struct Session {
           if (j.contains(key) && !j[key].is_null()) {
               j.at(key).get_to(target);
           } else {
-<              target = "";
+              target = "";
           }
       };
 
