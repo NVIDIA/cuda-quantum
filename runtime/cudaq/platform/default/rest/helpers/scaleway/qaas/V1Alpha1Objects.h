@@ -73,12 +73,6 @@ struct Session {
       get_safe("progress_message", p.progress_message);
       get_safe("parameters", p.parameters);
   }
-
-  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
-  //     Session, id, name, platform_id, created_at, started_at, updated_at,
-  //     terminated_at, max_idle_duration, max_duration,
-  //     status, project_id, deduplication_id,
-  //     progress_message, parameters)
 };
 
 struct Model {
@@ -87,8 +81,6 @@ struct Model {
   std::string url = "";
   std::string project_id = "";
 
-  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
-  //                                             project_id)
   friend void from_json(const json& j, Model& p) {
     auto get_safe = [&](const char* key, std::string& target) {
         if (j.contains(key) && !j[key].is_null()) {
@@ -117,10 +109,6 @@ struct Job {
   std::string model_id = "";
   std::string parameters = "";
 
-  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
-  //     Job, id, name, session_id, created_at, started_at, updated_at, status,
-  //     progress_message, model_id, parameters)
-
   inline bool is_finished() const {
     return status == "completed" || status == "error" || status == "cancelled";
   }
@@ -130,7 +118,7 @@ struct Job {
           if (j.contains(key) && !j[key].is_null()) {
               j.at(key).get_to(target);
           } else {
-<              target = "";
+              target = "";
           }
       };
 
@@ -152,9 +140,6 @@ struct JobResult {
   std::string result = "";
   std::string url = "";
   std::string created_at = "";
-
-  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
-                                              // created_at)
 
   inline bool has_inline_result() const {
     return !result.empty();
