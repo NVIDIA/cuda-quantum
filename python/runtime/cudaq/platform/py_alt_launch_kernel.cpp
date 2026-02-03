@@ -405,9 +405,31 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         })
         .Case([&](cc::PointerType ty) {
           if (isa<quake::StateType>(ty.getElementType())) {
-            argData.emplace_back(arg.cast<state *>(), [](void *ptr) {
-              /* Do nothing, state is passed as reference */
-            });
+            auto *stateArg = arg.cast<state *>();
+
+            if (stateArg == nullptr)
+              throw std::runtime_error("Null cudaq::state* argument passed.");
+            auto simState = cudaq::state_helper::getSimulationState(
+                const_cast<cudaq::state *>(stateArg));
+            if (!simState)
+              throw std::runtime_error("Error: Unable to retrieve simulation "
+                                       "state from cudaq::state. The state "
+                                       "contains no simulation state.");
+            if (simState->getKernelInfo().has_value()) {
+              // For state arguments represented by a kernel, we need to make a
+              // copy of the state since this state is lazily evaluated. Note:
+              // the state that holds the kernel info also holds ownership of
+              // the packed arguments, hence the unravelling the correct
+              // arguments when evaluated.
+              state *copyState = new state(*stateArg);
+              argData.emplace_back(copyState, [](void *ptr) {
+                delete static_cast<state *>(ptr);
+              });
+            } else {
+              argData.emplace_back(
+                  stateArg,
+                  [](void *ptr) { /* do nothing, we don't own the state */ });
+            }
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
                                      py::str(arg).cast<std::string>() +
