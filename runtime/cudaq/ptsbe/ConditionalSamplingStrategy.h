@@ -10,6 +10,7 @@
 
 #include "PTSSamplingStrategy.h"
 #include <functional>
+#include <random>
 
 namespace cudaq::ptsbe {
 
@@ -22,18 +23,41 @@ using TrajectoryPredicate = std::function<bool(const cudaq::KrausTrajectory &)>;
 /// Samples trajectories that satisfy a user-defined predicate function.
 class ConditionalSamplingStrategy : public PTSSamplingStrategy {
 public:
-  /// @brief Construct with a predicate function
+  /// @brief Construct with a predicate function and optional random seed
   /// @param predicate Function to filter trajectories
-  explicit ConditionalSamplingStrategy(TrajectoryPredicate predicate)
-      : predicate_(std::move(predicate)) {}
+  /// @param seed Random seed for reproducibility
+  explicit ConditionalSamplingStrategy(
+      TrajectoryPredicate predicate,
+      std::uint64_t seed = std::random_device{}())
+      : predicate_(std::move(predicate)), rng_(seed) {}
 
   /// @brief Destructor
   ~ConditionalSamplingStrategy() override;
 
   /// @brief Generate unique trajectories that satisfy the predicate
-  /// @param noise_points Noise information from circuit analysis
-  /// @param max_trajectories Maximum number of unique trajectories to generate
-  /// @return Vector of unique trajectories that pass the predicate filter
+  ///
+  /// Probabilistically samples trajectories from the noise model and filters
+  /// them using the predicate function. Continues sampling until either
+  /// `max_trajectories` matching trajectories are found or the attempt limit
+  /// is reached.
+  ///
+  /// @param noise_points Noise information from circuit analysis. Each entry
+  ///                     represents a location in the circuit where noise can
+  ///                     be applied, with associated Kraus operators and probabilities.
+  /// @param max_trajectories Maximum number of unique trajectories to generate.
+  ///                         May return fewer if the predicate is very restrictive
+  ///                         or if the attempt limit is reached.
+  ///
+  /// @return Vector of unique trajectories that pass the predicate filter.
+  ///         Trajectories are ordered by sampling order (not by probability).
+  ///
+  /// Algorithm:
+  /// 1. For each noise point, randomly sample a Kraus operator based on probabilities
+  /// 2. Build a complete trajectory from all sampled operators
+  /// 3. Check if trajectory pattern is unique
+  /// 4. Apply predicate filter
+  /// 5. If passed, add to results; otherwise, continue sampling
+  /// 6. Stop when max_trajectories collected or max_attempts reached
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
   generateTrajectories(std::span<const NoisePoint> noise_points,
                        std::size_t max_trajectories) const override;
@@ -50,6 +74,7 @@ public:
 
 private:
   TrajectoryPredicate predicate_;
+  mutable std::mt19937_64 rng_;
 };
 
 } // namespace cudaq::ptsbe

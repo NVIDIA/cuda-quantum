@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "ConditionalSamplingStrategy.h"
-#include <ranges>
+#include <set>
 
 namespace cudaq::ptsbe {
 
@@ -25,56 +25,69 @@ ConditionalSamplingStrategy::generateTrajectories(
     return results;
   }
 
-  std::size_t total_trajectories = 1;
-  std::vector<std::size_t> operator_counts;
-  operator_counts.reserve(noise_points.size());
+  // Track unique trajectory patterns to avoid duplicates
+  // Pattern = sequence of Kraus operator indices [op0_idx, op1_idx, ...]
+  std::set<std::vector<std::size_t>> seen_patterns;
 
-  for (const auto &noise_point : noise_points) {
-    std::size_t count = noise_point.kraus_operators.size();
-    operator_counts.push_back(count);
-    total_trajectories *= count;
-  }
+  std::size_t total_possible = computeTotalTrajectories(noise_points);
+  std::size_t actual_target = std::min(max_trajectories, total_possible);
 
-  std::vector<std::size_t> indices(noise_points.size(), 0);
   std::size_t trajectory_id = 0;
+  std::size_t max_attempts = actual_target * 100;
+  std::size_t attempts = 0;
 
-  for (std::size_t candidate_id = 0;
-       candidate_id < total_trajectories && results.size() < max_trajectories;
-       ++candidate_id) {
+  // Sample until we have max_trajectories unique trajectories that pass the predicate
+  while (results.size() < max_trajectories && attempts < max_attempts) {
+    attempts++;
 
+    // For each noise point (location where noise can occur):
+    // - Sample which Kraus operator to apply at that location
+    // - indices[i] selects from noise_points[i].kraus_operators
     std::vector<KrausSelection> selections;
-    selections.reserve(noise_points.size());
+    std::vector<std::size_t> pattern;
     double probability = 1.0;
 
-    for (std::size_t i = 0; i < noise_points.size(); ++i) {
-      const auto &noise_point = noise_points[i];
-      std::size_t op_idx = indices[i];
+    selections.reserve(noise_points.size());
+    pattern.reserve(noise_points.size());
 
+    // Sample trajectory: for each noise point, choose which Kraus operator to apply
+    for (const auto& noise_point : noise_points) {
+      // Use discrete distribution to sample according to operator probabilities
+      // This ensures high-probability errors are sampled more often
+      std::discrete_distribution<std::size_t> dist(
+        noise_point.probabilities.begin(),
+        noise_point.probabilities.end()
+      );
+      std::size_t sampled_idx = dist(rng_);
+      pattern.push_back(sampled_idx);
+
+      // Build KrausSelection: "at circuit_location, apply Kraus operator #sampled_idx"
+      // The actual unitary matrix is noise_point.kraus_operators[sampled_idx]
+      // Conversion to simulator task happens later in PTSBEInterface::krausSelectionToTask()
       selections.push_back(KrausSelection{
-          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
-          static_cast<KrausOperatorType>(op_idx)});
+        noise_point.circuit_location,
+        noise_point.qubits,
+        noise_point.op_name,
+        static_cast<KrausOperatorType>(sampled_idx)
+      });
 
-      probability *= noise_point.probabilities[op_idx];
+      probability *= noise_point.probabilities[sampled_idx];
     }
 
-    auto trajectory = KrausTrajectory::builder()
-                          .setId(trajectory_id)
-                          .setSelections(std::move(selections))
-                          .setProbability(probability)
-                          .build();
+    if (seen_patterns.insert(pattern).second) {
+      auto trajectory = KrausTrajectory::builder()
+                        .setId(trajectory_id)
+                        .setSelections(std::move(selections))
+                        .setProbability(probability)
+                        .build();
 
-    if (predicate_(trajectory)) {
-      results.push_back(std::move(trajectory));
-      trajectory_id++;
-    }
-
-    for (std::size_t i = 0; i < indices.size(); ++i) {
-      indices[i]++;
-      if (indices[i] < operator_counts[i]) {
-        break;
+      if (predicate_(trajectory)) {
+        results.push_back(std::move(trajectory));
+        trajectory_id++;
       }
-      indices[i] = 0;
+      // If predicate fails, trajectory is discarded and we continue sampling
     }
+    // If duplicate pattern, discard and continue sampling
   }
 
   return results;
