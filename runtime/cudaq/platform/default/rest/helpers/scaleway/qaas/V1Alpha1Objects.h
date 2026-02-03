@@ -37,28 +37,28 @@ struct Platform {
 };
 
 struct Session {
-  std::string id;
-  std::string name;
-  std::string platform_id;
-  std::string created_at;
-  std::string started_at;
-  std::string updated_at;
-  std::string terminated_at;
-  std::string max_idle_duration;
-  std::string max_duration;
-  int64_t waiting_job_count;
-  int64_t finished_job_count;
-  std::string status;
-  std::string project_id;
-  std::string deduplication_id;
-  std::string origin_type;
-  std::string origin_id;
-  std::string progress_message;
-  std::string booking_id;
-  std::string model_id;
-  std::string parameters;
+  std::string id = "";
+  std::string name = "";
+  std::string platform_id = "";
+  std::string created_at = "";
+  std::string started_at = "";
+  std::string updated_at = "";
+  std::string terminated_at = "";
+  std::string max_idle_duration = "";
+  std::string max_duration = "";
+  int64_t waiting_job_count = 0;
+  int64_t finished_job_count = 0;
+  std::string status = "";
+  std::string project_id = "";
+  std::string deduplication_id = "";
+  std::string origin_type = "";
+  std::string origin_id = "";
+  std::string progress_message = "";
+  std::string booking_id = "";
+  std::string model_id = "";
+  std::string parameters = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
       Session, id, name, platform_id, created_at, started_at, updated_at,
       terminated_at, max_idle_duration, max_duration, waiting_job_count,
       finished_job_count, status, project_id, deduplication_id, origin_type,
@@ -66,30 +66,30 @@ struct Session {
 };
 
 struct Model {
-  std::string id;
-  std::string created_at;
-  std::string url;
-  std::string project_id;
+  std::string id = "";
+  std::string created_at = "";
+  std::string url = "";
+  std::string project_id = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Model, id, created_at, url,
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
                                               project_id)
 };
 
 struct Job {
-  std::string id;
-  std::string name;
-  std::string session_id;
-  std::string created_at;
-  std::string started_at;
-  std::string updated_at;
-  std::string status;
-  std::string progress_message;
-  std::string job_duration;
-  std::string result_distribution;
-  std::string model_id;
-  std::string parameters;
+  std::string id = "";
+  std::string name = "";
+  std::string session_id = "";
+  std::string created_at = "";
+  std::string started_at = "";
+  std::string updated_at = "";
+  std::string status = "";
+  std::string progress_message = "";
+  std::string job_duration = "";
+  std::string result_distribution = "";
+  std::string model_id = "";
+  std::string parameters = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
       Job, id, name, session_id, created_at, started_at, updated_at, status,
       progress_message, job_duration, result_distribution, model_id, parameters)
 
@@ -99,12 +99,12 @@ struct Job {
 };
 
 struct JobResult {
-  std::string job_id;
-  std::string result;
-  std::string url;
-  std::string created_at;
+  std::string job_id = "";
+  std::string result = "";
+  std::string url = "";
+  std::string created_at = "";
 
-  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JobResult, job_id, result, url,
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
                                               created_at)
 
   inline bool has_inline_result() const {
