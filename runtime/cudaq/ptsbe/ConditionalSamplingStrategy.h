@@ -25,7 +25,7 @@ class ConditionalSamplingStrategy : public PTSSamplingStrategy {
 public:
   /// @brief Construct with a predicate function and optional random seed
   /// @param predicate Function to filter trajectories
-  /// @param seed Random seed for reproducibility
+  /// @param seed Random seed for `reproducibility`
   explicit ConditionalSamplingStrategy(
       TrajectoryPredicate predicate,
       std::uint64_t seed = std::random_device{}())

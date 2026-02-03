@@ -102,11 +102,11 @@ std::string get_noise_model_type_name(noise_model_type type);
 
 /// @brief Check whether a matrix is a scaled unitary matrix, i.e., `k * U`
 /// where U is a unitary matrix. If so, returns the `k` factor.
-/// Otherwise, returns std::nullopt.
+/// Otherwise, returns `nullopt`.
 ///
 /// @param mat Flattened row-major matrix
 /// @param eps Numerical tolerance for comparisons
-/// @return Scale factor k if matrix is k*U where U is unitary, nullopt
+/// @return Scale factor k if matrix is k*U where U is unitary, `nullopt`
 /// otherwise
 std::optional<double>
 isScaledUnitary(const std::vector<std::complex<double>> &mat,
@@ -117,7 +117,7 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat,
 ///
 /// @param krausOps Vector of Kraus operator matrices
 /// @param tol Numerical tolerance for validation
-/// @return Pair of (probabilities, unitary_matrices) if valid, nullopt
+/// @return Pair of (probabilities, unitary_matrices) if valid, `nullopt`
 /// otherwise
 std::optional<std::pair<std::vector<double>,
                         std::vector<std::vector<std::complex<double>>>>>

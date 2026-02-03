@@ -47,7 +47,7 @@ struct NoisePoint {
 
 /// @brief Compute total trajectory space with overflow protection
 ///
-/// Calculates the combinatoric product of operator counts across all noise
+/// Calculates the `combinatoric` product of operator counts across all noise
 /// points. For N noise points with k_i operators each: total = k_1 × k_2 × ...
 /// × k_N
 ///
