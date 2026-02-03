@@ -41,12 +41,12 @@ target-arguments:
     platform-arg: url
     help-string: "Specify TII API server URL."
   - key: device
-    required: false
+    required: true
     type: string
     platform-arg: device
     help-string: "Specify the TII quantum device to use."
   - key: project
-    required: false
+    required: true
     type: string
     platform-arg: project
     help-string: "Specify the TII project to use."
