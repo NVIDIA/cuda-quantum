@@ -71,8 +71,9 @@ bool hasMidCircuitMeasurements(const ExecutionContext &ctx);
 void throwIfMidCircuitMeasurements(const ExecutionContext &ctx);
 
 /// @brief Validate platform preconditions for PTSBE execution
-void validatePTSBEPreconditions(quantum_platform &platform,
-                                std::optional<std::size_t> qpu_id = std::nullopt);
+void validatePTSBEPreconditions(
+    quantum_platform &platform,
+    std::optional<std::size_t> qpu_id = std::nullopt);
 
 /// @brief Extract measurement qubits from kernel trace
 ///

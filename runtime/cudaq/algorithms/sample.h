@@ -289,7 +289,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
 
   sample_result ret;
   if (options.use_ptsbe) {
-        ret = ptsbe::runSamplingPTSBE(
+    ret = ptsbe::runSamplingPTSBE(
         [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
         kernelName, shots);
   } else {
@@ -542,10 +542,9 @@ std::vector<sample_result> sample(const sample_options &options,
   // all requested argument sets provided.
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&, explicit_mz = options.explicit_measurements,
-       use_ptsbe = options.use_ptsbe](std::size_t qpuId, std::size_t counter,
-                                      std::size_t N,
-                                      Args &...singleIterParameters)
-      -> sample_result {
+       use_ptsbe = options.use_ptsbe](
+          std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
 
     if (use_ptsbe) {
