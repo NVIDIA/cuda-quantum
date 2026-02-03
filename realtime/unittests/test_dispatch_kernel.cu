@@ -593,7 +593,6 @@ TEST(GraphLaunchTest, DispatchKernelGraphLaunch) {
     CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
     d_shutdown = static_cast<volatile int*>(tmp_d_shutdown);
   }
-  int shutdown_val = 0;  // Local variable for tracking
   
   // Set up stats
   uint64_t* d_stats;
