@@ -41,7 +41,6 @@ target_include_directories(${LIBRARY_NAME}
         ${CMAKE_SOURCE_DIR}/tpls/eigen
         ${CMAKE_SOURCE_DIR}/runtime)
 
-# Link privately to all dependencies
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
