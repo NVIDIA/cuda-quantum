@@ -29,7 +29,7 @@ struct NoisePoint {
   /// @brief Qubits affected by this noise
   std::vector<std::size_t> qubits;
 
-  /// @brief Gate operation name ("h", "cx")
+  /// @brief Gate operation name ("h", `"cx"`)
   std::string op_name;
 
   /// @brief Kraus operator matrices for this noise channel

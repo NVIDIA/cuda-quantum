@@ -18,7 +18,7 @@ namespace cudaq::ptsbe {
 class ProbabilisticSamplingStrategy : public PTSSamplingStrategy {
 public:
   /// @brief Construct with optional random seed
-  /// @param seed Random seed for reproducibility
+  /// @param seed Random seed for `reproducibility`
   explicit ProbabilisticSamplingStrategy(
       std::uint64_t seed = std::random_device{}())
       : rng_(seed) {}
