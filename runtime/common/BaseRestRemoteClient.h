@@ -381,8 +381,8 @@ public:
         throw std::runtime_error("Missing first input state in state-overlap");
       if (!castedState2->getKernelInfo().has_value())
         throw std::runtime_error("Missing second input state in state-overlap");
-      auto [kernelName1, args1] = castedState1->getKernelInfo().value();
-      auto [kernelName2, args2] = castedState2->getKernelInfo().value();
+      auto [kernelName1, code1, args1] = castedState1->getKernelInfo().value();
+      auto [kernelName2, code2, args2] = castedState2->getKernelInfo().value();
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
 
       stateIrPayload1.entryPoint = kernelName1;

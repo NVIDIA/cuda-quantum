@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target quantinuum %s -o %t && %t || echo "passed" |& FileCheck %s
+// RUN: nvq++ --target quantinuum %s -o %t && %t || echo "passed" 2>&1 | FileCheck %s
 
 #include <cudaq.h>
 #include <cstdio>

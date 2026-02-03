@@ -397,20 +397,29 @@ def test_qvector_slicing():
     assert "1100" in counts
 
 
-def test_mid_circuit_measurement():
+def test_state_synthesis():
 
     @cudaq.kernel
-    def simple():
-        q = cudaq.qvector(2)
-        h(q[0])
-        if mz(q[0]):
-            x(q[1])
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel1(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    @cudaq.kernel
+    def kernel2(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
         mz(q)
 
-    ## error: 'cf.cond_br' op unable to translate op to OpenQASM 2.0
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(simple, shots_count=100).dump()
-    assert "Could not successfully translate to qasm2" in repr(e)
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel1, s)
+    counts = cudaq.sample(kernel2, s)
+    assert '10' in counts
+    assert len(counts) == 1
 
 
 @pytest.mark.parametrize("device_arn", [
@@ -460,6 +469,18 @@ def test_toffoli():
     counts.dump()
     assert '110' in counts
     assert len(counts) == 1
+
+
+def test_state_prep():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        mz(q)
+
+    counts = cudaq.sample(kernel)
+    assert '11' in counts
+    assert '00' in counts
 
 
 # leave for gdb debugging

@@ -128,17 +128,19 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   }
 #elif defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
   // Store kernel name and arguments for quantum states.
-  return state(
-      new QPUState(details::getKernelName(std::forward<QuantumKernel>(kernel)),
-                   std::forward<Args>(args)...));
+  const auto kernelName =
+      details::getKernelName(std::forward<QuantumKernel>(kernel));
+  return state(new QPUState(kernelName, cudaq::get_quake_by_name(kernelName),
+                            std::forward<Args>(args)...));
 
 #elif defined(CUDAQ_QUANTUM_DEVICE)
   // Kernel builder is MLIR-based kernel.
-  if constexpr (has_name<QuantumKernel>::value)
-    return state(new QPUState(
-        details::getKernelName(std::forward<QuantumKernel>(kernel)),
-        std::forward<Args>(args)...));
-
+  if constexpr (has_name<QuantumKernel>::value) {
+    const auto kernelName =
+        details::getKernelName(std::forward<QuantumKernel>(kernel));
+    return state(new QPUState(kernelName, cudaq::get_quake_by_name(kernelName),
+                              std::forward<Args>(args)...));
+  }
   throw std::runtime_error(
       "could not create state in library mode for quantum devices");
 #endif
