@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2025 - Present NVIDIA Corporation & Affiliates.               *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cuda_runtime.h>
 
 namespace cudaq::nvqlink {
 
