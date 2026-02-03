@@ -10,15 +10,33 @@
 #include "QppCircuitSimulator.cpp"
 #include "backends/QPPTester.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
-#include "cudaq/ptsbe/PTSBEInterface.h"
+#include "cudaq/ptsbe/PTSBESampler.h"
 #include <cmath>
 
 using namespace cudaq;
 using namespace cudaq::ptsbe;
 
-// Use QPP simulator for testing executePTSBE
+// Use QPP simulator for testing samplePTSBE
 using QppSimulator =
     QppCircuitSimulatorTester<nvqir::QppCircuitSimulator<qpp::ket>>;
+
+/// samplePTSBEGeneric throws without ExecutionContext
+CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
+  QppSimulator sim;
+
+  Trace trace;
+  trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
+
+  PTSBatch batch;
+  batch.kernelTrace = trace;
+  batch.measureQubits = {0};
+
+  KrausTrajectory traj(0, {}, 1.0, 100);
+  batch.trajectories.push_back(traj);
+
+  // No setExecutionContext() - should throw
+  EXPECT_THROW(samplePTSBEGeneric(sim, batch), std::runtime_error);
+}
 
 /// Single trajectory Hadamard circuit: execute H|0> and expect 50/50
 CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
@@ -36,7 +54,7 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   KrausTrajectory traj(0, {}, 1.0, 1000);
   batch.trajectories.push_back(traj);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
   auto result = aggregateResults(results);
 
   // Hadamard creates superposition, expect ~50/50 with 10% tolerance
@@ -67,7 +85,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
 
   // Verify per-trajectory results
   EXPECT_EQ(results.size(), 2u);
@@ -98,7 +116,7 @@ CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
   batch.trajectories.push_back(zeroShot);
   batch.trajectories.push_back(normalShot);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
 
   // Results maintain index correspondence with trajectories
   EXPECT_EQ(results.size(), 2u);
@@ -126,7 +144,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
     batch.measureQubits = {0};
     // No trajectories added
 
-    auto results = executePTSBE(sim, batch);
+    auto results = samplePTSBEWithLifecycle(sim, batch);
     EXPECT_TRUE(results.empty());
   }
 
@@ -139,7 +157,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
     KrausTrajectory traj(0, {}, 1.0, 100);
     batch.trajectories.push_back(traj);
 
-    auto results = executePTSBE(sim, batch);
+    auto results = samplePTSBEWithLifecycle(sim, batch);
     EXPECT_TRUE(results.empty());
   }
 }
@@ -160,7 +178,7 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   KrausTrajectory traj(0, {}, 1.0, 2000);
   batch.trajectories.push_back(traj);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
   auto result = aggregateResults(results);
 
   // Bell state |00> + |11> should give ~50% each, with 10% tolerance
@@ -197,7 +215,7 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   KrausTrajectory traj(0, selections, 1.0, 100);
   batch.trajectories.push_back(traj);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
   auto result = aggregateResults(results);
 
   // I|0> with X error = X|0> = |1>
@@ -230,7 +248,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
   auto result = aggregateResults(results);
 
   EXPECT_EQ(result.count("11"), 100u);
@@ -254,7 +272,7 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   KrausTrajectory traj(0, {}, 1.0, 1000);
   batch.trajectories.push_back(traj);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
   auto result = aggregateResults(results);
 
   std::size_t count0 = result.count("0");
@@ -284,7 +302,7 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     KrausTrajectory traj(0, {}, 1.0, 100);
     batch.trajectories.push_back(traj);
 
-    auto results = executePTSBE(sim, batch);
+    auto results = samplePTSBEWithLifecycle(sim, batch);
     auto result = aggregateResults(results);
     // q0=1, q1=0, order {0,1} -> bitstring "10"
     EXPECT_EQ(result.count("10"), 100u);
@@ -299,7 +317,7 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     KrausTrajectory traj(0, {}, 1.0, 100);
     batch.trajectories.push_back(traj);
 
-    auto results = executePTSBE(sim, batch);
+    auto results = samplePTSBEWithLifecycle(sim, batch);
     auto result = aggregateResults(results);
     // q0=1, q1=0, order {1,0} -> bitstring "01"
     EXPECT_EQ(result.count("01"), 100u);
@@ -330,7 +348,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   batch.trajectories.push_back(trajWithError);
   batch.trajectories.push_back(trajNoError);
 
-  auto results = executePTSBE(sim, batch);
+  auto results = samplePTSBEWithLifecycle(sim, batch);
 
   // Verify per-trajectory results (confirms state reset between trajectories)
   EXPECT_EQ(results.size(), 2u);
@@ -344,7 +362,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
 }
 
 /// Mock simulator that implements sampleWithPTSBE for testing concept dispatch.
-/// Delegates to the generic executePTSBEGeneric fallback via the base class.
+/// Delegates to the generic samplePTSBEGeneric fallback via the base class.
 class MockPTSBESimulator : public QppSimulator {
 public:
   // Counter to verify sampleWithPTSBE was called
@@ -356,7 +374,7 @@ public:
     ++sampleWithPTSBECallCount;
 
     // Use generic implementation via base class
-    return executePTSBEGeneric(*this, batch);
+    return samplePTSBEGeneric(*this, batch);
   }
 };
 
@@ -379,11 +397,11 @@ CUDAQ_TEST(ExecutePTSBETest, ConceptDispatchAndGenericEquivalence) {
 
   // Test 1: Concept dispatch routes to mock.sampleWithPTSBE
   EXPECT_EQ(mock.sampleWithPTSBECallCount, 0u);
-  auto mockResults = executePTSBE(mock, batch);
+  auto mockResults = samplePTSBEWithLifecycle(mock, batch);
   EXPECT_EQ(mock.sampleWithPTSBECallCount, 1u);
 
   // Test 2: Generic fallback for non-capable simulator
-  auto genericResults = executePTSBE(generic, batch);
+  auto genericResults = samplePTSBEWithLifecycle(generic, batch);
 
   // Both should produce equivalent results (X|0> = |1>)
   EXPECT_EQ(mockResults.size(), genericResults.size());

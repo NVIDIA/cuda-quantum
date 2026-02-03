@@ -12,6 +12,7 @@
 
 # Source files
 set(PTSBE_SOURCES
+    PTSBESampler.cpp
     ShotAllocationStrategy.cpp
 )
 
@@ -19,7 +20,9 @@ set(PTSBE_SOURCES
 install(FILES
     KrausSelection.h
     KrausTrajectory.h
+    PTSBESampler.h
     PTSBEResult.h
+    PTSBESampleIntegration.h
     ShotAllocationStrategy.h
     DESTINATION include/cudaq/ptsbe
 )

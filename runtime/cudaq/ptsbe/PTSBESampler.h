@@ -162,7 +162,6 @@ mergeTasksWithTrajectory(const std::vector<typename nvqir::CircuitSimulatorBase<
   std::vector<TaskType> merged;
   merged.reserve(baseTasks.size() + selections.size());
 
-  // Linear merge: iterate through base tasks, inserting noise after each gate
   std::size_t noiseIdx = 0;
   for (std::size_t gateIdx = 0; gateIdx < baseTasks.size(); ++gateIdx) {
     merged.push_back(baseTasks[gateIdx]);
@@ -211,18 +210,8 @@ mergeAndConvert(const cudaq::Trace &kernelTrace,
 ///
 /// @param results Vector of per-trajectory sample results
 /// @return Single aggregated sample_result
-inline cudaq::sample_result
-aggregateResults(const std::vector<cudaq::sample_result> &results) {
-  if (results.empty())
-    return cudaq::sample_result{};
-
-  cudaq::CountsDictionary aggregatedCounts;
-  for (const auto &res : results) {
-    for (const auto &[bitstring, count] : res.to_map())
-      aggregatedCounts[bitstring] += count;
-  }
-  return cudaq::sample_result{cudaq::ExecutionResult{aggregatedCounts}};
-}
+cudaq::sample_result
+aggregateResults(const std::vector<cudaq::sample_result> &results);
 
 /// @brief Generic PTSBE execution implementation
 ///
@@ -237,91 +226,85 @@ aggregateResults(const std::vector<cudaq::sample_result> &results) {
 /// This is the fallback implementation used when a simulator does not
 /// provide a custom sampleWithPTSBE() method.
 ///
+/// Caller must set up ExecutionContext and allocate qubits before
+/// calling this function. Caller is also responsible for deallocating qubits
+/// and resetting the ExecutionContext after this function returns.
+///
 /// @tparam ScalarType Simulator scalar type
-/// @param simulator Circuit simulator instance
+/// @param simulator Circuit simulator instance (must have ExecutionContext set)
 /// @param batch PTSBE specification
 /// @return Per-trajectory sample results
-/// @throws std::runtime_error if gate conversion fails
+/// @throws std::runtime_error if ExecutionContext not set or gate conversion
+/// fails
 template <typename ScalarType>
 std::vector<cudaq::sample_result>
-executePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
-                    const PTSBatch &batch) {
-  if (batch.trajectories.empty())
-    return {};
+samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
+                    const PTSBatch &batch);
 
-  std::size_t totalShots = batch.totalShots();
-  if (totalShots == 0)
-    return {};
+/// @brief Execute PTSBE with lifecycle management (templated for direct sim)
+///
+/// Templated version for use when you have a direct simulator reference.
+/// Handles full lifecycle: context, allocation, execution, cleanup.
+///
+/// @tparam SimulatorType Simulator type
+/// @param simulator Circuit simulator instance
+/// @param batch PTSBE specification
+/// @param contextType ExecutionContext type (default: "sample")
+/// @return Per-trajectory sample results
+template <typename SimulatorType>
+std::vector<cudaq::sample_result>
+samplePTSBEWithLifecycle(SimulatorType &simulator, const PTSBatch &batch,
+                          const std::string &contextType = "sample") {
+  cudaq::ExecutionContext ctx(contextType, batch.totalShots());
+  simulator.setExecutionContext(&ctx);
+  simulator.allocateQubits(batch.kernelTrace.getNumQudits());
 
-  if (batch.measureQubits.empty())
-    return {};
-
-  // Create ExecutionContext without the noiseModel
-  // as noise is pre-sampled.
-  cudaq::ExecutionContext execCtx("sample", totalShots);
-  simulator.setExecutionContext(&execCtx);
-
-  // Allocate qubits based on trace
-  std::size_t numQubits = batch.kernelTrace.getNumQudits();
-  simulator.allocateQubits(numQubits);
-
-  auto baseTasks = convertTrace<ScalarType>(batch.kernelTrace);
-
+  // Concept dispatch: use custom sampleWithPTSBE if available
   std::vector<cudaq::sample_result> results;
-  results.reserve(batch.trajectories.size());
-
-  for (const auto &traj : batch.trajectories) {
-    if (traj.num_shots == 0) {
-      // Push empty result to maintain index correspondence with trajectories
-      results.push_back(cudaq::sample_result{
-          cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
-      continue;
-    }
-
-    simulator.setToZeroState();
-
-    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(baseTasks, traj);
-
-    for (const auto &task : mergedTasks)
-      simulator.applyGate(task);
-    simulator.flushGateQueue();
-
-    auto execResult =
-        simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots));
-
-    results.push_back(
-        cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});
+  if constexpr (PTSBECapable<SimulatorType>) {
+    results = simulator.sampleWithPTSBE(batch);
+  } else {
+    results = samplePTSBEGeneric(simulator, batch);
   }
 
+  std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
+  std::iota(qubitIds.begin(), qubitIds.end(), 0);
+  simulator.deallocateQubits(qubitIds);
   simulator.resetExecutionContext();
 
   return results;
 }
 
-/// @brief Execute PTSBE batch with compile-time dispatch
+/// @brief Execute PTSBE batch on current simulator
 ///
-/// Uses compile-time dispatch to select between:
-/// - Custom simulator implementation (if PTSBECapable concept is satisfied)
-/// - Generic fallback implementation (executePTSBEGeneric)
+/// Handles both runtime precision dispatch and compile-time concept dispatch:
+/// 1. Uses isSinglePrecision() to determine float vs double
+/// 2. Checks PTSBECapable concept for custom simulator implementations
+/// 3. Falls back to samplePTSBEGeneric if no custom implementation
 ///
-/// Returns per-trajectory results for flexibility. Use aggregateResults()
-/// to combine into a single sample_result if needed.
+/// Caller must have set up ExecutionContext and allocated qubits
+/// on the simulator before calling this function.
 ///
-/// @tparam SimulatorType Simulator type (deduced)
-/// @param simulator Circuit simulator instance
-/// @param batch PTSBE specification
+/// @param batch PTSBatch with kernelTrace, trajectories, and measureQubits
 /// @return Per-trajectory sample results
-/// @throws std::runtime_error if gate conversion fails
-template <typename SimulatorType>
-std::vector<cudaq::sample_result> executePTSBE(SimulatorType &simulator,
-                                               const PTSBatch &batch) {
-  if constexpr (PTSBECapable<SimulatorType>) {
-    // Dispatch to custom simulator implementation
-    return simulator.sampleWithPTSBE(batch);
-  } else {
-    // Fall back to generic implementation
-    return executePTSBEGeneric(simulator, batch);
-  }
-}
+/// @throws std::runtime_error if simulator cast fails or contract violated
+std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
+
+/// @brief Execute PTSBE with full lifecycle management (registry-based)
+///
+/// Convenience function that handles the complete simulator lifecycle:
+/// 1. Gets current simulator from registry
+/// 2. Creates ExecutionContext with specified type
+/// 3. Sets context on simulator and allocates qubits
+/// 4. Calls samplePTSBE for precision dispatch and trajectory execution
+/// 5. Deallocates qubits and resets context
+///
+/// @param batch PTSBE specification
+/// @param contextType ExecutionContext type (default: "sample")
+/// @return Per-trajectory sample results
+/// @throws std::runtime_error if simulator cast fails or gate conversion fails
+std::vector<cudaq::sample_result>
+samplePTSBEWithLifecycle(const PTSBatch &batch,
+                          const std::string &contextType = "sample");
 
 } // namespace cudaq::ptsbe

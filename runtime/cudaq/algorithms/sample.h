@@ -13,7 +13,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-#include "cudaq/ptsbe/PTSBESample.h"
+#include "cudaq/ptsbe/PTSBESampleIntegration.h"
 
 constexpr int DEFAULT_NUM_SHOTS = 1000;
 

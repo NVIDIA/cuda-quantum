@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file PTSBESample.h
+/// @file PTSBESampleIntegration.h
 /// @brief PTSBE sample integration for CORE cudaq::sample() flow
 ///
 /// Provides PTSBE (Pre-Trajectory Sampling with Batch Execution)
@@ -23,9 +23,11 @@
 
 #pragma once
 
-#include "PTSBEInterface.h"
+#include "PTSBESampler.h"
 #include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
+#include "cudaq/simulators.h"
+#include <numeric>
 #include <stdexcept>
 
 namespace cudaq {
@@ -114,38 +116,6 @@ inline std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
   return qubits;
 }
 
-/// @brief Dispatch PTSBatch to simulator for execution
-///
-/// Entry point for PTSBE execution after batch construction.
-/// Currently a stub that throws "not implemented" as full trajectory
-/// generation and simulator dispatch is future work.
-///
-/// @param batch PTSBatch with kernelTrace and measureQubits
-/// @return Aggregated sample_result (future implementation)
-/// @throws std::runtime_error Always, until full implementation
-///
-/// Future implementation will:
-/// 1. Generate trajectories via PreTrajectorySamplingEngine
-/// 2. Call executePTSBE with simulator and batch
-/// 3. Return aggregated results
-inline sample_result dispatchPTSBE(const PTSBatch &batch) {
-  // Count instructions for diagnostic output
-  std::size_t instructionCount = 0;
-  for (const auto &inst : batch.kernelTrace) {
-    (void)inst;
-    ++instructionCount;
-  }
-
-  throw std::runtime_error(
-      "PTSBE dispatch successful but execution not implemented. "
-      "Captured: " +
-      std::to_string(instructionCount) + " instructions, " +
-      std::to_string(batch.measureQubits.size()) + " measure qubits, " +
-      std::to_string(batch.trajectories.size()) +
-      " trajectories. "
-      "Full trajectory generation requires future implementation.");
-}
-
 /// @brief Run PTSBE sampling (internal API matching runSampling pattern)
 ///
 /// Internal function called from cudaq::sample() when use_ptsbe=true.
@@ -176,8 +146,10 @@ runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   batch.kernelTrace = std::move(traceCtx.kernelTrace);
   batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
 
-  // Stage 3: Dispatch to executePTSBE
-  return dispatchPTSBE(batch);
+  // Stage 3: Execute PTSBE with lifecycle management
+  auto results = samplePTSBEWithLifecycle(batch, "sample");
+
+  return aggregateResults(results);
 }
 
 /// @brief Capture kernel trace and construct PTSBatch (for testing)
