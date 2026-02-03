@@ -135,6 +135,9 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
 
     auto response = m_client.post(m_baseUrl, "/sessions", payload, headers,
                                   m_logging, m_secure);
+
+    CUDAQ_INFO("Create Session response: {}", response.dump());
+
     return response.get<Session>();
   } catch (const std::exception &e) {
     throw std::runtime_error("fail during session creation: " +
@@ -169,6 +172,9 @@ Job V1Alpha1Client::createJob(const std::string &sessionId,
 
     auto response = m_client.post(m_baseUrl, "/jobs", payload, headers,
                                   m_logging, m_secure);
+
+    CUDAQ_INFO("Create Job response: {}", response.dump());
+
     return response.get<Job>();
   } catch (const std::exception &e) {
     throw std::runtime_error("fail during job submission: " +
@@ -218,6 +224,9 @@ Model V1Alpha1Client::createModel(const std::string &data) {
 
     auto response = m_client.post(m_baseUrl, "/models", payload, headers,
                                   m_logging, m_secure);
+
+    CUDAQ_INFO("Create Model response: {}", response.dump());
+
     return response.get<Model>();
   } catch (const std::exception &e) {
     throw std::runtime_error("fail during model creation: " +

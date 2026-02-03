@@ -26,8 +26,6 @@ struct Platform {
   int64_t max_circuit_count;
   std::string availability;
   std::string metadata;
-  std::string description;
-  std::string documentation_url;
   bool is_bookable = false;
 
   NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
@@ -46,13 +44,9 @@ struct Session {
   std::string terminated_at = "";
   std::string max_idle_duration = "";
   std::string max_duration = "";
-  int64_t waiting_job_count = 0;
-  int64_t finished_job_count = 0;
   std::string status = "";
   std::string project_id = "";
   std::string deduplication_id = "";
-  std::string origin_type = "";
-  std::string origin_id = "";
   std::string progress_message = "";
   std::string booking_id = "";
   std::string model_id = "";
@@ -84,8 +78,6 @@ struct Job {
   std::string updated_at = "";
   std::string status = "";
   std::string progress_message = "";
-  std::string job_duration = "";
-  std::string result_distribution = "";
   std::string model_id = "";
   std::string parameters = "";
 
