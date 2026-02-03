@@ -100,3 +100,6 @@ apps/
 # PySCF
 *.chk
 *-pyscf.log
+
+# Aspell (pyspelling pre-commit hook)
+dictionary.dic
