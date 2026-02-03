@@ -75,6 +75,17 @@ static void addQuantinuumPipeline(OpPassManager &pm) {
   pm.addPass(createBasisConversionPass(options));
 }
 
+static void addQudoraPipeline(OpPassManager &pm) {
+  using namespace cudaq::opt;
+  std::string basis[] = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  BasisConversionPassOptions options;
+  options.basis = basis;
+  options.disabledPatterns = z_disabledPatterns;
+  pm.addPass(createBasisConversionPass(options));
+}
+
 static void addIQMPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
@@ -129,6 +140,9 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("quantinuum-gate-set-mapping",
                              "Convert kernels to Quantinuum gate set.",
                              addQuantinuumPipeline);
+  PassPipelineRegistration<>("qudora-gate-set-mapping",
+                             "Convert kernels to Qudora gate set.",
+                             addQudoraPipeline);
   PassPipelineRegistration<>("ionq-gate-set-mapping",
                              "Convert kernels to IonQ gate set.",
                              addIonQPipeline);
