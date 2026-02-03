@@ -9,6 +9,18 @@
 // Simulators
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
+// Quantum emulators
+// clang-format off
+// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantum_machines_avail; then nvq++ --target quantum_machines --emulate %s -o %t && %t | FileCheck %s; fi
+// clang-format on
+
 #include <bitset>
 #include <cudaq.h>
 #include <iostream>

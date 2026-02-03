@@ -1,0 +1,117 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# .pre-commit-config.yaml
+# CUDA-Q Pre-commit Configuration
+#
+# Local usage:
+#   pre-commit install  # Enable for all commits
+#   pre-commit run --all-files  # Run on all files
+#   pre-commit run --hook-stage pre-push  # Run slow hooks (spell check, links)
+#
+# CI usage:
+#   pre-commit run --all-files --hook-stage pre-push --show-diff-on-failure
+
+# Configuration
+default_language_version:
+  python: python3
+
+default_stages: [pre-commit, pre-push]
+
+# Third-party directories to exclude globally
+exclude: '^tpls/'
+
+repos:
+  # Formatting hooks
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v16.0.6
+    hooks:
+      - id: clang-format
+        name: C++ formatting (clang-format-16)
+        types_or: [c++, c]
+        files: '\.(cpp|h|hpp)$'
+        exclude: '^(test|targettests|tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
+        args: ['-i']  # In-place formatting
+
+  - repo: https://github.com/google/yapf
+    rev: v0.40.2
+    hooks:
+      - id: yapf
+        name: Python formatting (yapf Google style)
+        types: [python]
+        exclude: '^(test|targettests|tpls)/|^docs/sphinx/conf\.py$'
+        args: ['--style', 'google', '--in-place']
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        name: Markdown linting
+        files: '\.md$'
+        exclude: '^tpls/'
+        args: ['--config', '.github/pre-commit/md_lint_config.yml']
+
+  # Standard quality checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+        exclude: '^\.github/workflows/'  # GitHub Actions uses specific YAML features
+      - id: check-toml
+      - id: check-json
+        exclude: '\.devcontainer/devcontainer\.json$'  # Uses JSONC format with comments
+      # TODO: Enable in a separate PR to fix all files
+      # - id: end-of-file-fixer
+      #   exclude: '^(test|targettests|tpls)/'
+      # - id: trailing-whitespace
+      #   exclude: '^(test|targettests|tpls)/'
+      #   args: ['--markdown-linebreak-ext=md']
+      # - id: mixed-line-ending
+      #   args: ['--fix=lf']
+
+  # Local hooks
+  - repo: local
+    hooks:
+      - id: license-headers
+        name: License header validation
+        entry: bash scripts/run_header_checks.sh -c check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: spellcheck-allowlist-sorted
+        name: Spell check - Verify allowlists are sorted
+        entry: bash scripts/pre-commit/check_allowlist_sorted.sh
+        language: system
+        files: '^\.github/pre-commit/spelling_allowlist.*\.txt$'
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
+      # Spell checking (runs on push)
+      - id: spellcheck
+        name: Spell check (pyspelling)
+        entry: pyspelling -c .github/pre-commit/spellcheck_config.yml
+        language: python
+        pass_filenames: false
+        stages: [pre-push]
+        additional_dependencies:
+          - pyspelling>=2.8.2
+          - pymdown-extensions
+
+      - id: markdown-link-check
+        name: Check links in Markdown files
+        entry: bash scripts/pre-commit/check_markdown_links.sh
+        language: system
+        types: [markdown]
+        pass_filenames: true
+        stages: [pre-push]

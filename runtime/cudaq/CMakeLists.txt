@@ -18,6 +18,7 @@ add_library(${LIBRARY_NAME}
     algorithms/draw.cpp
     algorithms/evolve.cpp
     algorithms/schedule.cpp
+    platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
@@ -26,7 +27,6 @@ add_library(${LIBRARY_NAME}
     qis/remote_state.cpp
     qis/state.cpp
     utils/cudaq_utils.cpp
-    utils/matrix.cpp
     distributed/mpi_plugin.cpp
 )
 

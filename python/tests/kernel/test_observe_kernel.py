@@ -343,3 +343,43 @@ def test_pack_args_pauli_list():
     exp_val2 = cudaq.observe_async(gqeCirc2, obs, numQubits, list(ts),
                                    pauliStings).get().expectation()
     print('observe_async exp_val2', exp_val2)
+
+
+def test_observe_list_multi_term_operators():
+
+    @cudaq.kernel
+    def simple_kernel():
+        q = cudaq.qvector(2)
+
+    op_multi1 = spin.z(0) + spin.x(0)
+    op_multi2 = spin.y(1) + spin.z(1)
+    op_single = spin.z(0)
+
+    result_single = cudaq.observe(simple_kernel, op_multi1)
+    assert result_single.expectation() is not None
+
+    results_list = cudaq.observe(simple_kernel, [op_multi1])
+    assert len(results_list) == 1
+
+    assert np.isclose(results_list[0].expectation(),
+                      result_single.expectation())
+
+    results_multi = cudaq.observe(simple_kernel, [op_multi1, op_multi2])
+    assert len(results_multi) == 2
+
+    result1 = cudaq.observe(simple_kernel, op_multi1)
+    result2 = cudaq.observe(simple_kernel, op_multi2)
+    assert np.isclose(results_multi[0].expectation(), result1.expectation())
+    assert np.isclose(results_multi[1].expectation(), result2.expectation())
+
+    results_mixed = cudaq.observe(simple_kernel, [op_single, op_multi1])
+    assert len(results_mixed) == 2
+    result_single = cudaq.observe(simple_kernel, op_single)
+    assert np.isclose(results_mixed[0].expectation(),
+                      result_single.expectation())
+    assert np.isclose(results_mixed[1].expectation(), result1.expectation())
+
+    op_with_id = 2.0 * spin.identity() + spin.z(0)
+    results_id = cudaq.observe(simple_kernel, [op_with_id])
+    result_id = cudaq.observe(simple_kernel, op_with_id)
+    assert np.isclose(results_id[0].expectation(), result_id.expectation())

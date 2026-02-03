@@ -444,3 +444,4 @@ jobs:
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}
+            image_tag: ${{ needs.metadata.outputs.image_tags }}
