@@ -292,26 +292,14 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaqRuntime.def(
       "checkRegisteredCppDeviceKernel",
-      [](MlirModule mod,
-         const std::string &moduleName) -> std::optional<std::string> {
+      [](MlirModule mod, const std::string &moduleName)
+          -> std::optional<std::tuple<std::string, std::string>> {
         std::tuple<std::string, std::string> ret;
         try {
-          ret = python::getDeviceKernel(moduleName);
+          return python::getDeviceKernel(moduleName);
         } catch (...) {
           return std::nullopt;
         }
-
-        // Take the code for the kernel we found
-        // and add it to the input module, return
-        // the func op.
-        auto [kName, code] = ret;
-        auto ctx = unwrap(mod).getContext();
-        auto moduleB = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
-        auto moduleA = unwrap(mod);
-
-        // Merge symbols from moduleB into moduleA.
-        opt::factory::mergeModules(moduleA, *moduleB);
-        return kName;
       },
       "Given a python module name like `mod1.mod2.func`, see if there is a "
       "registered C++ quantum kernel. If so, add the kernel to the Module and "
