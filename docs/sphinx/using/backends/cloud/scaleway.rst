@@ -11,11 +11,11 @@ through a unified API.
 Scaleway QaaS allows users to submit quantum workloads programmatically and
 integrate them into hybrid classical–quantum workflows. The service is designed
 to be used either directly through the Scaleway APIs or via higher-level SDKs
-and frameworks such as CUDA-Q, Qiskit and Cirq.
+and frameworks such as CUDA-Q, Qiskit, Pennylane and Cirq.
 
 To get started, users must have an active Scaleway account and a project with
 Quantum Computing enabled. See the
-`Scaleway Quantum Computing Quickstart <https://www.scaleway.com/en/docs/quantum-computing/quickstart/>`__
+`Quickstart <https://www.scaleway.com/en/docs/quantum-computing/quickstart/>`__
 for step-by-step instructions.
 
 Additional information can be found in the
@@ -48,7 +48,7 @@ To execute kernels on a specific Scaleway quantum device, pass the
 
 .. code:: bash
 
-    nvq++ --target scaleway --scaleway-machine "<offer_name>" src.cpp
+    nvq++ --target scaleway --machine "<offer_name>" src.cpp
 
 where <offer_name> refers to a Scaleway simulator or QPU available in your
 project.

@@ -22,7 +22,10 @@ V1Alpha1Client::V1Alpha1Client(const std::string projectId,
                                 m_secretKey(secretKey),
                                 m_secure(secure),
                                 m_logging(logging) {
-    m_baseUrl = url.empty() ? DEFAULT_URL : url;
+    auto built_url = url.empty() ? DEFAULT_URL : url;
+    m_baseUrl = built_url + "/" + DEFAULT_BASE_PATH;
+
+    CUDAQ_INFO("Initializing Scaleway QaaS Client with URL: {}", m_baseUrl);
 }
 
 std::map<std::string, std::string> V1Alpha1Client::getHeaders() {

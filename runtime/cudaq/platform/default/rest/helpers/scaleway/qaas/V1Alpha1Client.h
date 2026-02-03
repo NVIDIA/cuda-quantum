@@ -14,7 +14,8 @@
 
 namespace cudaq::qaas::v1alpha1 {
 class V1Alpha1Client {
-  inline static const std::string DEFAULT_URL = "https://api.scaleway.com/qaas/v1alpha1";
+  inline static const std::string DEFAULT_URL = "https://api.scaleway.com";
+  inline static const std::string DEFAULT_BASE_PATH = "qaas/v1alpha1";
 public:
   V1Alpha1Client(const std::string projectId, const std::string secretKey,
                   const std::string url, bool secure = true, bool logging = false);

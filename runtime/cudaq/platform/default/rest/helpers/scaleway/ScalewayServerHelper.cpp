@@ -22,6 +22,8 @@ std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &key,
                               const std::string &envKey,
                               const std::string &defaultValue) {
+  CUDAQ_INFO("Retrieving key {} or env {}", key, envKey);
+
   auto it = config.find(key);
   auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
   auto providedValue = (it != config.end()) ? it->second : envValue;
@@ -60,7 +62,7 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
   m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "", DEFAULT_MAX_DURATION);
   m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "", DEFAULT_MAX_IDLE_DURATION);
   m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "", "");
-  m_sessionName = getValueOrDefault(config, "name", "", "cudaq-session-" + std::to_string(std::rand()));
+  m_sessionName = getValueOrDefault(config, "name", "cudaq-session-" + std::to_string(std::rand()), "");
 
   setShots(std::stoul(getValueOrDefault(config, "shots", "", "1000")));
 }
