@@ -65,8 +65,7 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);
 
-  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto ctx = contexts[tid];
+  auto ctx = getExecutionContext();
 
   // TODO future iterations of this should support non-void return types.
   if (!ctx)
