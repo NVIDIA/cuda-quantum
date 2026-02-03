@@ -119,6 +119,7 @@ ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH}"
 
 # Install additional dependencies required to build the CUDA-Q wheel.
+# Test cache invalidation - 2026-02-02
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ADD ./scripts/configure_build.sh /scripts/configure_build.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
