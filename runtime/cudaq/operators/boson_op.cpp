@@ -318,6 +318,36 @@ std::string boson_handler::to_string(bool include_degrees) const {
     return this->op_code_to_string();
 }
 
+boson_handler boson_handler::adjoint() const {
+  boson_handler adjoint(this->degree);
+  adjoint.additional_terms = -this->additional_terms; // A => Ad, Ad => A
+  adjoint.number_offsets = this->number_offsets;
+  if (adjoint.additional_terms != 0) {
+    for (auto &number_offset : adjoint.number_offsets) {
+      // If we have a 'paired' operator, e.g., N*A^k or N*Ad^k,
+      // its dagger will have the reverse order. Hence, we need to shift N back
+      // to the LHS using the relationship: A^kN = (N+k)A^k and Ad^kN =
+      // (N-k)Ad^k.
+      number_offset += this->additional_terms;
+    }
+  }
+  return adjoint;
+}
+
+boson_handler &boson_handler::adjoint_in_place() {
+  if (this->additional_terms != 0) {
+    for (auto &number_offset : this->number_offsets) {
+      // If we have a 'paired' operator, e.g., N*A^k or N*Ad^k,
+      // its dagger will have the reverse order. Hence, we need to shift N back
+      // to the LHS using the relationship: A^kN = (N+k)A^k and Ad^kN =
+      // (N-k)Ad^k.
+      number_offset += this->additional_terms;
+    }
+  }
+  this->additional_terms = -this->additional_terms;
+  return *this;
+}
+
 // comparisons
 
 bool boson_handler::operator==(const boson_handler &other) const {
