@@ -30,7 +30,7 @@ struct Platform {
   std::string documentation_url;
   bool is_bookable = false;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
       Platform, id, version, name, provider_name, backend_name, type,
       technology, max_qubit_count, max_shot_count, max_circuit_count,
       availability, metadata, description, documentation_url, is_bookable)
@@ -58,7 +58,7 @@ struct Session {
   std::string model_id;
   std::string parameters;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
       Session, id, name, platform_id, created_at, started_at, updated_at,
       terminated_at, max_idle_duration, max_duration, waiting_job_count,
       finished_job_count, status, project_id, deduplication_id, origin_type,
@@ -71,7 +71,7 @@ struct Model {
   std::string url;
   std::string project_id;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Model, id, created_at, url,
                                               project_id)
 };
 
@@ -89,7 +89,7 @@ struct Job {
   std::string model_id;
   std::string parameters;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
       Job, id, name, session_id, created_at, started_at, updated_at, status,
       progress_message, job_duration, result_distribution, model_id, parameters)
 
@@ -104,7 +104,7 @@ struct JobResult {
   std::string url;
   std::string created_at;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JobResult, job_id, result, url,
                                               created_at)
 
   inline bool has_inline_result() const {
