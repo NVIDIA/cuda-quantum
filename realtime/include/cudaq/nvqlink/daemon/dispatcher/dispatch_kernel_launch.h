@@ -95,11 +95,11 @@ struct __attribute__((packed)) cudaq_type_desc_t {
 
 /// @brief Handler schema describing argument and result types.
 struct __attribute__((packed)) cudaq_handler_schema_t {
-  std::uint8_t num_args;         ///< Number of arguments
-  std::uint8_t num_results;      ///< Number of results
-  std::uint16_t reserved;        ///< Padding for alignment
-  cudaq_type_desc_t args[8];     ///< Argument type descriptors (max 8)
-  cudaq_type_desc_t results[4];  ///< Result type descriptors (max 4)
+  std::uint8_t num_args;        ///< Number of arguments
+  std::uint8_t num_results;     ///< Number of results
+  std::uint16_t reserved;       ///< Padding for alignment
+  cudaq_type_desc_t args[8];    ///< Argument type descriptors (max 8)
+  cudaq_type_desc_t results[4]; ///< Result type descriptors (max 4)
 };
 
 } // namespace cudaq::nvqlink

@@ -64,10 +64,10 @@ typedef struct {
 
 // Handler schema describing function signature
 typedef struct {
-  uint8_t num_args;            // number of arguments
-  uint8_t num_results;         // number of results
-  uint16_t reserved;           // padding
-  cudaq_type_desc_t args[8];   // argument descriptors (max 8)
+  uint8_t num_args;             // number of arguments
+  uint8_t num_results;          // number of results
+  uint16_t reserved;            // padding
+  cudaq_type_desc_t args[8];    // argument descriptors (max 8)
   cudaq_type_desc_t results[4]; // result descriptors (max 4)
 } cudaq_handler_schema_t;
 
@@ -92,13 +92,13 @@ typedef struct {
 // Unified function table entry with schema
 typedef struct {
   union {
-    void *device_fn_ptr;     // for CUDAQ_DISPATCH_DEVICE_CALL
+    void *device_fn_ptr;        // for CUDAQ_DISPATCH_DEVICE_CALL
     cudaGraphExec_t graph_exec; // for CUDAQ_DISPATCH_GRAPH_LAUNCH
   } handler;
-  uint32_t function_id;            // hash of function name (FNV-1a)
-  uint8_t dispatch_mode;           // cudaq_dispatch_mode_t value
-  uint8_t reserved[3];             // padding
-  cudaq_handler_schema_t schema;   // function signature schema
+  uint32_t function_id;          // hash of function name (FNV-1a)
+  uint8_t dispatch_mode;         // cudaq_dispatch_mode_t value
+  uint8_t reserved[3];           // padding
+  cudaq_handler_schema_t schema; // function signature schema
 } cudaq_function_entry_t;
 
 // Function table for device-side dispatch
