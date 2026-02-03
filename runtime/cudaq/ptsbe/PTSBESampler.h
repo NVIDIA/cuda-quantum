@@ -54,6 +54,11 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
   } -> std::same_as<std::vector<cudaq::sample_result>>;
 };
 
+/// @brief Alias for CircuitSimulator gate task type
+template <typename ScalarType>
+using GateTask =
+    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+
 /// @brief Convert Trace instruction to simulator task
 ///
 /// Looks up gate matrix from nvqir::Gates.h registry and constructs
@@ -65,7 +70,7 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
 /// @return GateApplicationTask with computed unitary matrix
 /// @throws std::runtime_error if gate name is not recognized
 template <typename ScalarType>
-typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
+GateTask<ScalarType>
 convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   // Convert parameters to ScalarType
   std::vector<ScalarType> typedParams;
@@ -88,8 +93,7 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   for (const auto &q : inst.targets)
     targets.push_back(q.id);
 
-  return typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask(
-      inst.name, matrix, controls, targets, typedParams);
+  return GateTask<ScalarType>(inst.name, matrix, controls, targets, typedParams);
 }
 
 /// @brief Convert entire kernel trace to simulator task list
@@ -102,12 +106,8 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
 /// @return Vector of GateApplicationTask ready for simulator execution
 /// @throws std::runtime_error if any instruction has unrecognized gate
 template <typename ScalarType>
-std::vector<
-    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-convertTrace(const cudaq::Trace &trace) {
-  using TaskType =
-      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-  std::vector<TaskType> tasks;
+std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
+  std::vector<GateTask<ScalarType>> tasks;
   tasks.reserve(trace.getNumInstructions());
   for (const auto &inst : trace)
     tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
@@ -124,17 +124,13 @@ convertTrace(const cudaq::Trace &trace) {
 /// KrausOperatorType is expanded to include named error types (X_ERROR,
 /// Y_ERROR, Z_ERROR, etc.), this should map directly from enum to gate.
 template <typename ScalarType>
-typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
-krausSelectionToTask(const cudaq::KrausSelection &sel) {
-  using TaskType =
-      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-
+GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel) {
   std::string gateName =
       (sel.kraus_operator_index == KrausOperatorType::IDENTITY) ? "id"
                                                                 : sel.op_name;
   auto gateEnum = nvqir::getGateNameFromString(gateName);
   auto matrix = nvqir::getGateByName<ScalarType>(gateEnum, {});
-  return TaskType(gateName, matrix, {}, sel.qubits, {});
+  return GateTask<ScalarType>(gateName, matrix, {}, sel.qubits, {});
 }
 
 /// @brief Merge base tasks with trajectory noise insertions
@@ -148,17 +144,12 @@ krausSelectionToTask(const cudaq::KrausSelection &sel) {
 /// @param trajectory Trajectory with noise selections
 /// @return Merged task list ready for execution
 template <typename ScalarType>
-std::vector<
-    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-mergeTasksWithTrajectory(const std::vector<typename nvqir::CircuitSimulatorBase<
-                             ScalarType>::GateApplicationTask> &baseTasks,
+std::vector<GateTask<ScalarType>>
+mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
                          const cudaq::KrausTrajectory &trajectory) {
-  using TaskType =
-      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-
   const auto &selections = trajectory.kraus_selections;
 
-  std::vector<TaskType> merged;
+  std::vector<GateTask<ScalarType>> merged;
   merged.reserve(baseTasks.size() + selections.size());
 
   std::size_t noiseIdx = 0;
@@ -194,8 +185,7 @@ mergeTasksWithTrajectory(const std::vector<typename nvqir::CircuitSimulatorBase<
 /// @return Complete task list for simulator
 /// @throws std::runtime_error if gate name not recognized or invalid location
 template <typename ScalarType>
-std::vector<
-    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
+std::vector<GateTask<ScalarType>>
 mergeAndConvert(const cudaq::Trace &kernelTrace,
                 const cudaq::KrausTrajectory &trajectory) {
   auto baseTasks = convertTrace<ScalarType>(kernelTrace);
