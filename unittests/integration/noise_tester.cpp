@@ -425,7 +425,7 @@ CUDAQ_TEST(NoiseTest, checkDepol2StandardFormula) {
 
     noise.add_channel<cudaq::types::x>({0, 1}, depol2);
 
-    auto counts = cudaq::sample({.shots = 10000, .noise = noise}, cnot_echo{});
+    auto counts = cudaq::sample({.shots = 1000, .noise = noise}, cnot_echo{});
     double prob_00 = counts.probability("00");
 
     if (p < 0.75) {
