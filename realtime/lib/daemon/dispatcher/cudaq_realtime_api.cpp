@@ -78,7 +78,8 @@ cudaq_dispatch_manager_create(cudaq_dispatch_manager_t **out_mgr) {
 }
 
 cudaq_status_t cudaq_dispatch_manager_destroy(cudaq_dispatch_manager_t *mgr) {
-  delete mgr;
+  if (mgr)
+    delete mgr;
   return CUDAQ_OK;
 }
 
