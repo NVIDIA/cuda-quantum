@@ -379,6 +379,10 @@ public:
 
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
+  /// @brief Set the current state to the |0> state,
+  /// retaining the current number of qubits.
+  virtual void setToZeroState() = 0;
+
   /// @brief Reset the qubit to the |0> state
   virtual void resetQubit(const std::size_t qubitIdx) = 0;
 
@@ -408,6 +412,25 @@ public:
 /// to specify the floating point precision for the simulation
 template <typename ScalarType>
 class CircuitSimulatorBase : public CircuitSimulator {
+public:
+  /// @brief A GateApplicationTask consists of a matrix describing the quantum
+  /// operation, a set of possible control qubit indices, and a set of target
+  /// indices.
+  struct GateApplicationTask {
+    const std::string operationName;
+    const std::vector<std::complex<ScalarType>> matrix;
+    const std::vector<std::size_t> controls;
+    const std::vector<std::size_t> targets;
+    const std::vector<ScalarType> parameters;
+    GateApplicationTask(const std::string &name,
+                        const std::vector<std::complex<ScalarType>> &m,
+                        const std::vector<std::size_t> &c,
+                        const std::vector<std::size_t> &t,
+                        const std::vector<ScalarType> &params)
+        : operationName(name), matrix(m), controls(c), targets(t),
+          parameters(params) {}
+  };
+
 private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
@@ -460,24 +483,6 @@ protected:
   /// defaults to true.
   static constexpr const char observeSamplingEnvVar[] =
       "CUDAQ_OBSERVE_FROM_SAMPLING";
-
-  /// @brief A GateApplicationTask consists of a
-  /// matrix describing the quantum operation, a set of
-  /// possible control qubit indices, and a set of target indices.
-  struct GateApplicationTask {
-    const std::string operationName;
-    const std::vector<std::complex<ScalarType>> matrix;
-    const std::vector<std::size_t> controls;
-    const std::vector<std::size_t> targets;
-    const std::vector<ScalarType> parameters;
-    GateApplicationTask(const std::string &name,
-                        const std::vector<std::complex<ScalarType>> &m,
-                        const std::vector<std::size_t> &c,
-                        const std::vector<std::size_t> &t,
-                        const std::vector<ScalarType> &params)
-        : operationName(name), matrix(m), controls(c), targets(t),
-          parameters(params) {}
-  };
 
   /// @brief The current queue of operations to execute
   std::queue<GateApplicationTask> gateQueue;
@@ -775,12 +780,6 @@ protected:
     gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
-  /// @brief This pure virtual method is meant for subtypes
-  /// to implement, and its goal is to apply the gate described
-  /// by the GateApplicationTask to the subtype-specific state
-  /// data representation.
-  virtual void applyGate(const GateApplicationTask &task) = 0;
-
   /// @brief Provide a base-class method that can be invoked
   /// after every gate application and will apply any noise
   /// channels after the gate invocation based on a user-provided noise
@@ -825,10 +824,6 @@ protected:
     // For CUDA-based simulators, this calls cudaDeviceSynchronize()
     synchronize();
   }
-
-  /// @brief Set the current state to the |0> state,
-  /// retaining the current number of qubits.
-  virtual void setToZeroState() = 0;
 
   /// @brief Return true if expectation values should be computed from
   /// sampling + parity of bit strings.
@@ -1087,6 +1082,14 @@ public:
   cudaq::ExecutionContext *getExecutionContext() override {
     return executionContext;
   }
+
+  /// @brief Apply a pre-constructed gate task to the simulator state.
+  /// Subtypes implement this to apply the gate to their state representation.
+  virtual void applyGate(const GateApplicationTask &task) = 0;
+
+  /// @brief Enqueue a pre-constructed gate task for later execution.
+  /// The task will be applied when flushGateQueue() is called.
+  void enqueueTask(const GateApplicationTask &task) { gateQueue.push(task); }
 
   /// @brief Apply a custom quantum operation
   void applyCustomOperation(const std::vector<std::complex<double>> &matrix,

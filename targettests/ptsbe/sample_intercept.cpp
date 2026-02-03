@@ -33,7 +33,7 @@ int main() {
 
   // Verify batch has captured trace
   std::size_t count = 0;
-  for (const auto &inst : batch.kernel_trace) {
+  for (const auto &inst : batch.kernelTrace) {
     (void)inst;
     ++count;
   }
@@ -43,13 +43,13 @@ int main() {
     return 1;
   }
 
-  if (batch.measure_qubits.size() != 2) {
+  if (batch.measureQubits.size() != 2) {
     printf("FAIL: Expected 2 measure qubits, got %zu\n",
-           batch.measure_qubits.size());
+           batch.measureQubits.size());
     return 1;
   }
 
   printf("PASS: PTSBatch captured with %zu instructions and %zu measure qubits\n",
-         count, batch.measure_qubits.size());
+         count, batch.measureQubits.size());
   return 0;
 }
