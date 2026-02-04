@@ -16,10 +16,10 @@ set(PTSBE_SOURCES
     PTSBESampler.cpp
     ShotAllocationStrategy.cpp
     PTSSamplingStrategy.cpp
-    ProbabilisticSamplingStrategy.cpp
-    ExhaustiveSamplingStrategy.cpp
-    OrderedSamplingStrategy.cpp
-    ConditionalSamplingStrategy.cpp
+    strategies/ProbabilisticSamplingStrategy.cpp
+    strategies/ExhaustiveSamplingStrategy.cpp
+    strategies/OrderedSamplingStrategy.cpp
+    strategies/ConditionalSamplingStrategy.cpp
 )
 
 # Install headers
@@ -31,9 +31,14 @@ install(FILES
     PTSBESampleIntegration.h
     ShotAllocationStrategy.h
     PTSSamplingStrategy.h
-    ProbabilisticSamplingStrategy.h
-    ExhaustiveSamplingStrategy.h
-    OrderedSamplingStrategy.h
-    ConditionalSamplingStrategy.h
     DESTINATION include/cudaq/ptsbe
+)
+
+# Install strategy headers to strategies subdirectory
+install(FILES
+    strategies/ProbabilisticSamplingStrategy.h
+    strategies/ExhaustiveSamplingStrategy.h
+    strategies/OrderedSamplingStrategy.h
+    strategies/ConditionalSamplingStrategy.h
+    DESTINATION include/cudaq/ptsbe/strategies
 )

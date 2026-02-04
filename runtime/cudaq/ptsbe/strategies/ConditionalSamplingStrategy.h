@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "PTSSamplingStrategy.h"
+#include "../PTSSamplingStrategy.h"
 #include <functional>
 #include <random>
 

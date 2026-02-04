@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/ptsbe/ConditionalSamplingStrategy.h"
-#include "cudaq/ptsbe/ExhaustiveSamplingStrategy.h"
-#include "cudaq/ptsbe/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/PTSSamplingStrategy.h"
-#include "cudaq/ptsbe/ProbabilisticSamplingStrategy.h"
+#include "cudaq/ptsbe/strategies/ConditionalSamplingStrategy.h"
+#include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
+#include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
+#include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
 #include <gtest/gtest.h>
 
 using namespace cudaq::ptsbe;
