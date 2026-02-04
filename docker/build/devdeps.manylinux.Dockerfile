@@ -23,9 +23,6 @@
 ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
 FROM ${base_image}
 
-ARG CACHE_BUST="1234"
-RUN echo "Cache bust: ${CACHE_BUST}"
-
 ARG distro=rhel8
 ARG llvm_commit
 ARG pybind11_commit
@@ -102,6 +99,10 @@ RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
 
 ARG cuda_version=12.6
 ENV CUDA_VERSION=${cuda_version}
+
+ARG CACHE_BUST="1234"
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
