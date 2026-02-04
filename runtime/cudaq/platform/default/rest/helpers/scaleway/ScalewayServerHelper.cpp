@@ -40,7 +40,7 @@ std::string serializeParametersToQio(size_t nb_shots) {
 }
 
 std::string serializeKernelToQio(const std::string &code) {
-  qio::QuantumProgram program(code, qio::QuantumProgramSerializationFormat::QASM_V2,
+  qio::QuantumProgram program(code,qio::QuantumProgramSerializationFormat::QASM_V2,
                               qio::CompressionFormat::ZLIB_BASE64_V1);
 
   std::vector<qio::QuantumProgram> programs = {program};
@@ -64,7 +64,7 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
   m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "", DEFAULT_MAX_DURATION);
   m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "", DEFAULT_MAX_IDLE_DURATION);
   m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "", "");
-  m_sessionName = getValueOrDefault(config, "name", "cudaq-session-" + std::to_string(std::rand()), "");
+  m_sessionName = getValueOrDefault(config, "name", "", "cudaq-session-" + std::to_string(std::rand()));
 
   setShots(std::stoul(getValueOrDefault(config, "shots", "", "1000")));
 }
