@@ -43,12 +43,10 @@ pattern = r"set_target\(\s*(\\?['\"])([^'\"]+)\1(?:\s*,\s*option\s*=\s*(\\?['\"]
 # Platform-dependent skip list: notebooks that require GPU/CUDA libraries
 # These cannot run on CPU-only systems even with fallback logic
 GPU_REQUIRED_NOTEBOOKS = [
-    'adapt_vqe.ipynb',  # Uses state-based cudaq.observe() (GPU-only feature)
-    'adapt_qaoa.ipynb',  # Uses state-based cudaq.observe() (GPU-only feature)
     'afqmc.ipynb',  # AFQMC algorithm, times out on CPU
-    'krylov.ipynb',  # Kernel crash on CPU, needs GPU
-    'qm_mm_pe.ipynb',  # VQE+SCF with many iterations, impractical on CPU
-    'vqe_advanced.ipynb',  # VQE optimization, times out on CPU
+    'krylov.ipynb',  # MLIR type mismatch bug on CPU
+    'qm_mm_pe.ipynb',  # VQE+SCF with many iterations, times out on CPU
+    'vqe_advanced.ipynb',  # VQE optimization with mqpu, requires multi-GPU
     'edge_detection.ipynb',  # Requires CuPy
     'entanglement_acc_hamiltonian_simulation.ipynb',  # Requires CuPy
     'skqd.ipynb',  # Requires CuPy
