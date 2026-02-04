@@ -16,7 +16,7 @@
 using namespace cudaq::qio;
 
 std::string cudaq::qio::gzipCompress(const std::string &input) {
-    int compressionlevel = Z_BEST_COMPRESSION
+    int compressionlevel = Z_BEST_COMPRESSION;
     z_stream zs; // z_stream is zlib's control structure
     memset(&zs, 0, sizeof(zs));
 
