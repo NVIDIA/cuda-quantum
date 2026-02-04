@@ -58,7 +58,7 @@ jobs:
             make -j$(nproc)
 
       - name: 'Tar files'
-        run: tar -cvf build_artifacts.tar /workspace/realtime/build
+        run: tar -cvf build_artifacts.tar ${{ github.workspace }}/realtime/build
       
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
