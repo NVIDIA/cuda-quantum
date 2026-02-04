@@ -16,7 +16,8 @@ found in our complete :doc:`Installation Guide <install/install>`.
 
 .. note::
 
-    CUDA-Q is supported on Linux and macOS. GPU-acceleration is available on Linux only; macOS provides CPU-based simulation.
+    CUDA-Q is supported on Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
+    GPU-acceleration is available on Linux only; macOS provides CPU-based simulation.
     On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
 
 Install CUDA-Q
@@ -50,7 +51,7 @@ Once you completed the installation, please follow the instructions
    `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
 
    - **Linux**: Use `_cu12` suffix for CUDA 12 or `_cu13` for CUDA 13, with `aarch64` for ARM or `x86_64` for Intel/AMD processors.
-   - **macOS**: Use the `_darwin` suffix with `arm64` for Apple Silicon.
+   - **macOS**: Use the `_darwin` suffix with `arm64` for Apple silicon.
 
    To install CUDA-Q, execute the commands
 
