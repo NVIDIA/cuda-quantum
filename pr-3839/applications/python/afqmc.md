@@ -1772,7 +1772,7 @@ system. The algorithm consists of two parts:
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Package installs
-    !pip install pyscf==2.6.2 openfermion==1.6.1 ipie==0.7.1 numba==0.60.0 -q
+    !pip install pyscf>=2.7 openfermion==1.6.1 ipie==0.7.1 numba>=0.61 -q
 :::
 :::
 :::
