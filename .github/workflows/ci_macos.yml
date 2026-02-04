@@ -89,20 +89,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v1
 
       - name: Restore prerequisites from GHCR
         run: |
-          # Pull the cache image and extract artifacts
-          docker pull ${{ needs.devdeps.outputs.image_hash }}
-          container_id=$(docker create ${{ needs.devdeps.outputs.image_hash }})
-          docker cp $container_id:/macos-artifacts.tar.gz .
-          docker rm $container_id
+          # Login and pull cache artifact using ORAS
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          oras pull ${{ needs.devdeps.outputs.image_hash }}
           
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
@@ -160,20 +154,14 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v1
 
       - name: Restore prerequisites from GHCR
         run: |
-          # Pull the cache image and extract artifacts
-          docker pull ${{ needs.devdeps.outputs.image_hash }}
-          container_id=$(docker create ${{ needs.devdeps.outputs.image_hash }})
-          docker cp $container_id:/macos-artifacts.tar.gz .
-          docker rm $container_id
+          # Login and pull cache artifact using ORAS
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          oras pull ${{ needs.devdeps.outputs.image_hash }}
           
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
@@ -288,20 +276,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v1
 
       - name: Restore prerequisites from GHCR
         run: |
-          # Pull the cache image and extract artifacts
-          docker pull ${{ needs.devdeps.outputs.image_hash }}
-          container_id=$(docker create ${{ needs.devdeps.outputs.image_hash }})
-          docker cp $container_id:/macos-artifacts.tar.gz .
-          docker rm $container_id
+          # Login and pull cache artifact using ORAS
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          oras pull ${{ needs.devdeps.outputs.image_hash }}
           
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME

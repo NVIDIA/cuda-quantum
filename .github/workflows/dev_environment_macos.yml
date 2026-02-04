@@ -118,17 +118,16 @@ jobs:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
           submodules: ${{ inputs.checkout_submodules }}
 
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v1
+
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+        run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Check for cached image
         id: cache_check
         run: |
-          if docker manifest inspect ${{ needs.metadata.outputs.image_name }} > /dev/null 2>&1; then
+          if oras manifest fetch ${{ needs.metadata.outputs.image_name }} > /dev/null 2>&1; then
             echo "Cache hit: ${{ needs.metadata.outputs.image_name }}"
             echo "cache_hit=true" >> $GITHUB_OUTPUT
           else
@@ -156,24 +155,22 @@ jobs:
           
           bash scripts/install_prerequisites.sh
 
-      - name: Package and push cache image
+      - name: Package and push cache artifact
         id: push_image
         if: steps.cache_check.outputs.cache_hit != 'true'
         run: |
           # Package artifacts
           echo "Packaging artifacts from ~/.local and ~/.llvm-project..."
-          tar -czf artifacts.tar.gz -C $HOME .local .llvm-project
-          ls -lh artifacts.tar.gz
+          tar -czf macos-artifacts.tar.gz -C $HOME .local .llvm-project
+          ls -lh macos-artifacts.tar.gz
           
-          # Build and push Ubuntu image containing macOS artifacts
-          docker build \
-            -t ${{ needs.metadata.outputs.image_name }} \
-            -f docker/build/macos-cache.Dockerfile .
-          docker push ${{ needs.metadata.outputs.image_name }}
+          # Push directly to GHCR as OCI artifact using ORAS
+          oras push ${{ needs.metadata.outputs.image_name }} \
+            macos-artifacts.tar.gz:application/gzip
           
           # Get digest for signing
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ needs.metadata.outputs.image_name }} 2>/dev/null || echo "")
-          echo "digest=${digest}" >> $GITHUB_OUTPUT
+          digest=$(oras manifest fetch ${{ needs.metadata.outputs.image_name }} --descriptor | jq -r '.digest')
+          echo "digest=${{ needs.metadata.outputs.image_name }}@${digest}" >> $GITHUB_OUTPUT
 
       - name: Install Cosign
         if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
