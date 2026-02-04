@@ -8,7 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
-#include "cudaq/ptsbe/PTSBEInterface.h"
+#include "cudaq/ptsbe/PTSBESampler.h"
 #include <cmath>
 
 using namespace cudaq;
