@@ -1,8 +1,5 @@
-async
 clang
-deallocating
 gcc
-lifecycle
 nullary
 pre
 typedef

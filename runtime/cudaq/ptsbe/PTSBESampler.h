@@ -217,7 +217,7 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 /// provide a custom sampleWithPTSBE() method.
 ///
 /// Caller must set up ExecutionContext and allocate qubits before
-/// calling this function. Caller is also responsible for deallocating qubits
+/// calling this function. Caller is also responsible for de-allocating qubits
 /// and resetting the ExecutionContext after this function returns.
 ///
 /// @tparam ScalarType Simulator scalar type
@@ -246,9 +246,9 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 /// @throws std::runtime_error if simulator cast fails or contract violated
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 
-/// @brief Execute PTSBE with full lifecycle management (registry-based)
+/// @brief Execute PTSBE with full life-cycle management (registry-based)
 ///
-/// Convenience function that handles the complete simulator lifecycle:
+/// Convenience function that handles the complete simulator life-cycle:
 /// 1. Gets current simulator from registry
 /// 2. Creates ExecutionContext with specified type
 /// 3. Sets context on simulator and allocates qubits

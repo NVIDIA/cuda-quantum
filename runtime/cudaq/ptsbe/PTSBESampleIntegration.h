@@ -117,7 +117,7 @@ runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   batch.kernelTrace = std::move(traceCtx.kernelTrace);
   batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
 
-  // Stage 3: Execute PTSBE with lifecycle management
+  // Stage 3: Execute PTSBE with life-cycle management
   auto results = samplePTSBEWithLifecycle(batch, "sample");
 
   return aggregateResults(results);
@@ -154,7 +154,7 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 /// @brief Run PTSBE sampling asynchronously
 ///
 /// Internal function called from cudaq::sample_async() when use_ptsbe=true.
-/// Creates a KernelExecutionTask that runs PTSBE and enqueues it for async
+/// Creates a KernelExecutionTask that runs PTSBE and enqueues it for `async`
 /// execution.
 ///
 /// PTSBE does not support remote execution - this function will reject
@@ -176,7 +176,7 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Validate upfront so exceptions are thrown in calling thread
   validatePTSBEPreconditions(platform, qpu_id);
 
-  // Create async task that runs PTSBE
+  // Create `async` task that runs PTSBE
   KernelExecutionTask task(
       [shots, kernelName, &platform,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
