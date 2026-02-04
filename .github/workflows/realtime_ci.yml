@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_and_test:
+  build_realtime:
     name: Build 
     strategy:
       matrix:
@@ -52,7 +52,51 @@ jobs:
             # Install dependencies
             source scripts/install_dev_prerequisites.sh
             # Build 
-            apt update && apt install -y --no-install-recommends cmake 
+            apt update && apt install -y --no-install-recommends cmake git
             mkdir -p build && cd build
             cmake .. -DCMAKE_BUILD_TYPE=Release -DNVQLINK_BUILD_TESTS=ON 
             make -j$(nproc)
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ${{ github.workspace }}/realtime/build/
+          retention-days: 1
+          if-no-files-found: error
+
+  test_realtime:
+    name: Test 
+    needs: build_realtime
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ${{ github.workspace }}/realtime/build/
+      
+      - name: Test CUDA Quantum Realtime
+        uses: ./.github/actions/run-in-docker
+        with:
+          # Use a base CUDA development image for testing, i.e., no CUDA-Q dependencies pre-installed.
+          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          volume: ${{ github.workspace }}:/workspace
+          shell: bash
+          run: |
+            cd /workspace/realtime/build
+            ctest -V
+          
