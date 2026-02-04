@@ -49,6 +49,9 @@ public:
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
 protected:
+  /// @brief Convenient function to ensure at least one QPU Session is alive
+  /// before sending any jobs against.
+  /// Session is automatically killed by the QaaS after max_duration or max_idle_duration.
   std::string ensureSessionIsActive();
 
 private:

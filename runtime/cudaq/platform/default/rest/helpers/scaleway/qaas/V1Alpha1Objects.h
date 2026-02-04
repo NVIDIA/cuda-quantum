@@ -11,6 +11,9 @@
 
 using json = nlohmann::json;
 
+/// @brief Common API objects used to interact with Scaleway QaaS.
+/// Custom serialization / deserialization methods are implemented because of 'null' field values.
+/// Objects such as Booking, Process and Application are not implemented because not handled by CUDA-Q. 
 namespace cudaq::qaas::v1alpha1 {
 
 template <typename T>

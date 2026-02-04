@@ -33,13 +33,10 @@ std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &key,
                               const std::string &envKey,
                               const std::string &defaultValue) {
-  CUDAQ_INFO("Retrieving key: {}, or env: {} or default: {}", key, envKey, defaultValue);
-
   auto it = config.find(key);
   
   // If no provided value, look from env variables
   auto envValue = getEnv(envKey);
-  CUDAQ_INFO("Retrieving env: {}", envValue);
 
   auto providedValue = (it != config.end()) ? it->second : envValue;
 
