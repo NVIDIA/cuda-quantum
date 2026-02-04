@@ -23,17 +23,17 @@ struct QiskitExperimentResultData {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResultData, counts)
 
 struct QiskitExperimentResultHeader {
-  std::string name = "";
-  size_t n_qubits = 0;
+  std::string name;
+  int n_qubits;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(QiskitExperimentResultHeader, name, n_qubits)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResultHeader, name, n_qubits)
 
 struct QiskitExperimentResult {
   QiskitExperimentResultData data;
   QiskitExperimentResultHeader header;
   bool success = false;
-  size_t shots = 0;
+  int shots = 0;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(QiskitExperimentResult, success, data, shots)
@@ -47,6 +47,8 @@ std::string hexToBitstring(const std::string &hex, int n_qubits) {
     ss >> value;
 
     std::string bits = std::bitset<64>(value).to_string();
+
+    CUDAQ_INFO("bits : {}", bits);
 
     return bits.substr(64 - n_qubits, n_qubits);
 }
@@ -63,6 +65,7 @@ std::vector<std::size_t>
 qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   std::vector<std::size_t> serialized;
 
+  CUDAQ_INFO("qiskit result : {}, {}", qiskitResult.success, qiskitResult.shots);
   CUDAQ_INFO("qiskit result name: {}", qiskitResult.header.name);
   CUDAQ_INFO("qiskit result count: {}", qiskitResult.header.n_qubits);
 
