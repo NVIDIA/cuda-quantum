@@ -1,136 +1,86 @@
-name: macOS CI
-
 on:
   workflow_dispatch:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+  merge_group:
+    types:
+      - checks_requested
+
+name: CI - macOS # do not change name without updating workflow_run triggers
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ============================================================================
-  # Metadata: Get commit hashes for cache keys
+  # Metadata: Retrieve PR info and commit hashes
   # ============================================================================
   metadata:
-    name: Metadata
+    name: Retrieve PR info
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+
     outputs:
-      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
-      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
+      pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
+      pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
+      cache_base: ${{ steps.pr_info.outputs.pr_base }}
+
     steps:
-      - uses: actions/checkout@v4
-      - id: repo_info
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - id: pr_info
         run: |
-          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
-          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+          pr_number=`echo ${{ github.ref_name }} | grep pull-request/ | (grep -o [0-9]* || true)`
+          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
+
+          if [ -n "$pr_number" ]; then
+            pr_base=`gh pr view $pr_number -R ${{ github.repository }} --json baseRefName --jq .baseRefName`
+
+            echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+            echo "pr_base=$pr_base" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   # ============================================================================
-  # Build prerequisites (LLVM, OpenMP, etc.) WITHOUT Python bindings
-  # Python bindings are rebuilt per-Python-version in build/wheel jobs
-  # This mirrors the Linux CI architecture (wheeldeps → python_wheels)
+  # Build prerequisites via GHCR caching
+  # Uses dev_environment_macos.yml which packages artifacts into an Ubuntu image
   # ============================================================================
   devdeps:
-    name: Prerequisites (${{ matrix.runner }})
+    name: Load macOS dependencies
     needs: metadata
-    strategy:
-      matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
-      fail-fast: false
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 180
-    env:
-      # Minimum supported macOS version determined from CI testing (13.0 Ventura)
-      MACOSX_DEPLOYMENT_TARGET: '13.0'
-    steps:
-      - uses: actions/checkout@v4
-        # Note: submodules not needed for this stage - LLVM is cloned to ~/.llvm-project by build script
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: System info
-        run: |
-          echo "=== System ===" 
-          uname -a
-          sw_vers
-          echo "=== Hardware ==="
-          sysctl hw.ncpu hw.memsize
-          df -h
-          echo "=== Toolchain ==="
-          clang --version
-          python3 --version
-          cmake --version
-          brew --version
-
-      - name: Cache prerequisites
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.local
-            ~/.llvm-project
-          # Cache: installed libs (~/.local) + LLVM source/build (~/.llvm-project)
-          # Source+build needed for incremental Python bindings rebuild in wheel job
-          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
-
-      - name: Build prerequisites
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          # Fix CI runner quirk: gcc pre-installed but not linked
-          brew unlink gcc 2>/dev/null || true
-          brew link gcc --overwrite 2>/dev/null || true
-          which gfortran || { echo "ERROR: gfortran not found!"; exit 1; }
-          
-          # Override LLVM_PROJECTS to exclude python-bindings
-          # Python bindings will be rebuilt per-Python-version in wheel job
-          export LLVM_PROJECTS='clang;lld;mlir;openmp'
-          
-          echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
-          source scripts/set_env_defaults.sh
-          echo "=== Build Configuration ==="
-          echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"
-          echo "LLVM_PROJECTS=$LLVM_PROJECTS"
-          echo "Building with $(sysctl -n hw.ncpu) cores, $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 )) GB RAM"
-          
-          bash scripts/install_prerequisites.sh
-
-      - name: Verify installation
-        run: |
-          source scripts/set_env_defaults.sh
-          echo "=== LLVM Installation ==="
-          ls -la $LLVM_INSTALL_PREFIX/bin/ | head -20
-          $LLVM_INSTALL_PREFIX/bin/clang --version
-          echo "=== OpenMP Check ==="
-          ls -la $LLVM_INSTALL_PREFIX/lib/libomp* 2>/dev/null || echo "OpenMP libraries not found"
-          echo "=== LLVM Source + Build ==="
-          ls -la ~/.llvm-project/ 2>/dev/null | head -5 || echo "LLVM project not found"
-          echo "=== Cache sizes ==="
-          du -sh ~/.local || true
-          du -sh ~/.llvm-project || true
+    uses: ./.github/workflows/dev_environment_macos.yml
+    with:
+      platforms: darwin/arm64
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: false
+      environment: ghcr-ci
 
   # ============================================================================
   # Build and test CUDA-Q
   # ============================================================================
   build_and_test:
-    name: Build & Test (${{ matrix.runner }})
-    needs: [metadata, devdeps]
-    strategy:
-      matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
-      fail-fast: false
-    runs-on: ${{ matrix.runner }}
+    name: Build & Test (arm64)
+    needs: devdeps
+    runs-on: macos-26
     timeout-minutes: 180
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -139,14 +89,28 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Restore prerequisites cache
-        uses: actions/cache/restore@v4
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
         with:
-          path: |
-            ~/.local
-            ~/.llvm-project
-          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
-          fail-on-cache-miss: true
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          # Pull the cache image and extract artifacts
+          docker pull ${{ needs.devdeps.outputs.image_hash }}
+          container_id=$(docker create ${{ needs.devdeps.outputs.image_hash }})
+          docker cp $container_id:/macos-artifacts.tar.gz .
+          docker rm $container_id
+          
+          # Extract to home directory
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
+          
+          echo "=== Restored prerequisites ==="
+          du -sh ~/.local || true
+          du -sh ~/.llvm-project || true
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -172,31 +136,13 @@ jobs:
   # Rebuilds MLIR Python bindings for each Python version from cached LLVM
   # ============================================================================
   wheel:
-    name: Wheel (${{ matrix.runner }}, py${{ matrix.python_version }})
-    needs: [metadata, devdeps]
+    name: Wheel (arm64, py${{ matrix.python_version }})
+    needs: devdeps
     strategy:
       matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-            python_version: '3.11'
-          - runner: macos-26
-            arch: arm64
-            python_version: '3.12'
-          - runner: macos-26
-            arch: arm64
-            python_version: '3.13'
-          - runner: macos-15-intel
-            arch: x86_64
-            python_version: '3.11'
-          - runner: macos-15-intel
-            arch: x86_64
-            python_version: '3.12'
-          - runner: macos-15-intel
-            arch: x86_64
-            python_version: '3.13'
+        python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-26
     timeout-minutes: 90
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
@@ -204,7 +150,8 @@ jobs:
       cudaq_version: ${{ steps.build_wheel.outputs.cudaq_version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -213,14 +160,24 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Restore prerequisites cache
-        uses: actions/cache/restore@v4
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
         with:
-          path: |
-            ~/.local
-            ~/.llvm-project
-          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
-          fail-on-cache-miss: true
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          # Pull the cache image and extract artifacts
+          docker pull ${{ needs.devdeps.outputs.image_hash }}
+          container_id=$(docker create ${{ needs.devdeps.outputs.image_hash }})
+          docker cp $container_id:/macos-artifacts.tar.gz .
+          docker rm $container_id
+          
+          # Extract to home directory
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -265,7 +222,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pycudaq-macos-${{ matrix.arch }}-py${{ matrix.python_version }}
+          name: pycudaq-macos-arm64-py${{ matrix.python_version }}
           path: dist/cuda_quantum*.whl
           retention-days: 1
           if-no-files-found: error
@@ -274,35 +231,18 @@ jobs:
   # Validate wheels in clean environments
   # ============================================================================
   validate_wheel:
-    name: Validate (${{ matrix.runner }}, py${{ matrix.python_version }})
+    name: Validate (arm64, py${{ matrix.python_version }})
     needs: wheel
     strategy:
       matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-            python_version: '3.11'
-          - runner: macos-26
-            arch: arm64
-            python_version: '3.12'
-          - runner: macos-26
-            arch: arm64
-            python_version: '3.13'
-          - runner: macos-15-intel
-            arch: x86_64
-            python_version: '3.11'
-          - runner: macos-15-intel
-            arch: x86_64
-            python_version: '3.12'
-          - runner: macos-15-intel
-            arch: x86_64
-            python_version: '3.13'
+        python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-26
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -312,7 +252,7 @@ jobs:
       - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
-          name: pycudaq-macos-${{ matrix.arch }}-py${{ matrix.python_version }}
+          name: pycudaq-macos-arm64-py${{ matrix.python_version }}
           path: dist/
 
       - name: Validate wheel
@@ -328,17 +268,9 @@ jobs:
   # Build self-extracting installer for C++ SDK
   # ============================================================================
   installer:
-    name: Installer (${{ matrix.runner }})
-    needs: [metadata, devdeps]
-    strategy:
-      matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
-      fail-fast: false
-    runs-on: ${{ matrix.runner }}
+    name: Installer (arm64)
+    needs: devdeps
+    runs-on: macos-26
     timeout-minutes: 120
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
@@ -346,7 +278,8 @@ jobs:
       cudaq_version: ${{ steps.version.outputs.cudaq_version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -355,14 +288,24 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Restore prerequisites cache
-        uses: actions/cache/restore@v4
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
         with:
-          path: |
-            ~/.local
-            ~/.llvm-project
-          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
-          fail-on-cache-miss: true
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          # Pull the cache image and extract artifacts
+          docker pull ${{ needs.devdeps.outputs.image_hash }}
+          container_id=$(docker create ${{ needs.devdeps.outputs.image_hash }})
+          docker cp $container_id:/macos-artifacts.tar.gz .
+          docker rm $container_id
+          
+          # Extract to home directory
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
 
       - name: Install dependencies
         run: |
@@ -405,7 +348,7 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cudaq-installer-macos-${{ matrix.arch }}
+          name: cudaq-installer-macos-arm64
           path: out/install_cuda_quantum*
           retention-days: 1
           if-no-files-found: error
@@ -415,21 +358,14 @@ jobs:
   # Installer provides C++ support; wheel provides Python support
   # ============================================================================
   validate_installation:
-    name: Validate Installation (${{ matrix.runner }})
+    name: Validate Installation (arm64)
     needs: [installer, wheel]
-    strategy:
-      matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
-      fail-fast: false
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-26
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -439,13 +375,13 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v4
         with:
-          name: cudaq-installer-macos-${{ matrix.arch }}
+          name: cudaq-installer-macos-arm64
           path: installer/
 
       - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
-          name: pycudaq-macos-${{ matrix.arch }}-py3.12
+          name: pycudaq-macos-arm64-py3.12
           path: wheel/
 
       - name: Install CUDA-Q (C++ via installer)
