@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
 #include <cassert>
 #include <functional>

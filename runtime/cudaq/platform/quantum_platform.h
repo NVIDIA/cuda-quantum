@@ -10,11 +10,11 @@
 
 #include "common/CodeGenConfig.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "nvqpp_interface.h"
 #include <cstring>
