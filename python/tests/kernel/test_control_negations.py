@@ -255,6 +255,81 @@ def test_unsupported_calls():
         e.value)
 
 
+def test_control_float_list_complex_real_access():
+    """
+    Regression test for a bug in cudaq.control() argument synthesis.
+    
+    The bug occurs when these three conditions are met:
+    1. Using cudaq.control() to call a sub-kernel
+    2. The sub-kernel has BOTH float AND list[complex] parameters
+    3. The sub-kernel accesses .real on a complex value from the list
+    
+    Error: 'func.call' op operand type mismatch: expected operand type 
+    '!quake.veq<?>', but provided '!quake.veq<N>'
+    RuntimeError: Could not successfully apply argument synth.
+    
+    This pattern is used in the krylov.ipynb notebook.
+    """
+
+    @cudaq.kernel
+    def sub_kernel(qubits: cudaq.qview, dt: float, values: list[complex]):
+        rx(dt * values[0].real, qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(dt: float, values: list[complex]):
+        ancilla = cudaq.qubit()
+        qreg = cudaq.qvector(2)
+        h(ancilla)
+        cudaq.control(sub_kernel, ancilla, qreg, dt, values)
+
+    result = cudaq.sample(main_kernel, 0.1, [0.5 + 0j, 0.25 + 0j])
+    assert len(result) > 0
+
+
+def test_control_list_complex_real_access_no_float():
+    """
+    Verify that list[complex] with .real access works when there's no float param.
+    This is a control test to confirm the bug is specific to the float + list[complex]
+    combination.
+    """
+
+    @cudaq.kernel
+    def sub_kernel(qubits: cudaq.qview, values: list[complex]):
+        rx(values[0].real, qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(values: list[complex]):
+        ancilla = cudaq.qubit()
+        qreg = cudaq.qvector(2)
+        h(ancilla)
+        cudaq.control(sub_kernel, ancilla, qreg, values)
+
+    # This should work
+    result = cudaq.sample(main_kernel, [0.5 + 0j, 0.25 + 0j])
+    assert len(result) > 0
+
+
+def test_control_float_list_complex_no_real_access():
+    """
+    Verify that float + list[complex] works when .real is not accessed.
+    This is a control test to confirm the bug requires the .real access.
+    """
+
+    @cudaq.kernel
+    def sub_kernel(qubits: cudaq.qview, dt: float, values: list[complex]):
+        rx(dt, qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(dt: float, values: list[complex]):
+        ancilla = cudaq.qubit()
+        qreg = cudaq.qvector(2)
+        h(ancilla)
+        cudaq.control(sub_kernel, ancilla, qreg, dt, values)
+
+    result = cudaq.sample(main_kernel, 0.1, [0.5 + 0j, 0.25 + 0j])
+    assert len(result) > 0
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
