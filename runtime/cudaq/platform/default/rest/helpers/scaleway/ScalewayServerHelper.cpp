@@ -17,20 +17,23 @@
 using json = nlohmann::json;
 using namespace cudaq; 
 
-// Helper function to get a value from config or return a default
 std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &key,
                               const std::string &envKey,
                               const std::string &defaultValue) {
-  CUDAQ_INFO("Retrieving key {} or env {}", key, envKey);
+  CUDAQ_INFO("Retrieving key: {}, or env: {} or default: {}", key, envKey, defaultValue);
 
   auto it = config.find(key);
-  // auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
-  auto providedValue = (it != config.end()) ? it->second : defaultValue;
+  
+  // If no provided value, look from env variables
+  auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
 
-  return providedValue;
+  CUDAQ_INFO("Retrieving env: {}", envValue);
 
-  // return !providedValue.empty() ? providedValue : defaultValue;
+  auto providedValue = (it != config.end()) ? it->second : envValue;
+
+  // If still no value, we apply the default SDK value
+  return !providedValue.empty() ? providedValue : defaultValue;
 }
 
 std::string serializeParametersToQio(size_t nb_shots) {
