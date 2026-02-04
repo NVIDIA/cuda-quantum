@@ -360,7 +360,6 @@ templated
 toolchain
 toolchains
 toolset
-traceback
 transmon
 transpile
 trotterization

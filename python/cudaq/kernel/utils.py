@@ -262,7 +262,7 @@ def set_tracebacklimit(limit=None):
         yield
         sys.tracebacklimit = cached
     except AttributeError:
-        # traceback limit was not set: delete it at the end
+        # `tracebacklimit` was not set: delete it at the end
         sys.tracebacklimit = limit
         yield
         del sys.tracebacklimit
