@@ -216,11 +216,10 @@ RUN cd /cuda-quantum && \
 # - linux_x86_64, etc.
 # If input is linux_<ARCH>, then choose manylinux_2_28_<ARCH> output
 RUN echo "Patching up wheel using auditwheel..." && \
-    cd /cuda-quantum && \
     ## [>CUDAQuantumWheel]
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
     MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*' | sed -re 's/^linux_/manylinux_2_28_/')" && \
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/cuda-quantum/_skbuild/lib" \
     python3 -m auditwheel -v repair ${CUDAQ_WHEEL} \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
