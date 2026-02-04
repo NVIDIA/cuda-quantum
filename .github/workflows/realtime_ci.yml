@@ -82,9 +82,6 @@ jobs:
       image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
 
     steps:
-      
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Download binary artifact
         uses: actions/download-artifact@v4
