@@ -14,7 +14,6 @@
 #include "common/ObserveResult.h"
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "nvqpp_interface.h"
 #include <cstring>

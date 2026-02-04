@@ -16,7 +16,6 @@
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <concepts>
 #include <cstdarg>

@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -130,9 +130,9 @@ void invoke_no_throw(F &&f) {
   try {
     (void)std::invoke(std::forward<F>(f));
   } catch (const std::runtime_error &e) {
-    CUDAQ_INFO("Silencing runtime error: {}", e.what());
+    std::cerr << "Silencing runtime error: " << e.what() << std::endl;
   } catch (...) {
-    CUDAQ_INFO("Silencing unknown exception");
+    std::cerr << "Silencing unknown exception";
   }
 }
 
