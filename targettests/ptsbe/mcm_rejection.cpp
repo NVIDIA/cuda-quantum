@@ -14,7 +14,7 @@
 // CHECK: PASS: Dynamic circuit rejected
 
 #include <cudaq.h>
-#include <cudaq/ptsbe/PTSBESample.h>
+#include <cudaq/ptsbe/PTSBESampleIntegration.h>
 #include <cstring>
 
 struct mcmKernel {

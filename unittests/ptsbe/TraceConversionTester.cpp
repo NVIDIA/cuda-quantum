@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/ptsbe/PTSBEInterface.h"
+#include "cudaq/ptsbe/PTSBESampler.h"
 #include "nvqir/Gates.h"
 #include <cmath>
 

@@ -14,7 +14,7 @@
 // CHECK: PASS: PTSBatch captured
 
 #include <cudaq.h>
-#include <cudaq/ptsbe/PTSBESample.h>
+#include <cudaq/ptsbe/PTSBESampleIntegration.h>
 
 struct bellKernel {
   void operator()() __qpu__ {
