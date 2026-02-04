@@ -14,7 +14,6 @@
 #include "nvqir/Gates.h"
 #include <concepts>
 #include <cstddef>
-#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -55,6 +54,11 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
   } -> std::same_as<std::vector<cudaq::sample_result>>;
 };
 
+/// @brief Alias for CircuitSimulator gate task type
+template <typename ScalarType>
+using GateTask =
+    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+
 /// @brief Convert Trace instruction to simulator task
 ///
 /// Looks up gate matrix from nvqir::Gates.h registry and constructs
@@ -66,7 +70,7 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
 /// @return GateApplicationTask with computed unitary matrix
 /// @throws std::runtime_error if gate name is not recognized
 template <typename ScalarType>
-typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
+GateTask<ScalarType>
 convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   // Convert parameters to ScalarType
   std::vector<ScalarType> typedParams;
@@ -89,8 +93,8 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   for (const auto &q : inst.targets)
     targets.push_back(q.id);
 
-  return typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask(
-      inst.name, matrix, controls, targets, typedParams);
+  return GateTask<ScalarType>(inst.name, matrix, controls, targets,
+                              typedParams);
 }
 
 /// @brief Convert entire kernel trace to simulator task list
@@ -103,12 +107,8 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
 /// @return Vector of GateApplicationTask ready for simulator execution
 /// @throws std::runtime_error if any instruction has unrecognized gate
 template <typename ScalarType>
-std::vector<
-    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-convertTrace(const cudaq::Trace &trace) {
-  using TaskType =
-      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-  std::vector<TaskType> tasks;
+std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
+  std::vector<GateTask<ScalarType>> tasks;
   tasks.reserve(trace.getNumInstructions());
   for (const auto &inst : trace)
     tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
@@ -125,17 +125,13 @@ convertTrace(const cudaq::Trace &trace) {
 /// KrausOperatorType is expanded to include named error types (X_ERROR,
 /// Y_ERROR, Z_ERROR, etc.), this should map directly from enum to gate.
 template <typename ScalarType>
-typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
-krausSelectionToTask(const cudaq::KrausSelection &sel) {
-  using TaskType =
-      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-
+GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel) {
   std::string gateName =
       (sel.kraus_operator_index == KrausOperatorType::IDENTITY) ? "id"
                                                                 : sel.op_name;
   auto gateEnum = nvqir::getGateNameFromString(gateName);
   auto matrix = nvqir::getGateByName<ScalarType>(gateEnum, {});
-  return TaskType(gateName, matrix, {}, sel.qubits, {});
+  return GateTask<ScalarType>(gateName, matrix, {}, sel.qubits, {});
 }
 
 /// @brief Merge base tasks with trajectory noise insertions
@@ -149,20 +145,14 @@ krausSelectionToTask(const cudaq::KrausSelection &sel) {
 /// @param trajectory Trajectory with noise selections
 /// @return Merged task list ready for execution
 template <typename ScalarType>
-std::vector<
-    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-mergeTasksWithTrajectory(const std::vector<typename nvqir::CircuitSimulatorBase<
-                             ScalarType>::GateApplicationTask> &baseTasks,
+std::vector<GateTask<ScalarType>>
+mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
                          const cudaq::KrausTrajectory &trajectory) {
-  using TaskType =
-      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-
   const auto &selections = trajectory.kraus_selections;
 
-  std::vector<TaskType> merged;
+  std::vector<GateTask<ScalarType>> merged;
   merged.reserve(baseTasks.size() + selections.size());
 
-  // Linear merge: iterate through base tasks, inserting noise after each gate
   std::size_t noiseIdx = 0;
   for (std::size_t gateIdx = 0; gateIdx < baseTasks.size(); ++gateIdx) {
     merged.push_back(baseTasks[gateIdx]);
@@ -196,8 +186,7 @@ mergeTasksWithTrajectory(const std::vector<typename nvqir::CircuitSimulatorBase<
 /// @return Complete task list for simulator
 /// @throws std::runtime_error if gate name not recognized or invalid location
 template <typename ScalarType>
-std::vector<
-    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
+std::vector<GateTask<ScalarType>>
 mergeAndConvert(const cudaq::Trace &kernelTrace,
                 const cudaq::KrausTrajectory &trajectory) {
   auto baseTasks = convertTrace<ScalarType>(kernelTrace);
@@ -211,18 +200,8 @@ mergeAndConvert(const cudaq::Trace &kernelTrace,
 ///
 /// @param results Vector of per-trajectory sample results
 /// @return Single aggregated sample_result
-inline cudaq::sample_result
-aggregateResults(const std::vector<cudaq::sample_result> &results) {
-  if (results.empty())
-    return cudaq::sample_result{};
-
-  cudaq::CountsDictionary aggregatedCounts;
-  for (const auto &res : results) {
-    for (const auto &[bitstring, count] : res.to_map())
-      aggregatedCounts[bitstring] += count;
-  }
-  return cudaq::sample_result{cudaq::ExecutionResult{aggregatedCounts}};
-}
+cudaq::sample_result
+aggregateResults(const std::vector<cudaq::sample_result> &results);
 
 /// @brief Generic PTSBE execution implementation
 ///
@@ -237,91 +216,51 @@ aggregateResults(const std::vector<cudaq::sample_result> &results) {
 /// This is the fallback implementation used when a simulator does not
 /// provide a custom sampleWithPTSBE() method.
 ///
+/// Caller must set up ExecutionContext and allocate qubits before
+/// calling this function. Caller is also responsible for de-allocating qubits
+/// and resetting the ExecutionContext after this function returns.
+///
 /// @tparam ScalarType Simulator scalar type
-/// @param simulator Circuit simulator instance
+/// @param simulator Circuit simulator instance (must have ExecutionContext set)
 /// @param batch PTSBE specification
 /// @return Per-trajectory sample results
-/// @throws std::runtime_error if gate conversion fails
+/// @throws std::runtime_error if ExecutionContext not set or gate conversion
+/// fails
 template <typename ScalarType>
 std::vector<cudaq::sample_result>
-executePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
-                    const PTSBatch &batch) {
-  if (batch.trajectories.empty())
-    return {};
+samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
+                   const PTSBatch &batch);
 
-  std::size_t totalShots = batch.totalShots();
-  if (totalShots == 0)
-    return {};
-
-  if (batch.measureQubits.empty())
-    return {};
-
-  // Create ExecutionContext without the noiseModel
-  // as noise is pre-sampled.
-  cudaq::ExecutionContext execCtx("sample", totalShots);
-  simulator.setExecutionContext(&execCtx);
-
-  // Allocate qubits based on trace
-  std::size_t numQubits = batch.kernelTrace.getNumQudits();
-  simulator.allocateQubits(numQubits);
-
-  auto baseTasks = convertTrace<ScalarType>(batch.kernelTrace);
-
-  std::vector<cudaq::sample_result> results;
-  results.reserve(batch.trajectories.size());
-
-  for (const auto &traj : batch.trajectories) {
-    if (traj.num_shots == 0) {
-      // Push empty result to maintain index correspondence with trajectories
-      results.push_back(cudaq::sample_result{
-          cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
-      continue;
-    }
-
-    simulator.setToZeroState();
-
-    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(baseTasks, traj);
-
-    for (const auto &task : mergedTasks)
-      simulator.applyGate(task);
-    simulator.flushGateQueue();
-
-    auto execResult =
-        simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots));
-
-    results.push_back(
-        cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});
-  }
-
-  simulator.resetExecutionContext();
-
-  return results;
-}
-
-/// @brief Execute PTSBE batch with compile-time dispatch
+/// @brief Execute PTSBE batch on current simulator
 ///
-/// Uses compile-time dispatch to select between:
-/// - Custom simulator implementation (if PTSBECapable concept is satisfied)
-/// - Generic fallback implementation (executePTSBEGeneric)
+/// Handles both runtime precision dispatch and compile-time concept dispatch:
+/// 1. Uses isSinglePrecision() to determine float vs double
+/// 2. Checks PTSBECapable concept for custom simulator implementations
+/// 3. Falls back to samplePTSBEGeneric if no custom implementation
 ///
-/// Returns per-trajectory results for flexibility. Use aggregateResults()
-/// to combine into a single sample_result if needed.
+/// Caller must have set up ExecutionContext and allocated qubits
+/// on the simulator before calling this function.
 ///
-/// @tparam SimulatorType Simulator type (deduced)
-/// @param simulator Circuit simulator instance
-/// @param batch PTSBE specification
+/// @param batch PTSBatch with kernelTrace, trajectories, and measureQubits
 /// @return Per-trajectory sample results
-/// @throws std::runtime_error if gate conversion fails
-template <typename SimulatorType>
-std::vector<cudaq::sample_result> executePTSBE(SimulatorType &simulator,
-                                               const PTSBatch &batch) {
-  if constexpr (PTSBECapable<SimulatorType>) {
-    // Dispatch to custom simulator implementation
-    return simulator.sampleWithPTSBE(batch);
-  } else {
-    // Fall back to generic implementation
-    return executePTSBEGeneric(simulator, batch);
-  }
-}
+/// @throws std::runtime_error if simulator cast fails or contract violated
+std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
+
+/// @brief Execute PTSBE with full life-cycle management (registry-based)
+///
+/// Convenience function that handles the complete simulator life-cycle:
+/// 1. Gets current simulator from registry
+/// 2. Creates ExecutionContext with specified type
+/// 3. Sets context on simulator and allocates qubits
+/// 4. Calls samplePTSBE for precision dispatch and trajectory execution
+/// 5. Deallocates qubits and resets context
+///
+/// @param batch PTSBE specification
+/// @param contextType ExecutionContext type (default: "sample")
+/// @return Per-trajectory sample results
+/// @throws std::runtime_error if simulator cast fails or gate conversion fails
+std::vector<cudaq::sample_result>
+samplePTSBEWithLifecycle(const PTSBatch &batch,
+                         const std::string &contextType = "sample");
 
 } // namespace cudaq::ptsbe
