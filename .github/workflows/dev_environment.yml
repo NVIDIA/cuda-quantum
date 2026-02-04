@@ -292,6 +292,7 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+                echo "type=registry,ref=ghcr.io/nvidia/cuda-quantum-devdeps-ci"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
