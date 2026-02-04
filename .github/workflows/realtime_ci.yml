@@ -57,11 +57,14 @@ jobs:
             cmake .. -DCMAKE_BUILD_TYPE=Release -DNVQLINK_BUILD_TESTS=ON 
             make -j$(nproc)
 
+      - name: 'Tar files'
+        run: tar -cvf build_artifacts.tar /workspace/realtime/build
+      
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
-          path: ${{ github.workspace }}/realtime/build/
+          path: build_artifacts.tar
           retention-days: 1
           if-no-files-found: error
 
@@ -73,7 +76,7 @@ jobs:
         platform: [amd64, arm64]
         cuda_version: ['12.6', '13.0']
       fail-fast: false
-    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: read
@@ -87,7 +90,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
-          path: ${{ github.workspace }}/realtime/build/
+          path: ./realtime_build_artifacts
+      
+      - name: Extract files
+        run: tar -xvf ./realtime_build_artifacts/build_artifacts.tar -C ./realtime_build_artifacts/
       
       - name: Test CUDA Quantum Realtime
         shell: bash
@@ -95,7 +101,7 @@ jobs:
           # Install cmake for ctest
           apt update && apt install -y --no-install-recommends cmake 
           mkdir -p /workspace/realtime/build
-          cp -r realtime/build/* /workspace/realtime/build
+          cp -r ./realtime_build_artifacts/workspace/realtime/build/* /workspace/realtime/build
           cd /workspace/realtime/build
           ctest -V
           
