@@ -28,7 +28,8 @@ template <typename SimulatorType>
 std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
                                                const PTSBatch &batch) {
   cudaq::ExecutionContext ctx("sample", batch.totalShots());
-  sim.setExecutionContext(&ctx);
+  cudaq::detail::setExecutionContext(&ctx);
+  sim.configureExecutionContext(ctx);
   sim.allocateQubits(batch.kernelTrace.getNumQudits());
 
   std::vector<cudaq::sample_result> results;
@@ -41,7 +42,8 @@ std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
   std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   sim.deallocateQubits(qubitIds);
-  sim.resetExecutionContext();
+  sim.finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
   return results;
 }
 
