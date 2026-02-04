@@ -277,6 +277,7 @@ jobs:
           elif ${{ needs.metadata.outputs.pr_number != '' }}; then
             # for PRs, also push buildkit cache to the registry to speed up subsequent builds
             cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
