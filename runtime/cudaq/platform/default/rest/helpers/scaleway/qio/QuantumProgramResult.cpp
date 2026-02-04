@@ -57,13 +57,17 @@ std::vector<std::size_t>
 qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   std::vector<std::size_t> serialized;
 
+  CUDAQ_INFO("qiskit result name: {}", qiskitResult.name);
+  CUDAQ_INFO("qiskit result count: {}", qiskitResult.n_qubits);
+
   appendStringSerialized(qiskitResult.name, serialized);
 
   for (const auto &kv : qiskitResult.data.counts) {
       const std::string &hexKey = kv.first;
       std::size_t count = kv.second;
-
       std::string bitstring = hexToBitstring(hexKey, qiskitResult.n_qubits);
+
+      CUDAQ_INFO("bitstring: {}, {}", , kv.first, bitstring);
 
       appendStringSerialized(bitstring, serialized);
       serialized.push_back(count);
