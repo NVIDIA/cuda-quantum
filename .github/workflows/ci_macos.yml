@@ -90,7 +90,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install ORAS
-        uses: oras-project/setup-oras@v1
+        run: brew install oras
 
       - name: Restore prerequisites from GHCR
         run: |
@@ -155,7 +155,7 @@ jobs:
           python-version: ${{ matrix.python_version }}
 
       - name: Install ORAS
-        uses: oras-project/setup-oras@v1
+        run: brew install oras
 
       - name: Restore prerequisites from GHCR
         run: |
@@ -277,7 +277,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install ORAS
-        uses: oras-project/setup-oras@v1
+        run: brew install oras
 
       - name: Restore prerequisites from GHCR
         run: |

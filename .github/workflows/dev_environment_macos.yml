@@ -119,7 +119,7 @@ jobs:
           submodules: ${{ inputs.checkout_submodules }}
 
       - name: Install ORAS
-        uses: oras-project/setup-oras@v1
+        run: brew install oras
 
       - name: Log in to GitHub CR
         run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
