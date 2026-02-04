@@ -23,6 +23,9 @@
 ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
 FROM ${base_image}
 
+ARG CACHE_BUST="1234"
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 ARG distro=rhel8
 ARG llvm_commit
 ARG pybind11_commit
