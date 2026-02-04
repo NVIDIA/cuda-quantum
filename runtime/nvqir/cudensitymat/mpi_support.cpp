@@ -86,7 +86,8 @@ int cudensitymatMpiCommRank(const cudensitymatDistributedCommunicator_t *comm,
   return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
 }
 
-int cudensitymatMpiBarrier(const cudensitymatDistributedCommunicator_t *comm) {
+int cudensitymatMpiBarrier(const cudensitymatDistributedCommunicator_t *comm,
+                           void *barrierBuffer) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Barrier(&cudaqComm);
 }
