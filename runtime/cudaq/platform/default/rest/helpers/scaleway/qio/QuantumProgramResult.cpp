@@ -66,7 +66,7 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   CUDAQ_INFO("qiskit result name: {}", qiskitResult.header.name);
   CUDAQ_INFO("qiskit result count: {}", qiskitResult.header.n_qubits);
 
-  appendStringSerialized(qiskitResult.name, serialized);
+  appendStringSerialized(qiskitResult.header.name, serialized);
 
   for (const auto &kv : qiskitResult.data.counts) {
       const std::string &hexKey = kv.first;
