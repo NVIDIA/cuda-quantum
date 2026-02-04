@@ -29,10 +29,10 @@ template <typename ScalarType>
 std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
                    const PTSBatch &batch) {
-  if (!simulator.getExecutionContext())
+  if (!cudaq::getExecutionContext())
     throw std::runtime_error(
         "samplePTSBEGeneric requires ExecutionContext to be set. "
-        "Call simulator.setExecutionContext() before invoking.");
+        "Use cudaq::detail::setExecutionContext() before invoking.");
 
   if (batch.trajectories.empty())
     return {};
@@ -116,7 +116,8 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
   auto *sim = nvqir::getCircuitSimulatorInternal();
 
   cudaq::ExecutionContext ctx(contextType, batch.totalShots());
-  sim->setExecutionContext(&ctx);
+  cudaq::detail::setExecutionContext(&ctx);
+  sim->configureExecutionContext(ctx);
   sim->allocateQubits(batch.kernelTrace.getNumQudits());
 
   auto results = samplePTSBE(batch);
@@ -124,7 +125,8 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
   std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   sim->deallocateQubits(qubitIds);
-  sim->resetExecutionContext();
+  sim->finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
 
   return results;
 }
