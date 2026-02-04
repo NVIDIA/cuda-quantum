@@ -274,6 +274,9 @@ jobs:
             # We hence create a build cache only upon request.
             build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
+          elif ${{ needs.metadata.outputs.pr_number != '' }}; then
+            # for PRs, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
@@ -292,7 +295,6 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
-                echo "type=registry,ref=${{ needs.metadata.outputs.image_tags }}"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
