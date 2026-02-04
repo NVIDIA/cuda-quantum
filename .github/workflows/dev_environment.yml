@@ -145,7 +145,6 @@ jobs:
             pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
           fi
 
-          # cache to GHCR uses -ci suffix for PR builds
           if [ -n "$pr_number" ]; then
             image_name=${image_name}-ci
           fi
