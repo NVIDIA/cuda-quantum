@@ -112,7 +112,7 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       auto resultJson = json::parse(uncompressedSerialization);
       CUDAQ_INFO("Get qiskit result: {}", uncompressedSerialization);
       auto resultsJson = resultJson["results"];
-      auto qiskitResults = resultJson.get<std::vector<QiskitExperimentResult>>();
+      auto qiskitResults = resultsJson.get<std::vector<QiskitExperimentResult>>();
 
       if (qiskitResults.size() == 0) {
           throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");
