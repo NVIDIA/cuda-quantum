@@ -29,56 +29,49 @@ endif()
 include(GoogleTest)
 
 
-add_compile_options(-Wno-attributes) 
+add_compile_options(-Wno-attributes)
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test_config.h.in"
-               "${CMAKE_BINARY_DIR}/include/test_config.h" 
-               @ONLY)
-include_directories(${CMAKE_BINARY_DIR}/include)
+# ==============================================================================
+# GPU Dispatch Kernel Tests
+# ==============================================================================
 
-# ======= Phase 4: New Test Infrastructure ====================================
-
-# Test utilities library (LoopbackChannel for testing without hardware)
-add_library(test_utils STATIC
-  test_utils/loopback_channel.cpp
-)
-
-target_include_directories(test_utils
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+find_package(CUDAToolkit)
+if(CMAKE_CUDA_COMPILER)
+  enable_language(CUDA)
+  
+  add_executable(test_dispatch_kernel test_dispatch_kernel.cu)
+  
+  set_target_properties(test_dispatch_kernel PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 17
+  )
+  
+  target_include_directories(test_dispatch_kernel PRIVATE
+    ${CUDAToolkit_INCLUDE_DIRS}
     ${CUDAQ_NVQLINK_INCLUDE_DIR}
-)
-
-target_link_libraries(test_utils
-  PUBLIC
-    nvqlink_network
-)
-
-# Daemon tests
-add_executable(test_daemon test_daemon.cpp)
-target_link_libraries(test_daemon 
-  PRIVATE 
-    GTest::gtest_main
-    cudaq-nvqlink
-    nvqlink_daemon
-    test_utils
-)
-add_dependencies(NVQLINKUnitTests test_daemon)
-gtest_discover_tests(test_daemon)
-
-# Stream tests (serialization/deserialization)
-add_executable(test_streams test_streams.cpp)
-target_link_libraries(test_streams 
-  PRIVATE 
-    GTest::gtest_main
-    nvqlink_network
-)
-add_dependencies(NVQLINKUnitTests test_streams)
-gtest_discover_tests(test_streams)
-
-message(STATUS "Unit tests: Phase 4 - New Daemon-based tests added")
-message(STATUS "  - test_daemon (with LoopbackChannel)")
-message(STATUS "  - test_streams (serialization)")
+  )
+  
+  # Find CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED
+  )
+  
+  target_link_libraries(test_dispatch_kernel PRIVATE 
+    GTest::gtest_main 
+    CUDA::cudart
+    cudaq-realtime
+    cudaq-realtime-dispatch
+    ${CUDADEVRT_LIBRARY}
+  )
+  
+  add_dependencies(NVQLINKUnitTests test_dispatch_kernel)
+  gtest_discover_tests(test_dispatch_kernel
+    TEST_PREFIX "test_dispatch_kernel."
+  )
+  
+  message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
+endif()
 
 # ==============================================================================
 

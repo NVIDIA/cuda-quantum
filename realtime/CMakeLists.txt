@@ -111,8 +111,7 @@ find_package(Threads REQUIRED)
 add_subdirectory(lib)
 
 if (NVQLINK_BUILD_EXAMPLES)
-  add_subdirectory(examples/roce)
-  add_subdirectory(examples/doca)
+  message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
 endif()
 
 if (NVQLINK_BUILD_TESTS)

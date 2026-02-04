@@ -6,42 +6,66 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(NVQLINK_DAEMON_SOURCES
-  config.cpp
-  daemon.cpp
-  dispatcher/cpu_dispatcher.cpp
-  dispatcher/dispatcher_factory.cpp
-  registry/function_registry.cpp
-)
+# ==============================================================================
+# Shared library for external consumers (libcudaq-realtime.so)
+# ==============================================================================
+# This shared library exports a C-compatible host API for wiring dispatchers
+# and includes the GPU dispatch kernel device code.
 
-# Add CUDA/GPU sources if CUDA is available
 if(CUDA_FOUND)
-  list(APPEND NVQLINK_DAEMON_SOURCES
-    dispatcher/gpu_dispatcher.cu
+  set(CUDAQ_REALTIME_SOURCES
+    dispatcher/cudaq_realtime_api.cpp
   )
-endif()
 
-add_library(nvqlink_daemon STATIC ${NVQLINK_DAEMON_SOURCES})
+  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
+  
+  target_include_directories(cudaq-realtime
+    PUBLIC
+      $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:include>
+  )
 
-target_include_directories(nvqlink_daemon
-  PUBLIC
-    $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
-    $<INSTALL_INTERFACE:include>
-)
+  target_link_libraries(cudaq-realtime 
+    PUBLIC 
+      CUDA::cudart_static
+  )
 
-# Link dependencies
-target_link_libraries(nvqlink_daemon 
-  PUBLIC 
-    nvqlink_network
-    nvqlink_utils
-)
+  target_compile_definitions(cudaq-realtime PUBLIC NVQLINK_HAVE_CUDA)
 
-if(CUDA_FOUND)
-  target_link_libraries(nvqlink_daemon PUBLIC CUDA::cudart)
-  target_compile_definitions(nvqlink_daemon PUBLIC NVQLINK_HAVE_CUDA)
-endif()
+  set_target_properties(cudaq-realtime PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+  )
 
-# Add DOCA support if enabled
-if(NVQLINK_ENABLE_DOCA)
-  target_compile_definitions(nvqlink_daemon PUBLIC NVQLINK_ENABLE_DOCA)
+  install(TARGETS cudaq-realtime
+    COMPONENT realtime-lib
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+
+  add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
+
+  target_include_directories(cudaq-realtime-dispatch
+    PUBLIC
+      $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:include>
+  )
+
+  # Link CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED
+  )
+  
+  target_link_libraries(cudaq-realtime-dispatch
+    PUBLIC
+      CUDA::cudart_static
+      ${CUDADEVRT_LIBRARY}
+  )
+
+  set_target_properties(cudaq-realtime-dispatch PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+  )
 endif()

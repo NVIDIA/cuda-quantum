@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(GNUInstallDirs)
+
+install(DIRECTORY ${CUDAQ_NVQLINK_INCLUDE_DIR}/cudaq
+  COMPONENT nvqlink-headers
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING PATTERN "*.h"
+)
+
 add_subdirectory(daemon)
-add_subdirectory(network)
-add_subdirectory(utils)
