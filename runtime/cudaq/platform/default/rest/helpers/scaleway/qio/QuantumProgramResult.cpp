@@ -22,15 +22,21 @@ struct QiskitExperimentResultData {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResultData, counts)
 
-struct QiskitExperimentResult {
+struct QiskitExperimentResultHeader {
   std::string name = "";
   size_t n_qubits = 0;
-  bool success = false;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(QiskitExperimentResultHeader, name, n_qubits)
+
+struct QiskitExperimentResult {
   QiskitExperimentResultData data;
+  QiskitExperimentResultHeader header;
+  bool success = false;
   size_t shots = 0;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(QiskitExperimentResult, name, n_qubits, success, data, shots)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(QiskitExperimentResult, success, data, shots)
 
 std::string hexToBitstring(const std::string &hex, int n_qubits) {
     std::string clean = hex.substr(2);
