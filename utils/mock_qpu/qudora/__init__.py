@@ -38,6 +38,7 @@ class JobStatus(BaseModel):
     status: str
     target: str
 
+
 class KernelAnalyzer:
     """Analyzes LLVM modules to extract kernel information"""
 
@@ -123,7 +124,7 @@ def simulate_qir(program: str, shots: int) -> str:
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
-    for i in range(shots): # TODO: remove manual for loop, as soon as cudaq.testing.initialize(numQubitsRequired, shots) works with output logging.
+    for i in range(shots):
         cudaq.testing.toggleDynamicQubitManagement()
         qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
         kernel()
@@ -134,7 +135,6 @@ def simulate_qir(program: str, shots: int) -> str:
             qir_log += "START\n"
         qir_log += shot_log
         qir_log += "END\t0\n"
-
 
     engine.remove_module(m)
 
@@ -158,7 +158,10 @@ async def postJob(job: InputJob,
     print('Posting job with shots = ', job.shots)
     newId = str(uuid.uuid4())
 
-    results = [simulate_qir(program, shots) for program, shots in zip(job.input_data, job.shots)]
+    results = [
+        simulate_qir(program, shots)
+        for program, shots in zip(job.input_data, job.shots)
+    ]
 
     createdJobs[newId] = results
     print("Adding job results to id", newId)
@@ -186,10 +189,7 @@ async def getJob(job_id: str, include_results: bool):
 
     print("Requesting job status for id", job_id)
 
-    res = [{
-        "status": "Completed",
-        "qir_result": createdJobs[job_id]
-    }]
+    res = [{"status": "Completed", "qir_result": createdJobs[job_id]}]
     return res
 
 

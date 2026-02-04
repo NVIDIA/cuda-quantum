@@ -49,12 +49,12 @@ public:
 
     // Set the backend_settings
     iter = backendConfig.find("backend_settings");
-    if (iter != backendConfig.end()){
+    if (iter != backendConfig.end()) {
       try {
         backend_settings = nlohmann::json::parse(iter->second);
-      } catch (nlohmann::json::parse_error& e){
-        throw std::runtime_error("Failed to parse backend_settings: "
-                                 + std::string(e.what()));
+      } catch (nlohmann::json::parse_error &e) {
+        throw std::runtime_error("Failed to parse backend_settings: " +
+                                 std::string(e.what()));
       }
     }
 
@@ -85,7 +85,8 @@ public:
 
   /// @brief Get the jobs results polling interval.
   /// @return
-  std::chrono::microseconds nextResultPollingInterval(ServerMessage &postResponse) override;
+  std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) override;
 
   /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
@@ -96,40 +97,36 @@ public:
                                std::string &jobId) override;
 };
 
-std::string zlibDecompress(const std::vector<char>& compressed){
-    z_stream zs{};
-    zs.next_in  = reinterpret_cast<Bytef*>(
-        const_cast<char*>(compressed.data()));
-    zs.avail_in = static_cast<uInt>(compressed.size());
+std::string zlibDecompress(const std::vector<char> &compressed) {
+  z_stream zs{};
+  zs.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(compressed.data()));
+  zs.avail_in = static_cast<uInt>(compressed.size());
 
-    if (inflateInit(&zs) != Z_OK)
-        throw std::runtime_error("inflateInit failed");
+  if (inflateInit(&zs) != Z_OK)
+    throw std::runtime_error("inflateInit failed");
 
-    int ret;
-    char outbuffer[32768];
-    std::string output;
+  int ret;
+  char outbuffer[32768];
+  std::string output;
 
-    do {
-        zs.next_out = reinterpret_cast<Bytef*>(outbuffer);
-        zs.avail_out = sizeof(outbuffer);
+  do {
+    zs.next_out = reinterpret_cast<Bytef *>(outbuffer);
+    zs.avail_out = sizeof(outbuffer);
 
-        ret = inflate(&zs, 0);
+    ret = inflate(&zs, 0);
 
-        if (output.size() < zs.total_out) {
-            output.append(
-                outbuffer,
-                zs.total_out - output.size()
-            );
-        }
+    if (output.size() < zs.total_out) {
+      output.append(outbuffer, zs.total_out - output.size());
+    }
 
-    } while (ret == Z_OK);
+  } while (ret == Z_OK);
 
-    inflateEnd(&zs);
+  inflateEnd(&zs);
 
-    if (ret != Z_STREAM_END)
-        throw std::runtime_error("zlib decompression failed");
+  if (ret != Z_STREAM_END)
+    throw std::runtime_error("zlib decompression failed");
 
-    return output;
+  return output;
 }
 
 ServerJobPayload
@@ -185,12 +182,9 @@ bool QudoraServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
   if (status == "Failed") {
     throw std::runtime_error(
-      "Job failed to execute. See Qudora Cloud for more details."
-    );
-  }
-  else if (status == "Canceled" || 
-           status == "Deleted" || 
-           status == "Cancelling") {
+        "Job failed to execute. See QUDORA Cloud for more details.");
+  } else if (status == "Canceled" || status == "Deleted" ||
+             status == "Cancelling") {
     throw std::runtime_error("Job was cancelled.");
   }
 
@@ -206,13 +200,15 @@ QudoraServerHelper::processResults(ServerMessage &postJobResponse,
 }
 
 std::string QudoraServerHelper::extractOutputLog(ServerMessage &postJobResponse,
-                                              std::string &jobId) {
+                                                 std::string &jobId) {
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
   CUDAQ_INFO("jobId: {}", jobId);
-  auto compressedQirResultsB64 = postJobResponse[0]["qir_result"][0].get<std::string>();
+  auto compressedQirResultsB64 =
+      postJobResponse[0]["qir_result"][0].get<std::string>();
   std::vector<char> compressQirResults;
   if (llvm::decodeBase64(compressedQirResultsB64, compressQirResults))
-      throw std::runtime_error("Invalid results received.");
+    throw std::runtime_error(
+        "Invalid results received. See QUDORA Cloud for more details.");
   auto qirResults = zlibDecompress(compressQirResults);
   return qirResults;
 }
@@ -223,24 +219,21 @@ RestHeaders QudoraServerHelper::getHeaders() {
       {"Authorization", "Bearer " + apiKey},
       {"Content-Type", "application/json"},
       {"Connection", "keep-alive"},
-      {"Accept", "*/*"}
-  };
+      {"Accept", "*/*"}};
   return headers;
 }
-
 
 /// Search for the API key
 std::string searchAPIKeyQudora() {
   // Allow someone to tweak this with an environment variable
-  if (auto creds = std::getenv("CUDAQ_QUDORA_CREDENTIALS")){
+  if (auto creds = std::getenv("CUDAQ_QUDORA_CREDENTIALS")) {
     return std::string(creds);
   } else {
-    throw std::runtime_error(
-          "Cannot find QUDORA API key in CUDAQ_QUDORA_CREDENTIALS environment variable.");
+    throw std::runtime_error("Cannot find QUDORA API key in "
+                             "CUDAQ_QUDORA_CREDENTIALS environment variable.");
   }
 }
 
 } // namespace cudaq
 
-CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QudoraServerHelper,
-                    qudora)
+CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QudoraServerHelper, qudora)

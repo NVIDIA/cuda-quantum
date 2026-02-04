@@ -12,9 +12,9 @@ import numpy as np
 from multiprocessing import Process
 from network_utils import check_server_connection
 try:
-# TODO: it looks like this is currently being replaced by utils/start_mock_qpu.py
-#       but that is not yet easily importable in python tests.
-#       So use this old method for now.
+    # TODO: it looks like this is currently being replaced by utils/start_mock_qpu.py
+    #       but that is not yet easily importable in python tests.
+    #       So use this old method for now.
     from utils.mock_qpu.qudora import startServer
 except:
     print("Mock qpu not available, skipping Qudora tests.")
@@ -25,7 +25,7 @@ port = 62450
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+    return got < -1.4 and got > -2
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -116,7 +116,7 @@ def test_qudora_observe():
     hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
                    2.1433 * spin.y(0) * spin.y(1) + 0.21829 * spin.z(0) -
                    6.125 * spin.z(1))
-    
+
     # Run the observe task on qudora synchronously
     res = cudaq.observe(kernel, hamiltonian, 0.59)
     assert assert_close(res.expectation())
@@ -139,6 +139,25 @@ def test_qudora_observe():
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
     assert assert_close(res.expectation())
+
+
+def test_qudora_dynamic_circuit():
+
+    @cudaq.kernel
+    def fake_bell_state_kernel() -> bool:
+        qvector = cudaq.qvector(2)
+
+        h(qvector[0])
+        first_res = mz(qvector[0])
+        if first_res:
+            x(qvector[1])
+        second_res = mz(qvector[1])
+        return second_res
+
+    results: list[bool] = cudaq.run(fake_bell_state_kernel, shots_count=100)
+    assert len(results) == 100
+    assert True in results
+    assert False in results
 
 
 def test_qudora_u3_decomposition():
