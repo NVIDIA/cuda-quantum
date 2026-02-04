@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "nvqir/CircuitSimulator.h"
 #include "llvm/ADT/StringSwitch.h"

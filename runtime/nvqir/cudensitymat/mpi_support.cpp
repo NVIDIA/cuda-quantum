@@ -5,8 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "common/Logger.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <cassert>
 #include <cudensitymat.h>
 #include <dlfcn.h>

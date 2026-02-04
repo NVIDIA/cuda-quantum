@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
 #include "cudaq.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
 #include "runtime/common/py_EvolveResult.h"

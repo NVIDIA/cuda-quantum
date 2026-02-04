@@ -12,7 +12,7 @@ add_library(cudaq-serverhelper-ionq SHARED IonQServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-ionq
   PUBLIC 
     cudaq-common 
-    fmt::fmt-header-only 
+    cudaq-logger 
 )
 install(TARGETS cudaq-serverhelper-ionq DESTINATION lib)
 
