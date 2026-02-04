@@ -78,6 +78,9 @@ jobs:
       contents: read
       packages: read
 
+    container:
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+
     steps:
       
       - name: Checkout repository
@@ -90,15 +93,11 @@ jobs:
           path: ${{ github.workspace }}/realtime/build/
       
       - name: Test CUDA Quantum Realtime
-        uses: ./.github/actions/run-in-docker
-        with:
-          # Use a base CUDA runtime image for testing.
-          image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
-          volume: ${{ github.workspace }}:/workspace
-          shell: bash
-          run: |
-            # Install cmake for ctest
-            apt update && apt install -y --no-install-recommends cmake 
-            cd /workspace/realtime/build
-            ctest -V
+        shell: bash
+        run: |
+          nvidia-smi
+          # Install cmake for ctest
+          apt update && apt install -y --no-install-recommends cmake 
+          cd /workspace/realtime/build
+          ctest -V
           
