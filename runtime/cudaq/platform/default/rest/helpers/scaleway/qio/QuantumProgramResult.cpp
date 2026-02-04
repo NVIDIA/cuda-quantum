@@ -11,6 +11,7 @@
 #include "Base64.h"
 #include "common/Logger.h"
 #include <bitset>
+#include <string>
 
 using json = nlohmann::json;
 using namespace cudaq::qio;
@@ -51,26 +52,32 @@ std::string hexToBitstring(const std::string &hex, int n_qubits) {
     return bits.substr(64 - n_qubits, n_qubits);
 }
 
-void appendStringSerialized(const std::string &s,
-                            std::vector<std::size_t> &out) {
-  out.push_back(s.size());
-  for (char c : s) {
-    out.push_back(static_cast<std::size_t>(c));
-  }
-}
-
 std::vector<std::size_t>
 qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   std::vector<std::size_t> serialized;
+  std::string name = qiskitResult.header.name;
+  auto counts = qiskitResult.data.counts;
 
-  appendStringSerialized(qiskitResult.header.name, serialized);
+  serialized.push_back(name.size());
 
-  for (const auto &kv : qiskitResult.data.counts) {
+  for (char c : name) {
+    serialized.push_back(static_cast<std::size_t>(c));
+  }
+
+  serialized.push_back(counts.size());
+
+  for (const auto &kv : counts) {
       const std::string &hexKey = kv.first;
       std::size_t count = kv.second;
       std::string bitstring = hexToBitstring(hexKey, qiskitResult.header.n_qubits);
 
-      appendStringSerialized(bitstring, serialized);
+      // bitstring in long value
+      serialized.push_back(stoi(bitstring, nullptr, 2));
+
+      // size of the bitstring
+      serialized.push_back(bitstring.size());
+
+      // count of the bitstring
       serialized.push_back(count);
   }
 
