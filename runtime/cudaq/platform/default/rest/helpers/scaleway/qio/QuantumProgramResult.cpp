@@ -67,7 +67,7 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
       std::size_t count = kv.second;
       std::string bitstring = hexToBitstring(hexKey, qiskitResult.n_qubits);
 
-      CUDAQ_INFO("bitstring: {}, {}", , kv.first, bitstring);
+      CUDAQ_INFO("bitstring: {}, {}", kv.first, bitstring);
 
       appendStringSerialized(bitstring, serialized);
       serialized.push_back(count);
