@@ -109,9 +109,16 @@ int cudensitymatMpiTestRequest(cudensitymatDistributedRequest_t request,
   return getMpiPluginInterface()->TestRequest(request, completed);
 }
 
-int cudensitymatMpiGroupStart() { return 0; }
+// cuQuantum 26.1.0 added groupStart/groupEnd for NCCL group operations support.
+int cudensitymatMpiGroupStart() {
+  // Success - MPI doesn't need group operations
+  return 0;
+}
 
-int cudensitymatMpiGroupEnd() { return 0; }
+int cudensitymatMpiGroupEnd() {
+  // Success - MPI doesn't need group operations
+  return 0;
+}
 
 int cudensitymatMpiSend(const cudensitymatDistributedCommunicator_t *comm,
                         const void *buffer, int32_t count,
