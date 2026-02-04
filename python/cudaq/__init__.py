@@ -331,7 +331,7 @@ def parse_args(args: Sequence[str] | None = None):
 
 if __name__ == '__main__':
     parse_args()
-# TODO: remove this
+# TODO: remove this, see https://github.com/NVIDIA/cuda-quantum/issues/3863
 elif any(
         w in ''.join(sys.argv) for w in
     ['-target', '--target-option', '--emulate', '--cudaq-full-stack-trace']):
