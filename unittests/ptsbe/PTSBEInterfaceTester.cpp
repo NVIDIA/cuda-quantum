@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/ptsbe/PTSBEInterface.h"
+#include "cudaq/ptsbe/PTSBESampler.h"
 
 using namespace cudaq;
 using namespace cudaq::ptsbe;
