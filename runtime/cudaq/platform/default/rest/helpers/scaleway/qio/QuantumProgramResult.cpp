@@ -76,7 +76,7 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
       std::size_t count = kv.second;
       std::string bitstring = hexToBitstring(hexKey, qiskitResult.header.n_qubits);
 
-      CUDAQ_INFO("bitstring: {}, {}", kv.first, bitstring);
+      CUDAQ_INFO("bitstring: {}, {}, {}", kv.first, bitstring, count);
 
       appendStringSerialized(bitstring, serialized);
       serialized.push_back(count);
@@ -129,6 +129,9 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       auto resultJson = json::parse(uncompressedSerialization);
       CUDAQ_INFO("Get qiskit result: {}", uncompressedSerialization);
       auto qiskitResults = resultJson["results"].get<std::vector<QiskitExperimentResult>>();
+      auto header = resultJson["results"][0]["header"].get<QiskitExperimentResultHeader>();
+
+      CUDAQ_INFO("info in header: {}, {}", header.name, header.n_qubits);
 
       if (qiskitResults.size() == 0) {
           throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");
