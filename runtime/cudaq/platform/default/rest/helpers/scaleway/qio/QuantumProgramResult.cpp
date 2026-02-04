@@ -114,11 +114,11 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       auto resultsJson = resultJson["results"];
       auto qiskitResults = resultJson.get<std::vector<QiskitExperimentResult>>();
 
-      if (qiskitResult.size() == 0) {
+      if (qiskitResults.size() == 0) {
           throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");
       }
 
-      auto serialization = qiskitResultsToCudaqSampleResult(qiskitResults[0]);
+      auto serialization = qiskitResultToCudaqSampleResult(qiskitResults[0]);
 
       sampleResult.deserialize(serialization);
   } else {
