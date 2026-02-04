@@ -17,6 +17,18 @@
 using json = nlohmann::json;
 using namespace cudaq; 
 
+std::string getEnv(const std::string &envKey) {
+  if envKey.empty()
+    return "";
+
+  auto envVar = std::getenv(envKey.c_str());
+
+  // Handles nullptr
+  auto std::string str(envVar ? envVar : "");
+
+  return str;
+}
+
 std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &key,
                               const std::string &envKey,
@@ -26,8 +38,7 @@ std::string getValueOrDefault(const BackendConfig &config,
   auto it = config.find(key);
   
   // If no provided value, look from env variables
-  auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
-
+  auto envValue = getEnv(envKey)
   CUDAQ_INFO("Retrieving env: {}", envValue);
 
   auto providedValue = (it != config.end()) ? it->second : envValue;
