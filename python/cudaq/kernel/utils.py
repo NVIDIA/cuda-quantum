@@ -252,9 +252,9 @@ def recover_value_of(name, resMod):
 @contextmanager
 def set_tracebacklimit(limit=None):
     """
-    Set the traceback limit for the duration of the context.
+    Set the `traceback` limit for the duration of the context.
     
-    Restores the original traceback limit after the context is exited.
+    Restores the original `traceback` limit after the context is exited.
     """
     try:
         cached = sys.tracebacklimit
