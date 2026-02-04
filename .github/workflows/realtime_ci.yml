@@ -95,9 +95,8 @@ jobs:
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
-          nvidia-smi
           # Install cmake for ctest
           apt update && apt install -y --no-install-recommends cmake 
-          cd /workspace/realtime/build
+          cd ${{ github.workspace }}/realtime/build
           ctest -V
           
