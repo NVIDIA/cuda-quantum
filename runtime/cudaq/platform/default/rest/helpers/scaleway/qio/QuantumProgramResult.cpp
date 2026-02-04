@@ -20,6 +20,8 @@ struct QiskitExperimentResultData {
   std::unordered_map<std::string, std::size_t> counts;
 };
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResultData, counts)
+
 struct QiskitExperimentResult {
   std::string name;
   size_t n_qubits;
@@ -27,6 +29,8 @@ struct QiskitExperimentResult {
   QiskitExperimentResultData data;
   size_t shots;
 };
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResult, name, n_qubits, success, data, shots)
 
 std::string hexToBitstring(const std::string &hex, int n_qubits) {
     std::string clean = hex.substr(2);
