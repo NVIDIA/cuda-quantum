@@ -23,14 +23,14 @@ struct QiskitExperimentResultData {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResultData, counts)
 
 struct QiskitExperimentResult {
-  std::string name;
-  size_t n_qubits;
-  bool success;
+  std::string name = "";
+  size_t n_qubits = 0;
+  bool success = false;
   QiskitExperimentResultData data;
-  size_t shots;
+  size_t shots = 0;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(QiskitExperimentResult, name, n_qubits, success, data, shots)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(QiskitExperimentResult, name, n_qubits, success, data, shots)
 
 std::string hexToBitstring(const std::string &hex, int n_qubits) {
     std::string clean = hex.substr(2);
@@ -115,8 +115,7 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
     QuantumProgramResultSerializationFormat::QISKIT_RESULT_JSON_V1) {
       auto resultJson = json::parse(uncompressedSerialization);
       CUDAQ_INFO("Get qiskit result: {}", uncompressedSerialization);
-      auto resultsJson = resultJson["results"];
-      auto qiskitResults = resultsJson.get<std::vector<QiskitExperimentResult>>();
+      auto qiskitResults = resultJson["results"].get<std::vector<QiskitExperimentResult>>();
 
       if (qiskitResults.size() == 0) {
           throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");

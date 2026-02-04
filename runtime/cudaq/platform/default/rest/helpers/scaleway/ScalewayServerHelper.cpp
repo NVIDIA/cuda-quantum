@@ -196,8 +196,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     return sampleResult;
   } catch (const std::exception &e) {
     throw std::runtime_error(
-        "Error while parsing result: " + std::string(e.what()) +
-        ", payload: " + rawPayload);
+        "Error while parsing result: " + std::string(e.what()));
   }
 }
 
