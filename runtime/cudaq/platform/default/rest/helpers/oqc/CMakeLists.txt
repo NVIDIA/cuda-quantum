@@ -15,8 +15,8 @@ add_target_config(oqc)
 add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
 target_link_libraries(cudaq-serverhelper-oqc
   PUBLIC 
+    cudaq-logger 
     cudaq-common 
-    fmt::fmt-header-only 
 )
 install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
 

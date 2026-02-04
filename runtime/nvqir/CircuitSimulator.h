@@ -11,12 +11,12 @@
 #include "Gates.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <concepts>
 #include <cstdarg>
 #include <cstddef>

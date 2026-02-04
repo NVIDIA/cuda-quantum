@@ -41,7 +41,7 @@ Here's a template for implementing a server helper class:
 .. code-block:: cpp
 
     // ProviderNameServerHelper.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/Support/Version.h"
@@ -326,7 +326,7 @@ Create unit tests for your server helper:
 .. code-block:: cpp
 
     // ProviderNameTester.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/platform/quantum_platform.h"

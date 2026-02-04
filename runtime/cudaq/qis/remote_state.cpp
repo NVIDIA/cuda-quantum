@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "remote_state.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 
