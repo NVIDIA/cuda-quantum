@@ -8111,15 +8111,29 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext">
-<span class="target" id="classcudaq_1_1QPU_1a796e2d78252c0b990bcbdda4512cad14"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setExecutionContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">context</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Set the execution context, meant for subtype specification. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU25configureExecutionContextER16ExecutionContext">
+<span class="target" id="classcudaq_1_1QPU_1acd35faa767f04080e6cac1cd106b0e90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configureExecutionContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">context</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU25configureExecutionContextER16ExecutionContext" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Configure the execution context for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU21resetExecutionContextEv">
-<span class="target" id="classcudaq_1_1QPU_1af4a531bc79686767ffe8b412c22567e2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetExecutionContext</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPU21resetExecutionContextEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Reset the execution context, meant for subtype specification. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU24finalizeExecutionContextER16ExecutionContext">
+<span class="target" id="classcudaq_1_1QPU_1a8f2808335d0b8d5168f0e683b5774afb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">finalizeExecutionContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">context</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU24finalizeExecutionContextER16ExecutionContext" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Post-process the execution results stored in <code class="docutils literal notranslate"><span class="pre">context</span></code> for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU14beginExecutionEv">
+<span class="target" id="classcudaq_1_1QPU_1a196f00561a723da39bbd9719dfc3c3c9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">beginExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU14beginExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Prepare the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> for a new execution. </p>
+<p>This is called after the execution context has been configured and is already set. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU12endExecutionEv">
+<span class="target" id="classcudaq_1_1QPU_1ab357cd1bfa8264a52a8ba36f691c8818"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU12endExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Clean up after an execution on this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
+<p>This is called after the execution context has been finalized and before the execution context is reset. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8197,21 +8211,9 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform12set_exec_ctxEP16ExecutionContext">
-<span class="target" id="classcudaq_1_1quantum__platform_1a8e84687c7e0c862db0a4ce489f566da6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_exec_ctx</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEP16ExecutionContext" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Specify the execution context for the current thread. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform12get_exec_ctxEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1a96f71234cc01a1def47d0093e1315e61"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_exec_ctx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform12get_exec_ctxEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the current execution context. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform14reset_exec_ctxEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1a6be2f55e2b9a9902a3d5cd7113d6c61d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_exec_ctx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Reset the execution context for the current thread. </p>
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callable</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1quantum__platform_1a7fc28d8eec4a1988f77d8d0d67323b7d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">with_execution_context</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args" title="cudaq::quantum_platform::with_execution_context::Callable"><span class="n"><span class="pre">Callable</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">f</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args" title="cudaq::quantum_platform::with_execution_context::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Execute the given function within the given execution context. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8242,12 +8244,6 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform4nameEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1a16b8cb93fb7a325cc1bd78076c832674"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform4nameEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The name of the platform, which also corresponds to the name of the platform file. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform15get_current_qpuEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1aa2431d8e8b5bb3c44945a8039b6188fc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_current_qpu</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform15get_current_qpuEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the ID of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in the current execution context. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8296,6 +8292,30 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform11reset_noiseENSt6size_tE">
 <span class="target" id="classcudaq_1_1quantum__platform_1a944aa5d4b452d275778dcb5f91da3b53"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_noise</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform11reset_noiseENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Turn off any noise models. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext">
+<span class="target" id="classcudaq_1_1quantum__platform_1a8734ea5c892ee287bd5a8d3af451c5c0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configureExecutionContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Specify the execution context for this platform. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform24finalizeExecutionContextERN5cudaq16ExecutionContextE">
+<span class="target" id="classcudaq_1_1quantum__platform_1a260ff1038ebc97830a5b47463811e378"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">finalizeExecutionContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform24finalizeExecutionContextERN5cudaq16ExecutionContextE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Post-process the results stored in <code class="docutils literal notranslate"><span class="pre">ctx</span></code> after execution on this platform. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform14beginExecutionEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1a3dc09b9e9a6a742abf6fb458954c0076"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">beginExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14beginExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Begin a new execution on this platform. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform12endExecutionEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1ad0817eb533cc83577efdd2896619a768"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12endExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>End the current execution on this platform. </p>
 </dd></dl>
 
 <dl class="cpp function">
