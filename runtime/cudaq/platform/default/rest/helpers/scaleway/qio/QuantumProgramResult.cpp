@@ -93,7 +93,7 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
     QuantumProgramResultSerializationFormat::QISKIT_RESULT_JSON_V1) {
       auto resultJson = json::parse(uncompressedSerialization);
 
-      CUDAQ_INFO("Get qiskit result:", resultJson);
+      CUDAQ_INFO("Get qiskit result: {}", uncompressedSerialization);
 
       auto qiskitResult = resultJson.get<std::vector<std::pair<std::string,
         std::unordered_map<std::string, std::size_t>>>>();
