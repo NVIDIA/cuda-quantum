@@ -48,8 +48,6 @@ std::string hexToBitstring(const std::string &hex, int n_qubits) {
 
     std::string bits = std::bitset<64>(value).to_string();
 
-    CUDAQ_INFO("bits : {}", bits);
-
     return bits.substr(64 - n_qubits, n_qubits);
 }
 
@@ -64,10 +62,6 @@ void appendStringSerialized(const std::string &s,
 std::vector<std::size_t>
 qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   std::vector<std::size_t> serialized;
-
-  CUDAQ_INFO("qiskit result : {}, {}", qiskitResult.success, qiskitResult.shots);
-  CUDAQ_INFO("qiskit result name: {}", qiskitResult.header.name);
-  CUDAQ_INFO("qiskit result count: {}", qiskitResult.header.n_qubits);
 
   appendStringSerialized(qiskitResult.header.name, serialized);
 
@@ -129,15 +123,17 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       auto resultJson = json::parse(uncompressedSerialization);
       CUDAQ_INFO("Get qiskit result: {}", uncompressedSerialization);
       auto qiskitResults = resultJson["results"].get<std::vector<QiskitExperimentResult>>();
-      auto header = resultJson["results"][0]["header"].get<QiskitExperimentResultHeader>();
-
-      CUDAQ_INFO("info in header: {}, {}", header.name, header.n_qubits);
-
+      
+      
       if (qiskitResults.size() == 0) {
-          throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");
+        throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");
       }
+      
+      auto qiskitResult = qiskitResults[0];
+      qiskitResult.header = resultJson["results"][0]["header"].get<QiskitExperimentResultHeader>();
+      // CUDAQ_INFO("info in header: {}, {}", header.name, header.n_qubits);
 
-      auto serialization = qiskitResultToCudaqSampleResult(qiskitResults[0]);
+      auto serialization = qiskitResultToCudaqSampleResult(qiskitResult);
 
       sampleResult.deserialize(serialization);
   } else {
