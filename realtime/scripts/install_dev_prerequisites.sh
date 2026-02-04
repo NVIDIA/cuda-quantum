@@ -13,7 +13,7 @@
 # CUDA-Q realtime from source. 
 #
 # Usage: 
-# bash install_prerequisites.sh
+# bash install_dev_prerequisites.sh
 
 
 if [ -x "$(command -v apt-get)" ]; then

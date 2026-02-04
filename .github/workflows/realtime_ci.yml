@@ -82,6 +82,7 @@ jobs:
       packages: read
 
     container:
+      # Use a base CUDA runtime image for testing
       image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
 
     steps:
@@ -102,4 +103,3 @@ jobs:
           apt update && apt install -y --no-install-recommends cmake 
           cd /workspace/realtime/build
           ctest -V
-          
