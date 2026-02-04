@@ -23,14 +23,12 @@ OrderedSamplingStrategy::generateTrajectories(
     return results;
   }
 
-  std::size_t total_trajectories = 1;
+  std::size_t total_trajectories = computeTotalTrajectories(noise_points);
+
   std::vector<std::size_t> operator_counts;
   operator_counts.reserve(noise_points.size());
-
   for (const auto &noise_point : noise_points) {
-    std::size_t count = noise_point.kraus_operators.size();
-    operator_counts.push_back(count);
-    total_trajectories *= count;
+    operator_counts.push_back(noise_point.kraus_operators.size());
   }
 
   std::size_t generation_limit =

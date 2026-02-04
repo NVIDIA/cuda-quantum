@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/algorithms/broadcast.h"
 #include "../PTSSamplingStrategy.h"
 #include <random>
 
@@ -18,10 +19,13 @@ namespace cudaq::ptsbe {
 class ProbabilisticSamplingStrategy : public PTSSamplingStrategy {
 public:
   /// @brief Construct with optional random seed
-  /// @param seed Random seed for `reproducibility`
-  explicit ProbabilisticSamplingStrategy(
-      std::uint64_t seed = std::random_device{}())
-      : rng_(seed) {}
+  /// @param seed Random seed for reproducibility. If 0 (default), uses CUDAQ's
+  ///             global random seed if set, otherwise std::random_device
+  explicit ProbabilisticSamplingStrategy(std::uint64_t seed = 0)
+      : rng_(seed == 0
+                 ? (cudaq::get_random_seed() != 0 ? cudaq::get_random_seed()
+                                                  : std::random_device{}())
+                 : seed) {}
 
   /// @brief Destructor
   ~ProbabilisticSamplingStrategy() override;

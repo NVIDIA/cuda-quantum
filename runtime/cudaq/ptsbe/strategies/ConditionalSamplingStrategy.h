@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/algorithms/broadcast.h"
 #include "../PTSSamplingStrategy.h"
 #include <functional>
 #include <random>
@@ -25,11 +26,15 @@ class ConditionalSamplingStrategy : public PTSSamplingStrategy {
 public:
   /// @brief Construct with a predicate function and optional random seed
   /// @param predicate Function to filter trajectories
-  /// @param seed Random seed for `reproducibility`
-  explicit ConditionalSamplingStrategy(
-      TrajectoryPredicate predicate,
-      std::uint64_t seed = std::random_device{}())
-      : predicate_(std::move(predicate)), rng_(seed) {}
+  /// @param seed Random seed for reproducibility. If 0 (default), uses CUDAQ's
+  ///             global random seed if set, otherwise std::random_device
+  explicit ConditionalSamplingStrategy(TrajectoryPredicate predicate,
+                                       std::uint64_t seed = 0)
+      : predicate_(std::move(predicate)),
+        rng_(seed == 0
+                 ? (cudaq::get_random_seed() != 0 ? cudaq::get_random_seed()
+                                                  : std::random_device{}())
+                 : seed) {}
 
   /// @brief Destructor
   ~ConditionalSamplingStrategy() override;

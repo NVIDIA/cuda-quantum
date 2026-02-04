@@ -573,6 +573,49 @@ TEST(ConditionalSamplingStrategyTest, Clone) {
   EXPECT_GT(trajectories.size(), 0);
 }
 
+TEST(ConditionalSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
+  auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
+  auto noise_points = createSimpleNoisePoints();
+
+  cudaq::set_random_seed(12345);
+
+  ConditionalSamplingStrategy strategy1(predicate);
+  auto trajectories1 = strategy1.generateTrajectories(noise_points, 5);
+
+  cudaq::set_random_seed(12345);
+
+  ConditionalSamplingStrategy strategy2(predicate);
+  auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
+
+  ASSERT_EQ(trajectories1.size(), trajectories2.size());
+  for (size_t i = 0; i < trajectories1.size(); ++i) {
+    EXPECT_EQ(trajectories1[i].trajectory_id, trajectories2[i].trajectory_id);
+  }
+
+  cudaq::set_random_seed(0);
+}
+
+TEST(ProbabilisticSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
+  auto noise_points = createSimpleNoisePoints();
+
+  cudaq::set_random_seed(54321);
+
+  ProbabilisticSamplingStrategy strategy1;
+  auto trajectories1 = strategy1.generateTrajectories(noise_points, 5);
+
+  cudaq::set_random_seed(54321);
+
+  ProbabilisticSamplingStrategy strategy2;
+  auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
+
+  ASSERT_EQ(trajectories1.size(), trajectories2.size());
+  for (size_t i = 0; i < trajectories1.size(); ++i) {
+    EXPECT_EQ(trajectories1[i].trajectory_id, trajectories2[i].trajectory_id);
+  }
+
+  cudaq::set_random_seed(0);
+}
+
 TEST(PTSSamplingStrategyTest, PolymorphicUsage) {
   auto noise_points = createSimpleNoisePoints();
 
