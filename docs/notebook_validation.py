@@ -46,7 +46,7 @@ GPU_REQUIRED_NOTEBOOKS = [
     'afqmc.ipynb',  # AFQMC algorithm, times out on CPU
     'digitized_counterdiabatic_qaoa.ipynb',  # QAOA optimization, times out on CPU
     'qm_mm_pe.ipynb',  # VQE+SCF with many iterations, times out on CPU
-    'vqe_advanced.ipynb',  # VQE optimization with mqpu, requires multi-GPU
+    'vqe_advanced.ipynb',  # VQE optimization with `mqpu`, requires multi-GPU
     'edge_detection.ipynb',  # Requires CuPy
     'entanglement_acc_hamiltonian_simulation.ipynb',  # Requires CuPy
     'skqd.ipynb',  # Requires CuPy
