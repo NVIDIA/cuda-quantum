@@ -47,22 +47,6 @@ option(NVQLINK_BUILD_TESTS
        "Generate build targets for the NVQLINK unit tests" ON)
 option(NVQLINK_BUILD_EXAMPLES
        "Generate build targets for the NVQLINK example programs" ON)
-option(NVQLINK_ENABLE_ROCE
-       "Enable RoCE backend using libibverbs" OFF)
-option(NVQLINK_ENABLE_DOCA
-       "Enable DOCA GPUNetIO backend for GPU-controlled RDMA" OFF)
-
-# Profiler backend selection
-set(NVQLINK_PROFILER_BACKEND "NONE" CACHE STRING "Profiler backend (NONE, NVTX, TRACY)")
-set_property(CACHE NVQLINK_PROFILER_BACKEND PROPERTY STRINGS NONE NVTX TRACY)
-
-# Logging backend selection
-set(NVQLINK_LOGGING_BACKEND "NONE" CACHE STRING "Logging backend (NONE, QUILL)")
-set_property(CACHE NVQLINK_LOGGING_BACKEND PROPERTY STRINGS NONE QUILL)
-
-# Compile-time log level filtering (lower levels become no-ops)
-set(NVQLINK_LOGGING_LEVEL "INFO" CACHE STRING "Minimum log level (TRACE, DEBUG, INFO, WARNING, ERROR)")
-set_property(CACHE NVQLINK_LOGGING_LEVEL PROPERTY STRINGS TRACE DEBUG INFO WARNING ERROR)
 
 # Check for CUDA Support (ref: cuda-quantum/CMakeLists.txt)
 # ==============================================================================
