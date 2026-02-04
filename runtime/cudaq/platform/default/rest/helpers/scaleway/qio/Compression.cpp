@@ -65,7 +65,8 @@ std::string cudaq::qio::gzipDecompress(const std::string &input) {
         throw(std::runtime_error("inflateInit failed while decompressing."));
 
     // zs.next_in = (Bytef*)input.data();
-    zs.next_in = reinterpret_cast<Bytef*>(input.data());
+    // zs.next_in = reinterpret_cast<Bytef*>(input.data());
+    zs.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(input.data()));
     zs.avail_in = input.size();
 
     int ret;
@@ -74,7 +75,8 @@ std::string cudaq::qio::gzipDecompress(const std::string &input) {
 
     // get the decompressed bytes blockwise using repeated calls to inflate
     do {
-        zs.next_out = reinterpret_cast<Bytef*>(outbuffer);
+        // zs.next_out = reinterpret_cast<Bytef*>(outbuffer);
+        zs.next_out = const_cast<Bytef*>(reinterpret_cast<Bytef*>(outbuffer));
         zs.avail_out = sizeof(outbuffer);
 
         ret = inflate(&zs, 0);
