@@ -19,7 +19,7 @@ namespace cudaq {
 class ScalewayServerHelper : public ServerHelper {
   inline static const std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";
   inline static const std::string DEFAULT_MAX_DURATION = "59m";
-  inline static const std::string DEFAULT_MAX_IDLE_DURATION = "59m";
+  inline static const std::string DEFAULT_MAX_IDLE_DURATION = "30m";
 public:
 
   /// @brief Returns the name of the server helper.
