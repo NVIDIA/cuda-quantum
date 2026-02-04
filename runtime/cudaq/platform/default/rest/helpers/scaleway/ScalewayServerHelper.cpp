@@ -175,7 +175,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
 
   try {
-    auto jsonPayload = json::parse(rawPayload)
+    auto jsonPayload = json::parse(rawPayload);
 
     qio::QuantumProgramResult qioResult =
         qio::QuantumProgramResult::fromJson(jsonPayload);
