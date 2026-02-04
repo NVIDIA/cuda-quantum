@@ -1063,14 +1063,6 @@ public:
   /// The task will be applied when flushGateQueue() is called.
   void enqueueTask(const GateApplicationTask &task) { gateQueue.push(task); }
 
-  /// @brief Apply a pre-constructed gate task to the simulator state.
-  /// Subtypes implement this to apply the gate to their state representation.
-  virtual void applyGate(const GateApplicationTask &task) = 0;
-
-  /// @brief Enqueue a pre-constructed gate task for later execution.
-  /// The task will be applied when flushGateQueue() is called.
-  void enqueueTask(const GateApplicationTask &task) { gateQueue.push(task); }
-
   /// @brief Apply a custom quantum operation
   void applyCustomOperation(const std::vector<std::complex<double>> &matrix,
                             const std::vector<std::size_t> &controls,

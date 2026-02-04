@@ -8,7 +8,6 @@
 
 #include "PTSSamplingStrategy.h"
 #include "common/NoiseModel.h"
-#include <numeric>
 
 namespace cudaq::ptsbe {
 
@@ -26,17 +25,7 @@ bool NoisePoint::isUnitaryMixture(double tolerance) const {
   auto validated_result =
       cudaq::computeUnitaryMixture(kraus_operators, tolerance);
 
-  if (!validated_result.has_value())
-    return false;
-
-  const auto &validated_probs = validated_result->first;
-
-  for (std::size_t i = 0; i < probabilities.size(); ++i) {
-    if (std::abs(probabilities[i] - validated_probs[i]) > tolerance)
-      return false;
-  }
-
-  return true;
+  return validated_result.has_value();
 }
 
 } // namespace cudaq::ptsbe

@@ -11,6 +11,10 @@
 
 namespace cudaq::ptsbe {
 
+/// @brief Multiplier for maximum sampling attempts relative to target
+/// trajectories.
+static constexpr std::size_t ATTEMPT_MULTIPLIER = 100;
+
 ConditionalSamplingStrategy::~ConditionalSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
@@ -33,7 +37,7 @@ ConditionalSamplingStrategy::generateTrajectories(
   std::size_t actual_target = std::min(max_trajectories, total_possible);
 
   std::size_t trajectory_id = 0;
-  std::size_t max_attempts = actual_target * 100;
+  std::size_t max_attempts = actual_target * ATTEMPT_MULTIPLIER;
   std::size_t attempts = 0;
 
   // Sample until we have max_trajectories unique trajectories that pass the

@@ -10,6 +10,9 @@
 
 namespace cudaq::ptsbe {
 
+/// @brief Multiplier for generation limit before sorting.
+static constexpr std::size_t GENERATION_MULTIPLIER = 10;
+
 OrderedSamplingStrategy::~OrderedSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
@@ -32,7 +35,7 @@ OrderedSamplingStrategy::generateTrajectories(
   }
 
   std::size_t generation_limit =
-      std::min(total_trajectories, max_trajectories * 10);
+      std::min(total_trajectories, max_trajectories * GENERATION_MULTIPLIER);
   results.reserve(generation_limit);
 
   std::vector<std::size_t> indices(noise_points.size(), 0);
