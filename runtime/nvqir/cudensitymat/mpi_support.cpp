@@ -109,6 +109,10 @@ int cudensitymatMpiTestRequest(cudensitymatDistributedRequest_t request,
   return getMpiPluginInterface()->TestRequest(request, completed);
 }
 
+int cudensitymatMpiGroupStart() { return 0; }
+
+int cudensitymatMpiGroupEnd() { return 0; }
+
 int cudensitymatMpiSend(const cudensitymatDistributedCommunicator_t *comm,
                         const void *buffer, int32_t count,
                         cudaDataType_t datatype, int32_t destination,
@@ -213,6 +217,8 @@ cudensitymatDistributedInterface_t cudensitymatCommInterface = {
     cudensitymatMpiDestroyRequest,
     cudensitymatMpiWaitRequest,
     cudensitymatMpiTestRequest,
+    cudensitymatMpiGroupStart,
+    cudensitymatMpiGroupEnd,
     cudensitymatMpiSend,
     cudensitymatMpiSendAsync,
     cudensitymatMpiRecv,
