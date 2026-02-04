@@ -7,16 +7,15 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "cuda_runtime_api.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>
-#include <spdlog/cfg/env.h>
 
 namespace {
 

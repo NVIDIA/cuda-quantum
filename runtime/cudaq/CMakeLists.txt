@@ -53,6 +53,7 @@ if (CUDA_FOUND)
       MLIRIR
     PRIVATE
       nvqir
+      cudaq-logger
       fmt::fmt-header-only
       CUDA::cudart_static
       CUDAQTargetConfigUtil
@@ -76,6 +77,7 @@ else()
       MLIRIR
     PRIVATE
       nvqir
+      cudaq-logger
       fmt::fmt-header-only
       CUDAQTargetConfigUtil
   )

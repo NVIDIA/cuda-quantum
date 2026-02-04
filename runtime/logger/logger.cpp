@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "Logger.h"
-#include "FmtCore.h"
-#include "Timing.h"
+#include "cudaq/runtime/logger/logger.h"
+#include "common/FmtCore.h"
+#include "common/Timing.h"
 #include "fmt/args.h"
 #include <filesystem>
 #include <set>

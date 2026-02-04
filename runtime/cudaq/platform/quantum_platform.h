@@ -10,7 +10,6 @@
 
 #include "common/CodeGenConfig.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/ThunkInterface.h"

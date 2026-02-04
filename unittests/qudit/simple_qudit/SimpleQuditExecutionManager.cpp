@@ -8,7 +8,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"

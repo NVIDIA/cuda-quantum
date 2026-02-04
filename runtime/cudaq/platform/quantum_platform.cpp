@@ -8,10 +8,10 @@
 
 #include "cudaq/platform/quantum_platform.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/IR/BuiltinOps.h"
 #include <iostream>
 #include <shared_mutex>
