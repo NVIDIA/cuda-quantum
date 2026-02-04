@@ -58,13 +58,13 @@ jobs:
             make -j$(nproc)
 
       - name: 'Tar files'
-        run: tar -cvf build_artifacts.tar ${{ github.workspace }}/realtime/build
+        run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
       
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
-          path: build_artifacts.tar
+          path: build_artifacts.tgz
           retention-days: 1
           if-no-files-found: error
 
@@ -93,15 +93,13 @@ jobs:
           path: ./realtime_build_artifacts
       
       - name: Extract files
-        run: tar -xvf ./realtime_build_artifacts/build_artifacts.tar -C ./realtime_build_artifacts/
+        run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
       
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
           # Install cmake for ctest
           apt update && apt install -y --no-install-recommends cmake 
-          mkdir -p /workspace/realtime/build
-          cp -r ./realtime_build_artifacts/workspace/realtime/build/* /workspace/realtime/build
           cd /workspace/realtime/build
           ctest -V
           
