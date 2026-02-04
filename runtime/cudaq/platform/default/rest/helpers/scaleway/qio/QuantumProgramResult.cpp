@@ -9,6 +9,7 @@
 #include "QuantumProgramResult.h"
 #include "Compression.h"
 #include "Base64.h"
+#include "common/Logger.h"
 
 using json = nlohmann::json;
 using namespace cudaq::qio;
@@ -29,20 +30,20 @@ qiskitResultToCudaqSampleResult(
   std::vector<std::size_t> serialized;
 
   for (const auto &exp : qiskitResult) {
-      const std::string &regName = exp.first;
-      const auto &counts = exp.second;
+    const std::string &regName = exp.first;
+    const auto &counts = exp.second;
 
-      // 1) Serialize register name
-      appendStringSerialized(regName, serialized);
+    // 1) Serialize register name
+    appendStringSerialized(regName, serialized);
 
-      // 2) Serialize counts: for each bitstring -> count
-      for (const auto &kv : counts) {
-          const std::string &bitstring = kv.first;
-          std::size_t count = kv.second;
+    // 2) Serialize counts: for each bitstring -> count
+    for (const auto &kv : counts) {
+      const std::string &bitstring = kv.first;
+      std::size_t count = kv.second;
 
-          appendStringSerialized(bitstring, serialized);
-          serialized.push_back(count);
-      }
+      appendStringSerialized(bitstring, serialized);
+      serialized.push_back(count);
+    }
   }
 
   return serialized;
