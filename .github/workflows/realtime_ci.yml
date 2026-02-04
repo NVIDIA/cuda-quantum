@@ -76,7 +76,7 @@ jobs:
         platform: [amd64, arm64]
         cuda_version: ['12.6', '13.0']
       fail-fast: false
-    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
     permissions:
       contents: read
       packages: read
