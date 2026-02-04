@@ -19,12 +19,12 @@
 if [ -x "$(command -v apt-get)" ]; then
   # [libibverbs]
   echo "Installing libibverbs..."
-  apt-get install -y --no-install-recommends libibverbs-dev
+  apt-get update && apt-get install -y --no-install-recommends libibverbs-dev
 
   # [DOCA Host]
 
   if [ ! -x "$(command -v curl)" ]; then
-    apt-get install -y --no-install-recommends curl
+    apt-get update && apt-get install -y --no-install-recommends curl
   fi
 
   DOCA_VERSION=3.2.1
@@ -44,7 +44,7 @@ if [ -x "$(command -v apt-get)" ]; then
     echo "Could not determine CUDA version from nvcc. Is the CUDA toolkit installed?" >&2
     exit 1
   fi
-  apt-get install -y --no-install-recommends holoscan-cuda-$CUDA_MAJOR_VERSION
+  apt-get update && apt-get install -y --no-install-recommends holoscan-cuda-$CUDA_MAJOR_VERSION
 
 elif [ -x "$(command -v dnf)" ]; then
   echo "TODO: Support RHEL." >&2
