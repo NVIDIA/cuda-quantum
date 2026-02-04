@@ -76,23 +76,19 @@ using ApplyOpAnalysisInfo = DenseMap<Operation *, ApplyVariants>;
 ///    accept the concrete veq size, propagating type info deeper for better
 ///    optimization but increasing code size.
 static bool hasCallWithDynamicVeq(func::FuncOp func, ModuleOp module) {
-  bool found = false;
-  func.walk([&](func::CallOp callOp) {
-    if (found)
-      return;
+  auto result = func.walk([&](func::CallOp callOp) {
     auto callee = module.lookupSymbol<func::FuncOp>(callOp.getCallee());
     if (!callee)
-      return;
+      return WalkResult::advance();
     for (auto inputTy : callee.getFunctionType().getInputs()) {
       if (auto veqTy = dyn_cast<quake::VeqType>(inputTy)) {
-        if (!veqTy.hasSpecifiedSize()) {
-          found = true;
-          return;
-        }
+        if (!veqTy.hasSpecifiedSize())
+          return WalkResult::interrupt();
       }
     }
+    return WalkResult::advance();
   });
-  return found;
+  return result.wasInterrupted();
 }
 
 /// This analysis scans the IR for `ApplyOp`s to see which ones need to have
