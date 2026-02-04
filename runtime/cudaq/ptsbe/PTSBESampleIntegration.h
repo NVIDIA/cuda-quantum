@@ -105,9 +105,7 @@ runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
   // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext traceCtx("tracer");
-  platform.set_exec_ctx(&traceCtx);
-  wrappedKernel();
-  platform.reset_exec_ctx();
+  platform.with_execution_context(traceCtx, [&]() { wrappedKernel(); });
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
@@ -139,9 +137,8 @@ template <typename QuantumKernel, typename... Args>
 PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   ExecutionContext traceCtx("tracer");
   auto &platform = get_platform();
-  platform.set_exec_ctx(&traceCtx);
-  kernel(std::forward<Args>(args)...);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(
+      traceCtx, [&]() { kernel(std::forward<Args>(args)...); });
 
   throwIfMidCircuitMeasurements(traceCtx);
 
