@@ -10,9 +10,36 @@
 #include "Compression.h"
 #include "Base64.h"
 #include "common/Logger.h"
+#include <bitset>
 
 using json = nlohmann::json;
 using namespace cudaq::qio;
+
+struct QiskitExperimentResultData {
+  // ex: {"0x3" -> 6170, "0x0" -> 6175}
+  std::unordered_map<std::string, std::size_t> counts;
+};
+
+struct QiskitExperimentResult {
+  std::string name;
+  size_t n_qubits;
+  bool success;
+  QiskitExperimentResultData data;
+  size_t shots;
+};
+
+std::string hexToBitstring(const std::string &hex, int n_qubits) {
+    std::string clean = hex.substr(2);
+
+    std::size_t value;
+    std::stringstream ss;
+    ss << std::hex << clean;
+    ss >> value;
+
+    std::string bits = std::bitset<64>(value).to_string();
+
+    return bits.substr(64 - n_qubits, n_qubits);
+}
 
 void appendStringSerialized(const std::string &s,
                             std::vector<std::size_t> &out) {
@@ -23,27 +50,19 @@ void appendStringSerialized(const std::string &s,
 }
 
 std::vector<std::size_t>
-qiskitResultToCudaqSampleResult(
-    const std::vector<
-        std::pair<std::string,
-                   std::unordered_map<std::string, std::size_t>>> &qiskitResult) {
+qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   std::vector<std::size_t> serialized;
 
-  for (const auto &exp : qiskitResult) {
-    const std::string &regName = exp.first;
-    const auto &counts = exp.second;
+  appendStringSerialized(qiskitResult.name, serialized);
 
-    // 1) Serialize register name
-    appendStringSerialized(regName, serialized);
-
-    // 2) Serialize counts: for each bitstring -> count
-    for (const auto &kv : counts) {
-      const std::string &bitstring = kv.first;
+  for (const auto &kv : qiskitResult.data.counts) {
+      const std::string &hexKey = kv.first;
       std::size_t count = kv.second;
+
+      std::string bitstring = hexToBitstring(hexKey, n_qubits);
 
       appendStringSerialized(bitstring, serialized);
       serialized.push_back(count);
-    }
   }
 
   return serialized;
@@ -85,20 +104,21 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
   if (m_serializationFormat ==
     QuantumProgramResultSerializationFormat::CUDAQ_SAMPLE_RESULT_JSON_V1) {
       auto resultJson = json::parse(uncompressedSerialization);
-    
       auto serialization = resultJson.get<std::vector<std::size_t>>();
     
       sampleResult.deserialize(serialization);
   } else if (m_serializationFormat ==
     QuantumProgramResultSerializationFormat::QISKIT_RESULT_JSON_V1) {
       auto resultJson = json::parse(uncompressedSerialization);
-
       CUDAQ_INFO("Get qiskit result: {}", uncompressedSerialization);
+      auto resultsJson = resultJson["results"]
+      auto qiskitResults = resultJson.get<std::vector<QiskitExperimentResult>>();
 
-      auto qiskitResult = resultJson.get<std::vector<std::pair<std::string,
-        std::unordered_map<std::string, std::size_t>>>>();
+      if (qiskitResult.size() == 0) {
+          throw std::runtime_error("QuantumProgramResult: empty ExperimentResult")
+      }
 
-      auto serialization = qiskitResultToCudaqSampleResult(qiskitResult);
+      auto serialization = qiskitResultsToCudaqSampleResult(qiskitResults[0]);
 
       sampleResult.deserialize(serialization);
   } else {
