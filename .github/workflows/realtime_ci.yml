@@ -94,6 +94,8 @@ jobs:
         run: |
           # Install cmake for ctest
           apt update && apt install -y --no-install-recommends cmake 
-          cd realtime/build
+          mkdir -p /workspace/realtime/build
+          cp -r realtime/build/* /workspace/realtime/build
+          cd /workspace/realtime/build
           ctest -V
           
