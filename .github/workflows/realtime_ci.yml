@@ -94,6 +94,8 @@ jobs:
         run: |
           # Install cmake for ctest
           apt update && apt install -y --no-install-recommends cmake 
+          pwd
+          ls -lR
           cd ${{ github.workspace }}/realtime/build
           ctest -V
           
