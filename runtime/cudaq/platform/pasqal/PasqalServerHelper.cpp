@@ -8,7 +8,7 @@
 
 #include "PasqalServerHelper.h"
 #include "common/AnalogHamiltonian.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include <unordered_map>
 #include <unordered_set>

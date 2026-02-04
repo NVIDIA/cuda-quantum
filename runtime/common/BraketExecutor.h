@@ -10,9 +10,9 @@
 
 #include "common/BraketServerHelper.h"
 #include "common/Executor.h"
-#include "common/Logger.h"
 #include "common/SampleResult.h"
 #include "cudaq.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <aws/braket/BraketClient.h>
 #include <aws/core/Aws.h>
 #include <aws/core/utils/logging/AWSLogging.h>

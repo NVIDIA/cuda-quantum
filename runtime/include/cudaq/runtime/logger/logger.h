@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/cudaq_fmt.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 
 namespace cudaq {
 
@@ -19,7 +19,7 @@ bool isTimingTagEnabled(int tag);
 // Keep all spdlog headers hidden in the implementation file
 namespace details {
 // This enum must match spdlog::level enums. This is checked via static_assert
-// in Logger.cpp.
+// in logger.cpp.
 enum class LogLevel { trace, debug, info, warn, error };
 bool should_log(const LogLevel logLevel);
 void trace(const std::string_view msg);
