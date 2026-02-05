@@ -27,19 +27,45 @@ private:
   int result = 0;
 
   /// Unique integer for measure result identification
-  std::optional<std::size_t> uniqueId = std::nullopt;
+  std::size_t uniqueId = 0;
 
 public:
+  // Constructors
   measure_result() = default;
   measure_result(int res) : result(res) {}
   measure_result(int res, std::size_t id) : result(res), uniqueId(id) {}
 
+  // Accessors
+  int getResult() const { return result; }
+  std::size_t getUniqueId() const { return uniqueId; }
+
+  // Operator overloads for conversions and comparisons
+#ifdef CUDAQ_LIBRARY_MODE
   operator bool() const { return __nvqpp__MeasureResultBoolConversion(result); }
+#else
+  operator bool() const { return result == 1; }
+#endif
   explicit operator int() const { return result; }
   explicit operator double() const { return static_cast<double>(result); }
 
+  friend bool operator==(const measure_result &m1, const measure_result &m2) {
+    return static_cast<bool>(m1) == static_cast<bool>(m2);
+  }
   friend bool operator==(const measure_result &m, bool b) {
     return static_cast<bool>(m) == b;
+  }
+  friend bool operator==(bool b, const measure_result &m) {
+    return b == static_cast<bool>(m);
+  }
+
+  friend bool operator!=(const measure_result &m1, const measure_result &m2) {
+    return static_cast<bool>(m1) != static_cast<bool>(m2);
+  }
+  friend bool operator!=(const measure_result &m, bool b) {
+    return static_cast<bool>(m) != b;
+  }
+  friend bool operator!=(bool b, const measure_result &m) {
+    return b != static_cast<bool>(m);
   }
 };
 

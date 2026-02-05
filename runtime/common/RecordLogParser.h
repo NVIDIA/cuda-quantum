@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/qis/measure_result.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstddef>
 #include <cstring>
@@ -36,6 +37,18 @@ class TypeConverterBase {
 public:
   virtual ~TypeConverterBase() = default;
   virtual T convert(const std::string &value) const = 0;
+};
+
+class MeasureResultConverter : public TypeConverterBase<cudaq::measure_result> {
+public:
+  cudaq::measure_result convert(const std::string &value) const override {
+    if (value == "0")
+      return cudaq::measure_result(0);
+    if (value == "1")
+      return cudaq::measure_result(1);
+    throw std::runtime_error(
+        "Invalid `measure_result` value. Is this a qudit measurement?");
+  }
 };
 
 class BooleanConverter : public TypeConverterBase<bool> {

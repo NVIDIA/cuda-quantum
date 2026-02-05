@@ -1494,12 +1494,26 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     TODO_loc(loc, "unhandled std::vector<bool> member function, " + funcName);
   }
 
+  // Handle `measure_result` member functions
+  if (isInClassInNamespace(func, "measure_result", "cudaq")) {
+    if (func->isOverloadedOperator()) {
+      auto overloadedOperator = func->getOverloadedOperator();
+      if (isAssignmentOperator(overloadedOperator)) {
+        // resultVector[i] = mz(q0)
+        auto rhs = popValue();
+        auto lhs = popValue();
+        popValue();
+        builder.create<cc::StoreOp>(loc, rhs, lhs);
+        return pushValue(lhs);
+      }
+    }
+  }
+
   if (isInClassInNamespace(func, "qreg", "cudaq") ||
       isInClassInNamespace(func, "qvector", "cudaq") ||
       isInClassInNamespace(func, "qarray", "cudaq") ||
       isInClassInNamespace(func, "qspan", "cudaq") ||
-      isInClassInNamespace(func, "qview", "cudaq") ||
-      isInClassInNamespace(func, "measure_result", "cudaq")) {
+      isInClassInNamespace(func, "qview", "cudaq")) {
     // This handles conversion of qreg.size()
     if (funcName == "size")
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
@@ -1594,6 +1608,32 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
   }
   auto calleeOp = popValue();
+
+  // Handle operator== and operator!= for measure_result (friend functions)
+  if (func->isOverloadedOperator() && isInNamespace(func, "cudaq")) {
+    auto opKind = func->getOverloadedOperator();
+    if ((opKind == clang::OO_EqualEqual || opKind == clang::OO_ExclaimEqual) &&
+        args.size() == 2) {
+      auto lhs = args[0];
+      auto rhs = args[1];
+      // Load from pointers if needed
+      if (isa<cc::PointerType>(lhs.getType()))
+        lhs = builder.create<cc::LoadOp>(loc, lhs);
+      if (isa<cc::PointerType>(rhs.getType()))
+        rhs = builder.create<cc::LoadOp>(loc, rhs);
+      // Discriminate measure types
+      if (isa<quake::MeasureType>(lhs.getType()))
+        lhs = builder.create<quake::DiscriminateOp>(loc, builder.getI1Type(),
+                                                    lhs);
+      if (isa<quake::MeasureType>(rhs.getType()))
+        rhs = builder.create<quake::DiscriminateOp>(loc, builder.getI1Type(),
+                                                    rhs);
+      // Choose predicate based on operator
+      auto pred = (opKind == clang::OO_EqualEqual) ? arith::CmpIPredicate::eq
+                                                   : arith::CmpIPredicate::ne;
+      return pushValue(builder.create<arith::CmpIOp>(loc, pred, lhs, rhs));
+    }
+  }
 
   if (isInNamespace(func, "cudaq")) {
     // Check and see if this quantum operation is adjoint
@@ -3343,8 +3383,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
   }
 
-  // Handle `measure_result` copy constructor
-  if (ctor->isCopyConstructor() &&
+  // Handle `measure_result` copy and move constructors
+  if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
       isInClassInNamespace(ctor, "measure_result", "cudaq")) {
     // The source is a pointer to measure_result (!cc.ptr<!quake.measure>)
     // Just load and return the value

@@ -789,6 +789,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
+          if (auto measureOp =
+                  result.getDefiningOp<quake::MeasurementInterface>()) {
+            measureOp.setRegisterName(builder.getStringAttr(x->getName()));
+            break;
+          }
           if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
             if (auto mzOp =
                     discr.getMeasurement().getDefiningOp<quake::MzOp>()) {

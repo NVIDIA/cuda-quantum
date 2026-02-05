@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -160,6 +161,15 @@ public:
               }
             }
         })
+        .Case([&](quake::MeasureType) {
+          std::string labelStr = "result";
+          if (prefix)
+            labelStr = prefix->str();
+          Value label = makeLabel(loc, rewriter, labelStr);
+          rewriter.create<func::CallOp>(loc, TypeRange{},
+                                        cudaq::opt::QIRRecordOutput,
+                                        ArrayRef<Value>{val, label});
+        })
         .Default([&](Type) {
           // If we reach here, we don't know how to handle this type.
           Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
@@ -195,6 +205,8 @@ public:
     if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty))
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(*vecSz) + std::string(">")};
+    if (isa<quake::MeasureType>(ty))
+      return {"Result"};
     return {"error"};
   }
 

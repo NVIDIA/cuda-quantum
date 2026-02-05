@@ -87,6 +87,13 @@ std::size_t cudaq::opt::getDataSize(llvm::DataLayout &dataLayout, Type ty) {
   LLVMTypeConverter converter(ty.getContext());
   cudaq::opt::populateCCTypeConversions(&converter);
   auto llvmDialectTy = converter.convertType(ty);
+  // `measure_result` -> struct conversion for size calculation
+  converter.addConversion([](quake::MeasureType type) -> Type {
+    auto ctx = type.getContext();
+    auto i32Ty = IntegerType::get(ctx, 32);
+    auto i64Ty = IntegerType::get(ctx, 64);
+    return LLVM::LLVMStructType::getLiteral(ctx, {i32Ty, i64Ty});
+  });
   llvm::LLVMContext context;
   LLVM::TypeToLLVMIRTranslator translator(context);
   auto llvmTy = translator.translateType(llvmDialectTy);
@@ -97,6 +104,13 @@ std::size_t cudaq::opt::getDataOffset(llvm::DataLayout &dataLayout, Type ty,
                                       std::size_t off) {
   LLVMTypeConverter converter(ty.getContext());
   cudaq::opt::populateCCTypeConversions(&converter);
+  // `measure_result` -> struct conversion for size calculation
+  converter.addConversion([](quake::MeasureType type) -> Type {
+    auto ctx = type.getContext();
+    auto i32Ty = IntegerType::get(ctx, 32);
+    auto i64Ty = IntegerType::get(ctx, 64);
+    return LLVM::LLVMStructType::getLiteral(ctx, {i32Ty, i64Ty});
+  });
   auto llvmDialectTy = converter.convertType(ty);
   llvm::LLVMContext context;
   LLVM::TypeToLLVMIRTranslator translator(context);

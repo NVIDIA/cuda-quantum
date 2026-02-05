@@ -123,12 +123,12 @@ struct libertybell {
 // CHECK:               %[[VAL_12:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_16:.*]] = quake.discriminate %[[VAL_15]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_18:.*]] = cc.load %[[VAL_17]] : !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_19:.*]] = quake.discriminate %[[VAL_18]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_20:.*]] = arith.cmpi eq, %[[VAL_16]], %[[VAL_19]] : i1
+// CHECK:               %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
+// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!quake.measure>
+// CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_15]] : !cc.ptr<!quake.measure>
+// CHECK:               %[[VAL_18:.*]] = quake.discriminate %[[VAL_16]] : (!quake.measure) -> i1
+// CHECK:               %[[VAL_19:.*]] = quake.discriminate %[[VAL_17]] : (!quake.measure) -> i1
+// CHECK:               %[[VAL_20:.*]] = arith.cmpi eq, %[[VAL_18]], %[[VAL_19]] : i1
 // CHECK:               cc.if(%[[VAL_20]]) {
 // CHECK:                 %[[VAL_21:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:                 %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_1]] : i32
@@ -197,10 +197,10 @@ struct tinkerbell {
 // CHECK:                 %[[VAL_19:.*]] = cc.alloca !quake.measure
 // CHECK:                 cc.store %[[VAL_18]], %[[VAL_19]] : !cc.ptr<!quake.measure>
 // CHECK:                 %[[VAL_20:.*]] = cc.load %[[VAL_16]] : !cc.ptr<!quake.measure>
-// CHECK:                 %[[VAL_21:.*]] = quake.discriminate %[[VAL_20]] : (!quake.measure) -> i1
-// CHECK:                 %[[VAL_22:.*]] = cc.load %[[VAL_19]] : !cc.ptr<!quake.measure>
-// CHECK:                 %[[VAL_23:.*]] = quake.discriminate %[[VAL_22]] : (!quake.measure) -> i1
-// CHECK:                 %[[VAL_24:.*]] = arith.cmpi eq, %[[VAL_21]], %[[VAL_23]] : i1
+// CHECK:                 %[[VAL_21:.*]] = cc.load %[[VAL_19]] : !cc.ptr<!quake.measure>
+// CHECK:                 %[[VAL_22:.*]] = quake.discriminate %[[VAL_20]] : (!quake.measure) -> i1
+// CHECK:                 %[[VAL_23:.*]] = quake.discriminate %[[VAL_21]] : (!quake.measure) -> i1
+// CHECK:                 %[[VAL_24:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_23]] : i1
 // CHECK:                 cc.if(%[[VAL_24]]) {
 // CHECK:                   %[[VAL_25:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:                   %[[VAL_26:.*]] = arith.addi %[[VAL_25]], %[[VAL_1]] : i32
