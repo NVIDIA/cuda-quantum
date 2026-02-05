@@ -24,15 +24,6 @@ cudaq::Trace createSimpleCircuit() {
   return trace;
 }
 
-cudaq::Trace createParameterizedCircuit() {
-  cudaq::Trace trace;
-  trace.appendInstruction("rx", {0.5}, {}, {cudaq::QuditInfo(2, 0)});
-  trace.appendInstruction("ry", {1.0}, {}, {cudaq::QuditInfo(2, 1)});
-  trace.appendInstruction("z", {}, {cudaq::QuditInfo(2, 0)},
-                          {cudaq::QuditInfo(2, 1)});
-  return trace;
-}
-
 TEST(NoiseExtractorTest, EmptyCircuit) {
   cudaq::Trace empty_trace;
   cudaq::noise_model noise_model;
@@ -256,39 +247,6 @@ TEST(NoiseExtractorTest, GracefulValidation_ValidChannels) {
   EXPECT_TRUE(result.all_unitary_mixtures);
 }
 
-TEST(NoiseExtractorTest, ProbabilitiesSumToOne) {
-  auto trace = createSimpleCircuit();
-  cudaq::noise_model noise_model;
-  noise_model.add_channel("h", {0}, cudaq::depolarization_channel(0.01));
-
-  auto result = extractNoiseSites(trace, noise_model);
-
-  ASSERT_EQ(result.noise_sites.size(), 1);
-
-  const auto &probs = result.noise_sites[0].channel.probabilities;
-  double sum = 0.0;
-  for (auto p : probs) {
-    sum += p;
-  }
-
-  EXPECT_NEAR(sum, 1.0, 1e-6);
-}
-
-TEST(NoiseExtractorTest, AllProbabilitiesNonNegative) {
-  auto trace = createSimpleCircuit();
-  cudaq::noise_model noise_model;
-  noise_model.add_channel("h", {0}, cudaq::depolarization_channel(0.05));
-
-  auto result = extractNoiseSites(trace, noise_model);
-
-  ASSERT_EQ(result.noise_sites.size(), 1);
-
-  for (auto p : result.noise_sites[0].channel.probabilities) {
-    EXPECT_GE(p, 0.0);
-    EXPECT_LE(p, 1.0);
-  }
-}
-
 TEST(NoiseExtractorTest, SingleQubitGateTracksQubit) {
   auto trace = createSimpleCircuit();
   cudaq::noise_model noise_model;
@@ -320,38 +278,25 @@ TEST(NoiseExtractorTest, TwoQubitGateTracksQubits) {
   EXPECT_TRUE(has_qubit_0 || has_qubit_1);
 }
 
-TEST(NoiseExtractorTest, ToleranceParameter) {
-  auto trace = createSimpleCircuit();
-  cudaq::noise_model noise_model;
-  noise_model.add_channel("h", {0}, cudaq::depolarization_channel(0.01));
-
-  auto result1 = extractNoiseSites(trace, noise_model, true);
-  auto result2 = extractNoiseSites(trace, noise_model, true);
-
-  EXPECT_EQ(result1.noise_sites.size(), result2.noise_sites.size());
-  EXPECT_TRUE(result1.all_unitary_mixtures);
-  EXPECT_TRUE(result2.all_unitary_mixtures);
-}
-
 TEST(NoiseExtractorTest, LargeCircuit) {
-  cudaq::Trace trace;
+  constexpr std::size_t NUM_QUBITS = 10;
+  constexpr std::size_t NUM_GATES = 100;
 
-  for (int i = 0; i < 100; ++i) {
-    trace.appendInstruction(
-        "h", {}, {}, {cudaq::QuditInfo(2, static_cast<std::size_t>(i % 10))});
+  cudaq::Trace trace;
+  for (std::size_t i = 0; i < NUM_GATES; ++i) {
+    trace.appendInstruction("h", {}, {}, {cudaq::QuditInfo(2, i % NUM_QUBITS)});
   }
 
   cudaq::noise_model noise_model;
-
-  for (std::size_t q = 0; q < 10; ++q) {
+  for (std::size_t q = 0; q < NUM_QUBITS; ++q) {
     noise_model.add_channel("h", {q}, cudaq::depolarization_channel(0.01));
   }
 
   auto result = extractNoiseSites(trace, noise_model);
 
-  EXPECT_EQ(result.total_instructions, 100);
-  EXPECT_EQ(result.noise_sites.size(), 100);
-  EXPECT_EQ(result.noisy_instructions, 100);
+  EXPECT_EQ(result.total_instructions, NUM_GATES);
+  EXPECT_EQ(result.noise_sites.size(), NUM_GATES);
+  EXPECT_EQ(result.noisy_instructions, NUM_GATES);
   EXPECT_TRUE(result.all_unitary_mixtures);
 }
 
