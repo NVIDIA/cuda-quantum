@@ -78,8 +78,8 @@ convertKrausOperators(const cudaq::kraus_channel &channel) {
 /// @param kraus_operators Raw Kraus operator matrices
 /// @param tolerance Numerical tolerance for validation
 /// @return Pair of (probabilities, normalized_operators) or nullopt
-static std::optional<
-    std::pair<std::vector<double>, std::vector<std::vector<std::complex<double>>>>>
+static std::optional<std::pair<std::vector<double>,
+                               std::vector<std::vector<std::complex<double>>>>>
 computeUnitaryMixtureData(
     const std::vector<std::vector<std::complex<double>>> &kraus_operators,
     double tolerance) {
@@ -133,9 +133,9 @@ createNoisePointFromChannel(const cudaq::kraus_channel &channel,
       is_valid_unitary_mixture = false;
 
       // Assign uniform probabilities as fallback (for non-validating mode)
-      noise_point.probabilities.resize(
-          noise_point.kraus_operators.size(),
-          1.0 / noise_point.kraus_operators.size());
+      noise_point.probabilities.resize(noise_point.kraus_operators.size(),
+                                       1.0 /
+                                           noise_point.kraus_operators.size());
     }
   }
 
@@ -177,10 +177,10 @@ static void throwUnitaryMixtureError(const InstructionContext &ctx) {
   throw std::invalid_argument(msg.str());
 }
 
-NoiseExtractionResult
-extractNoiseSites(const cudaq::Trace &trace,
-                  const cudaq::noise_model &noise_model,
-                  bool validate_unitary_mixture, double tolerance) {
+NoiseExtractionResult extractNoiseSites(const cudaq::Trace &trace,
+                                        const cudaq::noise_model &noise_model,
+                                        bool validate_unitary_mixture,
+                                        double tolerance) {
 
   NoiseExtractionResult result;
   result.total_instructions = trace.getNumInstructions();
@@ -218,8 +218,8 @@ extractNoiseSites(const cudaq::Trace &trace,
       }
 
       // Validation of the constructed NoisePoint
-      bool point_valid =
-          validateNoisePoint(noise_point, ctx, validate_unitary_mixture, tolerance);
+      bool point_valid = validateNoisePoint(
+          noise_point, ctx, validate_unitary_mixture, tolerance);
       if (!point_valid) {
         result.all_unitary_mixtures = false;
       }
