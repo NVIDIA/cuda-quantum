@@ -36,6 +36,7 @@ add_library(${LIBRARY_NAME}
     ptsbe/strategies/ExhaustiveSamplingStrategy.cpp
     ptsbe/strategies/OrderedSamplingStrategy.cpp
     ptsbe/strategies/ConditionalSamplingStrategy.cpp
+    ptsbe/NoiseExtractor.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
