@@ -1939,7 +1939,10 @@ bitstring sample probabilities.
             noise.add_channel('x', [i], bf)
 
         # Gets noiseless probability distribution
-        cudaq.set_target("nvidia")
+        if cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia'):
+            cudaq.set_target('nvidia')
+        else:
+            cudaq.set_target('qpp-cpu')
         clean_result = np.array(
             cudaq.StateMemoryView(cudaq.get_state(qv, n, circuit_params, layer_permutations)))
 
