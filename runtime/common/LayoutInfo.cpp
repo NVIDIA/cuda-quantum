@@ -33,7 +33,8 @@ using namespace mlir;
 
 #include "LayoutInfo.h"
 
-static LayoutInfoType extractLayout(const std::string &kernelName,
+namespace {
+cudaq::LayoutInfoType extractLayout(const std::string &kernelName,
                                     ModuleOp moduleOp) {
   auto *fnOp =
       moduleOp.lookupSymbol(cudaq::runtime::cudaqGenPrefixName + kernelName);
@@ -89,7 +90,7 @@ static LayoutInfoType extractLayout(const std::string &kernelName,
   return {totalSize, fieldOffsets};
 }
 
-static LayoutInfoType extractLayout(const std::string &kernelName,
+cudaq::LayoutInfoType extractLayout(const std::string &kernelName,
                                     const std::string &quakeCode) {
   auto moduleOp = parseSourceString<ModuleOp>(StringRef(quakeCode),
                                               cudaq::getMLIRContext());
@@ -97,7 +98,9 @@ static LayoutInfoType extractLayout(const std::string &kernelName,
     throw std::runtime_error("module cannot be parsed");
   return extractLayout(kernelName, *moduleOp);
 }
+} // namespace
 
+namespace cudaq {
 LayoutInfoType getLayoutInfo(const std::string &name, void *opt_module) {
   if (opt_module) {
     // In Python, the interpreter already has the ModuleOp resident.
@@ -110,3 +113,4 @@ LayoutInfoType getLayoutInfo(const std::string &name, void *opt_module) {
     return extractLayout(name, quakeCode);
   return {};
 }
+} // namespace cudaq

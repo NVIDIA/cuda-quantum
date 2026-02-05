@@ -36,7 +36,7 @@
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq::createWrappedKernel(std::string_view irString,
                            const std::string &entryPointFn, void *args,
-                           std::uint64_t argsSize){
+                           std::uint64_t argsSize) {
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode

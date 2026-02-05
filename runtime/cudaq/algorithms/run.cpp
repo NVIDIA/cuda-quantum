@@ -6,16 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "run.h"
-#include "cudaq/runtime/logger/logger.h"
-#include "common/Timing.h"
-#include "cudaq/simulators.h"
-#include "common/RecordLogParser.h"
 #include "common/LayoutInfo.h"
+#include "common/RecordLogParser.h"
+#include "common/Timing.h"
+#include "cudaq/runtime/logger/logger.h"
+#include "cudaq/simulators.h"
 
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, const std::string &original_name,
-    std::size_t shots, const LayoutInfoType & layoutInfo, std::size_t qpu_id) {
+    std::size_t shots, const LayoutInfoType &layoutInfo, std::size_t qpu_id) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();

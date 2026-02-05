@@ -79,7 +79,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
-  auto layoutInfo = getLayoutInfo(name,mod.getOperation());
+  auto layoutInfo = getLayoutInfo(name, mod.getOperation());
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =

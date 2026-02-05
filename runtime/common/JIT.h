@@ -11,7 +11,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <functional>
 
 namespace llvm::orc {
 class LLJIT;
@@ -24,7 +23,7 @@ namespace cudaq {
 // Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
 // `packFunctionArguments` (slow for raw LLVM IR containing many functions from
 // included headers).
-std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>           
+std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
                     void *args, std::uint64_t argsSize);
 } // namespace cudaq

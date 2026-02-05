@@ -105,8 +105,9 @@ auto withExecutionContextExceptRun(cudaq::ExecutionContext &io_context,
 // Optionally, the JIT'ed kernel can be executed a number of
 // times along with a post-execution callback. For example, sample a dynamic
 // kernel.
-void invokeWrappedKernel(std::function<void()> func,
-    cudaq::ExecutionContext &executionContext, std::size_t numTimes = 1,
+void invokeWrappedKernel(
+    std::function<void()> func, cudaq::ExecutionContext &executionContext,
+    std::size_t numTimes = 1,
     std::function<void(std::size_t)> postExecCallback = {}) {
   auto &platform = cudaq::get_platform();
   for (std::size_t i = 0; i < numTimes; ++i) {
@@ -368,13 +369,13 @@ public:
           // If it has conditionals, loop over individual circuit executions
           std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
               ir, std::string(kernelName), kernelArgs, argsSize);
-          invokeWrappedKernel(wrappedKernel, io_context,
-                                     io_context.shots, [&](std::size_t i) {
-                                       // Flush the single measure result and
-                                       // add it to the sample_result
-                                       counts += io_context.result;
-                                       io_context.result.clear();
-                                     });
+          invokeWrappedKernel(wrappedKernel, io_context, io_context.shots,
+                              [&](std::size_t i) {
+                                // Flush the single measure result and
+                                // add it to the sample_result
+                                counts += io_context.result;
+                                io_context.result.clear();
+                              });
           io_context.result = counts;
         } else {
           // If no conditionals, nothing special to do for library mode

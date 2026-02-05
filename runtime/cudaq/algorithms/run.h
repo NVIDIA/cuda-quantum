@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "common/LayoutInfo.h"
 #include "common/ExecutionContext.h"
+#include "common/LayoutInfo.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"

@@ -7,9 +7,13 @@
  ******************************************************************************/
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
+
+namespace cudaq {
 
 using LayoutInfoType = std::pair<std::size_t, std::vector<std::size_t>>;
 
-LayoutInfoType getLayoutInfo(const std::string &name, void *opt_module = nullptr);
+LayoutInfoType getLayoutInfo(const std::string &name,
+                             void *opt_module = nullptr);
+} // namespace cudaq
