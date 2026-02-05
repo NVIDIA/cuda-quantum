@@ -199,21 +199,10 @@ else
   if [ -n "$mlir_python_bindings" ]; then
     # Cherry-pick the necessary commit to have a distribution target
     # for the mlir-python-sources; to be removed after we update to LLVM 17.
-    cherry_pick_commit=9494bd84df3c5b496fc087285af9ff40d7859b6a
-    echo "Cherry-picking commit $cherry_pick_commit"
-    cherry_pick_success=false
-    for attempt in 1 2 3; do
-      if git cherry-pick --no-commit $cherry_pick_commit 2>/dev/null; then
-        cherry_pick_success=true
-        break
-      fi
-      if [ $attempt -lt 3 ]; then
-        echo "Cherry-pick attempt $attempt failed, retrying in 5s..."
-        sleep 5
-      fi
-    done
-    if ! $cherry_pick_success; then
-      echo "Cherry-pick failed after 3 attempts."
+    echo "Cherry-picking commit 9494bd84df3c5b496fc087285af9ff40d7859b6a"
+    git cherry-pick --no-commit 9494bd84df3c5b496fc087285af9ff40d7859b6a
+    if [ ! 0 -eq $? ]; then
+      echo "Cherry-pick failed."
       if $(git rev-parse --is-shallow-repository); then
         echo "Unshallow the repository and try again."
         (return 0 2>/dev/null) && return 1 || exit 1
@@ -225,21 +214,6 @@ fi
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:
 cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
-
-# Use system LLD if available for faster linking
-# Set LLVM_ENABLE_LLD=ON/OFF to override auto-detection
-lld_flags=""
-if [ -n "${LLVM_ENABLE_LLD:-}" ]; then
-  lld_flags="-DLLVM_ENABLE_LLD=$LLVM_ENABLE_LLD"
-elif [ "$(uname)" = "Darwin" ]; then
-  if command -v ld64.lld &>/dev/null; then
-    echo "Using LLD"
-    lld_flags="-DLLVM_ENABLE_LLD=ON"
-  fi
-elif command -v ld.lld &>/dev/null; then
-  echo "Using LLD"
-  lld_flags="-DLLVM_ENABLE_LLD=ON"
-fi
 
 # Some flags that may be useful to build a GPU-offload-capable compiler: 
 # targets_to_build="host;NVPTX"
@@ -258,8 +232,7 @@ cmake_args=" \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_FLAGS='-w' \
-  ${lld_flags}"
+  -DCMAKE_CXX_FLAGS='-w'"
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
