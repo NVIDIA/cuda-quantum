@@ -28,6 +28,12 @@ while getopts ":vB:" opt; do
   esac
 done
 
+# Verify required environment variables
+if [ -z "${LLVM_INSTALL_PREFIX:-}" ]; then
+  echo "::error::LLVM_INSTALL_PREFIX is not set"
+  exit 1
+fi
+
 status_sum=0
 
 # Set PYTHONPATH to find the built cudaq module

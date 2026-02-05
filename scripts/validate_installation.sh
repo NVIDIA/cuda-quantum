@@ -25,15 +25,14 @@ if [ -d "docs/sphinx/examples" ]; then
     echo "Setting up examples from repo structure..."
     repo_root="$(pwd)"
     staging_dir="$repo_root/build/validation_staging"
-    rm -rf "$staging_dir"
+    rm -rf "${staging_dir:?}"
     mkdir -p "$staging_dir"
-    
-    cp -r docs/sphinx/examples "$staging_dir/examples"
-    cp -r docs/sphinx/applications "$staging_dir/applications"
-    cp -r docs/sphinx/targets "$staging_dir/targets"
-    cp -r docs/sphinx/snippets "$staging_dir/snippets"
+
+    for d in examples applications targets snippets; do
+        cp -r "docs/sphinx/$d" "$staging_dir/$d" || exit 1
+    done
     # Remove Python subdirs from examples/applications/targets (use snippets for Python)
-    rm -rf "$staging_dir/examples/python" "$staging_dir/applications/python" "$staging_dir/targets/python"
+    rm -rf "${staging_dir:?}/examples/python" "${staging_dir:?}/applications/python" "${staging_dir:?}/targets/python"
     
     cd "$staging_dir"
     echo "Running validation from: $(pwd)"

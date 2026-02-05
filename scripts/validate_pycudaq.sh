@@ -86,7 +86,7 @@ if [ -z "$root_folder" ]; then
         # Use staging location in repo (gitignored via /*build*/)
         staging_dir="$repo_root/build/validation"
         echo "Setting up staging directory: $staging_dir"
-        rm -rf "$staging_dir"
+        rm -rf "${staging_dir:?}"
         mkdir -p "$staging_dir"
 
         # Symlink test files to staging (mirrors CI copy structure)

@@ -36,7 +36,7 @@
 #   CUQUANTUM_INSTALL_PREFIX: Path to cuQuantum (Linux only)
 #   CUTENSOR_INSTALL_PREFIX: Path to cuTensor (Linux only)
 
-set -e
+set -euo pipefail
 
 # ============================================================================ #
 # Setup
