@@ -118,12 +118,14 @@ if $install_prereqs; then
     fi
     if $verbose; then
         source "$this_file_dir/install_prerequisites.sh" "$@"
+        prereq_exit=$?
     else
         source "$this_file_dir/install_prerequisites.sh" "$@" 2>&1 | tail -5
+        prereq_exit=$?
     fi
     # Restore positional parameters
     set -- "${saved_args[@]}"
-    if [ $? -ne 0 ]; then
+    if [ $prereq_exit -ne 0 ]; then
         echo "Error: Failed to install prerequisites" >&2
         exit 1
     fi
