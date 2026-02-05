@@ -34,6 +34,7 @@ jobs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
+      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
 
     steps:
       - name: Checkout repository
@@ -52,6 +53,16 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - id: version
+        run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          else
+            cudaq_version=0.0.0
+          fi
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
 
   # ============================================================================
   # Build prerequisites via GHCR caching
@@ -132,7 +143,7 @@ jobs:
   # ============================================================================
   wheel:
     name: Wheel (arm64, py${{ matrix.python_version }})
-    needs: devdeps
+    needs: [devdeps, metadata]
     strategy:
       matrix:
         python_version: ['3.11', '3.12', '3.13']
@@ -142,7 +153,7 @@ jobs:
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
-      cudaq_version: ${{ steps.build_wheel.outputs.cudaq_version }}
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
 
     steps:
       - name: Checkout repository
@@ -182,32 +193,19 @@ jobs:
           LLVM_SOURCE="$HOME/.llvm-project" \
           bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
-      - name: Determine version
-        id: version
-        run: |
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
-          else
-            cudaq_version=0.0.0
-          fi
-          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
-          echo "Building wheel version: $cudaq_version"
-
       - name: Build wheel
-        id: build_wheel
         run: |
+          echo "Building wheel version: ${{ needs.metadata.outputs.cudaq_version }}"
           # Source env defaults to set ZLIB_INSTALL_PREFIX, LLVM_INSTALL_PREFIX, etc.
           # These point to cached prerequisites in ~/.local
           source scripts/set_env_defaults.sh
-          
-          export CUDA_QUANTUM_VERSION=${{ steps.version.outputs.cudaq_version }}
+
+          export CUDA_QUANTUM_VERSION=${{ needs.metadata.outputs.cudaq_version }}
           bash scripts/build_wheel.sh -v
-          
+
           # Find and report the built wheel
           wheel_file=$(ls dist/cuda_quantum*.whl 2>/dev/null | head -1)
           echo "Built wheel: $wheel_file"
-          echo "cudaq_version=${{ steps.version.outputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -260,13 +258,13 @@ jobs:
   # ============================================================================
   installer:
     name: Installer (arm64)
-    needs: devdeps
+    needs: [devdeps, metadata]
     runs-on: macos-26
     timeout-minutes: 120
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
-      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
 
     steps:
       - name: Checkout repository
@@ -311,22 +309,11 @@ jobs:
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v
 
-      - name: Determine version
-        id: version
-        run: |
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
-          else
-            cudaq_version=0.0.0
-          fi
-          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
-          echo "Building installer version: $cudaq_version"
-
       - name: Build installer
         run: |
+          echo "Building installer version: ${{ needs.metadata.outputs.cudaq_version }}"
           source scripts/set_env_defaults.sh
-          bash scripts/build_installer.sh -v -V ${{ steps.version.outputs.cudaq_version }}
+          bash scripts/build_installer.sh -v -V ${{ needs.metadata.outputs.cudaq_version }}
           
           # List output
           ls -la out/
