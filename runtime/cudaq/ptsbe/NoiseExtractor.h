@@ -44,14 +44,15 @@ struct NoiseExtractionResult {
 /// @param trace Captured circuit trace containing instructions
 /// @param noise_model Noise model defining error channels
 /// @param validate_unitary_mixture If true, throws if any channel is not a
-///                                 unitary mixture (default: true)
-/// @param tolerance Numerical tolerance for validation (default: 1e-6)
+///                                 unitary mixture (default: true). PTSBE
+///                                 always treats non-unitary channels as error.
 /// @return NoiseExtractionResult containing ordered noise sites and statistics
 /// @throws std::invalid_argument if validation fails and
 /// validate_unitary_mixture
 ///         is true
-[[nodiscard]] NoiseExtractionResult extractNoiseSites(
-    const cudaq::Trace &trace, const cudaq::noise_model &noise_model,
-    bool validate_unitary_mixture = true, double tolerance = 1e-6);
+[[nodiscard]] NoiseExtractionResult
+extractNoiseSites(const cudaq::Trace &trace,
+                  const cudaq::noise_model &noise_model,
+                  bool validate_unitary_mixture = true);
 
 } // namespace cudaq::ptsbe

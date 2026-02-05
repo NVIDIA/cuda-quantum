@@ -7,181 +7,49 @@
  ******************************************************************************/
 
 #include "NoiseExtractor.h"
-#include <algorithm>
 #include <sstream>
+#include <vector>
 
 namespace cudaq::ptsbe {
 
-/// @brief Context information about an instruction being processed
-struct InstructionContext {
-  std::string name;
-  std::size_t index;
-  std::vector<std::size_t> target_qubits;
-  std::vector<std::size_t> control_qubits;
-};
-
-/// @brief Extract target and control qubits from a trace instruction
-///
-/// @param inst Trace instruction
-/// @return InstructionContext with extracted qubit information
-static InstructionContext
-extractInstructionContext(const cudaq::Trace::Instruction &inst,
-                          std::size_t instruction_idx) {
-  InstructionContext ctx;
-  ctx.name = inst.name;
-  ctx.index = instruction_idx;
-
-  // Extract target qubits
-  ctx.target_qubits.reserve(inst.targets.size());
+static std::vector<std::size_t>
+qubitIdsFromInstruction(const cudaq::Trace::Instruction &inst) {
+  std::vector<std::size_t> qubits;
+  qubits.reserve(inst.targets.size() + inst.controls.size());
   for (const auto &q : inst.targets) {
-    ctx.target_qubits.push_back(q.id);
+    qubits.push_back(q.id);
   }
-
-  // Extract control qubits
-  ctx.control_qubits.reserve(inst.controls.size());
   for (const auto &q : inst.controls) {
-    ctx.control_qubits.push_back(q.id);
+    qubits.push_back(q.id);
   }
-
-  return ctx;
+  return qubits;
 }
 
-/// @brief Convert Kraus operators from cudaq::complex to std::complex<double>
-///
-/// @param channel Noise channel with Kraus operators
-/// @return Vector of Kraus operator matrices in std::complex<double> format
-static std::vector<std::vector<std::complex<double>>>
-convertKrausOperators(const cudaq::kraus_channel &channel) {
-  std::vector<std::vector<std::complex<double>>> operators;
-  operators.reserve(channel.size());
-
-  auto ops = channel.get_ops();
-  for (const auto &kraus_op : ops) {
-    std::vector<std::complex<double>> matrix;
-    matrix.reserve(kraus_op.data.size());
-
-    for (const auto &elem : kraus_op.data) {
-      matrix.emplace_back(elem.real(), elem.imag());
-    }
-
-    operators.push_back(std::move(matrix));
-  }
-
-  return operators;
+static NoisePoint createNoisePoint(std::size_t index,
+                                   const std::string &op_name,
+                                   std::vector<std::size_t> qubits,
+                                   cudaq::kraus_channel channel) {
+  NoisePoint point;
+  point.circuit_location = index;
+  point.op_name = op_name;
+  point.qubits = std::move(qubits);
+  point.channel = std::move(channel);
+  return point;
 }
 
-/// @brief Compute probabilities and normalized operators for a unitary mixture
-///
-/// Uses computeUnitaryMixture to validate and normalize Kraus operators.
-/// Returns nullopt if the channel is not a valid unitary mixture.
-///
-/// @param kraus_operators Raw Kraus operator matrices
-/// @param tolerance Numerical tolerance for validation
-/// @return Pair of (probabilities, normalized_operators) or nullopt
-static std::optional<std::pair<std::vector<double>,
-                               std::vector<std::vector<std::complex<double>>>>>
-computeUnitaryMixtureData(
-    const std::vector<std::vector<std::complex<double>>> &kraus_operators,
-    double tolerance) {
-  auto result = cudaq::computeUnitaryMixture(kraus_operators, tolerance);
-
-  if (!result.has_value()) {
-    return std::nullopt;
-  }
-
-  return result;
-}
-
-/// @brief Create a NoisePoint from a noise channel and instruction context
-///
-/// @param channel Noise channel to convert
-/// @param ctx Instruction context (location, qubits, gate name)
-/// @param tolerance Numerical tolerance for validation
-/// @return Pair of (NoisePoint, is_valid_unitary_mixture)
-static std::pair<NoisePoint, bool>
-createNoisePointFromChannel(const cudaq::kraus_channel &channel,
-                            const InstructionContext &ctx, double tolerance) {
-  NoisePoint noise_point;
-  noise_point.circuit_location = ctx.index;
-  noise_point.op_name = ctx.name;
-
-  noise_point.qubits = ctx.target_qubits;
-  noise_point.qubits.insert(noise_point.qubits.end(),
-                            ctx.control_qubits.begin(),
-                            ctx.control_qubits.end());
-
-  bool is_valid_unitary_mixture = true;
-
-  // Check if channel has pre-computed unitary mixture representation
-  if (channel.is_unitary_mixture()) {
-    // Use pre-computed values (already validated)
-    noise_point.kraus_operators = channel.unitary_ops;
-    noise_point.probabilities = channel.probabilities;
-  } else {
-    // Convert Kraus operators and compute unitary mixture
-    noise_point.kraus_operators = convertKrausOperators(channel);
-
-    auto unitary_result =
-        computeUnitaryMixtureData(noise_point.kraus_operators, tolerance);
-
-    if (unitary_result.has_value()) {
-      // Valid unitary mixture - use computed/normalized values
-      noise_point.probabilities = std::move(unitary_result->first);
-      noise_point.kraus_operators = std::move(unitary_result->second);
-    } else {
-      // Not a valid unitary mixture
-      is_valid_unitary_mixture = false;
-
-      // Assign uniform probabilities as fallback (for non-validating mode)
-      noise_point.probabilities.resize(noise_point.kraus_operators.size(),
-                                       1.0 /
-                                           noise_point.kraus_operators.size());
-    }
-  }
-
-  return {std::move(noise_point), is_valid_unitary_mixture};
-}
-
-/// @brief Validate a NoisePoint and throw if validation is enabled
-///
-/// @param noise_point NoisePoint to validate
-/// @param ctx Instruction context (for error messages)
-/// @param validate_unitary_mixture Whether to throw on validation failure
-/// @param tolerance Numerical tolerance
-/// @return true if valid, false otherwise
-static bool validateNoisePoint(const NoisePoint &noise_point,
-                               const InstructionContext &ctx,
-                               bool validate_unitary_mixture,
-                               double tolerance) {
-  if (!noise_point.isUnitaryMixture(tolerance)) {
-    if (validate_unitary_mixture) {
-      std::ostringstream msg;
-      msg << "Noise channel validation failed for gate '" << ctx.name
-          << "' at instruction " << ctx.index
-          << ". Channel does not satisfy unitary mixture properties.";
-      throw std::invalid_argument(msg.str());
-    }
-    return false;
-  }
-  return true;
-}
-
-/// @brief Throw validation error for non-unitary mixture channel
-///
-/// @param ctx Instruction context (for error message)
-static void throwUnitaryMixtureError(const InstructionContext &ctx) {
+static void throwUnitaryMixtureError(const std::string &gate_name,
+                                     std::size_t instruction_idx) {
   std::ostringstream msg;
-  msg << "Noise channel for gate '" << ctx.name << "' at instruction "
-      << ctx.index << " is not a valid unitary mixture. "
-      << "PTSBE requires all channels to be unitary mixtures.";
+  msg << "Noise channel for gate '" << gate_name << "' at instruction "
+      << instruction_idx
+      << " is not a valid unitary mixture. "
+         "PTSBE requires all channels to be unitary mixtures.";
   throw std::invalid_argument(msg.str());
 }
 
 NoiseExtractionResult extractNoiseSites(const cudaq::Trace &trace,
                                         const cudaq::noise_model &noise_model,
-                                        bool validate_unitary_mixture,
-                                        double tolerance) {
-
+                                        bool validate_unitary_mixture) {
   NoiseExtractionResult result;
   result.total_instructions = trace.getNumInstructions();
   result.noisy_instructions = 0;
@@ -189,42 +57,43 @@ NoiseExtractionResult extractNoiseSites(const cudaq::Trace &trace,
 
   std::size_t instruction_idx = 0;
 
-  // Iterate through all instructions in circuit execution order
   for (const auto &inst : trace) {
-    // Extract instruction context (qubits, name, index)
-    auto ctx = extractInstructionContext(inst, instruction_idx);
+    std::vector<std::size_t> target_qubits;
+    target_qubits.reserve(inst.targets.size());
+    for (const auto &q : inst.targets) {
+      target_qubits.push_back(q.id);
+    }
+    std::vector<std::size_t> control_qubits;
+    control_qubits.reserve(inst.controls.size());
+    for (const auto &q : inst.controls) {
+      control_qubits.push_back(q.id);
+    }
 
-    // Query noise model for applicable channels
-    auto channels = noise_model.get_channels(ctx.name, ctx.target_qubits,
-                                             ctx.control_qubits, inst.params);
+    auto channels = noise_model.get_channels(inst.name, target_qubits,
+                                             control_qubits, inst.params);
 
-    // Process each applicable noise channel
-    for (const auto &channel : channels) {
-      // Skip empty channels
+    bool instruction_has_noise = false;
+
+    for (auto channel : channels) {
       if (channel.empty()) {
         continue;
       }
 
-      // Create NoisePoint from channel
-      auto [noise_point, is_valid_unitary] =
-          createNoisePointFromChannel(channel, ctx, tolerance);
+      channel.generateUnitaryParameters();
 
-      // Track unitary mixture status
-      if (!is_valid_unitary) {
-        result.all_unitary_mixtures = false;
-        if (validate_unitary_mixture) {
-          throwUnitaryMixtureError(ctx);
-        }
+      // PTSBE requires all channels to be unitary mixtures; treat non-unitary
+      // as an error (no fallback).
+      if (!channel.is_unitary_mixture()) {
+        throwUnitaryMixtureError(inst.name, instruction_idx);
       }
 
-      // Validation of the constructed NoisePoint
-      bool point_valid = validateNoisePoint(
-          noise_point, ctx, validate_unitary_mixture, tolerance);
-      if (!point_valid) {
-        result.all_unitary_mixtures = false;
-      }
+      std::vector<std::size_t> qubits = qubitIdsFromInstruction(inst);
+      result.noise_sites.push_back(createNoisePoint(
+          instruction_idx, inst.name, std::move(qubits), std::move(channel)));
+      instruction_has_noise = true;
+    }
 
-      result.noise_sites.push_back(std::move(noise_point));
+    if (instruction_has_noise) {
       result.noisy_instructions++;
     }
 
