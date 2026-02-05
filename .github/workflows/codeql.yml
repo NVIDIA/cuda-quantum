@@ -88,21 +88,51 @@ jobs:
       with:
         category: "/language:${{matrix.language}}"
 
-  # This is only necessary because of a known github bug
-  # See https://github.com/github/codeql-action/issues/1537
+  # The CodeQL action status is not reported in merge queues. See https://github.com/github/codeql-action/issues/1537.
+  # This is a workaround to check the status of the CodeQL analysis in the PR but not in the merge queue. See https://github.com/orgs/community/discussions/46757#discussioncomment-7768838
   check_codeql_status:
-    name: Check CodeQL Status
-    needs: analyze
-    permissions: 
-      contents: read
-      checks: read
-      pull-requests: read
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
-    steps:
-    - name: Check CodeQL Status
-      uses: eldrick19/code-scanning-status-checker@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        pr_number: ${{ github.event.pull_request.number }}
-        repo: ${{ github.repository }}
+      name: Check CodeQL Status
+      needs: analyze
+      permissions:
+          contents: read
+          checks: read
+          pull-requests: read
+      runs-on: ubuntu-latest
+      if: ${{ github.event_name == 'pull_request' }}
+      steps:
+          - name: Authenticate gh CLI
+            run: |
+                gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          - name: Check CodeQL Status
+            run: |
+                response=$(gh api graphql -f query='
+                  {
+                    repository(owner: "${{ github.event.repository.owner.login }}", name: "${{ github.event.repository.name }}") {
+                      pullRequest(number: ${{ github.event.pull_request.number }}) {
+                        commits(last: 1) {
+                          nodes {
+                            commit {
+                              checkSuites(first: 1, filterBy: {checkName: "CodeQL"}) {
+                                nodes {
+                                  checkRuns(first: 1) {
+                                    nodes {
+                                      name
+                                      status
+                                      conclusion
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ')
+                conclusion=$(echo $response | jq -r '.data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[0].checkRuns.nodes[0].conclusion')
+                  if [ "$conclusion" != "SUCCESS" ]; then
+                    echo "$response"
+                    echo "CodeQL check failed"
+                    exit 1
+                  fi
