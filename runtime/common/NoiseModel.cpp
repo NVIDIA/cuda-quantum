@@ -19,7 +19,7 @@ namespace cudaq {
 // Helper to check whether a matrix is a scaled unitary matrix, i.e., `k * U`
 // where U is a unitary matrix. If so, it also returns the `k` factor.
 // Otherwise, return a nullopt.
-static std::optional<double>
+std::optional<double>
 isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
   typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
                         Eigen::RowMajor>
@@ -46,11 +46,11 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
 // Helper to determine if a vector of Kraus ops are actually a unitary mixture.
 // If so, it returns all the unitaries and the probabilities associated with
 // each one of those unitaries.
-static std::optional<std::pair<std::vector<double>,
-                               std::vector<std::vector<std::complex<double>>>>>
+std::optional<std::pair<std::vector<double>,
+                        std::vector<std::vector<std::complex<double>>>>>
 computeUnitaryMixture(
     const std::vector<std::vector<std::complex<double>>> &krausOps,
-    double tol = 1e-6) {
+    double tol) {
   std::vector<double> probs;
   std::vector<std::vector<std::complex<double>>> mats;
   const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
