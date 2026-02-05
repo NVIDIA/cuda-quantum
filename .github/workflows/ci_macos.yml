@@ -212,7 +212,8 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pycudaq-macos-arm64-py${{ matrix.python_version }}
+          # Consistent with Linux: pycudaq-<python_version_dashed>-<platform_info>
+          name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/cuda_quantum*.whl
           retention-days: 1
           if-no-files-found: error
@@ -242,7 +243,7 @@ jobs:
       - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
-          name: pycudaq-macos-arm64-py${{ matrix.python_version }}
+          name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/
 
       - name: Validate wheel
@@ -333,7 +334,8 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cudaq-installer-macos-arm64
+          # Consistent with Linux: cudaq-<platform>-<config>-installer-<run_id>
+          name: cudaq-arm64-darwin-installer-${{ github.run_id }}
           path: out/install_cuda_quantum*
           retention-days: 1
           if-no-files-found: error
@@ -360,13 +362,13 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v4
         with:
-          name: cudaq-installer-macos-arm64
+          name: cudaq-arm64-darwin-installer-${{ github.run_id }}
           path: installer/
 
       - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
-          name: pycudaq-macos-arm64-py3.12
+          name: pycudaq-3.12-darwin-arm64
           path: wheel/
 
       - name: Install CUDA-Q (C++ via installer)
