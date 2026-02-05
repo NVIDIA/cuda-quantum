@@ -73,6 +73,29 @@ public:
   /// supports parallel distribution of quantum tasks.
   virtual bool supports_task_distribution() const { return false; }
 
+  /// Specify the execution context for the current thread.
+  /// @deprecated Use `with_execution_context` instead.
+  // [remove at]: runtime refactor release
+  [[deprecated("set_exec_ctx is deprecated - please use with_execution_context "
+               "instead.")]] void
+  set_exec_ctx(ExecutionContext *ctx);
+
+  /// Return the current execution context
+  /// @deprecated Use `cudaq::getExecutionContext()` instead.
+  // [remove at]: runtime refactor release
+  [[deprecated("get_exec_ctx is deprecated - please use "
+               "cudaq::getExecutionContext() instead.")]] ExecutionContext *
+  get_exec_ctx() const {
+    return getExecutionContext();
+  }
+
+  /// Reset the execution context for the current thread.
+  /// @deprecated Use `with_execution_context` instead.
+  // [remove at]: runtime refactor release
+  [[deprecated("reset_exec_ctx is deprecated - please use "
+               "with_execution_context instead.")]] void
+  reset_exec_ctx();
+
   /// @brief Execute the given function within the given execution context.
   template <typename Callable, typename... Args>
   auto with_execution_context(ExecutionContext &ctx, Callable &&f,
