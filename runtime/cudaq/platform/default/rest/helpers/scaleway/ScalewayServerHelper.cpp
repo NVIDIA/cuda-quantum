@@ -75,7 +75,7 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
   m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "", DEFAULT_MAX_DURATION);
   m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "", DEFAULT_MAX_IDLE_DURATION);
   m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "", "");
-  m_sessionName = getValueOrDefault(config, "name", "", "cudaq-session-" + std::to_string(std::rand()));
+  m_sessionName = getValueOrDefault(config, "name", "", "qs-cudaq-" + std::to_string(std::rand()));
 
   setShots(std::stoul(getValueOrDefault(config, "shots", "", "1000")));
 }
@@ -142,7 +142,7 @@ std::string ScalewayServerHelper::constructGetJobPath(
 
 std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
     ServerMessage &postResponse) {
-  return std::chrono::microseconds(1000000);
+  return std::chrono::microseconds(100000);
 }
 
 bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
@@ -201,8 +201,6 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 }
 
 std::string ScalewayServerHelper::ensureSessionIsActive() {
-  CUDAQ_INFO("Check for active session");
-
   if (!m_sessionId.empty()) {
     CUDAQ_INFO("Alive session id: {}", m_sessionId);
 

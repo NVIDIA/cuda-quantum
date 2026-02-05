@@ -9,7 +9,6 @@
 #include "QuantumProgramResult.h"
 #include "Compression.h"
 #include "Base64.h"
-#include "common/Logger.h"
 #include <bitset>
 #include <string>
 
@@ -123,8 +122,6 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       auto resultJson = json::parse(uncompressedSerialization);
       auto serialization = resultJson.get<std::vector<std::size_t>>();
     
-      CUDAQ_INFO("serialization: {}, ", serialization);
-
       sampleResult.deserialize(serialization);
   } else if (m_serializationFormat ==
     QuantumProgramResultSerializationFormat::QISKIT_RESULT_JSON_V1) {
@@ -141,8 +138,6 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       qiskitResult.header = resultJson["results"][0]["header"].get<QiskitExperimentResultHeader>();
 
       auto serialization = qiskitResultToCudaqSampleResult(qiskitResult);
-
-      CUDAQ_INFO("serialization: {}, ", serialization);
 
       sampleResult.deserialize(serialization);
   } else {
