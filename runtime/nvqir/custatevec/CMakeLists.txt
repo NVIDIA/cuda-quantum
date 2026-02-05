@@ -54,7 +54,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
 
   target_link_libraries(${LIBRARY_NAME} 
                         PRIVATE
-                          fmt::fmt-header-only
+                          cudaq-logger
                           cudaq-common
                           nvqir-custatevec-kernels
                           ${CUSTATEVEC_LIB}

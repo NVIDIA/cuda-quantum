@@ -16,7 +16,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import PlainTextResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
-from .. import get_backend_port
+from .. import get_backend_port, PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -103,7 +103,7 @@ async def postJob(job: JobRequest,
     global createdJobs, shots, numQubitsRequired
 
     if token == None:
-        raise HTTPException(status_code(401), detail="Credentials not provided")
+        raise HTTPException(status_code=401, detail="Credentials not provided")
 
     n_shots = job.options.get("aqusim", {}).get("shots", 1000)
     print('Posting job with shots = ', n_shots)
@@ -140,11 +140,8 @@ async def postJob(job: JobRequest,
     # NOTE: This uses QIR v1.0
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
     for i in range(shots):
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
-        kernel()
-        _ = cudaq.testing.finalize(qubits, context)
-
+        with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
+            kernel()
         shot_log = cudaq.testing.getAndClearOutputLog()
         if i > 0:
             qir_log += "START\n"

@@ -36,6 +36,8 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
+    auto executionContext = cudaq::getExecutionContext();
+
     if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
