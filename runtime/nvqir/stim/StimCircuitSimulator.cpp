@@ -6,63 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "StimCircuitSimulator.h"
 #include "common/FmtCore.h"
-#include "nvqir/CircuitSimulator.h"
-#include "stim.h"
 
 using namespace cudaq;
 
 namespace nvqir {
 
-/// @brief Collection of information about a noise type in Stim
-struct StimNoiseType {
-  /// The name of the error mechanism in Stim
-  std::string stim_name;
-  /// Whether the error mechanism flips X; one per error mechanism per target
-  std::vector<bool> flips_x;
-  /// Whether the error mechanism flips Z; one per error mechanism per target
-  std::vector<bool> flips_z;
-  /// One probability per error mechanism
-  std::vector<double> params;
-  /// The number of targets for the noise type
-  int num_targets = 1;
-};
-
-/// @brief The StimCircuitSimulator implements the CircuitSimulator
-/// base class to provide a simulator delegating to the Stim library from
-/// https://github.com/quantumlib/Stim.
-class StimCircuitSimulator : public nvqir::CircuitSimulatorBase<double> {
-protected:
-  // Follow Stim naming convention (W) for bit width (required for templates).
-  static constexpr std::size_t W = stim::MAX_BITWORD_WIDTH;
-
-  /// @brief Number of measurements performed so far.
-  std::size_t num_measurements = 0;
-
-  /// @brief Top-level random engine. Stim simulator RNGs are based off of this
-  /// engine.
-  std::mt19937_64 randomEngine;
-
-  /// @brief Stim Tableau simulator (noiseless)
-  std::unique_ptr<stim::TableauSimulator<W>> tableau;
-
-  /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
-  std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
-
-  /// @brief Error counter for MSM generation. This is only used for "msm" and
-  /// "msm_size" execution contexts.
-  std::size_t msm_err_count = 0;
-
-  /// @brief Error ID counter for MSM generation. This is only used for "msm"
-  /// and "msm_size" execution contexts.
-  std::size_t msm_id_counter = 0;
-
-  /// @brief Whether or not the execution context name is "msm" (value is cached
-  /// for speed)
-  bool is_msm_mode = false;
-
-  std::optional<StimNoiseType>
-  isValidStimNoiseChannel(const kraus_channel &channel) const {
+std::optional<StimNoiseType>
+StimCircuitSimulator::isValidStimNoiseChannel(const kraus_channel &channel) const {
 
     // Check the old way first
     switch (channel.noise_type) {
@@ -148,11 +100,9 @@ protected:
     return std::nullopt;
   }
 
-  /// @brief Grow the state vector by one qubit.
-  void addQubitToState() override { addQubitsToState(1); }
+void StimCircuitSimulator::addQubitToState() { addQubitsToState(1); }
 
-  /// @brief Get the batch size to use for the Stim simulator.
-  std::size_t getBatchSize() {
+std::size_t StimCircuitSimulator::getBatchSize() {
     // Default to single shot
     std::size_t batch_size = 1;
     auto *executionContext = getExecutionContext();
@@ -166,14 +116,12 @@ protected:
     return batch_size;
   }
 
-  /// @brief Return the number of rows and columns needed for a Parity Check
-  /// Matrix
-  std::optional<std::pair<std::size_t, std::size_t>>
-  generateMSMSize() override {
+std::optional<std::pair<std::size_t, std::size_t>>
+StimCircuitSimulator::generateMSMSize() {
     return std::make_pair(num_measurements, msm_err_count);
   }
 
-  void generateMSM() override {
+void StimCircuitSimulator::generateMSM() {
     const auto num_cols = getBatchSize();
     stim::simd_bit_table<W> msmSample = sampleSim->m_record.storage;
     // Disabled because it's too verbose, but left here as comments for
@@ -198,10 +146,8 @@ protected:
     executionContext->result = result;
   }
 
-  /// @brief Override the default sized allocation of qubits
-  /// here to be a bit more efficient than the default implementation
-  void addQubitsToState(std::size_t qubitCount,
-                        const void *stateDataIn = nullptr) override {
+void StimCircuitSimulator::addQubitsToState(std::size_t qubitCount,
+                      const void *stateDataIn) {
     if (stateDataIn)
       throw std::runtime_error("The Stim simulator does not support "
                                "initialization of qubits from state data.");
@@ -254,8 +200,7 @@ protected:
     }
   }
 
-  /// @brief Reset the qubit state.
-  void deallocateStateImpl() override {
+void StimCircuitSimulator::deallocateStateImpl() {
     tableau.reset();
     // Update the randomEngine so that future invocations will use the updated
     // RNG state.
@@ -268,9 +213,8 @@ protected:
     is_msm_mode = false;
   }
 
-  /// @brief Apply operation to all Stim simulators.
-  void applyOpToSims(const std::string &gate_name,
-                     const std::vector<uint32_t> &targets) {
+void StimCircuitSimulator::applyOpToSims(const std::string &gate_name,
+                   const std::vector<uint32_t> &targets) {
     if (targets.empty())
       return;
     stim::Circuit tempCircuit;
@@ -280,11 +224,10 @@ protected:
     sampleSim->safe_do_circuit(tempCircuit);
   }
 
-  /// @brief Apply the noise channel on \p qubits
-  void applyNoiseChannel(const std::string_view gateName,
-                         const std::vector<std::size_t> &controls,
-                         const std::vector<std::size_t> &targets,
-                         const std::vector<double> &params) override {
+void StimCircuitSimulator::applyNoiseChannel(const std::string_view gateName,
+                       const std::vector<std::size_t> &controls,
+                       const std::vector<std::size_t> &targets,
+                       const std::vector<double> &params) {
     // Do nothing if no execution context
     if (!executionContext)
       return;
@@ -319,21 +262,21 @@ protected:
       applyNoise(channel, stimTargets);
   }
 
-  bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
+bool StimCircuitSimulator::isValidNoiseChannel(const cudaq::noise_model_type &type) const {
     kraus_channel c;
     c.noise_type = type;
     return isValidStimNoiseChannel(c).has_value();
   }
 
-  void applyNoise(const cudaq::kraus_channel &channel,
-                  const std::vector<std::size_t> &qubits) override {
+void StimCircuitSimulator::applyNoise(const cudaq::kraus_channel &channel,
+                const std::vector<std::size_t> &qubits) {
     flushGateQueue();
     std::vector<std::uint32_t> stimTargets(qubits.begin(), qubits.end());
     applyNoise(channel, stimTargets);
   }
 
-  void applyNoise(const cudaq::kraus_channel &channel,
-                  const std::vector<std::uint32_t> &qubits) {
+void StimCircuitSimulator::applyNoise(const cudaq::kraus_channel &channel,
+                const std::vector<std::uint32_t> &qubits) {
     CUDAQ_INFO("[stim] apply kraus channel {}, is_msm_mode = {}",
                channel.get_type_name(), is_msm_mode);
 
@@ -383,7 +326,7 @@ protected:
     }
   }
 
-  void applyGate(const GateApplicationTask &task) override {
+void StimCircuitSimulator::applyGate(const GateApplicationTask &task) {
     std::string gateName(task.operationName);
     std::transform(gateName.begin(), gateName.end(), gateName.begin(),
                    ::toupper);
@@ -420,17 +363,13 @@ protected:
     }
   }
 
-  /// @brief Set the current state back to the |0> state.
-  void setToZeroState() override { return; }
+void StimCircuitSimulator::setToZeroState() { return; }
 
-  /// @brief Override the calculateStateDim because this is not a state vector
-  /// simulator.
-  std::size_t calculateStateDim(const std::size_t numQubits) override {
+std::size_t StimCircuitSimulator::calculateStateDim(const std::size_t numQubits) {
     return 0;
   }
 
-  /// @brief Measure the qubit and return the result.
-  bool measureQubit(const std::size_t index) override {
+bool StimCircuitSimulator::measureQubit(const std::size_t index) {
     // Perform measurement
     applyOpToSims(
         "M", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
@@ -450,10 +389,9 @@ protected:
     return result;
   }
 
-  QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
+QubitOrdering StimCircuitSimulator::getQubitOrdering() const { return QubitOrdering::msb; }
 
-public:
-  StimCircuitSimulator() : randomEngine(std::random_device{}()) {
+StimCircuitSimulator::StimCircuitSimulator() : randomEngine(std::random_device{}()) {
     // Populate the correct name so it is printed correctly during
     // deconstructor.
     summaryData.name = name();
@@ -462,28 +400,22 @@ public:
     // invocations.
     supportsBufferedSample = true;
   }
-  virtual ~StimCircuitSimulator() = default;
 
-  void setRandomSeed(std::size_t seed) override {
+void StimCircuitSimulator::setRandomSeed(std::size_t seed) {
     randomEngine = std::mt19937_64(seed);
   }
 
-  bool canHandleObserve() override { return false; }
+bool StimCircuitSimulator::canHandleObserve() { return false; }
 
-  /// @brief Reset the qubit
-  /// @param index 0-based index of qubit to reset
-  void resetQubit(const std::size_t index) override {
+void StimCircuitSimulator::resetQubit(const std::size_t index) {
     flushGateQueue();
     flushAnySamplingTasks();
     applyOpToSims(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
 
-  /// @brief Sample the multi-qubit state. If \p qubits is empty and
-  /// explicitMeasurements is set, this returns all previously saved
-  /// measurements.
-  cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+cudaq::ExecutionResult StimCircuitSimulator::sample(const std::vector<std::size_t> &qubits,
+                              const int shots) {
     if (executionContext->explicitMeasurements && qubits.empty() &&
         num_measurements == 0)
       throw std::runtime_error(
@@ -548,11 +480,9 @@ public:
     return result;
   }
 
-  bool isStateVectorSimulator() const override { return false; }
+bool StimCircuitSimulator::isStateVectorSimulator() const { return false; }
 
-  std::string name() const override { return "stim"; }
-  NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)
-};
+std::string StimCircuitSimulator::name() const { return "stim"; }
 
 } // namespace nvqir
 

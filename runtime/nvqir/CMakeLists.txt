@@ -41,6 +41,29 @@ install(TARGETS ${LIBRARY_NAME}
 add_subdirectory(qpp)
 add_subdirectory(stim)
 
+find_path(CUSTABILIZER_INCLUDE_DIR
+  NAMES custabilizer.hpp
+  HINTS
+    ${CUSTABILIZER_ROOT}/include
+    ENV CUSTABILIZER_INCLUDE_DIR
+    ENV CUSTABILIZER_ROOT
+  PATH_SUFFIXES include)
+
+find_library(CUSTABILIZER_LIBRARY
+  NAMES custabilizer libcustabilizer.so libcustabilizer.so.0
+  HINTS
+    ${CUSTABILIZER_ROOT}/lib64
+    ${CUSTABILIZER_ROOT}/lib
+    ${CUSTABILIZER_ROOT}/build/lib
+    ENV CUSTABILIZER_LIBRARY
+    ENV CUSTABILIZER_ROOT
+  PATH_SUFFIXES lib lib64 build/lib)
+
+if (CUSTABILIZER_INCLUDE_DIR AND CUSTABILIZER_LIBRARY AND CUDA_FOUND)
+  message(STATUS "CUSTABILIZER_LIBRARY: ${CUSTABILIZER_LIBRARY}")
+  add_subdirectory(custabilizer)
+endif()
+
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_subdirectory(custatevec)
 endif() 
