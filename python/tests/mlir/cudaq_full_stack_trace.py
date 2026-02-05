@@ -1,16 +1,22 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-get_filename_component(CUDAQ_COMMON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+# RUN: PYTHONPATH=../../ python3 %s --cudaq-full-stack-trace 2> %t; cat %t | FileCheck %s -check-prefix=FAIL
 
-set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQLogger REQUIRED)
+import cudaq
 
-if(NOT TARGET cudaq::cudaq-common)
-  include("${CUDAQ_COMMON_CMAKE_DIR}/CUDAQCommonTargets.cmake")
-endif()
+
+@cudaq.kernel
+def simple(numQubits: int) -> int:
+    qubits = cudaq.qvector(numQubits)
+    return 1
+
+
+cudaq.run(simple, [2])
+
+# FAIL: Invalid runtime argument type.
