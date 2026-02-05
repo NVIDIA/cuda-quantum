@@ -48,6 +48,10 @@ class DecoratorCapture:
 
 
 class LinkedKernelCapture:
+    '''
+    Captures a linked C++ kernel. Includes the name of the
+    linked kernel and its quake code.
+    '''
 
     def __init__(self, linkedKernel, qkeModule):
         self.linkedKernel = linkedKernel
@@ -610,7 +614,7 @@ class PyKernelDecorator(object):
                 i = self.firstLiftedPos + j
                 # get the value associated with the variable named "a" in the
                 # current context.
-                if isinstance(a, dict):
+                if isinstance(a, dict) and a.get('linkedKernel'):
                     # Lifted argument is a registered C++ kernel, load and capture it
                     [linkedKernel,
                      maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
@@ -695,7 +699,7 @@ class PyKernelDecorator(object):
             resMod = None
             if callingMod != self.defModule:
                 resMod = self.defModule
-            if isinstance(la, dict):
+            if isinstance(la, dict) and la.get('linkedKernel'):
                 # Lifted argument is a registered C++ kernel, load and capture it
                 [linkedKernel,
                  maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
