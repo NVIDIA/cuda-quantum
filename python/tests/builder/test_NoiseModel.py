@@ -1160,10 +1160,12 @@ def test_sample_async_noise_isolation(target: str):
     result_low = future_low.get()
     result_none = future_none.get()
 
-    # High noise should have roughly 50/50 distribution
+    # With DepolarizationChannel(p=1.0) applied after an X gate, the channel is
+    # (1-p)I + p/3 (X, Y, Z). Starting from |1>, this yields P(|0>) = 2/3.
+    # Allow a generous tolerance to avoid flakiness from finite-shot sampling.
     high_zero_prob = result_high.probability('0')
-    assert 0.3 < high_zero_prob < 0.7, \
-        f"High noise should give ~50% |0>, got {high_zero_prob}"
+    assert 0.55 < high_zero_prob < 0.80, \
+        f"High noise should give P(|0>) ~ 2/3, got {high_zero_prob}"
 
     # Low noise should have mostly |1>
     low_one_prob = result_low.probability('1')
