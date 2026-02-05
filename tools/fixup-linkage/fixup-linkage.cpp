@@ -6,12 +6,19 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// The fixup-linkage tool is used to rewrite the LLVM IR produced by clang for
-/// the classical compute code such that it can be linked correctly with the
-/// LLVM IR that is generated for the quantum code. This avoids linker errors
-/// such as "duplicate symbol definition".
+/// The fixup-linkage tool processes the LLVM IR produced by clang for the
+/// classical compute code. For each __qpu__ kernel function, it replaces the
+/// function body with a stub containing 'unreachable'. This:
+/// 1. Avoids compiling kernel bodies that reference quantum-only types
+/// (qvector)
+/// 2. Keeps a valid function address for __cudaq_registerLinkableKernel
+/// 3. Uses linkonce_odr linkage so the MLIR-generated version overrides the
+/// stub The actual kernel implementations are provided by the quantum code
+/// path.
 
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
@@ -70,7 +77,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // 3. For each kernel function, change its linkage to linkonce_odr if needed.
+  // 3. For each kernel function, replace its body with a stub containing
+  // 'unreachable'. This avoids compiling the original body (which may
+  // reference quantum-only types like qvector) while keeping the function
+  // as a definition with a valid address. The address is needed because
+  // __cudaq_registerLinkableKernel takes a pointer to the C++ function.
+  // The actual implementation is provided by the MLIR/quantum code path.
   for (llvm::Function &func : *module) {
     if (func.isDeclaration())
       continue;
@@ -80,12 +92,15 @@ int main(int argc, char *argv[]) {
     if (!funcs.contains(funcName))
       continue;
 
-    // Skip if already linkonce_odr or weak linkage.
-    auto linkage = func.getLinkage();
-    if (linkage == llvm::GlobalValue::LinkOnceODRLinkage ||
-        linkage == llvm::GlobalValue::WeakAnyLinkage ||
-        linkage == llvm::GlobalValue::WeakODRLinkage)
-      continue;
+    // Delete all existing basic blocks.
+    func.deleteBody();
+
+    // Create a new entry block with just 'unreachable'.
+    // This provides a valid function address while ensuring the classical
+    // body is never executed (the runtime redirects to the MLIR version).
+    llvm::BasicBlock *entryBB =
+        llvm::BasicBlock::Create(context, "entry", &func);
+    new llvm::UnreachableInst(context, entryBB);
 
     // Change to linkonce_odr with dso_preemptable.
     func.setLinkage(llvm::GlobalValue::LinkOnceODRLinkage);
