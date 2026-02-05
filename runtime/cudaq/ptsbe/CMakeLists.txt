@@ -15,6 +15,8 @@ set(PTSBE_SOURCES
     PTSBESampleIntegration.cpp
     PTSBESampler.cpp
     ShotAllocationStrategy.cpp
+    TrajectoryDeduplication.cpp
+    PTSSamplingStrategy.cpp
     strategies/ProbabilisticSamplingStrategy.cpp
     strategies/ExhaustiveSamplingStrategy.cpp
     strategies/OrderedSamplingStrategy.cpp
@@ -26,6 +28,7 @@ set(PTSBE_SOURCES
 install(FILES
     KrausSelection.h
     KrausTrajectory.h
+    TrajectoryDeduplication.h
     PTSBESampler.h
     PTSBEResult.h
     PTSBESampleIntegration.h
