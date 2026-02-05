@@ -25,7 +25,7 @@ if [ "$(uname)" = "Darwin" ]; then
   mkdir -p "$HOME/.local/bin"
   mkdir -p "$HOME/.local/share/lib"
   export PATH="$PATH:$HOME/.local/bin"
-  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/.local/share/lib"
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$HOME/.local/share/lib"
   export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.local/llvm}
   export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-$HOME/.local/blas}
   export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-$HOME/.local/zlib}
