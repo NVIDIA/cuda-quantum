@@ -8,7 +8,7 @@
 
 add_library(nvqir-qpp-observe-test SHARED QPPObserveBackend.cpp)
 set (QPP_TEST_DEPENDENCIES "")
-list(APPEND QPP_TEST_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-operator)
+list(APPEND QPP_TEST_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-operator cudaq-logger)
 add_openmp_configurations(nvqir-qpp-observe-test QPP_TEST_DEPENDENCIES)
 
 target_include_directories(nvqir-qpp-observe-test

@@ -8,7 +8,7 @@
 
 #include "tensornet_utils.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 std::vector<double> randomValues(uint64_t num_samples, double max_value,
                                  std::mt19937 &randomEngine) {

@@ -120,13 +120,12 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   std::vector<ResultTy> results;
   auto &platform = get_platform();
 #ifdef CUDAQ_LIBRARY_MODE
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+  cudaq::ExecutionContext ctx("run", 1);
   // Direct kernel invocation loop for library mode
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
-    platform.set_exec_ctx(ctx.get());
-    results.emplace_back(kernel(std::forward<ARGS>(args)...));
-    platform.reset_exec_ctx();
+    results.emplace_back(platform.with_execution_context(
+        ctx, std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
   }
 #else
   // Launch the kernel in the appropriate context.
@@ -172,12 +171,11 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+  cudaq::ExecutionContext ctx("run", 1);
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
-    platform.set_exec_ctx(ctx.get());
-    results.emplace_back(kernel(std::forward<ARGS>(args)...));
-    platform.reset_exec_ctx();
+    results.emplace_back(platform.with_execution_context(
+        ctx, std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
   }
   platform.reset_noise();
 #else
@@ -234,12 +232,12 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
+        cudaq::ExecutionContext ctx("run", 1, qpu_id);
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(kernel(std::forward<ARGS>(args)...));
-          platform.reset_exec_ctx();
+          res.emplace_back(platform.with_execution_context(
+              ctx, std::forward<QuantumKernel>(kernel),
+              std::forward<ARGS>(args)...));
         }
         p.set_value(std::move(res));
 #else
@@ -302,13 +300,13 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
+        cudaq::ExecutionContext ctx("run", 1, qpu_id);
         std::vector<ResultTy> res;
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(kernel(std::forward<ARGS>(args)...));
-          platform.reset_exec_ctx();
+          res.emplace_back(platform.with_execution_context(
+              ctx, std::forward<QuantumKernel>(kernel),
+              std::forward<ARGS>(args)...));
         }
         platform.reset_noise();
         p.set_value(std::move(res));
