@@ -1784,7 +1784,7 @@ energy of the water molecule.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Install the relevant packages.
-    !pip install pyscf==2.6.2 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.6.1 -q
+    !pip install pyscf>=2.7 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.6.1 -q
 :::
 :::
 :::

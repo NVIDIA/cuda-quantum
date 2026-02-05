@@ -1795,7 +1795,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![2a72046209b34300b9e617bd428c778c](../../_images/adapt-vqe.png){.no-scaled-link
+![cd0a2071ef9146fab87a8945b4db60c9](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>
@@ -1847,11 +1847,13 @@ style="width: 800px;"}
     #cudaq.mpi.initialize()
     #print(f"My rank {cudaq.mpi.rank()} of {cudaq.mpi.num_ranks()}", flush=True)
 
-    # Set the traget
+    # Set the target
     # Double precision is recommended for the best performance.
-    cudaq.set_target("nvidia", option = "fp64")
-
-    #cudaq.set_target("nvidia")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia", option = "fp64")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::
@@ -2068,7 +2070,7 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [14]:
 :::
 :::
 
@@ -2084,7 +2086,7 @@ Reference state here is Haretree Fock
         for i in range(nelectrons):
             x(qubits[i])
 
-    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, n_qubits, nelectrons))
+    state = cudaq.get_state(initial_state, n_qubits, nelectrons)
     print(state)
 :::
 :::
@@ -2157,7 +2159,7 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [16]:
 :::
 :::
 
@@ -2335,8 +2337,8 @@ Reference state here is Haretree Fock
                 E_prev=result_vqe.fun
 
                 # Prepare a trial state with the current ansatz.
-                state=cudaq.StateMemoryView(cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
-                                coef_single, pool_double, coef_double))
+                state=cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
+                                coef_single, pool_double, coef_double)
 
     # When using mpi
     #cudaq.mpi.finalize()
