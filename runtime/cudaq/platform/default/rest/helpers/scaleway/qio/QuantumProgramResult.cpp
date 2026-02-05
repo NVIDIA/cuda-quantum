@@ -72,7 +72,13 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
       std::string bitstring = hexToBitstring(hexKey, qiskitResult.header.n_qubits);
 
       // bitstring in long value
-      serialized.push_back(stoi(bitstring, nullptr, 2));
+      auto k = stoi(bitstring, nullptr, 2);
+      CUDAQ_INFO("bitstring: {}, ", k);
+
+      CUDAQ_INFO("atoi: {}, ", k);
+
+      serialized.push_back(k);
+      // serialized.push_back(stoi(bitstring, nullptr, 2));
 
       // size of the bitstring
       serialized.push_back(bitstring.size());
