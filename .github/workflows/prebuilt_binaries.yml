@@ -44,6 +44,7 @@ jobs:
     strategy:
       matrix:
         tools: ["cpp", "python"]
+      fail-fast: false
 
     outputs:
       image_hash: ${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
