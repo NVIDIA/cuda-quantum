@@ -110,12 +110,15 @@ sed_inplace() {
         sed -i '' "$@"
     fi
 }
-# Portable find for symlinks (macOS doesn't support -xtype)
+# Portable find for broken symlinks (macOS doesn't support -xtype)
 find_symlinks() {
     if find --version 2>/dev/null | grep -q GNU; then
+        # GNU find: -xtype l finds symlinks whose target doesn't exist
         find "$1" -xtype l 2>/dev/null
     else
-        find "$1" -type l 2>/dev/null
+        # macOS/BSD: find symlinks (-type l), filter to those where target
+        # doesn't exist (! -exec test -e)
+        find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null
     fi
 }
 EOF_HELPERS
