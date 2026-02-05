@@ -112,7 +112,7 @@ add_library(cudaq-mlir-runtime
     JIT.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
-    RunTheKernel.cpp
+    LayoutInfo.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
@@ -149,7 +149,6 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
-    cudaq
     cudaq-logger
 )
 

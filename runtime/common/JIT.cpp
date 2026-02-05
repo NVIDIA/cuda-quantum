@@ -29,13 +29,14 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <cudaq/platform.h>
 #include <cxxabi.h>
+#include <tuple>
 
 #define DEBUG_TYPE "cudaq-qpud"
 
-std::unique_ptr<llvm::orc::LLJIT> cudaq::invokeWrappedKernel(
-    std::string_view irString, const std::string &entryPointFn, void *args,
-    std::uint64_t argsSize, ExecutionContext &executionContext,
-    std::size_t numTimes, std::function<void(std::size_t)> postExecCallback) {
+std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
+cudaq::createWrappedKernel(std::string_view irString,
+                           const std::string &entryPointFn, void *args,
+                           std::uint64_t argsSize){
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
@@ -137,15 +138,9 @@ std::unique_ptr<llvm::orc::LLJIT> cudaq::invokeWrappedKernel(
       llvm::cantFail(jit->lookup(mangledKernelNames.second));
   auto *fptrWrapper =
       wrapperSymbolAddr.toPtr<void (*)(const void *, unsigned long, void *)>();
-  auto &platform = cudaq::get_platform();
-  for (std::size_t i = 0; i < numTimes; ++i) {
-    // Invoke the wrapper with serialized data and the kernel.
-    platform.with_execution_context(executionContext, [&]() {
-      fptrWrapper(args, argsSize, fptr);
-      if (postExecCallback)
-        postExecCallback(i);
-    });
-  }
 
-  return jit;
+  auto callable = [args, argsSize, fptr, fptrWrapper]() {
+    fptrWrapper(args, argsSize, fptr);
+  };
+  return std::make_tuple(std::move(jit), callable);
 }
