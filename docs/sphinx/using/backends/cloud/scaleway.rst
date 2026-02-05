@@ -70,10 +70,14 @@ To select a specific Scaleway device, set the ``machine`` parameter:
 
 .. code:: python
 
-   cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100")
+   machine = "EMU-CUDAQ-H100"
+   # machine = EMU-AER-H100 # Access to Aer emulator
+   # machine = QPU-GARNET-20PQ # Access to IQM QPUs (Garnet, Sirius, Emerald)
+   # machine = QPU-IBEX-12PQ # Access to AQT QPUs
+   cudaq.set_target("scaleway", machine=machine)
 
 where ``EMU-CUDAQ-H100`` identifies an emulator or QPU offer available through Scaleway
-Quantum as a Service.
+Quantum as a Service. See Scaleway QaaS webpage to see all available offers.
 
 The number of shots for a kernel execution can be specified via the
 ``shots_count`` argument to ``cudaq.sample``. The default value is 1000.
