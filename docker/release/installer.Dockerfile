@@ -32,7 +32,8 @@ FROM additional_components_${additional_components} AS assets
 # Install makeself
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0 && \
-    ln -s /makeself/makeself.sh /usr/local/bin/makeself
+    ln -s /makeself/makeself.sh /usr/local/bin/makeself && \
+    ln -s /makeself/makeself-header.sh /usr/local/bin/makeself-header.sh
 
 # Build installer using unified script
 # -d: Docker mode (uses configure_build.sh paths, skips verification)

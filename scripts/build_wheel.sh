@@ -375,8 +375,11 @@ else
     # Add build lib to library path for auditwheel
     eval "export $lib_path_var=\"\${$lib_path_var:+\$$lib_path_var:}$(pwd)/_skbuild/lib\""
 
-    mkdir -p wheelhouse
-    auditwheel_args="repair $wheel_file -w wheelhouse"
+    # Use temp directory that won't conflict with output_dir
+    auditwheel_tmp="_auditwheel_tmp"
+    rm -rf "${auditwheel_tmp:?}"
+    mkdir -p "$auditwheel_tmp"
+    auditwheel_args="repair $wheel_file -w $auditwheel_tmp"
     auditwheel_args="$auditwheel_args --exclude libcustatevec.so.1"
     auditwheel_args="$auditwheel_args --exclude libcutensornet.so.2"
     auditwheel_args="$auditwheel_args --exclude libcudensitymat.so.0"
@@ -399,7 +402,7 @@ else
     fi
 
     # Move repaired wheel to output
-    repaired_wheel=$(ls wheelhouse/*manylinux*.whl 2>/dev/null | head -1)
+    repaired_wheel=$(ls "${auditwheel_tmp:?}"/*manylinux*.whl 2>/dev/null | head -1)
     if [ -n "$repaired_wheel" ]; then
         mv "$repaired_wheel" "$output_dir/"
         echo "Repaired wheel: $output_dir/$(basename "$repaired_wheel")"
@@ -407,7 +410,7 @@ else
         mv "$wheel_file" "$output_dir/"
         echo "Wheel: $output_dir/$(basename "$wheel_file")"
     fi
-    rm -rf wheelhouse
+    rm -rf "${auditwheel_tmp:?}"
 fi
 
 echo "Done! Wheel available in $output_dir/"
