@@ -10,7 +10,6 @@
 
 #include "CodeGenConfig.h"
 #include "Environment.h"
-#include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -26,6 +25,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -839,8 +839,6 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
 
     auto *context = module->getContext();
     mlir::PassManager pm(context);
-    std::string errMsg;
-    llvm::raw_string_ostream errOs(errMsg);
 
     bool containsWireSet =
         module
@@ -864,14 +862,29 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       pm.enableIRPrinting();
     }
 
+    std::string error_msg;
+    mlir::DiagnosticEngine &engine = context->getDiagEngine();
+    auto handlerId = engine.registerHandler(
+        [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+            error_msg += diag.str();
+            return mlir::failure(false);
+          }
+          return mlir::failure();
+        });
+
     mlir::DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (failed(pm.run(module)))
-      throw std::runtime_error(
-          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+    if (failed(pm.run(module))) {
+      engine.eraseHandler(handlerId);
+      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "
+                               "remote emulation failed.\n" +
+                               error_msg);
+    }
     timingScope.stop();
+    engine.eraseHandler(handlerId);
 
     // Insert necessary calls to qubit allocations and qubit releases if the
     // original module contained WireSetOp's. This is required because the

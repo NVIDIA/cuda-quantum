@@ -17,15 +17,12 @@ class QppCircuitSimulatorTester : public Simulator {
 public:
   std::string getSampledBitString(std::vector<std::size_t> &&qubits) {
     cudaq::ExecutionContext ctx("sample", 1);
-    this->setExecutionContext(&ctx);
-    // TODO: replace this custom code with a simulator-provided method, once
-    // resetExecutionContext is split into a "finalize" and a "reset" phase.
-    this->sampleQubits.resize(this->getNumQubits());
-    std::iota(this->sampleQubits.begin(), this->sampleQubits.end(), 0);
-    this->flushGateQueue();
-    this->flushAnySamplingTasks();
-    this->sampleQubits.clear();
-    this->executionContext = nullptr;
+    // a quick set-reset to trigger sampling
+    this->configureExecutionContext(ctx);
+    cudaq::detail::setExecutionContext(&ctx);
+    this->finalizeExecutionContext(ctx);
+    cudaq::detail::resetExecutionContext();
+
     auto sampleResults = ctx.result;
     return sampleResults.begin()->first;
   }

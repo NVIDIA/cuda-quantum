@@ -27,7 +27,12 @@ def do_something():
     cudaq.reset_target()
 
 
-all_integrator_classes = [CUDATorchDiffEqDopri5Integrator]
+all_integrator_classes = [
+    CUDATorchDiffEqDopri5Integrator, CUDATorchDiffEqDopri8Integrator,
+    CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqAdaptiveHeunIntegrator,
+    CUDATorchDiffEqFehlberg2Integrator
+]
+
 all_models = [
     TestCavityModel, TestCavityModelTimeDependentHam,
     TestCavityModelTimeDependentCollapseOp, TestCompositeSystems,
@@ -44,11 +49,32 @@ all_models = [
     TestMultiDegreeElemOp
 ]
 
+# Default model to test with all solvers
+default_model = TestCavityModel
 
-@pytest.mark.parametrize('integrator', all_integrator_classes)
-@pytest.mark.parametrize('model', all_models)
-def test_all(model, integrator):
-    model().run_tests(integrator)
+# Default solver for testing all models
+default_solver = CUDATorchDiffEqDopri5Integrator
+
+
+@pytest.mark.parametrize('integrator',
+                         all_integrator_classes,
+                         ids=lambda x: x.__name__.replace(
+                             'CUDATorchDiffEq', '').replace('Integrator', ''))
+def test_default_model_all_solvers(integrator):
+    """
+    Test one default model with all solvers.
+    This ensures all solvers work correctly.
+    """
+    default_model().run_tests(integrator)
+
+
+@pytest.mark.parametrize('model', all_models, ids=lambda x: x.__name__)
+def test_all_models_default_solver(model):
+    """
+    Test all models with the default solver.
+    This ensures all models work correctly.
+    """
+    model().run_tests(default_solver)
 
 
 def test_density_matrix_indexing():

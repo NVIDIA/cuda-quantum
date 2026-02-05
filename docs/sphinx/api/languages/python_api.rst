@@ -45,7 +45,6 @@ Program Construction
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
-    .. automethod:: c_if
     .. automethod:: for_loop
     .. automethod:: adjoint
     .. automethod:: control

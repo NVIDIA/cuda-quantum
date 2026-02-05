@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
 #include "cudaq.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
 #include "runtime/common/py_EvolveResult.h"
@@ -75,31 +75,24 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "kernel_builder and ast_bridge when created new MLIR Contexts.");
   cudaqRuntime.def(
       "initialize_cudaq",
-      [&](py::kwargs kwargs) {
+      [&](std::optional<std::string> option, std::optional<bool> emulate,
+          std::optional<std::string> target) {
         CUDAQ_INFO("Calling initialize_cudaq.");
-        if (!kwargs)
-          return;
 
         std::map<std::string, std::string> extraConfig;
-        for (auto &[keyPy, valuePy] : kwargs) {
-          std::string key = py::str(keyPy);
-          if (key == "emulate") {
-            extraConfig.insert({"emulate", "true"});
-          }
-          if (key == "option") {
-            extraConfig.insert({"option", py::str(valuePy)});
-          }
+        if (emulate && *emulate) {
+          extraConfig.insert({"emulate", "true"});
         }
-
-        for (auto &[keyPy, valuePy] : kwargs) {
-          std::string key = py::str(keyPy);
-          std::string value = py::str(valuePy);
-          CUDAQ_INFO("Processing Python Arg: {} - {}", key, value);
-          if (key == "target")
-            holder->setTarget(value, extraConfig);
+        if (option && !option->empty()) {
+          extraConfig.insert({"option", *option});
+        }
+        if (target && !target->empty()) {
+          CUDAQ_INFO("Processing Python Arg: target - {}", *target);
+          holder->setTarget(*target, extraConfig);
         }
       },
-      "Initialize the CUDA-Q environment.");
+      py::arg("option") = py::none(), py::arg("emulate") = py::none(),
+      py::arg("target") = py::none(), "Initialize the CUDA-Q environment.");
 
   bindRuntimeTarget(cudaqRuntime, *holder.get());
   bindMeasureCounts(cudaqRuntime);
