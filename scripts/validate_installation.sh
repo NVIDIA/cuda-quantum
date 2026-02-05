@@ -296,7 +296,7 @@ do
         if [ -n "$target_opts" ]; then
             for opt in $target_opts; do
                 echo "  Testing $t target option: ${opt}"
-                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${opt}"
+                nvq++ $nvqpp_extra_options "$ex" $target_flag --target-option "${opt}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"

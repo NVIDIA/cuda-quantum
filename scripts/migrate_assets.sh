@@ -19,13 +19,16 @@ sed_inplace() {
     fi
 }
 
-# Portable find for symlinks (macOS doesn't support -xtype)
+# Portable find for broken symlinks (macOS doesn't support -xtype)
 # Usage: find_symlinks <path>
 find_symlinks() {
     if find --version 2>/dev/null | grep -q GNU; then
+        # GNU find: -xtype l finds symlinks whose target doesn't exist
         find "$1" -xtype l 2>/dev/null
     else
-        find "$1" -type l 2>/dev/null
+        # macOS: find symlinks (-type l), keep only those where target doesn't
+        # exist (! -exec test -e), then print.
+        find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null
     fi
 }
 

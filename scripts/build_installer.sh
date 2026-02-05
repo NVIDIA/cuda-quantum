@@ -167,7 +167,7 @@ if ! $docker_mode; then
     fi
 fi
 
-# Set llvm_prefix for asset copying (set after sourcing env)
+# Set llvm_prefix for verbose output (with default fallback)
 llvm_prefix="${LLVM_INSTALL_PREFIX:-/opt/llvm}"
 
 if $verbose; then

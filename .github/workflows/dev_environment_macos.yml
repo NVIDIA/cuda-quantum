@@ -84,14 +84,26 @@ jobs:
           fi
           echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
+          # Compute hash of key build scripts for cache invalidation.
+          # Unlike Linux CI which uses Docker layer caching (automatically invalidates
+          # when the copied files change), macOS uses ORAS artifact caching with no
+          # content-based invalidation. This hash ensures cache is rebuilt when
+          # build scripts change. Update this list if new files affect the build.
+          deps_hash=$(cat \
+            scripts/install_prerequisites.sh \
+            scripts/build_llvm.sh \
+            scripts/set_env_defaults.sh \
+            | sha256sum | cut -c1-8)
+          echo "deps_hash=$deps_hash"
+
           # Registry and image name
           image_name=ghcr.io/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-macos-devdeps
           if [ -n "$pr_number" ]; then
             image_name=${image_name}-ci
           fi
-          
+
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          image_name="${image_name}:${platform_tag}-${registry_cache_base}"
+          image_name="${image_name}:${platform_tag}-${registry_cache_base}-${deps_hash}"
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
   build:

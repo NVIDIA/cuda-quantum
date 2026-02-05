@@ -94,14 +94,15 @@ jobs:
 
       - name: Restore prerequisites from GHCR
         run: |
+          set -e  # Exit on error
           # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
-          
+
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
-          
+
           echo "=== Restored prerequisites ==="
           du -sh ~/.local || true
           du -sh ~/.llvm-project || true
@@ -112,12 +113,12 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          
+
           # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v
@@ -159,10 +160,11 @@ jobs:
 
       - name: Restore prerequisites from GHCR
         run: |
+          set -e  # Exit on error
           # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
-          
+
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
@@ -173,12 +175,12 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          
+
           # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Determine version
         id: version
@@ -281,10 +283,11 @@ jobs:
 
       - name: Restore prerequisites from GHCR
         run: |
+          set -e  # Exit on error
           # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
-          
+
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
@@ -297,12 +300,12 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          
+
           # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v

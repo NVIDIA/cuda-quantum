@@ -45,32 +45,52 @@ echo "Running tests with $num_jobs parallel jobs"
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" --timeout 300 \
   -j "$num_jobs" -E "ctest-nvqpp|ctest-targettests"
-status_sum=$((status_sum + $?))
+ctest_status=$?
+if [ $ctest_status -ne 0 ]; then
+  echo "::error::ctest failed with status $ctest_status"
+  status_sum=$((status_sum + 1))
+fi
 
 # 2. Main lit tests
 echo "=== Running llvm-lit (build/test) ==="
 "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
   --param nvqpp_site_config="$build_dir/test/lit.site.cfg.py" \
   "$build_dir/test"
-status_sum=$((status_sum + $?))
+lit_status=$?
+if [ $lit_status -ne 0 ]; then
+  echo "::error::llvm-lit (build/test) failed with status $lit_status"
+  status_sum=$((status_sum + 1))
+fi
 
 # 3. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
 "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
   --param nvqpp_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
-status_sum=$((status_sum + $?))
+targ_status=$?
+if [ $targ_status -ne 0 ]; then
+  echo "::error::llvm-lit (targettests) failed with status $targ_status"
+  status_sum=$((status_sum + 1))
+fi
 
 # 4. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
 "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
   --param nvqpp_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
   "$build_dir/python/tests/mlir"
-status_sum=$((status_sum + $?))
+pymlir_status=$?
+if [ $pymlir_status -ne 0 ]; then
+  echo "::error::llvm-lit (python/tests/mlir) failed with status $pymlir_status"
+  status_sum=$((status_sum + 1))
+fi
 
 # 5. Python interop tests
 echo "=== Running pytest (interop tests) ==="
 python3 -m pytest $verbose --durations=0 "$build_dir/python/tests/interop/"
-status_sum=$((status_sum + $?))
+pytest_status=$?
+if [ $pytest_status -ne 0 ]; then
+  echo "::error::pytest (interop tests) failed with status $pytest_status"
+  status_sum=$((status_sum + 1))
+fi
 
 exit $((status_sum > 0 ? 1 : 0))
