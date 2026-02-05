@@ -2134,12 +2134,12 @@ the respective [GitHub
 Release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
 .external}.
 
-At this time, wheels are distributed for Linux operating systems only.
-If your platform is not [[officially supported]{.std
-.std-ref}](#dependencies-and-compatibility){.reference .internal} and
-[`pip`{.code .docutils .literal .notranslate}]{.pre} does not find a
-compatible wheel to install, you can build your own wheel from source
-following the instructions here: [[Installation from
+Wheels are distributed for Linux (x86_64 and ARM64) and macOS
+(ARM64/Apple silicon only). If your platform is not [[officially
+supported]{.std .std-ref}](#dependencies-and-compatibility){.reference
+.internal} and [`pip`{.code .docutils .literal .notranslate}]{.pre} does
+not find a compatible wheel to install, you can build your own wheel
+from source following the instructions here: [[Installation from
 Source]{.doc}](data_center_install.html){.reference .internal}.
 
 To build the CUDA-Q Python API for the purpose of contributing to our
@@ -2168,7 +2168,7 @@ instructions on [PyPI.org](https://pypi.org/project/cudaq/){.reference
 .external}. The pre-built binaries work across the operating systems
 listed under [[Dependencies and Compatibility]{.std
 .std-ref}](#dependencies-and-compatibility){.reference .internal},
-including Linux and macOS (CPU-only).
+including Linux and macOS (ARM64/Apple silicon only, CPU-only).
 
 Before installing our pre-built binaries, please make sure that your
 operating system is using the [GNU C
@@ -2200,7 +2200,7 @@ release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
     .notranslate}]{.pre})
 
 -   **macOS**: [`install_cuda_quantum_darwin.arm64`{.code .docutils
-    .literal .notranslate}]{.pre} (CPU-only, Apple Silicon)
+    .literal .notranslate}]{.pre} (CPU-only, Apple silicon)
 
 The installer is a [self-extracting
 archive](https://makeself.io/){.reference .external} that contains the
@@ -3075,7 +3075,8 @@ GPU-based simulators, see also [[CUDA-Q Circuit Simulation
 Backends]{.doc}](../backends/simulators.html){.reference .internal}.
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and
-ARM64 (ARM v8-A architecture and newer).
+ARM64 (ARM v8-A architecture and newer). On macOS, only ARM64 (Apple
+silicon) is supported.
 
 ::: {.admonition .note}
 Note
@@ -3091,8 +3092,9 @@ The following table summarizes the required components.
 +--------------------------+--------------------------------------------+
 | CPU architectures        | x86_64, ARM64                              |
 +--------------------------+--------------------------------------------+
-| Operating systems        | Linux, Windows via Windows Subsystem for   |
-|                          | Linux 2 (WSL2)                             |
+| Operating systems        | Linux, macOS (ARM64/Apple silicon only),   |
+|                          | Windows via Windows Subsystem for Linux 2  |
+|                          | (WSL2)                                     |
 +--------------------------+--------------------------------------------+
 | Tested Distributions     | CentOS 8; Debian 11, 12; Fedora 41;        |
 |                          | OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9;  |

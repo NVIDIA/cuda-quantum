@@ -1891,7 +1891,7 @@ following
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [3]:
 :::
 :::
 

@@ -1827,7 +1827,7 @@ explained above.
 
 <div>
 
-![6718e74f335742c4b32088ce00c34bda](../../_images/adapt-qaoa.png){.no-scaled-link
+![bc50e99ad16544c5b0fffe14532570ef](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
@@ -1847,7 +1847,11 @@ style="width: 1000px;"}
     from scipy.optimize import minimize
     import random
 
-    cudaq.set_target("nvidia", option="fp64")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia", option="fp64")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::
@@ -2082,7 +2086,7 @@ in the
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [19]:
 :::
 :::
 
@@ -2096,7 +2100,7 @@ in the
         qubits = cudaq.qvector(qubits_num)
         h(qubits)
 
-    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, qubits_num))
+    state = cudaq.get_state(initial_state, qubits_num)
 
     #print(state)
     ###############################################
@@ -2143,7 +2147,7 @@ pool has the same value. For production, users need to remove that.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [20]:
 :::
 :::
 
@@ -2263,7 +2267,7 @@ pool has the same value. For production, users need to remove that.
             else:
 
                 # Compute the state of this current step for the gradient
-                state = cudaq.StateMemoryView(cudaq.get_state(kernel_qaoa, qubits_num, ham_word, ham_coef,mixer_pool, gamma, beta, num_layer))
+                state = cudaq.get_state(kernel_qaoa, qubits_num, ham_word, ham_coef,mixer_pool, gamma, beta, num_layer)
                 #print('State at step ', istep)
                 #print(state)
                 istep+=1
