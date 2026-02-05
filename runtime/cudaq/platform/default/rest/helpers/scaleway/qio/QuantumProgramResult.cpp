@@ -67,18 +67,13 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   serialized.push_back(counts.size());
 
   for (const auto &kv : counts) {
-      const std::string &hexKey = kv.first;
+      const std::string &key = kv.first;
       std::size_t count = kv.second;
-      std::string bitstring = hexToBitstring(hexKey, qiskitResult.header.n_qubits);
+      
+      std::string bitstring = hexToBitstring(key, qiskitResult.header.n_qubits);
 
       // bitstring in long value
-      auto k = stoi(bitstring, nullptr, 2);
-      CUDAQ_INFO("bitstring: {}, ", k);
-
-      CUDAQ_INFO("atoi: {}, ", k);
-
-      serialized.push_back(k);
-      // serialized.push_back(stoi(bitstring, nullptr, 2));
+      serialized.push_back(stoi(bitstring, nullptr, 2));
 
       // size of the bitstring
       serialized.push_back(bitstring.size());
