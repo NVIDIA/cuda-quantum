@@ -15,7 +15,6 @@ set(PTSBE_SOURCES
     PTSBESampleIntegration.cpp
     PTSBESampler.cpp
     ShotAllocationStrategy.cpp
-    PTSSamplingStrategy.cpp
     strategies/ProbabilisticSamplingStrategy.cpp
     strategies/ExhaustiveSamplingStrategy.cpp
     strategies/OrderedSamplingStrategy.cpp
