@@ -33,7 +33,6 @@ add_library(${LIBRARY_NAME}
     ptsbe/PTSBESampler.cpp
     ptsbe/ShotAllocationStrategy.cpp
     ptsbe/TrajectoryDeduplication.cpp
-    ptsbe/PTSSamplingStrategy.cpp
     ptsbe/strategies/ProbabilisticSamplingStrategy.cpp
     ptsbe/strategies/ExhaustiveSamplingStrategy.cpp
     ptsbe/strategies/OrderedSamplingStrategy.cpp
