@@ -10,6 +10,16 @@
 
 namespace cudaq::ptsbe {
 
+std::size_t
+PTSBETrace::count_instructions(TraceInstructionType type,
+                               std::optional<std::string> name) const {
+  std::size_t count = 0;
+  for (const auto &inst : instructions)
+    if (inst.type == type && (!name || inst.name == *name))
+      ++count;
+  return count;
+}
+
 std::optional<std::reference_wrapper<const cudaq::KrausTrajectory>>
 PTSBETrace::get_trajectory(std::size_t trajectoryId) const {
   for (const auto &traj : trajectories) {

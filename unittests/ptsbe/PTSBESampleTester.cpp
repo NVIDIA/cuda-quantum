@@ -395,5 +395,60 @@ CUDAQ_TEST(PTSBESampleTest, SampleResultSetPTSBETracePopulatesTrace) {
             cudaq::ptsbe::TraceInstructionType::Measurement);
 }
 
+// ============================================================================
+// TRACE OUTPUT INTEGRATION TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithTraceOutputPopulatesTrace) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  options.ptsbe_options = PTSBEOptions{};
+  options.ptsbe_options->trace_output = true;
+
+  auto result = cudaq::sample(options, bellKernel);
+
+  ASSERT_TRUE(result.has_ptsbe_trace());
+  const auto &trace = result.ptsbe_trace();
+
+  EXPECT_GT(trace.instructions.size(), 0);
+  // Bell circuit: h, x -> 2 gates
+  EXPECT_EQ(trace.count_instructions(TraceInstructionType::Gate), 2);
+  // Noise on h gate -> at least 1 noise instruction
+  EXPECT_GE(trace.count_instructions(TraceInstructionType::Noise), 1);
+  // 2 qubits measured
+  EXPECT_EQ(trace.count_instructions(TraceInstructionType::Measurement), 2);
+
+  // First instruction should be the h gate
+  EXPECT_EQ(trace.instructions[0].type, TraceInstructionType::Gate);
+  EXPECT_EQ(trace.instructions[0].name, "h");
+
+  // Noise instructions should have a channel attached
+  for (const auto &inst : trace.instructions) {
+    if (inst.type == TraceInstructionType::Noise) {
+      EXPECT_TRUE(inst.channel.has_value());
+      EXPECT_TRUE(inst.channel->is_unitary_mixture());
+    }
+  }
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithoutTraceOutputHasNoTrace) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  options.ptsbe_options = PTSBEOptions{};
+  // trace_output defaults to false
+
+  auto result = cudaq::sample(options, bellKernel);
+
+  EXPECT_FALSE(result.has_ptsbe_trace());
+}
+
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
        // && !CUDAQ_BACKEND_CUSTATEVEC_FP32
