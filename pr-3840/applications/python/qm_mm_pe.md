@@ -1786,7 +1786,7 @@ mutual polarization.
 
 <div>
 
-![20b2e35a43ca479f91a8ecb875a1c8c8](../../_images/qm-mm-pe.png){.no-scaled-link
+![2b4219ce40604cc3a4be1efdd945bff3](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>
