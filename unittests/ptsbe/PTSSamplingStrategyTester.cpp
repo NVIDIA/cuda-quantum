@@ -1,21 +1,45 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/NoiseModel.h"
 #include "cudaq/ptsbe/PTSSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ConditionalSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
+#include <cmath>
 #include <gtest/gtest.h>
+#include <set>
 
 using namespace cudaq::ptsbe;
 
-/// @brief A simple 2-noise-point scenario
+static cudaq::kraus_channel makeIYChannel(double pI, double pY) {
+  const double sI = std::sqrt(pI);
+  const double sY = std::sqrt(pY);
+  const cudaq::complex i(0, 1);
+  std::vector<cudaq::kraus_op> ops;
+  ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
+  ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
+  return cudaq::kraus_channel(std::move(ops));
+}
+
+static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
+  const double sI = std::sqrt(pI);
+  const double sX = std::sqrt(pX);
+  const double sY = std::sqrt(pY);
+  const cudaq::complex i(0, 1);
+  std::vector<cudaq::kraus_op> ops;
+  ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
+  ops.push_back(cudaq::kraus_op({0.0, sX, sX, 0.0}));
+  ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
+  return cudaq::kraus_channel(std::move(ops));
+}
+
 std::vector<NoisePoint> createSimpleNoisePoints() {
   std::vector<NoisePoint> noise_points;
 
@@ -23,26 +47,19 @@ std::vector<NoisePoint> createSimpleNoisePoints() {
   np1.circuit_location = 0;
   np1.qubits = {0};
   np1.op_name = "h";
-  // I, X
-  np1.kraus_operators = {{1.0, 0.0, 0.0, 1.0}, {0.0, 1.0, 1.0, 0.0}};
-  // 90% identity, 10% X error
-  np1.probabilities = {0.9, 0.1};
+  np1.channel = cudaq::bit_flip_channel(0.1);
   noise_points.push_back(np1);
 
   NoisePoint np2;
   np2.circuit_location = 1;
   np2.qubits = {0};
   np2.op_name = "x";
-  // I, Y
-  np2.kraus_operators = {{1.0, 0.0, 0.0, 1.0}, {0.0, 0.0, 1.0, 0.0}};
-  // 80% identity, 20% Y error
-  np2.probabilities = {0.8, 0.2};
+  np2.channel = makeIYChannel(0.8, 0.2);
   noise_points.push_back(np2);
 
   return noise_points;
 }
 
-/// @brief A scenario with 3 operators per noise point
 std::vector<NoisePoint> createThreeOperatorNoisePoints() {
   std::vector<NoisePoint> noise_points;
 
@@ -50,13 +67,7 @@ std::vector<NoisePoint> createThreeOperatorNoisePoints() {
   np.circuit_location = 0;
   np.qubits = {0};
   np.op_name = "h";
-  np.kraus_operators = {
-      {1.0, 0.0, 0.0, 1.0}, // I
-      {0.0, 1.0, 1.0, 0.0}, // X
-      {0.0, -1.0, 1.0, 0.0} // Y
-  };
-  // 70% I, 20% X, 10% Y
-  np.probabilities = {0.7, 0.2, 0.1};
+  np.channel = makeIXYChannel(0.7, 0.2, 0.1);
   noise_points.push_back(np);
 
   return noise_points;
@@ -143,7 +154,7 @@ TEST(ProbabilisticSamplingStrategyTest, ProbabilityCalculation) {
     for (std::size_t i = 0; i < traj.kraus_selections.size(); ++i) {
       auto idx = static_cast<std::size_t>(
           traj.kraus_selections[i].kraus_operator_index);
-      expected_prob *= noise_points[i].probabilities[idx];
+      expected_prob *= noise_points[i].channel.probabilities[idx];
     }
     EXPECT_NEAR(traj.probability, expected_prob, 1e-9);
   }
@@ -175,11 +186,7 @@ TEST(ProbabilisticSamplingStrategyTest, RequestMoreThanPossible) {
     np.circuit_location = i;
     np.qubits = {0};
     np.op_name = "h";
-    np.kraus_operators = {
-        {1.0, 0.0, 0.0, 1.0}, // I
-        {0.0, 1.0, 1.0, 0.0}  // X
-    };
-    np.probabilities = {0.5, 0.5};
+    np.channel = cudaq::bit_flip_channel(0.5);
     noise_points.push_back(np);
   }
 
@@ -208,12 +215,7 @@ TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
   np.circuit_location = 0;
   np.qubits = {0};
   np.op_name = "h";
-  np.kraus_operators = {
-      {1.0, 0.0, 0.0, 1.0}, // I
-      {0.0, 1.0, 1.0, 0.0}, // X
-      {0.0, -1.0, 1.0, 0.0} // Y
-  };
-  np.probabilities = {0.34, 0.33, 0.33};
+  np.channel = makeIXYChannel(0.34, 0.33, 0.33);
   noise_points.push_back(np);
 
   ProbabilisticSamplingStrategy strategy(42);
@@ -234,16 +236,13 @@ TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
 TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
   std::vector<NoisePoint> noise_points;
 
+  auto channel = cudaq::depolarization_channel(0.75);
   for (int i = 0; i < 10; ++i) {
     NoisePoint np;
     np.circuit_location = i;
     np.qubits = {0};
     np.op_name = "h";
-    np.kraus_operators = {{1.0, 0.0, 0.0, 1.0},
-                          {0.0, 1.0, 1.0, 0.0},
-                          {0.0, -1.0, 1.0, 0.0},
-                          {1.0, 0.0, 0.0, -1.0}};
-    np.probabilities = {0.25, 0.25, 0.25, 0.25};
+    np.channel = channel;
     noise_points.push_back(np);
   }
 
@@ -532,22 +531,17 @@ TEST(ConditionalSamplingStrategyTest, ReproducibilityWithSeed) {
   auto trajectories3 = strategy3.generateTrajectories(noise_points, 4);
 
   EXPECT_EQ(trajectories1.size(), trajectories2.size());
-  for (size_t i = 0; i < trajectories1.size(); ++i) {
+  for (std::size_t i = 0; i < trajectories1.size(); ++i) {
     EXPECT_EQ(trajectories1[i].trajectory_id, trajectories2[i].trajectory_id);
     EXPECT_NEAR(trajectories1[i].probability, trajectories2[i].probability,
                 cudaq::PROBABILITY_EPSILON);
   }
 
-  bool different = false;
-  if (trajectories1.size() != trajectories3.size()) {
-    different = true;
-  } else {
-    for (size_t i = 0; i < trajectories1.size(); ++i) {
-      if (trajectories1[i].trajectory_id != trajectories3[i].trajectory_id) {
-        different = true;
-        break;
-      }
-    }
+  EXPECT_EQ(trajectories3.size(), 4u);
+  for (const auto &traj : trajectories3) {
+    EXPECT_EQ(traj.kraus_selections.size(), 2u);
+    EXPECT_GE(traj.probability, 0.0);
+    EXPECT_LE(traj.probability, 1.0);
   }
 }
 
@@ -588,7 +582,7 @@ TEST(ConditionalSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
   auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
 
   ASSERT_EQ(trajectories1.size(), trajectories2.size());
-  for (size_t i = 0; i < trajectories1.size(); ++i) {
+  for (std::size_t i = 0; i < trajectories1.size(); ++i) {
     EXPECT_EQ(trajectories1[i].trajectory_id, trajectories2[i].trajectory_id);
   }
 
@@ -609,7 +603,7 @@ TEST(ProbabilisticSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
   auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
 
   ASSERT_EQ(trajectories1.size(), trajectories2.size());
-  for (size_t i = 0; i < trajectories1.size(); ++i) {
+  for (std::size_t i = 0; i < trajectories1.size(); ++i) {
     EXPECT_EQ(trajectories1[i].trajectory_id, trajectories2[i].trajectory_id);
   }
 
@@ -650,23 +644,21 @@ TEST(PTSSamplingStrategyTest, ClonePolymorphism) {
 
 TEST(NoisePointTest, IsUnitaryMixture) {
   NoisePoint np;
-  np.probabilities = {0.7, 0.2, 0.1};
-
-  EXPECT_TRUE(np.isUnitaryMixture());
+  np.channel = makeIXYChannel(0.7, 0.2, 0.1);
+  EXPECT_TRUE(np.channel.is_unitary_mixture());
 }
 
 TEST(NoisePointTest, IsNotUnitaryMixture) {
   NoisePoint np;
-  np.probabilities = {0.5, 0.3, 0.1};
-
-  EXPECT_FALSE(np.isUnitaryMixture());
+  np.channel = cudaq::amplitude_damping_channel(0.3);
+  np.channel.generateUnitaryParameters();
+  EXPECT_FALSE(np.channel.is_unitary_mixture());
 }
 
 TEST(NoisePointTest, IsUnitaryMixtureWithTolerance) {
   NoisePoint np;
-  np.probabilities = {0.33333333, 0.33333333, 0.33333334};
-
-  EXPECT_TRUE(np.isUnitaryMixture());
+  np.channel = cudaq::depolarization_channel(0.001);
+  EXPECT_TRUE(np.channel.is_unitary_mixture());
 }
 
 TEST(NoisePointTest, FullUnitaryMixtureValidation) {
@@ -674,22 +666,8 @@ TEST(NoisePointTest, FullUnitaryMixtureValidation) {
   np.circuit_location = 0;
   np.qubits = {0};
   np.op_name = "h";
-
-  double p0 = 0.7, p1 = 0.1, p2 = 0.1, p3 = 0.1;
-  std::complex<double> i{0.0, 1.0};
-
-  np.kraus_operators.push_back({std::sqrt(p0), 0.0, 0.0, std::sqrt(p0)});
-
-  np.kraus_operators.push_back({0.0, std::sqrt(p1), std::sqrt(p1), 0.0});
-
-  np.kraus_operators.push_back(
-      {0.0, -i * std::sqrt(p2), i * std::sqrt(p2), 0.0});
-
-  np.kraus_operators.push_back({std::sqrt(p3), 0.0, 0.0, -std::sqrt(p3)});
-
-  np.probabilities = {p0, p1, p2, p3};
-
-  EXPECT_TRUE(np.isUnitaryMixture());
+  np.channel = cudaq::depolarization_channel(0.3);
+  EXPECT_TRUE(np.channel.is_unitary_mixture());
 }
 
 TEST(NoisePointTest, NonUnitaryKrausOperators) {
@@ -697,14 +675,7 @@ TEST(NoisePointTest, NonUnitaryKrausOperators) {
   np.circuit_location = 0;
   np.qubits = {0};
   np.op_name = "h";
-
-  double gamma = 0.3;
-
-  np.kraus_operators.push_back({1.0, 0.0, 0.0, std::sqrt(1.0 - gamma)});
-
-  np.kraus_operators.push_back({0.0, std::sqrt(gamma), 0.0, 0.0});
-
-  np.probabilities = {1.0 - gamma, gamma};
-
-  EXPECT_FALSE(np.isUnitaryMixture());
+  np.channel = cudaq::amplitude_damping_channel(0.3);
+  np.channel.generateUnitaryParameters();
+  EXPECT_FALSE(np.channel.is_unitary_mixture());
 }

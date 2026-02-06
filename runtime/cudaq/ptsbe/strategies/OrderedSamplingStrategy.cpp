@@ -31,7 +31,7 @@ OrderedSamplingStrategy::generateTrajectories(
   std::vector<std::size_t> operator_counts;
   operator_counts.reserve(noise_points.size());
   for (const auto &noise_point : noise_points) {
-    operator_counts.push_back(noise_point.kraus_operators.size());
+    operator_counts.push_back(noise_point.channel.size());
   }
 
   std::size_t generation_limit =
@@ -54,7 +54,7 @@ OrderedSamplingStrategy::generateTrajectories(
           noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
           static_cast<KrausOperatorType>(op_idx)});
 
-      probability *= noise_point.probabilities[op_idx];
+      probability *= noise_point.channel.probabilities[op_idx];
     }
 
     auto trajectory = KrausTrajectory::builder()
