@@ -12589,6 +12589,30 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1quantum__platform_1a8e84687c7e0c862db0a4ce489f566da6 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEP16ExecutionContext "Permalink to this definition"){.headerlink}\
+
+    :   Specify the execution context for the current thread.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1quantum__platform_1a96f71234cc01a1def47d0093e1315e61 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[get_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform12get_exec_ctxEv "Permalink to this definition"){.headerlink}\
+
+    :   Return the current execution context.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1quantum__platform_1a6be2f55e2b9a9902a3d5cd7113d6c61d .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxEv "Permalink to this definition"){.headerlink}\
+
+    :   Reset the execution context for the current thread.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[Callable]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
     []{#classcudaq_1_1quantum__platform_1a7fc28d8eec4a1988f77d8d0d67323b7d .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[with_execution_context]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}, [[[Callable]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args "cudaq::quantum_platform::with_execution_context::Callable"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[f]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args "cudaq::quantum_platform::with_execution_context::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args "Permalink to this definition"){.headerlink}\
 
