@@ -1876,7 +1876,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![90442bcd227c40649d2889230ec4e5f2](../../_images/oracle.png){.no-scaled-link
+![0c66c18c7ba24582bf9844d8fa6db509](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -1982,7 +1982,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![d1fef5e46e744c18a68ba24b3c33176b](../../_images/deutsch.png){.no-scaled-link
+![9ad302754a0e4826bf4dfd652c519184](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}
@@ -2068,7 +2068,11 @@ two for classical methods.
 
     from typing import List
 
-    cudaq.set_target("nvidia")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::

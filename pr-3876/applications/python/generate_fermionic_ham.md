@@ -1900,9 +1900,12 @@ following
     # Import the cudaq module
     import cudaq
 
-    # Set the traget
-    # Double precision is recommended for the best performance.
-    cudaq.set_target("nvidia", option = "fp64")
+    # Set the target
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia", option = "fp64")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::

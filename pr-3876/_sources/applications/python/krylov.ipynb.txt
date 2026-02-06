@@ -71,7 +71,11 @@
     "import scipy\n",
     "\n",
     "# Single-node, single gpu\n",
-    "cudaq.set_target(\"nvidia\")\n"
+    "if cudaq.num_available_gpus() > 0 and cudaq.has_target(\"nvidia\"):\n",
+    "    cudaq.set_target(\"nvidia\")\n",
+    "else:\n",
+    "    print(\"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.\")\n",
+    "    cudaq.set_target(\"qpp-cpu\")\n"
    ]
   },
   {

@@ -1777,13 +1777,11 @@ CUDA-Q to calclate the ground state energy for chemical systems.
 ::: highlight
     import cudaq
 
-    # Set the traget
-
-    # Double precision.
-    #cudaq.set_target("nvidia", option = "fp64")
-
-    # Single precision.
-    cudaq.set_target("nvidia")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::
