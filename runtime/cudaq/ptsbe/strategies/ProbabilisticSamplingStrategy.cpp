@@ -53,7 +53,8 @@ ProbabilisticSamplingStrategy::generateTrajectories(
 
     for (const auto &noise_point : noise_points) {
       std::discrete_distribution<std::size_t> dist(
-          noise_point.probabilities.begin(), noise_point.probabilities.end());
+          noise_point.channel.probabilities.begin(),
+          noise_point.channel.probabilities.end());
       std::size_t sampled_idx = dist(rng_);
       pattern.push_back(sampled_idx);
 
@@ -61,7 +62,7 @@ ProbabilisticSamplingStrategy::generateTrajectories(
           noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
           static_cast<KrausOperatorType>(sampled_idx)});
 
-      probability *= noise_point.probabilities[sampled_idx];
+      probability *= noise_point.channel.probabilities[sampled_idx];
     }
 
     if (seen_patterns.insert(pattern).second) {

@@ -9,19 +9,20 @@
 #pragma once
 
 #include "KrausTrajectory.h"
-#include <complex>
+#include "common/NoiseModel.h"
 #include <cstddef>
 #include <memory>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace cudaq::ptsbe {
 
 /// @brief Noise point information extracted from circuit analysis
 ///
-/// Represents a single location in the circuit where noise can be applied,
-/// along with the Kraus operators and their probabilities for that noise
-/// channel.
+/// Represents a single location in the circuit where noise can be applied.
+/// Stores the validated kraus_channel which contains the Kraus operators and
+/// their probabilities for that noise channel.
 struct NoisePoint {
   /// @brief Location in the circuit (gate index)
   std::size_t circuit_location;
@@ -32,17 +33,9 @@ struct NoisePoint {
   /// @brief Gate operation name ("h", `"cx"`)
   std::string op_name;
 
-  /// @brief Kraus operator matrices for this noise channel
-  std::vector<std::vector<std::complex<double>>> kraus_operators;
-
-  /// @brief Probabilities for each Kraus operator
-  std::vector<double> probabilities;
-
-  /// @brief Check if this noise channel is a valid unitary mixture
-  ///
-  /// @param tolerance Numerical tolerance for comparisons (default: 1e-6)
-  /// @return true if valid unitary mixture, false otherwise
-  [[nodiscard]] bool isUnitaryMixture(double tolerance = 1e-6) const;
+  /// @brief Validated noise channel containing Kraus operators and
+  /// probabilities
+  cudaq::kraus_channel channel;
 };
 
 /// @brief Compute total trajectory space with overflow protection
@@ -60,7 +53,7 @@ computeTotalTrajectories(std::span<const NoisePoint> noise_points) {
   std::size_t total = 1;
 
   for (const auto &np : noise_points) {
-    std::size_t count = np.kraus_operators.size();
+    std::size_t count = np.channel.size();
     if (total > MAX_SAFE / count) {
       return MAX_SAFE;
     }
