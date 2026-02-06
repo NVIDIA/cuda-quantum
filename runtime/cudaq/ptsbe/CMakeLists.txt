@@ -29,6 +29,7 @@ install(FILES
     KrausSelection.h
     KrausTrajectory.h
     TrajectoryDeduplication.h
+    PTSBEOptions.h
     PTSBESampler.h
     PTSBEResult.h
     PTSBETrace.h
