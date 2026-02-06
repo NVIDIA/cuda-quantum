@@ -51,7 +51,7 @@ if (CUDA_FOUND)
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
             $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC
@@ -75,7 +75,7 @@ else()
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC
