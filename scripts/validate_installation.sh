@@ -380,7 +380,7 @@ do
     fi
     
     # Note: using sed instead of grep -P for macOS compatibility
-    explicit_targets=$(sed -n "s/^[[:space:]]*cudaq\.set_target(['\"][[:space:]]*\([^'\"]*\)[[:space:]]*['\"])/\1/p" "$ex")
+    explicit_targets=$(sed -n "s/^[[:space:]]*cudaq\.set_target([[:space:]]*['\"][[:space:]]*\([^'\"]*\)[[:space:]]*['\"].*/\1/p" "$ex")
     for t in $explicit_targets; do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
