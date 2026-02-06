@@ -18,6 +18,7 @@
 #include "cudaq/ptsbe/NoiseExtractor.h"
 #include "cudaq/ptsbe/PTSBEOptions.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
+#include "cudaq/ptsbe/PTSBETrace.h"
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
@@ -453,6 +454,40 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
 
   // Total counts should equal total shots
   EXPECT_EQ(result.get_total_shots(), total_shots);
+}
+
+// ============================================================================
+// SAMPLE_RESULT PTSBE TRACE TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultHasNoPTSBETraceByDefault) {
+  cudaq::sample_result result;
+  EXPECT_FALSE(result.has_ptsbe_trace());
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultPTSBETraceThrowsWhenNotPresent) {
+  cudaq::sample_result result;
+  EXPECT_THROW(result.ptsbe_trace(), std::runtime_error);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultSetPTSBETracePopulatesTrace) {
+  cudaq::sample_result result;
+
+  cudaq::ptsbe::PTSBETrace trace;
+  trace.instructions.push_back(cudaq::ptsbe::TraceInstruction{
+      cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}});
+  trace.instructions.push_back(cudaq::ptsbe::TraceInstruction{
+      cudaq::ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}});
+
+  result.set_ptsbe_trace(std::move(trace));
+
+  EXPECT_TRUE(result.has_ptsbe_trace());
+  EXPECT_EQ(result.ptsbe_trace().instructions.size(), 2);
+  EXPECT_EQ(result.ptsbe_trace().instructions[0].name, "h");
+  EXPECT_EQ(result.ptsbe_trace().instructions[0].type,
+            cudaq::ptsbe::TraceInstructionType::Gate);
+  EXPECT_EQ(result.ptsbe_trace().instructions[1].type,
+            cudaq::ptsbe::TraceInstructionType::Measurement);
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET

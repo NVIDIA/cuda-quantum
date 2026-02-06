@@ -284,7 +284,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   if (options.ptsbe_options) {
     ret = ptsbe::runSamplingPTSBE(
         [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-        kernelName, shots, options.ptsbe_options->shot_allocation);
+        kernelName, shots, *options.ptsbe_options);
   } else {
     ret = details::runSampling(
               [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
@@ -401,8 +401,7 @@ async_sample_result sample_async(const sample_options &options,
         [&kernel, ... args = std::forward<Args>(args)]() mutable {
           kernel(std::forward<Args>(args)...);
         },
-        platform, kernelName, options.shots, qpu_id,
-        options.ptsbe_options->shot_allocation);
+        platform, kernelName, options.shots, *options.ptsbe_options, qpu_id);
   }
 
   auto ret = details::runSamplingAsync(
@@ -546,7 +545,7 @@ std::vector<sample_result> sample(const sample_options &options,
           [&kernel, &singleIterParameters...]() mutable {
             kernel(std::forward<Args>(singleIterParameters)...);
           },
-          platform, kernelName, shots, ptsbe_opts->shot_allocation);
+          platform, kernelName, shots, *ptsbe_opts);
     }
 
     // Standard path
