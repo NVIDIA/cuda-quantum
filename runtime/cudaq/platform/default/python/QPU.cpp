@@ -297,7 +297,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       throw std::runtime_error("cache must not be populated");
     *cache = jit;
 
-    std::string entryName = resultTy ? name + ".thunk" : fullName;
+    //std::string entryName = resultTy ? name + ".thunk" : fullName;
+    std::string entryName = fullName;
     auto funcPtr = jit->lookup(entryName);
     if (!funcPtr)
       throw std::runtime_error(
