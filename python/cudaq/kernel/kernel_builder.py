@@ -26,6 +26,7 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
                                  func, math)
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
+from cudaq.kernel_types import qubit, qvector
 from .captured_data import CapturedDataStorage
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
@@ -38,8 +39,6 @@ from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_calling_module)
 
 kDynamicPtrIndex: int = -2147483648
-
-qvector = cudaq_runtime.qvector
 
 # This file reproduces the cudaq::kernel_builder in Python
 
@@ -314,7 +313,7 @@ class PyKernel(object):
         Process input argument type. Specifically, try to infer the element type
         for a list, e.g. list[float].
         """
-        if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
+        if ty in [qvector, qubit]:
             return ty, None
         if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):

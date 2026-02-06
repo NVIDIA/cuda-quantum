@@ -163,10 +163,9 @@ else:
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
-# Primitive Types
-qubit = cudaq_runtime.qubit
-qvector = cudaq_runtime.qvector
-qview = cudaq_runtime.qview
+# Primitive Types (stubs; used only in kernels, parsed to MLIR)
+from .kernel_types import qubit, qvector, qview
+
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
@@ -178,7 +177,7 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 Resources = cudaq_runtime.Resources
 
 # to be deprecated
-qreg = cudaq_runtime.qvector
+qreg = qvector
 
 # Operator API
 from .operators import boson

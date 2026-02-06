@@ -19,6 +19,7 @@ from collections import deque
 from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime, load_intrinsic,
                                                   gen_vector_of_complex_constant
                                                  )
+from cudaq.kernel_types import qview
 from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
 from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            DenseBoolArrayAttr, DenseI32ArrayAttr,
@@ -49,7 +50,7 @@ State = cudaq_runtime.State
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
 
-ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, qview]
 
 
 class PyScopedSymbolTable(object):
