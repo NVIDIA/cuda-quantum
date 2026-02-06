@@ -20,7 +20,7 @@ namespace cudaq::ptsbe {
 /// @return Hash value; equal content yields equal hash
 std::size_t hashTrajectoryContent(const cudaq::KrausTrajectory &trajectory);
 
-/// @brief Deduplicate trajectories by content (kraus_selections).
+/// @brief `Deduplicate` trajectories by content (kraus_selections).
 /// Representatives keep the first occurrence's probability, trajectory_id, and
 /// num_shots; multiplicity is the sum of all merged trajectories'
 /// multiplicities
