@@ -45,7 +45,7 @@ struct KrausTrajectory {
   /// @brief Number of measurement shots allocated to this trajectory
   std::size_t num_shots = 0;
 
-  /// @brief Number of times this trajectory appeared in the pre-deduplication
+  /// @brief Number of times this trajectory appeared in the `pre-deduplication`
   /// list.
   std::size_t multiplicity = 1;
 
