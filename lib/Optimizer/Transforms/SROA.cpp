@@ -50,7 +50,7 @@ public:
         if (ptrOp.getNumIndices() == 1 && ptrOp.getConstantIndex(0))
           continue;
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(user))
-        if (castMatches(allocOp.getElementType(), cast.getResult().getType()))
+        if (castMatches(allocOp.getElementType(), cast.getResult().getType())) {
           for (auto *cast_user : cast->getUsers()) {
             if (!cast_user)
               continue;
@@ -60,6 +60,8 @@ public:
               continue;
             return failure();
           }
+          continue;
+        }
       if (auto load = dyn_cast<cudaq::cc::LoadOp>(user))
         continue;
       return failure();
