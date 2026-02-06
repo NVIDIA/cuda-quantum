@@ -646,6 +646,28 @@ public:
     if (executionContext) {
       if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
+        // Warn if kernel has named measurement registers (sub-registers).
+        if (!executionContext->warnedNamedMeasurements) {
+          auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
+              std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+          if (funcOp) {
+            bool hasNamedMeasurements = false;
+            funcOp.walk([&](quake::MeasurementInterface meas) {
+              if (meas.getOptionalRegisterName().has_value()) {
+                hasNamedMeasurements = true;
+                return mlir::WalkResult::interrupt();
+              }
+              return mlir::WalkResult::advance();
+            });
+            if (hasNamedMeasurements) {
+              executionContext->warnedNamedMeasurements = true;
+              printf("WARNING: Named measurement registers detected in "
+                     "sampling context. Sub-register support in `sample` will "
+                     "be removed in a future release.\n"
+                     "Use `run` API for kernels that use measurement results.");
+            }
+          }
+        }
         // No need to add measurements only to remove them eventually
         if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
           runPassPipeline("func.func(add-measurements)", moduleOp);

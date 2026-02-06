@@ -673,6 +673,16 @@ protected:
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
 
+    // Warn if there are named measurement registers beyond `__global__`
+    if (!executionContext->warnedNamedMeasurements &&
+        registerNameToMeasuredQubit.size() > 1) {
+      executionContext->warnedNamedMeasurements = true;
+      printf(
+          "WARNING: Named measurement registers detected in sampling context. "
+          "Sub-register support in `sample` will be removed in a future "
+          "release.\nUse `run` API for kernels that use measurement results.");
+    }
+
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,
                                       executionContext->explicitMeasurements);
