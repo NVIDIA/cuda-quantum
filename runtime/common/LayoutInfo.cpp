@@ -6,32 +6,19 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "LayoutInfo.h"
 #include "RuntimeMLIR.h"
-#include "common/ExecutionContext.h"
-#include "common/RecordLogParser.h"
-#include "cudaq.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/InitAllDialects.h"
-#include "cudaq/algorithms/run.h"
-#include "cudaq/simulators.h"
-#include "nvqir/CircuitSimulator.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/IR/DataLayout.h"
-#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/DialectRegistry.h"
-#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Parser/Parser.h"
-#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
-#include <utility>
 
 using namespace mlir;
-
-#include "LayoutInfo.h"
 
 namespace {
 cudaq::LayoutInfoType extractLayout(const std::string &kernelName,
