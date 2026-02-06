@@ -50,7 +50,7 @@ echo "Running tests with $num_jobs parallel jobs"
 # 1. CTest
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" \
-  -j "$num_jobs" -E "ctest-nvqpp|ctest-targettests"
+  -E "ctest-nvqpp|ctest-targettests"
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
