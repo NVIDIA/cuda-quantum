@@ -1867,7 +1867,7 @@ Python
 ::: {.highlight-python .notranslate}
 ::: highlight
     @cudaq.kernel
-    def kernel():
+    def kernel() -> list[bool]:
         q = cudaq.qvector(2)
 
         h(q[0])
@@ -1878,8 +1878,17 @@ Python
         if b0:
             h(q[1])
 
+        return mz(q)
 
-    print(cudaq.sample(kernel))
+
+    from collections import Counter
+
+    results = cudaq.run(kernel, shots_count=1000)
+    # Convert results to bitstrings and count
+    bitstring_counts = Counter(
+        ''.join('1' if bit else '0' for bit in result) for result in results)
+
+    print(f"Bitstring counts: {dict(bitstring_counts)}")
 :::
 :::
 :::
@@ -1889,22 +1898,10 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    __qpu__ void kernel2() {
-      cudaq::qvector q(2);
-      h(q[0]);
-      auto b0 = mz(q[0]);
-      cudaq::reset(q[0]);
-      x(q[0]);
-
-      if (b0) {
-        h(q[1]);
-      }
-    }
-
-    int main() {
-      auto result = cudaq::sample(kernel2);
-      result.dump();
-      return 0;
+    Bitstring counts:
+    {
+      10: 771
+      11: 229
     }
 :::
 :::
@@ -1919,10 +1916,7 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    { 
-      __global__ : { 10:728 11:272 }
-       b0 : { 0:505 1:495 }
-    }
+    Bitstring counts: {'11': 247, '10': 753}
 :::
 :::
 :::
@@ -1932,9 +1926,10 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
+    Bitstring counts:
     {
-      __global__ : { 10:728 11:272 }
-       b0 : { 0:505 1:495 }
+      10: 771
+      11: 229
     }
 :::
 :::

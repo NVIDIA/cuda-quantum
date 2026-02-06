@@ -1850,7 +1850,11 @@ The code below builds two CUDA-Q kernels corresponding to
     import numpy as np
     from functools import reduce
 
-    cudaq.set_target('nvidia')
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
     qubit_num = 2
 
@@ -1967,7 +1971,11 @@ basis.
 ::: highlight
     import cudaq
 
-    cudaq.set_target('nvidia')
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
 
     @cudaq.kernel
@@ -2130,7 +2138,13 @@ is specified and the number of GPUs available is determined.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    cudaq.set_target("nvidia", option="mqpu")
+    if cudaq.num_available_gpus() > 1 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia", option="mqpu")
+    elif cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
     target = cudaq.get_target()
     qpu_count = target.num_qpus()
