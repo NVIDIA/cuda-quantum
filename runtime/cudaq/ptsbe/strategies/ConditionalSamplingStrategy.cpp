@@ -59,21 +59,20 @@ ConditionalSamplingStrategy::generateTrajectories(
     // apply
     for (const auto &noise_point : noise_points) {
       // Use discrete distribution to sample according to operator probabilities
-      // This ensures high-probability errors are sampled more often
       std::discrete_distribution<std::size_t> dist(
-          noise_point.probabilities.begin(), noise_point.probabilities.end());
+          noise_point.channel.probabilities.begin(),
+          noise_point.channel.probabilities.end());
       std::size_t sampled_idx = dist(rng_);
       pattern.push_back(sampled_idx);
 
       // Build KrausSelection: "at circuit_location, apply Kraus operator
-      // #sampled_idx" The actual unitary matrix is
-      // noise_point.kraus_operators[sampled_idx] Conversion to simulator task
-      // happens later in PTSBEInterface::krausSelectionToTask()
+      // #sampled_idx". Conversion to simulator task happens later in
+      // PTSBEInterface::krausSelectionToTask().
       selections.push_back(KrausSelection{
           noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
           static_cast<KrausOperatorType>(sampled_idx)});
 
-      probability *= noise_point.probabilities[sampled_idx];
+      probability *= noise_point.channel.probabilities[sampled_idx];
     }
 
     if (seen_patterns.insert(pattern).second) {
