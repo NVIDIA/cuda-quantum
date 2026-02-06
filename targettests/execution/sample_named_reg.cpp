@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %s -o %t && %t 2>&1 | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t 2>&1 | FileCheck %s
 
 #include <cudaq.h>
 
