@@ -97,6 +97,28 @@ void quantum_platform::validateQpuId(std::size_t qpuId) const {
   }
 }
 
+// [remove at]: runtime refactor release
+// Deprecated: Use with_execution_context instead.
+void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
+  configureExecutionContext(*ctx);
+  detail::setExecutionContext(ctx);
+  beginExecution();
+}
+
+// [remove at]: runtime refactor release
+// Deprecated: Use with_execution_context instead.
+void quantum_platform::reset_exec_ctx() {
+  auto *ctx = getExecutionContext();
+  if (ctx == nullptr)
+    return;
+
+  detail::try_finally([this, ctx] { finalizeExecutionContext(*ctx); },
+                      [this] {
+                        endExecution();
+                        detail::resetExecutionContext();
+                      });
+}
+
 // Specify the execution context for this platform.
 // This delegates to the targeted QPU
 void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {

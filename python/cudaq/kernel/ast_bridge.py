@@ -2698,15 +2698,34 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # Handle registered C++ kernels
                 elif cudaq_runtime.isRegisteredDeviceModule(devKey):
-                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                        self.module, devKey + '.' + name)
-                    if maybeKernelName != None:
-                        otherKernel = SymbolTable(
-                            self.module.operation)[maybeKernelName]
-                        res = processFunctionCall(otherKernel)
-                        if res is not None:
-                            self.pushValue(res)
-                        return
+                    deviceModuleName = devKey + '.' + name
+                    maybeDeviceKernel = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                        self.module, deviceModuleName)
+                    if maybeDeviceKernel != None:
+                        [kernelName, code] = maybeDeviceKernel
+                        # The linked kernel will be loaded when the kernel is invoked
+                        if deviceModuleName not in self.liftedArgs:
+                            self.liftedArgs.append(
+                                dict(linkedKernel=deviceModuleName))
+                        # TODO: Is there a nicer way to get the type from the C++ side?
+                        otherKernel = Module.parse(code, context=self.ctx)
+                        for op in otherKernel.body.operations:
+                            name = str(
+                                op.name).removeprefix('"').removesuffix('"')
+                            if name == kernelName:
+                                funcTy = FunctionType(
+                                    TypeAttr(
+                                        op.attributes['function_type']).value)
+                                callableTy = cc.CallableType.get(
+                                    self.ctx, funcTy.inputs, funcTy.results)
+                                callee = cudaq_runtime.appendKernelArgument(
+                                    self.kernelFuncOp, callableTy)
+                                self.argTypes.append(callableTy)
+                                self.symbolTable[deviceModuleName] = callee
+                                res = processDecoratorCall(deviceModuleName)
+                                if res is not None:
+                                    self.pushValue(res)
+                                return
 
         if isinstance(node.func, ast.Name):
             symName = (node.func.id if node.func.id in self.symbolTable else
