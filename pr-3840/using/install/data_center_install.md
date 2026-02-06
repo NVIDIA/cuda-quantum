@@ -2252,9 +2252,11 @@ command
     cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/
     cp -a "${LLVM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/llvm/lib/
     cp -a "${LLVM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/llvm/include/
-    # Copy cuTensor and cuQuantum (Linux only)
-    cp -a "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets 2>/dev/null || true
-    cp -a "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets 2>/dev/null || true
+    # Copy cuTensor and cuQuantum (Linux only; variables unset on macOS)
+    if $include_cuda_deps; then
+      cp -a "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets
+      cp -a "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets
+    fi
     # Copy CUDA-Q installation and build config
     cp -a "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml
     cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
