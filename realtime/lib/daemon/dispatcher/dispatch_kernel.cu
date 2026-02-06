@@ -38,10 +38,17 @@ __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
 /// @brief Dispatch kernel for DEVICE_CALL mode only (no graph launch support).
 /// This kernel does not contain any device-side graph launch code, avoiding
 /// compatibility issues on systems where cudaGraphLaunch is not supported.
+///
+/// Supports symmetric RX/TX data buffers for Hololink compatibility:
+/// - RX data address comes from rx_flags[slot] (set by Hololink RX kernel)
+/// - TX response is written to tx_data + slot * tx_stride_sz
+/// - tx_flags[slot] is set to the TX slot address
 template <typename KernelType>
 __global__ void dispatch_kernel_device_call_only(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
+    std::uint8_t* tx_data,
+    std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
@@ -55,8 +62,10 @@ __global__ void dispatch_kernel_device_call_only(
     if (tid == 0) {
       std::uint64_t rx_value = rx_flags[current_slot];
       if (rx_value != 0) {
-        void* data_buffer = reinterpret_cast<void*>(rx_value);
-        RPCHeader* header = static_cast<RPCHeader*>(data_buffer);
+        // RX data address comes from rx_flags (set by Hololink RX kernel
+        // or host test harness to the address of the RX data slot)
+        void* rx_slot = reinterpret_cast<void*>(rx_value);
+        RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
         if (header->magic != RPC_MAGIC_REQUEST) {
           __threadfence_system();
           rx_flags[current_slot] = 0;
@@ -75,15 +84,30 @@ __global__ void dispatch_kernel_device_call_only(
               reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
           std::uint32_t result_len = 0;
           std::uint32_t max_result_len = 1024;
+          // Handler processes in-place: reads args from buffer, writes results back
           int status = func(arg_buffer, arg_len, max_result_len, &result_len);
 
-          RPCResponse* response = static_cast<RPCResponse*>(data_buffer);
+          // Compute TX slot address from symmetric TX data buffer
+          std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+
+          // Write RPC response header to TX slot
+          RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
           response->magic = RPC_MAGIC_RESPONSE;
           response->status = status;
           response->result_len = result_len;
 
+          // Copy result data from RX buffer (where handler wrote it) to TX slot
+          if (result_len > 0) {
+            std::uint8_t* src = static_cast<std::uint8_t*>(arg_buffer);
+            std::uint8_t* dst = tx_slot + sizeof(RPCResponse);
+            for (std::uint32_t b = 0; b < result_len; ++b) {
+              dst[b] = src[b];
+            }
+          }
+
           __threadfence_system();
-          tx_flags[current_slot] = rx_value;
+          // Signal TX with the TX slot address (symmetric with Hololink TX kernel)
+          tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
         }
 
         __threadfence_system();
@@ -108,10 +132,14 @@ __global__ void dispatch_kernel_device_call_only(
 /// @brief Dispatch kernel supporting both DEVICE_CALL and GRAPH_LAUNCH modes.
 /// This kernel includes device-side graph launch code and requires compute capability >= 9.0.
 /// NOTE: Graph launch code is conditionally compiled based on __CUDA_ARCH__.
+///
+/// Supports symmetric RX/TX data buffers for Hololink compatibility.
 template <typename KernelType>
 __global__ void dispatch_kernel_with_graph(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
+    std::uint8_t* tx_data,
+    std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
     void** graph_buffer_ptr,
@@ -126,8 +154,8 @@ __global__ void dispatch_kernel_with_graph(
     if (tid == 0) {
       std::uint64_t rx_value = rx_flags[current_slot];
       if (rx_value != 0) {
-        void* data_buffer = reinterpret_cast<void*>(rx_value);
-        RPCHeader* header = static_cast<RPCHeader*>(data_buffer);
+        void* rx_slot = reinterpret_cast<void*>(rx_value);
+        RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
         if (header->magic != RPC_MAGIC_REQUEST) {
           __threadfence_system();
           rx_flags[current_slot] = 0;
@@ -141,6 +169,9 @@ __global__ void dispatch_kernel_with_graph(
         const cudaq_function_entry_t* entry = dispatch_lookup_entry(
             function_id, function_table, func_count);
         
+        // Compute TX slot address from symmetric TX data buffer
+        std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+
         if (entry != nullptr) {
           if (entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
             DeviceRPCFunction func = 
@@ -149,19 +180,29 @@ __global__ void dispatch_kernel_with_graph(
             std::uint32_t max_result_len = 1024;
             int status = func(arg_buffer, arg_len, max_result_len, &result_len);
 
-            RPCResponse* response = static_cast<RPCResponse*>(data_buffer);
+            // Write RPC response to TX slot
+            RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
             response->magic = RPC_MAGIC_RESPONSE;
             response->status = status;
             response->result_len = result_len;
 
+            // Copy result data from RX buffer to TX slot
+            if (result_len > 0) {
+              std::uint8_t* src = static_cast<std::uint8_t*>(arg_buffer);
+              std::uint8_t* dst = tx_slot + sizeof(RPCResponse);
+              for (std::uint32_t b = 0; b < result_len; ++b) {
+                dst[b] = src[b];
+              }
+            }
+
             __threadfence_system();
-            tx_flags[current_slot] = rx_value;
+            tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 #if __CUDA_ARCH__ >= 900
           else if (entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH) {
             // Update buffer pointer for graph kernel to read
             if (graph_buffer_ptr != nullptr) {
-              *graph_buffer_ptr = data_buffer;
+              *graph_buffer_ptr = rx_slot;
               __threadfence_system();
             }
             
@@ -169,7 +210,7 @@ __global__ void dispatch_kernel_with_graph(
             cudaGraphLaunch(entry->handler.graph_exec, cudaStreamGraphFireAndForget);
             
             __threadfence_system();
-            tx_flags[current_slot] = rx_value;
+            tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 #endif // __CUDA_ARCH__ >= 900
         }
@@ -202,6 +243,10 @@ __global__ void dispatch_kernel_with_graph(
 extern "C" void cudaq_launch_dispatch_kernel_regular(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
+    std::uint8_t* rx_data,
+    std::uint8_t* tx_data,
+    std::size_t rx_stride_sz,
+    std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
@@ -211,15 +256,24 @@ extern "C" void cudaq_launch_dispatch_kernel_regular(
     std::uint32_t threads_per_block,
     cudaStream_t stream) {
   // Use device-call-only kernel (no graph launch support)
+  // Note: rx_data/rx_stride_sz are available in the ringbuffer struct but
+  // not passed to the kernel since it reads RX addresses from rx_flags.
+  (void)rx_data;
+  (void)rx_stride_sz;
   cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>
       <<<num_blocks, threads_per_block, 0, stream>>>(
-          rx_flags, tx_flags, function_table, func_count,
+          rx_flags, tx_flags, tx_data, tx_stride_sz,
+          function_table, func_count,
           shutdown_flag, stats, num_slots);
 }
 
 extern "C" void cudaq_launch_dispatch_kernel_cooperative(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
+    std::uint8_t* rx_data,
+    std::uint8_t* tx_data,
+    std::size_t rx_stride_sz,
+    std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
@@ -228,9 +282,13 @@ extern "C" void cudaq_launch_dispatch_kernel_cooperative(
     std::uint32_t num_blocks,
     std::uint32_t threads_per_block,
     cudaStream_t stream) {
+  (void)rx_data;
+  (void)rx_stride_sz;
   void* kernel_args[] = {
       const_cast<std::uint64_t**>(&rx_flags),
       const_cast<std::uint64_t**>(&tx_flags),
+      &tx_data,
+      &tx_stride_sz,
       &function_table,
       &func_count,
       const_cast<int**>(&shutdown_flag),
@@ -265,6 +323,8 @@ struct cudaq_dispatch_graph_context {
   // Persistent storage for kernel parameters (must outlive graph execution)
   volatile std::uint64_t* rx_flags;
   volatile std::uint64_t* tx_flags;
+  std::uint8_t* tx_data;
+  std::size_t tx_stride_sz;
   cudaq_function_entry_t* function_table;
   std::size_t func_count;
   void** graph_buffer_ptr;
@@ -276,6 +336,10 @@ struct cudaq_dispatch_graph_context {
 extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
+    std::uint8_t* rx_data,
+    std::uint8_t* tx_data,
+    std::size_t rx_stride_sz,
+    std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
     void** graph_buffer_ptr,
@@ -287,6 +351,8 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
     cudaStream_t stream,
     cudaq_dispatch_graph_context** out_context) {
   
+  (void)rx_data;
+  (void)rx_stride_sz;
   cudaError_t err;
   
   // Allocate context with persistent parameter storage
@@ -296,6 +362,8 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   // Store parameters persistently in the context
   ctx->rx_flags = rx_flags;
   ctx->tx_flags = tx_flags;
+  ctx->tx_data = tx_data;
+  ctx->tx_stride_sz = tx_stride_sz;
   ctx->function_table = function_table;
   ctx->func_count = func_count;
   ctx->graph_buffer_ptr = graph_buffer_ptr;
@@ -315,6 +383,8 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   void* kernel_args[] = {
       &ctx->rx_flags,
       &ctx->tx_flags,
+      &ctx->tx_data,
+      &ctx->tx_stride_sz,
       &ctx->function_table,
       &ctx->func_count,
       &ctx->graph_buffer_ptr,

@@ -87,6 +87,10 @@ typedef struct {
 typedef struct {
   volatile uint64_t *rx_flags; // device pointer
   volatile uint64_t *tx_flags; // device pointer
+  uint8_t *rx_data;            // device pointer to RX data buffer
+  uint8_t *tx_data;            // device pointer to TX data buffer
+  size_t rx_stride_sz;         // size of each RX slot in bytes
+  size_t tx_stride_sz;         // size of each TX slot in bytes
 } cudaq_ringbuffer_t;
 
 // Unified function table entry with schema
@@ -110,6 +114,8 @@ typedef struct {
 // Host launch function pointer type
 typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    uint8_t *rx_data, uint8_t *tx_data,
+    size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
@@ -117,12 +123,16 @@ typedef void (*cudaq_dispatch_launch_fn_t)(
 // Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a)
 void cudaq_launch_dispatch_kernel_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    uint8_t *rx_data, uint8_t *tx_data,
+    size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
 void cudaq_launch_dispatch_kernel_cooperative(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    uint8_t *rx_data, uint8_t *tx_data,
+    size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
@@ -156,6 +166,8 @@ typedef struct cudaq_dispatch_graph_context cudaq_dispatch_graph_context;
 // Returns cudaSuccess on success, or an error code on failure.
 cudaError_t cudaq_create_dispatch_graph_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    uint8_t *rx_data, uint8_t *tx_data,
+    size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
     size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,

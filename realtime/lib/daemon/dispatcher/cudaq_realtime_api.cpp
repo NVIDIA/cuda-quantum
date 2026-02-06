@@ -157,6 +157,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
 
   dispatcher->launch_fn(
       dispatcher->ringbuffer.rx_flags, dispatcher->ringbuffer.tx_flags,
+      dispatcher->ringbuffer.rx_data, dispatcher->ringbuffer.tx_data,
+      dispatcher->ringbuffer.rx_stride_sz, dispatcher->ringbuffer.tx_stride_sz,
       dispatcher->table.entries, dispatcher->table.count,
       dispatcher->shutdown_flag, dispatcher->stats,
       dispatcher->config.num_slots, dispatcher->config.num_blocks,
