@@ -20,6 +20,7 @@
 #include <concepts>
 #include <cstdarg>
 #include <cstddef>
+#include <iostream>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
@@ -677,10 +678,13 @@ protected:
     if (!executionContext->warnedNamedMeasurements &&
         registerNameToMeasuredQubit.size() > 1) {
       executionContext->warnedNamedMeasurements = true;
-      printf(
-          "WARNING: Named measurement registers detected in sampling context. "
-          "Sub-register support in `sample` will be removed in a future "
-          "release.\nUse `run` API for kernels that use measurement results.");
+      std::cerr
+          << "WARNING: Kernel \"" << executionContext->kernelName
+          << "\" uses named measurement results but is "
+             "invoked in sampling mode. Support for sub-registers in "
+             "`sample_result` is deprecated and will be removed in a future "
+             "release. Use `run` to retrieve individual measurement results."
+          << std::endl;
     }
 
     if (registerNameToMeasuredQubit.empty()) {
