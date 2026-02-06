@@ -13,6 +13,8 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+// TODO: Move PTSBE integration out of core sample.h into cudaq::ptsbe
+// namespace to match the Python cudaq.ptsbe.sample() API separation.
 #include "cudaq/ptsbe/PTSBEOptions.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
 

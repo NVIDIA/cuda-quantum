@@ -9,7 +9,9 @@
 #pragma once
 
 #include "ShotAllocationStrategy.h"
+#include <cstddef>
 #include <memory>
+#include <optional>
 
 namespace cudaq::ptsbe {
 
@@ -35,6 +37,10 @@ struct PTSBEOptions {
   /// Strategy for allocating shots across trajectories.
   /// Defaults to PROPORTIONAL.
   ShotAllocationStrategy shot_allocation{};
+
+  /// Maximum number of unique trajectories to generate. When nullopt,
+  /// defaults to the number of shots.
+  std::optional<std::size_t> max_trajectories = std::nullopt;
 };
 
 } // namespace cudaq::ptsbe
