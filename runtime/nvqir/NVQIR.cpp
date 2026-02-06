@@ -675,6 +675,23 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
   if (ctx && ctx->name == "run") {
 
     std::string regName(reinterpret_cast<const char *>(name));
+
+    // Base profile - value stored in measRes2Val
+    auto iter = measRes2Val.find(r);
+    if (iter != measRes2Val.end()) {
+      quantumRTGenericRecordOutput("RESULT", (iter->second ? 1 : 0),
+                                   regName.c_str());
+      return;
+    }
+
+    // Full QIR - r is ResultOne or ResultZero (measurement already happened)
+    if (r == ResultOne || r == ResultZero) {
+      bool val = (r == ResultOne);
+      quantumRTGenericRecordOutput("RESULT", (val ? 1 : 0), regName.c_str());
+      return;
+    }
+
+    // Fallback - use qubit mapping and re-measure (legacy behavior)
     auto qI = qubitToSizeT(measRes2QB[r]);
     auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
     quantumRTGenericRecordOutput("RESULT", (b ? 1 : 0), regName.c_str());

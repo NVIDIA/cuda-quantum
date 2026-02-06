@@ -22,7 +22,7 @@ struct ak1 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak1(
-// CHECK-SAME:                                     %[[VAL_0:.*]]: i32) -> !quake.measure attributes {"cudaq-kernel"} {
+// CHECK-SAME:                                     %[[VAL_0:.*]]: i32) -> !quake.measure attributes
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>

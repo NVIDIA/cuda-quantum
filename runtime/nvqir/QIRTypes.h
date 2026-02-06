@@ -89,6 +89,7 @@ void __nvqpp_cleanup_arrays();
 }
 
 // Results
+/// FIXME: What should this be?
 using Result = bool;
 static const Result ResultZeroVal = false;
 static const Result ResultOneVal = true;

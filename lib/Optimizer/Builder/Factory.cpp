@@ -71,6 +71,11 @@ Type genBufferType(Type ty) {
     assert(!cudaq::cc::isDynamicType(ty) && "must be a type of static extent");
     return ty;
   }
+  if (isa<quake::MeasureType>(ty)) {
+    auto i32Ty = IntegerType::get(ctx, 32);
+    auto i64Ty = IntegerType::get(ctx, 64);
+    return cudaq::cc::StructType::get(ctx, {i32Ty, i64Ty});
+  }
   return ty;
 }
 
@@ -430,6 +435,13 @@ Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
     return cc::PointerType::get(factory::stlVectorType(
         IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));
   }
+  if (isa<quake::MeasureType>(ty)) {
+    auto *ctx = ty.getContext();
+    auto i32Ty = IntegerType::get(ctx, 32);
+    auto i64Ty = IntegerType::get(ctx, 64);
+    // Return the `measure_result` struct {int result, size_t uniqueId}
+    return cc::StructType::get(ctx, {i32Ty, i64Ty});
+  }
   return ty;
 }
 
@@ -644,7 +656,7 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
       hasSRet = true;
     } else {
       assert(funcTy.getNumResults() == 1);
-      resultTy = funcTy.getResult(0);
+      resultTy = convertToHostSideType(funcTy.getResult(0), module);
     }
   }
   // If this kernel is a plain old function or a static member function, we

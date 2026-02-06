@@ -11,8 +11,7 @@
 // RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 
 struct run_test {
-  /// FIXME: This should also work with `auto`
-  __qpu__ bool operator()() {
+  __qpu__ auto operator()() {
     cudaq::qubit p;
 
     if (true) {

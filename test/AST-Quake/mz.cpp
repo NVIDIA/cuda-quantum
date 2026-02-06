@@ -18,7 +18,7 @@ struct S {
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__S() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__S() attributes
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<20>
 // CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<20>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
@@ -35,7 +35,7 @@ struct VectorOfStaticVeq {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq() -> !cc.stdvec<!quake.measure> attributes {"cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq() -> !cc.stdvec<!quake.measure>
 // CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
@@ -60,7 +60,7 @@ struct VectorOfStaticVeq_Bool {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq_Bool() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq_Bool() -> !cc.stdvec<i1> attributes
 // CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
@@ -87,7 +87,7 @@ struct VectorOfDynamicVeq {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfDynamicVeq(
 // CHECK-SAME:                                                    %[[VAL_0:.*]]: i32,
-// CHECK-SAME:                                                    %[[VAL_1:.*]]: i32) -> !cc.stdvec<!quake.measure> attributes {"cudaq-kernel"} {
+// CHECK-SAME:                                                    %[[VAL_1:.*]]: i32) -> !cc.stdvec<!quake.measure>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 16 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>

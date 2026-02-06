@@ -170,6 +170,22 @@ public:
                                         cudaq::opt::QIRRecordOutput,
                                         ArrayRef<Value>{val, label});
         })
+        .Case([&](cudaq::cc::PointerType ptrTy) {
+          // Check if this is a pointer to %Result (converted MeasureType)
+          if (auto structTy =
+                  dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
+            if (structTy.isIdentified() && structTy.getName() == "Result") {
+              // Handle as measure result
+              std::string labelStr = "result";
+              if (prefix)
+                labelStr = prefix->str();
+              Value label = makeLabel(loc, rewriter, labelStr);
+              rewriter.create<func::CallOp>(loc, TypeRange{},
+                                            cudaq::opt::QIRRecordOutput,
+                                            ArrayRef<Value>{val, label});
+              return;
+            }
+        })
         .Default([&](Type) {
           // If we reach here, we don't know how to handle this type.
           Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
@@ -233,6 +249,11 @@ struct ReturnToOutputLogPass
     if (failed(irBuilder.loadIntrinsic(module,
                                        cudaq::opt::QIRArrayRecordOutput))) {
       module.emitError("could not load QIR output logging functions.");
+      signalPassFailure();
+      return;
+    }
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::QIRRecordOutput))) {
+      module.emitError("could not load QIR result record output function.");
       signalPassFailure();
       return;
     }
