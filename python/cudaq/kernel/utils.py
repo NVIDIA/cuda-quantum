@@ -16,6 +16,7 @@ import importlib
 import numpy as np
 from typing import get_origin, get_args, Callable, List
 import types
+from contextlib import contextmanager
 from cudaq.mlir.execution_engine import ExecutionEngine
 from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -248,6 +249,25 @@ def recover_value_of(name, resMod):
     raise RuntimeError("'" + name + "' is not available in this scope.")
 
 
+@contextmanager
+def set_tracebacklimit(limit=None):
+    """
+    Set the `traceback` limit for the duration of the context.
+    
+    Restores the original `traceback` limit after the context is exited.
+    """
+    try:
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = limit
+        yield
+        sys.tracebacklimit = cached
+    except AttributeError:
+        # `tracebacklimit` was not set: delete it at the end
+        sys.tracebacklimit = limit
+        yield
+        del sys.tracebacklimit
+
+
 def emitFatalError(msg):
     """
     Emit a fatal error diagnostic. The goal here is to 
@@ -261,10 +281,8 @@ def emitFatalError(msg):
     except RuntimeError:
         # Immediately grab the exception and analyze the stack trace, getting
         # the source location and construct a new error diagnostic.
-        cached = sys.tracebacklimit
-        sys.tracebacklimit = None
-        offendingSrc = traceback.format_stack()
-        sys.tracebacklimit = cached
+        with set_tracebacklimit(None):
+            offendingSrc = traceback.format_stack()
         if len(offendingSrc):
             msg = (Color.RED + "error: " + Color.END + Color.BOLD + msg +
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
@@ -283,10 +301,8 @@ def emitWarning(msg):
     except RuntimeError:
         # Immediately grab the exception and analyze the stack trace, getting
         # the source location and construct a new error diagnostic
-        cached = sys.tracebacklimit
-        sys.tracebacklimit = None
-        offendingSrc = traceback.format_stack()
-        sys.tracebacklimit = cached
+        with set_tracebacklimit(None):
+            offendingSrc = traceback.format_stack()
         if len(offendingSrc):
             msg = (Color.YELLOW + "error: " + Color.END + Color.BOLD + msg +
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
