@@ -9,6 +9,7 @@
 #pragma once
 
 #include "KrausTrajectory.h"
+#include "common/NoiseModel.h"
 #include <cstddef>
 #include <functional>
 #include <optional>
@@ -51,21 +52,21 @@ struct TraceInstruction {
   /// @brief Parameters (gate angles or noise channel parameters)
   std::vector<double> params;
 
+  /// @brief Noise channel (populated only for Noise instructions)
+  std::optional<cudaq::kraus_channel> channel;
+
   /// @brief Default constructor
   TraceInstruction() = default;
 
   /// @brief Constructor with all fields
-  /// @param type Instruction category
-  /// @param name Operation name
-  /// @param targets Target qubit indices
-  /// @param controls Control qubit indices
-  /// @param params Gate angles or noise channel parameters
   TraceInstruction(TraceInstructionType type, std::string name,
                    std::vector<std::size_t> targets,
                    std::vector<std::size_t> controls,
-                   std::vector<double> params)
+                   std::vector<double> params,
+                   std::optional<cudaq::kraus_channel> channel = std::nullopt)
       : type(type), name(std::move(name)), targets(std::move(targets)),
-        controls(std::move(controls)), params(std::move(params)) {}
+        controls(std::move(controls)), params(std::move(params)),
+        channel(std::move(channel)) {}
 };
 
 /// @brief Container for PTSBE trace data including circuit structure and
