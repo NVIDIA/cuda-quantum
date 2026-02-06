@@ -91,7 +91,6 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install --break-system-packages iqm-client==28.0.0 pytest
             bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
