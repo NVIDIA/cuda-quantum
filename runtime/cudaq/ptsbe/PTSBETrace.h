@@ -86,8 +86,12 @@ struct PTSBETrace {
   /// @brief All trajectory specifications with their outcomes
   std::vector<cudaq::KrausTrajectory> trajectories;
 
+  /// @brief Count instructions matching the given type and optional name
+  std::size_t
+  count_instructions(TraceInstructionType type,
+                     std::optional<std::string> name = std::nullopt) const;
+
   /// @brief Look up a trajectory by its ID
-  /// @param trajectoryId The trajectory ID to look up
   /// @return Reference to the trajectory if found, std::nullopt otherwise
   std::optional<std::reference_wrapper<const cudaq::KrausTrajectory>>
   get_trajectory(std::size_t trajectoryId) const;
