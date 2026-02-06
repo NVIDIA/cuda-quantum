@@ -6,11 +6,133 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PTSBESampler.h"
+#include "PTSBESamplerImpl.h"
 #include "cudaq/simulators.h"
 #include <numeric>
+#include <stdexcept>
 
 namespace cudaq::ptsbe {
+
+template <typename ScalarType>
+GateTask<ScalarType>
+convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
+  // Convert parameters to ScalarType
+  std::vector<ScalarType> typedParams;
+  typedParams.reserve(inst.params.size());
+  for (auto p : inst.params)
+    typedParams.push_back(static_cast<ScalarType>(p));
+
+  // Look up gate matrix from registry (throws for unknown gates)
+  auto gateName = nvqir::getGateNameFromString(inst.name);
+  auto matrix = nvqir::getGateByName<ScalarType>(gateName, typedParams);
+
+  // Extract qubit IDs from QuditInfo
+  std::vector<std::size_t> controls;
+  controls.reserve(inst.controls.size());
+  for (const auto &q : inst.controls)
+    controls.push_back(q.id);
+
+  std::vector<std::size_t> targets;
+  targets.reserve(inst.targets.size());
+  for (const auto &q : inst.targets)
+    targets.push_back(q.id);
+
+  return GateTask<ScalarType>(inst.name, matrix, controls, targets,
+                              typedParams);
+}
+
+template <typename ScalarType>
+std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
+  std::vector<GateTask<ScalarType>> tasks;
+  tasks.reserve(trace.getNumInstructions());
+  for (const auto &inst : trace)
+    tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
+  return tasks;
+}
+
+template <typename ScalarType>
+GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel) {
+  std::string gateName =
+      (sel.kraus_operator_index == KrausOperatorType::IDENTITY) ? "id"
+                                                                : sel.op_name;
+  auto gateEnum = nvqir::getGateNameFromString(gateName);
+  auto matrix = nvqir::getGateByName<ScalarType>(gateEnum, {});
+  return GateTask<ScalarType>(gateName, matrix, {}, sel.qubits, {});
+}
+
+template <typename ScalarType>
+std::vector<GateTask<ScalarType>>
+mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
+                         const cudaq::KrausTrajectory &trajectory) {
+  const auto &selections = trajectory.kraus_selections;
+
+  std::vector<GateTask<ScalarType>> merged;
+  merged.reserve(baseTasks.size() + selections.size());
+
+  std::size_t noiseIdx = 0;
+  for (std::size_t gateIdx = 0; gateIdx < baseTasks.size(); ++gateIdx) {
+    merged.push_back(baseTasks[gateIdx]);
+
+    // Insert all noise for this gate location
+    while (noiseIdx < selections.size() &&
+           selections[noiseIdx].circuit_location == gateIdx) {
+      merged.push_back(krausSelectionToTask<ScalarType>(selections[noiseIdx]));
+      ++noiseIdx;
+    }
+  }
+
+  // Validate: any remaining noise has invalid circuit_location
+  if (noiseIdx < selections.size()) {
+    throw std::runtime_error(
+        "Invalid circuit_location: " +
+        std::to_string(selections[noiseIdx].circuit_location) +
+        " >= " + std::to_string(baseTasks.size()));
+  }
+
+  return merged;
+}
+
+template <typename ScalarType>
+std::vector<GateTask<ScalarType>>
+mergeAndConvert(const cudaq::Trace &kernelTrace,
+                const cudaq::KrausTrajectory &trajectory) {
+  auto baseTasks = convertTrace<ScalarType>(kernelTrace);
+  return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory);
+}
+
+// ---------------------------------------------------------------------------
+// Explicit template instantiations for float and double
+// ---------------------------------------------------------------------------
+
+template GateTask<float>
+convertToSimulatorTask<float>(const cudaq::Trace::Instruction &);
+template GateTask<double>
+convertToSimulatorTask<double>(const cudaq::Trace::Instruction &);
+
+template std::vector<GateTask<float>> convertTrace<float>(const cudaq::Trace &);
+template std::vector<GateTask<double>>
+convertTrace<double>(const cudaq::Trace &);
+
+template GateTask<float>
+krausSelectionToTask<float>(const cudaq::KrausSelection &);
+template GateTask<double>
+krausSelectionToTask<double>(const cudaq::KrausSelection &);
+
+template std::vector<GateTask<float>>
+mergeTasksWithTrajectory<float>(const std::vector<GateTask<float>> &,
+                                const cudaq::KrausTrajectory &);
+template std::vector<GateTask<double>>
+mergeTasksWithTrajectory<double>(const std::vector<GateTask<double>> &,
+                                 const cudaq::KrausTrajectory &);
+
+template std::vector<GateTask<float>>
+mergeAndConvert<float>(const cudaq::Trace &, const cudaq::KrausTrajectory &);
+template std::vector<GateTask<double>>
+mergeAndConvert<double>(const cudaq::Trace &, const cudaq::KrausTrajectory &);
+
+// ---------------------------------------------------------------------------
+// Non-template implementations
+// ---------------------------------------------------------------------------
 
 cudaq::sample_result
 aggregateResults(const std::vector<cudaq::sample_result> &results) {
@@ -75,7 +197,7 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
   return results;
 }
 
-// Explicit instantiations for float and double
+// Explicit instantiations for samplePTSBEGeneric
 template std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<float> &, const PTSBatch &);
 template std::vector<cudaq::sample_result>

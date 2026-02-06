@@ -10,7 +10,7 @@
 #include "QppCircuitSimulator.cpp"
 #include "backends/QPPTester.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
-#include "cudaq/ptsbe/PTSBESampler.h"
+#include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
 #include <numeric>
 

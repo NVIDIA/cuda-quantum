@@ -27,7 +27,6 @@
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
 #include "cudaq/platform.h"
-#include "cudaq/simulators.h"
 #include <optional>
 #include <stdexcept>
 
