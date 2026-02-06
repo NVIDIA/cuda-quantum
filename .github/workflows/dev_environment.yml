@@ -302,8 +302,7 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
-              fi
-              if ${{ github.event_name == 'merge_group' }}; then
+              elif ${{ github.event_name == 'merge_group' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
