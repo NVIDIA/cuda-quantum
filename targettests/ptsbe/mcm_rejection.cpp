@@ -32,6 +32,10 @@ struct mcmKernel {
 int main() {
   mcmKernel kernel;
 
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.1));
+  cudaq::set_noise(noise);
+
   // sampleWithPTSBE should throw for dynamic circuits with a specific error
   try {
     cudaq::ptsbe::sampleWithPTSBE(kernel, 1000);
