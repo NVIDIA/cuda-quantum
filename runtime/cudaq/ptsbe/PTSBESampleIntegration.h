@@ -222,9 +222,9 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 
 /// @brief Run PTSBE sampling with asynchronous dispatch
 ///
-/// Internal function called from cudaq::sample_async() when ptsbe_options is
+/// Internal function called from `cudaq::sample_async()` when ptsbe_options is
 /// set. Creates a KernelExecutionTask that runs PTSBE and enqueues it for
-/// async execution.
+/// asynchronous execution.
 ///
 /// PTSBE does not support remote execution - this function will reject
 /// remote platforms.
@@ -236,8 +236,7 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 /// @param shots Number of shots for trajectory allocation
 /// @param options PTSBE configuration options
 /// @param qpu_id The QPU ID to execute on
-/// @param shot_allocation Strategy for allocating shots across trajectories
-/// @return async_result<sample_result> that resolves to the sampling result
+/// @return `async_result<sample_result>` that resolves to the sampling result
 /// @throws std::runtime_error if platform is remote (PTSBE is local-only)
 template <typename KernelFunctor>
 async_result<sample_result>
@@ -248,7 +247,7 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Validate upfront so exceptions are thrown in calling thread
   validatePTSBEPreconditions(platform, qpu_id);
 
-  // Create async task that runs PTSBE
+  // Create asynchronous task that runs PTSBE
   KernelExecutionTask task(
       [shots, kernelName, &platform, options,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
