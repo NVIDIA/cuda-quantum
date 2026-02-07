@@ -452,11 +452,33 @@ for (( i=1; i<=$N; i++ )); do
 	fi
 done
 
+# Extract Bool argument keys from target config (if target is set)
+# Bool arguments can be specified without a value (e.g., --target-debug means true)
+BOOL_ARG_KEYS=""
+if [ -n "${TARGET_CONFIG}" ]; then
+	TARGET_CONFIG_YML="${install_dir}/targets/${TARGET_CONFIG}.yml"
+	if [ -f "${TARGET_CONFIG_YML}" ]; then
+		BOOL_ARG_KEYS=$(${TOOLBIN}cudaq-target-conf --list-bool-args "${TARGET_CONFIG_YML}" 2>/dev/null || echo "")
+	fi
+fi
+
+# Helper function to check if an argument key is a Bool type
+is_bool_arg() {
+	local key="$1"
+	for bool_key in ${BOOL_ARG_KEYS}; do
+		if [[ "${key}" == "${bool_key}" ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
 	# Note: we assume --<target-name>-<key> <value> or --target-option <value>
 	# are target-specific arguments (to be removed and forwarded to the target configuration handler).
-	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]]; then
+	# Bool-type arguments can be specified without a value (e.g., --ionq-debias means true).
+	if [[ -n "${TARGET_CONFIG}" ]]; then
 		if [[ "$1" = --${TARGET_CONFIG}-*=* ]] || [[ "$1" = --target-option=* ]]; then
 			# Separate the value of argument. Perform base64 encoding on
 			# the parameter value in case it has spaces. The runtime will be
@@ -467,9 +489,31 @@ while [ $# -ne 0 ]; do
 			shift 1
 			continue
 		elif [[ "$1" = --${TARGET_CONFIG}-* ]] || [[ "$1" = --target-option ]]; then
-			# Assume always has an additional value. Perform base64 encoding on
-			# the parameter value in case it has spaces. The runtime will be
-			# responsible for decoding the value.
+			# Extract the argument key (remove --<target>- prefix)
+			arg_key="${1#--${TARGET_CONFIG}-}"
+			if [[ "$1" = --target-option ]]; then
+				arg_key="option"
+			fi
+
+			# Check if this is a Bool-type argument
+			if is_bool_arg "${arg_key}"; then
+				# Bool arguments can be specified without a value
+				# Check if next arg looks like a value (not another flag, not missing, not a source file)
+				# Source files: .cpp, .cc, .cxx, .c++, .cu
+				if [[ -z "$2" ]] || [[ "$2" = -* ]] || [[ "$2" = *.cpp ]] || [[ "$2" = *.cc ]] || [[ "$2" = *.cxx ]] || [[ "$2" = *.c++ ]] || [[ "$2" = *.cu ]]; then
+					# No value provided - use "true" as default
+					TARGET_ARGS+=($1 "base64_dHJ1ZQ==")  # base64 of "true"
+					shift 1
+					continue
+				fi
+			fi
+
+			# Non-Bool or Bool with explicit value: consume key-value pair
+			if [[ $# -lt 2 ]]; then
+				error_exit "Target argument '$1' requires a value"
+			fi
+			# Perform base64 encoding on the parameter value in case it has spaces.
+			# The runtime will be responsible for decoding the value.
 			ESC2="base64_"$(echo -n $2 | base64 --wrap=0)
 			TARGET_ARGS+=($1 $ESC2)
 			shift 2
