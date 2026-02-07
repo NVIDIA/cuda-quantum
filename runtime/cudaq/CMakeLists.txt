@@ -17,6 +17,7 @@ add_library(${LIBRARY_NAME}
     target_control.cpp
     algorithms/draw.cpp
     algorithms/evolve.cpp
+    algorithms/run.cpp
     algorithms/schedule.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp

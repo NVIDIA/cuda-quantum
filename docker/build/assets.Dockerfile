@@ -44,6 +44,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [CUDA-Q Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
@@ -103,6 +104,8 @@ ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
+ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
+ADD "scripts/set_env_defaults.sh" /cuda-quantum/scripts/set_env_defaults.sh
 ADD "targettests" /cuda-quantum/targettests
 ADD "test" /cuda-quantum/test
 ADD "tools" /cuda-quantum/tools
