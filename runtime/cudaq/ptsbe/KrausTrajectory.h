@@ -45,6 +45,10 @@ struct KrausTrajectory {
   /// @brief Number of measurement shots allocated to this trajectory
   std::size_t num_shots = 0;
 
+  /// @brief Number of times this trajectory appeared in the `pre-deduplication`
+  /// list.
+  std::size_t multiplicity = 1;
+
   /// @brief The measurement results for this specific trajectory
   std::optional<std::map<std::string, std::size_t>> measurement_counts;
 
@@ -69,13 +73,13 @@ struct KrausTrajectory {
 
   /// @brief Equality comparison for testing
   /// @param other KrausTrajectory to compare with
-  /// @return true if trajectory_id, selections, probability, and num_shots
-  /// match
+  /// @return true if trajectory_id, selections, probability, num_shots, and
+  /// multiplicity match
   constexpr bool operator==(const KrausTrajectory &other) const {
     return trajectory_id == other.trajectory_id &&
            kraus_selections == other.kraus_selections &&
            std::abs(probability - other.probability) < PROBABILITY_EPSILON &&
-           num_shots == other.num_shots;
+           num_shots == other.num_shots && multiplicity == other.multiplicity;
   }
 
   /// @brief Count non-identity errors in this trajectory (error weight)

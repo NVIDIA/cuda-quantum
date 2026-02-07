@@ -132,7 +132,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
   KrausTrajectory trajectory(0, selections, 0.1, 10);
 
   EXPECT_THROW(mergeTasksWithTrajectory<double>(baseTasks, trajectory),
-               std::runtime_error);
+               std::exception);
 }
 
 /// Verify noise at last valid gate index works

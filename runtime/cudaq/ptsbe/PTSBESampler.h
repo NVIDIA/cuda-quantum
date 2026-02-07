@@ -53,12 +53,6 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
 };
 
 /// @brief Aggregate per-trajectory sample results into a single result
-///
-/// Combines counts from all trajectory results into one sample_result.
-/// This is useful for the final aggregation step after PTSBE execution.
-///
-/// @param results Vector of per-trajectory sample results
-/// @return Single aggregated sample_result
 cudaq::sample_result
 aggregateResults(const std::vector<cudaq::sample_result> &results);
 
