@@ -220,7 +220,7 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   return batch;
 }
 
-/// @brief Run PTSBE sampling with `async` dispatch
+/// @brief Run PTSBE sampling with asynchronous dispatch
 ///
 /// Internal function called from cudaq::sample_async() when ptsbe_options is
 /// set. Creates a KernelExecutionTask that runs PTSBE and enqueues it for
