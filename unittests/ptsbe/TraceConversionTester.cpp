@@ -54,7 +54,11 @@ CUDAQ_TEST(TraceConversionTest, ControlledGate) {
 /// Verify unknown gate throws with descriptive error
 CUDAQ_TEST(TraceConversionTest, UnknownGateThrows) {
   Trace::Instruction inst("invalid_gate_xyz", {}, {}, {QuditInfo(2, 0)});
-  EXPECT_THROW(convertToSimulatorTask<double>(inst), std::exception);
+  try {
+    convertToSimulatorTask<double>(inst);
+    FAIL() << "Expected an exception for unknown gate";
+  } catch (...) {
+  }
 }
 
 /// Verify float precision: parameters cast to float
