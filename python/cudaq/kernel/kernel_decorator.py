@@ -608,6 +608,9 @@ class PyKernelDecorator(object):
         callingModule = recover_calling_module()
         self.process_arguments_to_call(processedArgs, callingModule, args)
 
+        while len(processedArgs) < self.firstLiftedPos:
+            processedArgs.append(None)
+
         # Process any lifted arguments
         if self.liftedArgs:
             for j, a in enumerate(self.liftedArgs):

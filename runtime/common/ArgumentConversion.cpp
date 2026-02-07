@@ -1004,14 +1004,14 @@ bool cudaq::detail::mergeAllCallableClosures(
                              " was not found in the module");
 
   auto entryPointTy = entryPoint.getFunctionType();
-  //auto arity = entryPointTy.getInputs().size();
-  //auto coarity = entryPointTy.getResults().size();
+  auto arity = entryPointTy.getInputs().size();
+  auto coarity = entryPointTy.getResults().size();
   // rawArgs may have a "bonus" argument for the result value(s).
-  // if (!betaRedux && (arity + coarity != rawArgs.size()))
-  //   throw std::runtime_error("arity of kernel " + shortName + " (" +
-  //                            std::to_string(arity) +
-  //                            ") does not match number of arguments provided (" +
-  //                            std::to_string(rawArgs.size() - coarity) + ")");
+  if (!betaRedux && (arity + coarity != rawArgs.size()))
+    throw std::runtime_error("arity of kernel " + shortName + " (" +
+                             std::to_string(arity) +
+                             ") does not match number of arguments provided (" +
+                             std::to_string(rawArgs.size() - coarity) + ")");
 
   // Scan the type signature and arguments. Determine if the type signature
   // has any Callables and if the raw arguments have any `nullptr`s. If there
