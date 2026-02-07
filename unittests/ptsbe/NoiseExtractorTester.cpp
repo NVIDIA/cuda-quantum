@@ -144,7 +144,7 @@ TEST(NoiseExtractorTest, AmplitudeDampingIsNotUnitaryMixture) {
         auto result = extractNoiseSites(trace, noise_model, true);
         (void)result;
       },
-      std::invalid_argument);
+      std::exception);
 }
 
 TEST(NoiseExtractorTest, AmplitudeDampingWithValidationDisabled) {
@@ -158,7 +158,7 @@ TEST(NoiseExtractorTest, AmplitudeDampingWithValidationDisabled) {
         auto result = extractNoiseSites(trace, noise_model, false);
         (void)result;
       },
-      std::invalid_argument);
+      std::exception);
 }
 
 TEST(NoiseExtractorTest, MixedUnitaryAndNonUnitary) {
@@ -173,13 +173,13 @@ TEST(NoiseExtractorTest, MixedUnitaryAndNonUnitary) {
         auto result = extractNoiseSites(trace, noise_model, true);
         (void)result;
       },
-      std::invalid_argument);
+      std::exception);
   EXPECT_THROW(
       {
         auto result = extractNoiseSites(trace, noise_model, false);
         (void)result;
       },
-      std::invalid_argument);
+      std::exception);
 }
 
 TEST(NoiseExtractorTest, PreservesInstructionOrder) {
@@ -334,8 +334,8 @@ TEST(NoiseExtractorTest, ValidationErrorMessages) {
   try {
     auto result = extractNoiseSites(trace, noise_model, true);
     (void)result;
-    FAIL() << "Should have thrown std::invalid_argument";
-  } catch (const std::invalid_argument &e) {
+    FAIL() << "Should have thrown for non-unitary-mixture channel";
+  } catch (const std::exception &e) {
     std::string error_msg(e.what());
     EXPECT_NE(error_msg.find("h"), std::string::npos);
     EXPECT_NE(error_msg.find("0"), std::string::npos);

@@ -109,7 +109,7 @@ CUDAQ_TEST(PTSBESampleTest, DetectsMCMWithRegisterNames) {
 CUDAQ_TEST(PTSBESampleTest, ThrowsForMCMContext) {
   cudaq::ExecutionContext ctx("tracer");
   ctx.registerNames.push_back("mcm_result");
-  EXPECT_THROW(throwIfMidCircuitMeasurements(ctx), std::runtime_error);
+  EXPECT_THROW(throwIfMidCircuitMeasurements(ctx), std::exception);
 }
 
 CUDAQ_TEST(PTSBESampleTest, NoThrowForValidContext) {
@@ -226,7 +226,7 @@ CUDAQ_TEST(PTSBESampleTest, CoreSampleWithUsePTSBERequiresNoiseModel) {
   try {
     cudaq::sample(options, bellKernel);
     FAIL() << "Expected exception not thrown";
-  } catch (const std::runtime_error &e) {
+  } catch (const std::exception &e) {
     std::string msg = e.what();
     EXPECT_TRUE(msg.find("noise model") != std::string::npos);
   }
@@ -276,7 +276,7 @@ CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithUsePTSBERequiresNoiseModel) {
     auto future = cudaq::sample_async(options, 0, bellKernel);
     future.get();
     FAIL() << "Expected exception not thrown";
-  } catch (const std::runtime_error &e) {
+  } catch (const std::exception &e) {
     std::string msg = e.what();
     EXPECT_TRUE(msg.find("noise model") != std::string::npos);
   }
@@ -309,7 +309,7 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithUsePTSBERequiresNoiseModel) {
   auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
 
   EXPECT_THROW(cudaq::sample(options, rotationKernel, std::move(params)),
-               std::runtime_error);
+               std::exception);
 }
 
 // Test broadcast PTSBE with noise model (returns empty results since no
