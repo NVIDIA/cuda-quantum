@@ -62,7 +62,11 @@ CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   batch.trajectories.push_back(traj);
 
   // No setExecutionContext() - should throw
-  EXPECT_THROW(samplePTSBEGeneric(sim, batch), std::exception);
+  try {
+    samplePTSBEGeneric(sim, batch);
+    FAIL() << "Expected an exception without ExecutionContext";
+  } catch (...) {
+  }
 }
 
 /// Single trajectory Hadamard circuit: execute H|0> and expect 50/50

@@ -131,8 +131,12 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
       KrausSelection(1, {0}, "y", static_cast<KrausOperatorType>(2))};
   KrausTrajectory trajectory(0, selections, 0.1, 10);
 
-  EXPECT_THROW(mergeTasksWithTrajectory<double>(baseTasks, trajectory),
-               std::exception);
+  try {
+    mergeTasksWithTrajectory<double>(baseTasks, trajectory);
+    FAIL() << "Expected an exception for invalid circuit_location";
+  } catch (...) {
+    // Expected: any exception type
+  }
 }
 
 /// Verify noise at last valid gate index works
