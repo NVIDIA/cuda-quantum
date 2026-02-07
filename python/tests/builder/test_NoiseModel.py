@@ -1073,6 +1073,37 @@ def test_builder_apply_noise_inplace():
     cudaq.reset_target()
 
 
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_noise_validation_probability_check(target: str):
+    cudaq.set_target(target)
+
+    with pytest.raises(RuntimeError, match="probability must be in the range"):
+        cudaq.DepolarizationChannel(-0.1)
+
+    with pytest.raises(RuntimeError, match="probability must be in the range"):
+        cudaq.BitFlipChannel(1.5)
+
+    @cudaq.kernel
+    def kernel_invalid():
+        q = cudaq.qvector(1)
+        cudaq.apply_noise(cudaq.XError, -0.1, q[0])
+        mz(q)
+
+    with pytest.raises(RuntimeError, match="probability must be in the range"):
+        cudaq.sample(kernel_invalid, noise_model=cudaq.NoiseModel())
+
+    with pytest.raises(RuntimeError, match="probability must be in the range"):
+        cudaq.Depolarization2(1.5)
+
+    depol_zero = cudaq.DepolarizationChannel(0.0)
+    depol_one = cudaq.DepolarizationChannel(1.0)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], depol_zero)
+    noise.add_channel("h", [0], depol_one)
+
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
