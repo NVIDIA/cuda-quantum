@@ -33,14 +33,14 @@ enum class TraceInstructionType {
 /// Stores gate, noise channel, or measurement info with plain qubit indices.
 /// This is the user-facing trace type exposed to Python via pybind11.
 ///
-/// Gate example: {Gate, "h", {0}, {}, {}}
-/// Noise example: {Noise, "depolarizing", {0}, {}, {0.01}}
-/// Measurement example: {Measurement, "mz", {0}, {}, {}}
+/// Gate example: `{Gate, "h", {0}, {}, {}}`
+/// Noise example: `{Noise, "depolarizing", {0}, {}, {0.01}}`
+/// Measurement example: `{Measurement, "mz", {0}, {}, {}}`
 struct TraceInstruction {
   /// @brief Instruction category (Gate, Noise, or Measurement)
   TraceInstructionType type;
 
-  /// @brief Operation name (e.g., "h", "depolarizing", "mz")
+  /// @brief Operation name (e.g., `h`, `depolarizing`, `mz`)
   std::string name;
 
   /// @brief Target qubit indices

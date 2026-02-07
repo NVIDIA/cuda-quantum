@@ -31,14 +31,14 @@ struct PTSBEOptions {
   /// Default false to avoid overhead when not needed.
   bool trace_output = false;
 
-  /// Custom sampling strategy. If nullptr, uses default strategy.
+  /// Custom sampling strategy. If `nullptr`, uses default strategy.
   std::shared_ptr<PTSSamplingStrategy> strategy = nullptr;
 
   /// Strategy for allocating shots across trajectories.
   /// Defaults to PROPORTIONAL.
   ShotAllocationStrategy shot_allocation{};
 
-  /// Maximum number of unique trajectories to generate. When nullopt,
+  /// Maximum number of unique trajectories to generate. When `nullopt`,
   /// defaults to the number of shots.
   std::optional<std::size_t> max_trajectories = std::nullopt;
 };
