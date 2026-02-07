@@ -20,31 +20,29 @@ def sample(kernel,
            sampling_strategy=None,
            trace_output=False):
     """
-    Sample using Pre-Trajectory Sampling with Batch Execution (PTSBE).
+    Sample using Pre-Trajectory Sampling with Batch Execution.
 
-    PTSBE pre-samples noise realizations (trajectories) and batches circuit
+    Pre-samples noise realizations (trajectories) and batches circuit
     executions by unique noise configuration, enabling efficient noisy
     simulation.
 
     Args:
       kernel: The quantum kernel to execute.
-      *args: Arguments to pass to the kernel.
       shots_count (int): Number of measurement shots. Defaults to 1000.
       noise_model: The noise model to apply (required).
-      max_trajectories (int or None): Maximum unique trajectories to generate.
-          None means use the number of shots. Defaults to None.
-      sampling_strategy (PTSSamplingStrategy or None): Strategy for trajectory
-          generation. None uses the default probabilistic strategy.
-          Defaults to None.
+      max_trajectories (int or ``None``): Maximum unique trajectories to
+          generate. ``None`` means use the number of shots.
+      sampling_strategy (``PTSSamplingStrategy`` or ``None``): Strategy for
+          trajectory generation. ``None`` uses the default probabilistic
+          strategy.
       trace_output (bool): Include circuit trace and trajectory data in the
-          result. Defaults to False.
+          result. Defaults to ``False``.
 
     Returns:
-      SampleResult: Measurement results. When trace_output is True,
-          result.ptsbe_trace contains trace and trajectory data.
+      ``SampleResult``: Measurement results.
 
     Raises:
-      RuntimeError: If noise_model is not provided or kernel is invalid.
+      RuntimeError: If ``noise_model`` is not provided or kernel is invalid.
     """
     if noise_model is None:
         raise RuntimeError(
