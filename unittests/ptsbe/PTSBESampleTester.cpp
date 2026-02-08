@@ -18,7 +18,6 @@
 #include "cudaq/ptsbe/NoiseExtractor.h"
 #include "cudaq/ptsbe/PTSBEOptions.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
-#include "cudaq/ptsbe/PTSBETrace.h"
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
@@ -454,95 +453,6 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
 
   // Total counts should equal total shots
   EXPECT_EQ(result.get_total_shots(), total_shots);
-}
-
-// ============================================================================
-// SAMPLE_RESULT PTSBE TRACE TESTS
-// ============================================================================
-
-CUDAQ_TEST(PTSBESampleTest, SampleResultHasNoPTSBETraceByDefault) {
-  cudaq::sample_result result;
-  EXPECT_FALSE(result.has_ptsbe_trace());
-}
-
-CUDAQ_TEST(PTSBESampleTest, SampleResultPTSBETraceThrowsWhenNotPresent) {
-  cudaq::sample_result result;
-  EXPECT_THROW(result.ptsbe_trace(), std::runtime_error);
-}
-
-CUDAQ_TEST(PTSBESampleTest, SampleResultSetPTSBETracePopulatesTrace) {
-  cudaq::sample_result result;
-
-  cudaq::ptsbe::PTSBETrace trace;
-  trace.instructions.push_back(cudaq::ptsbe::TraceInstruction{
-      cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}});
-  trace.instructions.push_back(cudaq::ptsbe::TraceInstruction{
-      cudaq::ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}});
-
-  result.set_ptsbe_trace(std::move(trace));
-
-  EXPECT_TRUE(result.has_ptsbe_trace());
-  EXPECT_EQ(result.ptsbe_trace().instructions.size(), 2);
-  EXPECT_EQ(result.ptsbe_trace().instructions[0].name, "h");
-  EXPECT_EQ(result.ptsbe_trace().instructions[0].type,
-            cudaq::ptsbe::TraceInstructionType::Gate);
-  EXPECT_EQ(result.ptsbe_trace().instructions[1].type,
-            cudaq::ptsbe::TraceInstructionType::Measurement);
-}
-
-// ============================================================================
-// TRACE OUTPUT INTEGRATION TESTS
-// ============================================================================
-
-CUDAQ_TEST(PTSBESampleTest, SampleWithTraceOutputPopulatesTrace) {
-  cudaq::noise_model noise;
-  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
-
-  cudaq::sample_options options;
-  options.shots = 100;
-  options.noise = noise;
-  options.ptsbe_options = PTSBEOptions{};
-  options.ptsbe_options->trace_output = true;
-
-  auto result = cudaq::sample(options, bellKernel);
-
-  ASSERT_TRUE(result.has_ptsbe_trace());
-  const auto &trace = result.ptsbe_trace();
-
-  EXPECT_GT(trace.instructions.size(), 0);
-  // Bell circuit: h, x -> 2 gates
-  EXPECT_EQ(trace.count_instructions(TraceInstructionType::Gate), 2);
-  // Noise on h gate -> at least 1 noise instruction
-  EXPECT_GE(trace.count_instructions(TraceInstructionType::Noise), 1);
-  // 2 qubits measured
-  EXPECT_EQ(trace.count_instructions(TraceInstructionType::Measurement), 2);
-
-  // First instruction should be the h gate
-  EXPECT_EQ(trace.instructions[0].type, TraceInstructionType::Gate);
-  EXPECT_EQ(trace.instructions[0].name, "h");
-
-  // Noise instructions should have a channel attached
-  for (const auto &inst : trace.instructions) {
-    if (inst.type == TraceInstructionType::Noise) {
-      EXPECT_TRUE(inst.channel.has_value());
-      EXPECT_TRUE(inst.channel->is_unitary_mixture());
-    }
-  }
-}
-
-CUDAQ_TEST(PTSBESampleTest, SampleWithoutTraceOutputHasNoTrace) {
-  cudaq::noise_model noise;
-  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
-
-  cudaq::sample_options options;
-  options.shots = 100;
-  options.noise = noise;
-  options.ptsbe_options = PTSBEOptions{};
-  // trace_output defaults to false
-
-  auto result = cudaq::sample(options, bellKernel);
-
-  EXPECT_FALSE(result.has_ptsbe_trace());
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET

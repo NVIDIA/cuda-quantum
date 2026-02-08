@@ -17,8 +17,7 @@ def sample(kernel,
            shots_count=1000,
            noise_model=None,
            max_trajectories=None,
-           sampling_strategy=None,
-           trace_output=False):
+           sampling_strategy=None):
     """
     Sample using Pre-Trajectory Sampling with Batch Execution (`PTSBE`).
 
@@ -37,8 +36,6 @@ def sample(kernel,
       sampling_strategy (``PTSSamplingStrategy`` or ``None``): Strategy for
           trajectory generation. ``None`` uses the default probabilistic
           sampling strategy.
-      trace_output (bool): Include the sampled circuit trace and corresponding
-          trajectory data in the returned result. Defaults to ``False``.
 
     Returns:
       ``SampleResult``: Measurement results.
@@ -82,4 +79,4 @@ def sample(kernel,
     return cudaq_runtime.ptsbe.sample_impl(decorator.uniqName, specMod, retTy,
                                            shots_count, noise_model,
                                            max_trajectories, sampling_strategy,
-                                           trace_output, *processedArgs)
+                                           *processedArgs)
