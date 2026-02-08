@@ -20,7 +20,7 @@ def sample(kernel,
            sampling_strategy=None,
            trace_output=False):
     """
-    Sample using Pre-Trajectory Sampling with Batch Execution (PTSBE).
+    Sample using Pre-Trajectory Sampling with Batch Execution (`PTSBE`).
 
     Pre-samples noise realizations (trajectories) and batches circuit
     executions by unique noise configuration, enabling efficient noisy
