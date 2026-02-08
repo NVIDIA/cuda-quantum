@@ -31,7 +31,6 @@ install(FILES
     TrajectoryDeduplication.h
     PTSBEOptions.h
     PTSBESampler.h
-    PTSBEResult.h
     PTSBETrace.h
     PTSBESampleIntegration.h
     ShotAllocationStrategy.h
