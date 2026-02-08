@@ -511,17 +511,5 @@ void sample_result::reorder(const std::vector<std::size_t> &idx,
     s = newBits;
   }
 }
-bool sample_result::has_ptsbe_trace() const { return ptsbeTrace.has_value(); }
-
-const ptsbe::PTSBETrace &sample_result::ptsbe_trace() const {
-  if (!ptsbeTrace.has_value())
-    throw std::runtime_error("PTSBE trace not available. Enable trace output "
-                             "with PTSBEOptions(trace_output=true).");
-  return ptsbeTrace.value();
-}
-
-void sample_result::set_ptsbe_trace(ptsbe::PTSBETrace trace) {
-  ptsbeTrace = std::move(trace);
-}
 
 } // namespace cudaq

@@ -25,7 +25,6 @@
 
 #include "PTSBEOptions.h"
 #include "PTSBESampler.h"
-#include "PTSBETrace.h"
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
 #include "common/NoiseModel.h"
@@ -86,35 +85,6 @@ void validatePTSBEPreconditions(
 /// @return Vector of qubit indices [0, 1, ..., numQubits-1]
 std::vector<std::size_t> extractMeasureQubits(const Trace &trace);
 
-/// @brief Build PTSBETrace with interleaved instructions (no trajectories)
-///
-/// Converts the internal kernel trace into the user-facing PTSBETrace format.
-/// For each gate in the kernel trace, a Gate instruction is added. If the noise
-/// model defines noise at that gate, a Noise instruction follows. Measurement
-/// instructions are appended for all measured qubits. The trajectories vector
-/// is left empty.
-///
-/// @param kernelTrace Captured kernel trace
-/// @param noiseModel Noise model for identifying noise sites
-/// @return PTSBETrace with interleaved instructions and empty trajectories
-PTSBETrace buildPTSBETraceInstructions(const cudaq::Trace &kernelTrace,
-                                       const noise_model &noiseModel);
-
-/// @brief Populate trajectories on an existing PTSBETrace
-///
-/// Takes ownership of trajectories and results. Remaps each KrausSelection's
-/// circuit_location from noise-site index to the corresponding Noise
-/// instruction index in PTSBETrace.instructions (derived by scanning the
-/// instruction list). Populates measurement_counts from per-trajectory
-/// execution results.
-///
-/// @param trace PTSBETrace to populate (must have instructions already set)
-/// @param trajectories Executed trajectories
-/// @param perTrajectoryResults Per-trajectory sample results
-void populatePTSBETraceTrajectories(
-    PTSBETrace &trace, std::vector<cudaq::KrausTrajectory> trajectories,
-    std::vector<cudaq::sample_result> perTrajectoryResults);
-
 /// @brief Build complete PTSBatch with noise extraction and trajectory
 /// generation
 ///
@@ -134,10 +104,8 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
 /// @brief Run PTSBE sampling (internal API matching runSampling pattern)
 ///
 /// Internal function called from cudaq::sample() when ptsbe_options is set.
-/// Captures the kernel trace, converts it to a PTSBETrace early, generates
-/// trajectories, executes them, and aggregates results. Optionally attaches
-/// the PTSBETrace (with trajectories) to the result when trace_output is
-/// enabled.
+/// Captures the kernel trace, generates trajectories, executes them, and
+/// aggregates results.
 ///
 /// The noise model must be set on the platform before calling this function
 /// (validated by validatePTSBEPreconditions).
@@ -168,28 +136,15 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
 
-  // Stage 2: Convert kernel trace to PTSBETrace (instructions only)
-  auto ptsbeTrace =
-      buildPTSBETraceInstructions(traceCtx.kernelTrace, noiseModel);
-
-  // Stage 3: Build PTSBatch with trajectory generation and shot allocation
+  // Stage 2: Build PTSBatch with trajectory generation and shot allocation
   auto batch = buildPTSBatchWithTrajectories(std::move(traceCtx.kernelTrace),
                                              noiseModel, options, shots);
 
-  // Stage 4: Execute PTSBE with life-cycle management
+  // Stage 3: Execute PTSBE with life-cycle management
   auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
 
-  // Stage 5: Aggregate per-trajectory results
-  auto result = aggregateResults(perTrajectoryResults);
-
-  // Stage 6: Attach trajectories to trace and set on result if requested
-  if (options.trace_output) {
-    populatePTSBETraceTrajectories(ptsbeTrace, std::move(batch.trajectories),
-                                   std::move(perTrajectoryResults));
-    result.set_ptsbe_trace(std::move(ptsbeTrace));
-  }
-
-  return result;
+  // Stage 4: Aggregate per-trajectory results
+  return aggregateResults(perTrajectoryResults);
 }
 
 /// @brief Capture kernel trace and construct PTSBatch (for testing)

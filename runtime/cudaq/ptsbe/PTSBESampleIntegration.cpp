@@ -10,7 +10,6 @@
 #include "NoiseExtractor.h"
 #include "ShotAllocationStrategy.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
-#include <unordered_map>
 
 namespace cudaq {
 // Forward declaration from cudaq.h
@@ -77,70 +76,6 @@ std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
     qubits.push_back(i);
   }
   return qubits;
-}
-
-PTSBETrace buildPTSBETraceInstructions(const cudaq::Trace &kernelTrace,
-                                       const noise_model &noiseModel) {
-  PTSBETrace trace;
-
-  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
-
-  // Build lookup: gate index -> noise site indices (preserving extraction
-  // order)
-  std::unordered_map<std::size_t, std::vector<std::size_t>> gateToNoiseSites;
-  for (std::size_t i = 0; i < noiseResult.noise_sites.size(); ++i)
-    gateToNoiseSites[noiseResult.noise_sites[i].circuit_location].push_back(i);
-
-  // Interleave Gate and Noise instructions
-  std::size_t gateIdx = 0;
-  for (const auto &inst : kernelTrace) {
-    std::vector<std::size_t> targets;
-    targets.reserve(inst.targets.size());
-    for (const auto &q : inst.targets)
-      targets.push_back(q.id);
-
-    std::vector<std::size_t> controls;
-    controls.reserve(inst.controls.size());
-    for (const auto &q : inst.controls)
-      controls.push_back(q.id);
-
-    trace.instructions.push_back(
-        TraceInstruction{TraceInstructionType::Gate, inst.name,
-                         std::move(targets), std::move(controls), inst.params});
-
-    auto it = gateToNoiseSites.find(gateIdx);
-    if (it != gateToNoiseSites.end()) {
-      for (auto noiseSiteIdx : it->second) {
-        const auto &ns = noiseResult.noise_sites[noiseSiteIdx];
-        trace.instructions.push_back(
-            TraceInstruction{TraceInstructionType::Noise,
-                             ns.channel.get_type_name(),
-                             ns.qubits,
-                             {},
-                             {},
-                             ns.channel});
-      }
-    }
-
-    ++gateIdx;
-  }
-
-  auto measureQubits = extractMeasureQubits(kernelTrace);
-  for (auto qubit : measureQubits)
-    trace.instructions.push_back(TraceInstruction{
-        TraceInstructionType::Measurement, "mz", {qubit}, {}, {}});
-
-  return trace;
-}
-
-void populatePTSBETraceTrajectories(
-    PTSBETrace &trace, std::vector<cudaq::KrausTrajectory> trajectories,
-    std::vector<cudaq::sample_result> perTrajectoryResults) {
-  // TODO: When trajectory generation is wired up, remap circuit_location
-  // on each KrausSelection to the corresponding Noise instruction index in
-  // trace.instructions and populate measurement_counts from
-  // perTrajectoryResults.
-  trace.trajectories = std::move(trajectories);
 }
 
 PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
