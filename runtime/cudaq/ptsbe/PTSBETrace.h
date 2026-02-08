@@ -20,12 +20,19 @@ namespace cudaq::ptsbe {
 
 /// @brief Discriminator for instruction types within the PTSBE trace.
 ///
-/// Phase 1 supports Gate, Noise, and Measurement. Phase 2 will add Branch
-/// for mid-circuit measurement support.
+/// Currently supports Gate, Noise, and Measurement for static circuits.
+///
+// NOTE: For mid-circuit measurement support, a Branch instruction type
+// could be added. A Branch would contain child PTSBETrace instances (one
+// per measurement outcome), each with its own instructions and
+// trajectories. This forms a tree with the top-level tracing gates
+// before the first measurement, then branches into sub-traces that
+// continue independently with different quantum states. Roughly the
+// same would apply for classical control-flow tracing.
 enum class TraceInstructionType {
-  Gate,  ///< Quantum gate operation (H, X, CNOT, RX, etc.)
-  Noise, ///< Noise channel location (depolarizing, amplitude_damping, etc.)
-  Measurement ///< Terminal measurement operation
+  Gate,       /// Quantum gate operation (H, X, CNOT, RX, etc.)
+  Noise,      /// Noise channel location (depolarizing, amplitude_damping, etc.)
+  Measurement /// Terminal measurement operation
 };
 
 /// @brief Single operation in the PTSBE execution trace.
@@ -33,9 +40,6 @@ enum class TraceInstructionType {
 /// Stores gate, noise channel, or measurement info with plain qubit indices.
 /// This is the user-facing trace type exposed to Python via pybind11.
 ///
-/// Gate example: `{Gate, "h", {0}, {}, {}}`
-/// Noise example: `{Noise, "depolarizing", {0}, {}, {0.01}}`
-/// Measurement example: `{Measurement, "mz", {0}, {}, {}}`
 struct TraceInstruction {
   /// @brief Instruction category (Gate, Noise, or Measurement)
   TraceInstructionType type;
@@ -76,14 +80,13 @@ struct TraceInstruction {
 /// and where noise channels exist), while trajectories represent noise
 /// realizations (which Kraus operators were selected).
 ///
-/// One trace, many trajectories: PTSBE samples noise upfront, creating
-/// multiple trajectories that share the same circuit trace. Trajectories
-/// with identical Kraus selections are merged (num_shots increases).
+/// One trace may have many trajectories which reference the noise locations
+/// within the trace.
 struct PTSBETrace {
   /// @brief Ordered circuit operations (gates, noise channels, measurements)
   std::vector<TraceInstruction> instructions;
 
-  /// @brief All trajectory specifications with their outcomes
+  /// @brief The sampled trajectories
   std::vector<cudaq::KrausTrajectory> trajectories;
 
   /// @brief Count instructions matching the given type and optional name

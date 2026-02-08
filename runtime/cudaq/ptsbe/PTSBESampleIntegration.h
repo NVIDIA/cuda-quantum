@@ -178,7 +178,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
                                              noiseModel, options, shots);
 
   // Stage 4: Execute PTSBE with life-cycle management
-  auto perTrajectoryResults = samplePTSBEWithLifecycle(batch, "sample");
+  auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
 
   // Stage 5: Aggregate per-trajectory results
   auto result = aggregateResults(perTrajectoryResults);

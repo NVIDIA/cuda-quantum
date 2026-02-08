@@ -20,23 +20,25 @@ def sample(kernel,
            sampling_strategy=None,
            trace_output=False):
     """
-    Sample using Pre-Trajectory Sampling with Batch Execution.
+    Sample using Pre-Trajectory Sampling with Batch Execution (PTSBE).
 
     Pre-samples noise realizations (trajectories) and batches circuit
     executions by unique noise configuration, enabling efficient noisy
-    simulation.
+    sampling of many shots.
 
     Args:
       kernel: The quantum kernel to execute.
       shots_count (int): Number of measurement shots. Defaults to 1000.
       noise_model: The noise model to apply (required).
       max_trajectories (int or ``None``): Maximum unique trajectories to
-          generate. ``None`` means use the number of shots.
+          generate. ``None`` means use the number of shots. Note for large
+          shot counts setting a maximum is recommended to get the benefits
+          of PTS.
       sampling_strategy (``PTSSamplingStrategy`` or ``None``): Strategy for
           trajectory generation. ``None`` uses the default probabilistic
-          strategy.
-      trace_output (bool): Include circuit trace and trajectory data in the
-          result. Defaults to ``False``.
+          sampling strategy.
+      trace_output (bool): Include the sampled circuit trace and corresponding
+          trajectory data in the returned result. Defaults to ``False``.
 
     Returns:
       ``SampleResult``: Measurement results.
@@ -68,6 +70,11 @@ def sample(kernel,
     if (not isinstance(shots_count, int)) or (shots_count < 0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative integer.")
+
+    if max_trajectories is not None:
+        if (not isinstance(max_trajectories, int)) or (max_trajectories < 1):
+            raise RuntimeError(
+                "Invalid `max_trajectories`. Must be a positive integer.")
 
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     retTy = decorator.get_none_type()

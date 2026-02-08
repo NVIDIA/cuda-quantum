@@ -115,6 +115,16 @@ def test_ptsbe_sample_rejects_wrong_arity(depol_noise):
         cudaq.ptsbe.sample(bell, 42, noise_model=depol_noise)
 
 
+def test_ptsbe_sample_rejects_zero_max_trajectories(depol_noise):
+    with pytest.raises(RuntimeError, match="max_trajectories"):
+        cudaq.ptsbe.sample(bell, noise_model=depol_noise, max_trajectories=0)
+
+
+def test_ptsbe_sample_rejects_negative_max_trajectories(depol_noise):
+    with pytest.raises(RuntimeError, match="max_trajectories"):
+        cudaq.ptsbe.sample(bell, noise_model=depol_noise, max_trajectories=-5)
+
+
 def test_strategy_name_returns_string():
     prob = cudaq.ptsbe.ProbabilisticSamplingStrategy()
     ordered = cudaq.ptsbe.OrderedSamplingStrategy()
