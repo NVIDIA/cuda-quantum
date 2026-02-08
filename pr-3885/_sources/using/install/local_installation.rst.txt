@@ -243,7 +243,7 @@ source code for the latest version of the CUDA-Q Python wheels from our
 The source code for previous versions can be downloaded from the respective 
 `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
 
-At this time, wheels are distributed for Linux operating systems only. 
+Wheels are distributed for Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
 If your platform is not :ref:`officially supported <dependencies-and-compatibility>` and
 `pip` does not find a compatible wheel to install, you can build your own 
 wheel from source following the instructions here: :doc:`data_center_install`.
@@ -268,8 +268,8 @@ Starting with the 0.6.0 release, we provide pre-built binaries for using
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
 `PyPI.org <https://pypi.org/project/cudaq/>`__.
-The pre-built binaries work across a range of Linux operating systems listed 
-under :ref:`dependencies-and-compatibility`. 
+The pre-built binaries work across the operating systems listed 
+under :ref:`dependencies-and-compatibility`, including Linux and macOS (ARM64/Apple silicon only, CPU-only).
 
 Before installing our pre-built binaries, please make sure that your 
 operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
@@ -280,12 +280,15 @@ please double check that your operating system is listed as
 with an older GNU C library version, you will need to build the installer from 
 source following the instructions in :doc:`data_center_install`.
 
-You can download the `install_cuda_quantum` file for your processor architecture from
-the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+You can download the `install_cuda_quantum` file for your platform from
+the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
+
+- **Linux**: `install_cuda_quantum_cu12.<arch>` or `install_cuda_quantum_cu13.<arch>` (where `<arch>` is `x86_64` or `aarch64`)
+- **macOS**: `install_cuda_quantum_darwin.arm64` (CPU-only, Apple silicon)
+
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
 pre-built binaries as well as a script to move them to the correct locations. You will need
-`bash`, `tar`, and `gzip` (usually already installed on most Linux distributions) to run 
-the installer.
+`bash`, `tar`, and `gzip` to run the installer.
 The installation location of CUDA-Q is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.
@@ -308,7 +311,8 @@ The installation ensures that the necessary environment variables for
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the `nvq++` command is found. If it is not, please make sure 
 to set the environment variables defined by the `set_env.sh` script in the 
-CUDA-Q installation folder (usually `/usr/local/cudaq` or `/opt/nvidia/cudaq`).
+CUDA-Q installation folder (``/opt/nvidia/cudaq`` for the pre-built installer, 
+or ``$HOME/.cudaq`` for local builds from source).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
 the installer automatically enables MPI support in CUDA-Q.
@@ -863,6 +867,7 @@ Dependencies and Compatibility
 CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`../backends/simulators`.
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).
+On macOS, only ARM64 (Apple silicon) is supported.
 
 .. note:: 
 
@@ -877,7 +882,7 @@ The following table summarizes the required components.
     * - CPU architectures
       - x86_64, ARM64
     * - Operating systems
-      - Linux, Windows via Windows Subsystem for Linux 2 (WSL2)
+      - Linux, macOS (ARM64/Apple silicon only), Windows via Windows Subsystem for Linux 2 (WSL2)
     * - Tested Distributions
       - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
     * - Python versions
