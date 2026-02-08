@@ -1073,14 +1073,20 @@ def test_builder_apply_noise_inplace():
     cudaq.reset_target()
 
 
+INVALID_PROBABILITY_MSG = (
+    r"probability must be in the range|"
+    r"not completely positive|trace preserving"
+)
+
+
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])
 def test_noise_validation_probability_check(target: str):
     cudaq.set_target(target)
 
-    with pytest.raises(RuntimeError, match="probability must be in the range"):
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
         cudaq.DepolarizationChannel(-0.1)
 
-    with pytest.raises(RuntimeError, match="probability must be in the range"):
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
         cudaq.BitFlipChannel(1.5)
 
     @cudaq.kernel
@@ -1089,10 +1095,10 @@ def test_noise_validation_probability_check(target: str):
         cudaq.apply_noise(cudaq.XError, -0.1, q[0])
         mz(q)
 
-    with pytest.raises(RuntimeError, match="probability must be in the range"):
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
         cudaq.sample(kernel_invalid, noise_model=cudaq.NoiseModel())
 
-    with pytest.raises(RuntimeError, match="probability must be in the range"):
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
         cudaq.Depolarization2(1.5)
 
     depol_zero = cudaq.DepolarizationChannel(0.0)
