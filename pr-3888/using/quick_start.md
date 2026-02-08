@@ -1763,8 +1763,10 @@ Guide]{.doc}](install/install.html){.reference .internal}.
 ::: {.admonition .note}
 Note
 
-CUDA-Q is currently supported on Linux only. On Windows, you can use
-[Windows Subsystem for Linux
+CUDA-Q is supported on Linux (x86_64 and ARM64) and macOS (ARM64/Apple
+silicon only). GPU-acceleration is available on Linux only; macOS
+provides CPU-based simulation. On Windows, you can use [Windows
+Subsystem for Linux
 (WSL)](https://learn.microsoft.com/en-us/windows/wsl/){.reference
 .external} to install CUDA-Q.
 :::
@@ -1883,17 +1885,23 @@ C++
 ::: {.tab-content .docutils}
 To develop CUDA-Q applications using C++, please make sure you have a
 C++ toolchain installed that supports C++20, for example [`g++`{.code
-.docutils .literal .notranslate}]{.pre} version 11 or newer. Download
-the [`install_cuda_quantum`{.code .docutils .literal
-.notranslate}]{.pre} file for your processor architecture and CUDA
-version ([`_cu12`{.code .docutils .literal .notranslate}]{.pre} suffix
-for CUDA 12 and [`_cu13`{.code .docutils .literal .notranslate}]{.pre}
-suffix for CUDA 13) from the assets of the respective [GitHub
+.docutils .literal .notranslate}]{.pre} version 11 or newer (or
+[`clang++`{.code .docutils .literal .notranslate}]{.pre} on macOS).
+Download the [`install_cuda_quantum`{.code .docutils .literal
+.notranslate}]{.pre} file for your platform from the assets of the
+respective [GitHub
 release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
-.external}; that is, the file with the [`aarch64`{.code .docutils
-.literal .notranslate}]{.pre} extension for ARM processors, and the one
-with [`x86_64`{.code .docutils .literal .notranslate}]{.pre} for, e.g.,
-Intel and AMD processors.
+.external}:
+
+-   **Linux**: Use [`_cu12`{.code .docutils .literal
+    .notranslate}]{.pre} suffix for CUDA 12 or [`_cu13`{.code .docutils
+    .literal .notranslate}]{.pre} for CUDA 13, with [`aarch64`{.code
+    .docutils .literal .notranslate}]{.pre} for ARM or [`x86_64`{.code
+    .docutils .literal .notranslate}]{.pre} for Intel/AMD processors.
+
+-   **macOS**: Use the [`_darwin`{.code .docutils .literal
+    .notranslate}]{.pre} suffix with [`arm64`{.code .docutils .literal
+    .notranslate}]{.pre} for Apple silicon.
 
 To install CUDA-Q, execute the commands
 
@@ -1904,7 +1912,7 @@ To install CUDA-Q, execute the commands
 :::
 :::
 
-If you have an NVIDIA GPU, please also install the [CUDA
+If you have an NVIDIA GPU on Linux, please also install the [CUDA
 Toolkit](https://developer.nvidia.com/cuda-downloads){.reference
 .external} to enable GPU-acceleration within CUDA-Q.
 
