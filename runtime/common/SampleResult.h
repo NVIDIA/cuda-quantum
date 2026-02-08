@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/ptsbe/PTSBETrace.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -111,6 +112,10 @@ private:
   /// @brief Keep track of the total number of shots. We keep this
   /// here so we don't have to keep recomputing it.
   std::size_t totalShots = 0;
+
+  /// @brief Optional PTSBE trace data (populated when PTSBE enabled with
+  /// trace_output=true)
+  std::optional<ptsbe::PTSBETrace> ptsbeTrace;
 
   std::pair<bool, const ExecutionResult &>
   try_retrieve_result(const std::string &registerName) const;
@@ -292,6 +297,16 @@ public:
   /// @param bitString
   /// @return
   static bool has_even_parity(std::string_view bitString);
+
+  /// @brief Check if PTSBE trace data is available
+  bool has_ptsbe_trace() const;
+
+  /// @brief Get PTSBE trace data
+  /// @throws std::runtime_error if PTSBE trace not available
+  const ptsbe::PTSBETrace &ptsbe_trace() const;
+
+  /// @brief Set PTSBE trace data on this result
+  void set_ptsbe_trace(ptsbe::PTSBETrace trace);
 };
 
 } // namespace cudaq

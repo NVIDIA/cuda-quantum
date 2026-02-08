@@ -12,6 +12,7 @@
 
 # Source files
 set(PTSBE_SOURCES
+    PTSBETrace.cpp
     PTSBESampleIntegration.cpp
     PTSBESampler.cpp
     ShotAllocationStrategy.cpp
@@ -30,6 +31,7 @@ install(FILES
     TrajectoryDeduplication.h
     PTSBEOptions.h
     PTSBESampler.h
+    PTSBETrace.h
     PTSBESampleIntegration.h
     ShotAllocationStrategy.h
     PTSSamplingStrategy.h

@@ -35,11 +35,12 @@ static sample_result pySamplePTSBE(const std::string &shortName,
                                    noise_model noiseModel,
                                    std::optional<std::size_t> max_trajectories,
                                    py::object sampling_strategy,
-                                   py::args runtimeArgs) {
+                                   bool trace_output, py::args runtimeArgs) {
   if (shots_count == 0)
     return sample_result();
 
   ptsbe::PTSBEOptions ptsbe_options;
+  ptsbe_options.trace_output = trace_output;
   ptsbe_options.max_trajectories = max_trajectories;
 
   if (!sampling_strategy.is_none())
@@ -118,9 +119,10 @@ Args:
   noise_model: The noise model (required for PTSBE).
   max_trajectories: Maximum unique trajectories, or None to use shots.
   sampling_strategy: Sampling strategy or None for default (probabilistic).
+  trace_output: Whether to include trace and trajectory data in the result.
   *arguments: The kernel arguments.
 
 Returns:
-  SampleResult with measurement results.
+  SampleResult with optional PTSBE trace data.
 )pbdoc");
 }
