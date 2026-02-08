@@ -216,6 +216,11 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
 
+// Force eager CUDA module loading for dispatch kernels (occupancy query).
+// Call before cudaq_dispatcher_start() to avoid lazy-loading deadlocks.
+cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
+                                                  uint32_t threads_per_block);
+
 #ifdef __cplusplus
 }
 #endif

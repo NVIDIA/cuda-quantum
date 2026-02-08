@@ -240,6 +240,20 @@ __global__ void dispatch_kernel_with_graph(
 // Host Launch Functions
 //==============================================================================
 
+// Force eager CUDA module loading for the dispatch kernel.
+// Call before launching persistent kernels to avoid lazy-loading deadlocks.
+extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
+    int* out_blocks, uint32_t threads_per_block) {
+  int num_blocks = 0;
+  cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+      &num_blocks,
+      cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>,
+      threads_per_block, 0);
+  if (err != cudaSuccess) return err;
+  if (out_blocks) *out_blocks = num_blocks;
+  return cudaSuccess;
+}
+
 extern "C" void cudaq_launch_dispatch_kernel_regular(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
