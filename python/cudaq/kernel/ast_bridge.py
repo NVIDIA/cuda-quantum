@@ -3622,7 +3622,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 "unsupported argument for Kraus channel in "
                                 "apply_noise", node)
 
-                        # Validate constant probability params are in [0, 1]
+                        # Validate constant probability `params` are in [0, 1]
                         for i in range(numParams):
                             arg = node.args[1 + i]
                             if isinstance(arg, ast.Constant) and isinstance(

@@ -1073,10 +1073,8 @@ def test_builder_apply_noise_inplace():
     cudaq.reset_target()
 
 
-INVALID_PROBABILITY_MSG = (
-    r"probability must be in the range|"
-    r"not completely positive|trace preserving"
-)
+INVALID_PROBABILITY_MSG = (r"probability must be in the range|"
+                           r"not completely positive|trace preserving")
 
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])

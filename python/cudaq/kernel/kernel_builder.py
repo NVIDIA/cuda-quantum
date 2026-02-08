@@ -1556,7 +1556,7 @@ class PyKernel(object):
     @staticmethod
     def _validate_noise_channel_probability_params(noise_channel, param_values):
         """
-        Raise RuntimeError if any param is a constant float outside [0, 1].
+        Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
         """
         if not hasattr(noise_channel, 'num_parameters'):
             return
