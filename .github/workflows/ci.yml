@@ -237,7 +237,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        python_version: ['3.11', '3.13']
+        python_version: ['3.11', '3.12', '3.13']
         cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
