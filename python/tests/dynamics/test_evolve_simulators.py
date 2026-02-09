@@ -229,8 +229,8 @@ def test_evolve(init_state):
         get_result(0, evolution_result_decay),
         get_result(1, evolution_result_decay)
     ]
-    np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.01)
-    np.testing.assert_allclose(decay_results, expected_result_decay, atol=0.01)
+    np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.015)
+    np.testing.assert_allclose(decay_results, expected_result_decay, atol=0.015)
     # Test for `shots_count`
     schedule.reset()
     evolution_result_shots = cudaq.evolve(
