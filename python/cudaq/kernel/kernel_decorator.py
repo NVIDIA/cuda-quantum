@@ -157,82 +157,83 @@ class PyKernelDecorator(object):
         self.verbose = verbose
         self.argTypes = None
 
-        if not fromBuilder:
-            # Get any global variables from parent scope.  We filter only types
-            # we accept: integers and floats.  Note here we assume that the
-            # parent scope is 2 stack frames up
-            self.parentFrame = inspect.stack()[2].frame
-            if overrideGlobalScopedVars:
-                self.globalScopedVars = {
-                    k: v for k, v in overrideGlobalScopedVars.items()
-                }
-            else:
-                self.globalScopedVars = {
-                    k: v for k, v in dict(inspect.getmembers(self.parentFrame))
-                    ['f_locals'].items()
-                }
+        if fromBuilder:
+            assert module is not None, "module must be provided when fromBuilder is True"
+            assert is_deserializing is False, "is_deserializing must be False when fromBuilder is True"
 
-            # Register any external class types that may be used in the kernel
-            # definition
-            for name, var in self.globalScopedVars.items():
-                if isinstance(var, type) and hasattr(var, '__annotations__'):
-                    globalRegisteredTypes.registerClass(name, var)
+            # Convert a builder to a decorator.
+            self.qkeModule = module
+            self.uniqueId = int(kernelName.split("..0x")[1], 16)
+            self.uniqName = kernelName
+            funcOp = recover_func_op(module, nvqppPrefix + kernelName)
+            fnTy = FunctionType(
+                TypeAttr(funcOp.attributes['function_type']).value)
+            self.argTypes = fnTy.inputs
+            self.returnType = (fnTy.results[0]
+                               if fnTy.results else self.get_none_type())
+            self.liftedArgs = []
+            self.firstLiftedPos = None
+            return
+
+        # Get any global variables from parent scope.  We filter only types
+        # we accept: integers and floats.  Note here we assume that the
+        # parent scope is 2 stack frames up
+        self.parentFrame = inspect.stack()[2].frame
+        if overrideGlobalScopedVars:
+            self.globalScopedVars = {
+                k: v for k, v in overrideGlobalScopedVars.items()
+            }
+        else:
+            self.globalScopedVars = {
+                k: v for k, v in dict(inspect.getmembers(self.parentFrame))
+                ['f_locals'].items()
+            }
+
+        # Register any external class types that may be used in the kernel
+        # definition
+        for name, var in self.globalScopedVars.items():
+            if isinstance(var, type) and hasattr(var, '__annotations__'):
+                globalRegisteredTypes.registerClass(name, var)
 
         # Once the kernel is compiled to MLIR, we want to know what capture
         # variables, if any, were used in the kernel. We need to track these.
         self.dependentCaptures = None
 
         if not self.kernelFunction and not is_deserializing:
-            if fromBuilder and module:
-                # Convert a builder to a decorator.
-                self.qkeModule = module
-                self.uniqueId = int(kernelName.split("..0x")[1], 16)
-                self.uniqName = kernelName
-                funcOp = recover_func_op(module, nvqppPrefix + kernelName)
-                fnTy = FunctionType(
-                    TypeAttr(funcOp.attributes['function_type']).value)
-                self.argTypes = fnTy.inputs
-                self.returnType = (fnTy.results[0]
-                                   if fnTy.results else self.get_none_type())
-                self.liftedArgs = []
-                self.firstLiftedPos = None
-            else:
-                # Constructing a specialization of `decorator`.
-                # FIXME: is this used any longer?
-                if not decorator:
-                    raise RuntimeError("must pass in the decorator")
-                if not module:
-                    raise RuntimeError("must pass the new module")
-                # shallow copy everything
-                self.__dict__.update(vars(decorator))
-                # replace the MLIR module
-                self.qkeModule = module
-                # update the `argTypes` as specialization may have changed them
-                funcOp = recover_func_op(module,
-                                         nvqppPrefix + decorator.uniqName)
-                self.argTypes = FunctionType(
-                    TypeAttr(funcOp.attributes['function_type']).value).inputs
+            # Constructing a specialization of `decorator`.
+            # FIXME: is this used any longer?
+            if not decorator:
+                raise RuntimeError("must pass in the decorator")
+            if not module:
+                raise RuntimeError("must pass the new module")
+            # shallow copy everything
+            self.__dict__.update(vars(decorator))
+            # replace the MLIR module
+            self.qkeModule = module
+            # update the `argTypes` as specialization may have changed them
+            funcOp = recover_func_op(module, nvqppPrefix + decorator.uniqName)
+            self.argTypes = FunctionType(
+                TypeAttr(funcOp.attributes['function_type']).value).inputs
             return
 
-        if not fromBuilder:
-            if is_deserializing:
-                self.funcSrc = funcSrc
-                self.kernelModuleName = None
-            else:
-                # Get the function source
-                src = inspect.getsource(self.kernelFunction)
-                self.kernelModuleName = self.kernelFunction.__module__
+        if is_deserializing:
+            self.funcSrc = funcSrc
+            self.kernelModuleName = None
+        else:
+            # Get the function source
+            src = inspect.getsource(self.kernelFunction)
+            self.kernelModuleName = self.kernelFunction.__module__
 
-                # Strip off the extra tabs
-                leadingSpaces = len(src) - len(src.lstrip())
-                self.funcSrc = '\n'.join(
-                    [line[leadingSpaces:] for line in src.split('\n')])
+            # Strip off the extra tabs
+            leadingSpaces = len(src) - len(src.lstrip())
+            self.funcSrc = '\n'.join(
+                [line[leadingSpaces:] for line in src.split('\n')])
 
-            # Create the AST
-            self.astModule = ast.parse(self.funcSrc)
-            if verbose and importlib.util.find_spec('astpretty') is not None:
-                import astpretty
-                astpretty.pprint(self.astModule.body[0])
+        # Create the AST
+        self.astModule = ast.parse(self.funcSrc)
+        if verbose and importlib.util.find_spec('astpretty') is not None:
+            import astpretty
+            astpretty.pprint(self.astModule.body[0])
 
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
@@ -252,11 +253,10 @@ class PyKernelDecorator(object):
             emitFatalError('CUDA-Q kernel has return statement '
                            'but no return type annotation.')
 
-        if not fromBuilder:
-            # Store the AST for this kernel, it is needed for building up call
-            # graphs. We also must retain the source code location for error
-            # diagnostics
-            globalAstRegistry[self.name] = (self.astModule, self.location)
+        # Store the AST for this kernel, it is needed for building up call
+        # graphs. We also must retain the source code location for error
+        # diagnostics
+        globalAstRegistry[self.name] = (self.astModule, self.location)
         self.pre_compile()
 
     def __del__(self):
