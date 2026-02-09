@@ -245,6 +245,37 @@ CUDAQ_TEST(PTSBESampleTest, CoreSampleWithoutUsePTSBEUsesNormalPath) {
   EXPECT_GT(result.size(), 0);
 }
 
+CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.01));
+
+  auto &platform = cudaq::get_platform();
+  platform.set_noise(&noise);
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  auto result =
+      runSamplingPTSBE([]() { bellKernel(); }, platform,
+                       cudaq::getKernelName(bellKernel), 50, strategy);
+
+  platform.reset_noise();
+  (void)result;
+}
+
+CUDAQ_TEST(PTSBESampleTest, CoreSampleWithPTSBEAndShotAllocationOption) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.02));
+
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.use_ptsbe = true;
+  options.noise = noise;
+  options.ptsbe_shot_allocation =
+      ShotAllocationStrategy(ShotAllocationStrategy::Type::UNIFORM);
+
+  auto result = cudaq::sample(options, bellKernel);
+  (void)result;
+}
+
 // Test that capturePTSBatch correctly captures GHZ circuit structure
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchCapturesGHZCircuit) {
   auto batch = capturePTSBatch(ghzKernel);
