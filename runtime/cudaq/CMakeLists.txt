@@ -30,7 +30,8 @@ add_library(${LIBRARY_NAME}
     utils/cudaq_utils.cpp
     distributed/mpi_plugin.cpp
     ptsbe/PTSBETrace.cpp
-    ptsbe/PTSBESampleIntegration.cpp
+    ptsbe/PTSBESample.cpp
+    ptsbe/PTSBESampleResult.cpp
     ptsbe/PTSBESampler.cpp
     ptsbe/ShotAllocationStrategy.cpp
     ptsbe/TrajectoryDeduplication.cpp

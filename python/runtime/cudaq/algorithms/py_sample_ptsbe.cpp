@@ -9,7 +9,7 @@
 #include "py_sample_ptsbe.h"
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq/ptsbe/PTSBEOptions.h"
-#include "cudaq/ptsbe/PTSBESampleIntegration.h"
+#include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/PTSSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
@@ -35,12 +35,12 @@ static sample_result pySamplePTSBE(const std::string &shortName,
                                    noise_model noiseModel,
                                    std::optional<std::size_t> max_trajectories,
                                    py::object sampling_strategy,
-                                   bool trace_output, py::args runtimeArgs) {
+                                   bool return_trace, py::args runtimeArgs) {
   if (shots_count == 0)
     return sample_result();
 
   ptsbe::PTSBEOptions ptsbe_options;
-  ptsbe_options.trace_output = trace_output;
+  ptsbe_options.return_trace = return_trace;
   ptsbe_options.max_trajectories = max_trajectories;
 
   if (!sampling_strategy.is_none())
@@ -119,7 +119,7 @@ Args:
   noise_model: The noise model (required for PTSBE).
   max_trajectories: Maximum unique trajectories, or None to use shots.
   sampling_strategy: Sampling strategy or None for default (probabilistic).
-  trace_output: Whether to include trace and trajectory data in the result.
+  return_trace: Whether to include trace and trajectory data in the result.
   *arguments: The kernel arguments.
 
 Returns:

@@ -22,13 +22,13 @@ class PTSSamplingStrategy;
 /// Controls whether PTSBETrace output is produced and which sampling strategy
 /// to use.
 ///
-/// The trace_output flag controls production of the full PTSBETrace, which
+/// The return_trace flag controls production of the full PTSBETrace, which
 /// bundles circuit instructions and trajectories as a single unit.
 ///
 struct PTSBEOptions {
   /// Produce PTSBETrace (instructions + trajectories) in the sample result.
   /// Default false to avoid overhead when not needed.
-  bool trace_output = false;
+  bool return_trace = false;
 
   /// Custom sampling strategy. If `nullptr`, uses default strategy.
   std::shared_ptr<PTSSamplingStrategy> strategy = nullptr;
