@@ -2721,6 +2721,64 @@ def test_error_on_non_callable_type():
     assert "object is not callable" in str(e.value)
 
 
+def test_struct_list_int_member():
+    """Test that list[int] members in a struct are correctly marshaled.
+
+    Regression test for a bug in handleStructMemberVariable where
+    the StdvecType branch always created std::vector<double> regardless
+    of the actual element type T. This caused list[int] values to be
+    stored as doubles; the kernel then read the IEEE 754 bit pattern
+    as int64, producing garbage values.
+
+    For example, int 7 was stored as double(7.0) = 0x401C000000000000,
+    and the kernel read it back as int64 4619567317775286272.
+    """
+    from dataclasses import dataclass
+
+    # Case 1: struct with a single list[int] member
+    @dataclass(slots=True)
+    class SingleListInt:
+        values: list[int]
+
+    @cudaq.kernel
+    def kernel_read_int(params: SingleListInt) -> int:
+        return params.values[0]
+
+    assert kernel_read_int(SingleListInt(values=[7])) == 7
+    assert kernel_read_int(SingleListInt(values=[0])) == 0
+    assert kernel_read_int(SingleListInt(values=[42])) == 42
+
+    # Case 2: struct with list[int] + list[float] members
+    @dataclass(slots=True)
+    class IntAndFloatLists:
+        integers: list[int]
+        floats: list[float]
+
+    @cudaq.kernel
+    def kernel_read_mixed(params: IntAndFloatLists) -> int:
+        return params.integers[0]
+
+    assert kernel_read_mixed(IntAndFloatLists(integers=[5], floats=[3.14])) == 5
+
+    # Case 3: use list[int] value for qvector allocation.
+    # This is the scenario that causes OOM crash when list[int] values
+    # are corrupted (e.g., 7 becomes ~4.6e18, causing qvector to allocate
+    # an impossible number of qubits).
+    @dataclass(slots=True)
+    class QubitConfig:
+        num_qubits: list[int]
+        angles: list[float]
+
+    @cudaq.kernel
+    def kernel_alloc_from_int(config: QubitConfig):
+        qubits = cudaq.qvector(config.num_qubits[0])
+        ry(config.angles[0], qubits[0])
+
+    instance = QubitConfig(num_qubits=[2], angles=[np.pi])
+    counts = cudaq.sample(kernel_alloc_from_int, instance)
+    assert len(counts) == 1 and '10' in counts
+
+
 def test_named_reg_in_sample(capfd):
 
     @cudaq.kernel
