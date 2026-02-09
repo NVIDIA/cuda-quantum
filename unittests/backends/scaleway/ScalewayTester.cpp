@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <regex>
