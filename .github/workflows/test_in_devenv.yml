@@ -90,10 +90,9 @@ jobs:
           image: cuda-quantum-dev:local
           shell: bash
           run: |
+            set -euo pipefail
             cd $CUDAQ_REPO_ROOT
-            # Install iqm-client for IQM backend tests. Currently fails silently
-            # due to PEP 668 on Ubuntu 24.04. See: https://github.com/NVIDIA/cuda-quantum/issues/3880
-            python3 -m pip install iqm-client==28.0.0 || true
+            python3 -m pip install iqm-client==28.0.0 --break-system-packages
             bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
