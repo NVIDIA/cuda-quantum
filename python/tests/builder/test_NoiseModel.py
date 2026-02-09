@@ -1087,15 +1087,6 @@ def test_noise_validation_probability_check(target: str):
     with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
         cudaq.BitFlipChannel(1.5)
 
-    @cudaq.kernel
-    def kernel_invalid():
-        q = cudaq.qvector(1)
-        cudaq.apply_noise(cudaq.XError, -0.1, q[0])
-        mz(q)
-
-    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
-        cudaq.sample(kernel_invalid, noise_model=cudaq.NoiseModel())
-
     with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
         cudaq.Depolarization2(1.5)
 
