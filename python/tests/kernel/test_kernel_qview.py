@@ -40,4 +40,4 @@ def test_qview_non_zero_length():
 def test_qview_init_outside_of_kernel():
     # cannot instantiate a qview outside a kernel
     with pytest.raises(KernelTypeError):
-        cudaq.qview(2)
+        cudaq.qview()

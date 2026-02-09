@@ -61,7 +61,7 @@ class qubit(KernelType):
         ...
 
 
-class qview:
+class qview(KernelType):
     """A non-owning view on a register of qubits."""
 
     def size(self) -> int:
