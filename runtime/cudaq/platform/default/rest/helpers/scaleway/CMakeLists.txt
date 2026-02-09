@@ -34,7 +34,7 @@ add_library(cudaq-serverhelper-scaleway
 target_link_libraries(cudaq-serverhelper-scaleway
   PUBLIC
     cudaq-common
-    fmt::fmt-header-only
+    cudaq-logger
 )
 
 install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib)
