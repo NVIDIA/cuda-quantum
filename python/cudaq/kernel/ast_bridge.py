@@ -3622,6 +3622,17 @@ class PyASTBridge(ast.NodeVisitor):
                                 "unsupported argument for Kraus channel in "
                                 "apply_noise", node)
 
+                        # Validate constant probability `params` are in [0, 1]
+                        for i in range(numParams):
+                            arg = node.args[1 + i]
+                            if isinstance(arg, ast.Constant) and isinstance(
+                                    arg.value, (int, float)):
+                                val = float(arg.value)
+                                if val < 0.0 or val > 1.0:
+                                    raise RuntimeError(
+                                        "probability must be in the range "
+                                        "[0, 1]. Got: " + str(val))
+
                         # This currently requires at least one qubit argument
                         params, values = self.__groupValues(
                             node.args[1:], [(numParams, numParams), (1, -1)])
