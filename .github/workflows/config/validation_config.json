@@ -29,6 +29,13 @@
             [
                 "fedora:42"
             ]
+        },
+        {
+            "version": "3.14",
+            "operating_systems":
+            [
+                "fedora:42"
+            ]
         }
     ],
     "cpp":
