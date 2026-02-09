@@ -16,22 +16,7 @@ maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = { file="python/README.md.in", content-type = "text/markdown"}
 requires-python = ">=3.11"
 license = { file="LICENSE" }
-dependencies = [
-  'astpretty ~= 3.0',
-  'custatevec-cu12 ~= 1.12',
-  'cutensornet-cu12 ~= 2.11',
-  'cudensitymat-cu12 ~= 0.4',
-  'numpy >= 1.24',
-  'scipy >= 1.10.1',
-  'requests >= 2.31',
-  'nvidia-cublas-cu12 ~= 12.0',
-  'nvidia-curand-cu12 ~= 10.3',
-  'nvidia-cusparse-cu12 ~= 12.5',
-  'nvidia-cuda-runtime-cu12 ~= 12.0',
-  'nvidia-cusolver-cu12 ~= 11.4',
-  'nvidia-cuda-nvrtc-cu12 ~= 12.0',
-  'cupy-cuda12x ~= 13.6.0'
-]
+dependencies = []
 classifiers = [
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',
@@ -76,7 +61,9 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE"
+    "-DCUDAQ_BUILD_TESTS=FALSE",
+    "-DCUDAQ_DISABLE_RUNTIME=TRUE",
+    "-DCUDAQ_ENABLE_REMOTE_SIM=FALSE" 
 ]
 
 [tool.setuptools_scm]

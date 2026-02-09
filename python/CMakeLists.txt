@@ -53,9 +53,9 @@ add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
 # add_subdirectory(runtime/cudaq/domains/plugins)
 
-if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION .)
-endif()
+# if (NOT SKBUILD)
+#   install(DIRECTORY cudaq DESTINATION .)
+# endif()
 install(FILES "${METADATA_FILE}" DESTINATION cudaq)
 
 # Do we have pytest and numpy? 

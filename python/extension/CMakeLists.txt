@@ -15,7 +15,7 @@ include(AddMLIRPython)
 
 # Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
-# add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
+add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
 
 ################################################################################
 # Sources
