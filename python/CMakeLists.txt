@@ -36,20 +36,20 @@ if (CUDA_FOUND)
 endif()
 
 set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
-add_custom_target(
-  CopyPythonFiles ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_BINARY_DIR}/python
-  COMMAND ${CMAKE_COMMAND} 
-  -DMETADATA_FILE="${METADATA_FILE}" 
-  -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR} 
-  -P ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
-  DEPENDS ${PYTHON_SOURCES}
-  BYPRODUCTS "${METADATA_FILE}"
-)
+# add_custom_target(
+#   CopyPythonFiles ALL
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory
+#   ${CMAKE_CURRENT_SOURCE_DIR}
+#   ${CMAKE_BINARY_DIR}/python
+#   COMMAND ${CMAKE_COMMAND} 
+#   -DMETADATA_FILE="${METADATA_FILE}" 
+#   -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR} 
+#   -P ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
+#   DEPENDS ${PYTHON_SOURCES}
+#   BYPRODUCTS "${METADATA_FILE}"
+# )
 
-add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
+# add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
 # add_subdirectory(runtime/cudaq/domains/plugins)
 
