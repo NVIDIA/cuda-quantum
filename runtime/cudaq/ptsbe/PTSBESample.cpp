@@ -9,7 +9,9 @@
 #include "PTSBESample.h"
 #include "NoiseExtractor.h"
 #include "ShotAllocationStrategy.h"
+#include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
+#include <numeric>
 #include <unordered_map>
 
 namespace cudaq {
@@ -79,6 +81,15 @@ std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
   return qubits;
 }
 
+void cleanupTracerQubits(const Trace &kernelTrace) {
+  auto numQubits = kernelTrace.getNumQudits();
+  if (numQubits == 0)
+    return;
+  std::vector<std::size_t> qubitIds(numQubits);
+  std::iota(qubitIds.begin(), qubitIds.end(), 0);
+  cudaq::get_simulator()->deallocateQubits(qubitIds);
+}
+
 PTSBETrace buildPTSBETraceInstructions(const cudaq::Trace &kernelTrace,
                                        const noise_model &noiseModel) {
   PTSBETrace trace;
@@ -140,7 +151,26 @@ void populatePTSBETraceTrajectories(
   // on each KrausSelection to the corresponding Noise instruction index in
   // trace.instructions and populate measurement_counts from
   // perTrajectoryResults.
-  trace.trajectories = std::move(trajectories);
+  if (!trajectories.empty()) {
+    trace.trajectories = std::move(trajectories);
+    return;
+  }
+
+  // Stub: generate a single identity trajectory so that the trace has at
+  // least one trajectory for downstream consumers (Python bindings, tests).
+  // This will be replaced once the trajectory generation pipeline is wired up.
+  KrausTrajectory stub;
+  stub.trajectory_id = 0;
+  stub.probability = 1.0;
+  stub.num_shots = 1;
+  for (std::size_t i = 0; i < trace.instructions.size(); ++i) {
+    if (trace.instructions[i].type == TraceInstructionType::Noise) {
+      stub.kraus_selections.emplace_back(
+          i, std::vector<std::size_t>(trace.instructions[i].targets),
+          trace.instructions[i].name, KrausOperatorType::IDENTITY);
+    }
+  }
+  trace.trajectories.push_back(std::move(stub));
 }
 
 PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,

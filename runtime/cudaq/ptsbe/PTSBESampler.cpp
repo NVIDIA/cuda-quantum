@@ -244,11 +244,14 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
 
   auto results = samplePTSBE(batch);
 
+  sim->finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
+
+  // Deallocate after context is removed. deallocateQubits is a no-op while
+  // an execution context is set
   std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   sim->deallocateQubits(qubitIds);
-  sim->finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
 
   return results;
 }

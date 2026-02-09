@@ -139,3 +139,82 @@ def test_probabilistic_strategy_accepts_seed():
     s1 = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=0)
     s2 = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=42)
     assert s1.name() == s2.name()
+
+
+def test_no_trace_by_default(density_matrix_target, depol_noise):
+    result = cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=100)
+    assert not result.has_trace()
+    assert result.ptsbe_trace is None
+
+
+def test_trace_contents(density_matrix_target):
+    """Trace from bell() with depolarizing noise on h should contain
+    the expected gate, noise, and measurement instructions."""
+    # Use noise on "h" at [0] so the noise model key ("h", [0]) matches
+    # the h(q[0]) gate exactly (get_channels matches on gate name + full
+    # qubit list).
+    noise = cudaq.NoiseModel()
+    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=noise,
+                                shots_count=100,
+                                return_trace=True)
+    assert result.has_trace()
+    trace = result.ptsbe_trace
+
+    Gate = cudaq.ptsbe.TraceInstructionType.Gate
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
+
+    gates = [i for i in trace.instructions if i.type == Gate]
+    noises = [i for i in trace.instructions if i.type == Noise]
+    measurements = [i for i in trace.instructions if i.type == Meas]
+
+    # bell() applies h(q[0]) then x.ctrl(q[0], q[1]) -> expect >= 2 gates
+    assert len(gates) >= 2
+    gate_names = [g.name for g in gates]
+    assert "h" in gate_names
+    assert "x" in gate_names
+
+    # noise on "h" at [0] -> at least 1 noise instruction
+    assert len(noises) >= 1
+    for n in noises:
+        assert len(n.targets) > 0
+
+    # mz(q) on 2 qubits -> at least 1 measurement instruction
+    assert len(measurements) >= 1
+
+    # Totals are consistent
+    assert len(gates) + len(noises) + len(measurements) == len(
+        trace.instructions)
+
+    # count_instructions agrees
+    assert trace.count_instructions(Gate) == len(gates)
+    assert trace.count_instructions(Noise) == len(noises)
+    assert trace.count_instructions(Meas) == len(measurements)
+
+
+@pytest.mark.xfail(reason="Trajectory generation not yet wired up; stub "
+                   "trajectory has empty kraus_selections.")
+def test_trace_trajectories(density_matrix_target, depol_noise):
+    """Trajectories should be populated with ids, probabilities, shots,
+    and kraus selections referencing noise instruction locations."""
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=depol_noise,
+                                shots_count=100,
+                                return_trace=True)
+    trace = result.ptsbe_trace
+    assert len(trace.trajectories) > 0
+
+    for traj in trace.trajectories:
+        assert traj.probability > 0.0
+        assert traj.num_shots >= 1
+        assert len(traj.kraus_selections) > 0
+
+    # get_trajectory round-trips
+    first = trace.trajectories[0]
+    found = trace.get_trajectory(first.trajectory_id)
+    assert found is not None
+    assert found.trajectory_id == first.trajectory_id
+    assert trace.get_trajectory(999999) is None

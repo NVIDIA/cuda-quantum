@@ -310,7 +310,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithoutTraceOutputHasNoTrace) {
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, SampleResultDefaultConstruction) {
-  SampleResult r;
+  sample_result r;
   EXPECT_FALSE(r.has_trace());
 }
 
@@ -320,7 +320,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleResultMoveFromBaseResult) {
   counts["11"] = 50;
   cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
 
-  SampleResult r(std::move(baseResult));
+  sample_result r(std::move(baseResult));
   EXPECT_FALSE(r.has_trace());
   // Inherited data should be accessible
   EXPECT_GT(r.size(), 0);
@@ -338,7 +338,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleResultConstructionWithTrace) {
   trace.instructions.push_back(
       TraceInstruction{TraceInstructionType::Measurement, "mz", {0}, {}, {}});
 
-  SampleResult r(std::move(baseResult), std::move(trace));
+  sample_result r(std::move(baseResult), std::move(trace));
 
   ASSERT_TRUE(r.has_trace());
   EXPECT_EQ(r.trace().instructions.size(), 2);
@@ -353,7 +353,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleResultInheritedAccess) {
   counts["11"] = 50;
   cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
 
-  SampleResult r(std::move(baseResult));
+  sample_result r(std::move(baseResult));
 
   EXPECT_GT(r.size(), 0);
   auto mp = r.most_probable();
@@ -361,12 +361,12 @@ CUDAQ_TEST(PTSBESampleTest, SampleResultInheritedAccess) {
 }
 
 CUDAQ_TEST(PTSBESampleTest, SampleResultTraceThrowsWhenNotPresent) {
-  SampleResult r;
+  sample_result r;
   EXPECT_THROW(r.trace(), std::runtime_error);
 }
 
 CUDAQ_TEST(PTSBESampleTest, SampleResultSetTrace) {
-  SampleResult r;
+  sample_result r;
   EXPECT_FALSE(r.has_trace());
 
   PTSBETrace trace;

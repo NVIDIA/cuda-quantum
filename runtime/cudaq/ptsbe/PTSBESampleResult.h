@@ -16,18 +16,18 @@ namespace cudaq::ptsbe {
 
 /// @brief PTSBE-specific result type returned by `ptsbe::sample()`
 ///    which may contain trace data.
-class SampleResult : public cudaq::sample_result {
+class sample_result : public cudaq::sample_result {
 private:
   std::optional<PTSBETrace> trace_;
 
 public:
-  SampleResult() = default;
+  sample_result() = default;
 
   /// @brief Construct from a base sample_result (move)
-  explicit SampleResult(cudaq::sample_result &&base);
+  explicit sample_result(cudaq::sample_result &&base);
 
   /// @brief Construct from a base sample_result with trace data
-  SampleResult(cudaq::sample_result &&base, PTSBETrace trace);
+  sample_result(cudaq::sample_result &&base, PTSBETrace trace);
 
   /// @brief Check if trace data is available
   bool has_trace() const;
