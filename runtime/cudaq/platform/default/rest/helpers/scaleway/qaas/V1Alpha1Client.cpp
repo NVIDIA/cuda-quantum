@@ -7,7 +7,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "V1Alpha1Client.h"
-#include "cudaq/utils/cudaq_utils.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <stdexcept>
 #include <regex>
 #include <sstream>
