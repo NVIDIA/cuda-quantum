@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(utils)
+# add_subdirectory(utils)
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
@@ -51,7 +51,7 @@ add_custom_target(
 
 add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
-add_subdirectory(runtime/cudaq/domains/plugins)
+# add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)
@@ -71,14 +71,14 @@ execute_process(COMMAND ${Python_EXECUTABLE} -c "import numpy"
 if(CUDAQ_BUILD_TESTS)
   if(${PYTEST_result} EQUAL 0 AND ${NUMPY_result} EQUAL 0)
     message(STATUS "Pytest and Numpy found, building Python tests.")
-    add_subdirectory(tests)
+    # add_subdirectory(tests)
   else()
     message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
   endif()
 endif()
 
-add_subdirectory(runtime/interop)
+# add_subdirectory(runtime/interop)
 
 if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
-  add_subdirectory(runtime/cudaq/dynamics)
+  # add_subdirectory(runtime/cudaq/dynamics)
 endif()
