@@ -106,7 +106,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
     std::string qioParams = serializeParametersToQio(shots);
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
-    qaas::v1alpha1::Model model = m_qaasClient->createModel(qioPayload);
+    auto model = m_qaasClient->createModel(qioPayload);
     CUDAQ_INFO("Created model {}", model.id);
 
     taskRequest["model_id"] = model.id;
@@ -165,7 +165,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   auto jobResults = m_qaasClient->listJobResults(jobId);
 
   if (jobResults.empty()) {
-    throw std::runtime_error("Job done but empty results.");
+    throw std::runtime_error("Job done but no result.");
   }
 
   auto firstResult = jobResults[0];
@@ -186,8 +186,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   try {
     auto jsonPayload = json::parse(rawPayload);
 
-    qio::QuantumProgramResult qioResult =
-        qio::QuantumProgramResult::fromJson(jsonPayload);
+    auto qioResult = qio::QuantumProgramResult::fromJson(jsonPayload);
 
     auto sampleResult = qioResult.toCudaqSampleResult();
 
@@ -203,7 +202,7 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
     CUDAQ_INFO("Alive session id: {}", m_sessionId);
 
     try {
-      qaas::v1alpha1::Session session = m_qaasClient->getSession(m_sessionId);
+      auto session = m_qaasClient->getSession(m_sessionId);
       auto status = session.status;
 
       if (status == "error" || status == "stopped" || status == "stopping") {
@@ -223,11 +222,16 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
     auto platforms = m_qaasClient->listPlatforms(m_targetPlatformName);
 
     if (platforms.empty()) {
-      throw std::runtime_error("No platforms found with name: " +
+      throw std::runtime_error("No platform found with name: " +
                                m_targetPlatformName);
     }
 
     auto platform = platforms[0];
+
+    if (platform.availability == "maintenance" ||
+      platform.availability == "shortage") {
+        throw std::runtime_error("Target platform not available: " + platform.availability);
+    }
 
     CUDAQ_INFO("Creating session on platform {} (id={})",
       platform.name, platform.id);
