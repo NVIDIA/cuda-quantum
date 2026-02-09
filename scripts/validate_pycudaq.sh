@@ -89,13 +89,16 @@ if [ -z "$root_folder" ]; then
         rm -rf "${staging_dir:?}"
         mkdir -p "$staging_dir"
 
-        # Symlink test files to staging (mirrors CI copy structure)
-        ln -sf "$readme_src" "$staging_dir/README.md"
-        ln -sf "$repo_root/python/tests" "$staging_dir/tests"
-        ln -sf "$repo_root/docs/sphinx/examples/python" "$staging_dir/examples"
-        ln -sf "$repo_root/docs/sphinx/snippets/python" "$staging_dir/snippets"
+        # Copy test files to staging (mirrors CI copy structure).
+        # Use cp -r instead of symlinks for robustness: find(1) may not
+        # follow initial symlinks in all environments, and CI runners may
+        # have different filesystem semantics.
+        cp -f "$readme_src" "$staging_dir/README.md"
+        cp -r "$repo_root/python/tests" "$staging_dir/tests"
+        cp -r "$repo_root/docs/sphinx/examples/python" "$staging_dir/examples"
+        cp -r "$repo_root/docs/sphinx/snippets/python" "$staging_dir/snippets"
         if [ -d "$repo_root/docs/sphinx/targets/python" ]; then
-            ln -sf "$repo_root/docs/sphinx/targets/python" "$staging_dir/targets"
+            cp -r "$repo_root/docs/sphinx/targets/python" "$staging_dir/targets"
         fi
 
         root_folder="$staging_dir"
@@ -204,6 +207,17 @@ if ! $is_macos; then
     done <<<"$ompi_script"
 fi
 status_sum=0
+
+# Smoke test: verify cudaq can be imported in a clean environment.
+# This catches wheel packaging issues (e.g., missing native libraries,
+# flat namespace symbol resolution failures on macOS) before running
+# the full test suite.
+echo "==> Smoke test: import cudaq"
+python3 -c "import cudaq; print('cudaq version:', cudaq.__version__)"
+if [ $? -ne 0 ]; then
+    echo -e "\e[01;31mFailed to import cudaq. The wheel may have broken native library dependencies.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Verify that the necessary GPU targets are installed and usable (Linux only)
 if $is_macos; then
@@ -317,6 +331,16 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
         fi
     fi
 done
+
+# Guard: ensure snippets and examples were actually found and executed.
+# If both find commands returned zero results, the staging directory is
+# likely misconfigured (broken symlinks, missing source dirs, etc.).
+snippet_count=$(find "$root_folder/snippets" -name '*.py' 2>/dev/null | wc -l)
+example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
+if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
+    echo -e "\e[01;31mNo snippets or examples found in $root_folder. Check staging setup.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Run target tests if target folder exists.
 if [ -d "$root_folder/targets" ]; then
