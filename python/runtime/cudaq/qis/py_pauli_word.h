@@ -14,5 +14,5 @@ namespace py = pybind11;
 
 namespace cudaq {
 /// @brief Bind the Quantum Instruction Set.
-void bindQIS(py::module &mod);
+void bindPauliWord(py::module &mod);
 } // namespace cudaq
