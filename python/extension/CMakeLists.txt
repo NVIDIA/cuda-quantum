@@ -44,7 +44,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   ADD_TO_PARENT CUDAQuantumPythonSources
   SOURCES
     CUDAQuantumExtension.cpp
-    ../runtime/mlir/py_register_dialects.cpp
+    # ../runtime/mlir/py_register_dialects.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
