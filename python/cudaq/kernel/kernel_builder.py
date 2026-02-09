@@ -1820,3 +1820,4 @@ def isa_dynamic_kernel(object):
     Return True if and only if object is an instance of PyKernel.
     """
     return isinstance(object, PyKernel)
+
