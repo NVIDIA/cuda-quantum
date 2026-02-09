@@ -23,7 +23,6 @@ std::string cudaq::qio::gzipCompress(const std::string &input) {
     if (deflateInit(&zs, compressionlevel) != Z_OK)
         throw(std::runtime_error("deflateInit failed while compressing."));
 
-    // zs.next_in = (Bytef*)input.data();
     zs.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(input.data()));
     zs.avail_in = input.size(); // set the z_stream's input
 
@@ -65,7 +64,6 @@ std::string cudaq::qio::gzipDecompress(const std::string &input) {
         throw(std::runtime_error("inflateInit failed while decompressing."));
 
     // zs.next_in = (Bytef*)input.data();
-    // zs.next_in = reinterpret_cast<Bytef*>(input.data());
     zs.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(input.data()));
     zs.avail_in = input.size();
 
@@ -75,7 +73,6 @@ std::string cudaq::qio::gzipDecompress(const std::string &input) {
 
     // get the decompressed bytes blockwise using repeated calls to inflate
     do {
-        // zs.next_out = reinterpret_cast<Bytef*>(outbuffer);
         zs.next_out = const_cast<Bytef*>(reinterpret_cast<Bytef*>(outbuffer));
         zs.avail_out = sizeof(outbuffer);
 

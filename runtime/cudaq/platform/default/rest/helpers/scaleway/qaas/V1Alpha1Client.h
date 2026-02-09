@@ -7,7 +7,6 @@
  ******************************************************************************/
 #pragma once
 #include "V1Alpha1Objects.h"
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include <map>
 #include <vector>
