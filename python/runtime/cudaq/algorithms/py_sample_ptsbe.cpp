@@ -67,9 +67,14 @@ static ptsbe::sample_result pySamplePTSBE(
               clean_launch_module(shortName, mod, retTy, opaques);
         },
         platform, shortName, shots_count, ptsbe_options);
+  } catch (const std::exception &e) {
+    platform.reset_noise();
+    throw std::runtime_error(std::string("cudaq.ptsbe.sample() failed: ") +
+                             e.what());
   } catch (...) {
     platform.reset_noise();
-    throw;
+    throw std::runtime_error(
+        "cudaq.ptsbe.sample() failed with an unknown error.");
   }
 
   platform.reset_noise();

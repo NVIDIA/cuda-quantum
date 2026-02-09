@@ -218,3 +218,58 @@ def test_trace_trajectories(density_matrix_target, depol_noise):
     assert found is not None
     assert found.trajectory_id == first.trajectory_id
     assert trace.get_trajectory(999999) is None
+
+
+@pytest.mark.xfail(reason="Trajectory generation not yet wired up; "
+                   "stub trajectory has num_shots=1.")
+def test_trajectory_counts_sum_to_total_shots(density_matrix_target):
+    """Sum of trajectory num_shots across all trajectories should equal
+    the requested shots_count."""
+    noise = cudaq.NoiseModel()
+    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+
+    shots = 100
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=noise,
+                                shots_count=shots,
+                                return_trace=True)
+    trace = result.ptsbe_trace
+    assert len(trace.trajectories) > 0
+
+    total = sum(t.num_shots for t in trace.trajectories)
+    assert total == shots
+
+
+def test_ptsbe_result_supports_standard_access(density_matrix_target,
+                                               depol_noise):
+    """ptsbe.SampleResult supports standard sample_result methods
+    (counts, register_names) without error."""
+    result = cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=100)
+    assert isinstance(result, cudaq.SampleResult)
+
+    # Standard accessors should not throw even when results are empty
+    reg_names = result.register_names
+    assert isinstance(reg_names, list)
+
+
+def test_mcm_kernel_rejected(density_matrix_target, depol_noise):
+    """Kernels with mid-circuit measurements are rejected with a clear
+    message mentioning 'mid-circuit' or 'dynamic'."""
+
+    @cudaq.kernel
+    def mcm_kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        b = mz(q[0])
+        if b:
+            x(q[1])
+        mz(q)
+
+    with pytest.raises(RuntimeError, match="conditional feedback|measurement"):
+        cudaq.ptsbe.sample(mcm_kernel, noise_model=depol_noise)
+
+
+def test_missing_noise_model_message_contains_noise_model():
+    """Error for missing noise_model mentions the parameter name."""
+    with pytest.raises(RuntimeError, match="noise_model"):
+        cudaq.ptsbe.sample(bell)

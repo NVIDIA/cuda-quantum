@@ -8,6 +8,7 @@
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.runtime.sample import _detail_check_conditionals_on_measure
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
 
@@ -75,6 +76,8 @@ def sample(kernel,
         if (not isinstance(max_trajectories, int)) or (max_trajectories < 1):
             raise RuntimeError(
                 "Invalid `max_trajectories`. Must be a positive integer.")
+
+    _detail_check_conditionals_on_measure(decorator)
 
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     retTy = decorator.get_none_type()

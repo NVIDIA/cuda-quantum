@@ -35,10 +35,11 @@ void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx) {
   if (hasConditionalFeedback(kernelName, ctx)) {
     throw std::runtime_error(
-        "PTSBE does not support dynamic circuits. "
-        "Circuits with conditional logic based on measurement outcomes "
-        "cannot currently be pre-trajectory sampled. The gate sequence must be "
-        "deterministic for trajectory generation.");
+        "PTSBE does not support mid-circuit measurements or dynamic circuits. "
+        "Kernel '" +
+        kernelName +
+        "' contains conditional logic based on measurement outcomes. "
+        "The gate sequence must be deterministic for pre-trajectory sampling.");
   }
 }
 
@@ -67,8 +68,9 @@ void validatePTSBEPreconditions(quantum_platform &platform,
   const auto *noise = platform.get_noise();
   if (!noise || noise->empty())
     throw std::runtime_error(
-        "PTSBE requires a noise model to be set. Please provide a noise "
-        "model in sample_options.");
+        "PTSBE requires a non-empty noise model. "
+        "Pass noise_model=... to cudaq.ptsbe.sample() or set noise on "
+        "the platform before calling ptsbe::sample().");
 }
 
 std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
