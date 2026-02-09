@@ -6,7 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(utils)
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
+  add_subdirectory(utils)
+endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
@@ -51,10 +53,14 @@ add_custom_target(
 
 add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
 add_subdirectory(runtime/cudaq/domains/plugins)
+endif()
 
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
 if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)
+endif()
 endif()
 install(FILES "${METADATA_FILE}" DESTINATION cudaq)
 
@@ -77,8 +83,11 @@ if(CUDAQ_BUILD_TESTS)
   endif()
 endif()
 
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
 add_subdirectory(runtime/interop)
 
 if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
   add_subdirectory(runtime/cudaq/dynamics)
+endif()
+
 endif()

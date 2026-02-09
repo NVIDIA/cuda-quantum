@@ -160,6 +160,8 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
+option(CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS "Build CUDA-Q Python without bindings for runtime components, i.e., only CUDA-Q MLIR support." OFF)
+
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
 # These are cached so they persist across cmake runs without needing the env vars set again.
@@ -506,6 +508,7 @@ execute_process(COMMAND git rev-parse --verify HEAD
 configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in" 
                "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
 
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
 # Check optional dependencies
 # ==============================================================================
 
@@ -639,18 +642,26 @@ if(CUDAQ_ENABLE_CC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
   endif()
 endif(CUDAQ_ENABLE_CC)
+else() 
+  include_directories(SYSTEM tpls/json/include)
+endif() 
 
 # Directory setup
 # ==============================================================================
 
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
 add_subdirectory(cmake)
+endif()
 add_subdirectory(include)
 add_subdirectory(lib)
+
+if (NOT CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
 add_subdirectory(tools)
 add_subdirectory(utils)
+endif()
 
 if(CUDAQ_BUILD_TESTS)
   enable_testing()

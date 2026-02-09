@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#ifndef CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS
 #include "cudaq.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
@@ -46,6 +47,9 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
+#else
+#include "cudaq/Optimizer/CAPI/Dialects.h"
+#endif // CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -55,11 +59,14 @@
 
 namespace py = pybind11;
 
+#ifndef CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS
 using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
+#endif // CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS
 
 PYBIND11_MODULE(_quakeDialects, m) {
+#ifndef CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);
@@ -349,4 +356,29 @@ PYBIND11_MODULE(_quakeDialects, m) {
         opt::factory::mergeModules(toMod, unwrap(from));
       },
       "Merge the `from` module into the `to` module, overwriting `name`.");
+#else
+  auto quakeMod = m.def_submodule("quake");
+  quakeMod.def(
+      "register_dialect",
+      [](bool load, MlirContext context) {
+        MlirDialectHandle handle = mlirGetDialectHandle__quake__();
+        mlirDialectHandleRegisterDialect(handle, context);
+        if (load) {
+          mlirDialectHandleLoadDialect(handle, context);
+        }
+      },
+      py::arg("load") = true, py::arg("context") = py::none());
+
+  auto ccMod = m.def_submodule("cc");
+  ccMod.def(
+      "register_dialect",
+      [](bool load, MlirContext context) {
+        MlirDialectHandle handle = mlirGetDialectHandle__cc__();
+        mlirDialectHandleRegisterDialect(handle, context);
+        if (load) {
+          mlirDialectHandleLoadDialect(handle, context);
+        }
+      },
+      py::arg("load") = true, py::arg("context") = py::none());
+#endif // CUDAQ_DISABLE_PYTHON_RUNTIME_BINDINGS
 }
