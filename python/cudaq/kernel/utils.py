@@ -36,11 +36,6 @@ nvqppPrefix = '__nvqpp__mlirgen__'
 
 ahkPrefix = '__analog_hamiltonian_kernel__'
 
-# Keep a global registry of all kernel Python AST modules keyed on their name
-# (without `__nvqpp__mlirgen__` prefix). The values in this dictionary are a
-# tuple of the AST module and the source code location for the kernel.
-globalAstRegistry = {}
-
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
 
