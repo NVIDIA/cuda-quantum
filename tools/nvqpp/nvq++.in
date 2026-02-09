@@ -325,11 +325,16 @@ fi
 # from the target used when building CUDA-Q, causing linker warnings about
 # version mismatches between the executable and dylibs.
 CUDAQ_MACOS_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-@CMAKE_OSX_DEPLOYMENT_TARGET@}"
+LLC_FLAGS=-O2
 MACOS_VERSION_FLAG=""
 if ${CUDAQ_IS_APPLE} && [ -n "${CUDAQ_MACOS_DEPLOYMENT_TARGET}" ]; then
 	MACOS_VERSION_FLAG="-mmacosx-version-min=${CUDAQ_MACOS_DEPLOYMENT_TARGET}"
 	COMPILER_FLAGS="${COMPILER_FLAGS} ${MACOS_VERSION_FLAG}"
 	LINKER_FLAGS="${LINKER_FLAGS} ${MACOS_VERSION_FLAG}"
+	# Set LLC target triple to include deployment target, ensuring object files
+	# are marked with the same version as the linked libraries.
+	LLC_ARCH=$(uname -m)
+	LLC_FLAGS="${LLC_FLAGS} -mtriple=${LLC_ARCH}-apple-macos${CUDAQ_MACOS_DEPLOYMENT_TARGET}"
 fi
 
 LINKER_PATH=
@@ -368,7 +373,6 @@ CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
 MAPPING_FILE=
-LLC_FLAGS=-O2
 DO_LINK=true
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true

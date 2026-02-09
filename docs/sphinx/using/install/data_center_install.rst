@@ -317,7 +317,7 @@ To easily migrate the built binaries to the host system, we recommend creating a
 `makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
 files to install into a separate folder using the command
 
-.. literalinclude:: ../../../../docker/release/installer.Dockerfile
+.. literalinclude:: ../../../../scripts/build_installer.sh
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumAssets]
