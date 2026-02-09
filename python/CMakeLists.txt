@@ -56,7 +56,7 @@ set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
 # if (NOT SKBUILD)
 #   install(DIRECTORY cudaq DESTINATION .)
 # endif()
-install(FILES "${METADATA_FILE}" DESTINATION cudaq)
+# install(FILES "${METADATA_FILE}" DESTINATION cudaq)
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
