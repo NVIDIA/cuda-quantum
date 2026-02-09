@@ -15,7 +15,7 @@
 #include <sstream>
 
 using json = nlohmann::json;
-using namespace cudaq; 
+using namespace cudaq;
 
 std::string getEnv(const std::string &envKey) {
   if (envKey.empty())
@@ -34,7 +34,7 @@ std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &envKey,
                               const std::string &defaultValue) {
   auto it = config.find(key);
-  
+
   // If no provided value, look from env variables
   auto envValue = getEnv(envKey);
 
@@ -102,7 +102,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
-    
+
     std::string qioParams = serializeParametersToQio(shots);
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
@@ -146,12 +146,10 @@ std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
 }
 
 bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  std::string status = getJobResponse.value("status", "unknown_status");
+  std::string status = getJobResponse.value("status", "Unknown status");
 
   if (status == "error") {
-    std::string err = getJobResponse.contains("result")
-                          ? getJobResponse["result"].value("error_message", "Unknown error")
-                          : "Unknown";
+    std::string err = getJobResponse.value("progress_message", "Unknown error");
     throw std::runtime_error("Scaleway Job Error: " + err);
   }
 
@@ -231,7 +229,7 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
 
     auto platform = platforms[0];
 
-    CUDAQ_INFO("Creating session on platform {} (id={})", 
+    CUDAQ_INFO("Creating session on platform {} (id={})",
       platform.name, platform.id);
 
     auto session = m_qaasClient->createSession(
