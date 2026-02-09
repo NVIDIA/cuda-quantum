@@ -76,9 +76,17 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
 CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {
   char *token = getenv("IQM_TOKEN");
 
-  EXPECT_THAT([]() { setenv("IQM_TOKEN", "invalid-invalid-invalid", true); },
-              testing::ThrowsMessage<std::runtime_error>(
-                  testing::HasSubstr("HTTP GET Error - status code 401")));
+  EXPECT_THAT(
+      []() {
+        setenv("IQM_TOKEN", "invalid-invalid-invalid", true);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::HasSubstr("HTTP GET Error - status code 401")));
 
   if (token) {
     setenv("IQM_TOKEN", token, true);
@@ -90,9 +98,17 @@ CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {
 CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
   char *url = getenv("IQM_SERVER_URL");
 
-  EXPECT_THAT([]() { setenv("IQM_SERVER_URL", "fake-fake-fake", true); },
-              testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr(
-                  "Could not resolve host: fake-fake-fake")));
+  EXPECT_THAT(
+      []() {
+        setenv("IQM_SERVER_URL", "fake-fake-fake", true);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::HasSubstr("Could not resolve host: fake-fake-fake")));
 
   if (url) {
     setenv("IQM_SERVER_URL", url, true);
@@ -112,6 +128,11 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
       []() {
         unsetenv("IQM_TOKEN");
         setenv("IQM_TOKENS_FILE", "fake-fake-fake", true);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
           testing::HasSubstr("Unable to open tokens file: fake-fake-fake")));
