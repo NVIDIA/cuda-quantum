@@ -7,7 +7,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "ScalewayServerHelper.h"
-#include "common/Logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "common/RestClient.h"
 #include "nlohmann/json.hpp"
 #include <iostream>
