@@ -74,8 +74,8 @@ set(CUDENSITYMAT_PATCH ${CMAKE_MATCH_1})
 set(CUDENSITYMAT_VERSION ${CUDENSITYMAT_MAJOR}.${CUDENSITYMAT_MINOR}.${CUDENSITYMAT_PATCH})
 message(STATUS "Found cudensitymat version: ${CUDENSITYMAT_VERSION}")
 
-# We need cudensitymat v0.2.0 
-if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
+# We need cudensitymat v0.4.0
+if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.4")
 
   get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
   get_filename_component(CUDENSITYMAT_LIB_DIR ${CUDENSITYMAT_LIB} DIRECTORY)
@@ -116,7 +116,8 @@ if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
 
   target_link_libraries(${LIBRARY_NAME}
                         PRIVATE
-                          fmt::fmt-header-only
+                          fmt::fmt-header-only 
+                          cudaq-logger
                           cudaq-common
                           ${CUDENSITYMAT_LIB}
                           ${CUTENSOR_LIB}
@@ -131,5 +132,5 @@ if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
   add_target_config(dynamics)
 else()
-  message(FATAL_ERROR "Cudensitymat version ${CUDENSITYMAT_VERSION} is not supported. Please use version 0.2.0 or higher.")
+  message(FATAL_ERROR "Cudensitymat version ${CUDENSITYMAT_VERSION} is not supported. Please use version 0.4.0 or higher.")
 endif()

@@ -7,9 +7,9 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/Logger.h"
 #include "common/SimulationState.h"
-#include "common/cudaq_fmt.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include <thrust/complex.h>
 #include <thrust/device_ptr.h>

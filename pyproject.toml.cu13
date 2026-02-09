@@ -22,9 +22,9 @@ dependencies = [
   'scipy >= 1.10.1',
   'requests >= 2.31',
   # CUDA dependencies - excluded on macOS (CPU-only support)
-  'custatevec-cu13 ~= 1.10; sys_platform != "darwin"',
-  'cutensornet-cu13 ~= 2.9; sys_platform != "darwin"',
-  'cudensitymat-cu13 ~= 0.3; sys_platform != "darwin"',
+  'custatevec-cu13 ~= 1.12; sys_platform != "darwin"',
+  'cutensornet-cu13 ~= 2.11; sys_platform != "darwin"',
+  'cudensitymat-cu13 ~= 0.4; sys_platform != "darwin"',
   'nvidia-cublas ~= 13.0; sys_platform != "darwin"',
   'nvidia-curand ~= 10.4; sys_platform != "darwin"',
   'nvidia-cusparse ~= 12.6; sys_platform != "darwin"',

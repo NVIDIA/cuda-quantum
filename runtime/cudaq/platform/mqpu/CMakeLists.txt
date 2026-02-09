@@ -28,12 +28,12 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
   PRIVATE
     cudaq-common
+    cudaq-logger
+    fmt::fmt-header-only
     cudaq
     mqpu_util
     CUDAQTargetConfigUtil
     pthread
-    spdlog::spdlog
-    fmt::fmt-header-only
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)

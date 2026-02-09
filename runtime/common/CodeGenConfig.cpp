@@ -8,7 +8,7 @@
 
 #include "CodeGenConfig.h"
 #include "FmtCore.h"
-#include "Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <stdexcept>
 
 namespace {

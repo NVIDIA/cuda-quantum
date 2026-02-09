@@ -15,10 +15,10 @@ set(COMMON_RUNTIME_SRC
   CustomOp.cpp
   DeviceCodeRegistry.cpp
   Environment.cpp
+  ExecutionContext.cpp
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
-  Logger.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
@@ -41,12 +41,12 @@ target_include_directories(${LIBRARY_NAME}
         ${CMAKE_SOURCE_DIR}/tpls/eigen
         ${CMAKE_SOURCE_DIR}/runtime)
 
-# Link privately to all dependencies
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
   PRIVATE
-    spdlog::spdlog
+    cudaq-logger
+    fmt::fmt-header-only
 )
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
@@ -110,10 +110,9 @@ add_library(cudaq-mlir-runtime
     CodeGenConfig.cpp
     Environment.cpp
     JIT.cpp
-    Logger.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
-    RunTheKernel.cpp
+    LayoutInfo.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
@@ -121,7 +120,6 @@ set_source_files_properties(
   CodeGenConfig.cpp
   Environment.cpp
   JIT.cpp
-  Logger.cpp
   RuntimeMLIR.cpp
 )
 
@@ -151,8 +149,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
-    cudaq
-    spdlog::spdlog
+    cudaq-logger
 )
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)
