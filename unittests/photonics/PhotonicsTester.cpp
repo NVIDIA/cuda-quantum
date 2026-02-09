@@ -126,6 +126,8 @@ TEST_F(PhotonicsTester, checkMZI) {
   std::size_t shots = 1000000;
   auto counts = cudaq::sample(shots, MZI{}); //
   counts.dump();
+  // Tolerance of 2e-3 accounts for statistical variance (~3 sigma with 1M
+  // shots)
   EXPECT_NEAR(double(counts.count("10")) / shots, cos(M_PI / 3) * cos(M_PI / 3),
-              1e-3);
+              2e-3);
 }

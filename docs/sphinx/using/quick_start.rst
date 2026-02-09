@@ -16,7 +16,9 @@ found in our complete :doc:`Installation Guide <install/install>`.
 
 .. note::
 
-    CUDA-Q is currently supported on Linux only. On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
+    CUDA-Q is supported on Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
+    GPU-acceleration is available on Linux only; macOS provides CPU-based simulation.
+    On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
 
 Install CUDA-Q
 ----------------------------
@@ -44,10 +46,12 @@ Once you completed the installation, please follow the instructions
 .. tab:: C++
 
    To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
-   that supports C++20, for example `g++` version 11 or newer.
-   Download the `install_cuda_quantum` file for your processor architecture and CUDA version (`_cu12` suffix for CUDA 12 and `_cu13` suffix for CUDA 13) 
-   from the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; 
-   that is, the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
+   that supports C++20, for example `g++` version 11 or newer (or `clang++` on macOS).
+   Download the `install_cuda_quantum` file for your platform from the assets of the respective 
+   `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
+
+   - **Linux**: Use `_cu12` suffix for CUDA 12 or `_cu13` for CUDA 13, with `aarch64` for ARM or `x86_64` for Intel/AMD processors.
+   - **macOS**: Use the `_darwin` suffix with `arm64` for Apple silicon.
 
    To install CUDA-Q, execute the commands
 
@@ -56,7 +60,7 @@ Once you completed the installation, please follow the instructions
       sudo -E bash install_cuda_quantum*.$(uname -m) --accept 
       . /etc/profile
 
-   If you have an NVIDIA GPU, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
+   If you have an NVIDIA GPU on Linux, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
 
    Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including
 

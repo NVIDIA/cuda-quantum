@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_run.h"
+#include "common/LayoutInfo.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
@@ -78,12 +79,13 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
+  auto layoutInfo = getLayoutInfo(name, mod.getOperation());
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
             clean_launch_module(name, mod, retTy, opaques);
       },
-      platform, name, name, shots_count, qpu_id, mod.getOperation());
+      platform, name, name, shots_count, layoutInfo, qpu_id);
 
   return results;
 }
