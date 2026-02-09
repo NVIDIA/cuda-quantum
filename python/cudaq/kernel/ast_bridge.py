@@ -29,12 +29,12 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
 from cudaq.mlir.passmanager import PassManager
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .captured_data import CapturedDataStorage
-from .utils import (Color, globalAstRegistry, globalRegisteredOperations,
-                    globalRegisteredTypes, nvqppPrefix, mlirTypeFromAnnotation,
-                    mlirTypeFromPyType, mlirTypeToPyType, getMLIRContext,
-                    recover_func_op, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType, resolve_qualified_symbol)
+from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
+                    nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
+                    mlirTypeToPyType, getMLIRContext, recover_func_op,
+                    is_recovered_value_ok, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    resolve_qualified_symbol)
 
 State = cudaq_runtime.State
 
@@ -5361,7 +5361,6 @@ def compile_to_mlir(uniqueId, astModule,
     potential dependent kernel lookups.
     """
 
-    global globalAstRegistry
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
