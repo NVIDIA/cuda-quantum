@@ -2134,12 +2134,12 @@ the respective [GitHub
 Release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
 .external}.
 
-At this time, wheels are distributed for Linux operating systems only.
-If your platform is not [[officially supported]{.std
-.std-ref}](#dependencies-and-compatibility){.reference .internal} and
-[`pip`{.code .docutils .literal .notranslate}]{.pre} does not find a
-compatible wheel to install, you can build your own wheel from source
-following the instructions here: [[Installation from
+Wheels are distributed for Linux (x86_64 and ARM64) and macOS
+(ARM64/Apple silicon only). If your platform is not [[officially
+supported]{.std .std-ref}](#dependencies-and-compatibility){.reference
+.internal} and [`pip`{.code .docutils .literal .notranslate}]{.pre} does
+not find a compatible wheel to install, you can build your own wheel
+from source following the instructions here: [[Installation from
 Source]{.doc}](data_center_install.html){.reference .internal}.
 
 To build the CUDA-Q Python API for the purpose of contributing to our
@@ -2165,9 +2165,10 @@ Starting with the 0.6.0 release, we provide pre-built binaries for using
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed
 side-by-side with the pre-built binaries for C++ by following the
 instructions on [PyPI.org](https://pypi.org/project/cudaq/){.reference
-.external}. The pre-built binaries work across a range of Linux
-operating systems listed under [[Dependencies and Compatibility]{.std
-.std-ref}](#dependencies-and-compatibility){.reference .internal}.
+.external}. The pre-built binaries work across the operating systems
+listed under [[Dependencies and Compatibility]{.std
+.std-ref}](#dependencies-and-compatibility){.reference .internal},
+including Linux and macOS (ARM64/Apple silicon only, CPU-only).
 
 Before installing our pre-built binaries, please make sure that your
 operating system is using the [GNU C
@@ -2185,20 +2186,32 @@ instructions in [[Installation from
 Source]{.doc}](data_center_install.html){.reference .internal}.
 
 You can download the [`install_cuda_quantum`{.code .docutils .literal
-.notranslate}]{.pre} file for your processor architecture from the
-assets of the respective [GitHub
+.notranslate}]{.pre} file for your platform from the assets of the
+respective [GitHub
 release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
-.external}. The installer is a [self-extracting
+.external}:
+
+-   **Linux**: [`install_cuda_quantum_cu12.<arch>`{.code .docutils
+    .literal .notranslate}]{.pre} or
+    [`install_cuda_quantum_cu13.<arch>`{.code .docutils .literal
+    .notranslate}]{.pre} (where [`<arch>`{.code .docutils .literal
+    .notranslate}]{.pre} is [`x86_64`{.code .docutils .literal
+    .notranslate}]{.pre} or [`aarch64`{.code .docutils .literal
+    .notranslate}]{.pre})
+
+-   **macOS**: [`install_cuda_quantum_darwin.arm64`{.code .docutils
+    .literal .notranslate}]{.pre} (CPU-only, Apple silicon)
+
+The installer is a [self-extracting
 archive](https://makeself.io/){.reference .external} that contains the
 pre-built binaries as well as a script to move them to the correct
 locations. You will need [`bash`{.code .docutils .literal
 .notranslate}]{.pre}, [`tar`{.code .docutils .literal
 .notranslate}]{.pre}, and [`gzip`{.code .docutils .literal
-.notranslate}]{.pre} (usually already installed on most Linux
-distributions) to run the installer. The installation location of CUDA-Q
-is not currently configurable and using the installer hence requires
-admin privileges on the system. We may revise that in the future; please
-see and upvote the corresponding [GitHub
+.notranslate}]{.pre} to run the installer. The installation location of
+CUDA-Q is not currently configurable and using the installer hence
+requires admin privileges on the system. We may revise that in the
+future; please see and upvote the corresponding [GitHub
 issue](https://github.com/NVIDIA/cuda-quantum/issues/1075){.reference
 .external}.
 
@@ -2225,9 +2238,10 @@ using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the [`nvq++`{.code .docutils .literal .notranslate}]{.pre}
 command is found. If it is not, please make sure to set the environment
 variables defined by the [`set_env.sh`{.code .docutils .literal
-.notranslate}]{.pre} script in the CUDA-Q installation folder (usually
-[`/usr/local/cudaq`{.code .docutils .literal .notranslate}]{.pre} or
-[`/opt/nvidia/cudaq`{.code .docutils .literal .notranslate}]{.pre}).
+.notranslate}]{.pre} script in the CUDA-Q installation folder
+([`/opt/nvidia/cudaq`{.docutils .literal .notranslate}]{.pre} for the
+pre-built installer, or [`$HOME/.cudaq`{.docutils .literal
+.notranslate}]{.pre} for local builds from source).
 
 If an MPI installation is available in the directory defined by
 [`MPI_PATH`{.code .docutils .literal .notranslate}]{.pre}, the installer
@@ -3061,7 +3075,8 @@ GPU-based simulators, see also [[CUDA-Q Circuit Simulation
 Backends]{.doc}](../backends/simulators.html){.reference .internal}.
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and
-ARM64 (ARM v8-A architecture and newer).
+ARM64 (ARM v8-A architecture and newer). On macOS, only ARM64 (Apple
+silicon) is supported.
 
 ::: {.admonition .note}
 Note
@@ -3077,8 +3092,9 @@ The following table summarizes the required components.
 +--------------------------+--------------------------------------------+
 | CPU architectures        | x86_64, ARM64                              |
 +--------------------------+--------------------------------------------+
-| Operating systems        | Linux, Windows via Windows Subsystem for   |
-|                          | Linux 2 (WSL2)                             |
+| Operating systems        | Linux, macOS (ARM64/Apple silicon only),   |
+|                          | Windows via Windows Subsystem for Linux 2  |
+|                          | (WSL2)                                     |
 +--------------------------+--------------------------------------------+
 | Tested Distributions     | CentOS 8; Debian 11, 12; Fedora 41;        |
 |                          | OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9;  |

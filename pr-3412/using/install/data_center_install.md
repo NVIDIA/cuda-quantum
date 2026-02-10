@@ -2246,20 +2246,20 @@ command
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    mkdir -p cuda_quantum_assets/llvm/bin && \
-    mkdir -p cuda_quantum_assets/llvm/lib && \
-    mkdir -p cuda_quantum_assets/llvm/include && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/llvm/bin/ && \
-    mv cuda_quantum_assets/llvm/bin/clang-format* "${LLVM_INSTALL_PREFIX}/bin/" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/llc" cuda_quantum_assets/llvm/bin/llc && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/lld" cuda_quantum_assets/llvm/bin/lld && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/ld.lld && \
-    mv "${LLVM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/llvm/lib/ && \
-    mv "${LLVM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/llvm/include/ && \
-    mv "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets && \
-    mv "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets && \
-    mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml && \
-    mv "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets
+    mkdir -p cuda_quantum_assets/llvm/bin cuda_quantum_assets/llvm/lib cuda_quantum_assets/llvm/include
+    cp -a "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/llvm/bin/
+    rm -f cuda_quantum_assets/llvm/bin/clang-format*
+    cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/
+    cp -a "${LLVM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/llvm/lib/
+    cp -a "${LLVM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/llvm/include/
+    # Copy cuTensor and cuQuantum (Linux only; variables unset on macOS)
+    if $include_cuda_deps; then
+      cp -a "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets
+      cp -a "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets
+    fi
+    # Copy CUDA-Q installation and build config
+    cp -a "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml
+    cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
 :::
 :::
 
