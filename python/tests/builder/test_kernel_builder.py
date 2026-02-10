@@ -18,6 +18,8 @@ from typing import List
 import cudaq
 from cudaq import spin
 
+from test_helpers import h2_hamiltonian_4q
+
 
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
@@ -1032,15 +1034,7 @@ def test_from_state1():
 
 
 def test_pauli_word_input():
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
 
     kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
     q = kernel.qalloc(4)
@@ -1063,15 +1057,7 @@ def test_exp_pauli():
     print(type(.11))
     kernel.exp_pauli(.11, qubits, "XXXY")
     print(kernel)
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
     want_exp = cudaq.observe(kernel, h).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
