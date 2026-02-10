@@ -982,9 +982,8 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
          "streamlinedSpecializeModule.");
   // Use address as the hash key to cache the JITted engine, and store the
   // engine pointer in the cache
-  getJITCache().cache(
-      reinterpret_cast<std::size_t>(cachedEngine),
-      reinterpret_cast<mlir::ExecutionEngine *>(cachedEnginePtrStorage));
+  getJITCache().cache(reinterpret_cast<std::size_t>(cachedEngine),
+                      cachedEnginePtrStorage);
   return std::make_pair(funcPtr, reinterpret_cast<std::size_t>(cachedEngine));
 }
 

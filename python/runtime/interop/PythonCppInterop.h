@@ -34,8 +34,7 @@ public:
   T getEntryPointFunction(As... as) {
     // Perform beta reduction on the kernel decorator.
     auto [p, cachedEngineHandle] =
-        kernel
-            .attr("beta_reduction")(std::forward<As>(as)...)
+        kernel.attr("beta_reduction")(std::forward<As>(as)...)
             .template cast<std::pair<void *, std::size_t>>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
