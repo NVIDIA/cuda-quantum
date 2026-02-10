@@ -394,6 +394,22 @@ def test_run():
             non_zero_count += 1
     assert non_zero_count > 0
 
+    @cudaq.kernel
+    def kernel_with_conditional() -> list[bool]:
+        var = [True, True]
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        var[0] = mz(q0)
+        var[1] = mz(q1)
+        return var
+
+    results = cudaq.run(kernel_with_conditional, shots_count=2)
+    assert len(results) == 2
+    for res in results:
+        assert len(res) == 2
+        assert res[0] is False
+        assert res[1] is False
+
 
 def test_quantinuum_state_preparation():
 
