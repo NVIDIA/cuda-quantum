@@ -2666,11 +2666,15 @@ class PyASTBridge(ast.NodeVisitor):
 
             devKeys = ['.'.join(moduleNames)]
             for module_name, module in sys.modules.items():
+                # TODO: this matching behaviour is suboptimal,
+                # because it requires further checks below (and seems a little weird),
+                # but it is necessary to be backwards compatible with previous behaviour here.
                 if module_name.endswith(moduleNames[0]):
                     try:
                         obj = module
                         for part in moduleNames[1:]:
                             obj = getattr(obj, part)
+                        getattr(obj, pyVal.attr)
                         devKey = f"{module_name}.{'.'.join(moduleNames[1:])}" if len(
                             moduleNames) > 1 else module_name
                         devKeys.append(devKey)
