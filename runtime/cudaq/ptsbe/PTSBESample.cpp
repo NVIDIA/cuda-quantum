@@ -12,6 +12,7 @@
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
 #include <numeric>
+#include <unordered_map>
 
 namespace cudaq {
 // Forward declaration from cudaq.h
@@ -76,6 +77,93 @@ void cleanupTracerQubits(const Trace &kernelTrace) {
   std::vector<std::size_t> qubitIds(numQubits);
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   cudaq::get_simulator()->deallocateQubits(qubitIds);
+}
+
+PTSBEExecutionData
+buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
+                               const noise_model &noiseModel) {
+  PTSBEExecutionData trace;
+
+  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
+
+  // Build lookup: gate index -> noise site indices (preserving extraction
+  // order)
+  std::unordered_map<std::size_t, std::vector<std::size_t>> gateToNoiseSites;
+  for (std::size_t i = 0; i < noiseResult.noise_sites.size(); ++i)
+    gateToNoiseSites[noiseResult.noise_sites[i].circuit_location].push_back(i);
+
+  // Interleave Gate and Noise instructions
+  std::size_t gateIdx = 0;
+  for (const auto &inst : kernelTrace) {
+    std::vector<std::size_t> targets;
+    targets.reserve(inst.targets.size());
+    for (const auto &q : inst.targets)
+      targets.push_back(q.id);
+
+    std::vector<std::size_t> controls;
+    controls.reserve(inst.controls.size());
+    for (const auto &q : inst.controls)
+      controls.push_back(q.id);
+
+    trace.instructions.push_back(
+        TraceInstruction{TraceInstructionType::Gate, inst.name,
+                         std::move(targets), std::move(controls), inst.params});
+
+    auto it = gateToNoiseSites.find(gateIdx);
+    if (it != gateToNoiseSites.end()) {
+      for (auto noiseSiteIdx : it->second) {
+        const auto &ns = noiseResult.noise_sites[noiseSiteIdx];
+        trace.instructions.push_back(
+            TraceInstruction{TraceInstructionType::Noise,
+                             ns.channel.get_type_name(),
+                             ns.qubits,
+                             {},
+                             {},
+                             ns.channel});
+      }
+    }
+
+    ++gateIdx;
+  }
+
+  auto measureQubits = extractMeasureQubits(kernelTrace);
+  for (auto qubit : measureQubits)
+    trace.instructions.push_back(TraceInstruction{
+        TraceInstructionType::Measurement, "mz", {qubit}, {}, {}});
+
+  return trace;
+}
+
+void populateExecutionDataTrajectories(
+    PTSBEExecutionData &executionData,
+    std::vector<cudaq::KrausTrajectory> trajectories,
+    std::vector<cudaq::sample_result> perTrajectoryResults) {
+  // Populate measurement_counts from parallel-indexed perTrajectoryResults
+  for (std::size_t i = 0;
+       i < trajectories.size() && i < perTrajectoryResults.size(); ++i)
+    trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
+
+  if (!trajectories.empty()) {
+    executionData.trajectories = std::move(trajectories);
+    return;
+  }
+
+  // Stub: generate a single identity trajectory so that the execution data
+  // has at least one trajectory for downstream consumers (Python bindings,
+  // tests). This will be replaced once the trajectory generation pipeline is
+  // wired up.
+  KrausTrajectory stub;
+  stub.trajectory_id = 0;
+  stub.probability = 1.0;
+  stub.num_shots = 1;
+  for (std::size_t i = 0; i < executionData.instructions.size(); ++i) {
+    if (executionData.instructions[i].type == TraceInstructionType::Noise) {
+      stub.kraus_selections.emplace_back(
+          i, std::vector<std::size_t>(executionData.instructions[i].targets),
+          executionData.instructions[i].name, KrausOperatorType::IDENTITY);
+    }
+  }
+  executionData.trajectories.push_back(std::move(stub));
 }
 
 PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,

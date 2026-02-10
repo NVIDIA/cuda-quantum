@@ -15,6 +15,7 @@
 #include "CUDAQTestUtils.h"
 #include "cudaq/algorithms/sample.h"
 #include "cudaq/ptsbe/NoiseExtractor.h"
+#include "cudaq/ptsbe/PTSBEExecutionData.h"
 #include "cudaq/ptsbe/PTSBEOptions.h"
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/PTSBESampleResult.h"
@@ -344,6 +345,142 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
   EXPECT_EQ(result.get_total_shots(), total_shots);
 }
 
+// ============================================================================
+// EXECUTION DATA INTEGRATION TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithExecutionDataPopulatesData) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  options.ptsbe.return_execution_data = true;
+
+  auto result = sample(options, bellKernel);
+
+  ASSERT_TRUE(result.has_execution_data());
+  const auto &data = result.execution_data();
+
+  EXPECT_GT(data.instructions.size(), 0);
+  // Bell circuit: h, x -> 2 gates
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Gate), 2);
+  // Noise on h gate -> at least 1 noise instruction
+  EXPECT_GE(data.count_instructions(TraceInstructionType::Noise), 1);
+  // 2 qubits measured
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 2);
+
+  // First instruction should be the h gate
+  EXPECT_EQ(data.instructions[0].type, TraceInstructionType::Gate);
+  EXPECT_EQ(data.instructions[0].name, "h");
+
+  // Noise instructions should have a channel attached
+  for (const auto &inst : data.instructions) {
+    if (inst.type == TraceInstructionType::Noise) {
+      EXPECT_TRUE(inst.channel.has_value());
+      EXPECT_TRUE(inst.channel->is_unitary_mixture());
+    }
+  }
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithoutExecutionDataHasNoData) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  // return_execution_data defaults to false
+
+  auto result = sample(options, bellKernel);
+
+  EXPECT_FALSE(result.has_execution_data());
+}
+
+// ============================================================================
+// PTSBE SAMPLE RESULT TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultDefaultConstruction) {
+  sample_result r;
+  EXPECT_FALSE(r.has_execution_data());
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultMoveFromBaseResult) {
+  cudaq::CountsDictionary counts;
+  counts["00"] = 50;
+  counts["11"] = 50;
+  cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
+
+  sample_result r(std::move(baseResult));
+  EXPECT_FALSE(r.has_execution_data());
+  // Inherited data should be accessible
+  EXPECT_GT(r.size(), 0);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultConstructionWithExecutionData) {
+  cudaq::CountsDictionary counts;
+  counts["00"] = 40;
+  counts["11"] = 60;
+  cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
+
+  PTSBEExecutionData executionData;
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Gate, "h", {0}, {}, {}});
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Measurement, "mz", {0}, {}, {}});
+
+  sample_result r(std::move(baseResult), std::move(executionData));
+
+  ASSERT_TRUE(r.has_execution_data());
+  EXPECT_EQ(r.execution_data().instructions.size(), 2);
+  EXPECT_EQ(r.execution_data().instructions[0].name, "h");
+  EXPECT_EQ(r.execution_data().instructions[0].type,
+            TraceInstructionType::Gate);
+  EXPECT_EQ(r.execution_data().instructions[1].type,
+            TraceInstructionType::Measurement);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultInheritedAccess) {
+  cudaq::CountsDictionary counts;
+  counts["00"] = 50;
+  counts["11"] = 50;
+  cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
+
+  sample_result r(std::move(baseResult));
+
+  EXPECT_GT(r.size(), 0);
+  auto mp = r.most_probable();
+  EXPECT_TRUE(mp == "00" || mp == "11");
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultExecutionDataThrowsWhenNotPresent) {
+  sample_result r;
+  EXPECT_THROW(r.execution_data(), std::runtime_error);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultSetExecutionData) {
+  sample_result r;
+  EXPECT_FALSE(r.has_execution_data());
+
+  PTSBEExecutionData executionData;
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Gate, "h", {0}, {}, {}});
+  executionData.instructions.push_back(TraceInstruction{
+      TraceInstructionType::Noise, "depolarizing", {0}, {}, {0.01}});
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Measurement, "mz", {0}, {}, {}});
+
+  r.set_execution_data(std::move(executionData));
+
+  ASSERT_TRUE(r.has_execution_data());
+  EXPECT_EQ(r.execution_data().instructions.size(), 3);
+  EXPECT_EQ(r.execution_data().instructions[0].name, "h");
+  EXPECT_EQ(r.execution_data().instructions[1].name, "depolarizing");
+  EXPECT_EQ(r.execution_data().instructions[2].name, "mz");
+}
+
 CUDAQ_TEST(PTSBESampleTest, SampleAsyncWithOptions) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
@@ -351,11 +488,14 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncWithOptions) {
   sample_options options;
   options.shots = 200;
   options.noise = noise;
+  options.ptsbe.return_execution_data = true;
 
   auto future = sample_async(options, bellKernel);
   auto result = future.get();
 
   EXPECT_EQ(result.get_total_shots(), 200);
+  ASSERT_TRUE(result.has_execution_data());
+  EXPECT_GT(result.execution_data().instructions.size(), 0);
 }
 
 CUDAQ_TEST(PTSBESampleTest, BroadcastReturnsMultipleResults) {
