@@ -194,7 +194,7 @@ struct comprehensive {
 // ADAPT:         tail call void @__quantum__qis__swap__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 6 to %[[VAL_0]]*))
 // ADAPT:         tail call void @__quantum__qis__u3__body(double 8.000000e-01, double 5.000000e-01, double -1.000000e+00, %[[VAL_0]]* nonnull inttoptr (i64 3 to %[[VAL_0]]*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* null, %[[VAL_1:.*]]* null)
-// ADAPT:         tail call void @__quantum__rt__array_record_output(i64 7, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.61727261793C6931207820373E00, i64 0, i64 0))
+// ADAPT:         tail call void @__quantum__rt__array_record_output(i64 7, i8* nonnull getelementptr inbounds ([18 x i8], [18 x i8]* @cstr.61727261793C726573756C74207820373E00, i64 0, i64 0))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* null, i8* nonnull getelementptr inbounds ([10 x i8], [10 x i8]* @cstr.73696E676C65746F6E00, i64 0, i64 0))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.65696E7300, i64 0, i64 0))

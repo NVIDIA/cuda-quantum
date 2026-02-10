@@ -161,20 +161,11 @@ public:
               }
             }
         })
-        .Case([&](quake::MeasureType) {
-          std::string labelStr = "result";
-          if (prefix)
-            labelStr = prefix->str();
-          Value label = makeLabel(loc, rewriter, labelStr);
-          rewriter.create<func::CallOp>(loc, TypeRange{},
-                                        cudaq::opt::QIRRecordOutput,
-                                        ArrayRef<Value>{val, label});
-        })
         .Case([&](cudaq::cc::PointerType ptrTy) {
           // Check if this is a pointer to %Result (converted MeasureType)
           if (auto structTy =
                   dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
-            if (structTy.isIdentified() && structTy.getName() == "Result") {
+            if (structTy.isIdentified() && structTy.getName() == "result") {
               // Handle as measure result
               std::string labelStr = "result";
               if (prefix)
@@ -222,7 +213,7 @@ public:
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(*vecSz) + std::string(">")};
     if (isa<quake::MeasureType>(ty))
-      return {"Result"};
+      return {"result"};
     return {"error"};
   }
 

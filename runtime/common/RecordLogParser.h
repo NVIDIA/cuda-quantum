@@ -235,6 +235,11 @@ public:
       return std::stoi(label.substr(1, label.size() - 2));
     if (label[0] == '.')
       return std::stoi(label.substr(1, label.size() - 1));
+    // Handle register-name labels like "r00000" or "result%0"
+    // by extracting trailing digits
+    auto pos = label.find_last_not_of("0123456789");
+    if (pos != std::string::npos && pos + 1 < label.size())
+      return std::stoi(label.substr(pos + 1));
     throw std::runtime_error("Index not found in label");
   }
 
