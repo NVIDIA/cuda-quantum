@@ -1,14 +1,13 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target qpp-cpu --enable-mlir %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
+// RUN: nvq++ --target qpp-cpu --enable-mlir %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
 // clang-format on
 
 // This test performs per-gate timing measurements. The FileCheck criteria is

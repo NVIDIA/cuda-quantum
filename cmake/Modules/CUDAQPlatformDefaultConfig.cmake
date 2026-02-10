@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,6 +13,9 @@ find_dependency(CUDAQEmDefault REQUIRED)
 
 set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
+
+set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQLogger REQUIRED)
 
 set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)

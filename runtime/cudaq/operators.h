@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,9 +16,9 @@
 #include <vector>
 
 #include "operators/evaluation.h"
+#include "operators/matrix.h"
 #include "operators/operator_leafs.h"
 #include "operators/templates.h"
-#include "utils/matrix.h"
 
 namespace cudaq {
 

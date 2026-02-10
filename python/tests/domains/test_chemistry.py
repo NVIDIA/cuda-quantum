@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -55,10 +55,12 @@ def testUCCSD():
 
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()
-    energy, params = cudaq.vqe(kernel,
-                               molecule,
-                               optimizer,
-                               parameter_count=num_parameters)
+
+    def objective(x):
+        exp_val = cudaq.observe(kernel, molecule, x).expectation()
+        return exp_val
+
+    energy, params = optimizer.optimize(num_parameters, objective)
     print(energy, params)
     assert np.isclose(-1.137, energy, rtol=1e-3)
 
@@ -88,10 +90,12 @@ def testHWE():
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()
     optimizer.max_iterations = 500
-    energy, params = cudaq.vqe(kernel,
-                               molecule,
-                               optimizer,
-                               parameter_count=num_parameters)
+
+    def objective(x):
+        exp_val = cudaq.observe(kernel, molecule, x).expectation()
+        return exp_val
+
+    energy, params = optimizer.optimize(num_parameters, objective)
     print(energy, params)
     assert np.isclose(-1.13, energy, rtol=1e-2)
 
@@ -121,10 +125,12 @@ def test_uccsd_kernel():
     print(cudaq.observe(ansatz, molecule, xInit).expectation())
 
     optimizer = cudaq.optimizers.COBYLA()
-    energy, params = cudaq.vqe(ansatz,
-                               molecule,
-                               optimizer,
-                               parameter_count=num_parameters)
+
+    def objective(x):
+        exp_val = cudaq.observe(ansatz, molecule, x).expectation()
+        return exp_val
+
+    energy, params = optimizer.optimize(num_parameters, objective)
     print(energy, params)
 
 

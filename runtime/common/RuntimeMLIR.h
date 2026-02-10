@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -36,9 +36,17 @@ using TranslateFromMLIRFunctionExtended = std::function<mlir::LogicalResult(
     mlir::Operation *, const std::string &, llvm::raw_string_ostream &,
     const std::string &, bool, bool, bool)>;
 
-/// @brief Initialize MLIR with CUDA-Q dialects and return the
-/// MLIRContext.
-std::unique_ptr<mlir::MLIRContext> initializeMLIR();
+/// @brief Initialize MLIR with CUDA-Q dialects and create an internal MLIR
+/// context
+void initializeMLIR();
+
+/// @brief Retrieve the context created by initializeMLIR()
+mlir::MLIRContext *getMLIRContext();
+
+/// @brief Create a new context and transfer the ownership. To be used to avoid
+/// overcrowding the current MLIR context with temporary modules.
+std::unique_ptr<mlir::MLIRContext> getOwningMLIRContext();
+
 /// @brief Given an LLVM Module, set its target triple corresponding to the
 /// current host machine.
 bool setupTargetTriple(llvm::Module *);

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -213,7 +213,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::getAmplitude(
     const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
-        fmt::format("[tensornet-state] getAmplitude with an invalid number "
+        cudaq_fmt::format("[tensornet-state] getAmplitude with an invalid number "
                     "of bits in the "
                     "basis state: expected {}, provided {}.",
                     getNumQubits(), basisState.size()));
@@ -305,7 +305,7 @@ TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
 
 template <typename ScalarType>
 void TensorNetSimulationState<ScalarType>::destroyState() {
-  CUDAQ_INFO("mps-state destroying state vector handle.");
+  CUDAQ_INFO("tn-state destroying state vector handle.");
   m_state.reset();
 }
 
@@ -315,13 +315,13 @@ void TensorNetSimulationState<ScalarType>::toHostImpl(
     std::complex<T> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
-    throw std::runtime_error(fmt::format(
+    throw std::runtime_error(cudaq_fmt::format(
         "[TensorNetSimulationState] Dimension mismatch: expecting {} "
         "elements but providing an array of size {}.",
         stateVec.size(), numElements));
   if (std::is_same_v<ScalarType, T>) {
     std::memcpy(clientAllocatedData, stateVec.data(),
-                numElements * sizeof(ScalarType));
+                numElements * sizeof(std::complex<ScalarType>));
   } else {
     for (std::size_t i = 0; i < numElements; ++i)
       clientAllocatedData[i] = stateVec[i];

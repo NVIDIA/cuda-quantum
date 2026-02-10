@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -14,6 +14,7 @@ add_library(cudaq-serverhelper-braket SHARED BraketExecutor.cpp BraketServerHelp
 
 target_link_libraries(cudaq-serverhelper-braket
     cudaq-common
+    cudaq-logger
     fmt::fmt-header-only
     ${AWSSDK_LINK_LIBRARIES})
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "execution_manager.h"
+#include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 
 namespace cudaq {
@@ -23,5 +24,12 @@ void resetExecutionManagerInternal() {
 }
 
 ExecutionManager *getExecutionManagerInternal() { return execution_manager; }
+
+ExecutionManager *detail::getExecutionManagerFromContext() {
+  auto ctx = getExecutionContext();
+  if (ctx)
+    return ctx->executionManager;
+  return nullptr;
+}
 
 } // namespace cudaq

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
+#include "common/FmtCore.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
 
@@ -72,7 +73,6 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::nQubitsAllocated;
   using nvqir::CircuitSimulatorBase<ScalarType>::stateDimension;
   using nvqir::CircuitSimulatorBase<ScalarType>::calculateStateDim;
-  using nvqir::CircuitSimulatorBase<ScalarType>::executionContext;
   using nvqir::CircuitSimulatorBase<ScalarType>::gateToString;
   using nvqir::CircuitSimulatorBase<ScalarType>::x;
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
@@ -127,16 +127,13 @@ public:
     return std::make_unique<cudaq::CuDensityMatState>();
   }
 
-  void resetExecutionContext() override {
-    // If null, do nothing
-    if (!executionContext)
-      return;
+  void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
     // Just check that the dynamics target was not invoked in gate simulation
     // contexts.
-    if (executionContext->name != "evolve")
+    if (context.name != "evolve")
       throw std::runtime_error(fmt::format(
           "[dynamics target] Execution context '{}' is not supported.",
-          executionContext->name));
+          context.name));
   }
 
   void addQubitToState() override {

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -53,7 +53,8 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
         state = bindings.initializeState(state, list(self.dimensions),
                                          self.is_density_state, self.batch_size)
         result = self.stepper.compute(state, t)
-        as_array = numpy.ravel(numpy.array(result))
+        as_array = numpy.ravel(
+            numpy.array(cudaq_runtime.StateMemoryView(result)))
         return as_array
 
     def __post_init__(self):
@@ -118,7 +119,8 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
-        as_array = numpy.ravel(numpy.array(self.state))
+        as_array = numpy.ravel(
+            numpy.array(cudaq_runtime.StateMemoryView(self.state)))
         self.batch_size = bindings.getBatchSize(state)
         if self.dimensions is not None:
             self.is_density_state = (

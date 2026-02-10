@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -209,4 +209,72 @@ TEST_F(CuDensityMatStateTest, InitialStateEnum) {
       EXPECT_TRUE(checkVal());
     }
   }
+}
+
+// Regression test for density matrix indexing bug.
+// The bug was that operator() used the total dimension (dim*dim) instead of
+// single-side dimension (dim) for bounds checking and linear index calculation.
+TEST_F(CuDensityMatStateTest, DensityMatrixIndexing) {
+  // Create a 2-qubit density matrix (4x4 = 16 elements)
+  // For |00><00| state
+  CuDensityMatState state(densityMatrixData.size(),
+                          cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  EXPECT_TRUE(state.is_density_matrix());
+
+  // Valid indices for 4x4 density matrix are 0, 1, 2, 3
+  // The bug would compute linear index as i * 16 + j instead of i * 4 + j
+
+  // Test (0,0) - this worked even with the bug because 0*16+0 == 0*4+0
+  auto val00 = state(0, {0, 0});
+  EXPECT_NEAR(val00.real(), 1.0, 1e-12);
+  EXPECT_NEAR(val00.imag(), 0.0, 1e-12);
+
+  // Test (1,1) - this would fail with the bug: 1*16+1=17 > 16 elements
+  auto val11 = state(0, {1, 1});
+  EXPECT_NEAR(val11.real(), 0.0, 1e-12);
+  EXPECT_NEAR(val11.imag(), 0.0, 1e-12);
+
+  // Test (2,2) - this would fail with the bug: 2*16+2=34 > 16 elements
+  auto val22 = state(0, {2, 2});
+  EXPECT_NEAR(val22.real(), 0.0, 1e-12);
+  EXPECT_NEAR(val22.imag(), 0.0, 1e-12);
+
+  // Test (3,3) - this would fail with the bug: 3*16+3=51 > 16 elements
+  auto val33 = state(0, {3, 3});
+  EXPECT_NEAR(val33.real(), 0.0, 1e-12);
+  EXPECT_NEAR(val33.imag(), 0.0, 1e-12);
+
+  // Test off-diagonal elements
+  auto val03 = state(0, {0, 3});
+  EXPECT_NEAR(val03.real(), 0.0, 1e-12);
+  auto val30 = state(0, {3, 0});
+  EXPECT_NEAR(val30.real(), 0.0, 1e-12);
+
+  // Test out-of-bounds access is rejected
+  EXPECT_THROW(state(0, {4, 0}), std::runtime_error);
+  EXPECT_THROW(state(0, {0, 4}), std::runtime_error);
+  EXPECT_THROW(state(0, {4, 4}), std::runtime_error);
+}
+
+// Test indexing for single-qubit density matrix
+TEST_F(CuDensityMatStateTest, SingleQubitDensityMatrixIndexing) {
+  // 1-qubit system: 2x2 density matrix (4 elements)
+  std::vector<std::complex<double>> singleQubitDm = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  CuDensityMatState state(singleQubitDm.size(),
+                          cudaq::dynamics::createArrayGpu(singleQubitDm));
+  state.initialize_cudm(handle, {2}, /*batchSize=*/1);
+  EXPECT_TRUE(state.is_density_matrix());
+
+  // Valid indices are 0, 1
+  auto val00 = state(0, {0, 0});
+  EXPECT_NEAR(val00.real(), 1.0, 1e-12);
+
+  auto val11 = state(0, {1, 1});
+  EXPECT_NEAR(val11.real(), 0.0, 1e-12);
+
+  // Out-of-bounds
+  EXPECT_THROW(state(0, {2, 0}), std::runtime_error);
+  EXPECT_THROW(state(0, {0, 2}), std::runtime_error);
 }

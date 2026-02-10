@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -28,8 +28,8 @@ def test_make_kernel_mixed_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:    %[[VAL_0:.*]]: !cc.stdvec<f64>,
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:     (%[[VAL_0:.*]]: !cc.stdvec<f64>,
 # CHECK-SAME:    %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           return
 # CHECK:         }

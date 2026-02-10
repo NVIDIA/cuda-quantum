@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,10 +15,10 @@ set(COMMON_RUNTIME_SRC
   CustomOp.cpp
   DeviceCodeRegistry.cpp
   Environment.cpp
+  ExecutionContext.cpp
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
-  Logger.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
@@ -41,8 +41,13 @@ target_include_directories(${LIBRARY_NAME}
         ${CMAKE_SOURCE_DIR}/tpls/eigen
         ${CMAKE_SOURCE_DIR}/runtime)
 
-# Link privately to all dependencies
-target_link_libraries(${LIBRARY_NAME} PUBLIC cudaq-operator PRIVATE spdlog::spdlog)
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC
+    cudaq-operator
+  PRIVATE
+    cudaq-logger
+    fmt::fmt-header-only
+)
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
@@ -57,8 +62,19 @@ if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  # --start-group is a GNU ld flag for circular dependencies; Apple's ld doesn't support it
+  if(APPLE)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr ZLIB::ZLIB)
+  else()
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  endif()
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
+  # Override the global flat_namespace for this library. cudaq-common doesn't need
+  # LLVM symbol sharing, and flat_namespace causes issues with statically-linked
+  # OpenSSL assembly code linked with flat namespace.
+  if(APPLE)
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-twolevel_namespace")
+  endif()
 endif()
 
 
@@ -94,18 +110,17 @@ add_library(cudaq-mlir-runtime
     CodeGenConfig.cpp
     Environment.cpp
     JIT.cpp
-    Logger.cpp
     RuntimeMLIR.cpp
-    RunTheKernel.cpp
+    RuntimeCppMLIR.cpp
+    LayoutInfo.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 set_source_files_properties(
-    CodeGenConfig.cpp
-    Environment.cpp
-    JIT.cpp
-    Logger.cpp
-    RuntimeMLIR.cpp
+  CodeGenConfig.cpp
+  Environment.cpp
+  JIT.cpp
+  RuntimeMLIR.cpp
 )
 
 target_include_directories(cudaq-mlir-runtime
@@ -134,7 +149,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
-    cudaq
-    spdlog::spdlog)
+    cudaq-logger
+)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

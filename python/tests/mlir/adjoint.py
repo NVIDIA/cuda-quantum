@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -29,13 +29,13 @@ def test_kernel_adjoint_no_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} : () -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} : () -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () {{.*}}{
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
@@ -56,14 +56,14 @@ def test_kernel_adjoint_qubit_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !quake.ref) {{.*}}{
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
@@ -83,15 +83,15 @@ def test_kernel_adjoint_qreg_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
 # CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]]
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_1]] : (!quake.veq<?>) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_1]] : (!quake.veq<?>) -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !quake.veq<?>) {{.*}}{
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
@@ -129,13 +129,13 @@ def test_kernel_adjoint_float_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (f64) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: f64) {{.*}}{
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
@@ -162,13 +162,13 @@ def test_kernel_adjoint_int_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:     (%[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (i64) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (i64) -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: i64) {{.*}}{
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
@@ -191,13 +191,13 @@ def test_kernel_adjoint_list_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!cc.stdvec<f64>) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (!cc.stdvec<f64>) -> ()
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<f64>) {{.*}}{
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
@@ -235,17 +235,17 @@ def test_sample_adjoint_qubit():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: !quake.ref) {{.*}}{
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
@@ -281,7 +281,7 @@ def test_sample_adjoint_qreg():
 
 
 # CHECK-LABEL: test_sample_adjoint_qreg
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      (%[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
@@ -300,13 +300,13 @@ def test_sample_adjoint_qreg():
 # CHECK:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_12]] : i64
 # CHECK:           } {invariant}
-# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_3]] : (!quake.veq<?>) -> ()
+# CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_3]] : (!quake.veq<?>) -> ()
 # CHECK:           %[[VAL_13:.*]] = quake.mz %0 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:            (%[[VAL_0:.*]]: !quake.veq<?>) {{.*}}{
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64

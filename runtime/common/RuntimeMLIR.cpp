@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #include "RuntimeMLIR.h"
 #include "ThunkInterface.h"
+#include "common/FmtCore.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -89,19 +90,10 @@ cudaq::TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
 
 #include "RuntimeMLIRCommonImpl.h"
 
-static std::once_flag mlir_init_flag;
-
-std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
-  // One-time initialization of LLVM/MLIR components
-  std::call_once(mlir_init_flag, []() {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    cudaq::registerAllPasses();
-    registerToQIRTranslation();
-    registerToOpenQASMTranslation();
-    registerToIQMJsonTranslation();
-  });
-
+namespace {
+std::once_flag mlir_init_flag;
+MLIRContext *mlirContext;
+std::unique_ptr<MLIRContext> createMLIRContext() {
   // Per-context initialization
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
@@ -111,15 +103,41 @@ std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
   registerLLVMDialectTranslation(*context);
   return context;
 }
+} // namespace
+
+void cudaq::initializeMLIR() {
+  // One-time initialization of LLVM/MLIR components
+  std::call_once(mlir_init_flag, []() {
+    cudaq::initializeLangMLIR();
+    registerToQIRTranslation();
+    registerToOpenQASMTranslation();
+    registerToIQMJsonTranslation();
+
+    mlirContext = createMLIRContext().release();
+  });
+}
+
+MLIRContext *cudaq::getMLIRContext() {
+  // One-time initialization of LLVM/MLIR components
+  cudaq::initializeMLIR();
+  return mlirContext;
+}
+
+std::unique_ptr<MLIRContext> cudaq::getOwningMLIRContext() {
+  // One-time initialization of LLVM/MLIR components
+  cudaq::initializeMLIR();
+  return createMLIRContext();
+}
 
 std::optional<std::string>
 cudaq::getEntryPointName(OwningOpRef<ModuleOp> &module) {
-  for (auto &a : *module)
+  for (auto &a : *module) {
     if (auto op = dyn_cast<mlir::func::FuncOp>(a)) {
       // Note: the .thunk function is where unmarshalling happens. It is *not*
       // an entry point.
       if (op.getName().endswith(".thunk"))
         return {op.getName().str()};
     }
+  }
   return std::nullopt;
 }

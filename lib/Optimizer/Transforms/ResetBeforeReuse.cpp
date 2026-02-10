@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -55,8 +55,9 @@ static SmallVector<Operation *, 8> sortUsers(const Value::user_range &users,
 
 // Track qubit register use chains.
 // This is used to track if a qubit is reused after it has been measured across
-// different extract ops. We want to collect this beforehand so that we don't
-// need to repeat for each extract op.
+// different extract ops. We cache the sorted order upfront for efficiency, but
+// filter against current users at query time to handle operations that may be
+// erased during pattern rewriting.
 class RegUseTracker {
   mlir::DenseMap<mlir::Value, SmallVector<Operation *, 8>> regToOrderedUsers;
   DominanceInfo domInfo;
@@ -69,16 +70,27 @@ public:
     });
   }
 
+  // Returns users in dominance order by iterating through the cached sorted
+  // list (regToOrderedUsers) and filtering out any operations that have been
+  // erased during rewriting to avoid use-after-free bugs.
   SmallVector<Operation *, 8> getUsers(mlir::Value qreg) const {
     if (!isa<quake::VeqType>(qreg.getType()))
       mlir::emitError(qreg.getLoc(),
                       "Unexpected type used: expected a quake::VeqType.");
 
     auto iter = regToOrderedUsers.find(qreg);
-    if (iter != regToOrderedUsers.end())
-      return iter->second;
-    mlir::emitWarning(qreg.getLoc(), "Qubit vector is not tracked.");
-    return {};
+    if (iter == regToOrderedUsers.end())
+      return {};
+
+    // Filter cached users against current users to handle erased operations.
+    llvm::DenseSet<Operation *> currentUsers(qreg.getUsers().begin(),
+                                             qreg.getUsers().end());
+    SmallVector<Operation *, 8> validUsers;
+    for (auto *op : iter->second) {
+      if (currentUsers.contains(op))
+        validUsers.push_back(op);
+    }
+    return validUsers;
   }
   DominanceInfo &getDominanceInfo() { return domInfo; }
   RegUseTracker(const RegUseTracker &) = delete;
@@ -96,6 +108,7 @@ public:
   LogicalResult matchAndRewrite(quake::MzOp mz,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> useOps;
+    bool modified = false;
     for (Value measuredQubit : mz.getTargets()) {
       auto *nextOp = getNextUse(measuredQubit, mz);
       if (nextOp) {
@@ -138,12 +151,13 @@ public:
               opBuilder.create<quake::XOp>(location, measuredQubit);
               opBuilder.create<cudaq::cc::ContinueOp>(location);
             });
+        modified = true;
       } else {
         LLVM_DEBUG(llvm::dbgs() << "No next use\n");
       }
     }
 
-    return failure();
+    return success(modified);
   }
 
 private:

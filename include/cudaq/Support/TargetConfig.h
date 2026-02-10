@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -172,6 +172,6 @@ public:
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,
-                               const std::vector<std::string> &targetArgv);
+                               const std::map<std::string, std::string> &args);
 
 } // namespace cudaq::config

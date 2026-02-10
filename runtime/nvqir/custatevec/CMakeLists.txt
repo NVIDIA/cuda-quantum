@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -54,7 +54,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
 
   target_link_libraries(${LIBRARY_NAME} 
                         PRIVATE
-                          fmt::fmt-header-only
+                          cudaq-logger
                           cudaq-common
                           nvqir-custatevec-kernels
                           ${CUSTATEVEC_LIB}

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,8 @@
 #include "common/ExecutionContext.h"
 #include "common/RecordLogParser.h"
 #include "cudaq/platform.h"
+#include "cudaq/utils/cudaq_utils.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
@@ -25,7 +27,8 @@ namespace cudaq {
 void bindExecutionContext(py::module &mod) {
   py::class_<cudaq::ExecutionContext>(mod, "ExecutionContext")
       .def(py::init<std::string>())
-      .def(py::init<std::string, int>())
+      .def(py::init<std::string, std::size_t, std::size_t>(), py::arg("name"),
+           py::arg("shots"), py::arg("qpu_id") = 0)
       .def_readonly("result", &cudaq::ExecutionContext::result)
       .def_readwrite("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_readonly("asyncResult", &cudaq::ExecutionContext::asyncResult)
@@ -38,29 +41,58 @@ void bindExecutionContext(py::module &mod) {
                      &cudaq::ExecutionContext::numberTrajectories)
       .def_readwrite("explicitMeasurements",
                      &cudaq::ExecutionContext::explicitMeasurements)
+      .def_readwrite("allowJitEngineCaching",
+                     &cudaq::ExecutionContext::allowJitEngineCaching)
       .def_readonly("invocationResultBuffer",
                     &cudaq::ExecutionContext::invocationResultBuffer)
+      .def("unset_jit_engine",
+           [&](cudaq::ExecutionContext &execCtx) {
+             if (execCtx.jitEng) {
+               auto *p =
+                   reinterpret_cast<mlir::ExecutionEngine *>(execCtx.jitEng);
+               delete p;
+               execCtx.jitEng = nullptr;
+               execCtx.allowJitEngineCaching = false;
+             }
+           })
       .def("setSpinOperator",
            [](cudaq::ExecutionContext &ctx, cudaq::spin_op &spin) {
              ctx.spin = spin;
              assert(cudaq::spin_op::canonicalize(spin) == spin);
            })
       .def("getExpectationValue",
-           [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; });
-  mod.def(
-      "setExecutionContext",
-      [](cudaq::ExecutionContext &ctx) {
-        auto &self = cudaq::get_platform();
-        self.set_exec_ctx(&ctx);
-      },
-      "");
-  mod.def(
-      "resetExecutionContext",
-      []() {
-        auto &self = cudaq::get_platform();
-        self.reset_exec_ctx();
-      },
-      "");
+           [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; })
+      // ----- Context management using with blocks -----
+      // Unlike in C++, we do not support nested execution contexts in Python.
+      .def("__enter__",
+           [](cudaq::ExecutionContext &ctx) -> ExecutionContext & {
+             if (cudaq::getExecutionContext()) {
+               throw std::runtime_error("Context already set. Nested execution "
+                                        "contexts are not supported in Python");
+             }
+             auto &platform = cudaq::get_platform();
+             platform.configureExecutionContext(ctx);
+             cudaq::detail::setExecutionContext(&ctx);
+             platform.beginExecution();
+             return ctx;
+           })
+      .def("__exit__", [](cudaq::ExecutionContext &ctx, py::object type,
+                          py::object value, py::object traceback) {
+        if (type.is_none()) {
+          // No exception, so we finalize the context and reset it
+          auto &platform = cudaq::get_platform();
+          detail::try_finally(
+              [&] {
+                platform.finalizeExecutionContext(ctx);
+                platform.endExecution();
+              },
+              detail::resetExecutionContext);
+        } else {
+          // Reset, silencing any further exceptions
+          detail::invoke_no_throw(detail::resetExecutionContext);
+        }
+        return false;
+      });
   mod.def("supportsConditionalFeedback", []() {
     auto &platform = cudaq::get_platform();
     return platform.supports_conditional_feedback();
@@ -69,10 +101,8 @@ void bindExecutionContext(py::module &mod) {
     auto &platform = cudaq::get_platform();
     return platform.supports_explicit_measurements();
   });
-  mod.def("getExecutionContextName", []() {
-    auto &self = cudaq::get_platform();
-    return self.get_exec_ctx()->name;
-  });
+  mod.def("getExecutionContextName",
+          []() { return cudaq::getExecutionContext()->name; });
   mod.def(
       "isQuantumDevice",
       [](std::size_t qpuId = 0) {

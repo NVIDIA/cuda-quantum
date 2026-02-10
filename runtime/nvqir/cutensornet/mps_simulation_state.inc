@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -237,7 +237,8 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
     cuFloatComplex overlapValue;
     HANDLE_CUDA_ERROR(cudaMemcpy(&overlapValue, m_dOverlap, overlapSize,
                                  cudaMemcpyDeviceToHost));
-    overlap = static_cast<double>(cuCrealf(overlapValue));
+    overlap = {static_cast<double>(cuCrealf(overlapValue)),
+               static_cast<double>(cuCimagf(overlapValue))};
   } else if (prec == precision::fp64) {
     cuDoubleComplex overlapValue;
     HANDLE_CUDA_ERROR(cudaMemcpy(&overlapValue, m_dOverlap, overlapSize,
@@ -273,7 +274,7 @@ std::complex<double> MPSSimulationState<ScalarType>::getAmplitude(
     const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
-        fmt::format("[tensornet-state] getAmplitude with an invalid number "
+        cudaq_fmt::format("[tensornet-state] getAmplitude with an invalid number "
                     "of bits in the "
                     "basis state: expected {}, provided {}.",
                     getNumQubits(), basisState.size()));
@@ -645,7 +646,7 @@ MPSSettings::MPSSettings() {
     }
     svdAlgo = iter->second;
     CUDAQ_INFO("Setting MPS SVD algorithm to {} ({}).",
-                fmt::underlying(svdAlgo), iter->first);
+               cudaq_fmt::underlying(svdAlgo), iter->first);
   }
 
   using GaugePair =
@@ -672,7 +673,7 @@ MPSSettings::MPSSettings() {
     }
     gaugeOption = iter->second;
     CUDAQ_INFO("Setting MPS GAUGE option to {} ({}).", iter->first,
-                fmt::underlying(iter->second));
+               cudaq_fmt::underlying(iter->second));
   }
 }
 
@@ -683,12 +684,12 @@ void MPSSimulationState<ScalarType>::toHostImpl(
   auto stateVec = state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(
-        fmt::format("[MPSSimulationState] Dimension mismatch: expecting {} "
+        cudaq_fmt::format("[MPSSimulationState] Dimension mismatch: expecting {} "
                     "elements but providing an array of size {}.",
                     stateVec.size(), numElements));
   if (std::is_same_v<ScalarType, T>) {
     std::memcpy(clientAllocatedData, stateVec.data(),
-                numElements * sizeof(ScalarType));
+                numElements * sizeof(std::complex<ScalarType>));
   } else {
     for (std::size_t i = 0; i < numElements; ++i)
       clientAllocatedData[i] = stateVec[i];

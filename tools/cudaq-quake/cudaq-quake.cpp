@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -37,6 +37,17 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
 #include <filesystem>
+
+// LeakSanitizer suppression, currently necessary to successfully compile with
+// ASan.
+// TODO: find cause of leak and fix it (see
+// https://github.com/NVIDIA/cuda-quantum/issues/3780).
+#if defined(__SANITIZE_ADDRESS__) ||                                           \
+    defined(__has_feature) && __has_feature(address_sanitizer)
+extern "C" const char *__lsan_default_suppressions() {
+  return "leak:llvm::SmallVectorBase<unsigned int>::grow_pod\n";
+}
+#endif
 
 using namespace llvm;
 
@@ -108,7 +119,7 @@ static cl::list<std::string>
 
 static cl::opt<std::string> stdCpp(
     "std",
-    cl::desc("Specify the C++ standard (c++17, c++20). The default is c++20."),
+    cl::desc("Specify the C++ standard (c++20, c++23). The default is c++20."),
     cl::init("c++20"));
 
 inline bool isStdinInput(StringRef str) { return str == "-"; }
@@ -361,33 +372,36 @@ int main(int argc, char **argv) {
     clArgs.push_back(path);
   }
 
-  // `cudaq-quake` is a clang tool, and thus it will search for C++ headers
-  // using clang builtin paths, i.e., it will look for `../include/c++/v1` and
-  // fallback to the system paths.  Since this tool is not installed with clang,
-  // this is the wrong thing to do.  This tools needs to look for
-  // `${LLVM_ROOT}/include/c++/v1` and then fallback to system paths.
-  //
-  // I have not found a way to change the builtin search paths for a particular
-  // tool.  So the workaround involves checking whether
-  // `${LLVM_ROOT}/include/c++/v1` exists, and forcing the tool to use it:
-  auto libcxxIncludePath = llvmInstallPath / "include" / "c++" / "v1";
-  auto libcxxTargetIncludePath =
-      llvmInstallPath / "include" / LLVM_TARGET_TRIPLE / "c++" / "v1";
-  if (std::filesystem::exists(libcxxIncludePath)) {
+  // Configure C++ standard library headers (paths determined at CMake configure
+  // time). If LLVM was built with libc++, use those headers. Otherwise on
+  // macOS, use the SDK. On Linux without LLVM libc++, system headers are found
+  // automatically.
+  const std::string libcxxPath = CUDAQ_LIBCXX_PATH;
+  const std::string libcxxTargetPath = CUDAQ_LIBCXX_TARGET_PATH;
+  const std::string sysrootPath = CUDAQ_SYSROOT_PATH;
+  if (!libcxxPath.empty()) {
+    // Target-specific path (eg., containing __config_site) must come first.
+    if (!libcxxTargetPath.empty()) {
+      clArgs.push_back("-isystem");
+      clArgs.push_back(libcxxTargetPath);
+    }
     clArgs.push_back("-isystem");
-    clArgs.push_back(libcxxIncludePath);
-    clArgs.push_back("-isystem");
-    clArgs.push_back(libcxxTargetIncludePath);
+    clArgs.push_back(libcxxPath);
+  } else if (!sysrootPath.empty()) {
+    clArgs.push_back("-isysroot");
+    clArgs.push_back(sysrootPath);
   }
 
   // If the cudaq.h does not exist in the installation directory, fallback onto
   // the source install.
   std::filesystem::path cudaqIncludeDir = cudaqInstallPath / "include";
   auto cudaqHeader = cudaqIncludeDir / "cudaq.h";
-  if (!std::filesystem::exists(cudaqHeader))
+  bool useFallbackIncludes = false;
+  if (!std::filesystem::exists(cudaqHeader)) {
     // need to fall back to the build environment.
     cudaqIncludeDir = std::string(FALLBACK_CUDAQ_INCLUDE_DIR);
-
+    useFallbackIncludes = true;
+  }
   // One final check here, do we have this header, if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
     llvm::errs() << "Invalid CUDA-Q install configuration, cannot find "
@@ -407,6 +421,10 @@ int main(int argc, char **argv) {
   // Add the default path to the cudaq headers.
   clArgs.push_back("-I" + cudaqIncludeDir.string());
 
+  // Add the new runtime include path if needed
+  if (useFallbackIncludes) {
+    clArgs.push_back("-I" + std::string(FALLBACK_REFACTORED_CUDAQ_INCLUDE_DIR));
+  }
   // Add preprocessor macro definitions, if any.
   for (auto &def : macroDefines)
     clArgs.push_back("-D" + def);

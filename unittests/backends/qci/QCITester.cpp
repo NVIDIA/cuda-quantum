@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,13 +7,10 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/FmtCore.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
 #include <stdlib.h>
-
-std::string backendString = "qci;emulate;false";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -21,9 +18,6 @@ bool isValidExpVal(double value) {
 }
 
 CUDAQ_TEST(QCITester, checkSampleSync) {
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
@@ -37,9 +31,6 @@ CUDAQ_TEST(QCITester, checkSampleSync) {
 
 CUDAQ_TEST(QCITester, checkSampleAsync) {
 
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -51,9 +42,6 @@ CUDAQ_TEST(QCITester, checkSampleAsync) {
 }
 
 CUDAQ_TEST(QCITester, checkSampleAsyncLoadFromFile) {
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
@@ -82,8 +70,6 @@ CUDAQ_TEST(QCITester, checkSampleAsyncLoadFromFile) {
 }
 
 CUDAQ_TEST(QCITester, checkObserveSync) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
@@ -103,8 +89,6 @@ CUDAQ_TEST(QCITester, checkObserveSync) {
 }
 
 CUDAQ_TEST(QCITester, checkObserveAsync) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
@@ -128,7 +112,6 @@ CUDAQ_TEST(QCITester, checkObserveAsync) {
 CUDAQ_TEST(QCITester, checkObserveAsyncLoadFromFile) {
 
   auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
@@ -163,8 +146,6 @@ CUDAQ_TEST(QCITester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
-  setenv("QCI_AUTH_TOKEN", "00000000000000000000000000000000", 0);
-  setenv("QCI_API_URL", "http://localhost:62449", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;

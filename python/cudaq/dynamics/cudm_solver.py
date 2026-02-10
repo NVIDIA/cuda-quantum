@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -290,6 +290,19 @@ def evolve_dynamics(
 
     exp_vals = [[] for _ in range(batch_size)]
     intermediate_states = [[] for _ in range(batch_size)]
+
+    # Get MPI state for distributed mode handling
+    is_mpi_init = cudaq_runtime.mpi.is_initialized()
+    mpi_rank = cudaq_runtime.mpi.rank() if is_mpi_init else 0
+    mpi_num_ranks = cudaq_runtime.mpi.num_ranks() if is_mpi_init else 1
+
+    # We requires an even partition for distributed batched states.
+    if batch_size > 1 and batch_size % mpi_num_ranks != 0:
+        raise RuntimeError(
+            f"Distributed batched states require an even partition across ranks: "
+            f"batch size {batch_size} is not divisible by number of ranks {mpi_num_ranks}. Please adjust "
+            "the number of MPI ranks or the batch size.")
+
     for step_idx, parameters in enumerate(schedule):
         if step_idx > 0:
             with ScopeTimer("evolve.integrator.integrate") as timer:
@@ -312,17 +325,55 @@ def evolve_dynamics(
             if store_intermediate_results == IntermediateResultSave.ALL or step_idx == (
                     len(schedule) - 1):
                 split_states = bindings.splitBatchedState(state)
-                for i in range(batch_size):
-                    intermediate_states[i].append(split_states[i])
+                # In distributed mode, the split operation only returns the
+                # local states held by this rank. The number of split states
+                # may be less than batch_size.
+                local_num_states = len(split_states)
+                if local_num_states == batch_size:
+                    # Non-distributed mode: all states are local
+                    for i in range(batch_size):
+                        intermediate_states[i].append(split_states[i])
+                else:
+                    # Distributed mode: only some states are local.
+                    # Calculate the batch offset for this rank based on even
+                    # distribution of states across ranks.
+                    states_per_rank = batch_size // mpi_num_ranks
+                    batch_offset = mpi_rank * states_per_rank
+                    for i, split_state in enumerate(split_states):
+                        global_idx = batch_offset + i
+                        if global_idx < batch_size:
+                            intermediate_states[global_idx].append(split_state)
 
     bindings.clearContext()
-    results = [
-        cudaq_runtime.EvolveResult(state, exp_val)
-        for state, exp_val in zip(intermediate_states, exp_vals)
-    ] if (store_intermediate_results != IntermediateResultSave.NONE) else [
-        cudaq_runtime.EvolveResult(state[-1], exp_val[-1])
-        for state, exp_val in zip(intermediate_states, exp_vals)
-    ]
+
+    # In distributed mode, only create results for states that have data.
+    # Check if we're in distributed mode and filter accordingly.
+    is_distributed = cudaq_runtime.mpi.is_initialized(
+    ) and cudaq_runtime.mpi.num_ranks() > 1
+
+    if is_distributed:
+        # In distributed mode, each rank only has local states.
+        # Return results only for the states this rank holds.
+        local_results = []
+        for i in range(batch_size):
+            if intermediate_states[i]:  # Only include if we have data
+                if store_intermediate_results != IntermediateResultSave.NONE:
+                    local_results.append(
+                        cudaq_runtime.EvolveResult(intermediate_states[i],
+                                                   exp_vals[i]))
+                else:
+                    local_results.append(
+                        cudaq_runtime.EvolveResult(intermediate_states[i][-1],
+                                                   exp_vals[i][-1]))
+        results = local_results
+    else:
+        results = [
+            cudaq_runtime.EvolveResult(state, exp_val)
+            for state, exp_val in zip(intermediate_states, exp_vals)
+        ] if (store_intermediate_results != IntermediateResultSave.NONE) else [
+            cudaq_runtime.EvolveResult(state[-1], exp_val[-1])
+            for state, exp_val in zip(intermediate_states, exp_vals)
+        ]
 
     if is_batched_evolve:
         return results

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -372,15 +372,16 @@ def test_return_tuple_int_float():
     result = simple_tuple_int_float(2, (-13, 42.3))
     assert result == (-13, 42.3)
 
-    @cudaq.kernel
-    def simple_tuple_int_float_assign(
-            n: int, t: tuple[int, float]) -> tuple[int, float]:
-        qubits = cudaq.qvector(n)
-        t[0] = -14
-        t[1] = 11.5
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_assign(
+                n: int, t: tuple[int, float]) -> tuple[int, float]:
+            qubits = cudaq.qvector(n)
+            t[0] = -14
+            t[1] = 11.5
+            return t
+
         simple_tuple_int_float_assign(2, (-13, 42.3))
     assert 'tuple value cannot be modified' in str(e.value)
 
@@ -584,7 +585,7 @@ def test_return_dataclass_list_int_bool():
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy(deep=True)
 
     # TODO: Support recursive aggregate types in kernels.
     # result = test_return_dataclass(2, MyClass([0,1], 18))
@@ -599,15 +600,16 @@ def test_return_dataclass_tuple_bool():
         x: tuple[int, bool]
         y: bool
 
-    @cudaq.kernel
-    def test_return_dataclass(n: int, t: MyClass) -> MyClass:
-        qubits = cudaq.qvector(n)
-        return t
+    with pytest.raises(RuntimeError) as e:
 
-    # TODO: Support recursive aggregate types in kernels.
-    # result = test_return_dataclass(2, MyClass((0, True), 19))
-    #
-    # assert result == MyClass((0, True), 19)
+        @cudaq.kernel
+        def test_return_dataclass(n: int, t: MyClass) -> MyClass:
+            qubits = cudaq.qvector(n)
+            return t
+
+        result = test_return_dataclass(2, MyClass((0, True), 19))
+    assert 'Type not supported' in str(e.value)
+    #assert result == MyClass((0, True), 19)
 
 
 def test_return_dataclass_dataclass_bool():
@@ -622,15 +624,17 @@ def test_return_dataclass_dataclass_bool():
         x: MyClass1
         y: bool
 
-    @cudaq.kernel
-    def test_return_dataclass(n: int, t: MyClass2) -> MyClass2:
-        qubits = cudaq.qvector(n)
-        return t
+    with pytest.raises(RuntimeError) as e:
 
-    # TODO: Support recursive aggregate types in kernels.
-    # result = test_return_dataclass(2, MyClass2(MyClass1(0,True), 20))
-    #
-    # assert result == MyClass2(MyClass1(0,True), 20)
+        @cudaq.kernel
+        def test_return_dataclass(n: int, t: MyClass2) -> MyClass2:
+            qubits = cudaq.qvector(n)
+            return t
+
+        result = test_return_dataclass(2, MyClass2(MyClass1(0, True), 20))
+    # FIXME!!!
+    # The bridge is incorrectly deciding there are recursive types here!
+    assert 'Type not supported' in str(e.value)
 
 
 def test_run_errors():
@@ -651,19 +655,19 @@ def test_run_errors():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_no_return, 2)
-    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
+    assert 'a runnable kernel must return a value.' in repr(e)
 
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(RuntimeError) as e:
         cudaq.run(simple, 2, shots_count=-1)
-    assert 'incompatible function arguments.' in repr(e)
+    assert 'Invalid `shots_count`' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple, shots_count=100)
-    assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
+    assert 'Invalid number of arguments passed to run' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         print(cudaq.run(simple_no_args, 2, shots_count=100))
-    assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
+    assert 'Invalid number of arguments passed to run' in repr(e)
 
 
 # leave for gdb debugging

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -621,15 +621,16 @@ def test_apply_noise_custom():
     counts = cudaq.sample(test, noise_model=noise)
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
-    @cudaq.kernel
-    def testbad():
-        q = cudaq.qubit()
-        x(q)
-        # can pass as standard arguments
-        cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
-
     with pytest.raises(RuntimeError) as e:
-        testbad.compile()
+
+        @cudaq.kernel
+        def testbad():
+            q = cudaq.qubit()
+            x(q)
+            # can pass as standard arguments
+            cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
+
+        cudaq.sample(testbad)
 
     @cudaq.kernel
     def test():
@@ -741,6 +742,41 @@ def test_apply_noise_builtin(target: str):
     counts = cudaq.sample(pauli2_test, noise_model=noise)
     assert len(counts) == 4
     print(counts)
+
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_depolarization2_standard_formula(target: str):
+    cudaq.set_target(target)
+    cudaq.set_random_seed(42)
+
+    @cudaq.kernel
+    def cnot_echo():
+        q = cudaq.qvector(2)
+        x.ctrl(q[0], q[1])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    test_cases = [
+        (0.1, 0.70, 0.95),
+        (0.3, 0.45, 0.70),
+        (0.5, 0.30, 0.55),
+    ]
+
+    for p, min_expected, max_expected in test_cases:
+        noise_model = cudaq.NoiseModel()
+        depol2 = cudaq.Depolarization2(p)
+        noise_model.add_channel("x", [0, 1], depol2)
+
+        counts = cudaq.sample(cnot_echo,
+                              shots_count=10000,
+                              noise_model=noise_model)
+        prob_00 = counts.probability("00")
+
+        assert min_expected <= prob_00 <= max_expected, f"Expected probability to be in between {min_expected} and {max_expected}, got {prob_00:.4f}"
+
+        assert len(counts) == 4, f"Expected 4 outcomes, got {len(counts)}"
 
     cudaq.reset_target()
 

@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,39 +17,35 @@ namespace cudaq::orca {
 cudaq::sample_result runSampling(TBIParameters &parameters,
                                  std::size_t qpu_id = 0) {
   std::size_t shots = parameters.n_samples;
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", shots);
+  cudaq::ExecutionContext ctx("sample", shots, qpu_id);
 
   auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(ctx.get(), qpu_id);
-  platform.set_current_qpu(qpu_id);
 
-  [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
-      "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
+  platform.with_execution_context(ctx, [&]() {
+    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
+        "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
+  });
 
-  platform.reset_exec_ctx(qpu_id);
-  return ctx->result;
+  return ctx.result;
 }
 
 async_sample_result runAsyncSampling(TBIParameters &parameters,
                                      std::size_t qpu_id = 0) {
   std::size_t shots = parameters.n_samples;
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", shots);
+  cudaq::ExecutionContext ctx("sample", shots, qpu_id);
 
   // Indicate that this is an async exec
   cudaq::details::future futureResult;
-  ctx->asyncExec = true;
+  ctx.asyncExec = true;
 
   auto &platform = get_platform();
-  platform.set_exec_ctx(ctx.get(), qpu_id);
-  platform.set_current_qpu(qpu_id);
-
-  [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
-      "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
-
+  platform.with_execution_context(ctx, [&]() {
+    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
+        "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
+  });
   // If we have a non-null future, set it
-  futureResult = ctx->futureResult;
+  futureResult = ctx.futureResult;
 
-  platform.reset_exec_ctx(qpu_id);
   return async_sample_result(std::move(futureResult));
 }
 

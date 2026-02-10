@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,10 +8,10 @@
 
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
 #include <fstream>
@@ -172,7 +172,7 @@ void findAvailableTargets(
   }
 }
 
-LinkedLibraryHolder::LinkedLibraryHolder() {
+LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
   if (!cudaq::__internal__::canModifyTarget())
@@ -279,7 +279,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
         CUDAQ_INFO("Found simulator plugin {}.", simName);
         availableSimulators.push_back(simName);
       }
-
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
       // Extract and process the platform name
@@ -289,12 +288,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       // Remove the suffix from the library
       auto idx = platformName.find_last_of(".");
       platformName = platformName.substr(0, idx);
-
       auto iter = libHandles.find(path.string());
       if (iter == libHandles.end())
         libHandles.emplace(path.string(), dlopen(path.string().c_str(),
                                                  RTLD_GLOBAL | RTLD_NOW));
-
       // Load the plugin and get the CircuitSimulator.
       availablePlatforms.push_back(platformName);
       CUDAQ_INFO("Found platform plugin {}.", platformName);
@@ -410,12 +407,6 @@ void LinkedLibraryHolder::setTarget(
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + targetName + ").");
 
-  std::vector<std::string> argv;
-  for (const auto &[k, v] : extraConfig) {
-    argv.emplace_back(k);
-    argv.emplace_back(v);
-  }
-
   auto &target = iter->second;
   if (!target.config.WarningMsg.empty()) {
     fmt::print(fmt::fg(fmt::color::red), "[warning] ");
@@ -424,7 +415,7 @@ void LinkedLibraryHolder::setTarget(
                target.config.WarningMsg);
   }
   const std::string targetConfigStr =
-      cudaq::config::processRuntimeArgs(target.config, argv);
+      cudaq::config::processRuntimeArgs(target.config, extraConfig);
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
 
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
@@ -447,13 +438,7 @@ void LinkedLibraryHolder::setTarget(
       throw std::runtime_error("Default target " + defaultTarget +
                                " doesn't define a simulator. Please check your "
                                "CUDAQ_DEFAULT_SIMULATOR environment variable.");
-
-    CUDAQ_INFO(
-        "Target {} doesn't define a simulator, using default target {}'s "
-        "simulator {}",
-        targetName, defaultTarget, simName);
   }
-
   __nvqir__setCircuitSimulator(getSimulator(simName));
   auto *platform = getPlatform(target.platformName);
 
@@ -512,7 +497,7 @@ Resources *python::detail::getResourceCounts() {
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
-  if (holder) {
+  if (holder && cudaq::__internal__::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();
     const std::string codegenEmission =
         runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);

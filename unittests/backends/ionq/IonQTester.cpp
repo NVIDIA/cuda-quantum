@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,15 +7,10 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/FmtCore.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
 #include <stdlib.h>
-
-std::string mockPort = "62441";
-std::string backendStringTemplate =
-    "ionq;emulate;false;url;http://localhost:{}";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -23,12 +18,6 @@ bool isValidExpVal(double value) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleSync) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -40,12 +29,6 @@ CUDAQ_TEST(IonQTester, checkSampleSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsync) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -57,12 +40,6 @@ CUDAQ_TEST(IonQTester, checkSampleAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -90,12 +67,6 @@ CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveSync) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
   kernel.x(qubit[0]);
@@ -114,12 +85,6 @@ CUDAQ_TEST(IonQTester, checkObserveSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsync) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
   kernel.x(qubit[0]);
@@ -140,12 +105,6 @@ CUDAQ_TEST(IonQTester, checkObserveAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
   kernel.x(qubit[0]);
@@ -179,7 +138,6 @@ CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;

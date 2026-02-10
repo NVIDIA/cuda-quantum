@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -28,7 +28,6 @@ target_link_libraries(cudaq-quake
   clangCodeGen
   clangFrontendTool
   clangFrontend
-  fmt::fmt-header-only
 
   CCDialect
   QuakeDialect

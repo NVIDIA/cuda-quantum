@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -80,15 +80,27 @@ public:
 
     auto bufferTy = buffer.getType();
     auto ptrTy = cast<cudaq::cc::PointerType>(bufferTy);
-    auto arrTy = cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
-    auto eleTy = arrTy.getElementType();
+    auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
+    auto eleTy = arrTy ? arrTy.getElementType() : ptrTy.getElementType();
     auto is64Bit = isa<Float64Type>(eleTy);
+    bool isComplex = false;
 
-    if (auto cTy = dyn_cast<ComplexType>(eleTy))
+    if (auto cTy = dyn_cast<ComplexType>(eleTy)) {
       is64Bit = isa<Float64Type>(cTy.getElementType());
+      isComplex = true;
+    }
 
-    auto createStateFunc = is64Bit ? cudaq::createCudaqStateFromDataFP64
-                                   : cudaq::createCudaqStateFromDataFP32;
+    auto createStateFunc = [&]() {
+      if (isComplex) {
+        if (is64Bit)
+          return cudaq::createCudaqStateFromDataComplexF64;
+        return cudaq::createCudaqStateFromDataComplexF32;
+      }
+      if (is64Bit)
+        return cudaq::createCudaqStateFromDataF64;
+      return cudaq::createCudaqStateFromDataF32;
+    }();
+
     cudaq::IRBuilder irBuilder(ctx);
     auto result = irBuilder.loadIntrinsic(module, createStateFunc);
     assert(succeeded(result) && "loading intrinsic should never fail");
@@ -97,11 +109,9 @@ public:
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
-    auto one = rewriter.create<arith::ConstantIntOp>(loc, 1, size.getType());
-    auto powsz = rewriter.create<arith::ShLIOp>(loc, size.getType(), one, size);
 
     rewriter.replaceOpWithNewOp<func::CallOp>(
-        createStateOp, statePtrTy, createStateFunc, ValueRange{cast, powsz});
+        createStateOp, statePtrTy, createStateFunc, ValueRange{cast, size});
     return success();
   }
 };

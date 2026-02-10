@@ -63,6 +63,60 @@ detected running the command `nvidia-smi` in your development environment.
 [cutensor]: https://developer.nvidia.com/cutensor
 [nvidia_driver]: https://www.nvidia.com/download/index.aspx
 
+## Building on macOS
+
+CUDA-Q can be built on macOS for development purposes. Note that:
+
+- **ARM64 only**: Only Apple silicon Macs are supported; Intel Macs are not supported
+- **CPU-only**: No CUDA/GPU support is available on macOS
+- **Apple Clang**: Uses the system compiler (no need to install GCC or LLVM separately)
+- **Prerequisites required**: You must use `-p` to install LLVM and other dependencies
+
+Before building, complete the macOS setup steps in
+[`Dev_Setup.md`](./Dev_Setup.md#working-on-macos).
+
+### Building
+
+Run the build script with `-p` to install prerequisites and build:
+
+```bash
+./scripts/build_cudaq.sh -p
+```
+
+The first build takes a while as it builds LLVM and other dependencies from source.
+Subsequent builds with `-p` will skip already-installed prerequisites.
+
+### Manual/Incremental Builds
+
+For development, you can rebuild directly with `cmake` and ninja:
+
+```bash
+source ~/.venv/cudaq/bin/activate
+cd build
+cmake .. && ninja install
+```
+
+### OpenMP Support on macOS
+
+Since CUDA/GPU acceleration is unavailable on macOS, OpenMP is built by default
+with LLVM to enable CPU parallelization for quantum simulations. This
+significantly improves simulation performance by utilizing multiple CPU cores.
+
+To disable OpenMP (if needed), set `LLVM_PROJECTS` before building:
+
+```bash
+export LLVM_PROJECTS='clang;lld;mlir;python-bindings'
+./scripts/build_cudaq.sh -p
+```
+
+### macOS Limitations
+
+- **JIT exception handling on macOS M-series**: C++ exceptions thrown from JIT-compiled
+  code cannot be caught on macOS ARM64 (Apple silicon). This is a known upstream
+  LLVM bug ([llvm-project#49036](https://github.com/llvm/llvm-project/issues/49036))
+  caused by libunwind not properly handling exception unwinding in JIT-executed
+  code on Darwin ARM64.
+
 ## Building CUDA-Q with a custom LLVM version
 
 CUDA-Q is intended to be built using the LLVM commit that the submodule is set
@@ -84,6 +138,10 @@ libraries should be installed:
 export LLVM_INSTALL_PREFIX=<installation_path>
 ```
 
+**Note:** This environment variable only needs to be set during the initial
+CMake configure. After that, the value is cached in `CMakeCache.txt` and
+persists across subsequent builds.
+
 The CUDA-Q [build script](./scripts/build_cudaq.sh) checks if `llvm-config` is
 available in the bin subfolder of that directory, and will automatically invoke
 the [LLVM build script](./scripts/build_llvm.sh) if it is not.
@@ -95,3 +153,18 @@ that are available within a container is determined by the WSL settings. Please
 create or modify the [WSL configuration file][wsl_config] if necessary.
 
 [wsl_config]: https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+
+## Cleaning up after failed builds
+
+If `/.scripts/build_cuda.sh` fails partway through installation (or installing
+prerequisites with `-p`) a subsequent rerun may use partially written build
+state and conclude the build stage passed, proceeding onto the next step. In
+this case a clean retry usually requires one of the following:
+
+- Resetting your build cudaq directory `rm -rf build`
+- Resetting one of your install `*_INSTALL_PREFIX` paths by removing the
+  directory. Eg., `rm - /usr/local/llvm`. *Warning* Linux uses
+  `/usr/local`/`/opt` and macOS `~/.local` for *other* system installations
+  so do not blindly remove these directories.
+- Resetting one of the submodule build folders, eg.,
+  `rm -rf tpls/pybind11/build` or `rm -rf ~/.llvm-project/build`.

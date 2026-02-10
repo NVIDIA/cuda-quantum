@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,6 +12,10 @@
 #include <iostream>
 
 #include "CUDAQTestUtils.h"
+#include "backends/QPPTester.h"
+
+using QppNoiseSimulator =
+    QppCircuitSimulatorTester<nvqir::QppCircuitSimulator<qpp::cmat>>;
 
 void print_state(const qpp::cmat &densityMatrix) {
   std::cout << "state = [";
@@ -53,25 +57,13 @@ qpp::cmat getOneDensityMatrix(const int numQubits) {
   return oneVector * oneVector.transpose();
 }
 
-std::string getSampledBitString(QppNoiseCircuitSimulator &qppBackend,
-                                std::vector<std::size_t> &&qubits) {
-  std::cout << "sampling on the density matrix backend.\n";
-  // Call `sample` and return the bitstring as the first element of the
-  // measurement count map.
-  cudaq::ExecutionContext ctx("sample", 1);
-  qppBackend.setExecutionContext(&ctx);
-  qppBackend.resetExecutionContext();
-  auto sampleResults = ctx.result;
-  return sampleResults.begin()->first;
-}
-
 // Tests for a previous bug in the density simulator, where
 // the qubit ordering flipped after resizing the density matrix
 // with new qubits.
 CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
   {
     // Initialize QPP Backend 1 qubit at a time.
-    QppNoiseCircuitSimulator qppBackend;
+    QppNoiseSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     EXPECT_EQ(0, qppBackend.mz(q0));
 
@@ -83,7 +75,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
     auto q1 = qppBackend.allocateQubit();
     EXPECT_EQ(0, qppBackend.mz(q1));
 
-    std::string got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    std::string got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ("10", got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -91,7 +83,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
 
   {
     // Initialize QPP Backend with 2 qubits.
-    QppNoiseCircuitSimulator qppBackend;
+    QppNoiseSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -107,7 +99,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
     auto q2 = qppBackend.allocateQubit();
     EXPECT_EQ(0, qppBackend.mz(q2));
 
-    std::string got_bitstring = getSampledBitString(qppBackend, {0, 1, 2});
+    std::string got_bitstring = qppBackend.getSampledBitString({0, 1, 2});
     EXPECT_EQ("110", got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -121,7 +113,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
     qppBackend.x(q0);
     qppBackend.x(q1);
     qppBackend.x(q2);
-    got_bitstring = getSampledBitString(qppBackend, {0, 1, 2, 3});
+    got_bitstring = qppBackend.getSampledBitString({0, 1, 2, 3});
     EXPECT_EQ("0010", got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));

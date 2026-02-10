@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 
@@ -194,13 +195,14 @@ protected:
     }
     ExecutionResult result(counts);
     result.sequentialData = std::move(sequentialData);
-    executionContext->result = result;
+    getExecutionContext()->result = result;
   }
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
   void addQubitsToState(std::size_t qubitCount,
                         const void *stateDataIn = nullptr) override {
+    auto executionContext = getExecutionContext();
     if (stateDataIn)
       throw std::runtime_error("The Stim simulator does not support "
                                "initialization of qubits from state data.");
@@ -284,6 +286,8 @@ protected:
                          const std::vector<std::size_t> &controls,
                          const std::vector<std::size_t> &targets,
                          const std::vector<double> &params) override {
+    auto executionContext = getExecutionContext();
+
     // Do nothing if no execution context
     if (!executionContext)
       return;
@@ -335,6 +339,8 @@ protected:
                   const std::vector<std::uint32_t> &qubits) {
     CUDAQ_INFO("[stim] apply kraus channel {}, is_msm_mode = {}",
                channel.get_type_name(), is_msm_mode);
+
+    auto executionContext = getExecutionContext();
 
     // If we have a valid operation, apply it
     if (auto res = isValidStimNoiseChannel(channel)) {
@@ -420,7 +426,10 @@ protected:
   }
 
   /// @brief Set the current state back to the |0> state.
-  void setToZeroState() override { return; }
+  void setToZeroState() override {
+    // We don't support re-using memory, so we just deallocate the state.
+    deallocateState();
+  }
 
   /// @brief Override the calculateStateDim because this is not a state vector
   /// simulator.
@@ -483,6 +492,8 @@ public:
   /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
+    auto executionContext = getExecutionContext();
+
     if (executionContext->explicitMeasurements && qubits.empty() &&
         num_measurements == 0)
       throw std::runtime_error(
@@ -494,6 +505,9 @@ public:
         return qubits.empty();
       return true;
     }();
+    if (!sampleSim)
+      throw std::runtime_error("Stim simulator state is not initialized. "
+                               "Cannot sample from uninitialized state.");
     assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);

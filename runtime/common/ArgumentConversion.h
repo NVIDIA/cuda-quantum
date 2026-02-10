@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,7 +16,8 @@
 #include <unordered_set>
 #include <vector>
 
-namespace cudaq::opt {
+namespace cudaq {
+namespace opt {
 
 class ArgumentConverter;
 
@@ -110,5 +111,23 @@ private:
   /// Kernel we are substituting the arguments for.
   mlir::StringRef kernelName;
 };
+} // namespace opt
 
-} // namespace cudaq::opt
+namespace detail {
+/// Merge modules from any CallableClosureArgument arguments into \p intoModule.
+/// The \p rawArgs must correspond to the entry point function with the short
+/// name \p shortName that must appear in \p intoModule.
+///
+/// This merging step is done explicitly because: (1) it can be under better
+/// control as MLIR objects and (2) doing so eliminates the round-trip cost of
+/// dumping entire (filtered?) modules to strings and then converting them back
+/// to binary form.
+///
+/// Return <code>true</code> if and only if \p intoModule has been modified.
+bool mergeAllCallableClosures(mlir::ModuleOp intoModule,
+                              const std::string &shortName,
+                              const std::vector<void *> &rawArgs,
+                              std::optional<unsigned> betaRedux = {});
+} // namespace detail
+
+} // namespace cudaq

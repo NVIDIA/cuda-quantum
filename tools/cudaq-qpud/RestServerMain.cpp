@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,11 @@
 #include "common/Registry.h"
 #include "common/RemoteKernelExecutor.h"
 #include "llvm/Support/CommandLine.h"
+
+#ifdef __linux__
+#include <signal.h>
+#include <sys/prctl.h>
+#endif
 
 // Declare CUDA-Q MPI API that we need since we cannot compile with cudaq.h
 // without RTTI (needed to link this tool against LLVMSupport).
@@ -43,6 +48,13 @@ static llvm::cl::opt<bool> printCudaProperties(
     llvm::cl::init(false));
 
 int main(int argc, char **argv) {
+#ifdef __linux__
+  // Request termination signal when parent process dies.
+  // This ensures cleanup when auto-launched by remote-mqpu tests,
+  // even if the parent is killed by SIGKILL (e.g., llvm-lit timeout).
+  prctl(PR_SET_PDEATHSIG, SIGTERM);
+#endif
+
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
@@ -81,9 +93,6 @@ int main(int argc, char **argv) {
       cudaq::registry::get<cudaq::RemoteRuntimeServer>(serverSubType);
 
   if (printRestPayloadVersion) {
-    // IMPORTANT: Don't change this message without updating
-    // `scripts/nvqc_launch.sh`, which relies on the this information to perform
-    // deployment sanity check.
     printf("\nCUDA-Q REST API version: %d.%d\n", restServer->version().first,
            restServer->version().second);
     return 0;

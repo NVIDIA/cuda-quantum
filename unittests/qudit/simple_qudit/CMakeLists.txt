@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,6 +17,6 @@ target_include_directories(${LIBRARY_NAME}
       $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-operator PRIVATE cudaq-common fmt::fmt-header-only libqpp)
+  PUBLIC cudaq-operator PRIVATE cudaq-common fmt::fmt-header-only cudaq-logger  libqpp)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)

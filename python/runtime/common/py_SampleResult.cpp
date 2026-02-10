@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -29,9 +29,8 @@ This includes all measurement counts data from both mid-circuit and
 terminal measurements.
 
 Note:
-	At this time, mid-circuit measurements are not directly supported. 
-	Mid-circuit measurements may only be used if they are passed through 
-	to `c_if`.
+	Conditional logic on mid-circuit measurements is no longer supported with 
+  `sample`. Use `run` instead.
 
 Attributes:
 	register_names (List[str]): A list of the names of each measurement 

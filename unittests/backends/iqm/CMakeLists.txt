@@ -1,30 +1,34 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_iqm IQMTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_iqm PRIVATE -Wl,--no-as-needed)
-endif()
-target_compile_definitions(test_iqm PRIVATE -DNVQIR_BACKEND_NAME=iqm)
-target_include_directories(test_iqm PRIVATE ../..)
-target_link_libraries(test_iqm
-  PRIVATE fmt::fmt-header-only
-  cudaq-common
-  cudaq
-  cudaq-builder
-  cudaq-mlir-runtime
-  cudaq-rest-qpu
-  cudaq-operator
-  cudaq-platform-default
-  gmock_main
-  gtest_main)
+get_property(backend_unittest_libs DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS)
+add_backend_unittest_executable(test_iqm 
+  SOURCES IQMTester.cpp
+  BACKEND iqm
+  BACKEND_CONFIG "iqm emulate=false url=http://localhost:62443"
+  LINK_LIBS ${backend_unittest_libs} gmock_main
+)
 
-
-configure_file("IQMStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/iqm/IQMStartServerAndTest.sh" @ONLY)
-add_test(NAME iqm-tests COMMAND bash IQMStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/iqm/)
+configure_file(IQMStartServerAndTest.sh.in IQMStartServerAndTest.sh @ONLY)
+add_test(NAME iqm-tests COMMAND bash IQMStartServerAndTest.sh test_iqm WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_property(TEST iqm-tests PROPERTY SKIP_RETURN_CODE 77)
+
+set(dqa_filename "dqa_mock_qpu.txt")
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${dqa_filename} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_backend_unittest_executable(test_iqm_dqa
+  SOURCES IQMDqaTester.cpp
+  BACKEND iqm
+  BACKEND_CONFIG "iqm emulate=false url=http://localhost:62443 mapping_file=${dqa_filename}"
+  LINK_LIBS ${backend_unittest_libs} gmock_main
+)
+
+add_test(NAME iqm-dqa-tests COMMAND bash IQMStartServerAndTest.sh test_iqm_dqa WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_property(TEST iqm-dqa-tests PROPERTY SKIP_RETURN_CODE 77)
+
+# Tests are sharing the same port
+set_tests_properties(iqm-tests iqm-dqa-tests PROPERTIES RESOURCE_LOCK "iqm_port")

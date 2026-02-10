@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -222,7 +222,7 @@ def check_get_state_async(entity):
     for handle in asyns_handles:
         angle += 0.2
         expected_state = [np.cos(angle / 2), -1j * np.sin(angle / 2)]
-        state = handle.get()
+        state = cudaq.StateMemoryView(handle.get())
         assert np.allclose(state, expected_state, atol=1e-3)
 
 

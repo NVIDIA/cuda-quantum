@@ -1,17 +1,17 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
-import uvicorn, uuid, base64, ctypes
+import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -52,18 +52,6 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
-
-
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "required_num_qubits" in str(a):
-            return int(
-                str(a).split(f'required_num_qubits\"=')[-1].split(" ")
-                [0].replace("\"", "").replace("'", ""))
-        elif "requiredQubits" in str(a):
-            return int(
-                str(a).split(f'requiredQubits\"=')[-1].split(" ")[0].replace(
-                    "\"", "").replace("'", ""))
 
 
 def getKernelFunction(module):
@@ -129,10 +117,9 @@ async def postJob(job: Job,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.shots)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
+    with PreallocatedQubitsContext(numQubitsRequired, job.shots) as context:
+        kernel()
+    results = context.result
     results.dump()
     createdJobs[newId] = results
 

@@ -1,5 +1,5 @@
 // /*******************************************************************************
-//  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates. *
+//  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates. *
 //  * All rights reserved. *
 //  * *
 //  * This source code and the accompanying materials are made available under *
@@ -894,5 +894,174 @@ TEST(BatchedEvolveTester, checkIntermediateResultSaveNoneWithObservables) {
     // Check that final expectation value is computed
     EXPECT_EQ(result.expectation_values.value()[0].size(),
               1); // One observable (pauliZ)
+  }
+}
+
+// Test to reproduce coefficient mismatch bug when batched operators are sorted
+// by degrees but coefficients are taken from unsorted ops.
+// Bug: CuDensityMatOpConverter.cpp:528-529 uses ops[termIdx] instead of
+// batchedProductTerms[i][termIdx]
+TEST(BatchedEvolveTester, checkCoefficientMismatchAfterSorting) {
+  // Use 2 qubits (degrees 0 and 1) to ensure sorting changes term order
+  const cudaq::dimension_map dims = {{0, 2}, {1, 2}};
+
+  // We'll construct two Hamiltonians where terms are ordered such that sorting
+  // by degrees will reorder them. Then we use X operators (non-diagonal) so
+  // that different coefficients lead to measurably different evolution.
+  //
+  // Hamiltonian structure (before sorting):
+  //   term[0]: coeff1 * X(1)  -> degrees = {1}
+  //   term[1]: coeff0 * X(0)  -> degrees = {0}
+  //
+  // After stable_sort by degrees:
+  //   term[0]: coeff0 * X(0)  -> degrees = {0}
+  //   term[1]: coeff1 * X(1)  -> degrees = {1}
+  //
+  // Bug: coeffs[i] = ops[i][termIdx].get_coefficient() uses unsorted index
+  //      but prodTerms[i] = batchedProductTerms[i][termIdx] uses sorted index
+  //      This causes coefficient mismatch!
+
+  // Batch 1: H1 = f1 * X(1) + f0 * X(0) where f1=0.2, f0=0.1
+  //          After sorting: H1 = f0 * X(0) + f1 * X(1)
+  // Batch 2: H2 = g1 * X(1) + g0 * X(0) where g1=0.4, g0=0.3
+  //          After sorting: H2 = g0 * X(0) + g1 * X(1)
+  //
+  // With the bug, when processing sorted term[0] (X(0)):
+  //   - prodTerms uses X(0) (correct)
+  //   - coeffs uses ops[0] (unsorted) which gives f1=0.2 for batch1, g1=0.4 for
+  //   batch2
+  //     instead of f0=0.1, g0=0.3
+
+  const double f0 = 0.1, f1 = 0.2;
+  const double g0 = 0.3, g1 = 0.4;
+
+  // Use time-dependent callbacks to trigger the non-constant coefficient path
+  auto make_td_coeff = [](double val) {
+    return cudaq::scalar_operator(
+        [val](const std::unordered_map<std::string, std::complex<double>>
+                  &parameters) { return std::complex<double>(val, 0.0); });
+  };
+
+  // Hamiltonian 1: terms added in order degree1, degree0
+  cudaq::sum_op<cudaq::matrix_handler> ham1 =
+      make_td_coeff(2.0 * M_PI * f1) * cudaq::spin_op::x(1) +
+      make_td_coeff(2.0 * M_PI * f0) * cudaq::spin_op::x(0);
+
+  // Hamiltonian 2: terms added in order degree1, degree0
+  cudaq::sum_op<cudaq::matrix_handler> ham2 =
+      make_td_coeff(2.0 * M_PI * g1) * cudaq::spin_op::x(1) +
+      make_td_coeff(2.0 * M_PI * g0) * cudaq::spin_op::x(0);
+
+  constexpr int numSteps = 50;
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  // Initial state: |00> = (1, 0, 0, 0) in computational basis
+  // For 2 qubits: |00>, |01>, |10>, |11>
+  auto initialState = cudaq::state::from_data(
+      std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
+
+  // Observables: Z(0) and Z(1) measured separately
+  cudaq::sum_op<cudaq::matrix_handler> obsZ0(cudaq::spin_op::z(0));
+  cudaq::sum_op<cudaq::matrix_handler> obsZ1(cudaq::spin_op::z(1));
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      {ham1, ham2}, dims, schedule, {initialState, initialState}, integrator,
+      {}, {obsZ0, obsZ1}, cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), 2);
+
+  // For independent X rotations on each qubit:
+  // H = omega0 * X(0) + omega1 * X(1)
+  // <Z(0)>(t) = cos(2 * omega0 * t)
+  // <Z(1)>(t) = cos(2 * omega1 * t)
+  //
+  // Batch 1: omega0 = 2*pi*f0, omega1 = 2*pi*f1
+  //   <Z(0)>(t) = cos(4*pi*f0*t) = cos(4*pi*0.1*t)
+  //   <Z(1)>(t) = cos(4*pi*f1*t) = cos(4*pi*0.2*t)
+  //
+  // Batch 2: omega0 = 2*pi*g0, omega1 = 2*pi*g1
+  //   <Z(0)>(t) = cos(4*pi*g0*t) = cos(4*pi*0.3*t)
+  //   <Z(1)>(t) = cos(4*pi*g1*t) = cos(4*pi*0.4*t)
+  //
+  // With the bug (coefficients swapped):
+  // Batch 1: omega0 = 2*pi*f1, omega1 = 2*pi*f0 (swapped!)
+  //   <Z(0)>(t) = cos(4*pi*0.2*t)  <- wrong!
+  //   <Z(1)>(t) = cos(4*pi*0.1*t)  <- wrong!
+
+  // Check batch 1 results
+  {
+    EXPECT_TRUE(results[0].expectation_values.has_value());
+    const auto &expValsList = results[0].expectation_values.value();
+    EXPECT_EQ(expValsList.size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : expValsList) {
+      EXPECT_EQ(expVals.size(), 2); // Two observables
+      double t = steps[count];
+
+      // Expected values with CORRECT coefficients
+      double expectedZ0 = std::cos(4.0 * M_PI * f0 * t);
+      double expectedZ1 = std::cos(4.0 * M_PI * f1 * t);
+
+      // What we'd get with WRONG (swapped) coefficients
+      double wrongZ0 = std::cos(4.0 * M_PI * f1 * t);
+      double wrongZ1 = std::cos(4.0 * M_PI * f0 * t);
+
+      double actualZ0 = (double)expVals[0];
+      double actualZ1 = (double)expVals[1];
+
+      // If bug exists, actualZ0 would be close to wrongZ0 instead of expectedZ0
+      bool matchesCorrect = (std::abs(actualZ0 - expectedZ0) < 0.05) &&
+                            (std::abs(actualZ1 - expectedZ1) < 0.05);
+      bool matchesWrong = (std::abs(actualZ0 - wrongZ0) < 0.05) &&
+                          (std::abs(actualZ1 - wrongZ1) < 0.05);
+
+      if (t > 0.1) { // Skip early times where values might be similar
+        if (matchesWrong && !matchesCorrect) {
+          std::cout << "BUG DETECTED at t=" << t << ": Batch 1\n";
+          std::cout << "  <Z(0)> actual=" << actualZ0
+                    << ", expected=" << expectedZ0 << ", wrong=" << wrongZ0
+                    << "\n";
+          std::cout << "  <Z(1)> actual=" << actualZ1
+                    << ", expected=" << expectedZ1 << ", wrong=" << wrongZ1
+                    << "\n";
+        }
+      }
+
+      EXPECT_NEAR(actualZ0, expectedZ0, 0.05)
+          << "Batch 1, t=" << t << ": <Z(0)> mismatch - coefficient bug?";
+      EXPECT_NEAR(actualZ1, expectedZ1, 0.05)
+          << "Batch 1, t=" << t << ": <Z(1)> mismatch - coefficient bug?";
+
+      count++;
+    }
+  }
+
+  // Check batch 2 results
+  {
+    EXPECT_TRUE(results[1].expectation_values.has_value());
+    const auto &expValsList = results[1].expectation_values.value();
+    EXPECT_EQ(expValsList.size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : expValsList) {
+      EXPECT_EQ(expVals.size(), 2);
+      double t = steps[count];
+
+      double expectedZ0 = std::cos(4.0 * M_PI * g0 * t);
+      double expectedZ1 = std::cos(4.0 * M_PI * g1 * t);
+
+      double actualZ0 = (double)expVals[0];
+      double actualZ1 = (double)expVals[1];
+
+      EXPECT_NEAR(actualZ0, expectedZ0, 0.05)
+          << "Batch 2, t=" << t << ": <Z(0)> mismatch - coefficient bug?";
+      EXPECT_NEAR(actualZ1, expectedZ1, 0.05)
+          << "Batch 2, t=" << t << ": <Z(1)> mismatch - coefficient bug?";
+
+      count++;
+    }
   }
 }

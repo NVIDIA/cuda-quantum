@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -86,26 +86,26 @@ def test_QuakeValueDivOp():
     qubit1 = kernel1.qalloc(1)
     # Division of a QuakeValue
     kernel1.rx(theta[0] / 8.0, qubit1[0])
-    state1 = cudaq.get_state(kernel1, [np.pi])
+    state1 = cudaq.StateMemoryView(cudaq.get_state(kernel1, [np.pi]))
     # Verification
     kernel2 = cudaq.make_kernel()
     qubit2 = kernel2.qalloc(1)
     kernel2.rx(np.pi / 8.0, qubit2[0])
-    state2 = cudaq.get_state(kernel2)
+    state2 = cudaq.StateMemoryView(cudaq.get_state(kernel2))
     assert np.allclose(state1, state2)
 
     # RHS division: float/QuakeValue
     kernel3, factor = cudaq.make_kernel(list)
     qubit3 = kernel3.qalloc(1)
     kernel3.rx(np.pi / factor[0], qubit3[0])
-    state3 = cudaq.get_state(kernel3, [8.0])
+    state3 = cudaq.StateMemoryView(cudaq.get_state(kernel3, [8.0]))
     assert np.allclose(state3, state2)
 
     # QuakeValue/QuakeValue division
     kernel4, kernel4_args = cudaq.make_kernel(list)
     qubit4 = kernel4.qalloc(1)
     kernel4.rx(kernel4_args[0] / kernel4_args[1], qubit4[0])
-    state4 = cudaq.get_state(kernel4, [np.pi, 8.0])
+    state4 = cudaq.StateMemoryView(cudaq.get_state(kernel4, [np.pi, 8.0]))
     assert np.allclose(state4, state2)
 
 

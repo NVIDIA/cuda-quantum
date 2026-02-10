@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -30,15 +30,13 @@ public:
   }
 
   /// Reset the execution context
-  virtual void resetExecutionContext() override {
+  virtual void
+  finalizeExecutionContext(ExecutionContext &context) const override {
     // set the pre-computed expectation value.
-    if (executionContext->name == "observe") {
-      auto expectation =
-          executionContext->result.expectation(GlobalRegisterName);
-
-      executionContext->expectationValue = expectation;
+    if (context.name == "observe") {
+      auto expectation = context.result.expectation(GlobalRegisterName);
+      context.expectationValue = expectation;
     }
-    executionContext = nullptr;
   }
 
   KernelThunkResultType
@@ -47,6 +45,8 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+
+    auto executionContext = getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -88,9 +88,9 @@ public:
         terms.push_back(termStr);
 
         auto coeff = term.evaluate_coefficient();
-        auto coeff_str =
-            fmt::format("{}{}{}j", coeff.real(), coeff.imag() < 0.0 ? "-" : "+",
-                        std::fabs(coeff.imag()));
+        auto coeff_str = cudaq_fmt::format("{}{}{}j", coeff.real(),
+                                           coeff.imag() < 0.0 ? "-" : "+",
+                                           std::fabs(coeff.imag()));
 
         terms.push_back(coeff_str);
 

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,10 +16,9 @@ import numpy as np
 
 @pytest.fixture(scope="session", autouse=True)
 def setTarget():
-    old_target = cudaq.get_target()
     cudaq.set_target('stim')
     yield
-    cudaq.set_target(old_target)
+    cudaq.reset_target()
 
 
 def test_stim_non_clifford():
@@ -78,6 +77,7 @@ def test_stim_all_mz_types():
     assert (len(counts) > 1)
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_stim_state_preparation():
 
     @cudaq.kernel
@@ -90,6 +90,7 @@ def test_stim_state_preparation():
         cudaq.sample(kernel, state)
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_stim_state_preparation_builder():
     kernel, state = cudaq.make_kernel(List[complex])
     qubits = kernel.qalloc(state)

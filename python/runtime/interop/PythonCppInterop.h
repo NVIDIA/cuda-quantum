@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,73 +7,64 @@
  ******************************************************************************/
 #pragma once
 
+#include "cudaq/qis/qkernel.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 
 namespace cudaq::python {
 
-/// @class CppPyKernelDecorator
 /// @brief A C++ wrapper for a Python object representing a CUDA-Q kernel.
 class CppPyKernelDecorator {
-private:
-  py::object kernel;
-
 public:
-  /// @brief Constructor for CppPyKernelDecorator.
-  /// @param obj A Python object representing a CUDA-Q kernel.
-  /// @throw std::runtime_error if the object is not a valid CUDA-Q kernel.
+  /// The constructor.
+  /// @param obj A kernel decorator Python object.
+  /// @throw std::runtime_error if the object is not a valid kernel decorator.
   CppPyKernelDecorator(py::object obj) : kernel(obj) {
-    if (!py::hasattr(obj, "compile"))
+    if (!py::hasattr(obj, "qkeModule"))
       throw std::runtime_error("Invalid python kernel object passed, must be "
                                "annotated with cudaq.kernel");
   }
 
-  /// @brief Compiles the kernel.
-  void compile() { kernel.attr("compile")(); }
+  ~CppPyKernelDecorator();
 
-  /// @brief Gets the name of the kernel.
-  /// @return The name of the kernel as a string.
-  std::string name() const { return kernel.attr("name").cast<std::string>(); }
-
-  /// @brief Merges the kernel with another module.
-  /// @param otherModuleStr The string representation of the other module.
-  /// @return A new CppPyKernelDecorator object representing the merged kernel.
-  auto merge_kernel(const std::string &otherModuleStr) {
-    return CppPyKernelDecorator(kernel.attr("merge_kernel")(otherModuleStr));
+  template <typename T, typename... As>
+    requires QKernelType<T>
+  T getEntryPointFunction(As... as) {
+    // Perform beta reduction on the kernel decorator.
+    void *p =
+        kernel
+            .attr("beta_reduction")(&execution_engine, std::forward<As>(as)...)
+            .template cast<void *>();
+    // Set lsb to 1 to denote this is NOT a C++ kernel.
+    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
+    auto *fptr = reinterpret_cast<typename T::function_type *>(p);
+    // Translate the pointer to the entry point code buffer to a `qkernel`.
+    return T{fptr};
   }
 
-  /// @brief Synthesizes callable arguments for the kernel.
-  /// @param name The name of the kernel.
-  void synthesize_callable_arguments(const std::vector<std::string> &names) {
-    kernel.attr("synthesize_callable_arguments")(names);
-  }
-
-  /// @brief Extracts a C function pointer from the kernel.
-  /// @tparam `Args` Variadic template parameter for function arguments.
-  /// @param kernelName The name of the kernel.
-  /// @return A function pointer to the extracted C function.
-  template <typename... Args>
-  auto extract_c_function_pointer(const std::string &kernelName) {
-    auto capsule = kernel.attr("extract_c_function_pointer")(kernelName)
-                       .cast<py::capsule>();
-    void *ptr = capsule;
-    void (*entryPointPtr)(Args &&...) =
-        reinterpret_cast<void (*)(Args &&...)>(ptr);
-    return *entryPointPtr;
-  }
-
-  /// @brief Gets the Quake representation of the kernel.
-  /// @return The Quake representation as a string.
-  std::string get_quake() {
-    return kernel.attr("__str__")().cast<std::string>();
-  }
+private:
+  py::object kernel;
+  /*mlir::ExecutionEngine*/ void *execution_engine = nullptr;
 };
+
+/// This template allows a single python decorator to be called from a C++
+/// function (i.e., the algorithm). The actual arguments are specialized
+/// (synthesized) into the kernel and cannot be changed by the algorithm.
+template <typename KT, typename ALGO, typename... As>
+  requires QKernelType<KT> && std::invocable<ALGO, KT>
+auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
+  cudaq::python::CppPyKernelDecorator decorator(qern);
+  auto entryPoint =
+      decorator.getEntryPointFunction<KT>(std::forward<As>(as)...);
+  return algo(std::move(entryPoint));
+}
 
 /// @brief Extracts the kernel name from an input MLIR string.
 /// @param input The input string containing the kernel name.
 /// @return The extracted kernel name.
-std::string getKernelName(std::string &input);
+std::string getKernelName(const std::string &input);
 
 /// @brief Extracts a sub-string from an input string based on start and end
 /// delimiters.
@@ -122,7 +113,7 @@ struct TypeMangler {
 };
 
 template <typename... Args>
-std::string getMangledArgsString() {
+inline std::string getMangledArgsString() {
   std::string result;
   (result += ... += TypeMangler<Args>::mangle());
 
@@ -137,6 +128,11 @@ std::string getMangledArgsString() {
   }
 
   return result;
+}
+
+template <>
+inline std::string getMangledArgsString<>() {
+  return {};
 }
 
 /// @brief Add a C++ device kernel that is usable from CUDA-Q Python.

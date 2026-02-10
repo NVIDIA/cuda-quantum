@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,6 +47,17 @@ public:
 
   /// @brief Return the device Id of the context
   int getDeviceId() const { return m_deviceId; }
+
+  /// @brief Return true if running in distributed mode
+  bool isDistributed() const;
+
+  /// @brief Return the total number of ranks in distributed mode
+  // Returns 1 if not in distributed mode
+  int getNumRanks() const;
+
+  /// @brief Return the rank of this process in distributed mode
+  /// Always returns 0 if not in distributed mode
+  int getRank() const;
 
 private:
   /// @brief Construct a new Context object for a specific device.

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,17 +12,14 @@ import uuid
 from typing import Any, Optional, Union
 
 import cudaq
-import uvicorn
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import PlainTextResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
+from .. import get_backend_port, PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
-
-# Define the port for the mock QCI server
-port = 62449
 
 # In-memory storage
 createdJobs = {}
@@ -106,7 +103,7 @@ async def postJob(job: JobRequest,
     global createdJobs, shots, numQubitsRequired
 
     if token == None:
-        raise HTTPException(status_code(401), detail="Credentials not provided")
+        raise HTTPException(status_code=401, detail="Credentials not provided")
 
     n_shots = job.options.get("aqusim", {}).get("shots", 1000)
     print('Posting job with shots = ', n_shots)
@@ -143,11 +140,8 @@ async def postJob(job: JobRequest,
     # NOTE: This uses QIR v1.0
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
     for i in range(shots):
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
-        kernel()
-        _ = cudaq.testing.finalize(qubits, context)
-
+        with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
+            kernel()
         shot_log = cudaq.testing.getAndClearOutputLog()
         if i > 0:
             qir_log += "START\n"
@@ -164,7 +158,9 @@ async def postJob(job: JobRequest,
 
 @app.get("/cudaq/v1/jobs/{job_id}")
 async def get_job_status(job_id: str):
-    global createdJobs, createdResults, port
+    global createdJobs, createdResults
+    port = get_backend_port("qci")
+
     if job_id not in createdJobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -200,12 +196,3 @@ async def get_job_results(job_id: str):
 
     return PlainTextResponse(content=jobResults[job_id],
                              media_type="text/tab-separated-values")
-
-
-def startServer(port=port):
-    """Start the mock QCI server"""
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer()

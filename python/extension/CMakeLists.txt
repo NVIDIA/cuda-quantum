@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -53,22 +53,22 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
+    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_resource_count.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
+    ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp
-    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
-    ../runtime/cudaq/algorithms/py_vqe.cpp
     ../runtime/cudaq/platform/JITExecutionCache.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_qubit_qis.cpp
-    ../runtime/cudaq/operators/py_helpers.cpp  
+    ../runtime/cudaq/operators/py_helpers.cpp
     ../runtime/cudaq/operators/py_matrix.cpp
     ../runtime/cudaq/operators/py_scalar_op.cpp
     ../runtime/cudaq/operators/py_spin_op.cpp
@@ -80,15 +80,14 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
-    ../runtime/utils/PyRemoteRESTQPU.cpp
-    ../runtime/utils/PyFermioniqRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/ArgumentConversion.cpp
     ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/common/RunTheKernel.cpp
-    ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
+    ../../runtime/common/LayoutInfo.cpp
+    ../../runtime/common/RuntimeMLIR.cpp
+    ../../runtime/common/RuntimePyMLIR.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
@@ -97,6 +96,9 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
     ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
+    ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/default/python/QPU.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -107,6 +109,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    MLIRPass
    CUDAQTargetConfigUtil
    cudaq-python-interop
+   cudaq-platform-default
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
@@ -116,6 +119,7 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
 )
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
+    cudaq-logger 
     cudaq-common 
     cudaq-em-default
     cudaq-em-photonics
@@ -160,18 +164,19 @@ add_mlir_python_modules(CUDAQuantumPythonModules
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
-set(_origin_prefix "\$ORIGIN")
+## macOS uses @loader_path instead of $ORIGIN for RPATH.
 if(APPLE)
   set(_origin_prefix "@loader_path")
+else()
+  set(_origin_prefix "$ORIGIN")
 endif()
 
 if (NOT SKBUILD)
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../lib/plugins")
+  list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../../lib" "${_origin_prefix}/../../lib/plugins")
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib" "${_origin_prefix}/../../../lib/plugins")
 else()
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../cuda_quantum.libs")
+  list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../cuda_quantum.libs")
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib" "${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
-

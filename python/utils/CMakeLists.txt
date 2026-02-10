@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,6 +12,7 @@ add_library(cudaq-py-utils SHARED LinkedLibraryHolder.cpp)
 target_link_libraries(cudaq-py-utils PRIVATE 
   nvqir 
   cudaq 
+  cudaq-logger
   fmt::fmt-header-only 
   CUDAQTargetConfigUtil 
   cudaq-common

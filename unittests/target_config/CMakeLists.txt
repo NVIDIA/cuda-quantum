@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,7 @@
 add_executable(test_target_config TargetConfigTester.cpp)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_target_config PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_target_config PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_link_libraries(test_target_config
   PRIVATE

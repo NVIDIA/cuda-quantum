@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,7 +10,7 @@ import sys, random
 
 import pytest
 import numpy as np
-from typing import List, Callable
+from typing import List
 
 import cudaq
 from cudaq import spin
@@ -345,29 +345,41 @@ def test_pack_args_pauli_list():
     print('observe_async exp_val2', exp_val2)
 
 
-def test_observe_callable():
-    """Test that we can observe kernels with callable arguments."""
+def test_observe_list_multi_term_operators():
 
     @cudaq.kernel
-    def ansatz_callable(angle: float, rotate: Callable[[cudaq.qubit, float],
-                                                       None]):
+    def simple_kernel():
         q = cudaq.qvector(2)
-        x(q[0])
-        rotate(q[1], angle)
-        x.ctrl(q[1], q[0])
 
-    @cudaq.kernel
-    def ry_rotate(qubit: cudaq.qubit, angle: float):
-        ry(angle, qubit)
+    op_multi1 = spin.z(0) + spin.x(0)
+    op_multi2 = spin.y(1) + spin.z(1)
+    op_single = spin.z(0)
 
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    result_single = cudaq.observe(simple_kernel, op_multi1)
+    assert result_single.expectation() is not None
 
-    result = cudaq.observe(ansatz_callable, hamiltonian, .59, ry_rotate)
-    print(result.expectation())
-    assert np.isclose(result.expectation(), -1.74, atol=1e-2)
+    results_list = cudaq.observe(simple_kernel, [op_multi1])
+    assert len(results_list) == 1
 
-    result_async = cudaq.observe_async(ansatz_callable, hamiltonian, .59,
-                                       ry_rotate).get()
-    print(result_async.expectation())
-    assert np.isclose(result_async.expectation(), -1.74, atol=1e-2)
+    assert np.isclose(results_list[0].expectation(),
+                      result_single.expectation())
+
+    results_multi = cudaq.observe(simple_kernel, [op_multi1, op_multi2])
+    assert len(results_multi) == 2
+
+    result1 = cudaq.observe(simple_kernel, op_multi1)
+    result2 = cudaq.observe(simple_kernel, op_multi2)
+    assert np.isclose(results_multi[0].expectation(), result1.expectation())
+    assert np.isclose(results_multi[1].expectation(), result2.expectation())
+
+    results_mixed = cudaq.observe(simple_kernel, [op_single, op_multi1])
+    assert len(results_mixed) == 2
+    result_single = cudaq.observe(simple_kernel, op_single)
+    assert np.isclose(results_mixed[0].expectation(),
+                      result_single.expectation())
+    assert np.isclose(results_mixed[1].expectation(), result1.expectation())
+
+    op_with_id = 2.0 * spin.identity() + spin.z(0)
+    results_id = cudaq.observe(simple_kernel, [op_with_id])
+    result_id = cudaq.observe(simple_kernel, op_with_id)
+    assert np.isclose(results_id[0].expectation(), result_id.expectation())
