@@ -3510,7 +3510,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 # Default to looking locally
                                 devKeys.append(None)
                             for devKey in devKeys:
-                                otherFuncName = processDecorator(name, path=devKey)
+                                otherFuncName = processDecorator(name,
+                                                                 path=devKey)
                                 if otherFuncName:
                                     break
                                 elif not otherFuncName:
@@ -3522,7 +3523,6 @@ class PyASTBridge(ast.NodeVisitor):
                                             "calling cudaq.control or cudaq.adjoint on "
                                             "a kernel defined in C++ is not currently "
                                             "supported", node)
-
 
                         if not otherFuncName:
                             self.emitFatalError(
