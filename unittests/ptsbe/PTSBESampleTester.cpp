@@ -15,7 +15,10 @@
 #include "CUDAQTestUtils.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/algorithms/sample.h"
+#include "cudaq/ptsbe/NoiseExtractor.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
+#include "cudaq/ptsbe/ShotAllocationStrategy.h"
+#include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
 using namespace cudaq::ptsbe;
 
@@ -245,6 +248,37 @@ CUDAQ_TEST(PTSBESampleTest, CoreSampleWithoutUsePTSBEUsesNormalPath) {
   EXPECT_GT(result.size(), 0);
 }
 
+CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.01));
+
+  auto &platform = cudaq::get_platform();
+  platform.set_noise(&noise);
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  auto result =
+      runSamplingPTSBE([]() { bellKernel(); }, platform,
+                       cudaq::getKernelName(bellKernel), 50, strategy);
+
+  platform.reset_noise();
+  (void)result;
+}
+
+CUDAQ_TEST(PTSBESampleTest, CoreSampleWithPTSBEAndShotAllocationOption) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.02));
+
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.use_ptsbe = true;
+  options.noise = noise;
+  options.ptsbe_shot_allocation =
+      ShotAllocationStrategy(ShotAllocationStrategy::Type::UNIFORM);
+
+  auto result = cudaq::sample(options, bellKernel);
+  (void)result;
+}
+
 // Test that capturePTSBatch correctly captures GHZ circuit structure
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchCapturesGHZCircuit) {
   auto batch = capturePTSBatch(ghzKernel);
@@ -357,6 +391,64 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastPTSBEResultCountMatchesParams) {
   auto params1 = cudaq::make_argset(std::vector<double>{1.57});
   auto results1 = cudaq::sample(options, rotationKernel, std::move(params1));
   EXPECT_EQ(results1.size(), 1);
+}
+
+// End-to-end test for PTSBE pipeline.
+
+// Pipeline:
+// 1. capture trace
+// 2. extract noise sites
+// 3. generate trajectories
+// 4. allocate shots
+// 5. run PTSBE execution
+// 6. aggregate results
+// 7. verify allocation, verify total counts equals total shots.
+CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
+  // Noise model: depolarization on "h"
+  cudaq::noise_model noise;
+  noise.add_channel("h", {0}, cudaq::depolarization_channel(0.01));
+
+  // Capture batch from kernel
+  auto batch = capturePTSBatch(bellKernel);
+  EXPECT_FALSE(batch.kernelTrace.getNumInstructions() == 0);
+  EXPECT_FALSE(batch.measureQubits.empty());
+
+  // Extract noise sites from trace + noise model
+  auto extraction = extractNoiseSites(batch.kernelTrace, noise);
+  ASSERT_GT(extraction.noise_sites.size(), 0)
+      << "Expected at least one noise site for h gate";
+  EXPECT_TRUE(extraction.all_unitary_mixtures);
+
+  // Generate trajectories
+  ExhaustiveSamplingStrategy strategy;
+  const std::size_t max_trajectories = 24;
+  auto trajectories =
+      strategy.generateTrajectories(extraction.noise_sites, max_trajectories);
+  ASSERT_GT(trajectories.size(), 0) << "Expected at least one trajectory";
+
+  // Assign to batch
+  batch.trajectories = std::move(trajectories);
+
+  // Allocate shots across trajectories
+  const std::size_t total_shots = 1000;
+  ShotAllocationStrategy shot_strategy(
+      ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(batch.trajectories, total_shots, shot_strategy);
+
+  // Verify allocation
+  std::size_t sum_shots = 0;
+  for (const auto &t : batch.trajectories)
+    sum_shots += t.num_shots;
+  EXPECT_EQ(sum_shots, total_shots);
+
+  // Execute PTSBE and aggregate
+  auto results = samplePTSBEWithLifecycle(batch, "sample");
+  EXPECT_EQ(results.size(), batch.trajectories.size());
+
+  auto result = aggregateResults(results);
+
+  // Total counts should equal total shots
+  EXPECT_EQ(result.get_total_shots(), total_shots);
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET

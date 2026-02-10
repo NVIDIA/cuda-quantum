@@ -14,6 +14,7 @@
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
+#include "cudaq/ptsbe/ShotAllocationStrategy.h"
 
 constexpr int DEFAULT_NUM_SHOTS = 1000;
 
@@ -178,11 +179,15 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 /// based on user-supplied measurement order.
 /// @param use_ptsbe enable PTSBE (Pre-Trajectory Sampling with Batch Execution)
 /// for trajectory-based noisy simulation. Requires noise model to be set.
+/// @param ptsbe_shot_allocation strategy for allocating shots across
+/// trajectories Used only when use_ptsbe is true and trajectories are
+/// generated. Defaults to PROPORTIONAL when not set.
 struct sample_options {
   std::size_t shots = DEFAULT_NUM_SHOTS;
   cudaq::noise_model noise;
   bool explicit_measurements = false;
   bool use_ptsbe = false;
+  cudaq::ptsbe::ShotAllocationStrategy ptsbe_shot_allocation{};
 };
 
 /// @overload
@@ -282,7 +287,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   if (options.use_ptsbe) {
     ret = ptsbe::runSamplingPTSBE(
         [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-        kernelName, shots);
+        kernelName, shots, options.ptsbe_shot_allocation);
   } else {
     ret = details::runSampling(
               [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
@@ -399,7 +404,8 @@ async_sample_result sample_async(const sample_options &options,
         [&kernel, ... args = std::forward<Args>(args)]() mutable {
           kernel(std::forward<Args>(args)...);
         },
-        platform, kernelName, options.shots, qpu_id);
+        platform, kernelName, options.shots, qpu_id,
+        options.ptsbe_shot_allocation);
   }
 
   auto ret = details::runSamplingAsync(
@@ -533,7 +539,8 @@ std::vector<sample_result> sample(const sample_options &options,
   // all requested argument sets provided.
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&, explicit_mz = options.explicit_measurements,
-       use_ptsbe = options.use_ptsbe](
+       use_ptsbe = options.use_ptsbe,
+       ptsbe_shot_allocation = options.ptsbe_shot_allocation](
           std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
@@ -543,7 +550,7 @@ std::vector<sample_result> sample(const sample_options &options,
           [&kernel, &singleIterParameters...]() mutable {
             kernel(std::forward<Args>(singleIterParameters)...);
           },
-          platform, kernelName, shots);
+          platform, kernelName, shots, ptsbe_shot_allocation);
     }
 
     // Standard path
