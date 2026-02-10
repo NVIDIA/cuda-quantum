@@ -35,7 +35,7 @@ name: Pre-built binaries
 jobs:
   build_installer:
     name: Build CUDA Quantum assets
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu32') || 'linux-amd64-cpu32' }}
     permissions:
       contents: read
       packages: write
