@@ -2282,7 +2282,7 @@ and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
 
-![7b734b43c48f49e5813ec0434ebbb51d](../../_images/speedup.png){.no-scaled-link
+![46e1533b4b584406a278612ec4f85115](../../_images/speedup.png){.no-scaled-link
 style="width: 600px;"}
 
 ::: {.nbinput .docutils .container}
