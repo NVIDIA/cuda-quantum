@@ -436,6 +436,34 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
+def test_named_reg_in_sample(capfd):
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qubit()
+        x(q)
+        var = mz(q)
+
+    cudaq.sample(foo).dump()
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+
+def test_sample_with_conditional():
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qvector(2)
+        h(q[0])
+        if (mz(q[0])):
+            x(q[1])
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(foo)
+    assert "no longer support" in repr(e)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
