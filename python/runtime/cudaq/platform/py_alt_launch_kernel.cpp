@@ -226,9 +226,10 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         auto appendVectorValue = []<typename T>(py::object value, void *data,
                                                 std::size_t offset, T) {
           auto asList = value.cast<py::list>();
-          std::vector<double> *values = new std::vector<double>(asList.size());
+          // Use the correct element type T (not always double).
+          auto *values = new std::vector<T>(asList.size());
           for (std::size_t i = 0; auto &v : asList)
-            (*values)[i++] = v.cast<double>();
+            (*values)[i++] = v.cast<T>();
 
           std::memcpy(((char *)data) + offset, values, 16);
         };
