@@ -186,9 +186,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -527,12 +537,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -546,6 +556,7 @@
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -639,14 +650,6 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="using/backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#faq">FAQ</a></li>
 </ul>
 </li>
 </ul>
@@ -1017,6 +1020,20 @@ and is also available as a Docker image. More information about installing the n
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.13.0</strong></p>
+<p>This release adds support for CUDA 13 and Python 3.13 and removes support for
+CUDA 11 and Python 3.10. It adds support for using the CUDA-Q QEC libraries
+for real-time decoding on Quantinuum backends, and adds support for submission
+to QCI backends. Check out the release notes below to learn about additional
+new content.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.13.0">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.13.0">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.13.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.13.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.13.0">here</a>.</p>
 <p><strong>0.12.0</strong></p>
 <p>This release contains a range of new features and performance improvements for
 the dynamics simulation and adds more tools for error correction applications.
@@ -1026,7 +1043,7 @@ contributions from unitaryHACK. With this release, we now include support for
 Python 3.13.</p>
 <p><em>Note</em>: Support for Python 3.10 will be removed in future releases.</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
 <li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.12.0">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.12.0">C++ installer</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.12.0">Documentation</a></p></li>
@@ -1134,7 +1151,7 @@ It furthermore adds a range of bug fixes and changes the Python wheel installati
 </ul>
 <p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.7.1">here</a>.</p>
 <p><strong>0.7.0</strong></p>
-<p>The 0.7.0 release adds support for using <a class="reference internal" href="using/backends/cloud/nvqc.html"><span class="doc">NVIDIA Quantum Cloud</span></a>,
+<p>The 0.7.0 release adds support for using NVIDIA Quantum Cloud,
 giving you access to our most powerful GPU-accelerated simulators even if you don’t have an NVIDIA GPU.
 With 0.7.0, we have furthermore greatly increased expressiveness of the Python and C++ language frontends.
 Check out our <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.7.0/using/quick_start.html">documentation</a>
@@ -1217,7 +1234,7 @@ The fully featured version is available as a Docker image for <code class="code 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

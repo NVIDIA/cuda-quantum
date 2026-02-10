@@ -167,14 +167,32 @@ pr-3535
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -866,9 +884,6 @@ pr-3535
         -   [Why
             SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
             .internal}
-        -   [Setup and
-            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -878,6 +893,9 @@ pr-3535
             -   [The SKQD
                 Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -899,6 +917,9 @@ pr-3535
             -   [What to
                 Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1054,23 +1075,6 @@ pr-3535
                 .internal}
             -   [Submission from
                 Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
-                .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](../../using/backends/cloud/nvqc.html){.reference
-            .internal}
-            -   [Quick
-                Start](../../using/backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](../../using/backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](../../using/backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](../../using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](../../using/backends/cloud/nvqc.html#faq){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -2313,9 +2317,46 @@ the quantum kernel:
     ([`int8/16/32/64`{.code .docutils .literal .notranslate}]{.pre},
     [`float32/64`{.code .docutils .literal .notranslate}]{.pre})
 
+-   Vector/List types: [`std::vector<T>`{.code .docutils .literal
+    .notranslate}]{.pre} in C++ and [`list[T]`{.code .docutils .literal
+    .notranslate}]{.pre} in Python, where [`T`{.code .docutils .literal
+    .notranslate}]{.pre} can be [`bool`{.code .docutils .literal
+    .notranslate}]{.pre}, [`int`{.code .docutils .literal
+    .notranslate}]{.pre}, [`float`{.code .docutils .literal
+    .notranslate}]{.pre}, and their variants
+
 -   User-defined data structures (via custom structs in C++ or
     [`dataclass`{.code .docutils .literal .notranslate}]{.pre} in
     Python)
+
+**\[7.1\]** Note: Nested or aggregate vectors / lists / structs (e.g.,
+[`list[list[int]]`{.code .docutils .literal .notranslate}]{.pre}) are
+not yet supported.
+
+**\[7.2\]** For Python, tuple return types are supported with
+limitations:
+
+-   Elements can be scalar types ([`bool`{.code .docutils .literal
+    .notranslate}]{.pre}, [`int`{.code .docutils .literal
+    .notranslate}]{.pre}, [`float`{.code .docutils .literal
+    .notranslate}]{.pre})
+
+-   Tuple elements are immutable and cannot be modified within the
+    kernel
+
+-   Note: [`std::tuple`{.code .docutils .literal .notranslate}]{.pre} is
+    not supported in C++ - use custom structs instead
+
+**\[7.3\]** For Python, [`dataclass`{.code .docutils .literal
+.notranslate}]{.pre} return types are supported with limitations:
+
+-   Must use [`@dataclass(slots=True)`{.code .docutils .literal
+    .notranslate}]{.pre} decorator
+
+-   Cannot contain user-defined methods beyond generated ones
+
+-   Can be created and modified within the kernel using [`.copy()`{.code
+    .docutils .literal .notranslate}]{.pre} for modifications
 
 **\[8\]** There are specific requirements on input quantum kernels for
 the use of the [`run`{.code .docutils .literal .notranslate}]{.pre}
@@ -2325,7 +2366,7 @@ function which must be enforced by compiler implementations:
 
 -   The kernel must return a non-void value
 
--   Currently, the kernel can't return lists or tuples directly
+-   The kernel must have a return statement in all code paths
 
 **\[9\]** CUDA-Q also provides an asynchronous version of this function
 ([`cudaq::run_async`{.code .docutils .literal .notranslate}]{.pre})
@@ -2783,7 +2824,7 @@ aria-hidden="true"}](examples.html "13. Example Programs"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

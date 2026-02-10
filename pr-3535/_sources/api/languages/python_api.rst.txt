@@ -45,7 +45,6 @@ Program Construction
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
-    .. automethod:: c_if
     .. automethod:: for_loop
     .. automethod:: adjoint
     .. automethod:: control
@@ -293,20 +292,53 @@ Data Types
 
 Optimizers
 -----------------
+.. |:spellcheck-disable:| replace:: \
 
-.. autoclass:: cudaq.optimizers::optimizer
+.. py:method:: optimize(dimensions: int, function) -> tuple[float, list[float]]
+   :noindex:
+
+   Run the optimization procedure.
+
+   :param dimensions: The number of parameters to optimize
+   :param function: The objective function to minimize
+   :returns: tuple of (optimal_value, optimal_parameters)
+
+.. py:method:: requires_gradients() -> bool
+   :noindex:
+
+   Check whether this optimizer requires gradient information.
+
+   :returns: True if gradients required, False otherwise
 
 .. autoclass:: cudaq.optimizers::GradientDescent
     :members:
+    :exclude-members: optimize, requires_gradients
 
 .. autoclass:: cudaq.optimizers::COBYLA
     :members:
+    :exclude-members: optimize, requires_gradients
 
 .. autoclass:: cudaq.optimizers::NelderMead
     :members:
+    :exclude-members: optimize, requires_gradients
 
 .. autoclass:: cudaq.optimizers::LBFGS
     :members:
+    :exclude-members: optimize, requires_gradients
+
+.. autoclass:: cudaq.optimizers::Adam
+    :members:
+    :exclude-members: optimize, requires_gradients
+
+.. autoclass:: cudaq.optimizers::SGD
+    :members:
+    :exclude-members: optimize, requires_gradients
+
+.. autoclass:: cudaq.optimizers::SPSA
+    :members:
+    :exclude-members: optimize, requires_gradients
+
+.. |:spellcheck-enable:| replace:: \
 
 Gradients
 -----------------

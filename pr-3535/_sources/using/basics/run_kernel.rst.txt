@@ -205,7 +205,7 @@ More information about parallelizing execution can be found at the :ref:`mqpu-pl
 
 .. note:: 
 
-  Currently, `run` and `run_async` are only supported on simulator targets.
+  Currently, `run` and `run_async` are supported on simulator targets and select hardware platforms.
 
 
 Observe

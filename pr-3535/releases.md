@@ -164,14 +164,32 @@ pr-3535
     -   [Optimizers &
         Gradients](examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](examples/python/noisy_simulations.html){.reference
@@ -857,9 +875,6 @@ pr-3535
         -   [Why
             SKQD?](applications/python/skqd.html#Why-SKQD?){.reference
             .internal}
-        -   [Setup and
-            Imports](applications/python/skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -869,6 +884,9 @@ pr-3535
             -   [The SKQD
                 Algorithm](applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -890,6 +908,9 @@ pr-3535
             -   [What to
                 Expect:](applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1043,23 +1064,6 @@ pr-3535
                 .internal}
             -   [Submission from
                 Python](using/backends/cloud/braket.html#submission-from-python){.reference
-                .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](using/backends/cloud/nvqc.html){.reference
-            .internal}
-            -   [Quick
-                Start](using/backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](using/backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](using/backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](using/backends/cloud/nvqc.html#faq){.reference
                 .internal}
 -   [Dynamics](using/dynamics.html){.reference .internal}
     -   [Quick Start](using/dynamics.html#quick-start){.reference
@@ -1769,6 +1773,35 @@ about installing the nightly builds can be found
 -   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples){.reference
     .external}
 
+**0.13.0**
+
+This release adds support for CUDA 13 and Python 3.13 and removes
+support for CUDA 11 and Python 3.10. It adds support for using the
+CUDA-Q QEC libraries for real-time decoding on Quantinuum backends, and
+adds support for submission to QCI backends. Check out the release notes
+below to learn about additional new content.
+
+-   [Docker
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
+    .external}
+
+-   [Python wheel](https://pypi.org/project/cudaq/0.13.0){.reference
+    .external}
+
+-   [C++
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.13.0){.reference
+    .external}
+
+-   [Documentation](https://nvidia.github.io/cuda-quantum/0.13.0){.reference
+    .external}
+
+-   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.13.0/docs/sphinx/examples){.reference
+    .external}
+
+The full change log can be found
+[here](https://github.com/NVIDIA/cuda-quantum/releases/0.13.0){.reference
+.external}.
+
 **0.12.0**
 
 This release contains a range of new features and performance
@@ -1782,7 +1815,7 @@ we now include support for Python 3.13.
 *Note*: Support for Python 3.10 will be removed in future releases.
 
 -   [Docker
-    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum){.reference
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
     .external}
 
 -   [Python wheel](https://pypi.org/project/cudaq/0.12.0){.reference
@@ -2030,10 +2063,9 @@ The full change log can be found
 
 **0.7.0**
 
-The 0.7.0 release adds support for using [[NVIDIA Quantum
-Cloud]{.doc}](using/backends/cloud/nvqc.html){.reference .internal},
-giving you access to our most powerful GPU-accelerated simulators even
-if you don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly
+The 0.7.0 release adds support for using NVIDIA Quantum Cloud, giving
+you access to our most powerful GPU-accelerated simulators even if you
+don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly
 increased expressiveness of the Python and C++ language frontends. Check
 out our
 [documentation](https://nvidia.github.io/cuda-quantum/0.7.0/using/quick_start.html){.reference
@@ -2217,7 +2249,7 @@ The 0.3.0 release of CUDA-Q is available as a Docker image for
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

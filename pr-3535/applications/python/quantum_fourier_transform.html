@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -532,12 +542,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -551,6 +561,7 @@
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -644,14 +655,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#faq">FAQ</a></li>
 </ul>
 </li>
 </ul>
@@ -1125,7 +1128,7 @@ R_k = \begin{bmatrix}
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
 
 <span class="c1"># Print the statevector to the specified precision</span>
-<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
+<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">)))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -1166,7 +1169,7 @@ q2 : ┤ x ├──────────────────────
 <p>We provided one implementation of the Quantum Fourier Transform above. To demonstrate some of the other features of CUDA-Q, let’s define a new kernel for the Quantum Fourier Transform, which we’ll call <code class="docutils literal notranslate"><span class="pre">quantum_fourier_transform2</span></code>. Pay attention to how the kernel definition differs from the example above.</p>
 <p>Since the Quantum Fourier Transform is a unitary operator, its inverse is its adjoint. Therefore, once we have implemented the Quantum Fourier Transform as a kernel in CUDA-Q, we can use the built-in <code class="docutils literal notranslate"><span class="pre">adjoint</span></code> operation to create the Inverse Quantum Fourier Transform.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the Quantum Fourier Transform and the Inverse Quantum Fourier Transform</span>
@@ -1193,7 +1196,7 @@ q2 : ┤ x ├──────────────────────
 </div>
 <p>Let’s see that this approach gives us the same results as the section above.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1225,7 +1228,7 @@ q2 : ┤ x ├──────────────────────
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
 
 <span class="c1"># Print the statevector to the specified precision</span>
-<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
+<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">)))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span>  <span class="c1"># The result should be the input state</span>
 </pre></div>
 </div>
@@ -1235,29 +1238,29 @@ q2 : ┤ x ├──────────────────────
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-     ╭───╮╭───╮╭─────────╮╭──────────╮                                      »
-q0 : ┤ x ├┤ h ├┤ r1(1.5) ├┤ r1(0.75) ├──────────────────────────────────────»
-     ╰───╯╰───╯╰────┬────╯╰────┬─────╯╭───╮╭─────────╮          ╭──────────╮»
-q1 : ───────────────●──────────┼──────┤ h ├┤ r1(1.5) ├──────────┤ r1(-1.5) ├»
-     ╭───╮                     │      ╰───╯╰────┬────╯╭───╮╭───╮╰────┬─────╯»
-q2 : ┤ x ├─────────────────────●────────────────●─────┤ h ├┤ h ├─────●──────»
-     ╰───╯                                            ╰───╯╰───╯            »
+     ╭───╮╭───╮╭───────────╮╭────────────╮                            »
+q0 : ┤ x ├┤ h ├┤ r1(1.571) ├┤ r1(0.7854) ├────────────────────────────»
+     ╰───╯╰───╯╰─────┬─────╯╰─────┬──────╯╭───╮╭───────────╮          »
+q1 : ────────────────●────────────┼───────┤ h ├┤ r1(1.571) ├──────────»
+     ╭───╮                        │       ╰───╯╰─────┬─────╯╭───╮╭───╮»
+q2 : ┤ x ├────────────────────────●──────────────────●──────┤ h ├┤ h ├»
+     ╰───╯                                                  ╰───╯╰───╯»
 
 ################################################################################
 
-     ╭───────────╮╭──────────╮╭───╮
-─────┤ r1(-0.75) ├┤ r1(-1.5) ├┤ h ├
-╭───╮╰─────┬─────╯╰────┬─────╯╰───╯
-┤ h ├──────┼───────────●───────────
-╰───╯      │
-───────────●───────────────────────
+                   ╭─────────────╮╭────────────╮╭───╮
+───────────────────┤ r1(-0.7854) ├┤ r1(-1.571) ├┤ h ├
+╭────────────╮╭───╮╰──────┬──────╯╰─────┬──────╯╰───╯
+┤ r1(-1.571) ├┤ h ├───────┼─────────────●────────────
+╰─────┬──────╯╰───╯       │
+──────●───────────────────●──────────────────────────
 
 
-[0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.-0.j 0.-0.j 0.+0.j]
+[0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.+0.j 0.+0.j 0.+0.j]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1269,7 +1272,7 @@ q2 : ┤ x ├─────────────────────●
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408cbf595ce6fe5f33dcd8b4c)
+CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 6a079ac4366a017264fd1ad9d11fc47d5f2db7f8)
 </pre></div></div>
 </div>
 </section>
@@ -1286,7 +1289,7 @@ CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

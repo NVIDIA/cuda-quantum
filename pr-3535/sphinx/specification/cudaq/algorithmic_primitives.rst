@@ -419,14 +419,29 @@ representing the return value of a single kernel execution.
 **[7]** The :code:`cudaq::run` function supports a variety of return types from the quantum kernel:
 
 - Scalar types: :code:`bool`, :code:`int`, :code:`float`, and their variants (:code:`int8/16/32/64`, :code:`float32/64`)
+- Vector/List types: :code:`std::vector<T>` in C++ and :code:`list[T]` in Python, where :code:`T` can be :code:`bool`, :code:`int`, :code:`float`, and their variants 
 - User-defined data structures (via custom structs in C++ or :code:`dataclass` in Python)
+
+**[7.1]** Note: Nested or aggregate vectors / lists / structs (e.g., :code:`list[list[int]]`) are not yet supported.
+
+**[7.2]** For Python, tuple return types are supported with limitations:
+
+- Elements can be scalar types (:code:`bool`, :code:`int`, :code:`float`)
+- Tuple elements are immutable and cannot be modified within the kernel
+- Note: :code:`std::tuple` is not supported in C++ - use custom structs instead
+
+**[7.3]** For Python, :code:`dataclass` return types are supported with limitations:
+
+- Must use :code:`@dataclass(slots=True)` decorator
+- Cannot contain user-defined methods beyond generated ones
+- Can be created and modified within the kernel using :code:`.copy()` for modifications
 
 **[8]** There are specific requirements on input quantum kernels for the use of the
 :code:`run` function which must be enforced by compiler implementations:
 
 - The kernel must be an entry-point kernel
 - The kernel must return a non-void value
-- Currently, the kernel can't return lists or tuples directly
+- The kernel must have a return statement in all code paths
 
 **[9]** CUDA-Q also provides an asynchronous version of this function
 (:code:`cudaq::run_async`) which returns a :code:`std::future`:
