@@ -1011,7 +1011,7 @@ bool cudaq::detail::mergeAllCallableClosures(
     throw std::runtime_error("arity of kernel " + shortName + " (" +
                              std::to_string(arity) +
                              ") does not match number of arguments provided (" +
-                             std::to_string(rawArgs.size() - coarity) + ")");
+                             std::to_string(rawArgs.size()) + ")");
 
   // Scan the type signature and arguments. Determine if the type signature
   // has any Callables and if the raw arguments have any `nullptr`s. If there
@@ -1025,7 +1025,7 @@ bool cudaq::detail::mergeAllCallableClosures(
        llvm::enumerate(entryPointTy.getInputs().drop_front(offset))) {
     if (isa<cc::CallableType>(ty)) {
       hasCallableArg = true;
-      if (i >= rawArgs.size() || !rawArgs[i]) {
+      if (!rawArgs[i]) {
         Value arg = entryPoint.getBody().front().getArgument(i);
         if (!arg.getUsers().empty()) {
           throw std::runtime_error("argument " + std::to_string(i) +
