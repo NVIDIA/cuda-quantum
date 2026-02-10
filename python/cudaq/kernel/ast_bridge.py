@@ -3511,22 +3511,24 @@ class PyASTBridge(ast.NodeVisitor):
                         if node.args:
                             devKeys, name = resolveQualifiedName(node.args[0])
                             if len(devKeys) == 0 and name is not None:
+                                print("Here")
                                 # Default to looking locally
                                 devKeys.append(None)
                             for devKey in devKeys:
-                                otherFuncName = processDecorator(name,
-                                                                 path=devKey)
-                                if otherFuncName:
-                                    break
-                                elif not otherFuncName:
+                                otherFuncName = processDecorator(name, path=devKey)
+
+                                if not otherFuncName:
                                     otherFuncName = f"{devKey}.{name}" if devKey else name
+
+                                if otherFuncName:
                                     maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
                                         self.module, otherFuncName)
-                                    if maybeKernelName != None:
+                                    if maybeKernelName is not None:
                                         self.emitFatalError(
                                             "calling cudaq.control or cudaq.adjoint on "
                                             "a kernel defined in C++ is not currently "
                                             "supported", node)
+                                    break
 
                         if not otherFuncName:
                             self.emitFatalError(
