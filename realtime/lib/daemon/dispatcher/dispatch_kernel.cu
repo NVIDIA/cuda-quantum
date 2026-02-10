@@ -82,28 +82,22 @@ __global__ void dispatch_kernel_device_call_only(
         if (entry != nullptr && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
           DeviceRPCFunction func = 
               reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-          std::uint32_t result_len = 0;
-          std::uint32_t max_result_len = 1024;
-          // Handler processes in-place: reads args from buffer, writes results back
-          int status = func(arg_buffer, arg_len, max_result_len, &result_len);
 
           // Compute TX slot address from symmetric TX data buffer
           std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+
+          // Handler writes results directly to TX slot (after response header)
+          std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
+          std::uint32_t result_len = 0;
+          std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
+          int status = func(arg_buffer, output_buffer, arg_len,
+                            max_result_len, &result_len);
 
           // Write RPC response header to TX slot
           RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
           response->magic = RPC_MAGIC_RESPONSE;
           response->status = status;
           response->result_len = result_len;
-
-          // Copy result data from RX buffer (where handler wrote it) to TX slot
-          if (result_len > 0) {
-            std::uint8_t* src = static_cast<std::uint8_t*>(arg_buffer);
-            std::uint8_t* dst = tx_slot + sizeof(RPCResponse);
-            for (std::uint32_t b = 0; b < result_len; ++b) {
-              dst[b] = src[b];
-            }
-          }
 
           __threadfence_system();
           // Signal TX with the TX slot address (symmetric with Hololink TX kernel)
@@ -142,7 +136,7 @@ __global__ void dispatch_kernel_with_graph(
     std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
-    void** graph_buffer_ptr,
+    GraphIOContext* graph_io_ctx,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
     std::size_t num_slots) {
@@ -176,9 +170,13 @@ __global__ void dispatch_kernel_with_graph(
           if (entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
             DeviceRPCFunction func = 
                 reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+
+            // Handler writes results directly to TX slot (after response header)
+            std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
             std::uint32_t result_len = 0;
-            std::uint32_t max_result_len = 1024;
-            int status = func(arg_buffer, arg_len, max_result_len, &result_len);
+            std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
+            int status = func(arg_buffer, output_buffer, arg_len,
+                              max_result_len, &result_len);
 
             // Write RPC response to TX slot
             RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
@@ -186,31 +184,29 @@ __global__ void dispatch_kernel_with_graph(
             response->status = status;
             response->result_len = result_len;
 
-            // Copy result data from RX buffer to TX slot
-            if (result_len > 0) {
-              std::uint8_t* src = static_cast<std::uint8_t*>(arg_buffer);
-              std::uint8_t* dst = tx_slot + sizeof(RPCResponse);
-              for (std::uint32_t b = 0; b < result_len; ++b) {
-                dst[b] = src[b];
-              }
-            }
-
             __threadfence_system();
             tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 #if __CUDA_ARCH__ >= 900
           else if (entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH) {
-            // Update buffer pointer for graph kernel to read
-            if (graph_buffer_ptr != nullptr) {
-              *graph_buffer_ptr = rx_slot;
+            // Fill IO context so the graph kernel can read input from
+            // rx_slot, write the RPCResponse to tx_slot, and signal
+            // completion by setting *tx_flag = tx_flag_value.
+            if (graph_io_ctx != nullptr) {
+              graph_io_ctx->rx_slot = rx_slot;
+              graph_io_ctx->tx_slot = tx_slot;
+              graph_io_ctx->tx_flag = &tx_flags[current_slot];
+              graph_io_ctx->tx_flag_value =
+                  reinterpret_cast<std::uint64_t>(tx_slot);
+              graph_io_ctx->tx_stride_sz = tx_stride_sz;
               __threadfence_system();
             }
-            
-            // Launch pre-created graph
-            cudaGraphLaunch(entry->handler.graph_exec, cudaStreamGraphFireAndForget);
-            
-            __threadfence_system();
-            tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
+
+            // Launch pre-created graph (fire-and-forget is async; the
+            // graph kernel is responsible for writing the response and
+            // signaling tx_flag when done).
+            cudaGraphLaunch(entry->handler.graph_exec,
+                            cudaStreamGraphFireAndForget);
           }
 #endif // __CUDA_ARCH__ >= 900
         }
@@ -341,7 +337,7 @@ struct cudaq_dispatch_graph_context {
   std::size_t tx_stride_sz;
   cudaq_function_entry_t* function_table;
   std::size_t func_count;
-  void** graph_buffer_ptr;
+  cudaq::nvqlink::GraphIOContext* graph_io_ctx;
   volatile int* shutdown_flag;
   std::uint64_t* stats;
   std::size_t num_slots;
@@ -356,7 +352,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
     std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
-    void** graph_buffer_ptr,
+    void* graph_io_ctx_raw,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
     std::size_t num_slots,
@@ -380,7 +376,8 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   ctx->tx_stride_sz = tx_stride_sz;
   ctx->function_table = function_table;
   ctx->func_count = func_count;
-  ctx->graph_buffer_ptr = graph_buffer_ptr;
+  ctx->graph_io_ctx =
+      static_cast<cudaq::nvqlink::GraphIOContext*>(graph_io_ctx_raw);
   ctx->shutdown_flag = shutdown_flag;
   ctx->stats = stats;
   ctx->num_slots = num_slots;
@@ -401,7 +398,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
       &ctx->tx_stride_sz,
       &ctx->function_table,
       &ctx->func_count,
-      &ctx->graph_buffer_ptr,
+      &ctx->graph_io_ctx,
       &ctx->shutdown_flag,
       &ctx->stats,
       &ctx->num_slots
