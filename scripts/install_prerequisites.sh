@@ -188,7 +188,14 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
-    temp_install_if_command_unknown libtool libtool
+    # On macOS, Apple ships /usr/bin/libtool which is NOT GNU libtool.
+    # Homebrew installs GNU libtool as 'glibtool' to avoid conflicts.
+    # We need glibtoolize for autoreconf, so check for that instead.
+    if [ "$(uname)" = "Darwin" ]; then
+      temp_install_if_command_unknown glibtoolize libtool
+    else
+      temp_install_if_command_unknown libtool libtool
+    fi
 
     pushd "$PREREQS_BUILD_DIR"
 
@@ -198,6 +205,13 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
     cd contrib/minizip
+    # On macOS with Homebrew, set up environment for autoreconf:
+    # - Add Homebrew's m4 macros to aclocal search path
+    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
+    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
+      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
+      export LIBTOOLIZE=glibtoolize
+    fi
     autoreconf --install
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
@@ -242,6 +256,7 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     temp_install_if_command_unknown make make
     if [ ! -x "$(command -v "$FC")" ]; then
       unset FC
+      # On macOS, 'brew install gfortran' installs gcc which provides gfortran
       temp_install_if_command_unknown gfortran gfortran
     fi
 

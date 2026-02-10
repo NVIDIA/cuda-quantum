@@ -23,7 +23,7 @@ from cudaq.mlir.ir import (Block, ComplexType, F32Type, F64Type, FunctionType,
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import (compile_to_mlir, PyASTBridge)
 from .captured_data import CapturedDataStorage
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
                     recover_value_of, recover_calling_module)
@@ -45,6 +45,23 @@ class DecoratorCapture:
 
     def __repr__(self):
         "name: " + self.decorator.name + ", resolved: " + str(self.resolved)
+
+
+class LinkedKernelCapture:
+    '''
+    Captures a linked C++ kernel. Includes the name of the
+    linked kernel and its quake code.
+    '''
+
+    def __init__(self, linkedKernel, qkeModule):
+        self.linkedKernel = linkedKernel
+        self.qkeModule = qkeModule
+
+    def __str__(self):
+        self.linkedKernel
+
+    def __repr__(self):
+        "name: " + self.linkedKernel
 
 
 class PyKernelDecorator(object):
@@ -235,11 +252,6 @@ class PyKernelDecorator(object):
             emitFatalError('CUDA-Q kernel has return statement '
                            'but no return type annotation.')
 
-        if not fromBuilder:
-            # Store the AST for this kernel, it is needed for building up call
-            # graphs. We also must retain the source code location for error
-            # diagnostics
-            globalAstRegistry[self.name] = (self.astModule, self.location)
         self.pre_compile()
 
     def __del__(self):
@@ -597,8 +609,19 @@ class PyKernelDecorator(object):
                 i = self.firstLiftedPos + j
                 # get the value associated with the variable named "a" in the
                 # current context.
-                a_value = recover_value_of(a, None)
-                self.process_argument(processedArgs, i, a_value, callingModule)
+                if isinstance(a, dict) and a.get('linkedKernel'):
+                    # Lifted argument is a registered C++ kernel, load and capture it
+                    [linkedKernel,
+                     maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                         self.qkeModule, a['linkedKernel'])
+                    qkeModule = Module.parse(maybeCode,
+                                             context=self.qkeModule.context)
+                    processedArgs.append(
+                        LinkedKernelCapture(linkedKernel, qkeModule))
+                else:
+                    a_value = recover_value_of(a, None)
+                    self.process_argument(processedArgs, i, a_value,
+                                          callingModule)
 
         # Specialize quake code via argument synthesis, lower to full QIR.
         specialized_module = self.convert_to_full_qir(processedArgs)
@@ -671,8 +694,18 @@ class PyKernelDecorator(object):
             resMod = None
             if callingMod != self.defModule:
                 resMod = self.defModule
-            la_value = recover_value_of(la, resMod)
-            self.process_argument(processedArgs, i, la_value, callingMod)
+            if isinstance(la, dict) and la.get('linkedKernel'):
+                # Lifted argument is a registered C++ kernel, load and capture it
+                [linkedKernel,
+                 maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                     self.qkeModule, la['linkedKernel'])
+                qkeModule = Module.parse(maybeCode,
+                                         context=self.qkeModule.context)
+                processedArgs.append(
+                    LinkedKernelCapture(linkedKernel, qkeModule))
+            else:
+                la_value = recover_value_of(la, resMod)
+                self.process_argument(processedArgs, i, la_value, callingMod)
         return DecoratorCapture(self, processedArgs)
 
     def process_argument(self, processedArgs, i, arg, callingMod):
