@@ -257,6 +257,63 @@ TEST_F(CuDensityMatStateTest, DensityMatrixIndexing) {
   EXPECT_THROW(state(0, {4, 4}), std::runtime_error);
 }
 
+// Regression test for density matrix overlap dimension bug.
+// The bug was that the density matrix branch of overlap() used `dimension`
+// (total element count, N^2) as the matrix side length, creating an N^2 x N^2
+// Eigen matrix and copying N^4 elements -- far exceeding the actual buffer.
+TEST_F(CuDensityMatStateTest, DensityMatrixOverlapSelf) {
+  // |00><00| density matrix: self-overlap should be Tr(rho^2) = 1.0
+  CuDensityMatState state(densityMatrixData.size(),
+                          cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  EXPECT_TRUE(state.is_density_matrix());
+
+  auto result = state.overlap(state);
+  EXPECT_NEAR(result.real(), 1.0, 1e-12);
+  EXPECT_NEAR(result.imag(), 0.0, 1e-12);
+}
+
+TEST_F(CuDensityMatStateTest, DensityMatrixOverlapOrthogonal) {
+  // |00><00| vs |11><11|: overlap should be Tr(rho1 * rho2) = 0.0
+  CuDensityMatState state1(densityMatrixData.size(),
+                           cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state1.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+
+  // |11><11|: element (3,3)=1 in a 4x4 matrix (column-major storage)
+  std::vector<std::complex<double>> dm11(16, {0.0, 0.0});
+  dm11[15] = {1.0, 0.0}; // col-major index for (3,3) = 3*4+3 = 15
+  CuDensityMatState state2(dm11.size(), cudaq::dynamics::createArrayGpu(dm11));
+  state2.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+
+  auto result = state1.overlap(state2);
+  EXPECT_NEAR(result.real(), 0.0, 1e-12);
+  EXPECT_NEAR(result.imag(), 0.0, 1e-12);
+}
+
+TEST_F(CuDensityMatStateTest, DensityMatrixOverlapPartial) {
+  // Single-qubit system: |0><0| vs |+><+| where |+> = (|0>+|1>)/sqrt(2)
+  // |0><0| = {{1,0},{0,0}}, |+><+| = {{0.5,0.5},{0.5,0.5}}
+  // Tr(|0><0| * |+><+|) = 0.5
+  std::vector<int64_t> dims1q = {2};
+
+  // |0><0| in column-major: [1, 0, 0, 0]
+  std::vector<std::complex<double>> dm0 = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  CuDensityMatState state0(dm0.size(), cudaq::dynamics::createArrayGpu(dm0));
+  state0.initialize_cudm(handle, dims1q, /*batchSize=*/1);
+
+  // |+><+| in column-major: [0.5, 0.5, 0.5, 0.5]
+  std::vector<std::complex<double>> dmPlus = {
+      {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}};
+  CuDensityMatState statePlus(dmPlus.size(),
+                              cudaq::dynamics::createArrayGpu(dmPlus));
+  statePlus.initialize_cudm(handle, dims1q, /*batchSize=*/1);
+
+  auto result = state0.overlap(statePlus);
+  EXPECT_NEAR(result.real(), 0.5, 1e-12);
+  EXPECT_NEAR(result.imag(), 0.0, 1e-12);
+}
+
 // Test indexing for single-qubit density matrix
 TEST_F(CuDensityMatStateTest, SingleQubitDensityMatrixIndexing) {
   // 1-qubit system: 2x2 density matrix (4 elements)

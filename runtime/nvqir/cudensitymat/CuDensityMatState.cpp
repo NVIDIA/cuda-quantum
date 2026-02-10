@@ -55,13 +55,16 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   }
 
   // FIXME: implement this in GPU memory
-  Eigen::MatrixXcd state(dimension, dimension);
-  const auto size = dimension * dimension;
+  // For density matrices, `dimension` is the total number of elements (N^2).
+  // The matrix side length is sqrt(dimension).
+  const std::size_t matDim = static_cast<std::size_t>(std::sqrt(dimension));
+  Eigen::MatrixXcd state(matDim, matDim);
+  const auto size = dimension;
   HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
-  Eigen::MatrixXcd otherState(dimension, dimension);
+  Eigen::MatrixXcd otherState(matDim, matDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
