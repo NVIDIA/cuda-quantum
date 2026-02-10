@@ -213,7 +213,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::getAmplitude(
     const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
-        fmt::format("[tensornet-state] getAmplitude with an invalid number "
+        cudaq_fmt::format("[tensornet-state] getAmplitude with an invalid number "
                     "of bits in the "
                     "basis state: expected {}, provided {}.",
                     getNumQubits(), basisState.size()));
@@ -305,7 +305,7 @@ TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
 
 template <typename ScalarType>
 void TensorNetSimulationState<ScalarType>::destroyState() {
-  CUDAQ_INFO("mps-state destroying state vector handle.");
+  CUDAQ_INFO("tn-state destroying state vector handle.");
   m_state.reset();
 }
 
@@ -315,7 +315,7 @@ void TensorNetSimulationState<ScalarType>::toHostImpl(
     std::complex<T> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
-    throw std::runtime_error(fmt::format(
+    throw std::runtime_error(cudaq_fmt::format(
         "[TensorNetSimulationState] Dimension mismatch: expecting {} "
         "elements but providing an array of size {}.",
         stateVec.size(), numElements));

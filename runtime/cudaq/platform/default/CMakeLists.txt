@@ -12,7 +12,6 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_DEFAULTPLATFORM_SRC
   DefaultQuantumPlatform.cpp
-  ../common/QuantumExecutionQueue.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_DEFAULTPLATFORM_SRC})
@@ -25,9 +24,9 @@ target_include_directories(${LIBRARY_NAME}
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
-    pthread cudaq-em-default cudaq-operator cudaq-common
+    pthread cudaq-em-default cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-    fmt::fmt-header-only cudaq CUDAQTargetConfigUtil)
+     cudaq CUDAQTargetConfigUtil)
 
 install(TARGETS ${LIBRARY_NAME}
   EXPORT cudaq-platform-default-targets DESTINATION lib)

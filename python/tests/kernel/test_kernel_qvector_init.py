@@ -433,11 +433,12 @@ def test_kernel_simulation_dtype_np_array_capture():
 def test_kernel_error_invalid_array_size():
     cudaq.reset_target()
 
-    @cudaq.kernel
-    def kernel():
-        qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
+
         counts = cudaq.sample(kernel)
     assert 'Invalid input state size for qvector init (not a power of 2)' in repr(
         e)
@@ -446,11 +447,12 @@ def test_kernel_error_invalid_array_size():
 def test_kernel_error_invalid_list_size():
     cudaq.reset_target()
 
-    @cudaq.kernel
-    def kernel():
-        qubits = cudaq.qvector([1., 0., 0.])
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            qubits = cudaq.qvector([1., 0., 0.])
+
         counts = cudaq.sample(kernel)
     assert 'Invalid input state size for qvector init (not a power of 2)' in repr(
         e)

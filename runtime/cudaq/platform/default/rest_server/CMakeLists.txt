@@ -63,9 +63,10 @@ if (NOT MINI_ZIP_FOUND)
 endif()
 
 set(LIBRARY_NAME rest-remote-platform-client)
-add_library(${LIBRARY_NAME} SHARED 
-                              helpers/RestRemoteClient.cpp
-                              RemoteRuntimeClient.cpp 
+add_library(${LIBRARY_NAME}
+  SHARED
+    helpers/RestRemoteClient.cpp
+    RemoteRuntimeClient.cpp
 )
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
@@ -74,18 +75,28 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-logger cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 add_subdirectory(helpers/server_impl)
-add_library(rest-remote-platform-server SHARED RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp helpers/GPUInfo.cpp)
+add_library(rest-remote-platform-server
+  SHARED
+    RemoteRuntimeServer.cpp
+    helpers/RestRemoteServer.cpp
+    helpers/GPUInfo.cpp
+)
+
 target_include_directories(rest-remote-platform-server 
   PUBLIC 
-      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-      $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
-      $<INSTALL_INTERFACE:include>
-  PRIVATE . ../../)
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    .
+    ../..
+)
+
 target_link_libraries(rest-remote-platform-server
   PRIVATE
     rest_server_impl
@@ -105,5 +116,5 @@ if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   target_link_libraries(rest-remote-platform-server PRIVATE CUDA::cudart_static)
 endif()
 
-target_link_options(rest-remote-platform-server PRIVATE -Wl,--no-as-needed)
+target_link_options(rest-remote-platform-server PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 install(TARGETS rest-remote-platform-server DESTINATION lib)

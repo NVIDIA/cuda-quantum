@@ -10,7 +10,6 @@
 
 #include "CodeGenConfig.h"
 #include "Environment.h"
-#include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -26,6 +25,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -47,6 +47,8 @@
 #include "mlir/Tools/ParseUtilities.h"
 
 namespace cudaq {
+
+void initializeLangMLIR();
 
 bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
@@ -181,7 +183,7 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 // block contains irreversible operations (measurements), and the blocks may not
 // overlap.
 // Reference:
-// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
+// https://github.com/qir-alliance/qir-spec/blob/684b17b/specification/profiles/Base_Profile.md#L196
 mlir::LogicalResult
 verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
@@ -195,7 +197,9 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
+          bool isOutputFunction =
+              (funcName == cudaq::opt::QIRRecordOutput ||
+               funcName == cudaq::opt::QIRArrayRecordOutput);
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";
@@ -487,9 +491,9 @@ mlir::LogicalResult qirProfileTranslationFunction(
 
   auto config = parseCodeGenTranslation(qirProfile);
   if (!config.isQIRProfile)
-    throw std::runtime_error(
-        fmt::format("Unexpected codegen profile while translating to QIR: {}",
-                    config.profile));
+    throw std::runtime_error(cudaq_fmt::format(
+        "Unexpected codegen profile while translating to QIR: {}",
+        config.profile));
 
   auto context = op->getContext();
   mlir::PassManager pm(context);
@@ -835,8 +839,6 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
 
     auto *context = module->getContext();
     mlir::PassManager pm(context);
-    std::string errMsg;
-    llvm::raw_string_ostream errOs(errMsg);
 
     bool containsWireSet =
         module
@@ -860,14 +862,29 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       pm.enableIRPrinting();
     }
 
+    std::string error_msg;
+    mlir::DiagnosticEngine &engine = context->getDiagEngine();
+    auto handlerId = engine.registerHandler(
+        [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+            error_msg += diag.str();
+            return mlir::failure(false);
+          }
+          return mlir::failure();
+        });
+
     mlir::DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (failed(pm.run(module)))
-      throw std::runtime_error(
-          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+    if (failed(pm.run(module))) {
+      engine.eraseHandler(handlerId);
+      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "
+                               "remote emulation failed.\n" +
+                               error_msg);
+    }
     timingScope.stop();
+    engine.eraseHandler(handlerId);
 
     // Insert necessary calls to qubit allocations and qubit releases if the
     // original module contained WireSetOp's. This is required because the

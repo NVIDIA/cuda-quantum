@@ -29,10 +29,6 @@ public:
                const std::vector<void *> &rawArgs) override {
     return {};
   }
-
-  void setExecutionContext(cudaq::ExecutionContext *context) override {}
-
-  void resetExecutionContext() override {}
 };
 
 class DummyMQPUPlatform : public cudaq::quantum_platform {
@@ -62,21 +58,18 @@ TEST(ExecutionContextThreadTester, checkThreadLocalContext) {
       ExecutionContext ctx("sample", 1, /*qpuId=*/i);
       ctx.batchIteration = static_cast<std::size_t>(i);
 
-      // Set the context on the platform for this thread.
-      platform.set_exec_ctx(&ctx);
+      // Run the "kernel" within the execution context.
+      platform.with_execution_context(ctx, [&]() {
+        // Retrieve the context and verify it's the one we set.
+        ExecutionContext *retrieved = cudaq::getExecutionContext();
+        if (retrieved == &ctx &&
+            retrieved->batchIteration == static_cast<std::size_t>(i)) {
+          successCount.fetch_add(1, std::memory_order_relaxed);
+        }
+      });
 
-      // Retrieve the context and verify it's the one we set.
-      ExecutionContext *retrieved = platform.get_exec_ctx();
-      if (retrieved == &ctx &&
-          retrieved->batchIteration == static_cast<std::size_t>(i)) {
-        successCount.fetch_add(1, std::memory_order_relaxed);
-      }
-
-      // Reset the execution context.
-      platform.reset_exec_ctx();
-
-      // After reset, context should be null.
-      if (platform.get_exec_ctx() == nullptr) {
+      // Outside of kernel, context should be null.
+      if (cudaq::getExecutionContext() == nullptr) {
         successCount.fetch_add(1, std::memory_order_relaxed);
       }
     });

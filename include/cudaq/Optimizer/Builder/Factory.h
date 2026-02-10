@@ -44,6 +44,12 @@ namespace factory {
 constexpr const char targetTripleAttrName[] = "llvm.triple";
 constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
 
+/// Padding size for std::vector<bool> host type representation.
+/// `libc++` (macOS) uses 24-byte layout, `libstdc++` (Linux) uses 40-byte
+/// layout. The padding is `sizeof(std::vector<bool>)` - `sizeof(void*)`.
+constexpr std::size_t stdVecBoolPaddingSize =
+    sizeof(std::vector<bool>) - sizeof(void *);
+
 //===----------------------------------------------------------------------===//
 // Type builders
 //===----------------------------------------------------------------------===//
@@ -193,6 +199,9 @@ std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
 
 /// Return the floating point value if \p v is a floating-point constant.
 std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
+/// Is \p v defined by a `ConstantLike` `Operation`?
+bool isConstantOp(mlir::Value v);
 
 /// Create a temporary on the stack. The temporary is created such that it is
 /// \em{not} control dependent (other than on function entry).

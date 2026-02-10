@@ -31,14 +31,19 @@ public:
   /// @brief Construct a `qvector` with `size` qudits in the |0> state.
   qvector(std::size_t size) : qudits(size) {}
 
+  /// @cond
+  /// Nullary constructor
+  /// meant to be used with `kernel_builder<cudaq::qvector<>>`
+  qvector() : qudits(1) {}
+  /// @endcond
+
   /// @brief Construct a `qvector` from an input state vector.
   /// The number of qubits is determined by the size of the input vector.
   /// If `validate` is set, it will check the norm of input state vector.
   explicit qvector(const std::vector<complex> &vector, bool validate)
       : qudits(std::log2(vector.size())) {
     if (Levels == 2) {
-      auto numElements = std::log2(vector.size());
-      if (std::floor(numElements) != numElements)
+      if (vector.empty() || (vector.size() & (vector.size() - 1)) != 0)
         throw std::runtime_error(
             "Invalid state vector passed to qvector initialization - number of "
             "elements must be power of 2.");
@@ -79,28 +84,22 @@ public:
   qvector(const std::initializer_list<complex> &list)
       : qvector(std::vector<complex>{list.begin(), list.end()}) {}
 
-  /// @cond
-  /// Nullary constructor
-  /// meant to be used with `kernel_builder<cudaq::qvector<>>`
-  qvector() : qudits(1) {}
-  /// @endcond
-
   //===--------------------------------------------------------------------===//
   // qvector with an initial state
   //===--------------------------------------------------------------------===//
   /// @brief Construct a `qvector` from a pre-existing `state`.
   /// This `state` could be constructed with `state::from_data` or retrieved
   /// from an cudaq::get_state.
-  explicit qvector(const state &state) : qudits(state.get_num_qubits()) {
+  qvector(const state &state) : qudits(state.get_num_qubits()) {
     std::vector<QuditInfo> targets;
     for (auto &q : qudits)
       targets.emplace_back(QuditInfo{Levels, q.id()});
     // Note: the internal state data will be cloned by the simulator backend.
     getExecutionManager()->initializeState(targets, state.internal.get());
   }
-  explicit qvector(const state *ptr) : qvector(*ptr){};
-  explicit qvector(state *ptr) : qvector(*ptr){};
-  explicit qvector(state &s) : qvector(const_cast<const state &>(s)){};
+  qvector(const state *ptr) : qvector(*ptr) {}
+  qvector(state *ptr) : qvector(*ptr) {}
+  qvector(state &s) : qvector(const_cast<const state &>(s)) {}
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;

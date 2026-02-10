@@ -8,7 +8,7 @@
 
 #include "OrcaExecutor.h"
 #include "OrcaServerHelper.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 

@@ -7,12 +7,9 @@
  ******************************************************************************/
 
 #include "common/BaseRemoteRESTQPU.h"
+#include "common/RuntimeMLIR.h"
 
 using namespace mlir;
-
-namespace cudaq {
-std::string get_quake_by_name(const std::string &);
-} // namespace cudaq
 
 namespace {
 
@@ -27,23 +24,6 @@ namespace {
 /// asynchronous client invocations. This type should enable both QIR-based
 /// backends as well as those that take OpenQASM2 as input.
 class RemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
-protected:
-  std::tuple<ModuleOp, MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
-    auto contextPtr = cudaq::initializeMLIR();
-    MLIRContext &context = *contextPtr.get();
-
-    // Get the quake representation of the kernel
-    auto quakeCode = cudaq::get_quake_by_name(kernelName);
-    auto m_module = parseSourceString<ModuleOp>(quakeCode, &context);
-    if (!m_module)
-      throw std::runtime_error("module cannot be parsed");
-
-    return std::make_tuple(m_module.release(), contextPtr.release(), data);
-  }
-
-  void cleanupContext(MLIRContext *context) override { delete context; }
 
 public:
   /// @brief The constructor

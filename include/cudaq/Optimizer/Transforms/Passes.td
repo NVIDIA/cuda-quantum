@@ -111,6 +111,8 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
   let options = [
     ListOption<"funcList", "functions", "std::string",
                "Function name and substitutions pairs (<func>:<filename>)">,
+    Option<"changeSemantics", "change-semantics", "bool", /*default=*/"true",
+        "As a side-effect break the semantics of how to call the function(s).">
   ];
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
     "mlir::cf::ControlFlowDialect"];
@@ -404,71 +406,6 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   ];
 }
 
-def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
-  let summary =
-    "Remove unnecessary creation of new states from data";
-  let description = [{
-    Argument synthesis for state pointers for remote simulation substitutes state
-    argument by a new state created from materialized data. The new state is not
-    always necessary, and is not deleted from the heap. This pass:
-
-    - Replaces state by its data if possible
-    - Adds delete calls before exits if not possible to replace a new state
-
-    For example, the new state is replaced by its data if only used in `quake.init_state`
-    instruction:
-
-    Before DeleteStates (delete-states):
-    ```
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %c8_i64 = arith.constant 8 : i64
-      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
-      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!quake.state>) -> i64
-      %6 = quake.alloca !quake.veq<?>[%5 : i64]
-      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-
-      return
-    }
-    ```
-
-    After DeleteStates (delete-states):
-    ```
-    module {
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %c8_i64 = arith.constant 8 : i64
-      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %3 = quake.alloca !quake.veq<3>
-      %4 = quake.init_state %3, %0 : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<3>
-      return
-    }
-    ```
-
-    Otherwise, if state is used in another instructions and cannot be easily
-    replaced, the new state is deleted before exits:
-
-    Before DeleteStates (delete-states):
-    ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      ...
-      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
-      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
-      return
-    }
-    ```
-
-    After DeleteStates (delete-states):
-    ```
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      ...
-      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
-      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
-      quake.delete_state %3 : !cc.ptr<!quake.state>
-      return
-    }
-    ```
-  }];
-}
-
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let summary = "Translate cc.device_call operations";
 
@@ -617,6 +554,13 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     the entry-point kernel's body while omitting its return value. While this
     clearly changes the semantics of the kernel call, some transport layers
     require that return values be dropped on the floor.
+
+    The `posit-nullary` option works with the `change-semantics` option of
+    argument synthesis. If argument synthesis does not change the semantics (by
+    blindly removing its arguments) of the kernel, then this pass should set the
+    posit nullary option so that it can assume there are no arguments (the
+    kernel is specialized such that its actual arguments are inlined as
+    constants) regardless of the kernel's (semantically correct) signature.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -631,7 +575,9 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Option<"genRunStack", "generate-run-stack", "bool", /*default=*/"false",
       "Generate a cudaq::run stack for the entry-point kernels.">,
     Option<"deferToJIT", "deferred", "bool", /*default=*/"false",
-      "Defer generating kernel execution until JIT time.">
+      "Defer generating kernel execution until JIT time.">,
+    Option<"positNullary", "posit-nullary", "bool", /*default=*/"false",
+      "Posit that the entry-point is nullary regardless of its signature.">
   ];
 }
 
@@ -710,9 +656,17 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
     1. Eliminate all free ssa-values in the function by adding arguments.
     2. Move the function to the global scope. (ModuleOp)
     3. Convert all uses to CallOps as needed.
+
+    The `constantPropagation` option can be used to eliminate constants being
+    passed in closures. This option defaults to off to avoid phase ordering
+    issues with memtoreg altering the structure of cc.loop too aggressively
+    before the loop is analyzed.
   }];
 
-  let constructor = "cudaq::opt::createLambdaLiftingPass()";
+  let options = [
+    Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
+      "Enable specialization and constant propagation into lifted lambdas.">
+  ];
 }
 
 def LiftArrayAlloc : Pass<"lift-array-alloc", "mlir::func::FuncOp"> {

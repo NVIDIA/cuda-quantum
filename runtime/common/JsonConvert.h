@@ -9,7 +9,6 @@
 #pragma once
 #include "GPUInfo.h"
 #include "common/ExecutionContext.h"
-#include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/gradients.h"
 #include "cudaq/optimizers.h"

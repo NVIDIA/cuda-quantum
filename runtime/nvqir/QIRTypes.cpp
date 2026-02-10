@@ -8,7 +8,8 @@
 
 #include "QIRTypes.h"
 #include "NVQIRUtil.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>

@@ -17,7 +17,7 @@
 
 struct Vanilla {
   std::vector<bool> operator()() __qpu__ {
-    cudaq::qvector v = {0., 1., 1., 0.};
+    cudaq::qvector v{cudaq::state{0., 1., 1., 0.}};
     h(v);
     return mz(v);
   }
@@ -26,16 +26,70 @@ struct Vanilla {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Vanilla() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
-// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_8]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_5]][2] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_9]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_5]][3] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_10]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_11:.*]] = quake.create_state %[[VAL_6]], %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_12:.*]] = quake.get_number_of_qubits %[[VAL_11]] : (!cc.ptr<!quake.state>) -> i64
+// CHECK:           %[[VAL_13:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_12]] : i64]
+// CHECK:           %[[VAL_14:.*]] = quake.init_state %[[VAL_13]], %[[VAL_11]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+// CHECK:           quake.delete_state %[[VAL_11]] : !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_15:.*]] = quake.veq_size %[[VAL_14]] : (!quake.veq<?>) -> i64
+// CHECK:           return %{{.*}} : !cc.stdvec<i1>
+// CHECK:         }
+// clang-format on
+
+struct VanillaBean {
+  std::vector<bool> operator()() __qpu__ {
+    cudaq::qvector v = cudaq::state{0., 1., 1., 0.};
+    h(v);
+    return mz(v);
+  }
+};
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VanillaBean() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_8]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_5]][2] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_9]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_5]][3] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_10]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_11:.*]] = quake.create_state %[[VAL_6]], %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_12:.*]] = quake.get_number_of_qubits %[[VAL_11]] : (!cc.ptr<!quake.state>) -> i64
+// CHECK:           %[[VAL_13:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_12]] : i64]
+// CHECK:           %[[VAL_14:.*]] = quake.init_state %[[VAL_13]], %[[VAL_11]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+// CHECK:           quake.delete_state %[[VAL_11]] : !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_15:.*]] = quake.veq_size %[[VAL_14]] : (!quake.veq<?>) -> i64
+// CHECK:           return %{{.*}} : !cc.stdvec<i1>
+// CHECK:         }
 // clang-format on
 
 struct Cherry {
   std::vector<bool> operator()() __qpu__ {
     using namespace std::complex_literals;
-    cudaq::qvector v = std::initializer_list<std::complex<double>>{
-        {0.0, 1.0}, {0.6, 0.4}, {1.0, 0.0}, {0.0, 0.0}};
+    cudaq::qvector v{{std::initializer_list<std::complex<double>>{
+        {0.0, 1.0}, {0.6, 0.4}, {1.0, 0.0}, {0.0, 0.0}}}};
     h(v);
     return mz(v);
   }
@@ -66,9 +120,9 @@ struct Cherry {
 struct MooseTracks {
   std::vector<bool> operator()() __qpu__ {
     using namespace std::complex_literals;
-    cudaq::qvector v = {
-        std::complex<double>{0.0, 1.0}, std::complex<double>{0.75, 0.25},
-        std::complex<double>{1.0, 0.0}, std::complex<double>{0.0, 0.0}};
+    cudaq::qvector v{
+        {std::complex<double>{0.0, 1.0}, std::complex<double>{0.75, 0.25},
+         std::complex<double>{1.0, 0.0}, std::complex<double>{0.0, 0.0}}};
     h(v);
     return mz(v);
   }
@@ -99,8 +153,8 @@ struct MooseTracks {
 struct RockyRoad {
   std::vector<bool> operator()() __qpu__ {
     using namespace std::complex_literals;
-    cudaq::qvector v = {0.0 + 1.0i, std::complex<double>{0.8, 0.2}, 1.0 + 0.0i,
-                        std::complex<double>{0.0, 0.0}};
+    cudaq::qvector v{cudaq::state{0.0 + 1.0i, std::complex<double>{0.8, 0.2},
+                                  1.0 + 0.0i, std::complex<double>{0.0, 0.0}}};
     h(v);
     return mz(v);
   }
@@ -108,38 +162,41 @@ struct RockyRoad {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__RockyRoad() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
-// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK-DAG:       %[[VAL_2:.*]] = complex.constant [8.000000e-01, 2.000000e-01] : complex<f64>
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : i64
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f{{[0-9]+}}
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f{{[0-9]+}}
-// CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [8.000000e-01, 2.000000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
 // CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_10:.*]] = call @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(%[[VAL_7]]) : (f{{[0-9]+}}) -> complex<f64>
+// CHECK:           cc.store %{{.*}}, %[[VAL_9]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_10:.*]] = call @_ZNS{{.*}}(%{{.*}}) : (f{{[0-9]+}}) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_12:.*]] = call @_Z{{.*}}7complexIT_{{.*}}_(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_12:.*]] = call @_Z{{.*}}(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_13:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[VAL_6]], %[[VAL_13]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_14:.*]] = call @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(%[[VAL_5]]) : (f{{[0-9]+}}) -> complex<f64>
+// CHECK:           cc.store %{{.*}}, %[[VAL_13]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_14:.*]] = call @_ZNS{{.*}}(%{{.*}}) : (f{{[0-9]+}}) -> complex<f64>
 // CHECK:           %[[VAL_15:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_16:.*]] = call @_Z{{.*}}7complexIT_{{.*}}_(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_16:.*]] = call @_Z{{.*}}(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<complex<f64> x 4>
-// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_12]], %[[VAL_18]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_2]], %[[VAL_19]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_17]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_16]], %[[VAL_20]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_17]][3] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_21]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_22:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_17]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
+// CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_12]], %[[VAL_19]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_20]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_17]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_16]], %[[VAL_21]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_17]][3] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_22]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_23:.*]] = quake.create_state %[[VAL_18]], %[[VAL_4]] : (!cc.ptr<!cc.array<complex<f64> x ?>>, i64) -> !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_24:.*]] = quake.get_number_of_qubits %[[VAL_23]] : (!cc.ptr<!quake.state>) -> i64
+// CHECK:           %[[VAL_25:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_24]] : i64]
+// CHECK:           %[[VAL_26:.*]] = quake.init_state %[[VAL_25]], %[[VAL_23]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+// CHECK:           quake.delete_state %[[VAL_23]] : !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_27:.*]] = quake.veq_size %[[VAL_26]] : (!quake.veq<?>) -> i64
+// CHECK:           return %{{.*}} : !cc.stdvec<i1>
+// CHECK:         }
 // clang-format on
 
 std::vector<double> getTwoTimesRank();
@@ -165,7 +222,7 @@ struct Pistachio {
 
 struct ChocolateMint {
   bool operator()() __qpu__ {
-    cudaq::qvector v = getTwoTimesRank();
+    cudaq::qvector v(getTwoTimesRank());
     h(v);
     return mz(v[0]);
   }
@@ -205,7 +262,7 @@ struct Neapolitan {
 
 struct ButterPecan {
   std::vector<bool> operator()() __qpu__ {
-    cudaq::qvector v = getComplexInit();
+    cudaq::qvector v(getComplexInit());
     h(v);
     return mz(v);
   }
@@ -223,25 +280,29 @@ struct ButterPecan {
 // clang-format on
 
 __qpu__ auto Strawberry() {
-  cudaq::qubit q = {0., 1.};
+  cudaq::qubit q(cudaq::state{0., 1.});
   return mz(q);
 }
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.array<complex<f64> x 2>
-// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_2]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
-// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
-// CHECK:           return %[[VAL_9]] : i1
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<f64 x 2>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_7:.*]] = quake.create_state %[[VAL_4]], %[[VAL_2]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_9:.*]] = quake.init_state %[[VAL_8]], %[[VAL_7]] : (!quake.ref, !cc.ptr<!quake.state>) -> !quake.veq<1>
+// CHECK:           quake.delete_state %[[VAL_7]] : !cc.ptr<!quake.state>
+// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_12]] : i1
 // CHECK:         }
 // clang-format on
 
@@ -253,8 +314,8 @@ __qpu__ auto GoldRibbon() {
 }
 #endif
 
-__qpu__ bool Peppermint() { 
-  cudaq::qubit q = {M_SQRT1_2, M_SQRT1_2};
+__qpu__ bool Peppermint() {
+  cudaq::qubit q{M_SQRT1_2, M_SQRT1_2};
   return mz(q);
 }
 
@@ -282,33 +343,43 @@ __qpu__ bool Peppermint() {
 //===----------------------------------------------------------------------===//
 
 // clang-format off
+// QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Vanilla() local_unnamed_addr {
+// QIR:         %[[VAL_0:.*]] = alloca [4 x double], align 8
+// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 0
+// QIR:         store double 0.000000e+00, double* %[[VAL_1]], align 8
+// QIR:         %[[VAL_2:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 1
+// QIR:         store double 1.000000e+00, double* %[[VAL_2]], align 8
+// QIR:         %[[VAL_3:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 2
+// QIR:         store double 1.000000e+00, double* %[[VAL_3]], align 8
+// QIR:         %[[VAL_4:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 3
+// QIR:         store double 0.000000e+00, double* %[[VAL_4]], align 8
+// QIR:         %[[VAL_5:.*]] = bitcast [4 x double]* %[[VAL_0]] to i8*
+// QIR:         %[[VAL_6:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_5]], i64 4)
+// QIR:         %[[VAL_7:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_6]])
+// QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_7]], i8** %[[VAL_6]])
+// QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_6]])
+// QIR:        %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
+// QIR:         %[[VAL_11:.*]] = icmp sgt i64 %[[VAL_10]], 0
+// QIR:         br i1 %[[VAL_11]], label %[[VAL_12:.*]], label %[[VAL_13:.*]]
 
-// QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Vanilla()
-// QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 2, double* {{.*}}getelementptr inbounds ([4 x double], [4 x double]* @__nvqpp__rodata_init_0, i64 0, i64 0))
-// QIR:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
-// QIR:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]]
-// QIR:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
-// QIR:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
-// QIR:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]]
-// QIR:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_6]])
-// QIR:         %[[VAL_7:.*]] = tail call %[[VAL_8:.*]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_4]])
-// QIR:         %[[VAL_9:.*]] = bitcast %[[VAL_8]]* %[[VAL_7]] to i1*
-// QIR:         %[[VAL_10:.*]] = load i1, i1* %[[VAL_9]]
-// QIR:         %[[VAL_11:.*]] = zext i1 %[[VAL_10]] to i8
-// QIR:         %[[VAL_12:.*]] = tail call %[[VAL_8]]* @__quantum__qis__mz(%[[VAL_3]]* %[[VAL_6]])
-// QIR:         %[[VAL_13:.*]] = bitcast %[[VAL_8]]* %[[VAL_12]] to i1*
-// QIR:         %[[VAL_14:.*]] = load i1, i1* %[[VAL_13]]
-// QIR:         %[[VAL_15:.*]] = zext i1 %[[VAL_14]] to i8
-// QIR:         %[[VAL_16:.*]] = tail call dereferenceable_or_null(2) i8* @malloc(i64 2)
-// QIR:         store i8 %[[VAL_11]], i8* %[[VAL_16]]
-// QIR:         %[[VAL_17:.*]] = getelementptr inbounds i8, i8* %[[VAL_16]], i64 1
-// QIR:         store i8 %[[VAL_15]], i8* %[[VAL_17]]
-// QIR:         %[[VAL_18:.*]] = bitcast i8* %[[VAL_16]] to i1*
-// QIR:         %[[VAL_19:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_18]], 0
-// QIR:         %[[VAL_20:.*]] = insertvalue { i1*, i64 } %[[VAL_19]], i64 2, 1
-// QIR:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
-// QIR:         ret { i1*, i64 } %[[VAL_20]]
-// QIR:       }
+// QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__VanillaBean() local_unnamed_addr {
+// QIR:         %[[VAL_0:.*]] = alloca [4 x double], align 8
+// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 0
+// QIR:         store double 0.000000e+00, double* %[[VAL_1]], align 8
+// QIR:         %[[VAL_2:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 1
+// QIR:         store double 1.000000e+00, double* %[[VAL_2]], align 8
+// QIR:         %[[VAL_3:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 2
+// QIR:         store double 1.000000e+00, double* %[[VAL_3]], align 8
+// QIR:         %[[VAL_4:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 3
+// QIR:         store double 0.000000e+00, double* %[[VAL_4]], align 8
+// QIR:         %[[VAL_5:.*]] = bitcast [4 x double]* %[[VAL_0]] to i8*
+// QIR:         %[[VAL_6:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_5]], i64 4)
+// QIR:         %[[VAL_7:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_6]])
+// QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_7]], i8** %[[VAL_6]])
+// QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_6]])
+// QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
+// QIR:         %[[VAL_11:.*]] = icmp sgt i64 %[[VAL_10]], 0
+// QIR:         br i1 %[[VAL_11]], label %[[VAL_12:.*]], label %[[VAL_13:.*]]
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Cherry()
 // QIR:         %[[VAL_0:.*]] = alloca [4 x { double, double }]
@@ -394,75 +465,55 @@ __qpu__ bool Peppermint() {
 // QIR:         ret { i1*, i64 } %[[VAL_29]]
 // QIR:       }
 
-// QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad()
-// QIR:         %[[VAL_0:.*]] = alloca double
-// QIR:         store double 0.000000e+00, double* %[[VAL_0]]
-// QIR:         %[[VAL_1:.*]] = tail call { double, double } @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(
-// QIR:         %[[VAL_2:.*]] = alloca { double, double }
-// QIR:         %[[VAL_3:.*]] = extractvalue { double, double } %[[VAL_1]], 0
+// QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad() local_unnamed_addr {
+// QIR:         %[[VAL_0:.*]] = alloca double, align 8
+// QIR:         store double 0.000000e+00, double* %[[VAL_0]], align 8
+// QIR:         %[[VAL_2:.*]] = alloca { double, double }, align 8
+// QIR:         %[[VAL_3:.*]] = extractvalue { double, double } %{{.*}}, 0
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 0
-// QIR:         store double %[[VAL_3]], double* %[[VAL_4]]
-// QIR:         %[[VAL_5:.*]] = extractvalue { double, double } %[[VAL_1]], 1
+// QIR:         store double %[[VAL_3]], double* %[[VAL_4]], align 8
+// QIR:         %[[VAL_5:.*]] = extractvalue { double, double } %{{.*}}, 1
 // QIR:         %[[VAL_6:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 1
-// QIR:         store double %[[VAL_5]], double* %[[VAL_6]]
-// QIR:         %[[VAL_7:.*]] = call { double, double } @_Z{{.*}}7complex{{.*}}(double* {{.*}}%[[VAL_0]], { double, double }* {{.*}}%[[VAL_2]])
-// QIR:         %[[VAL_8:.*]] = alloca double
-// QIR:         store double 1.000000e+00, double* %[[VAL_8]]
-// QIR:         %[[VAL_9:.*]] = call { double, double } @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(
-// QIR:         %[[VAL_10:.*]] = alloca { double, double }
-// QIR:         %[[VAL_11:.*]] = extractvalue { double, double } %[[VAL_9]], 0
+// QIR:         store double %[[VAL_5]], double* %[[VAL_6]], align 8
+// QIR:         %[[VAL_7:.*]] = call { double, double } @_Z{{.*}}(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
+// QIR:         %[[VAL_8:.*]] = alloca double, align 8
+// QIR:         store double 1.000000e+00, double* %[[VAL_8]], align 8
+// QIR:         %[[VAL_10:.*]] = alloca { double, double }, align 8
+// QIR:         %[[VAL_11:.*]] = extractvalue { double, double } %{{.*}}, 0
 // QIR:         %[[VAL_12:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 0
-// QIR:         store double %[[VAL_11]], double* %[[VAL_12]]
-// QIR:         %[[VAL_13:.*]] = extractvalue { double, double } %[[VAL_9]], 1
+// QIR:         store double %[[VAL_11]], double* %[[VAL_12]], align 8
+// QIR:         %[[VAL_13:.*]] = extractvalue { double, double } %{{.*}}, 1
 // QIR:         %[[VAL_14:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 1
-// QIR:         store double %[[VAL_13]], double* %[[VAL_14]]
-// QIR:         %[[VAL_15:.*]] = call { double, double } @_Z{{.*}}7complex{{.*}}(double* {{.*}}%[[VAL_8]], { double, double }* {{.*}}%[[VAL_10]])
-// QIR:         %[[VAL_16:.*]] = alloca [4 x { double, double }]
-// QIR:         %[[VAL_17:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0
-// QIR:         %[[VAL_18:.*]] = extractvalue { double, double } %[[VAL_7]], 0
-// QIR:         %[[VAL_19:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0, i32 0
-// QIR:         store double %[[VAL_18]], double* %[[VAL_19]]
-// QIR:         %[[VAL_20:.*]] = extractvalue { double, double } %[[VAL_7]], 1
-// QIR:         %[[VAL_21:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0, i32 1
-// QIR:         store double %[[VAL_20]], double* %[[VAL_21]]
-// QIR:         %[[VAL_22:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 1, i32 0
-// QIR:         store double 8.000000e-01, double* %[[VAL_22]]
-// QIR:         %[[VAL_23:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 1, i32 1
-// QIR:         store double 2.000000e-01, double* %[[VAL_23]]
-// QIR:         %[[VAL_24:.*]] = extractvalue { double, double } %[[VAL_15]], 0
-// QIR:         %[[VAL_25:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 2, i32 0
-// QIR:         store double %[[VAL_24]], double* %[[VAL_25]]
-// QIR:         %[[VAL_26:.*]] = extractvalue { double, double } %[[VAL_15]], 1
-// QIR:         %[[VAL_27:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 2, i32 1
-// QIR:         store double %[[VAL_26]], double* %[[VAL_27]]
-// QIR:         %[[VAL_28:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 3, i32 0
-// QIR:         %[[VAL_29:.*]] = bitcast double* %[[VAL_28]] to i8*
-// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_29]], i8 0, i64 16, i1 false)
-// QIR:         %[[VAL_30:.*]] = call %[[VAL_31:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, { double, double }* {{.*}}%[[VAL_17]])
-// QIR:         %[[VAL_32:.*]] = call %[[VAL_33:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_31]]* %[[VAL_30]], i64 0)
-// QIR:         %[[VAL_34:.*]] = load %[[VAL_33]]*, %[[VAL_33]]** %[[VAL_32]]
-// QIR:         call void @__quantum__qis__h(%[[VAL_33]]* %[[VAL_34]])
-// QIR:         %[[VAL_35:.*]] = call %[[VAL_33]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_31]]* %[[VAL_30]], i64 1)
-// QIR:         %[[VAL_36:.*]] = load %[[VAL_33]]*, %[[VAL_33]]** %[[VAL_35]]
-// QIR:         call void @__quantum__qis__h(%[[VAL_33]]* %[[VAL_36]])
-// QIR:         %[[VAL_37:.*]] = call %[[VAL_38:.*]]* @__quantum__qis__mz(%[[VAL_33]]* %[[VAL_34]])
-// QIR:         %[[VAL_39:.*]] = bitcast %[[VAL_38]]* %[[VAL_37]] to i1*
-// QIR:         %[[VAL_40:.*]] = load i1, i1* %[[VAL_39]]
-// QIR:         %[[VAL_41:.*]] = zext i1 %[[VAL_40]] to i8
-// QIR:         %[[VAL_42:.*]] = call %[[VAL_38]]* @__quantum__qis__mz(%[[VAL_33]]* %[[VAL_36]])
-// QIR:         %[[VAL_43:.*]] = bitcast %[[VAL_38]]* %[[VAL_42]] to i1*
-// QIR:         %[[VAL_44:.*]] = load i1, i1* %[[VAL_43]]
-// QIR:         %[[VAL_45:.*]] = zext i1 %[[VAL_44]] to i8
-// QIR:         %[[VAL_46:.*]] = call dereferenceable_or_null(2) i8* @malloc(i64 2)
-// QIR:         store i8 %[[VAL_41]], i8* %[[VAL_46]]
-// QIR:         %[[VAL_47:.*]] = getelementptr inbounds i8, i8* %[[VAL_46]], i64 1
-// QIR:         store i8 %[[VAL_45]], i8* %[[VAL_47]]
-// QIR:         %[[VAL_48:.*]] = bitcast i8* %[[VAL_46]] to i1*
-// QIR:         %[[VAL_49:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_48]], 0
-// QIR:         %[[VAL_50:.*]] = insertvalue { i1*, i64 } %[[VAL_49]], i64 2, 1
-// QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_31]]* %[[VAL_30]])
-// QIR:         ret { i1*, i64 } %[[VAL_50]]
-// QIR:       }
+// QIR:         store double %[[VAL_13]], double* %[[VAL_14]], align 8
+// QIR:         %[[VAL_15:.*]] = call { double, double } @_Z{{.*}}(double* nonnull %[[VAL_8]], { double, double }* nonnull %[[VAL_10]])
+// QIR:         %[[VAL_16:.*]] = alloca [4 x { double, double }], align 8
+// QIR:         %[[VAL_17:.*]] = extractvalue { double, double } %[[VAL_7]], 0
+// QIR:         %[[VAL_18:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0, i32 0
+// QIR:         store double %[[VAL_17]], double* %[[VAL_18]], align 8
+// QIR:         %[[VAL_19:.*]] = extractvalue { double, double } %[[VAL_7]], 1
+// QIR:         %[[VAL_20:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0, i32 1
+// QIR:         store double %[[VAL_19]], double* %[[VAL_20]], align 8
+// QIR:         %[[VAL_21:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 1, i32 0
+// QIR:         store double 8.000000e-01, double* %[[VAL_21]], align 8
+// QIR:         %[[VAL_22:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 1, i32 1
+// QIR:         store double 2.000000e-01, double* %[[VAL_22]], align 8
+// QIR:         %[[VAL_23:.*]] = extractvalue { double, double } %[[VAL_15]], 0
+// QIR:         %[[VAL_24:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 2, i32 0
+// QIR:         store double %[[VAL_23]], double* %[[VAL_24]], align 8
+// QIR:         %[[VAL_25:.*]] = extractvalue { double, double } %[[VAL_15]], 1
+// QIR:         %[[VAL_26:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 2, i32 1
+// QIR:         store double %[[VAL_25]], double* %[[VAL_26]], align 8
+// QIR:         %[[VAL_27:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 3, i32 0
+// QIR:         %[[VAL_28:.*]] = bitcast [4 x { double, double }]* %[[VAL_16]] to i8*
+// QIR:         %[[VAL_29:.*]] = bitcast double* %[[VAL_27]] to i8*
+// QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_29]], i8 0, i64 16, i1 false)
+// QIR:         %[[VAL_30:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_28]], i64 4)
+// QIR:         %[[VAL_31:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_30]])
+// QIR:         %[[VAL_32:.*]] = call %[[VAL_33:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_31]], i8** %[[VAL_30]])
+// QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_30]])
+// QIR:         %[[VAL_34:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_33]]* %[[VAL_32]])
+// QIR:         %[[VAL_35:.*]] = icmp sgt i64 %[[VAL_34]], 0
+// QIR:         br i1 %[[VAL_35]], label %[[VAL_36:.*]], label %[[VAL_37:.*]]
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__Pistachio()
 // QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z15getTwoTimesRankv()
@@ -636,21 +687,21 @@ __qpu__ bool Peppermint() {
 // QIR:         ret { i1*, i64 } %[[VAL_41]]
 // QIR:       }
 
-// QIR-LABEL: define i1 @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv()
-// QIR:         %[[VAL_0:.*]] = alloca [2 x { double, double }]
-// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [2 x { double, double }], [2 x { double, double }]* %[[VAL_0]], i64 0, i64 0
-// QIR:         %[[VAL_2:.*]] = getelementptr inbounds [2 x { double, double }], [2 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 0
-// QIR:         %[[VAL_3:.*]] = bitcast [2 x { double, double }]* %[[VAL_0]] to i8*
-// QIR:         call void @llvm.memset.p0i8.i64(i8* {{.*}}%[[VAL_3]], i8 0, i64 16, i1 false)
-// QIR:         store double 1.000000e+00, double* %[[VAL_2]]
-// QIR:         %[[VAL_4:.*]] = getelementptr inbounds [2 x { double, double }], [2 x { double, double }]* %[[VAL_0]], i64 0, i64 1, i32 1
-// QIR:         store double 0.000000e+00, double* %[[VAL_4]]
-// QIR:         %[[VAL_5:.*]] = call %[[VAL_6:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 1, { double, double }* {{.*}}%[[VAL_1]])
+// QIR-LABEL: define i1 @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv() local_unnamed_addr {
+// QIR:         %[[VAL_0:.*]] = alloca [2 x double], align 8
+// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [2 x double], [2 x double]* %[[VAL_0]], i64 0, i64 0
+// QIR:         store double 0.000000e+00, double* %[[VAL_1]], align 8
+// QIR:         %[[VAL_2:.*]] = getelementptr inbounds [2 x double], [2 x double]* %[[VAL_0]], i64 0, i64 1
+// QIR:         store double 1.000000e+00, double* %[[VAL_2]], align 8
+// QIR:         %[[VAL_3:.*]] = bitcast [2 x double]* %[[VAL_0]] to i8*
+// QIR:         %[[VAL_4:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_3]], i64 2)
+// QIR:         %[[VAL_5:.*]] = call %[[VAL_6:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 1, i8** %[[VAL_4]])
+// QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_4]])
 // QIR:         %[[VAL_7:.*]] = call %[[VAL_8:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_5]], i64 0)
-// QIR:         %[[VAL_9:.*]] = load %[[VAL_8]]*, %[[VAL_8]]** %[[VAL_7]]
+// QIR:         %[[VAL_9:.*]] = load %[[VAL_8]]*, %[[VAL_8]]** %[[VAL_7]], align 8
 // QIR:         %[[VAL_10:.*]] = call %[[VAL_11:.*]]* @__quantum__qis__mz(%[[VAL_8]]* %[[VAL_9]])
 // QIR:         %[[VAL_12:.*]] = bitcast %[[VAL_11]]* %[[VAL_10]] to i1*
-// QIR:         %[[VAL_13:.*]] = load i1, i1* %[[VAL_12]]
+// QIR:         %[[VAL_13:.*]] = load i1, i1* %[[VAL_12]], align 1
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_5]])
 // QIR:         ret i1 %[[VAL_13]]
 // QIR:       }

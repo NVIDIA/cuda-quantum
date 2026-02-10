@@ -12,6 +12,8 @@
 
 namespace cudaq {
 
+class state;
+
 /// The qudit models a general d-level quantum system.
 /// This type is templated on the number of levels d.
 template <std::size_t Levels>
@@ -28,6 +30,7 @@ class qudit {
 public:
   /// Construct a qudit, will allocated a new unique index
   qudit() : idx(getExecutionManager()->allocateQudit(n_levels())) {}
+
   qudit(const std::vector<complex> &state) : qudit() {
     if (state.size() != Levels)
       throw std::runtime_error(
@@ -49,8 +52,18 @@ public:
     getExecutionManager()->initializeState({QuditInfo(n_levels(), idx)},
                                            state.data(), precision);
   }
+
   qudit(const std::initializer_list<complex> &list)
       : qudit({list.begin(), list.end()}) {}
+
+  qudit(const state &state) : qudit() {
+    // Note: the internal state data will be cloned by the simulator backend.
+    std::vector<QuditInfo> v{QuditInfo{Levels, id()}};
+    getExecutionManager()->initializeState(v, state.internal.get());
+  }
+  qudit(const state *s) : qudit(*s) {}
+  qudit(state *s) : qudit(const_cast<const state *>(s)) {}
+  qudit(state &s) : qudit(const_cast<const state &>(s)) {}
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;

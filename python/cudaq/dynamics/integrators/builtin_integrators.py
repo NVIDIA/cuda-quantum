@@ -37,9 +37,15 @@ class cuDensityMatTimeStepper(BaseTimeStepper[State]):
         self.stepper = bindings.TimeStepper(schedule, dims, ham, collapsed_ops,
                                             is_master_equation)
 
+    # Compute and return a new state
     def compute(self, state: State, current_time: float):
         action_result = self.stepper.compute(state, current_time)
         return action_result
+
+    # Compute into an output state
+    # The output state must be pre-allocated
+    def compute_inplace(self, state: State, t: float, outState: State):
+        self.stepper.compute(state, t, outState)
 
 
 class cuDensityMatSuperOpTimeStepper(cuDensityMatTimeStepper):

@@ -7,13 +7,14 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "helpers/MQPUUtils.h"
 #include "utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
@@ -101,9 +102,8 @@ public:
     return "";
   }
 
+private:
   void setTargetBackend(const std::string &description) override {
-    executionContext.set(nullptr);
-
     const auto getOpt = [](const std::string &str,
                            const std::string &prefix) -> std::string {
       // Return the first key-value configuration option found in the format:

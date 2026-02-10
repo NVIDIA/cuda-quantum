@@ -57,8 +57,28 @@ public:
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
+      std::vector<MPSTensor> copiedTensors;
+      copiedTensors.reserve(casted->getMpsTensors().size());
+      for (const auto &mpsTensor : casted->getMpsTensors()) {
+        std::vector<int64_t> extents = mpsTensor.extents;
+        const auto numElements =
+            std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+        const auto tensorSizeBytes =
+            sizeof(std::complex<ScalarType>) * numElements;
+        void *mpsTensorCopy{nullptr};
+        HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensorCopy, tensorSizeBytes));
+        HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensorCopy, mpsTensor.deviceData,
+                                     tensorSizeBytes, cudaMemcpyDefault));
+        copiedTensors.emplace_back(MPSTensor(mpsTensorCopy, extents));
+      }
+
       m_state = TensorNetState<ScalarType>::createFromMpsTensors(
-          casted->getMpsTensors(), scratchPad, m_cutnHandle, m_randomEngine);
+          copiedTensors, scratchPad, m_cutnHandle, m_randomEngine);
+      for (const auto &mpsTensor : copiedTensors) {
+        m_state->m_tempDevicePtrs.emplace_back(
+            mpsTensor.deviceData,
+            typename TensorNetState<ScalarType>::TempDevicePtrDeleter{});
+      }
     } else {
       // Expand an existing state: Append MPS tensors
       // Factor the existing state
@@ -127,7 +147,7 @@ public:
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
                              const cudaq::spin_op_term &op) override {
-    if (this->isInTracerMode()) {
+    if (cudaq::isInTracerMode()) {
       nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op);
       return;
     }
@@ -217,8 +237,9 @@ public:
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    const bool hasNoise =
-        this->executionContext && this->executionContext->noiseModel;
+    auto executionContext = cudaq::getExecutionContext();
+
+    const bool hasNoise = executionContext && executionContext->noiseModel;
     if (!hasNoise || shots < 1)
       return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
 
@@ -287,17 +308,18 @@ public:
 
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
     assert(cudaq::spin_op::canonicalize(ham) == ham);
+    auto executionContext = cudaq::getExecutionContext();
+
     LOG_API_TIME();
-    const bool hasNoise =
-        this->executionContext && this->executionContext->noiseModel;
+    const bool hasNoise = executionContext && executionContext->noiseModel;
     // If no noise, just use base class implementation.
     if (!hasNoise)
       return SimulatorTensorNetBase<ScalarType>::observe(ham);
 
     setUpFactorizeForTrajectoryRuns();
     const std::size_t numObserveTrajectories =
-        this->executionContext->numberTrajectories.has_value()
-            ? this->executionContext->numberTrajectories.value()
+        executionContext->numberTrajectories.has_value()
+            ? executionContext->numberTrajectories.value()
             : TensorNetState<ScalarType>::g_numberTrajectoriesForObserve;
 
     auto [termStrs, terms] = prepareSpinOpTermData(ham);

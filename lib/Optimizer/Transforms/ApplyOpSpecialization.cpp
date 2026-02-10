@@ -63,6 +63,34 @@ struct ApplyVariants {
 /// Map from `func::FuncOp` to the variants to be created.
 using ApplyOpAnalysisInfo = DenseMap<Operation *, ApplyVariants>;
 
+/// Check if a function has any func.call operations that take a dynamic
+/// !quake.veq<?> argument. If so, we should not specialize (un-relax) veq
+/// argument types during constant propagation, as this would cause type
+/// mismatches when the specialized function calls inner kernels expecting
+/// the dynamic type.
+///
+/// Alternatives to this conservative approach:
+/// 1. Dataflow analysis: trace if a specific argument reaches such a call,
+///    allowing specialization of unaffected arguments.
+/// 2. Recursive specialization: specialize all callees in the call tree to
+///    accept the concrete veq size, propagating type info deeper for better
+///    optimization but increasing code size.
+static bool hasCallWithDynamicVeq(func::FuncOp func, ModuleOp module) {
+  auto result = func.walk([&](func::CallOp callOp) {
+    auto callee = module.lookupSymbol<func::FuncOp>(callOp.getCallee());
+    if (!callee)
+      return WalkResult::advance();
+    for (auto inputTy : callee.getFunctionType().getInputs()) {
+      if (auto veqTy = dyn_cast<quake::VeqType>(inputTy)) {
+        if (!veqTy.hasSpecifiedSize())
+          return WalkResult::interrupt();
+      }
+    }
+    return WalkResult::advance();
+  });
+  return result.wasInterrupted();
+}
+
 /// This analysis scans the IR for `ApplyOp`s to see which ones need to have
 /// variants created.
 struct ApplyOpAnalysis {
@@ -99,11 +127,14 @@ private:
               LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
             } else {
               if (auto relax = v.getDefiningOp<quake::RelaxSizeOp>()) {
-                // Also, specialize any relaxed veq types.
-                v = relax.getInputVec();
-                updateSignature = true;
-                LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
-                                        << v.getType() << ")\n");
+                // Specialize relaxed veq types, but only if the function has no
+                // inner calls expecting dynamic !quake.veq<?> types.
+                if (!hasCallWithDynamicVeq(genericFunc, module)) {
+                  v = relax.getInputVec();
+                  updateSignature = true;
+                  LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
+                                          << v.getType() << ")\n");
+                }
               }
               inputTys.push_back(v.getType());
               preservedArgs.push_back(v);
@@ -189,7 +220,9 @@ private:
 
   func::FuncOp lookupCallee(quake::ApplyOp apply) {
     auto callee = apply.getCallee();
-    return module.lookupSymbol<func::FuncOp>(*callee);
+    if (callee)
+      return module.lookupSymbol<func::FuncOp>(*callee);
+    return {};
   }
 
   ModuleOp module;
@@ -432,6 +465,13 @@ public:
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
     auto newCond = newFunc.getBody().front().insertArgument(0u, veqTy, loc);
+    // Helper to check if this is a call to a function taking quantum arguments.
+    const auto isQuantumKernelCall = [](Operation *op) -> bool {
+      if (auto callOp = dyn_cast<func::CallOp>(op))
+        return !quake::getQuantumOperands(op).empty();
+      return false;
+    };
+
     newFunc.walk([&](Operation *op) {
       OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {
@@ -471,6 +511,11 @@ public:
             apply.getIsAdjAttr(), newControls, apply.getArgs());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
+      } else if (isQuantumKernelCall(op)) {
+        op->emitError("Unhandled controlled quantum kernel call in control "
+                      "variant generation. This could be a result of not "
+                      "calling inlining before the apply specialization pass.");
+        signalPassFailure();
       }
     });
     return newFunc;
