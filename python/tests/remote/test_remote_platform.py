@@ -7,6 +7,7 @@
 # ============================================================================ #
 import functools
 import time
+import warnings
 
 import pytest
 import os, math, sys
@@ -37,13 +38,19 @@ def retry_on_flaky_connection(platform="darwin", max_attempts=3, delay=0.5):
                 except RuntimeError as e:
                     is_last = attempt == max_attempts - 1
                     if "status code 0" in str(e) and not is_last:
-                        print(f"[flaky retry] attempt {attempt + 1}/"
-                              f"{max_attempts}: {e}")
+                        warnings.warn(
+                            f"[flaky retry] attempt {attempt + 1}/"
+                            f"{max_attempts}: {e}",
+                            RuntimeWarning,
+                            stacklevel=2)
                         time.sleep(delay * (attempt + 1))
                         continue
                     if "status code 0" in str(e):
-                        print(f"[flaky retry] all {max_attempts} "
-                              f"attempts exhausted")
+                        warnings.warn(
+                            f"[flaky retry] all {max_attempts} "
+                            f"attempts exhausted",
+                            RuntimeWarning,
+                            stacklevel=2)
                     raise
 
         return wrapper
