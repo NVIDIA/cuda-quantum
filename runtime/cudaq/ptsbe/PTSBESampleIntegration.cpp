@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 #include "PTSBESampleIntegration.h"
+#include "NoiseExtractor.h"
+#include "ShotAllocationStrategy.h"
+#include "strategies/ProbabilisticSamplingStrategy.h"
 
 namespace cudaq {
 // Forward declaration from cudaq.h
@@ -73,6 +76,32 @@ std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
     qubits.push_back(i);
   }
   return qubits;
+}
+
+PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
+                                       const noise_model &noiseModel,
+                                       const PTSBEOptions &options,
+                                       std::size_t shots) {
+  PTSBatch batch;
+  batch.measureQubits = extractMeasureQubits(kernelTrace);
+
+  // 1. Extract noise sites from the trace and noise model
+  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
+
+  // 2. Generate trajectories via the configured strategy (or default)
+  auto strategy = options.strategy
+                      ? options.strategy
+                      : std::make_shared<ProbabilisticSamplingStrategy>();
+  std::size_t maxTrajs = options.max_trajectories.value_or(shots);
+  batch.trajectories =
+      strategy->generateTrajectories(noiseResult.noise_sites, maxTrajs);
+
+  // 3. Allocate shots across trajectories
+  if (!batch.trajectories.empty() && shots > 0)
+    allocateShots(batch.trajectories, shots, options.shot_allocation);
+
+  batch.kernelTrace = std::move(kernelTrace);
+  return batch;
 }
 
 } // namespace cudaq::ptsbe

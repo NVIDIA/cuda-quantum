@@ -244,11 +244,15 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
 
   auto results = samplePTSBE(batch);
 
+  // Finalize and reset execution context before deallocating qubits.
+  // CircuitSimulatorBase::deallocateQubits is a no-op while an execution
+  // context is set, so we must clear it first to avoid leaking qubits.
+  sim->finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
+
   std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   sim->deallocateQubits(qubitIds);
-  sim->finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
 
   return results;
 }

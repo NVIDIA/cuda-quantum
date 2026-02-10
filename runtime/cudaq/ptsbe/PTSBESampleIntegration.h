@@ -23,10 +23,12 @@
 
 #pragma once
 
+#include "PTSBEOptions.h"
 #include "PTSBESampler.h"
 #include "ShotAllocationStrategy.h"
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
+#include "common/NoiseModel.h"
 #include "cudaq/platform.h"
 #include <optional>
 #include <stdexcept>
@@ -84,26 +86,49 @@ void validatePTSBEPreconditions(
 /// @return Vector of qubit indices [0, 1, ..., numQubits-1]
 std::vector<std::size_t> extractMeasureQubits(const Trace &trace);
 
+/// @brief Build complete PTSBatch with noise extraction and trajectory
+/// generation
+///
+/// Extracts noise sites from the kernel trace, generates trajectories via the
+/// configured strategy (or default probabilistic), and allocates shots.
+///
+/// @param kernelTrace Captured kernel trace (moved into the returned batch)
+/// @param noiseModel Noise model for extracting noise sites
+/// @param options PTSBE configuration options
+/// @param shots Total number of shots to allocate
+/// @return PTSBatch ready for execution
+PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
+                                       const noise_model &noiseModel,
+                                       const PTSBEOptions &options,
+                                       std::size_t shots);
+
 /// @brief Run PTSBE sampling (internal API matching runSampling pattern)
 ///
-/// Internal function called from cudaq::sample() when use_ptsbe=true.
-/// Matches the signature pattern of details::runSampling for consistency.
+/// Internal function called from cudaq::sample() when ptsbe_options is set.
+/// Captures the kernel trace, generates trajectories, executes them, and
+/// aggregates results.
+///
+/// The noise model must be set on the platform before calling this function
+/// (validated by validatePTSBEPreconditions).
 ///
 /// @tparam KernelFunctor Wrapped kernel functor type
 /// @param wrappedKernel Functor that invokes the quantum kernel
 /// @param platform Reference to the quantum platform
 /// @param kernelName Name of the kernel (for diagnostics and MCM detection)
 /// @param shots Number of shots for trajectory allocation
-/// @param shot_allocation Strategy for allocating shots across trajectories
+/// @param options PTSBE configuration options
 /// @return Aggregated sample_result from all trajectories
 /// @throws std::runtime_error if platform is not a simulator, noise model is
 ///         missing, or dynamic circuit detected
 template <typename KernelFunctor>
-sample_result
-runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
-                 const std::string &kernelName, std::size_t shots,
-                 const ShotAllocationStrategy &shot_allocation = {}) {
+sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
+                               quantum_platform &platform,
+                               const std::string &kernelName, std::size_t shots,
+                               const PTSBEOptions &options = PTSBEOptions{}) {
   validatePTSBEPreconditions(platform);
+
+  // Get noise model from platform (validated non-null by preconditions)
+  const auto &noiseModel = *platform.get_noise();
 
   // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext traceCtx("tracer");
@@ -112,20 +137,15 @@ runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
 
-  // Stage 2: Construct PTSBatch from trace
-  PTSBatch batch;
-  batch.kernelTrace = std::move(traceCtx.kernelTrace);
-  batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
+  // Stage 2: Build PTSBatch with trajectory generation and shot allocation
+  auto batch = buildPTSBatchWithTrajectories(std::move(traceCtx.kernelTrace),
+                                             noiseModel, options, shots);
 
-  // Stage 3: Allocate shots to trajectories when present
-  if (!batch.trajectories.empty() && shots > 0) {
-    allocateShots(batch.trajectories, shots, shot_allocation);
-  }
+  // Stage 3: Execute PTSBE with life-cycle management
+  auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
 
-  // Stage 4: Execute PTSBE with life-cycle management
-  auto results = samplePTSBEWithLifecycle(batch, "sample");
-
-  return aggregateResults(results);
+  // Stage 4: Aggregate per-trajectory results
+  return aggregateResults(perTrajectoryResults);
 }
 
 /// @brief Capture kernel trace and construct PTSBatch (for testing)
@@ -155,11 +175,11 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   return batch;
 }
 
-/// @brief Run PTSBE sampling asynchronously
+/// @brief Run PTSBE sampling with asynchronous dispatch
 ///
-/// Internal function called from cudaq::sample_async() when use_ptsbe=true.
-/// Creates a KernelExecutionTask that runs PTSBE and enqueues it for `async`
-/// execution.
+/// Internal function called from `cudaq::sample_async()` when ptsbe_options is
+/// set. Creates a KernelExecutionTask that runs PTSBE and enqueues it for
+/// asynchronous execution.
 ///
 /// PTSBE does not support remote execution - this function will reject
 /// remote platforms.
@@ -169,25 +189,24 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 /// @param platform Reference to the quantum platform
 /// @param kernelName Name of the kernel (for diagnostics and MCM detection)
 /// @param shots Number of shots for trajectory allocation
+/// @param options PTSBE configuration options
 /// @param qpu_id The QPU ID to execute on
-/// @param shot_allocation Strategy for allocating shots across trajectories
-/// @return async_result<sample_result> that resolves to the sampling result
+/// @return `async_result<sample_result>` that resolves to the sampling result
 /// @throws std::runtime_error if platform is remote (PTSBE is local-only)
 template <typename KernelFunctor>
 async_result<sample_result>
 runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, std::size_t shots,
-                      std::size_t qpu_id = 0,
-                      const ShotAllocationStrategy &shot_allocation = {}) {
+                      const PTSBEOptions &options = PTSBEOptions{},
+                      std::size_t qpu_id = 0) {
   // Validate upfront so exceptions are thrown in calling thread
   validatePTSBEPreconditions(platform, qpu_id);
 
-  // Create `async` task that runs PTSBE
+  // Create asynchronous task that runs PTSBE
   KernelExecutionTask task(
-      [shots, kernelName, &platform, shot_allocation,
+      [shots, kernelName, &platform, options,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        return runSamplingPTSBE(kernel, platform, kernelName, shots,
-                                shot_allocation);
+        return runSamplingPTSBE(kernel, platform, kernelName, shots, options);
       });
 
   return async_result<sample_result>(

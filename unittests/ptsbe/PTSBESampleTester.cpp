@@ -16,6 +16,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/algorithms/sample.h"
 #include "cudaq/ptsbe/NoiseExtractor.h"
+#include "cudaq/ptsbe/PTSBEOptions.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
@@ -181,15 +182,16 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
 
 // PTSBE is now fully implemented. With no trajectories generated (POC doesn't
 // have noise model integration yet), it returns an empty result.
-CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsEmptyWithNoTrajectories) {
+CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsResults) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
   auto &platform = cudaq::get_platform();
   platform.set_noise(&noise);
 
   auto result = sampleWithPTSBE(bellKernel, 1000);
-  // No trajectories = empty result
-  EXPECT_EQ(result.size(), 0);
+  // With noise, trajectories are generated and results are non-empty
+  EXPECT_GT(result.size(), 0);
+  EXPECT_EQ(result.get_total_shots(), 1000);
 
   platform.reset_noise();
 }
@@ -222,11 +224,11 @@ CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesTrace) {
 // CORE sample() INTEGRATION TESTS
 // ============================================================================
 
-// Test that cudaq::sample() with use_ptsbe=true requires a noise model
+// Test that cudaq::sample() with ptsbe_options set requires a noise model
 CUDAQ_TEST(PTSBESampleTest, CoreSampleWithUsePTSBERequiresNoiseModel) {
   cudaq::sample_options options;
   options.shots = 1000;
-  options.use_ptsbe = true;
+  options.ptsbe_options = PTSBEOptions{};
   // No noise model set
 
   // PTSBE requires noise model - should throw
@@ -237,11 +239,11 @@ CUDAQ_TEST(PTSBESampleTest, CoreSampleWithUsePTSBERequiresNoiseModel) {
   }
 }
 
-// Test that use_ptsbe=false uses normal sample path (no exception)
-CUDAQ_TEST(PTSBESampleTest, CoreSampleWithoutUsePTSBEUsesNormalPath) {
+// Test that without ptsbe_options, normal sample path is used (no exception)
+CUDAQ_TEST(PTSBESampleTest, CoreSampleWithoutPTSBEUsesNormalPath) {
   cudaq::sample_options options;
   options.shots = 100;
-  options.use_ptsbe = false;
+  // ptsbe_options defaults to nullopt - normal path
 
   // Normal path should succeed without throwing
   auto result = cudaq::sample(options, bellKernel);
@@ -255,10 +257,12 @@ CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
   auto &platform = cudaq::get_platform();
   platform.set_noise(&noise);
 
-  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  PTSBEOptions ptsbe_opts;
+  ptsbe_opts.shot_allocation =
+      ShotAllocationStrategy(ShotAllocationStrategy::Type::UNIFORM);
   auto result =
       runSamplingPTSBE([]() { bellKernel(); }, platform,
-                       cudaq::getKernelName(bellKernel), 50, strategy);
+                       cudaq::getKernelName(bellKernel), 50, ptsbe_opts);
 
   platform.reset_noise();
   (void)result;
@@ -270,10 +274,11 @@ CUDAQ_TEST(PTSBESampleTest, CoreSampleWithPTSBEAndShotAllocationOption) {
 
   cudaq::sample_options options;
   options.shots = 100;
-  options.use_ptsbe = true;
   options.noise = noise;
-  options.ptsbe_shot_allocation =
+  PTSBEOptions ptsbe_opts;
+  ptsbe_opts.shot_allocation =
       ShotAllocationStrategy(ShotAllocationStrategy::Type::UNIFORM);
+  options.ptsbe_options = ptsbe_opts;
 
   auto result = cudaq::sample(options, bellKernel);
   (void)result;
@@ -301,11 +306,11 @@ CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesParameterizedKernel) {
   EXPECT_EQ(batch.measureQubits.size(), 2);
 }
 
-// Test that sample_async() with use_ptsbe=true requires a noise model
+// Test that sample_async() with ptsbe_options set requires a noise model
 CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithUsePTSBERequiresNoiseModel) {
   cudaq::sample_options options;
   options.shots = 1000;
-  options.use_ptsbe = true;
+  options.ptsbe_options = PTSBEOptions{};
   // No noise model set
 
   try {
@@ -323,7 +328,7 @@ CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithPTSBEAndNoiseModel) {
 
   cudaq::sample_options options;
   options.shots = 100;
-  options.use_ptsbe = true;
+  options.ptsbe_options = PTSBEOptions{};
   options.noise = noise;
 
   // Should not throw - PTSBE path with valid noise model
@@ -333,11 +338,11 @@ CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithPTSBEAndNoiseModel) {
   EXPECT_EQ(result.size(), 0);
 }
 
-// Test that broadcast sample with use_ptsbe=true requires a noise model
+// Test that broadcast sample with ptsbe_options set requires a noise model
 CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithUsePTSBERequiresNoiseModel) {
   cudaq::sample_options options;
   options.shots = 100;
-  options.use_ptsbe = true;
+  options.ptsbe_options = PTSBEOptions{};
   // No noise model set
 
   auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
@@ -349,15 +354,14 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithUsePTSBERequiresNoiseModel) {
   }
 }
 
-// Test broadcast PTSBE with noise model (returns empty results since no
-// trajectories)
+// Test broadcast PTSBE with noise model produces results
 CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithPTSBEAndNoiseModel) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
 
   cudaq::sample_options options;
   options.shots = 100;
-  options.use_ptsbe = true;
+  options.ptsbe_options = PTSBEOptions{};
   options.noise = noise;
 
   auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
@@ -366,9 +370,9 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithPTSBEAndNoiseModel) {
   auto results = cudaq::sample(options, rotationKernel, std::move(params));
   // Returns one result per parameter set
   EXPECT_EQ(results.size(), 3);
-  // With no trajectories generated (POC), each result is empty
+  // Each result should have measurement data
   for (const auto &result : results) {
-    EXPECT_EQ(result.size(), 0);
+    EXPECT_GT(result.size(), 0);
   }
 }
 
@@ -379,7 +383,7 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastPTSBEResultCountMatchesParams) {
 
   cudaq::sample_options options;
   options.shots = 50;
-  options.use_ptsbe = true;
+  options.ptsbe_options = PTSBEOptions{};
   options.noise = noise;
 
   // Test with different parameter counts
