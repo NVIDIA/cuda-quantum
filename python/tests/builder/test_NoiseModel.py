@@ -1179,6 +1179,32 @@ def test_sample_async_noise_isolation(target: str):
     cudaq.reset_target()
 
 
+INVALID_PROBABILITY_MSG = (r"probability must be in the range|"
+                           r"not completely positive|trace preserving")
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_noise_validation_probability_check(target: str):
+    cudaq.set_target(target)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.DepolarizationChannel(-0.1)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.BitFlipChannel(1.5)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.Depolarization2(1.5)
+
+    depol_zero = cudaq.DepolarizationChannel(0.0)
+    depol_one = cudaq.DepolarizationChannel(1.0)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], depol_zero)
+    noise.add_channel("h", [0], depol_one)
+
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

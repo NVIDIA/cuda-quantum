@@ -11,7 +11,15 @@
 
 # Prefix all paths such that running this script manually for a local installation
 # ensures that the local installation takes precedence over a system-wide installation.
-export CUDA_QUANTUM_PATH=`dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")"`
+export CUDA_QUANTUM_PATH="$(dirname "$(realpath "${BASH_SOURCE[0]:-$0}")")"
+
+# Platform-independent paths
 export PATH="${CUDA_QUANTUM_PATH}/bin${PATH:+:$PATH}"
-export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include${CPLUS_INCLUDE_PATH:+:$CPLUS_INCLUDE_PATH}"
+
+# Platform-specific library path
+if [ "$(uname)" = "Darwin" ]; then
+    export DYLD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+else
+    export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi

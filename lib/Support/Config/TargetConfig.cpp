@@ -161,9 +161,9 @@ static std::string processSimBackendConfig(
   return output.str();
 }
 
-std::string
-cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
-                                  const std::vector<std::string> &targetArgv) {
+std::string cudaq::config::processRuntimeArgs(
+    const cudaq::config::TargetConfig &config,
+    const std::map<std::string, std::string> &args) {
   std::stringstream output;
   if (config.BackendConfig.has_value())
     output << processSimBackendConfig(config.Name,
@@ -171,8 +171,7 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
 
   unsigned featureFlag = 0;
   std::stringstream platformExtraArgs;
-  for (std::size_t idx = 0; idx < targetArgv.size();) {
-    const auto argsStr = targetArgv[idx];
+  for (const auto &[argKey, argVal] : args) {
     const auto iter = std::find_if(
         config.TargetArguments.begin(), config.TargetArguments.end(),
         [&](const cudaq::config::TargetArgument &argConfig) {
@@ -182,21 +181,19 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
               "--" + config.Name + "-" + argConfig.KeyName;
           const std::string targetPrefixArgKey =
               "--target-" + argConfig.KeyName;
-          return (nvqppArgKey == argsStr) || (targetPrefixArgKey == argsStr) ||
-                 (argsStr == argConfig.KeyName);
+          return llvm::is_contained<llvm::StringRef>(
+              {nvqppArgKey, targetPrefixArgKey, argConfig.KeyName}, argKey);
         });
     if (iter != config.TargetArguments.end()) {
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
         // If this is a platform option (platform argument key is provide),
         // forward the value to the platform extra arguments.
-        if (!iter->PlatformArgKey.empty() && idx + 1 < targetArgv.size())
-          platformExtraArgs << ";" << iter->PlatformArgKey << ";"
-                            << targetArgv[idx + 1];
-      } else if (idx + 1 < targetArgv.size()) {
+        if (!iter->PlatformArgKey.empty())
+          platformExtraArgs << ";" << iter->PlatformArgKey << ";" << argVal;
+      } else {
         // This is an option flag, construct the value for mapping selection.
-        const auto featureFlags = targetArgv[idx + 1];
         llvm::SmallVector<llvm::StringRef> flagStrs;
-        llvm::StringRef(featureFlags).split(flagStrs, ',', -1, false);
+        llvm::StringRef(argVal).split(flagStrs, ',', -1, false);
         for (const auto &flag : flagStrs) {
           const auto iter = stringToFeatureFlag.find(flag.str());
           if (iter == stringToFeatureFlag.end()) {
@@ -207,8 +204,6 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
         }
       }
     }
-    // We assume the arguments are given as '<key> <value>' pairs.
-    idx += 2;
   }
 
   if (!config.ConfigMap.empty()) {

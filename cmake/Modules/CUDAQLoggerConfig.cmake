@@ -6,14 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LLVM_LINK_COMPONENTS
-  Core
-  IRReader
-  Support
-)
+get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-add_llvm_executable(fixup-linkage fixup-linkage.cpp)
-
-llvm_update_compile_flags(fixup-linkage)
-
-install(TARGETS fixup-linkage DESTINATION bin)
+if(NOT TARGET cudaq::cudaq-logger)
+  include("${CUDAQ_CMAKE_DIR}/CUDAQLoggerTargets.cmake")
+endif()

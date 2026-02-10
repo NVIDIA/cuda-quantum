@@ -217,9 +217,10 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         auto appendVectorValue = []<typename T>(py::object value, void *data,
                                                 std::size_t offset, T) {
           auto asList = value.cast<py::list>();
-          std::vector<double> *values = new std::vector<double>(asList.size());
+          // Use the correct element type T (not always double).
+          auto *values = new std::vector<T>(asList.size());
           for (std::size_t i = 0; auto &v : asList)
-            (*values)[i++] = v.cast<double>();
+            (*values)[i++] = v.cast<T>();
 
           std::memcpy(((char *)data) + offset, values, 16);
         };
@@ -482,34 +483,51 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         .Case([&](cc::CallableType ty) {
           // arg must be a DecoratorCapture object.
           checkArgumentType<py::object>(arg, i);
-          py::object decorator = arg.attr("decorator");
-          auto kernelName = decorator.attr("uniqName").cast<std::string>();
-          auto kernelModule =
-              unwrap(decorator.attr("qkeModule").cast<MlirModule>());
-          auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
-              cudaq::runtime::cudaqGenPrefixName + kernelName);
-          py::list arguments = arg.attr("resolved");
-          auto startLiftedArgs = [&]() -> std::optional<unsigned> {
-            if (!arguments.empty())
-              return decorator.attr("firstLiftedPos").cast<unsigned>();
-            return std::nullopt;
-          }();
-          // build the recursive closure in a C++ object
-          auto *closure = [&]() {
+          if (py::hasattr(arg, "linkedKernel")) {
+            auto kernelName = arg.attr("linkedKernel").cast<std::string>();
+            // TODO: This is kinda yucky to have to remove because it's already
+            // present
+            kernelName.erase(0, strlen(cudaq::runtime::cudaqGenPrefixName));
+            auto kernelModule =
+                unwrap(arg.attr("qkeModule").cast<MlirModule>());
             OpaqueArguments resolvedArgs;
-            if (startLiftedArgs) {
-              auto fnTy = calledFuncOp.getFunctionType();
-              auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
-              packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
-                       calledFuncOp);
-            }
-            return new runtime::CallableClosureArgument(
-                kernelName, kernelModule, std::move(startLiftedArgs),
-                std::move(resolvedArgs));
-          }();
-          argData.emplace_back(closure, [](void *that) {
-            delete static_cast<runtime::CallableClosureArgument *>(that);
-          });
+            argData.emplace_back(
+                new runtime::CallableClosureArgument(kernelName, kernelModule,
+                                                     std::nullopt,
+                                                     std::move(resolvedArgs)),
+                [](void *that) {
+                  delete static_cast<runtime::CallableClosureArgument *>(that);
+                });
+          } else {
+            py::object decorator = arg.attr("decorator");
+            auto kernelName = decorator.attr("uniqName").cast<std::string>();
+            auto kernelModule =
+                unwrap(decorator.attr("qkeModule").cast<MlirModule>());
+            auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
+                cudaq::runtime::cudaqGenPrefixName + kernelName);
+            py::list arguments = arg.attr("resolved");
+            auto startLiftedArgs = [&]() -> std::optional<unsigned> {
+              if (!arguments.empty())
+                return decorator.attr("firstLiftedPos").cast<unsigned>();
+              return std::nullopt;
+            }();
+            // build the recursive closure in a C++ object
+            auto *closure = [&]() {
+              OpaqueArguments resolvedArgs;
+              if (startLiftedArgs) {
+                auto fnTy = calledFuncOp.getFunctionType();
+                auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
+                packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
+                         calledFuncOp);
+              }
+              return new runtime::CallableClosureArgument(
+                  kernelName, kernelModule, std::move(startLiftedArgs),
+                  std::move(resolvedArgs));
+            }();
+            argData.emplace_back(closure, [](void *that) {
+              delete static_cast<runtime::CallableClosureArgument *>(that);
+            });
+          }
         })
         .Default([&](Type ty) {
           // See if we have a backup type handler.
