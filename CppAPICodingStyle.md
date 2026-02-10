@@ -1,13 +1,19 @@
 # cudaq C++ API Code Development Guidelines
 
-**Scope:** This document defines conventions for C++ API boundaries, naming, and header organization for the **cudaq** project and the **nvq++** compiler toolchain.
+**Scope:** This document defines conventions for C++ API boundaries, naming, and
+header organization for the `cudaq` project and the `cudaq` compiler
+toolchain.
 
 ## 1. Goals
 
-1. Make it obvious which APIs are supported for **end users** versus **internal development**.
-2. Preserve long-term stability for the **User API** (backward compatibility + deprecation schedule).
-3. Allow **HW vendors** and **core developers** to access internal interfaces without accidentally turning them into user-facing commitments.
-4. Ensure **nvq++** can discover headers needed to compile user code (including internal headers that user headers must include).
+1. Make it obvious which APIs are supported for **end users** versus **internal
+development**.
+2. Preserve long-term stability for the **User API** (backward compatibility +
+ deprecation schedule).
+3. Allow **Hardware vendors** and **core developers** to access internal
+interfaces without accidentally turning them into user-facing commitments.
+4. Ensure `cudaq` can discover headers needed to compile user code (including
+ internal headers that user headers must include).
 
 ---
 
@@ -16,15 +22,16 @@
 ### 2.1 Users (e.g, Quantum algorithm developers)
 
 - Use only the **User API** shipped with the product.
-- Compile with **nvq++** and link to shipped runtime libraries.
+- Compile with `cudaq` and link to shipped runtime libraries.
 - Must not rely on internal headers/namespaces.
 
-### 2.2 Library developers (e.g., cudaqx)
+### 2.2 Library developers (e.g., `cudaqx`)
 
 - Same restrictions as users: build on top of the **User API** only.
-- May consume the API via `nvq++` or by importing public headers/libraries into their own CMake project.
+- May consume the API via ``nvq++`` or by importing public headers/libraries into
+their own CMake project.
 
-### 2.3 HW vendors and core developers
+### 2.3 Hardware vendors and core developers
 
 - May use:
   - **User API**
@@ -36,11 +43,47 @@
 
 ## 3. API Layers and Rules
 
-We define three API layers:
+We define a three API layers as illustrated below:
 
-1. **User API** (public, supported, stable)
-2. **Internal public module APIs** (not user-supported, but exported for internal development)
-3. **Internal private APIs** (module-only, not exported)
+1. **User API**
+2. **Internal public module APIs**
+3. **Internal private APIs**
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Level 1: User API                                                  │
+├────────────────────────────────────────────────────────────────────┤
+│ Audience:   Users, external libs (e.g., cudaqx)                    │
+│ Headers:    "cudaq.h", "cudaq/<subsystem>/<header>.h"              │
+│ Namespace:  cudaq::...                                             │
+│             cudaq::detail  = explicitly NON-public                 │
+│ Naming:     snake_case                                             │
+└────────────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ may include (transitively) when needed
+                          │
+┌────────────────────────────────────────────────────────────────────┐
+│ Level 2: Internal Public Module APIs                               |
+├────────────────────────────────────────────────────────────────────┤
+│ Audience:   Hardware vendors + core developers                     │
+│            (NOT for users / external libs to depend on)            │
+│ Headers:    "cudaq_internals/<module>/<hdr>.h"  (or cudaq_dev/...) │
+│ Namespace:  cudaq::<module>::...  (module lowercase)               │
+│             cudaq::<module>::detail = NON-public                   │
+│ Naming:     CamelCase (or consistent module convention)            │
+└────────────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ internal-only use
+                          │
+┌────────────────────────────────────────────────────────────────────┐
+│ Level 3: Internal Private APIs                                     │
+├────────────────────────────────────────────────────────────────────┤
+│ Audience:   Module implementers only                               │
+│ Headers:    module-local (e.g., <module>/src/, include-private/)   │
+│ Namespace:  typically in cudaq::<module>::detail (recommended)     │
+│ Naming:     unconstrained; keep consistent within module           │
+└────────────────────────────────────────────────────────────────────┘
+```
 
 Each layer has rules for:
 
@@ -54,7 +97,8 @@ Each layer has rules for:
 
 #### 3.1.1 Definition
 
-The **User API** is cudaq’s supported public interface. It is the only API that users and external libraries (e.g., cudaqx) are allowed to depend on.
+The **User API** is `cudaq` supported public interface. It is the only API that
+users and external libraries (e.g., `cudaqx`) are allowed to depend on.
 
 #### 3.1.2 Headers and includes
 
@@ -70,10 +114,9 @@ The **User API** is cudaq’s supported public interface. It is the only API tha
 
 - All user-visible declarations live in `namespace cudaq { ... }`.
 - Nested namespaces are considered public **except**:
-  - `cudaq::details`
-  - `cudaq::__internal__`
+  - `cudaq::detail`
 
-Anything in `details` or `__internal__` is *explicitly non-public* and may change without notice.
+Anything in `detail` is *explicitly non-public* and may change without notice.
 
 #### 3.1.4 Naming style
 
@@ -97,13 +140,16 @@ Anything in `details` or `__internal__` is *explicitly non-public* and may chang
 Internal public module APIs are:
 
 - **not supported for end users**, but
-- **public to internal developers** because they are exported as part of a module interface (e.g., via CMake `PUBLIC` headers/libraries).
+- **public to internal developers** because they are exported as part of a
+module interface (e.g., via CMake `PUBLIC` headers/libraries).
 
-These APIs often must be shipped because **user headers may include them**, and nvq++ must be able to find them.
+These APIs often must be shipped because **user headers may include them**, and
+`nvq++` must be able to find them.
 
 #### 3.2.2 Header location and include prefix (recommendation)
 
-Internal public headers must **not** live under the `cudaq/` include root to avoid confusion with the User API.
+Internal public headers must **not** live under the `cudaq/` include root to
+avoid confusion with the User API.
 
 **Proposed convention:**
 
@@ -119,29 +165,32 @@ Rationale:
 - stable and grep-friendly
 - avoids collision with user include hierarchy
 
-#### 3.2.3 Shipping and discoverability
+#### 3.2.3 Shipping and visibility
 
-- These headers **are shipped** with the product if they are reachable from shipped user headers or required by nvq++ compilation.
-- They **must be discoverable** by nvq++ through configured include paths.
+- These headers **are shipped** with the product if they are reachable from
+shipped user headers or required by `nvq++` compilation.
+- They **must be discoverable** by `nvq++` through configured include paths.
 
 #### 3.2.4 Namespaces
 
 - Declarations live under a module namespace nested in `cudaq`:
   - `namespace cudaq::<module_name> { ... }` where `<module_name>` is lowercase
     Examples: `cudaq::compiler`, `cudaq::cudaq_fmt`
-- Nested namespaces follow the same visibility convention:
-  - `details` / `__internal__` remain reserved for non-public internals even within modules.
+- Nested namespaces follow the same visibility convention: they are public
+except for the `detail` namespace.
 
 #### 3.2.5 Naming style
 
-- Preferred style for internal module APIs: **CamelCase**.
-- If a specific module already has a strong existing convention, follow it consistently; avoid introducing new naming styles within the same module.
+- Preferred style for internal module APIs: **`CamelCase`**.
+- If a specific module already has a strong existing convention, follow it
+consistently; avoid introducing new naming styles within the same module.
 
 #### 3.2.6 Compatibility expectations
 
 - Internal public module APIs are **not** user-stable.
-- They may evolve as needed, but changes should still be managed responsibly because:
-  - HW vendors and internal developers may depend on them,
+- They may evolve as needed, but changes should still be managed responsibly
+because:
+  - Hardware vendors and internal developers may depend on them,
   - user headers may indirectly rely on them.
 
 ---
@@ -150,12 +199,14 @@ Rationale:
 
 #### 3.3.1 Definition
 
-Internal private APIs are implementation details private to a module. They must not be consumed outside the module.
+Internal private APIs are implementation details private to a module. They must
+not be consumed outside the module.
 
-#### 3.3.2 Header location and discoverability
+#### 3.3.2 Header location and visibility
 
-- Private headers live in a physical location separate from public headers (e.g., a module `src/` or `include-private/` tree).
-- They should **not** be in nvq++ default/public include search paths.
+- Private headers live in a physical location separate from public headers
+(e.g., a module `<module>/src/` or `include-private/` tree).
+- They should **not** be in `nvq++` default/public include search paths.
 
 #### 3.3.3 Shipping
 
@@ -164,9 +215,10 @@ Internal private APIs are implementation details private to a module. They must 
 #### 3.3.4 Include rules
 
 - Private headers are included using **relative paths** from within the module.
-- Exception: template-heavy code sometimes requires headers to be included transitively.
-  - If a shipped header must include a private header, the included declarations must be placed in a clearly private namespace such as:
-    - `details` or `__internal__`
+- Exception: template-heavy code sometimes requires headers to be included
+transitively.
+  - If a shipped header must include a private header, the included declarations
+  must be placed the private `detail` namespace.
   - This remains non-public and subject to change.
 
 ---
@@ -182,7 +234,7 @@ Internal private APIs are implementation details private to a module. They must 
 #include "cudaq/algorithms/run.h"
 ```
 
-Internal developer code (allowed for HW vendors/core developers):
+Internal developer code (allowed for hardware vendors/core developers):
 
 ```cpp
 #include "cudaq_internals/compiler/lower.h"
@@ -199,7 +251,7 @@ or
 Module private include (module-only):
 
 ```cpp
-#include "internal/LoweringPasses.h"   // relative to module source/include-private layout
+#include "LoweringPasses.h"   // relative to module source
 ```
 
 ### 4.2 Namespace examples
@@ -211,7 +263,7 @@ User API:
 namespace cudaq {
   void sample_async();
 
-  namespace details {
+  namespace detail {
     // not public
   }
 }
@@ -223,14 +275,8 @@ Internal module API:
 namespace cudaq::compiler {
   class PassPipeline;
 
-  namespace details {
+  namespace detail {
     // not public
   }
 }
 ```
-
-## 5. Summary (rules of thumb)
-
-If it’s for users: it lives under cudaq/, is in cudaq::..., uses snake_case, and follows a deprecation/compat policy.
-If it’s internal-but-exported: it lives under cudaq_internals/ or cudaq_dev/ (TBD), is in cudaq::<module>::..., tends toward CamelCase, and is shipped only as needed.
-If it’s private: it is not in public include paths, not shipped, included relatively, and hidden behind details / **internal** when unavoidable.
