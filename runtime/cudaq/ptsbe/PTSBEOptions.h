@@ -20,7 +20,7 @@ class PTSSamplingStrategy;
 
 /// @brief Configuration options for PTSBE execution.
 ///
-/// Controls which sampling strategy to use and limits on trajectory generation.
+/// Controls which sampling strategy to use and trajectory limits.
 ///
 struct PTSBEOptions {
   /// Maximum number of unique trajectories to generate. When `nullopt`,

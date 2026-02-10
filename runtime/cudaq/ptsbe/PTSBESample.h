@@ -6,14 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file PTSBESampleIntegration.h
-/// @brief PTSBE sample integration for CORE cudaq::sample() flow
+/// @file PTSBESample.h
+/// @brief PTSBE sample API and execution internals
 ///
-/// Provides PTSBE (Pre-Trajectory Sampling with Batch Execution)
-/// integration for the CORE sample API.
+/// Provides the `cudaq::ptsbe` sample API:
+///   ptsbe::sample_options opts;
+///   opts.noise = noise_model;
+///   auto result = ptsbe::sample(opts, kernel, args...);
 ///
-/// Usage:
-///   auto result = cudaq::ptsbe::sampleWithPTSBE(kernel, shots, args...);
+/// `ptsbe::sample()` returns `ptsbe::sample_result` (subclass of
+/// `cudaq::sample_result`).
 ///
 /// Limitations:
 /// - PTSBE does not support mid-circuit measurements (MCM)
@@ -24,12 +26,16 @@
 #pragma once
 
 #include "PTSBEOptions.h"
+#include "PTSBESampleResult.h"
 #include "PTSBESampler.h"
 #include "ShotAllocationStrategy.h"
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
 #include "common/NoiseModel.h"
+#include "cudaq/algorithms/broadcast.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/QuantumExecutionQueue.h"
+#include <future>
 #include <optional>
 #include <stdexcept>
 
@@ -66,12 +72,6 @@ bool hasConditionalFeedback(const std::string &kernelName,
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx);
 
-/// @brief Check if context indicates mid-circuit measurements (legacy API)
-bool hasMidCircuitMeasurements(const ExecutionContext &ctx);
-
-/// @brief Throw if mid-circuit measurements detected (legacy API)
-void throwIfMidCircuitMeasurements(const ExecutionContext &ctx);
-
 /// @brief Validate platform preconditions for PTSBE execution
 void validatePTSBEPreconditions(
     quantum_platform &platform,
@@ -85,6 +85,29 @@ void validatePTSBEPreconditions(
 /// @param trace Captured kernel trace
 /// @return Vector of qubit indices [0, 1, ..., numQubits-1]
 std::vector<std::size_t> extractMeasureQubits(const Trace &trace);
+
+/// @brief Deallocate qubit IDs leaked by the tracer context on the simulator
+///
+/// In the MLIR/JIT path, qubit allocation
+/// (__quantum__rt__qubit_allocate_array in NVQIR.cpp) goes directly to the
+/// simulator's allocateQubits, which increments the simulator's
+/// QuditIdTracker::currentId. However, CircuitSimulator::deallocateQubits
+/// is a no-op when an execution context is set (including tracer), so the
+/// kernel's qubit deallocation never returns IDs to the simulator's tracker.
+///
+/// Without cleanup, each PTSBE tracer pass accumulates qubit IDs on the
+/// simulator (first call gets [0,1], next gets [2,3], etc.). This causes
+/// noise model key mismatches (noise defined for qubit [0] but the trace
+/// now has qubit [2]) and eventual memory exhaustion on density-matrix
+/// simulators.
+///
+/// This function collects all qubit IDs from the kernel trace and
+/// deallocates them from the simulator. Must be called AFTER
+/// with_execution_context returns (when the execution context is null and
+/// deallocateQubits will actually execute).
+///
+/// @param kernelTrace Captured kernel trace containing qubit IDs
+void cleanupTracerQubits(const Trace &kernelTrace);
 
 /// @brief Build complete PTSBatch with noise extraction and trajectory
 /// generation
@@ -104,7 +127,6 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
 
 /// @brief Run PTSBE sampling (internal API matching runSampling pattern)
 ///
-/// Internal function called from cudaq::sample() when ptsbe_options is set.
 /// Captures the kernel trace, generates trajectories, executes them, and
 /// aggregates results.
 ///
@@ -117,7 +139,7 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
 /// @param kernelName Name of the kernel (for diagnostics and MCM detection)
 /// @param shots Number of shots for trajectory allocation
 /// @param options PTSBE configuration options
-/// @return Aggregated sample_result from all trajectories
+/// @return ptsbe::sample_result with aggregated measurement counts
 /// @throws std::runtime_error if platform is not a simulator, noise model is
 ///         missing, or dynamic circuit detected
 template <typename KernelFunctor>
@@ -133,6 +155,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext traceCtx("tracer");
   platform.with_execution_context(traceCtx, [&]() { wrappedKernel(); });
+  cleanupTracerQubits(traceCtx.kernelTrace);
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
@@ -145,7 +168,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
 
   // Stage 4: Aggregate per-trajectory results
-  return aggregateResults(perTrajectoryResults);
+  return sample_result(aggregateResults(perTrajectoryResults));
 }
 
 /// @brief Capture kernel trace and construct PTSBatch (for testing)
@@ -166,8 +189,10 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = get_platform();
   platform.with_execution_context(
       traceCtx, [&]() { kernel(std::forward<Args>(args)...); });
+  cleanupTracerQubits(traceCtx.kernelTrace);
 
-  throwIfMidCircuitMeasurements(traceCtx);
+  auto kernelName = cudaq::getKernelName(kernel);
+  validatePTSBEKernel(kernelName, traceCtx);
 
   PTSBatch batch;
   batch.kernelTrace = std::move(traceCtx.kernelTrace);
@@ -175,14 +200,15 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   return batch;
 }
 
+/// @brief Return type for asynchronous PTSBE sampling
+using async_sample_result = std::future<sample_result>;
+
 /// @brief Run PTSBE sampling with asynchronous dispatch
 ///
-/// Internal function called from `cudaq::sample_async()` when ptsbe_options is
-/// set. Creates a KernelExecutionTask that runs PTSBE and enqueues it for
-/// asynchronous execution.
-///
-/// PTSBE does not support remote execution - this function will reject
-/// remote platforms.
+/// Uses the get_state_async pattern: enqueues a void QuantumTask on the
+/// platform's QPU execution queue with a self-managed promise/future pair.
+/// This preserves the full ptsbe::sample_result type without slicing
+/// through KernelExecutionTask.
 ///
 /// @tparam KernelFunctor Wrapped kernel functor type
 /// @param wrappedKernel Functor that invokes the quantum kernel
@@ -191,10 +217,10 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 /// @param shots Number of shots for trajectory allocation
 /// @param options PTSBE configuration options
 /// @param qpu_id The QPU ID to execute on
-/// @return `async_result<sample_result>` that resolves to the sampling result
+/// @return future resolving to ptsbe::sample_result
 /// @throws std::runtime_error if platform is remote (PTSBE is local-only)
 template <typename KernelFunctor>
-async_result<sample_result>
+async_sample_result
 runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, std::size_t shots,
                       const PTSBEOptions &options = PTSBEOptions{},
@@ -202,37 +228,136 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Validate upfront so exceptions are thrown in calling thread
   validatePTSBEPreconditions(platform, qpu_id);
 
-  // Create asynchronous task that runs PTSBE
-  KernelExecutionTask task(
-      [shots, kernelName, &platform, options,
+  std::promise<sample_result> promise;
+  auto future = promise.get_future();
+
+  QuantumTask task = detail::make_copyable_function(
+      [p = std::move(promise), shots, kernelName, &platform, options,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        return runSamplingPTSBE(kernel, platform, kernelName, shots, options);
+        p.set_value(
+            runSamplingPTSBE(kernel, platform, kernelName, shots, options));
       });
 
-  return async_result<sample_result>(
-      details::future(platform.enqueueAsyncTask(qpu_id, task)));
+  platform.enqueueAsyncTask(qpu_id, task);
+  return future;
 }
 
-/// @brief PTSBE sample implementation (convenience wrapper for testing)
+/// @brief Sample options for PTSBE execution
 ///
-/// Simplified interface for testing. Wraps the kernel and calls
-/// runSamplingPTSBE.
+/// @param shots Number of shots to run for the given kernel
+/// @param noise Noise model (required for PTSBE)
+/// @param ptsbe PTSBE-specific configuration (strategy, etc.)
+struct sample_options {
+  std::size_t shots = 1000;
+  cudaq::noise_model noise;
+  PTSBEOptions ptsbe;
+};
+
+/// @brief Sample the given quantum kernel with PTSBE using a noise model
 ///
-/// @tparam QuantumKernel Quantum kernel type (lambda or functor)
-/// @tparam Args Kernel argument types
-/// @param kernel Quantum kernel to sample
-/// @param shots Number of shots (passed to trajectory generation)
-/// @param args Kernel arguments
-/// @return Aggregated sample_result from all trajectories
-/// @throws std::runtime_error if dynamic circuit detected or not implemented
+/// @param noise The noise model (required for PTSBE)
+/// @param shots The number of shots to collect
+/// @param kernel The kernel expression, must contain final measurements
+/// @param args The variadic concrete arguments for evaluation of the kernel
+/// @return ptsbe::sample_result with measurement counts
 template <typename QuantumKernel, typename... Args>
-sample_result sampleWithPTSBE(QuantumKernel &&kernel, std::size_t shots,
-                              Args &&...args) {
-  auto &platform = get_platform();
+sample_result sample(const cudaq::noise_model &noise, std::size_t shots,
+                     QuantumKernel &&kernel, Args &&...args) {
+  auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  return runSamplingPTSBE(
+  platform.set_noise(&noise);
+
+  sample_result result =
+      runSamplingPTSBE([&]() mutable { kernel(std::forward<Args>(args)...); },
+                       platform, kernelName, shots);
+
+  platform.reset_noise();
+  return result;
+}
+
+/// @brief Sample the given quantum kernel with PTSBE using sample_options
+///
+/// @param options PTSBE sample options (shots, noise, PTSBE configuration)
+/// @param kernel The kernel expression, must contain final measurements
+/// @param args The variadic concrete arguments for evaluation of the kernel
+/// @return ptsbe::sample_result with measurement counts
+template <typename QuantumKernel, typename... Args>
+sample_result sample(const sample_options &options, QuantumKernel &&kernel,
+                     Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  platform.set_noise(&options.noise);
+
+  sample_result result =
+      runSamplingPTSBE([&]() mutable { kernel(std::forward<Args>(args)...); },
+                       platform, kernelName, options.shots, options.ptsbe);
+
+  platform.reset_noise();
+  return result;
+}
+
+/// @brief Asynchronously sample with PTSBE using a noise model
+///
+/// @param noise The noise model (required for PTSBE)
+/// @param shots The number of shots to collect
+/// @param kernel The kernel expression, must contain final measurements
+/// @param args The variadic concrete arguments for evaluation of the kernel
+/// @return future resolving to ptsbe::sample_result
+template <typename QuantumKernel, typename... Args>
+async_sample_result sample_async(const cudaq::noise_model &noise,
+                                 std::size_t shots, QuantumKernel &&kernel,
+                                 Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  platform.set_noise(&noise);
+
+  return runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, shots);
+}
+
+/// @brief Asynchronously sample with PTSBE using sample_options
+///
+/// @param options PTSBE sample options (shots, noise, PTSBE configuration)
+/// @param kernel The kernel expression, must contain final measurements
+/// @param args The variadic concrete arguments for evaluation of the kernel
+/// @return future resolving to ptsbe::sample_result
+template <typename QuantumKernel, typename... Args>
+async_sample_result sample_async(const sample_options &options,
+                                 QuantumKernel &&kernel, Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  platform.set_noise(&options.noise);
+
+  return runSamplingAsyncPTSBE(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, options.shots, options.ptsbe);
+}
+
+/// @brief Sample with PTSBE over a set of argument packs (broadcast)
+///
+/// For each element in the ArgumentSet, runs ptsbe::sample() and collects
+/// the results. PTSBE is simulator-only so no multi-QPU distribution is used.
+///
+/// @param options PTSBE sample options (shots, noise, PTSBE configuration)
+/// @param kernel The kernel expression, must contain final measurements
+/// @param params ArgumentSet with one vector per kernel parameter
+/// @return Vector of ptsbe::sample_result, one per argument set element
+template <typename QuantumKernel, typename... Args>
+std::vector<sample_result> sample(const sample_options &options,
+                                  QuantumKernel &&kernel,
+                                  ArgumentSet<Args...> &params) {
+  auto N = std::get<0>(params).size();
+  std::vector<sample_result> results;
+  results.reserve(N);
+
+  for (std::size_t i = 0; i < N; i++) {
+    auto result = std::apply(
+        [&](auto &...vecs) { return sample(options, kernel, vecs[i]...); },
+        params);
+    results.push_back(std::move(result));
+  }
+  return results;
 }
 
 } // namespace cudaq::ptsbe

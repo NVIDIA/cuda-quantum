@@ -29,7 +29,8 @@ add_library(${LIBRARY_NAME}
     qis/state.cpp
     utils/cudaq_utils.cpp
     distributed/mpi_plugin.cpp
-    ptsbe/PTSBESampleIntegration.cpp
+    ptsbe/PTSBESample.cpp
+    ptsbe/PTSBESampleResult.cpp
     ptsbe/PTSBESampler.cpp
     ptsbe/ShotAllocationStrategy.cpp
     ptsbe/TrajectoryDeduplication.cpp

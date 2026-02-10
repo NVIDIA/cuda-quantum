@@ -183,3 +183,73 @@ def test_ptsbe_sample_with_shot_allocation(density_matrix_target, depol_noise):
                                 shot_allocation=alloc)
     assert isinstance(result, cudaq.SampleResult)
     assert len(result) > 0
+
+
+def test_mcm_kernel_rejected(density_matrix_target, depol_noise):
+    """Kernels with mid-circuit measurements are rejected with a clear
+    message mentioning 'mid-circuit' or 'dynamic'."""
+
+    @cudaq.kernel
+    def mcm_kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        b = mz(q[0])
+        if b:
+            x(q[1])
+        mz(q)
+
+    with pytest.raises(RuntimeError, match="conditional feedback|measurement"):
+        cudaq.ptsbe.sample(mcm_kernel, noise_model=depol_noise)
+
+
+def test_missing_noise_model_message_contains_noise_model():
+    """Error for missing noise_model mentions the parameter name."""
+    with pytest.raises(RuntimeError, match="noise_model"):
+        cudaq.ptsbe.sample(bell)
+
+
+def test_ptsbe_sample_async(density_matrix_target):
+    """sample_async .get() returns valid bell-state counts.
+    With 1% depolarization on h, 00+11 should strongly dominate."""
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(0.01))
+    shots = 200
+    future = cudaq.ptsbe.sample_async(bell,
+                                      noise_model=noise,
+                                      shots_count=shots)
+    result = future.get()
+    assert isinstance(result, cudaq.SampleResult)
+    total = sum(result.count(bs) for bs in result)
+    assert total == shots
+    bell_counts = result.count("00") + result.count("11")
+    assert bell_counts > shots * 0.8
+
+
+@cudaq.kernel
+def rotation_kernel(angle: float):
+    q = cudaq.qvector(1)
+    ry(angle, q[0])
+    mz(q)
+
+
+def test_ptsbe_broadcast(density_matrix_target):
+    """Broadcast with ry(0) and ry(pi). With 1% depolarization on ry,
+    ry(0) should give mostly 0, ry(pi) should give mostly 1."""
+    import math
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.01))
+    shots = 200
+    angles = [0.0, math.pi]
+    results = cudaq.ptsbe.sample(rotation_kernel,
+                                 angles,
+                                 noise_model=noise,
+                                 shots_count=shots)
+    assert isinstance(results, list)
+    assert len(results) == 2
+    for r in results:
+        total = sum(r.count(bs) for bs in r)
+        assert total == shots
+    # ry(0)|0> = |0>: mostly "0"
+    assert results[0].count("0") > shots * 0.8
+    # ry(pi)|0> = |1>: mostly "1"
+    assert results[1].count("1") > shots * 0.8

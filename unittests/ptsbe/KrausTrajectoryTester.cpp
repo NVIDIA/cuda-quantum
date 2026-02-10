@@ -27,7 +27,7 @@ CUDAQ_TEST(KrausTrajectoryTest, DefaultConstruction) {
   EXPECT_TRUE(traj.kraus_selections.empty());
   EXPECT_EQ(traj.probability, 0.0);
   EXPECT_EQ(traj.num_shots, 0);
-  EXPECT_FALSE(traj.measurement_counts.has_value());
+  EXPECT_TRUE(traj.measurement_counts.empty());
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, ParameterizedConstruction) {
@@ -62,14 +62,12 @@ CUDAQ_TEST(KrausTrajectoryTest, Equality) {
 CUDAQ_TEST(KrausTrajectoryTest, WithResults) {
   KrausTrajectory traj(0, {}, 1.0, 100);
 
-  EXPECT_FALSE(traj.measurement_counts.has_value());
+  EXPECT_TRUE(traj.measurement_counts.empty());
 
-  traj.measurement_counts =
-      std::map<std::string, std::size_t>{{"00", 60}, {"11", 40}};
+  traj.measurement_counts = CountsDictionary{{"00", 60}, {"11", 40}};
 
-  EXPECT_TRUE(traj.measurement_counts.has_value());
-  EXPECT_EQ(traj.measurement_counts->size(), 2);
-  EXPECT_EQ(traj.measurement_counts->at("00"), 60);
+  EXPECT_EQ(traj.measurement_counts.size(), 2);
+  EXPECT_EQ(traj.measurement_counts.at("00"), 60);
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, EmptyTrajectory) {
@@ -183,7 +181,7 @@ CUDAQ_TEST(KrausTrajectoryTest, BuilderPattern) {
   EXPECT_NEAR(traj.probability, 0.123, PROBABILITY_EPSILON);
 
   EXPECT_EQ(traj.num_shots, 0);
-  EXPECT_FALSE(traj.measurement_counts.has_value());
+  EXPECT_TRUE(traj.measurement_counts.empty());
 
   EXPECT_THROW(
       {

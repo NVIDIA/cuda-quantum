@@ -9,10 +9,10 @@
 #pragma once
 
 #include "KrausSelection.h"
+#include "common/SampleResult.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <map>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -50,7 +50,7 @@ struct KrausTrajectory {
   std::size_t multiplicity = 1;
 
   /// @brief The measurement results for this specific trajectory
-  std::optional<std::map<std::string, std::size_t>> measurement_counts;
+  CountsDictionary measurement_counts;
 
   /// @brief Default constructor
   KrausTrajectory() = default;
