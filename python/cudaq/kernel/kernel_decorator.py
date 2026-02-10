@@ -153,7 +153,6 @@ class PyKernelDecorator(object):
             self._parse_signature_from_python()
             self.pre_compile()
 
-
     def __del__(self):
         # explicitly call `del` on the MLIR `ModuleOp` wrappers.
         if self.qkeModule:
