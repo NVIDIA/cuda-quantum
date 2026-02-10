@@ -21,7 +21,7 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir
 from .captured_data import CapturedDataStorage
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
                     recover_value_of, recover_calling_module)
@@ -150,14 +150,9 @@ class PyKernelDecorator(object):
                 self._add_global_scoped_var(name, var)
 
             self._parse_ast()
-
             self._parse_signature_from_python()
-
-            # Store the AST for this kernel, it is needed for building up call
-            # graphs. We also must retain the source code location for error
-            # diagnostics
-            globalAstRegistry[self.name] = (self.astModule, self.location)
             self.pre_compile()
+
 
     def __del__(self):
         # explicitly call `del` on the MLIR `ModuleOp` wrappers.
