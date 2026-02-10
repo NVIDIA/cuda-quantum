@@ -47,8 +47,6 @@
 namespace py = pybind11;
 using namespace mlir;
 
-static std::unique_ptr<cudaq::JITExecutionCache> jitCache;
-
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
 };
@@ -977,14 +975,15 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   void *funcPtr = cudaq::streamlinedSpecializeModule(name, clone, rawArgs,
                                                      resTy, cachedEngine);
   clone.erase();
-  assert(cachedEngine && *cachedEngine &&
-         "Expected the cached engine pointer to be set by "
-         "streamlinedSpecializeModule.");
-  // Use address as the hash key to cache the JITted engine, and store the
-  // engine pointer in the cache
-  getJITCache().cache(reinterpret_cast<std::size_t>(cachedEngine),
-                      cachedEnginePtrStorage);
-  return std::make_pair(funcPtr, reinterpret_cast<std::size_t>(cachedEngine));
+  // `streamlinedSpecializeModule` should always set the cached engine pointer
+  if (cachedEnginePtrStorage == nullptr)
+    throw std::runtime_error("Failed to retrieve the JIT engine pointer when "
+                             "specializing the module.");
+  // Use address of the allocated `ExecutionEngine` as the hash key to cache the
+  // JITted engine, and store the engine pointer in the cache
+  const size_t cacheKey = reinterpret_cast<std::size_t>(cachedEnginePtrStorage);
+  getJITCache().cache(cacheKey, cachedEnginePtrStorage);
+  return std::make_pair(funcPtr, cacheKey);
 }
 
 // Clean up the cached JIT engine corresponding to the given cache key.
@@ -1178,7 +1177,6 @@ static std::size_t get_launch_args_required(MlirModule module,
 
 void cudaq::bindAltLaunchKernel(py::module &mod,
                                 std::function<std::string()> &&getTL) {
-  jitCache = std::make_unique<JITExecutionCache>();
   getTransportLayer = std::move(getTL);
 
   mod.def("lower_to_codegen", lower_to_codegen,
