@@ -403,11 +403,14 @@ CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
     : isDensityMatrix(other.isDensityMatrix), dimension(other.dimension),
       devicePtr(other.devicePtr), cudmState(other.cudmState),
       cudmHandle(other.cudmHandle), hilbertSpaceDims(other.hilbertSpaceDims),
-      batchSize(other.batchSize), borrowedData(other.borrowedData) {
+      batchSize(other.batchSize),
+      singleStateDimension(other.singleStateDimension),
+      borrowedData(other.borrowedData) {
   other.isDensityMatrix = false;
   other.dimension = 0;
   other.devicePtr = nullptr;
   other.batchSize = 1;
+  other.singleStateDimension = 0;
   other.cudmState = nullptr;
   other.cudmHandle = nullptr;
   other.hilbertSpaceDims.clear();
@@ -433,14 +436,15 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     cudmHandle = other.cudmHandle;
     hilbertSpaceDims = std::move(other.hilbertSpaceDims);
     batchSize = other.batchSize;
+    singleStateDimension = other.singleStateDimension;
     borrowedData = other.borrowedData;
     // Nullify other
     other.isDensityMatrix = false;
     other.dimension = 0;
     other.devicePtr = nullptr;
-
     other.cudmState = nullptr;
     other.batchSize = 1;
+    other.singleStateDimension = 0;
     other.borrowedData = false;
   }
   return *this;
