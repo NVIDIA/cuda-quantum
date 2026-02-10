@@ -24,6 +24,16 @@ bool JITExecutionCache::hasJITEngine(std::size_t hashkey) {
   return cacheMap.count(hashkey);
 }
 
+void JITExecutionCache::deleteJITEngine(std::size_t hash) {
+  std::scoped_lock<std::mutex> lock(mutex);
+  auto it = cacheMap.find(hash);
+  if (it != cacheMap.end()) {
+    delete it->second.execEngine;
+    lruList.erase(it->second.lruListIt);
+    cacheMap.erase(it);
+  }
+}
+
 void JITExecutionCache::cache(std::size_t hash, ExecutionEngine *jit) {
   std::scoped_lock<std::mutex> lock(mutex);
 

@@ -59,6 +59,17 @@ struct PyStateVectorData {
   cudaq::simulation_precision precision = cudaq::simulation_precision::fp32;
   std::string kernelName;
 };
+
+cudaq::JITExecutionCache &getJITCache() {
+  // Runtime JIT cache for storage of JIT execution engines for Python-launched
+  // kernels. This is needed mainly for interop with C++, whereby we want to
+  // JIT-compile the Python kernel and then call it from C++.
+  static std::unique_ptr<cudaq::JITExecutionCache> jitCache;
+  if (!jitCache)
+    jitCache = std::make_unique<cudaq::JITExecutionCache>();
+  return *jitCache;
+}
+
 } // namespace
 using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 
@@ -940,15 +951,19 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// NB: `cachedEngine` is actually of type `mlir::ExecutionEngine**`.
-static void *marshal_and_retain_module(const std::string &name,
-                                       MlirModule module, MlirType returnType,
-                                       void *cachedEngine,
-                                       py::args runtimeArgs) {
+// Return the pointer to the JITted LLVM code for the entry point function, and
+// a cache key for the JIT engine that was used to JIT the module. The engine is
+// cached and cleaned up automatically. The caller can use the cache key to
+// manually clean up the engine as well by calling
+// `delete_cache_execution_engine` with the cache key.
+static std::pair<void *, std::size_t>
+marshal_and_retain_module(const std::string &name, MlirModule module,
+                          MlirType returnType, py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
-  if (!cachedEngine)
-    throw std::runtime_error(
-        "Must have a storage location to retain the ExecutionEngine provided");
+  mlir::ExecutionEngine *cachedEnginePtrStorage = nullptr;
+  // NB: `cachedEngine` is actually of type `mlir::ExecutionEngine**`.
+  mlir::ExecutionEngine **cachedEngine = &cachedEnginePtrStorage;
+
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = unwrap(returnType);
@@ -962,7 +977,20 @@ static void *marshal_and_retain_module(const std::string &name,
   void *funcPtr = cudaq::streamlinedSpecializeModule(name, clone, rawArgs,
                                                      resTy, cachedEngine);
   clone.erase();
-  return funcPtr;
+  assert(cachedEngine && *cachedEngine &&
+         "Expected the cached engine pointer to be set by "
+         "streamlinedSpecializeModule.");
+  // Use address as the hash key to cache the JITted engine, and store the
+  // engine pointer in the cache
+  getJITCache().cache(
+      reinterpret_cast<std::size_t>(cachedEngine),
+      reinterpret_cast<mlir::ExecutionEngine *>(cachedEnginePtrStorage));
+  return std::make_pair(funcPtr, reinterpret_cast<std::size_t>(cachedEngine));
+}
+
+// Clean up the cached JIT engine corresponding to the given cache key.
+static void delete_cache_execution_engine(std::size_t cacheKey) {
+  getJITCache().deleteJITEngine(cacheKey);
 }
 
 static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
@@ -1168,7 +1196,8 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
           "The kernel is NOT executed, but rather cached to a location managed "
           "by the calling code. This allows the calling code to invoke the "
           "entry point with a regular C++ call.");
-
+  mod.def("delete_cache_execution_engine", delete_cache_execution_engine,
+          "Delete a cached JIT execution engine with the given cache key.");
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "
           "payload.");

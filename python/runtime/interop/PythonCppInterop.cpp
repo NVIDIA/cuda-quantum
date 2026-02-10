@@ -9,13 +9,10 @@
 #include "PythonCppInterop.h"
 #include "cudaq.h" // unfortunately, cudaq::get_quake is here at top level
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
 
 cudaq::python::CppPyKernelDecorator::~CppPyKernelDecorator() {
-  if (execution_engine) {
-    auto *ee = reinterpret_cast<mlir::ExecutionEngine *>(execution_engine);
-    delete ee;
-    execution_engine = nullptr;
+  if (cachedEngineKey.has_value()) {
+    kernel.attr("delete_cache_execution_engine")(cachedEngineKey.value());
   }
 }
 
