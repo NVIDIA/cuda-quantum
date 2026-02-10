@@ -23,16 +23,16 @@ class PTSSamplingStrategy;
 /// Controls which sampling strategy to use and limits on trajectory generation.
 ///
 struct PTSBEOptions {
+  /// Maximum number of unique trajectories to generate. When `nullopt`,
+  /// defaults to the number of shots.
+  std::optional<std::size_t> max_trajectories = std::nullopt;
+
   /// Custom sampling strategy. If `nullptr`, uses default strategy.
   std::shared_ptr<PTSSamplingStrategy> strategy = nullptr;
 
   /// Strategy for allocating shots across trajectories.
   /// Defaults to PROPORTIONAL.
   ShotAllocationStrategy shot_allocation{};
-
-  /// Maximum number of unique trajectories to generate. When `nullopt`,
-  /// defaults to the number of shots.
-  std::optional<std::size_t> max_trajectories = std::nullopt;
 };
 
 } // namespace cudaq::ptsbe

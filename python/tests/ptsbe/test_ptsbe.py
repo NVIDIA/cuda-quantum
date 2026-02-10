@@ -28,7 +28,7 @@ def density_matrix_target():
 @pytest.fixture
 def depol_noise():
     noise = cudaq.NoiseModel()
-    noise.add_channel("x", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(0.1))
     return noise
 
 
@@ -41,58 +41,65 @@ def bell():
 
 
 def test_ptsbe_sample_returns_sample_result(density_matrix_target, depol_noise):
-    # TODO: Verify non-empty results once trajectory generation is wired up
-    # in buildPTSBatchWithTrajectories.
-    result = cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=100)
-    assert isinstance(result, cudaq.SampleResult)
-
-
-def test_ptsbe_sample_custom_shots(density_matrix_target, depol_noise):
-    # TODO: Verify shot count once trajectory generation and shot allocation
-    # are wired up in buildPTSBatchWithTrajectories.
-    result = cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=50)
-    assert isinstance(result, cudaq.SampleResult)
-
-
-def test_ptsbe_sample_probabilistic_strategy(density_matrix_target,
-                                             depol_noise):
-    # TODO: Verify strategy is used once trajectory generation is wired up.
-    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=123)
-    result = cudaq.ptsbe.sample(bell,
-                                noise_model=depol_noise,
-                                shots_count=100,
-                                sampling_strategy=strategy)
-    assert isinstance(result, cudaq.SampleResult)
-
-
-def test_ptsbe_sample_ordered_strategy(density_matrix_target, depol_noise):
-    # TODO: Verify strategy is used once trajectory generation is wired up.
-    strategy = cudaq.ptsbe.OrderedSamplingStrategy()
-    result = cudaq.ptsbe.sample(bell,
-                                noise_model=depol_noise,
-                                shots_count=100,
-                                sampling_strategy=strategy)
-    assert isinstance(result, cudaq.SampleResult)
-
-
-def test_ptsbe_sample_exhaustive_strategy(density_matrix_target, depol_noise):
-    # TODO: Verify strategy is used once trajectory generation is wired up.
     strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
     result = cudaq.ptsbe.sample(bell,
                                 noise_model=depol_noise,
                                 shots_count=100,
                                 sampling_strategy=strategy)
     assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0
 
 
-def test_ptsbe_sample_max_trajectories(density_matrix_target, depol_noise):
-    # TODO: Verify max_trajectories caps output once trajectory generation
-    # is wired up.
+def test_ptsbe_sample_custom_shots(density_matrix_target, depol_noise):
+    strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=depol_noise,
+                                shots_count=50,
+                                sampling_strategy=strategy)
+    assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0
+
+
+def test_ptsbe_sample_probabilistic_strategy(density_matrix_target,
+                                             depol_noise):
+    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=123)
     result = cudaq.ptsbe.sample(bell,
                                 noise_model=depol_noise,
                                 shots_count=100,
-                                max_trajectories=50)
+                                sampling_strategy=strategy)
     assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0
+
+
+def test_ptsbe_sample_ordered_strategy(density_matrix_target, depol_noise):
+    strategy = cudaq.ptsbe.OrderedSamplingStrategy()
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=depol_noise,
+                                shots_count=100,
+                                sampling_strategy=strategy)
+    assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0
+
+
+def test_ptsbe_sample_exhaustive_strategy(density_matrix_target, depol_noise):
+    strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=depol_noise,
+                                shots_count=100,
+                                sampling_strategy=strategy)
+    assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0
+
+
+def test_ptsbe_sample_max_trajectories(density_matrix_target, depol_noise):
+    strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=depol_noise,
+                                shots_count=100,
+                                max_trajectories=50,
+                                sampling_strategy=strategy)
+    assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0
 
 
 def test_ptsbe_sample_raises_without_noise_model():
@@ -139,3 +146,40 @@ def test_probabilistic_strategy_accepts_seed():
     s1 = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=0)
     s2 = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=42)
     assert s1.name() == s2.name()
+
+
+def test_shot_allocation_strategy_default():
+    s = cudaq.ptsbe.ShotAllocationStrategy()
+    assert s.type == cudaq.ptsbe.ShotAllocationType.PROPORTIONAL
+    assert s.bias_strength == 2.0
+
+
+def test_shot_allocation_strategy_types():
+    for t in [
+            cudaq.ptsbe.ShotAllocationType.PROPORTIONAL,
+            cudaq.ptsbe.ShotAllocationType.UNIFORM,
+            cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS,
+            cudaq.ptsbe.ShotAllocationType.HIGH_WEIGHT_BIAS
+    ]:
+        s = cudaq.ptsbe.ShotAllocationStrategy(type=t)
+        assert s.type == t
+
+
+def test_shot_allocation_strategy_custom_bias():
+    s = cudaq.ptsbe.ShotAllocationStrategy(
+        type=cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS, bias_strength=5.0)
+    assert s.type == cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS
+    assert s.bias_strength == 5.0
+
+
+def test_ptsbe_sample_with_shot_allocation(density_matrix_target, depol_noise):
+    strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
+    alloc = cudaq.ptsbe.ShotAllocationStrategy(
+        type=cudaq.ptsbe.ShotAllocationType.UNIFORM)
+    result = cudaq.ptsbe.sample(bell,
+                                noise_model=depol_noise,
+                                shots_count=100,
+                                sampling_strategy=strategy,
+                                shot_allocation=alloc)
+    assert isinstance(result, cudaq.SampleResult)
+    assert len(result) > 0

@@ -182,15 +182,16 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
 
 // PTSBE is now fully implemented. With no trajectories generated (POC doesn't
 // have noise model integration yet), it returns an empty result.
-CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsEmptyWithNoTrajectories) {
+CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsResults) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
   auto &platform = cudaq::get_platform();
   platform.set_noise(&noise);
 
   auto result = sampleWithPTSBE(bellKernel, 1000);
-  // No trajectories = empty result
-  EXPECT_EQ(result.size(), 0);
+  // With noise, trajectories are generated and results are non-empty
+  EXPECT_GT(result.size(), 0);
+  EXPECT_EQ(result.get_total_shots(), 1000);
 
   platform.reset_noise();
 }
@@ -353,8 +354,7 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithUsePTSBERequiresNoiseModel) {
   }
 }
 
-// Test broadcast PTSBE with noise model (returns empty results since no
-// trajectories)
+// Test broadcast PTSBE with noise model produces results
 CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithPTSBEAndNoiseModel) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
@@ -370,9 +370,9 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithPTSBEAndNoiseModel) {
   auto results = cudaq::sample(options, rotationKernel, std::move(params));
   // Returns one result per parameter set
   EXPECT_EQ(results.size(), 3);
-  // With no trajectories generated (POC), each result is empty
+  // Each result should have measurement data
   for (const auto &result : results) {
-    EXPECT_EQ(result.size(), 0);
+    EXPECT_GT(result.size(), 0);
   }
 }
 

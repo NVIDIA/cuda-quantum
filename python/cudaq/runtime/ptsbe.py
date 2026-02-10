@@ -17,7 +17,8 @@ def sample(kernel,
            shots_count=1000,
            noise_model=None,
            max_trajectories=None,
-           sampling_strategy=None):
+           sampling_strategy=None,
+           shot_allocation=None):
     """
     Sample using Pre-Trajectory Sampling with Batch Execution (`PTSBE`).
 
@@ -36,6 +37,9 @@ def sample(kernel,
       sampling_strategy (``PTSSamplingStrategy`` or ``None``): Strategy for
           trajectory generation. ``None`` uses the default probabilistic
           sampling strategy.
+      shot_allocation (``ShotAllocationStrategy`` or ``None``): Strategy for
+          allocating shots across trajectories. ``None`` uses the default
+          proportional allocation.
 
     Returns:
       ``SampleResult``: Measurement results.
@@ -79,4 +83,4 @@ def sample(kernel,
     return cudaq_runtime.ptsbe.sample_impl(decorator.uniqName, specMod, retTy,
                                            shots_count, noise_model,
                                            max_trajectories, sampling_strategy,
-                                           *processedArgs)
+                                           shot_allocation, *processedArgs)

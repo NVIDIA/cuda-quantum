@@ -11,6 +11,7 @@
 #include "cudaq/ptsbe/PTSBEOptions.h"
 #include "cudaq/ptsbe/PTSBESampleIntegration.h"
 #include "cudaq/ptsbe/PTSSamplingStrategy.h"
+#include "cudaq/ptsbe/ShotAllocationStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
@@ -29,13 +30,11 @@ using namespace cudaq;
 ///
 /// All PTSBE configuration is handled by the Python wrapper
 /// (cudaq.ptsbe.sample) and passed here as positional parameters.
-static sample_result pySamplePTSBE(const std::string &shortName,
-                                   MlirModule module, MlirType returnTy,
-                                   std::size_t shots_count,
-                                   noise_model noiseModel,
-                                   std::optional<std::size_t> max_trajectories,
-                                   py::object sampling_strategy,
-                                   py::args runtimeArgs) {
+static sample_result pySamplePTSBE(
+    const std::string &shortName, MlirModule module, MlirType returnTy,
+    std::size_t shots_count, noise_model noiseModel,
+    std::optional<std::size_t> max_trajectories, py::object sampling_strategy,
+    py::object shot_allocation_obj, py::args runtimeArgs) {
   if (shots_count == 0)
     return sample_result();
 
@@ -45,6 +44,10 @@ static sample_result pySamplePTSBE(const std::string &shortName,
   if (!sampling_strategy.is_none())
     ptsbe_options.strategy =
         sampling_strategy.cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>();
+
+  if (!shot_allocation_obj.is_none())
+    ptsbe_options.shot_allocation =
+        shot_allocation_obj.cast<ptsbe::ShotAllocationStrategy>();
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
@@ -85,6 +88,34 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
       .def("name", &ptsbe::PTSSamplingStrategy::name,
            "Get the name of this strategy.");
 
+  // Shot allocation strategy
+  py::enum_<ptsbe::ShotAllocationStrategy::Type>(
+      ptsbe, "ShotAllocationType",
+      "Strategy type for allocating shots across trajectories.")
+      .value("PROPORTIONAL", ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL,
+             "Shots proportional to trajectory probability.")
+      .value("UNIFORM", ptsbe::ShotAllocationStrategy::Type::UNIFORM,
+             "Equal shots per trajectory.")
+      .value("LOW_WEIGHT_BIAS",
+             ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
+             "Bias toward low-weight error trajectories.")
+      .value("HIGH_WEIGHT_BIAS",
+             ptsbe::ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS,
+             "Bias toward high-weight error trajectories.");
+
+  py::class_<ptsbe::ShotAllocationStrategy>(
+      ptsbe, "ShotAllocationStrategy",
+      "Strategy for allocating shots across selected trajectories.")
+      .def(py::init<>(), "Create a default (PROPORTIONAL) strategy.")
+      .def(py::init<ptsbe::ShotAllocationStrategy::Type, double>(),
+           py::arg("type"), py::arg("bias_strength") = 2.0,
+           "Create a strategy with specified type and optional bias strength.")
+      .def_readwrite("type", &ptsbe::ShotAllocationStrategy::type,
+                     "The allocation strategy type.")
+      .def_readwrite("bias_strength",
+                     &ptsbe::ShotAllocationStrategy::bias_strength,
+                     "Bias factor for weighted strategies (default: 2.0).");
+
   // Concrete strategies
   py::class_<ptsbe::ProbabilisticSamplingStrategy, ptsbe::PTSSamplingStrategy,
              std::shared_ptr<ptsbe::ProbabilisticSamplingStrategy>>(
@@ -118,6 +149,7 @@ Args:
   noise_model: The noise model (required for PTSBE).
   max_trajectories: Maximum unique trajectories, or None to use shots.
   sampling_strategy: Sampling strategy or None for default (probabilistic).
+  shot_allocation: Shot allocation strategy or None for default (proportional).
   *arguments: The kernel arguments.
 
 Returns:
