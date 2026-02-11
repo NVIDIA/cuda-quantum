@@ -17,6 +17,7 @@ target_link_libraries(cudaq-opt
   MLIROptLib
   MLIRIR
   MLIRFuncDialect
+  MLIRFuncInlinerExtension
   MLIRArithDialect
 
   CCDialect

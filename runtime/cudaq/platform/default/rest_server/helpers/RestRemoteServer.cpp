@@ -430,7 +430,7 @@ protected:
     ExecutionEngineOptions opts;
     opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
     opts.enableObjectDump = true;
-    opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
+    opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
     SmallVector<StringRef, 4> sharedLibs;
     for (auto &lib : extraLibPaths) {
       CUDAQ_INFO("Extra library loaded: {}", lib);
@@ -491,13 +491,19 @@ protected:
     opts.llvmModuleBuilder =
         [](Operation *module,
            llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-      llvmContext.setOpaquePointers(false);
       auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
       if (!llvmModule) {
         llvm::errs() << "Failed to emit LLVM IR\n";
         return nullptr;
       }
-      ExecutionEngine::setupTargetTriple(llvmModule.get());
+      auto tmBuilderOrError =
+          llvm::orc::JITTargetMachineBuilder::detectHost();
+      if (tmBuilderOrError) {
+        auto tmOrError = tmBuilderOrError->createTargetMachine();
+        if (tmOrError)
+          ExecutionEngine::setupTargetTripleAndDataLayout(
+              llvmModule.get(), tmOrError.get().get());
+      }
       return llvmModule;
     };
 

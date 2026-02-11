@@ -31,6 +31,9 @@
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
+#include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -107,6 +110,10 @@ int main(int argc, char **argv) {
   DialectRegistry registry;
   registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
   cudaq::registerAllDialects(registry);
+  mlir::func::registerInlinerExtension(registry);
+  mlir::LLVM::registerInlinerInterface(registry);
+  registerBuiltinDialectTranslation(registry);
+  registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
   context.loadAllAvailableDialects();
 
@@ -141,7 +148,8 @@ int main(int argc, char **argv) {
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
-  applyPassManagerCLOptions(pm);
+  if (failed(applyPassManagerCLOptions(pm)))
+    return 1;
 
   std::error_code ec;
   llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
@@ -168,7 +176,7 @@ int main(int argc, char **argv) {
   StringRef convertValue = convertTo.getValue();
   auto convertPair = convertValue.split(':');
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
-      .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
+      .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
@@ -212,7 +220,6 @@ int main(int argc, char **argv) {
 
   // Convert the module to LLVM IR in a new LLVM IR context.
   llvm::LLVMContext llvmContext;
-  llvmContext.setOpaquePointers(false);
   auto llvmModule = translateModuleToLLVMIR(module.get(), llvmContext);
   if (!llvmModule)
     cudaq::emitFatalError(module->getLoc(), "Failed to emit LLVM IR");
@@ -220,7 +227,22 @@ int main(int argc, char **argv) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
-  ExecutionEngine::setupTargetTriple(llvmModule.get());
+
+  // Create target machine and configure the LLVM Module
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!tmBuilderOrError) {
+    llvm::errs() << "Could not create JITTargetMachineBuilder\n";
+    std::exit(1);
+  }
+
+  auto tmOrError = tmBuilderOrError->createTargetMachine();
+  if (!tmOrError) {
+    llvm::errs() << "Could not create TargetMachine\n";
+    std::exit(1);
+  }
+
+  ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                  tmOrError.get().get());
 
   // Optionally run an optimization pipeline over the llvm module.
   auto optPipeline =

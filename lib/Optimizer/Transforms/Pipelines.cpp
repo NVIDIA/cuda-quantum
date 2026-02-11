@@ -116,8 +116,8 @@ void cudaq::opt::addDecompositionPass(OpPassManager &pm,
   // NB: Both of these ListOption *must* be set here or they may contain garbage
   // and the compiler may crash.
   cudaq::opt::DecompositionPassOptions opts;
-  opts.disabledPatterns = disabledPats;
-  opts.enabledPatterns = enabledPats;
+  opts.disabledPatterns.assign(disabledPats.begin(), disabledPats.end());
+  opts.enabledPatterns.assign(enabledPats.begin(), enabledPats.end());
   pm.addPass(cudaq::opt::createDecompositionPass(opts));
 }
 

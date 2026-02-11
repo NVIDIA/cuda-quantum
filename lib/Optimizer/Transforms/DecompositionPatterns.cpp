@@ -55,20 +55,20 @@ inline Value createConstant(Location loc, double value, Type type,
 
 inline Value createConstant(Location loc, std::size_t value,
                             PatternRewriter &rewriter) {
-  return rewriter.create<arith::ConstantIntOp>(loc, value, 64);
+  return arith::ConstantIntOp::create(rewriter, loc, value, 64);
 }
 
 inline Value createDivF(Location loc, Value numerator, double denominator,
                         PatternRewriter &rewriter) {
   auto denominatorValue =
       createConstant(loc, denominator, numerator.getType(), rewriter);
-  return rewriter.create<arith::DivFOp>(loc, numerator, denominatorValue);
+  return arith::DivFOp::create(rewriter, loc, numerator, denominatorValue);
 }
 
 /// @brief Returns true if \p op contains any `ControlType` operands.
 inline bool containsControlTypes(quake::OperatorInterface op) {
   return llvm::any_of(op.getControls(), [](const Value &v) {
-    return v.getType().isa<quake::ControlType>();
+    return isa<quake::ControlType>(v.getType());
   });
 }
 
@@ -85,7 +85,7 @@ public:
   /// builder for cases when you have one input ValueRange.
   SmallVector<Type> getResultType(ValueRange operands) {
     std::size_t numOutputWires = llvm::count_if(operands, [](const Value &v) {
-      return v.getType().isa<quake::WireType>();
+      return isa<quake::WireType>(v.getType());
     });
 
     return SmallVector<Type>(numOutputWires,
@@ -98,9 +98,9 @@ public:
     std::size_t numOutputWires =
         llvm::count_if(
             operands1,
-            [](const Value &v) { return v.getType().isa<quake::WireType>(); }) +
+            [](const Value &v) { return isa<quake::WireType>(v.getType()); }) +
         llvm::count_if(operands2, [](const Value &v) {
-          return v.getType().isa<quake::WireType>();
+          return isa<quake::WireType>(v.getType());
         });
 
     return SmallVector<Type>(numOutputWires,
@@ -112,7 +112,7 @@ public:
   void selectWiresAndReplaceUses(Operation *op, ValueRange newValues) {
     SmallVector<Value, 4> newWireValues;
     for (const auto &v : newValues)
-      if (v.getType().isa<quake::WireType>())
+      if (isa<quake::WireType>(v.getType()))
         newWireValues.push_back(v);
     assert(op->getResults().size() == newWireValues.size() &&
            "incorrect number of output wires provided");
@@ -125,9 +125,9 @@ public:
                                  Value target) {
     SmallVector<Value, 4> newWireValues;
     for (const auto &v : controls)
-      if (v.getType().isa<quake::WireType>())
+      if (isa<quake::WireType>(v.getType()))
         newWireValues.push_back(v);
-    if (target.getType().isa<quake::WireType>())
+    if (isa<quake::WireType>(target.getType()))
       newWireValues.push_back(target);
     assert(op->getResults().size() == newWireValues.size() &&
            "incorrect number of output wires provided");
@@ -137,13 +137,13 @@ public:
   template <typename OpTy>
   OpTy create(Location location, Value &target) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(target), false,
-                               ValueRange{}, ValueRange{}, target,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(target), false,
+                      ValueRange{}, ValueRange{}, target,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
-    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -151,13 +151,13 @@ public:
   template <typename OpTy>
   OpTy create(Location location, bool is_adj, Value &target) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(target), is_adj,
-                               ValueRange{}, ValueRange{}, target,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(target), is_adj,
+                      ValueRange{}, ValueRange{}, target,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
-    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -165,15 +165,15 @@ public:
   template <typename OpTy>
   OpTy create(Location location, Value &control, Value &target) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(control, target), false,
-                               ValueRange{}, control, target,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(control, target), false,
+                      ValueRange{}, control, target,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
-    if (control.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(control.getType()) && resultIt != resultWiresEnd)
       control = *resultIt++;
-    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -182,16 +182,16 @@ public:
   OpTy create(Location location, bool is_adj, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(controls, target),
-                               is_adj, parameters, controls, target,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(controls, target),
+                      is_adj, parameters, controls, target,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &c : controls)
-      if (c.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      if (isa<quake::WireType>(c.getType()) && resultIt != resultWiresEnd)
         c = *resultIt++;
-    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -200,16 +200,16 @@ public:
   OpTy create(Location location, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(controls, target), false,
-                               parameters, controls, target,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(controls, target), false,
+                      parameters, controls, target,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &c : controls)
-      if (c.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      if (isa<quake::WireType>(c.getType()) && resultIt != resultWiresEnd)
         c = *resultIt++;
-    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -218,16 +218,16 @@ public:
   OpTy create(Location location, SmallVectorImpl<Value> &controls,
               Value &target) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(controls, target), false,
-                               ValueRange{}, controls, target,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(controls, target), false,
+                      ValueRange{}, controls, target,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &c : controls)
-      if (c.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      if (isa<quake::WireType>(c.getType()) && resultIt != resultWiresEnd)
         c = *resultIt++;
-    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -235,14 +235,14 @@ public:
   template <typename OpTy>
   OpTy create(Location location, SmallVectorImpl<Value> &targets) {
     OpTy op;
-    op = rewriter.create<OpTy>(location, getResultType(targets), false,
-                               ValueRange{}, ValueRange{}, targets,
-                               DenseBoolArrayAttr{});
+    op = OpTy::create(rewriter, location, getResultType(targets), false,
+                      ValueRange{}, ValueRange{}, targets,
+                      DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &t : targets)
-      if (t.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      if (isa<quake::WireType>(t.getType()) && resultIt != resultWiresEnd)
         t = *resultIt++;
     return op;
   }
@@ -295,7 +295,7 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
       for (std::size_t i = 0, end = veq.getSize(); i < end; ++i) {
         Value index = createConstant(op.getLoc(), i, rewriter);
         Value qref =
-            rewriter.create<quake::ExtractRefOp>(op.getLoc(), control, index);
+            quake::ExtractRefOp::create(rewriter, op.getLoc(), control, index);
         controls[controlIndex] = qref;
         controlIndex += 1;
       }
@@ -405,7 +405,7 @@ struct ExpPauliDecomposition
     auto pauliWord = expPauliOp.getPauli();
 
     if (expPauliOp.isAdj())
-      theta = rewriter.create<arith::NegFOp>(loc, theta);
+      theta = arith::NegFOp::create(rewriter, loc, theta);
 
     std::optional<std::string> optPauliWordStr;
     if (!pauliWord) {
@@ -501,19 +501,19 @@ struct ExpPauliDecomposition
 
     SmallVector<Value> qubitSupport;
     for (std::size_t i = 0; i < size; i++) {
-      Value index = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
-      Value qubitI = rewriter.create<quake::ExtractRefOp>(loc, qubits, index);
+      Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
+      Value qubitI = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
       if (pauliWordStr[i] != 'I')
         qubitSupport.push_back(qubitI);
 
       if (pauliWordStr[i] == 'Y') {
         APFloat d(M_PI_2);
-        Value param = rewriter.create<arith::ConstantFloatOp>(
-            loc, d, rewriter.getF64Type());
-        rewriter.create<quake::RxOp>(loc, ValueRange{param}, ValueRange{},
+        Value param = arith::ConstantFloatOp::create(rewriter, 
+            loc, rewriter.getF64Type(), d);
+        quake::RxOp::create(rewriter, loc, ValueRange{param}, ValueRange{},
                                      ValueRange{qubitI});
       } else if (pauliWordStr[i] == 'X') {
-        rewriter.create<quake::HOp>(loc, ValueRange{qubitI});
+        quake::HOp::create(rewriter, loc, ValueRange{qubitI});
       }
     }
 
@@ -527,34 +527,34 @@ struct ExpPauliDecomposition
 
     std::vector<std::pair<Value, Value>> toReverse;
     for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
-      rewriter.create<quake::XOp>(loc, ValueRange{qubitSupport[i]},
+      quake::XOp::create(rewriter, loc, ValueRange{qubitSupport[i]},
                                   ValueRange{qubitSupport[i + 1]});
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
     // Note: `Rz(theta)` = `exp(-i*theta/2 Z)`
-    Value negTwoTheta = rewriter.create<arith::MulFOp>(
+    Value negTwoTheta = arith::MulFOp::create(rewriter, 
         loc, createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
-    rewriter.create<quake::RzOp>(loc, ValueRange{negTwoTheta}, ValueRange{},
+    quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta}, ValueRange{},
                                  ValueRange{qubitSupport.back()});
 
     std::reverse(toReverse.begin(), toReverse.end());
     for (auto &[i, j] : toReverse)
-      rewriter.create<quake::XOp>(loc, ValueRange{i}, ValueRange{j});
+      quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
 
     for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
       std::size_t k = pauliWordStr.size() - 1 - i;
-      Value index = rewriter.create<arith::ConstantIntOp>(loc, k, 64);
-      Value qubitK = rewriter.create<quake::ExtractRefOp>(loc, qubits, index);
+      Value index = arith::ConstantIntOp::create(rewriter, loc, k, 64);
+      Value qubitK = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
 
       if (pauliWordStr[k] == 'Y') {
         APFloat d(-M_PI_2);
-        Value param = rewriter.create<arith::ConstantFloatOp>(
-            loc, d, rewriter.getF64Type());
-        rewriter.create<quake::RxOp>(loc, ValueRange{param}, ValueRange{},
+        Value param = arith::ConstantFloatOp::create(rewriter, 
+            loc, rewriter.getF64Type(), d);
+        quake::RxOp::create(rewriter, loc, ValueRange{param}, ValueRange{},
                                      ValueRange{qubitK});
       } else if (pauliWordStr[k] == 'X') {
-        rewriter.create<quake::HOp>(loc, ValueRange{qubitK});
+        quake::HOp::create(rewriter, loc, ValueRange{qubitK});
       }
     }
 
@@ -631,7 +631,7 @@ struct R1AdjToR1
     Location loc = op->getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    angle = rewriter.create<arith::NegFOp>(loc, angle);
+    angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -748,7 +748,7 @@ struct SToPhasedRx
     SmallVector<Value> noControls;
     Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
     Value pi_2 = createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
-    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
+    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
     Value angle = op.isAdj() ? pi_2 : negPi_2;
 
@@ -826,13 +826,13 @@ struct TToPhasedRx
     Value target = op.getTarget();
     Value angle = createConstant(loc, -M_PI_4, rewriter.getF64Type(), rewriter);
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
     Value pi_2 = createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
-    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
+    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
@@ -1226,7 +1226,7 @@ struct ZToPhasedRx
     Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
     Value negPi = createConstant(loc, -M_PI, rewriter.getF64Type(), rewriter);
     Value pi_2 = createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
-    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
+    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
@@ -1281,12 +1281,12 @@ struct CR1ToCX : public cudaq::DecompositionPattern<CR1ToCXType, quake::R1Op> {
       negControl = (*negatedControls)[0];
 
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value halfAngle = createDivF(loc, angle, 2.0, rewriter);
-    Value negHalfAngle = rewriter.create<arith::NegFOp>(loc, halfAngle);
+    Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
 
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::R1Op>(loc, /*isAdj*/ negControl, halfAngle,
@@ -1326,15 +1326,15 @@ struct R1ToPhasedRx
     Value target = op.getTarget();
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
     Type angleType = op.getParameter().getType();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value zero = createConstant(loc, 0.0, angleType, rewriter);
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
-    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
-    Value negAngle = rewriter.create<arith::NegFOp>(loc, angle);
+    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
+    Value negAngle = arith::NegFOp::create(rewriter, loc, angle);
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
@@ -1388,13 +1388,13 @@ struct CRxToCX : public cudaq::DecompositionPattern<CRxToCXType, quake::RxOp> {
 
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
     Type angleType = op.getParameter().getType();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value halfAngle = createDivF(loc, angle, 2.0, rewriter);
-    Value negHalfAngle = rewriter.create<arith::NegFOp>(loc, halfAngle);
+    Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
     Value negPI_2 = createConstant(loc, -M_PI_2, angleType, rewriter);
 
     QuakeOperatorCreator qRewriter(rewriter);
@@ -1434,7 +1434,7 @@ struct RxToPhasedRx
     Value target = op.getTarget();
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
     Type angleType = op.getParameter().getType();
 
     // Necessary/Helpful constants
@@ -1474,7 +1474,7 @@ struct RxAdjToRx
     Location loc = op->getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    angle = rewriter.create<arith::NegFOp>(loc, angle);
+    angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -1522,12 +1522,12 @@ struct CRyToCX : public cudaq::DecompositionPattern<CRyToCXType, quake::RyOp> {
 
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value halfAngle = createDivF(loc, angle, 2.0, rewriter);
-    Value negHalfAngle = rewriter.create<arith::NegFOp>(loc, halfAngle);
+    Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
 
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::RyOp>(loc, halfAngle, noControls, target);
@@ -1563,7 +1563,7 @@ struct RyToPhasedRx
     Value target = op.getTarget();
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
     Type angleType = op.getParameter().getType();
 
     // Necessary/Helpful constants
@@ -1603,7 +1603,7 @@ struct RyAdjToRy
     Location loc = op->getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    angle = rewriter.create<arith::NegFOp>(loc, angle);
+    angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -1651,12 +1651,12 @@ struct CRzToCX : public cudaq::DecompositionPattern<CRzToCXType, quake::RzOp> {
 
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value halfAngle = createDivF(loc, angle, 2.0, rewriter);
-    Value negHalfAngle = rewriter.create<arith::NegFOp>(loc, halfAngle);
+    Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
 
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::RzOp>(loc, halfAngle, noControls, target);
@@ -1694,15 +1694,15 @@ struct RzToPhasedRx
     Value target = op.getTarget();
     Value angle = op.getParameter();
     if (op.isAdj())
-      angle = rewriter.create<arith::NegFOp>(loc, angle);
+      angle = arith::NegFOp::create(rewriter, loc, angle);
     Type angleType = op.getParameter().getType();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
     Value zero = createConstant(loc, 0.0, angleType, rewriter);
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
-    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
-    Value negAngle = rewriter.create<arith::NegFOp>(loc, angle);
+    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
+    Value negAngle = arith::NegFOp::create(rewriter, loc, angle);
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
@@ -1743,7 +1743,7 @@ struct RzAdjToRz
     Location loc = op->getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    angle = rewriter.create<arith::NegFOp>(loc, angle);
+    angle = arith::NegFOp::create(rewriter, loc, angle);
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -1788,17 +1788,17 @@ struct U3ToRotations
     Value lam = op.getParameters()[2];
 
     if (op.isAdj()) {
-      theta = rewriter.create<arith::NegFOp>(loc, theta);
+      theta = arith::NegFOp::create(rewriter, loc, theta);
       // swap the 2nd and 3rd parameter for correctness
       std::swap(phi, lam);
-      phi = rewriter.create<arith::NegFOp>(loc, phi);
-      lam = rewriter.create<arith::NegFOp>(loc, lam);
+      phi = arith::NegFOp::create(rewriter, loc, phi);
+      lam = arith::NegFOp::create(rewriter, loc, lam);
     }
 
     // Necessary/Helpful constants
     Type angleType = op.getParameter().getType();
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
-    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
+    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::RzOp>(loc, lam, controls, target);

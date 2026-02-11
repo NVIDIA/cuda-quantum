@@ -30,22 +30,19 @@ inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
 }
 
 inline mlir::Type getQubitType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Qubit", context));
+  return mlir::LLVM::LLVMPointerType::get(context);
 }
 
 inline mlir::Type getArrayType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Array", context));
+  return mlir::LLVM::LLVMPointerType::get(context);
 }
 
 inline mlir::Type getResultType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Result", context));
+  return mlir::LLVM::LLVMPointerType::get(context);
 }
 
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
+  return mlir::LLVM::LLVMPointerType::get(context);
 }
 
 void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);

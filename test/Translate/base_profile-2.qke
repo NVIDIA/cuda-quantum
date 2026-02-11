@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -21,8 +21,8 @@ func.func @__nvqpp__mlirgen__t1() attributes {"cudaq-kernel"} {
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__t1()
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0:.*]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1:.*]]* null)
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303000, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 1 to ptr), ptr null)
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr null, ptr nonnull @cstr.72303030303000)
 // CHECK:         ret void
 // CHECK:       }
 

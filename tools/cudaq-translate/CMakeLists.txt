@@ -24,7 +24,10 @@ target_link_libraries(cudaq-translate
   MLIRTransforms
   MLIRTargetLLVMIRExport
   MLIRLLVMCommonConversion
+  MLIRBuiltinToLLVMIRTranslation
   MLIRLLVMToLLVMIRTranslation
+  MLIRFuncInlinerExtension
+  MLIRLLVMIRTransforms
 
   CCDialect
   OptCodeGen

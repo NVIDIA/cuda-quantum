@@ -74,6 +74,7 @@ bool isSignedPredicate(mlir::arith::CmpIPredicate p);
 bool isaCountedLoop(cc::LoopOp op, bool allowClosedInterval = true);
 
 bool loopContainsBreak(cc::LoopOp op);
+bool isaConstantUpperBoundLoop(cc::LoopOp op, bool allowClosedInterval = true);
 
 /// An indefinite counted loop is a counted loop which may have early exits.
 bool isaIndefiniteCountedLoop(cc::LoopOp op, bool allowClosedInterval = true);

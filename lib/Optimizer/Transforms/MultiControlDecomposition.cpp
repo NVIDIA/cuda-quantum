@@ -87,7 +87,7 @@ Decomposer::extractControls(quake::OperatorInterface op,
       size = veq.getSize();
       for (size_t i = 0; i < size; ++i)
         newControls.push_back(
-            builder.create<quake::ExtractRefOp>(op.getLoc(), control, i));
+            quake::ExtractRefOp::create(builder, op.getLoc(), control, i));
     }
     if (negControls)
       negatedControls.append(size, (*negControls)[index]);
@@ -100,7 +100,7 @@ ArrayRef<Value> Decomposer::getAncillas(Location loc, std::size_t numAncillas) {
   builder.setInsertionPointToStart(entryBlock);
   // If we don't have enough ancillas, allocate some more.
   for (size_t i = allocatedAncillas.size(); i < numAncillas; ++i)
-    allocatedAncillas.push_back(builder.create<quake::AllocaOp>(loc));
+    allocatedAncillas.push_back(quake::AllocaOp::create(builder, loc));
   return {allocatedAncillas.begin(), allocatedAncillas.begin() + numAncillas};
 }
 
@@ -137,14 +137,14 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
   // Compute intermediate results
   SmallVector<Operation *> toCleanup;
   std::array<Value, 2> cs = {controls[0], controls[1]};
-  toCleanup.push_back(builder.create<quake::XOp>(loc, cs, ancillas[0]));
+  toCleanup.push_back(quake::XOp::create(builder, loc, cs, ancillas[0]));
   if (!negatedControls.empty() && (negatedControls[0] || negatedControls[1]))
     toCleanup.back()->setAttr("negated_qubit_controls",
                               builder.getDenseBoolArrayAttr(
                                   {negatedControls[0], negatedControls[1]}));
   for (std::size_t c = 2, a = 0, n = requiredAncillas + 1; c < n; ++c, ++a) {
     cs = {controls[c], ancillas[a]};
-    toCleanup.push_back(builder.create<quake::XOp>(loc, cs, ancillas[a + 1]));
+    toCleanup.push_back(quake::XOp::create(builder, loc, cs, ancillas[a + 1]));
     if (!negatedControls.empty() && negatedControls[c])
       toCleanup.back()->setAttr("negated_qubit_controls",
                                 builder.getDenseBoolArrayAttr({true, false}));

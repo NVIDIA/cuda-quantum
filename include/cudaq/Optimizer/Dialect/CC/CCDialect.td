@@ -32,7 +32,7 @@ def CCDialect : Dialect {
 
   let cppNamespace = "cudaq::cc";
   let useDefaultTypePrinterParser = 1;
-  let useFoldAPI = kEmitFoldAdaptorFolder;
+  // useFoldAPI removed in LLVM 22
 
   let extraClassDeclaration = [{
     /// Register all CC types.

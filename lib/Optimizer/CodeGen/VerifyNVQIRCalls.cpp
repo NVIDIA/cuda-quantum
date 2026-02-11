@@ -7,8 +7,14 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
+
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_VERIFYNVQIRCALLOPS
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
@@ -16,10 +22,6 @@
 
 #define DEBUG_TYPE "qir-remove-measurements"
 
-namespace cudaq::opt {
-#define GEN_PASS_DEF_VERIFYNVQIRCALLOPS
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
-} // namespace cudaq::opt
 
 using namespace mlir;
 
@@ -36,7 +38,7 @@ struct VerifyNVQIRCallOpsPass
     bool passFailed = false;
     // Check that a function name is either QIR or NVQIR registered.
     const auto isKnownFunctionName = [&](llvm::StringRef functionName) -> bool {
-      if (functionName.startswith("__quantum_"))
+      if (functionName.starts_with("__quantum_"))
         return true;
       static const std::vector<llvm::StringRef> NVQIR_FUNCS = {
           cudaq::opt::NVQIRInvokeWithControlBits,           // obsolete

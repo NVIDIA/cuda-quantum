@@ -114,8 +114,8 @@ public:
     }
     Type loadTy = loadSpan.getType();
     auto arrayAttr = cast<ArrayAttr>(attr);
-    Value newConArr = rewriter.create<cudaq::cc::ConstantArrayOp>(
-        loadSpan.getLoc(), ty, arrayAttr);
+    Value newConArr = cudaq::cc::ConstantArrayOp::create(
+        rewriter, loadSpan.getLoc(), ty, arrayAttr);
     rewriter.replaceOpWithNewOp<cudaq::cc::ReifySpanOp>(loadSpan, loadTy,
                                                         newConArr);
     return success();
@@ -193,9 +193,9 @@ public:
     auto loc = loadSpanEle.getLoc();
     if (isa<cudaq::cc::CharspanType>(loadTy)) {
       auto stringAttr = cast<StringAttr>(attr);
-      auto lit = rewriter.create<cudaq::cc::CreateStringLiteralOp>(
-          loc, cudaq::cc::PointerType::get(ty), stringAttr);
-      auto len = rewriter.create<arith::ConstantIntOp>(
+      auto lit = cudaq::cc::CreateStringLiteralOp::create(
+          rewriter, loc, cudaq::cc::PointerType::get(ty), stringAttr);
+      auto len = arith::ConstantIntOp::create(rewriter, 
           loc, stringAttr.getValue().size() + 1, 64);
       rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(loadSpanEle, loadTy,
                                                            lit, len);
@@ -204,13 +204,13 @@ public:
     if (auto intTy = dyn_cast<IntegerType>(loadTy)) {
       auto intAttr = cast<IntegerAttr>(attr);
       rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
-          loadSpanEle, intAttr.getInt(), intTy);
+          loadSpanEle, intTy, intAttr.getInt());
       return success();
     }
     if (auto floatTy = dyn_cast<FloatType>(loadTy)) {
       auto floatAttr = cast<FloatAttr>(attr);
       rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
-          loadSpanEle, floatAttr.getValue(), floatTy);
+          loadSpanEle, floatTy, floatAttr.getValue());
       return success();
     }
     return failure();
@@ -231,7 +231,7 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "Before constant prop:\n" << func << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+    if (failed(applyPatternsGreedily(func.getOperation(),
                                             std::move(patterns)))) {
       signalPassFailure();
       return;

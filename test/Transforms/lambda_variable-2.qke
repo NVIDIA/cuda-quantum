@@ -95,7 +95,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8k
 // CHECK:           return
 // CHECK:         }
 
-// QIR-LABEL: define void @__nvqpp__mlirgen__kernel_b({ i8*, i8* } 
+// QIR-LABEL: define void @__nvqpp__mlirgen__kernel_b({ ptr, ptr } 
 
 // QIR-LABEL: define void @__nvqpp__mlirgen__kernel_a()
 // QIR:         call {{.*}} @__quantum__rt__qubit_allocate_array(i64 4)

@@ -163,13 +163,13 @@ public:
   void applyRotationOp(double theta, std::size_t target) {
     auto qubit = createQubitRef(target);
     auto thetaValue = createAngleValue(theta);
-    rewriter.create<Op>(loc, thetaValue, mlir::ValueRange{}, qubit);
+    Op::create(rewriter, loc, thetaValue, mlir::ValueRange{}, qubit);
   };
 
   void applyX(std::size_t control, std::size_t target) {
     auto qubitC = createQubitRef(control);
     auto qubitT = createQubitRef(target);
-    rewriter.create<quake::XOp>(loc, qubitC, qubitT);
+    quake::XOp::create(rewriter, loc, qubitC, qubitT);
   };
 
 private:
@@ -177,14 +177,13 @@ private:
     if (qubitRefs.contains(index))
       return qubitRefs[index];
 
-    auto ref = rewriter.create<quake::ExtractRefOp>(loc, qubits, index);
+    auto ref = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
     qubitRefs[index] = ref;
     return ref;
   }
 
   mlir::Value createAngleValue(double angle) {
-    return rewriter.create<mlir::arith::ConstantFloatOp>(
-        loc, llvm::APFloat{angle}, rewriter.getF64Type());
+    return arith::ConstantFloatOp::create(rewriter, loc, rewriter.getF64Type(), llvm::APFloat{angle});
   }
 
   PatternRewriter &rewriter;
@@ -415,7 +414,7 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<StatePrepPattern>(ctx, phaseThreshold);
 
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(func, std::move(patterns)))) {
       func.emitOpError("State preparation failed");
       signalPassFailure();
     }

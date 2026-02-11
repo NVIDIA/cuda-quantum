@@ -21,8 +21,8 @@ inline mlir::Value createCast(mlir::PatternRewriter &rewriter,
   auto i64Ty = rewriter.getI64Type();
   assert(inVal.getType() != rewriter.getIndexType() &&
          "use of index type is deprecated");
-  return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, inVal,
-                                            cudaq::cc::CastOpMode::Unsigned);
+  return cudaq::cc::CastOp::create(rewriter, loc, i64Ty, inVal,
+                                    cudaq::cc::CastOpMode::Unsigned);
 }
 
 class ExtractRefFromSubVeqPattern
@@ -56,18 +56,18 @@ public:
     auto loc = extract.getLoc();
     auto low = [&]() -> mlir::Value {
       if (subveq.hasConstantLowerBound())
-        return rewriter.create<mlir::arith::ConstantIntOp>(
-            loc, subveq.getConstantLowerBound(), 64);
+        return mlir::arith::ConstantIntOp::create(
+            rewriter, loc, rewriter.getIntegerType(64), subveq.getConstantLowerBound());
       return subveq.getLower();
     }();
     if (extract.hasConstantIndex()) {
-      mlir::Value cv = rewriter.create<mlir::arith::ConstantIntOp>(
-          loc, extract.getConstantIndex(), low.getType());
-      offset = rewriter.create<mlir::arith::AddIOp>(loc, cv, low);
+      mlir::Value cv = mlir::arith::ConstantIntOp::create(
+          rewriter, loc, low.getType(), extract.getConstantIndex());
+      offset = mlir::arith::AddIOp::create(rewriter, loc, cv, low);
     } else {
       auto cast1 = createCast(rewriter, loc, extract.getIndex());
       auto cast2 = createCast(rewriter, loc, low);
-      offset = rewriter.create<mlir::arith::AddIOp>(loc, cast1, cast2);
+      offset = mlir::arith::AddIOp::create(rewriter, loc, cast1, cast2);
     }
     rewriter.replaceOpWithNewOp<ExtractRefOp>(extract, subveq.getVeq(), offset);
     return mlir::success();
@@ -96,8 +96,8 @@ public:
     // Lambda to create a Value for the lower bound of `s`.
     auto lofunc = [&](SubVeqOp s) -> mlir::Value {
       if (s.hasConstantLowerBound())
-        return rewriter.create<mlir::arith::ConstantIntOp>(
-            loc, s.getConstantLowerBound(), 64);
+        return mlir::arith::ConstantIntOp::create(
+            rewriter, loc, rewriter.getIntegerType(64), s.getConstantLowerBound());
       return s.getLower();
     };
     auto priorlo = lofunc(prior);
@@ -106,15 +106,15 @@ public:
     // Lambda for creating the upper bound Value.
     auto svup = [&]() -> mlir::Value {
       if (subveq.hasConstantUpperBound())
-        return rewriter.create<mlir::arith::ConstantIntOp>(
-            loc, subveq.getConstantUpperBound(), 64);
+        return mlir::arith::ConstantIntOp::create(
+            rewriter, loc, rewriter.getIntegerType(64), subveq.getConstantUpperBound());
       return subveq.getUpper();
     }();
     auto cast1 = createCast(rewriter, loc, priorlo);
     auto cast2 = createCast(rewriter, loc, svlo);
     auto cast3 = createCast(rewriter, loc, svup);
-    mlir::Value sum1 = rewriter.create<mlir::arith::AddIOp>(loc, cast1, cast2);
-    mlir::Value sum2 = rewriter.create<mlir::arith::AddIOp>(loc, cast1, cast3);
+    mlir::Value sum1 = mlir::arith::AddIOp::create(rewriter, loc, cast1, cast2);
+    mlir::Value sum2 = mlir::arith::AddIOp::create(rewriter, loc, cast1, cast3);
     auto veqTy = subveq.getType();
     rewriter.replaceOpWithNewOp<SubVeqOp>(subveq, veqTy, prior.getVeq(), sum1,
                                           sum2);

@@ -28,8 +28,8 @@ struct branching {
 
 // clang-format off
 // CHECK-LABEL:   define void @__nvqpp__mlirgen__branching()
-// CHECK:   %[[VAL_0:.*]] = select i1 %{{.*}}, %Qubit* %{{.*}}, %Qubit* %{{.*}}
-// CHECK:   tail call void @__quantum__qis__h(%Qubit* %[[VAL_0]])
+// CHECK:   %[[VAL_0:.*]] = select i1 %{{.*}}, ptr %{{.*}}, ptr %{{.*}}
+// CHECK:   tail call void @__quantum__qis__h(ptr %[[VAL_0]])
 // clang-format on
 
 int main() {

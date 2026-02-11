@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -35,10 +35,22 @@ module attributes {
 }
 
 // CHECK-LABEL:   llvm.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
-// CHECK:           %[[VAL_0:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:           %[[VAL_1:.*]] = llvm.alloca %[[VAL_0]] x i64 : (i64) -> !llvm.ptr<i64>
-// CHECK:           %[[VAL_6:.*]] = llvm.mlir.constant(2 : i64) : i64
-// CHECK:           %[[VAL_7:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_6]]) : (i64) -> !llvm.ptr<struct<"Array", opaque>>
-// CHECK-NOT:       llvm.alloca
+// CHECK:           %[[VAL_0:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[VAL_1:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[VAL_2:.*]] = llvm.mlir.constant(1.000000e+00 : f64) : f64
+// CHECK:           %[[VAL_3:.*]] = llvm.mlir.constant(262144 : i64) : i64
+// CHECK:           %[[VAL_4:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[VAL_5:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_4]]) : (i64) -> !llvm.ptr
+// CHECK:           llvm.br ^bb1(%[[VAL_0]] : i64)
+// CHECK:         ^bb1(%[[VAL_6:.*]]: i64):
+// CHECK:           %[[VAL_7:.*]] = llvm.icmp "slt" %[[VAL_6]], %[[VAL_3]] : i64
+// CHECK:           llvm.cond_br %[[VAL_7]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_16:.*]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
+// CHECK:           %[[VAL_17:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[VAL_18:.*]] = llvm.alloca %[[VAL_17]] x i64 {{.*}} : (i64) -> !llvm.ptr
+// CHECK:           llvm.call @invokeRotationWithControlQubits({{.*}}) vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>)
+// CHECK:         ^bb3:
+// CHECK:           llvm.call @__quantum__rt__qubit_release_array(%[[VAL_5]]) : (!llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK:         }

@@ -46,7 +46,7 @@ public:
     LLVM_DEBUG(llvm::dbgs()
                << "Before lifting constant array: " << func << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsGreedily(func, std::move(patterns))))
       signalPassFailure();
 
     LLVM_DEBUG(llvm::dbgs()

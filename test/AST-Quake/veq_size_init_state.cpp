@@ -20,8 +20,8 @@ struct kernel {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes
-// CHECK:           %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
 // CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<complex<f64>>

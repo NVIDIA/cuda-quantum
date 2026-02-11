@@ -18,20 +18,23 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
+#include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
-#include "llvm/Support/Host.h"
+#include "llvm/TargetParser/Host.h"
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
@@ -98,9 +101,12 @@ std::unique_ptr<MLIRContext> createMLIRContext() {
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
   cudaq::registerAllDialects(registry);
+  mlir::func::registerInlinerExtension(registry);
+  mlir::LLVM::registerInlinerInterface(registry);
+  registerBuiltinDialectTranslation(registry);
+  registerLLVMDialectTranslation(registry);
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
-  registerLLVMDialectTranslation(*context);
   return context;
 }
 } // namespace
@@ -135,7 +141,7 @@ cudaq::getEntryPointName(OwningOpRef<ModuleOp> &module) {
     if (auto op = dyn_cast<mlir::func::FuncOp>(a)) {
       // Note: the .thunk function is where unmarshalling happens. It is *not*
       // an entry point.
-      if (op.getName().endswith(".thunk"))
+      if (op.getName().ends_with(".thunk"))
         return {op.getName().str()};
     }
   }

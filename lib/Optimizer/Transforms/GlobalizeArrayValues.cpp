@@ -168,7 +168,7 @@ struct ConstantArrayPattern
       return failure();
     auto loc = conarr.getLoc();
     if (!extracts.empty()) {
-      auto base = rewriter.create<cudaq::cc::AddressOfOp>(
+      auto base = cudaq::cc::AddressOfOp::create(rewriter,
           loc, cudaq::cc::PointerType::get(conarr.getType()), globalName);
       auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
       for (auto extract : extracts) {
@@ -183,7 +183,7 @@ struct ConstantArrayPattern
         OpBuilder::InsertionGuard guard(rewriter);
         rewriter.setInsertionPoint(extract);
         auto addrVal =
-            rewriter.create<cudaq::cc::ComputePtrOp>(loc, elePtrTy, base, args);
+            cudaq::cc::ComputePtrOp::create(rewriter, loc, elePtrTy, base, args);
         rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(extract, addrVal);
       }
     }
@@ -195,8 +195,8 @@ struct ConstantArrayPattern
         rewriter.eraseOp(store);
     }
     if (loadAsValue) {
-      auto base = rewriter.create<cudaq::cc::AddressOfOp>(
-          loc, cudaq::cc::PointerType::get(conarr.getType()), globalName);
+      auto base = cudaq::cc::AddressOfOp::create(
+          rewriter, loc, cudaq::cc::PointerType::get(conarr.getType()), globalName);
       rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(conarr, base);
     }
     return success();
@@ -228,10 +228,10 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         auto loc = reify.getLoc();
         auto eleTy =
             cast<cudaq::cc::StdvecType>(reify.getType()).getElementType();
-        auto numEle = rewriter.create<arith::ConstantIntOp>(
+        auto numEle = arith::ConstantIntOp::create(rewriter, 
             loc, conArr.getConstantValues().size(), 64);
-        Value buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, numEle);
-        rewriter.create<cudaq::cc::StoreOp>(loc, conArr, buff);
+        Value buff = cudaq::cc::AllocaOp::create(rewriter, loc, eleTy, numEle);
+        cudaq::cc::StoreOp::create(rewriter, loc, conArr, buff);
         rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
             reify, reify.getType(), buff, numEle);
         return success();
@@ -260,19 +260,19 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         std::int64_t len = stringAttr.getValue().size() + 1;
         Type litTy = cudaq::cc::PointerType::get(
             cudaq::cc::ArrayType::get(ctx, rewriter.getI8Type(), len));
-        auto strLit = rewriter.create<cudaq::cc::CreateStringLiteralOp>(
-            loc, litTy, stringAttr);
-        auto size = rewriter.create<arith::ConstantIntOp>(loc, len, 64);
-        members.push_back(rewriter.create<cudaq::cc::StdvecInitOp>(
-            loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
+        auto strLit = cudaq::cc::CreateStringLiteralOp::create(
+            rewriter, loc, litTy, stringAttr);
+        auto size = arith::ConstantIntOp::create(rewriter, loc, len, 64);
+        members.push_back(cudaq::cc::StdvecInitOp::create(
+            rewriter, loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
       } else if (auto a = dyn_cast<IntegerAttr>(attr)) {
-        members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+        members.push_back(arith::ConstantOp::create(rewriter, loc, eleTy, a));
       } else if (auto a = dyn_cast<FloatAttr>(attr)) {
-        members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+        members.push_back(arith::ConstantOp::create(rewriter, loc, eleTy, a));
       } else {
         // Unexpected attribute.
         LLVM_DEBUG(llvm::dbgs() << "unexpected attribute: " << attr << '\n');
-        members.push_back(rewriter.create<cudaq::cc::PoisonOp>(loc, eleTy));
+        members.push_back(cudaq::cc::PoisonOp::create(rewriter,loc, eleTy));
       }
     }
 
@@ -286,22 +286,22 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       }
     }
 
-    auto size = rewriter.create<arith::ConstantIntOp>(loc, members.size(), 64);
-    auto buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, size);
+    auto size = arith::ConstantIntOp::create(rewriter, loc, members.size(), 64);
+    auto buff = cudaq::cc::AllocaOp::create(rewriter,loc, eleTy, size);
     for (auto iter : llvm::enumerate(members)) {
       std::int32_t idx = iter.index();
       auto m = iter.value();
       if (hasBoolElems) {
         auto unit = UnitAttr::get(rewriter.getContext());
-        m = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, m, UnitAttr(), unit);
+        m = cudaq::cc::CastOp::create(rewriter,loc, eleTy, m, UnitAttr(), unit);
       }
       auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
-      auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
+      auto ptr = cudaq::cc::ComputePtrOp::create(rewriter,
           loc, ptrEleTy, buff, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
-      rewriter.create<cudaq::cc::StoreOp>(loc, m, ptr);
+      cudaq::cc::StoreOp::create(rewriter,loc, m, ptr);
     }
     Value result =
-        rewriter.create<cudaq::cc::StdvecInitOp>(loc, ty, buff, size);
+        cudaq::cc::StdvecInitOp::create(rewriter,loc, ty, buff, size);
     return result;
   }
 
@@ -330,7 +330,7 @@ public:
                                                             counter);
     LLVM_DEBUG(llvm::dbgs() << "Before globalizing array values:\n"
                             << module << '\n');
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(module, std::move(patterns)))) {
       signalPassFailure();
       return;
     }

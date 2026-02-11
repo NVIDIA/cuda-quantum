@@ -14,7 +14,9 @@
 
 using namespace mlir;
 
-namespace {
+namespace cudaq::opt {
+#define GEN_PASS_DEF_DELAYMEASUREMENTS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
 
 /// Delay Measurements
 ///
@@ -23,7 +25,7 @@ namespace {
 /// qubit early in the program and then performs quantum operations on other
 /// qubits later in the program.
 struct DelayMeasurementsPass
-    : public cudaq::opt::DelayMeasurementsBase<DelayMeasurementsPass> {
+    : public impl::DelayMeasurementsBase<DelayMeasurementsPass> {
   using DelayMeasurementsBase::DelayMeasurementsBase;
 
   void runOnOperation() override {
@@ -103,8 +105,8 @@ struct DelayMeasurementsPass
           mainBlock.end(), mainBlock.getOperations(), opToMove->getIterator());
   }
 };
-} // namespace
+} // namespace cudaq::opt
 
-std::unique_ptr<Pass> cudaq::opt::createDelayMeasurementsPass() {
-  return std::make_unique<DelayMeasurementsPass>();
+std::unique_ptr<mlir::Pass> cudaq::opt::createDelayMeasurementsPass() {
+  return std::make_unique<cudaq::opt::DelayMeasurementsPass>();
 }

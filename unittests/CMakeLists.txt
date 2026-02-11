@@ -329,7 +329,7 @@ target_link_libraries(test_operators
   cudaq-platform-default)
 gtest_discover_tests(test_operators DISCOVERY_TIMEOUT 120)
 
-if (CUDA_FOUND)
+if (CUDA_FOUND AND TARGET nvqir-dynamics)
   find_package(CUDAToolkit REQUIRED)
 
   find_library(CUTENSOR_LIB

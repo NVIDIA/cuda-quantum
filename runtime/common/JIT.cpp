@@ -104,17 +104,22 @@ cudaq::createWrappedKernel(std::string_view irString,
   if (mangledKernelNames.first.empty() || mangledKernelNames.second.empty())
     throw std::runtime_error("Failed to locate symbols from the IR");
 
-  mlir::ExecutionEngine::setupTargetTriple(llvmModule.get());
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (tmBuilderOrError) {
+    auto tmOrError = tmBuilderOrError->createTargetMachine();
+    if (tmOrError)
+      mlir::ExecutionEngine::setupTargetTripleAndDataLayout(
+          llvmModule.get(), tmOrError.get().get());
+  }
   auto dataLayout = llvmModule->getDataLayout();
 
   // Create the object layer
-  auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session,
-                                       const llvm::Triple &tt) {
+  auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session) {
     auto objectLayer =
-        std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(session, []() {
-          return std::make_unique<llvm::SectionMemoryManager>();
-        });
-    llvm::Triple targetTriple(llvm::Twine(llvmModule->getTargetTriple()));
+        std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
+            session, [](const llvm::MemoryBuffer &) {
+              return std::make_unique<llvm::SectionMemoryManager>();
+            });
     return objectLayer;
   };
 

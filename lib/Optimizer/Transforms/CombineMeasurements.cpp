@@ -248,7 +248,7 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<ExtendQubitMeasurePattern, ExtendVeqMeasurePattern>(
         ctx, analysis);
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+    if (failed(applyPatternsGreedily(func.getOperation(),
                                             std::move(patterns)))) {
       func.emitOpError("Combining measurements failed");
       signalPassFailure();

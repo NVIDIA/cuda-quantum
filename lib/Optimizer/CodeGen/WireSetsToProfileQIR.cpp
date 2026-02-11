@@ -133,18 +133,18 @@ struct GeneralRewrite : OpConversionPattern<OP> {
         auto fTy = f.getFunctionType();
         auto fSym = f.getSymNameAttr();
         qisFuncSymbol = FlatSymbolRefAttr::get(ctx, funcName);
-        Value fVal = rewriter.create<func::ConstantOp>(loc, fTy, fSym);
+        Value fVal = func::ConstantOp::create(rewriter, loc, fTy, fSym);
         auto ptrI8Ty = cudaq::cc::PointerType::get(rewriter.getI8Type());
         Value fPtrVal =
-            rewriter.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, fVal);
-        Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+            cudaq::cc::FuncToPtrOp::create(rewriter, loc, ptrI8Ty, fVal);
+        Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
         SmallVector<Value> callParamVals{one, fPtrVal,
                                          *adaptor.getControls().begin(),
                                          *adaptor.getTargets().begin()};
         SmallVector<Value> qubits(adaptor.getControls().begin(),
                                   adaptor.getControls().end());
         qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
-        rewriter.create<func::CallOp>(loc, std::nullopt,
+        func::CallOp::create(rewriter, loc, mlir::TypeRange{},
                                       cudaq::opt::NVQIRInvokeWithControlBits,
                                       callParamVals);
         rewriter.replaceOp(qop, qubits);
@@ -155,7 +155,7 @@ struct GeneralRewrite : OpConversionPattern<OP> {
       SmallVector<Value> qubits(adaptor.getControls().begin(),
                                 adaptor.getControls().end());
       qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
-      rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
+      func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
                                     adaptor.getOperands());
       rewriter.replaceOp(qop, qubits);
       return success();
@@ -173,10 +173,10 @@ struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
                   ConversionPatternRewriter &rewriter) const override {
     auto id = borrowWire.getIdentity();
     auto loc = borrowWire.getLoc();
-    Value idCon = rewriter.create<arith::ConstantIntOp>(loc, id, 64);
+    Value idCon = arith::ConstantIntOp::create(rewriter, loc, id, 64);
     auto imTy =
         cudaq::cc::PointerType::get(NoneType::get(rewriter.getContext()));
-    idCon = rewriter.create<cudaq::cc::CastOp>(loc, imTy, idCon);
+    idCon = cudaq::cc::CastOp::create(rewriter, loc, imTy, idCon);
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
         borrowWire, cudaq::opt::getQubitType(rewriter.getContext()), idCon);
     return success();
@@ -192,7 +192,7 @@ struct ResetRewrite : OpConversionPattern<quake::ResetOp> {
     SmallVector<Value> qubits{adaptor.getTargets()};
     auto loc = reset.getLoc();
     std::string funcName = toQisBodyName(std::string("reset"));
-    rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
+    func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
                                   adaptor.getOperands());
     rewriter.replaceOp(reset, qubits);
     return success();
@@ -206,7 +206,7 @@ struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
   matchAndRewrite(cf::BranchOp branchOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
-    rewriter.startRootUpdate(branchOp);
+    rewriter.startOpModification(branchOp);
     if (branchOp.getSuccessor())
       for (auto arg : branchOp.getSuccessor()->getArguments())
         if (isa<quake::WireType>(arg.getType()))
@@ -214,7 +214,7 @@ struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
     for (auto operand : branchOp.getOperands())
       if (isa<quake::WireType>(operand.getType()))
         operand.setType(qubitTy);
-    rewriter.finalizeRootUpdate(branchOp);
+    rewriter.finalizeOpModification(branchOp);
     return success();
   }
 };
@@ -226,7 +226,7 @@ struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
   matchAndRewrite(cf::CondBranchOp branchOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
-    rewriter.startRootUpdate(branchOp);
+    rewriter.startOpModification(branchOp);
     for (auto suc : branchOp.getSuccessors())
       for (auto arg : suc->getArguments())
         if (isa<quake::WireType>(arg.getType()))
@@ -234,7 +234,7 @@ struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
     for (auto operand : branchOp.getOperands())
       if (isa<quake::WireType>(operand.getType()))
         operand.setType(qubitTy);
-    rewriter.finalizeRootUpdate(branchOp);
+    rewriter.finalizeOpModification(branchOp);
     return success();
   }
 };
@@ -283,14 +283,14 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
     // FIXME: Must use sequentially assigned result ids
     std::string funcName = toQisBodyName(std::string("mz"));
     auto loc = meas.getLoc();
-    Value idCon = rewriter.create<arith::ConstantIntOp>(loc, resultCount++, 64);
+    Value idCon = arith::ConstantIntOp::create(rewriter, loc, resultCount++, 64);
     auto imTy =
         cudaq::cc::PointerType::get(NoneType::get(rewriter.getContext()));
-    idCon = rewriter.create<cudaq::cc::CastOp>(loc, imTy, idCon);
-    Value resultVal = rewriter.create<cudaq::cc::CastOp>(
+    idCon = cudaq::cc::CastOp::create(rewriter, loc, imTy, idCon);
+    Value resultVal = cudaq::cc::CastOp::create(rewriter, 
         loc, cudaq::opt::getResultType(rewriter.getContext()), idCon);
-    rewriter.create<func::CallOp>(
-        loc, std::nullopt, funcName,
+    func::CallOp::create(rewriter, 
+        loc, mlir::TypeRange{}, funcName,
         ValueRange{adaptor.getTargets()[0], resultVal});
     rewriter.replaceOp(meas, ValueRange{resultVal, adaptor.getTargets()[0]});
 
@@ -306,13 +306,13 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
       auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
                                                     regName->size() + 1);
       auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
-      Value nameVal = rewriter.create<cudaq::cc::AddressOfOp>(
+      Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, 
           loc, ptrArrTy, nameObj.getName());
       auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
       Value nameValCStr =
-          rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
+          cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
 
-      rewriter.create<func::CallOp>(loc, std::nullopt,
+      func::CallOp::create(rewriter, loc, mlir::TypeRange{},
                                     cudaq::opt::QIRRecordOutput,
                                     ValueRange{resultVal, nameValCStr});
     }
@@ -361,14 +361,14 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
     auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
                                                   iter->second.size() + 1);
     auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
-    Value nameVal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrArrTy,
+    Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, loc, ptrArrTy,
                                                             nameObj.getName());
     auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     Value nameValCStr =
-        rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
+        cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
 
-    rewriter.create<func::CallOp>(
-        loc, std::nullopt, cudaq::opt::QIRRecordOutput,
+    func::CallOp::create(rewriter, 
+        loc, mlir::TypeRange{}, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
       std::string funcName = toQisBodyName(std::string("read_result"));
@@ -377,7 +377,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
           ValueRange{adaptor.getMeasurement()});
     } else {
       Value undef =
-          rewriter.create<cudaq::cc::UndefOp>(loc, rewriter.getI1Type());
+          cudaq::cc::UndefOp::create(rewriter, loc, rewriter.getI1Type());
       rewriter.replaceOp(disc, undef);
     }
     return success();
@@ -477,7 +477,7 @@ struct WireSetToProfileQIRPrepPass
     auto loc = builder.getUnknownLoc();
 
     auto createNewDecl = [&](const std::string &name, FunctionType ty) {
-      auto func = builder.create<func::FuncOp>(loc, name, ty);
+      auto func = func::FuncOp::create(builder, loc, name, ty);
       func.setPrivate();
     };
     auto addNewDecl = [&](std::string &&suffix, FunctionType ty) {
@@ -607,10 +607,8 @@ struct WireSetToProfileQIRPostPass
             auto parentFuncOp =
                 callableRegion->getParentOfType<mlir::func::FuncOp>();
 
-            if (auto reqQubits =
-                    parentFuncOp
-                        ->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName)
-                        .dyn_cast_or_null<StringAttr>()) {
+            if (auto reqQubits = dyn_cast_if_present<StringAttr>(
+                    parentFuncOp->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName))) {
               std::uint32_t thisFuncReqQubits = 0;
               if (!reqQubits.strref().getAsInteger(10, thisFuncReqQubits)) {
                 auto thisFuncHighestIdentity = thisFuncReqQubits - 1;
@@ -621,10 +619,8 @@ struct WireSetToProfileQIRPostPass
               }
             }
 
-            if (auto reqResults =
-                    parentFuncOp
-                        ->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName)
-                        .dyn_cast_or_null<StringAttr>()) {
+            if (auto reqResults = dyn_cast_if_present<StringAttr>(
+                    parentFuncOp->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName))) {
               std::uint32_t thisFuncReqResults = 0;
               if (!reqResults.strref().getAsInteger(10, thisFuncReqResults)) {
                 auto thisFuncHighestResult = thisFuncReqResults - 1;

@@ -162,9 +162,9 @@ private:
               entry.push_front(c);
             module.push_back(newFunc);
             OpBuilder builder(apply);
-            auto newApply = builder.create<quake::ApplyOp>(
+            auto newApply = quake::ApplyOp::create(builder, 
                 apply.getLoc(), apply.getResultTypes(),
-                SymbolRefAttr::get(ctx, calleeName), apply.getIndirectCallee(),
+                SymbolRefAttr::get(ctx, calleeName),
                 apply.getIsAdj(), apply.getControls(), preservedArgs);
             apply->replaceAllUsesWith(newApply.getResults());
             apply->dropAllReferences();
@@ -311,7 +311,7 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
     auto consTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
-      auto consOp = rewriter.create<quake::ConcatOp>(apply.getLoc(), consTy,
+      auto consOp = quake::ConcatOp::create(rewriter, apply.getLoc(), consTy,
                                                      apply.getControls());
       newArgs.push_back(consOp);
     }
@@ -366,7 +366,7 @@ public:
     auto *ctx = module.getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<FoldCallable>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    if (failed(applyPatternsGreedily(module, std::move(patterns))))
       signalPassFailure();
 
     ApplyOpAnalysis analysis(module, constantPropagation);
@@ -482,7 +482,7 @@ public:
 
         // This is a quantum op. It should be updated with an additional control
         // argument, `newCond`.
-        auto arrAttr = op->getAttr(segmentSizes).cast<DenseI32ArrayAttr>();
+        auto arrAttr = cast<DenseI32ArrayAttr>(op->getAttr(segmentSizes));
         SmallVector<std::int32_t> arrRef{arrAttr.asArrayRef().begin(),
                                          arrAttr.asArrayRef().end()};
         SmallVector<Value> operands(op->getOperands().begin(),
@@ -506,7 +506,7 @@ public:
         SmallVector<Value> newControls = {newCond};
         newControls.append(apply.getControls().begin(),
                            apply.getControls().end());
-        auto newApply = builder.create<quake::ApplyOp>(
+        auto newApply = quake::ApplyOp::create(builder, 
             apply.getLoc(), apply.getResultTypes(), apply.getCalleeAttr(),
             apply.getIsAdjAttr(), newControls, apply.getArgs());
         apply->replaceAllUsesWith(newApply.getResults());
@@ -596,7 +596,7 @@ public:
   static Value createIntConstant(OpBuilder &builder, Location loc, Type ty,
                                  std::int64_t val) {
     auto attr = builder.getIntegerAttr(ty, val);
-    return builder.create<arith::ConstantOp>(loc, attr, ty);
+    return arith::ConstantOp::create(builder, loc, ty, attr);
   }
 
   /// Clone the LoopOp, \p loop, and return a new LoopOp that runs the loop
@@ -622,31 +622,31 @@ public:
     auto zero = createIntConstant(builder, loc, newStepVal.getType(), 0);
     if (!stepIsAnAddOp) {
       // Negate the step value when arith.subi.
-      newStepVal = builder.create<arith::SubIOp>(loc, zero, newStepVal);
+      newStepVal = arith::SubIOp::create(builder, loc, zero, newStepVal);
     }
-    Value iters = builder.create<arith::SubIOp>(
+    Value iters = arith::SubIOp::create(builder, 
         loc, newTermVal, loop.getInitialArgs()[loopComponents->induction]);
     auto cmpOp = cast<arith::CmpIOp>(loopComponents->compareOp);
     auto pred = cmpOp.getPredicate();
     auto one = createIntConstant(builder, loc, iters.getType(), 1);
     if (cudaq::opt::isSemiOpenPredicate(pred)) {
-      Value negStepCond = builder.create<arith::CmpIOp>(
+      Value negStepCond = arith::CmpIOp::create(builder, 
           loc, arith::CmpIPredicate::slt, newStepVal, zero);
       auto negOne = createIntConstant(builder, loc, iters.getType(), -1);
-      Value adj = builder.create<arith::SelectOp>(loc, iters.getType(),
+      Value adj = arith::SelectOp::create(builder, loc, iters.getType(),
                                                   negStepCond, one, negOne);
-      iters = builder.create<arith::AddIOp>(loc, iters, adj);
+      iters = arith::AddIOp::create(builder, loc, iters, adj);
     }
-    iters = builder.create<arith::AddIOp>(loc, iters, newStepVal);
-    iters = builder.create<arith::DivSIOp>(loc, iters, newStepVal);
-    Value noLoopCond = builder.create<arith::CmpIOp>(
+    iters = arith::AddIOp::create(builder, loc, iters, newStepVal);
+    iters = arith::DivSIOp::create(builder, loc, iters, newStepVal);
+    Value noLoopCond = arith::CmpIOp::create(builder, 
         loc, arith::CmpIPredicate::sgt, iters, zero);
-    iters = builder.create<arith::SelectOp>(loc, iters.getType(), noLoopCond,
+    iters = arith::SelectOp::create(builder, loc, iters.getType(), noLoopCond,
                                             iters, zero);
-    Value lastIter = builder.create<arith::SubIOp>(loc, iters, one);
-    Value nStep = builder.create<arith::MulIOp>(loc, lastIter, newStepVal);
+    Value lastIter = arith::SubIOp::create(builder, loc, iters, one);
+    Value nStep = arith::MulIOp::create(builder, loc, lastIter, newStepVal);
     Value newInitVal =
-        builder.create<arith::AddIOp>(loc, loopComponents->initialValue, nStep);
+        arith::AddIOp::create(builder, loc, loopComponents->initialValue, nStep);
 
     // Create the list of input arguments to loop. We're going to add an
     // argument to the end that is the number of iterations left to execute.
@@ -661,8 +661,8 @@ public:
     // through the new argument. In the stepRegion, decrement the new argument
     // by 1 and convert the original step expression to be a negative step.
     IRRewriter rewriter(builder);
-    return rewriter.create<cudaq::cc::LoopOp>(
-        loc, ValueRange{inputs}.getTypes(), inputs, /*postCondition=*/false,
+    return cudaq::cc::LoopOp::create(
+        rewriter, loc, ValueRange{inputs}.getTypes(), inputs, /*postCondition=*/false,
         [&](OpBuilder &builder, Location loc, Region &region) {
           IRMapping dummyMap;
           loop.getWhileRegion().cloneInto(&region, dummyMap);
@@ -676,7 +676,7 @@ public:
           Value trip = block.getArguments().back();
           args.push_back(trip);
           auto zero = createIntConstant(builder, loc, trip.getType(), 0);
-          auto newCond = rewriter.create<arith::CmpIOp>(
+          auto newCond = arith::CmpIOp::create(rewriter, 
               loc, arith::CmpIPredicate::sgt, trip, zero);
           rewriter.replaceOpWithNewOp<cudaq::cc::ConditionOp>(condOp, newCond,
                                                               args);
@@ -707,14 +707,14 @@ public:
           auto *stepOp = contOp.getOperand(0).getDefiningOp();
           auto newBump = [&]() -> Value {
             if (stepIsAnAddOp)
-              return rewriter.create<arith::SubIOp>(
+              return arith::SubIOp::create(rewriter, 
                   loc, stepOp->getOperand(commuteTheAddOp ? 1 : 0),
                   stepOp->getOperand(commuteTheAddOp ? 0 : 1));
-            return rewriter.create<arith::AddIOp>(loc, stepOp->getOperands());
+            return arith::AddIOp::create(rewriter, loc, stepOp->getOperands());
           }();
           args[loopComponents->induction] = newBump;
           auto one = createIntConstant(rewriter, loc, iters.getType(), 1);
-          args.push_back(rewriter.create<arith::SubIOp>(
+          args.push_back(arith::SubIOp::create(rewriter, 
               loc, entry.getArguments().back(), one));
           rewriter.replaceOpWithNewOp<cudaq::cc::ContinueOp>(contOp, args);
         });
@@ -766,13 +766,13 @@ public:
       bool opWasNegated = false;
       IRMapping mapper;
       LLVM_DEBUG(llvm::dbgs() << "moving quantum op: " << *op << ".\n");
-      auto arrAttr = op->getAttr(segmentSizes).cast<DenseI32ArrayAttr>();
+      auto arrAttr = cast<DenseI32ArrayAttr>(op->getAttr(segmentSizes));
       // Walk over any floating-point parameters to `op` and negate them.
       for (auto iter = op->getOperands().begin(),
                 endIter = op->getOperands().begin() + arrAttr[0];
            iter != endIter; ++iter) {
         Value val = *iter;
-        Value neg = builder.create<arith::NegFOp>(loc, val.getType(), val);
+        Value neg = arith::NegFOp::create(builder, loc, val.getType(), val);
         mapper.map(val, neg);
         opWasNegated = true;
       }
@@ -814,7 +814,7 @@ public:
     auto *ctx = module.getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<ApplyOpPattern>(ctx, constantPropagation);
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    if (failed(applyPatternsGreedily(module, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After apply specialization:\n"
                             << module << "\n\n");

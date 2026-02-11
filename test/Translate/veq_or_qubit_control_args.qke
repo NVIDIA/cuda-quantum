@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -28,22 +28,21 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCno
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__function_toffoli
-// CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_2:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_4:.*]] = load %Qubit*, %Qubit** %[[VAL_2]], align 8
-// CHECK:         %[[VAL_5:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
-// CHECK:         %[[VAL_6:.*]] = load %Qubit*, %Qubit** %[[VAL_5]], align 8
-// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_4]])
-// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_6]])
-// CHECK:         %[[VAL_7:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 1)
-// CHECK:         %[[VAL_8:.*]] = bitcast %Qubit** %[[VAL_7]] to i8**
-// CHECK:         %[[VAL_9:.*]] = load i8*, i8** %[[VAL_8]], align 8
-// CHECK:         %[[VAL_10:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_11:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_10]], i64 0)
-// CHECK:         store %Qubit* %[[VAL_4]], %Qubit** %[[VAL_11]], align 8
-// CHECK:         %[[VAL_12:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%Array* %[[VAL_10]])
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), i64 %[[VAL_12]], %Array* %[[VAL_10]], i8* %[[VAL_9]], %Qubit* %[[VAL_6]])
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_5]], align 8
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_4]])
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_6]])
+// CHECK:         %[[VAL_7:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_9:.*]] = load ptr, ptr %[[VAL_7]], align 8
+// CHECK:         %[[VAL_10:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_11:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_10]], i64 0)
+// CHECK:         store ptr %[[VAL_4]], ptr %[[VAL_11]], align 8
+// CHECK:         %[[VAL_12:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(ptr %[[VAL_10]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, i64 %[[VAL_12]], ptr %[[VAL_10]], ptr %[[VAL_9]], ptr %[[VAL_6]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
 

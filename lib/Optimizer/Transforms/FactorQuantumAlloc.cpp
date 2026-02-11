@@ -41,7 +41,7 @@ public:
 
     // 1. Split the aggregate veq into a sequence of distinct alloca of ref.
     for (std::size_t i = 0; i < size; ++i)
-      newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
+      newAllocs.emplace_back(quake::AllocaOp::create(rewriter, loc, refTy));
 
     std::function<LogicalResult(Operation *, std::int64_t)> rewriteOpAndUsers =
         [&](Operation *op, std::int64_t start) -> LogicalResult {
@@ -51,7 +51,7 @@ public:
           rewriter.setInsertionPoint(dealloc);
           auto deloc = dealloc.getLoc();
           for (std::size_t i = 0; i < size - 1; ++i)
-            rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
+            quake::DeallocOp::create(rewriter, deloc, newAllocs[i]);
           rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
                                                         newAllocs[size - 1]);
           continue;
@@ -110,8 +110,8 @@ public:
 
     // 1. Split the aggregate veq into a sequence of distinct dealloc of ref.
     for (std::size_t i = 0; i < size; ++i) {
-      Value r = rewriter.create<quake::ExtractRefOp>(loc, veq, i);
-      rewriter.create<quake::DeallocOp>(loc, r);
+      Value r = quake::ExtractRefOp::create(rewriter, loc, veq, i);
+      quake::DeallocOp::create(rewriter, loc, r);
     }
 
     // 2. Remove the original dealloc operation.

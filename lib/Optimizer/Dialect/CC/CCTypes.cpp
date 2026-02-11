@@ -85,22 +85,14 @@ void cc::StructType::print(AsmPrinter &printer) const {
   printer << '>';
 }
 
-unsigned
+llvm::TypeSize
 cc::StructType::getTypeSizeInBits(const DataLayout &dataLayout,
                                   DataLayoutEntryListRef params) const {
-  return static_cast<unsigned>(getBitSize());
+  return llvm::TypeSize::getFixed(getBitSize());
 }
 
-unsigned cc::StructType::getABIAlignment(const DataLayout &dataLayout,
-                                         DataLayoutEntryListRef params) const {
-  return getAlignment();
-}
-
-unsigned
-cc::StructType::getPreferredAlignment(const DataLayout &dataLayout,
-                                      DataLayoutEntryListRef params) const {
-  // No distinction between ABI and preferred alignments for now. Clang just
-  // gives us an alignment value.
+std::uint64_t cc::StructType::getABIAlignment(const DataLayout &dataLayout,
+                                              DataLayoutEntryListRef params) const {
   return getAlignment();
 }
 

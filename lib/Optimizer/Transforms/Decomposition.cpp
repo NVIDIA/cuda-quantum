@@ -103,7 +103,7 @@ struct Decomposition
     // Process kernels in parallel
     LogicalResult rewriteResult = failableParallelForEach(
         module.getContext(), kernels, [&](Operation *op) {
-          LogicalResult converged = applyPatternsAndFoldGreedily(op, patterns);
+          LogicalResult converged = applyPatternsGreedily(op, patterns);
 
           // Decomposition is best-effort. Non-convergence is only a pass
           // failure if the user asked for convergence.

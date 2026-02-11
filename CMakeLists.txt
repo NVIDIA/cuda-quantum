@@ -118,7 +118,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if(NOT LLVM_VERSION_MAJOR)
-  set(LLVM_VERSION_MAJOR 16)
+  set(LLVM_VERSION_MAJOR 22)
 endif()
 
 find_package(Git QUIET)
@@ -696,7 +696,13 @@ if (CUDAQ_ENABLE_PYTHON)
 endif()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
-  umbrella_lit_testsuite_begin(check-all)
+  # Create imported targets for test dependencies (before umbrella_lit_testsuite_begin)
+if(NOT TARGET FileCheck)
+  add_executable(FileCheck IMPORTED)
+  set_target_properties(FileCheck PROPERTIES IMPORTED_LOCATION "/usr/local/llvm/bin/FileCheck")
+endif()
+
+umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)

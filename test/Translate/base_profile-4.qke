@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -48,18 +48,18 @@ func.func @sans_combine() {
 }
 
 // CHECK-LABEL: define void @sans_combine()
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_1:.*]]* null)
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* null, %[[VAL_1]]* nonnull inttoptr (i64 3 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__rx__body(double 4.300000e-01, %[[VAL_1]]* null)
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*), %[[VAL_1]]* nonnull inttoptr (i64 5 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__rx__body(double 3.300000e-01, %[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_1]]* null)
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* null, %[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__rx__body(double 7.300000e-01, %[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_1]]* null, %[[VAL_2:.*]]* null)
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*), %[[VAL_2]]* nonnull inttoptr (i64 1 to %[[VAL_2]]*))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_2]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_2]]* nonnull inttoptr (i64 1 to %[[VAL_2]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__qis__h__body(ptr null)
+// CHECK:         tail call void @__quantum__qis__cnot__body(ptr null, ptr nonnull inttoptr (i64 3 to ptr))
+// CHECK:         tail call void @__quantum__qis__rx__body(double 4.300000e-01, ptr null)
+// CHECK:         tail call void @__quantum__qis__h__body(ptr nonnull inttoptr (i64 4 to ptr))
+// CHECK:         tail call void @__quantum__qis__cnot__body(ptr nonnull inttoptr (i64 4 to ptr), ptr nonnull inttoptr (i64 5 to ptr))
+// CHECK:         tail call void @__quantum__qis__rx__body(double 3.300000e-01, ptr nonnull inttoptr (i64 4 to ptr))
+// CHECK:         tail call void @__quantum__qis__h__body(ptr null)
+// CHECK:         tail call void @__quantum__qis__cnot__body(ptr null, ptr nonnull inttoptr (i64 4 to ptr))
+// CHECK:         tail call void @__quantum__qis__rx__body(double 7.300000e-01, ptr nonnull inttoptr (i64 2 to ptr))
+// CHECK:         tail call void @__quantum__qis__mz__body(ptr null, ptr null)
+// CHECK:         tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 2 to ptr), ptr nonnull inttoptr (i64 1 to ptr))
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr null, ptr nonnull @cstr.{{.*}})
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull @cstr.{{.*}})
 // CHECK:         ret void
 

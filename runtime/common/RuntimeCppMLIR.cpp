@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/InitAllPasses.h"
-#include "llvm/Support/Host.h"
+#include "llvm/TargetParser/Host.h"
 #include "llvm/Support/TargetSelect.h"
 
 namespace cudaq {

@@ -58,7 +58,9 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = [
-    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::arith::ArithDialect", "mlir::complex::ComplexDialect",
+    "cudaq::cc::CCDialect"
   ];
 }
 
@@ -128,6 +130,7 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
   let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
@@ -196,7 +199,8 @@ def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
     the code to CC dialect with QIR calls, etc.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+      "mlir::func::FuncDialect", "mlir::arith::ArithDialect"];
   let options = [
     Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
            "Select the profile to convert wire sets to.">
@@ -290,7 +294,8 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
     of executions and eliminating the overhead of executing the kernel one at
     a time with all the interprocessor overhead.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+      "mlir::arith::ArithDialect"];
 }
 
 

@@ -26,6 +26,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 
 using namespace llvm;
@@ -79,6 +80,7 @@ int main(int argc, char **argv) {
   cudaq::registerAllDialects(registry);
   registry.insert<cudaq::codegen::CodeGenDialect>();
   registerInlinerExtension(registry);
+  mlir::func::registerInlinerExtension(registry);
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "nvq++ optimizer\n", registry));
 }

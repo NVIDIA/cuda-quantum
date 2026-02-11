@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/IR/DataLayout.h"
+#include "llvm/IR/LLVMContext.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Parser/Parser.h"

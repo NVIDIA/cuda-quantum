@@ -22,6 +22,6 @@ struct testApplyNoise {
     cudaq::qubit q0, q1;
     // expected-error@+1{{no matching function for call to 'apply_noise'}}
     cudaq::apply_noise<SantaKraus>(q0, q1);
-    // expected-note@* 2-3 {{}}
+    // expected-note@* 2-7 {{}}
   }
 };

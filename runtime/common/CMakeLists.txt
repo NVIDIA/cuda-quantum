@@ -149,6 +149,8 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
+    MLIRFuncInlinerExtension
+    MLIRLLVMIRTransforms
   PRIVATE
     CUDAQTargetConfigUtil
     cudaq-logger

@@ -32,7 +32,7 @@ struct AllocaPat : public OpRewritePattern<quake::AllocaOp> {
                                 PatternRewriter &rewriter) const override {
     if (isa<quake::VeqType>(alloc.getType()))
       return failure();
-    Value newAlloc = rewriter.create<quake::AllocaOp>(alloc.getLoc(), 1u);
+    Value newAlloc = quake::AllocaOp::create(rewriter, alloc.getLoc(), 1u);
     rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(alloc, newAlloc, 0u);
     return success();
   }
@@ -49,7 +49,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaPat>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(op, std::move(patterns)))) {
       op->emitOpError("could not promote allocations");
       signalPassFailure();
     }

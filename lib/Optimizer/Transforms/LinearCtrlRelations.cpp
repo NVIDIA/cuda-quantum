@@ -148,7 +148,7 @@ public:
     DominanceInfo domInfo(func);
     RewritePatternSet patterns(ctx);
     patterns.insert<ThreadControl>(ctx, domInfo);
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+    if (failed(applyPatternsGreedily(func.getOperation(),
                                             std::move(patterns)))) {
       signalPassFailure();
     }

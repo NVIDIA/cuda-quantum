@@ -354,7 +354,7 @@ static LogicalResult emitOperation(Emitter &emitter, Operation &op) {
       .Case<cudaq::cc::ComputePtrOp>([&](auto op) { return success(); })
       .Case<quake::DiscriminateOp>([&](auto op) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
-        if (op.getName().getDialectNamespace().equals("llvm"))
+        if (op.getName().getDialectNamespace() == "llvm")
           return success();
         return op.emitOpError("unable to translate op to OpenQASM 2.0");
       });

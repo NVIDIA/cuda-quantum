@@ -38,13 +38,13 @@ struct testApplyNoise {
 // CHECK:         }
 
 // QIR-LABEL: define void @__nvqpp__mlirgen__testApplyNoise() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
-// QIR:         %[[VAL_2:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
-// QIR:         %[[VAL_4:.*]] = load %Qubit*, %Qubit** %[[VAL_2]], align 8
-// QIR:         %[[VAL_5:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 1)
-// QIR:         %[[VAL_6:.*]] = load %Qubit*, %Qubit** %[[VAL_5]], align 8
-// QIR:         tail call void @_ZN5cudaq11apply_noise{{.*}}SantaKraus{{.*}}(%Qubit* %[[VAL_4]], %Qubit* %[[VAL_6]])
-// QIR:         tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// QIR:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 2)
+// QIR:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
+// QIR:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// QIR:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 1)
+// QIR:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_5]], align 8
+// QIR:         tail call void @_ZN5cudaq11apply_noise{{.*}}SantaKraus{{.*}}(ptr %[[VAL_4]], ptr %[[VAL_6]])
+// QIR:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
 // QIR:         ret void
 // QIR:       }
 // clang-format on
@@ -80,15 +80,15 @@ struct testApplyMoreNoise {
 // CHECK:         }
 
 // QIR-LABEL: define void @__nvqpp__mlirgen__testApplyMoreNoise() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 1)
+// QIR:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 1)
 // QIR:         %[[VAL_2:.*]] = alloca double, align 8
-// QIR:         store double 4.000000e+00, double* %[[VAL_2]], align 8
+// QIR:         store double 4.000000e+00, ptr %[[VAL_2]], align 8
 // QIR:         %[[VAL_3:.*]] = alloca float, align 4
-// QIR:         store float 5.000000e+00, float* %[[VAL_3]], align 4
-// QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
-// QIR:         %[[VAL_6:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_4]], align 8
-// QIR:         call void @_ZN5cudaq11apply_noise{{.*}}SarahKraus{{.*}}(double* nonnull %[[VAL_2]], float* nonnull %[[VAL_3]], %[[VAL_5]]* %[[VAL_6]])
-// QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// QIR:         store float 5.000000e+00, ptr %[[VAL_3]], align 4
+// QIR:         %[[VAL_4:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
+// QIR:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_4]], align 8
+// QIR:         call void @_ZN5cudaq11apply_noise{{.*}}SarahKraus{{.*}}(ptr nonnull %[[VAL_2]], ptr nonnull %[[VAL_3]], ptr %[[VAL_6]])
+// QIR:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
 // QIR:         ret void
 // QIR:       }
 // clang-format on

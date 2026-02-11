@@ -111,7 +111,7 @@ struct AddWiresetPass
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     OpBuilder builder(mod.getBodyRegion());
-    auto wireSetOp = builder.create<quake::WireSetOp>(
+    auto wireSetOp = quake::WireSetOp::create(builder, 
         builder.getUnknownLoc(), cudaq::opt::topologyAgnosticWiresetName,
         INT_MAX, ElementsAttr{});
     wireSetOp.setPrivate();

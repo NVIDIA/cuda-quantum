@@ -75,7 +75,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     {cudaq::runtime::deviceCodeHolderAdd, {}, R"#(
-  llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+  llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 )#"},
 
     {cudaq::runtime::getLinkableKernelKey, {}, R"#(
@@ -220,7 +220,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %false = arith.constant false
     %to0 = cc.cast %dest : (!cc.ptr<i64>) -> !cc.ptr<i8>
     %from0 = cc.cast %src : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i8>
-    call @llvm.memcpy.p0i8.p0i8.i64(%to0, %from0, %len, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%to0, %from0, %len, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return
   }
 )#"},
@@ -272,11 +272,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %3 = call @malloc(%2) : (i64) -> !cc.ptr<i8>
     %10 = cc.cast %3 : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%3, %arg0, %arg1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%3, %arg0, %arg1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %4 = cc.compute_ptr %arg2[0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
     %5 = cc.load %4 : !cc.ptr<!cc.ptr<i8>>
     %6 = cc.compute_ptr %10[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-    call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
     %8 = cc.insert_value %7[0], %3 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
     %9 = cc.insert_value %8[1], %2 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -397,7 +397,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%0, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%0, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return %0 : !cc.ptr<i8>
   }
 )#"},
@@ -408,7 +408,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {"__nvqpp_vectorCopyToStack", {cudaq::llvmMemCopyIntrinsic, "free"}, R"#(
   func.func private @__nvqpp_vectorCopyToStack(%to: !cc.ptr<i8>, %from: !cc.ptr<i8>, %size: i64) {
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%to, %from, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%to, %from, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     call @free(%from) : (!cc.ptr<i8>) -> ()
     return
   })#"},
@@ -483,7 +483,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      "func.func private @cudaqRegisterKernelName(!cc.ptr<i8>) -> ()"},
 
     {cudaq::runtime::CudaqRegisterLambdaName, {}, R"#(
-  llvm.func @cudaqRegisterLambdaName(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 )#"},
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
@@ -494,15 +494,15 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 )#"},
 
-    // llvm.memcpy.p0i8.p0i8.i64
+    // llvm.memcpy.p0.p0.i64
     {cudaq::llvmMemCopyIntrinsic, {}, R"#(
-  func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+  func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 )#"},
 
-    {cudaq::llvmMemSetIntrinsic, // llvm.memset.p0i8.i64
+    {cudaq::llvmMemSetIntrinsic, // llvm.memset.p0.i64
      {},
      R"#(
-  func.func private @llvm.memset.p0i8.i64(!cc.ptr<i8>, i8, i64, i1) -> ())#"},
+  func.func private @llvm.memset.p0.i64(!cc.ptr<i8>, i8, i64, i1) -> ())#"},
 
     // NB: load llvmStackSave to get both.
     {cudaq::llvmStackRestore,
@@ -629,7 +629,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_qubit = !cc.ptr<none>
   !qir_result = !cc.ptr<none>
   !qir_charptr = !cc.ptr<none>
-  !qir_llvmptr = !llvm.ptr<i8>
+  !qir_llvmptr = !llvm.ptr
 )#"},
     // Use the obsolete LLVM opaque struct type.
     {"qir_opaque_struct", {}, R"#(
@@ -637,7 +637,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_qubit = !cc.ptr<!llvm.struct<"Qubit", opaque>>
   !qir_result = !cc.ptr<!llvm.struct<"Result", opaque>>
   !qir_charptr = !cc.ptr<i8>
-  !qir_llvmptr = !llvm.ptr<i8>
+  !qir_llvmptr = !llvm.ptr
 )#"},
 
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
@@ -678,7 +678,7 @@ LLVM::GlobalOp IRBuilder::genCStringLiteral(Location loc, ModuleOp module,
   auto stringAttr = getStringAttr(cstring);
   OpBuilder::InsertionGuard guard(*this);
   setInsertionPointToEnd(module.getBody());
-  return create<LLVM::GlobalOp>(loc, cstringTy, /*isConstant=*/true,
+  return LLVM::GlobalOp::create(*this, loc, cstringTy, /*isConstant=*/true,
                                 LLVM::Linkage::Private, uniqName, stringAttr,
                                 /*alignment=*/0);
 }
@@ -806,9 +806,9 @@ static cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
   builder.setInsertionPointToEnd(module.getBody());
   auto globalTy = cc::ArrayType::get(ctx, eleTy, arrayAttr.size());
   auto global =
-      builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
-                                          /*constant=*/true,
-                                          /*external=*/false);
+      cudaq::cc::GlobalOp::create(builder, loc, globalTy, name, arrayAttr,
+                                  /*constant=*/true,
+                                  /*external=*/false);
   global.setPrivate();
   return global;
 }

@@ -55,7 +55,7 @@ std::pair<std::string, size_t> parseGateSpec(StringRef gateSpec) {
   StringRef numStr = gateSpec.substr(pos + 1);
   size_t numControls = 0;
 
-  if (numStr.startswith("n")) {
+  if (numStr.starts_with("n")) {
     // Arbitrary number of controls - use a reasonable test value
     numControls = std::numeric_limits<size_t>::max();
   } else {
@@ -82,7 +82,7 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
   }
 
   OpBuilder builder(context);
-  auto module = builder.create<ModuleOp>(builder.getUnknownLoc());
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
   builder.setInsertionPointToEnd(module.getBody());
 
   // Create function type: (qubits...) -> ()
@@ -94,8 +94,8 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
   auto funcType = builder.getFunctionType(inputTypes, {});
 
   // Create function
-  auto func = builder.create<func::FuncOp>(builder.getUnknownLoc(), "test_func",
-                                           funcType);
+  auto func = func::FuncOp::create(builder.getUnknownLoc(), "test_func",
+                                   funcType);
   auto *entry = func.addEntryBlock();
   builder.setInsertionPointToStart(entry);
 
@@ -113,55 +113,55 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
                                                         builder.getF64Type());
 
   if (gateName == "h") {
-    builder.create<quake::HOp>(loc, controls, target);
+    quake::HOp::create(builder, loc, controls, target);
   } else if (gateName == "s") {
-    builder.create<quake::SOp>(loc, controls, target);
+    quake::SOp::create(builder, loc, controls, target);
   } else if (gateName == "t") {
-    builder.create<quake::TOp>(loc, controls, target);
+    quake::TOp::create(builder, loc, controls, target);
   } else if (gateName == "x") {
-    builder.create<quake::XOp>(loc, controls, target);
+    quake::XOp::create(builder, loc, controls, target);
   } else if (gateName == "y") {
-    builder.create<quake::YOp>(loc, controls, target);
+    quake::YOp::create(builder, loc, controls, target);
   } else if (gateName == "z") {
-    builder.create<quake::ZOp>(loc, controls, target);
+    quake::ZOp::create(builder, loc, controls, target);
   } else if (gateName == "rx") {
-    builder.create<quake::RxOp>(loc, ValueRange{pi_2}, controls, target);
+    quake::RxOp::create(builder, loc, ValueRange{pi_2}, controls, target);
   } else if (gateName == "ry") {
-    builder.create<quake::RyOp>(loc, ValueRange{pi_2}, controls, target);
+    quake::RyOp::create(builder, loc, ValueRange{pi_2}, controls, target);
   } else if (gateName == "rz") {
-    builder.create<quake::RzOp>(loc, ValueRange{pi_2}, controls, target);
+    quake::RzOp::create(builder, loc, ValueRange{pi_2}, controls, target);
   } else if (gateName == "r1") {
-    builder.create<quake::R1Op>(loc, ValueRange{pi_2}, controls, target);
+    quake::R1Op::create(builder, loc, ValueRange{pi_2}, controls, target);
   } else if (gateName == "u3") {
-    builder.create<quake::U3Op>(loc, ValueRange{pi_2, pi_2, pi_2}, controls,
-                                target);
+    quake::U3Op::create(builder, loc, ValueRange{pi_2, pi_2, pi_2}, controls,
+                        target);
   } else if (gateName == "phased_rx") {
-    builder.create<quake::PhasedRxOp>(loc, ValueRange{{pi_2, pi_2}}, controls,
-                                      target);
+    quake::PhasedRxOp::create(builder, loc, ValueRange{{pi_2, pi_2}}, controls,
+                              target);
   } else if (gateName == "swap") {
     // Swap needs 2 targets
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
-    builder.create<quake::SwapOp>(loc, ValueRange{target, target2});
+    quake::SwapOp::create(builder, loc, ValueRange{}, ValueRange{target, target2});
   } else if (gateName == "exp_pauli") {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
     // Create a veq from the two target qubits using ConcatOp
     SmallVector<Value> targetValues = {target, target2};
-    Value qubitsVal = builder.create<quake::ConcatOp>(
-        loc, quake::VeqType::get(builder.getContext(), 2), targetValues);
+    Value qubitsVal = quake::ConcatOp::create(
+        builder, loc, quake::VeqType::get(builder.getContext(), 2), targetValues);
 
-    builder.create<quake::ExpPauliOp>(loc,
-                                      /* parameters = */ ValueRange{pi_2},
-                                      /* controls = */ ValueRange{},
-                                      /* targets = */ qubitsVal,
-                                      /* pauliLiteral = */ "XX");
+    quake::ExpPauliOp::create(builder, loc,
+                              /* parameters = */ ValueRange{pi_2},
+                              /* controls = */ ValueRange{},
+                              /* targets = */ qubitsVal,
+                              /* pauliLiteral = */ "XX");
   } else {
     // Unsupported gate for this test
     ADD_FAILURE() << "unknown gate: " << gateName;
   }
 
-  builder.create<func::ReturnOp>(loc);
+  func::ReturnOp::create(builder, loc);
   return module;
 }
 
@@ -297,8 +297,7 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
     // Apply the decomposition pass with only this pattern enabled
     PassManager pm(context.get());
     cudaq::opt::DecompositionPassOptions options;
-    std::string ownedEnabledPatterns[]{patternName};
-    options.enabledPatterns = ownedEnabledPatterns;
+    options.enabledPatterns = llvm::SmallVector<std::string>{patternName};
     pm.addPass(cudaq::opt::createDecompositionPass(options));
 
     // Run the pass

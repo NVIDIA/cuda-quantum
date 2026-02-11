@@ -12,6 +12,11 @@
 // These transforms can generally be thought of as "optimizations" or "rewrites"
 // on the IR.
 
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -47,7 +52,7 @@ void createTargetFinalizePipeline(mlir::OpPassManager &pm);
 /// crashes.
 void addDecompositionPass(
     mlir::OpPassManager &pm, mlir::ArrayRef<std::string> enabledPats,
-    mlir::ArrayRef<std::string> disabledPats = std::nullopt);
+    mlir::ArrayRef<std::string> disabledPats = {});
 
 void registerAOTPipelines();
 void registerJITPipelines();
@@ -77,9 +82,6 @@ createQuakeSynthesizer(std::string_view, const void *,
 std::unique_ptr<mlir::Pass>
 createPySynthCallableBlockArgs(const llvm::SmallVector<llvm::StringRef> &,
                                bool removeBlockArg = false);
-inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
-  return createPySynthCallableBlockArgs({}, false);
-}
 
 /// Helper function to build an argument synthesis pass. The names of the
 /// functions and the substitutions text can be built as an unzipped pair of

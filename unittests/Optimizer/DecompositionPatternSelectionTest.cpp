@@ -37,6 +37,10 @@ public:
       : mlir::RewritePattern(patternName, 0, context, {}) {
     setDebugName(patternName);
   }
+  LogicalResult matchAndRewrite(Operation *op,
+                                PatternRewriter &rewriter) const override {
+    return failure();
+  }
 };
 
 /// A mock pattern type for testing.
@@ -144,7 +148,7 @@ protected:
 
     // Create a function to hold the operation
     auto funcType = builder.getFunctionType({}, {});
-    auto func = builder.create<func::FuncOp>(loc, "test_func", funcType);
+    auto func = func::FuncOp::create(builder, loc, "test_func", funcType);
     auto *entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
 
@@ -152,14 +156,14 @@ protected:
     SmallVector<Value> controls;
     auto wireType = quake::WireType::get(context.get());
     for (unsigned i = 0; i < nCtrls; ++i) {
-      auto qubit = builder.create<quake::AllocaOp>(loc, wireType);
+      auto qubit = quake::AllocaOp::create(builder, loc, wireType);
       controls.push_back(qubit.getResult());
     }
-    auto targetQubit = builder.create<quake::AllocaOp>(loc, wireType);
+    auto targetQubit = quake::AllocaOp::create(builder, loc, wireType);
     SmallVector<Value> targets{targetQubit};
 
     // Create the operation of type Op with the qubits
-    auto op = builder.create<Op>(loc, controls, targets);
+    auto op = Op::create(builder, loc, controls, targets);
 
     // Get the operation pointer and check if it is legal
     Operation *operation_ptr = op.getOperation();

@@ -29,7 +29,7 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
     // Value semantics
     auto wireTy = quake::WireType::get(builder.getContext());
     if (basis == MeasureBasis::X) {
-      auto newOp = builder.create<quake::HOp>(
+      auto newOp = quake::HOp::create(builder, 
           loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{}, ValueRange{},
           targets, DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
@@ -37,8 +37,8 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
     } else if (basis == MeasureBasis::Y) {
       llvm::APFloat d(M_PI_2);
       Value rotation =
-          builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
-      auto newOp = builder.create<quake::RxOp>(
+          arith::ConstantFloatOp::create(builder, loc, builder.getF64Type(), d);
+      auto newOp = quake::RxOp::create(builder, 
           loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{rotation},
           ValueRange{}, ValueRange{qubit}, DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
@@ -47,13 +47,13 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
   } else {
     // Reference semantics
     if (basis == MeasureBasis::X) {
-      builder.create<quake::HOp>(loc, ValueRange{}, targets);
+      quake::HOp::create(builder, loc, ValueRange{}, targets);
     } else if (basis == MeasureBasis::Y) {
       llvm::APFloat d(M_PI_2);
       Value rotation =
-          builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
+          arith::ConstantFloatOp::create(builder, loc, builder.getF64Type(), d);
       SmallVector<Value> params{rotation};
-      builder.create<quake::RxOp>(loc, params, ValueRange{}, targets);
+      quake::RxOp::create(builder, loc, params, ValueRange{}, targets);
     }
   }
 }
@@ -304,7 +304,7 @@ public:
         auto veqOp = seekIndexed->second.first;
         auto index = seekIndexed->second.second;
         auto extractRef =
-            builder.create<quake::ExtractRefOp>(loc, veqOp, index);
+            quake::ExtractRefOp::create(builder, loc, veqOp, index);
         qubitVal = extractRef.getResult();
       } else {
         qubitVal = seek->second;
@@ -321,18 +321,18 @@ public:
 
     auto measTy = quake::MeasureType::get(builder.getContext());
     auto wireTy = quake::WireType::get(builder.getContext());
-    for (auto &[measureNum, qubitToMeasure] :
+    for (const auto &[measureNum, qubitToMeasure] :
          llvm::enumerate(qubitsToMeasure)) {
       // add the measure
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
       if (quake::isLinearType(qubitToMeasure.getType())) {
-        auto newOp = builder.create<quake::MzOp>(
+        auto newOp = quake::MzOp::create(builder, 
             loc, TypeRange{measTy, wireTy}, ValueRange{qubitToMeasure},
             builder.getStringAttr(regName));
         qubitToMeasure.replaceAllUsesExcept(newOp.getResult(1), newOp);
       } else {
-        builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
+        quake::MzOp::create(builder, loc, measTy, qubitToMeasure,
                                     builder.getStringAttr(regName));
       }
     }

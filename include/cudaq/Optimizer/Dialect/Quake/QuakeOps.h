@@ -34,17 +34,17 @@ void getResetEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    mlir::ValueRange targets);
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
 void getMeasurementEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    mlir::ValueRange targets);
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
 void getOperatorEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    mlir::ValueRange controls, mlir::ValueRange targets);
+    llvm::MutableArrayRef<mlir::OpOperand> controls, llvm::MutableArrayRef<mlir::OpOperand> targets);
 
 mlir::ParseResult genericOpParse(mlir::OpAsmParser &parser,
                                  mlir::OperationState &result);

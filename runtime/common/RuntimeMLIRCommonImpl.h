@@ -29,12 +29,13 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
-#include "llvm/Support/Host.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -53,7 +54,7 @@ void initializeLangMLIR();
 
 bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
-  auto targetTriple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple targetTriple(llvm::sys::getDefaultTargetTriple());
   std::string errorMessage;
   const auto *target =
       llvm::TargetRegistry::lookupTarget(targetTriple, errorMessage);
@@ -62,11 +63,10 @@ bool setupTargetTriple(llvm::Module *llvmModule) {
 
   std::string cpu(llvm::sys::getHostCPUName());
   llvm::SubtargetFeatures features;
-  llvm::StringMap<bool> hostFeatures;
+  llvm::StringMap<bool> hostFeatures = llvm::sys::getHostCPUFeatures();
 
-  if (llvm::sys::getHostCPUFeatures(hostFeatures))
-    for (auto &f : hostFeatures)
-      features.AddFeature(f.first(), f.second);
+  for (auto &f : hostFeatures)
+    features.AddFeature(f.first(), f.second);
 
   std::unique_ptr<llvm::TargetMachine> machine(target->createTargetMachine(
       targetTriple, cpu, features.getString(), {}, {}));
@@ -221,10 +221,9 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
   int iArg = 0;
   for (auto &arg : callInst->args()) {
     auto myArg = arg->getType();
-    auto ptrTy = dyn_cast_or_null<llvm::PointerType>(myArg);
-    // If we're dealing with the i8* parameters
-    if (ptrTy != nullptr &&
-        ptrTy->getNonOpaquePointerElementType()->isIntegerTy(8)) {
+    auto ptrTy = dyn_cast_if_present<llvm::PointerType>(myArg);
+    // If we're dealing with pointer parameters (opaque pointers)
+    if (ptrTy != nullptr) {
       // Verify that it has the nonnull attribute
       if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
         llvm::errs() << "error - nonnull attribute is missing from i8* "
@@ -392,7 +391,7 @@ static mlir::LogicalResult filterSpecificCodePatterns(llvm::Module *llvmModule,
         for (llvm::Instruction &inst : block)
           if (auto *call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
             auto *calledFunc = call->getCalledFunction();
-            auto name = calledFunc->getGlobalIdentifier();
+            auto name = calledFunc->getName();
             if (eraseStackBounding && calledFunc->isIntrinsic() &&
                 (name == cudaq::llvmStackSave ||
                  name == cudaq::llvmStackRestore))
@@ -527,7 +526,6 @@ mlir::LogicalResult qirProfileTranslationFunction(
   timingScope.stop();
 
   auto llvmContext = std::make_unique<llvm::LLVMContext>();
-  llvmContext->setOpaquePointers(false);
   auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
 
   // Apply required attributes for the Base Profile
@@ -782,35 +780,35 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
     mlir::OpBuilder builder(&block, block.begin());
     auto loc = builder.getUnknownLoc();
 
-    auto origMode = builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{boolTy}, isDynamicSymbol, mlir::ValueRange{});
+    auto origMode = mlir::LLVM::CallOp::create(
+        builder, loc, mlir::TypeRange{boolTy}, isDynamicSymbol,
+        mlir::ValueRange{});
 
     // Create constant op
     auto numQubitsVal =
         cudaq::opt::factory::genLlvmI64Constant(loc, builder, num_qubits);
-    auto falseVal = builder.create<mlir::LLVM::ConstantOp>(
-        loc, boolTy, builder.getI16IntegerAttr(false));
+    auto falseVal = mlir::LLVM::ConstantOp::create(
+        builder, loc, boolTy, builder.getI16IntegerAttr(false));
 
     // Invoke allocate function with constant op
-    auto qubitAlloc = builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{arrayQubitTy}, allocateSymbol,
+    auto qubitAlloc = mlir::LLVM::CallOp::create(
+        builder, loc, mlir::TypeRange{arrayQubitTy}, allocateSymbol,
         mlir::ValueRange{numQubitsVal.getResult()});
-    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
-                                       setDynamicSymbol,
-                                       mlir::ValueRange{falseVal.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               setDynamicSymbol,
+                               mlir::ValueRange{falseVal.getResult()});
 
     // At the end of the function, deallocate the qubits and restore the
     // simulator state.
     builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
-    builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{voidTy}, releaseSymbol,
+    mlir::LLVM::CallOp::create(
+        builder, loc, mlir::TypeRange{voidTy}, releaseSymbol,
         mlir::ValueRange{qubitAlloc.getResult()});
-    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
-                                       setDynamicSymbol,
-                                       mlir::ValueRange{origMode.getResult()});
-    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
-                                       clearResultMapsSymbol,
-                                       mlir::ValueRange{});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               setDynamicSymbol,
+                               mlir::ValueRange{origMode.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               clearResultMapsSymbol, mlir::ValueRange{});
   }
 }
 
@@ -829,14 +827,13 @@ JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
 
   mlir::ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
-  opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
+  opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   opts.llvmModuleBuilder =
       [convertTo = convertTo.str()](
           mlir::Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "createQIRJITEngine::llvmModuleBuilder");
-    llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
     mlir::PassManager pm(context);
@@ -900,7 +897,14 @@ JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to LLVM IR failed.");
 
-    mlir::ExecutionEngine::setupTargetTriple(llvmModule.get());
+    auto tmBuilderOrError =
+        llvm::orc::JITTargetMachineBuilder::detectHost();
+    if (tmBuilderOrError) {
+      auto tmOrError = tmBuilderOrError->createTargetMachine();
+      if (tmOrError)
+        mlir::ExecutionEngine::setupTargetTripleAndDataLayout(
+            llvmModule.get(), tmOrError.get().get());
+    }
     return llvmModule;
   };
 

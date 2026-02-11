@@ -9,6 +9,7 @@
 // This test is compiled inside the runtime directory tree. We include it as a
 // regression test and use FileCheck to verify the output.
 
+// REQUIRES: test_argument_conversion
 // RUN: test_argument_conversion | FileCheck %s
 
 #include "common/ArgumentConversion.h"

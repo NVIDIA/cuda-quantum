@@ -516,7 +516,7 @@ class PhaseStorage {
     auto rot_arg2 = rzop.getOperand(0);
     auto builder = OpBuilder(rzop);
     auto new_rot_arg =
-        builder.create<arith::AddFOp>(rzop.getLoc(), rot_arg1, rot_arg2);
+        arith::AddFOp::create(builder, rzop.getLoc(), rot_arg1, rot_arg2);
     rzop->setOperand(0, new_rot_arg.getResult());
     old_rzop.erase();
     rotations[prev_idx] = rzop;

@@ -50,7 +50,7 @@ std::optional<APFloat> cudaq::opt::factory::getDoubleIfConstant(Value value) {
 Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                                    bool useSizeOf) {
   auto createInt = [&](std::int32_t byteWidth) -> Value {
-    return builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
+    return arith::ConstantIntOp::create(builder, loc, byteWidth, 64);
   };
 
   // Handle primitive types with constant sizes.
@@ -91,7 +91,7 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
           return createInt(byteWidth);
         }
         if (useSizeOf)
-          return builder.create<cudaq::cc::SizeOfOp>(loc, builder.getI64Type(),
+          return cudaq::cc::SizeOfOp::create(builder, loc, builder.getI64Type(),
                                                      strTy);
         return {};
       })
@@ -103,7 +103,7 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
         if (!v)
           return {};
         auto scale = createInt(arrTy.getSize());
-        return builder.create<arith::MulIOp>(loc, builder.getI64Type(), v,
+        return arith::MulIOp::create(builder, loc, builder.getI64Type(), v,
                                              scale);
       })
       .Case([&](cudaq::cc::SpanLikeType) -> Value {
@@ -179,7 +179,7 @@ struct FuseAllocLength : public OpRewritePattern<cudaq::cc::AllocaOp> {
           Type oldTy = alloca.getElementType();
           auto arrTy = cudaq::cc::ArrayType::get(context, oldTy, *size);
           Type origTy = alloca.getType();
-          auto newAlloc = rewriter.create<cudaq::cc::AllocaOp>(loc, arrTy);
+          auto newAlloc = cudaq::cc::AllocaOp::create(rewriter, loc, arrTy);
           rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(alloca, origTy,
                                                          newAlloc);
           return success();
@@ -229,34 +229,34 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
 
         if (width == 1) {
           bool v = val != 0;
-          return builder.create<arith::ConstantIntOp>(loc, v, width)
+          return arith::ConstantIntOp::create(builder, loc, v, width)
               .getResult();
         }
-        return builder.create<arith::ConstantIntOp>(loc, val, width)
+        return arith::ConstantIntOp::create(builder, loc, val, width)
             .getResult();
 
       } else if (ty == fltTy) {
         if (getZint()) {
           val = truncate(val);
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
-          return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+          return arith::ConstantFloatOp::create(builder, loc, fltTy, fval)
               .getResult();
         }
         if (getSint()) {
           APFloat fval(static_cast<float>(val));
-          return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+          return arith::ConstantFloatOp::create(builder, loc, fltTy, fval)
               .getResult();
         }
       } else if (ty == dblTy) {
         if (getZint()) {
           val = truncate(val);
           APFloat fval(static_cast<double>(static_cast<std::uint64_t>(val)));
-          return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+          return arith::ConstantFloatOp::create(builder, loc, dblTy, fval)
               .getResult();
         }
         if (getSint()) {
           APFloat fval(static_cast<double>(val));
-          return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+          return arith::ConstantFloatOp::create(builder, loc, dblTy, fval)
               .getResult();
         }
       }
@@ -271,24 +271,24 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       if (ty == fltTy) {
         float f = val.convertToDouble();
         APFloat fval(f);
-        return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+        return arith::ConstantFloatOp::create(builder, loc, fltTy, fval)
             .getResult();
       }
       if (ty == dblTy) {
         APFloat fval{val.convertToDouble()};
-        return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+        return arith::ConstantFloatOp::create(builder, loc, dblTy, fval)
             .getResult();
       }
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
         if (getZint()) {
           std::uint64_t v = val.convertToDouble();
-          return builder.create<arith::ConstantIntOp>(loc, v, width)
+          return arith::ConstantIntOp::create(builder, loc, v, width)
               .getResult();
         }
         if (getSint()) {
           std::int64_t v = val.convertToDouble();
-          return builder.create<arith::ConstantIntOp>(loc, v, width)
+          return arith::ConstantIntOp::create(builder, loc, v, width)
               .getResult();
         }
       }
@@ -309,7 +309,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
           auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
           auto cv = builder.getArrayAttr({rePart, imPart});
-          return builder.create<complex::ConstantOp>(loc, ty, cv).getResult();
+          return complex::ConstantOp::create(builder, loc, ty, cv).getResult();
         }
         if (eleTy == dblTy) {
           double reVal = reFp.getValue().convertToDouble();
@@ -317,7 +317,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
           auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
           auto cv = builder.getArrayAttr({rePart, imPart});
-          return builder.create<complex::ConstantOp>(loc, ty, cv).getResult();
+          return complex::ConstantOp::create(builder, loc, ty, cv).getResult();
         }
       }
     }
@@ -524,7 +524,7 @@ struct FuseComplexRe : public OpRewritePattern<complex::ReOp> {
     if (comcon) {
       FloatType fltTy = reop.getType();
       APFloat reVal = cast<FloatAttr>(comcon.getValue()[0]).getValue();
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(reop, reVal, fltTy);
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(reop, fltTy, reVal);
       return success();
     }
     return failure();
@@ -539,7 +539,7 @@ struct FuseComplexIm : public OpRewritePattern<complex::ImOp> {
     if (comcon) {
       FloatType fltTy = imop.getType();
       APFloat imVal = cast<FloatAttr>(comcon.getValue()[1]).getValue();
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(imop, imVal, fltTy);
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(imop, fltTy, imVal);
       return success();
     }
     return failure();
@@ -601,7 +601,7 @@ void printInterleavedIndices(OpAsmPrinter &printer, B computePtrOp,
                           if (Value val = dyn_cast<Value>(cst))
                             printer.printOperand(val);
                           else
-                            printer << cst.get<IntegerAttr>().getInt();
+                            printer << cast<IntegerAttr>(cst).getInt();
                         });
 }
 
@@ -688,7 +688,8 @@ void destructureIndices(Type currType, ArrayRef<B> indices,
       dynamicIndices.push_back(val);
     } else {
       rawConstantIndices.push_back(
-          iter.template get<cudaq::cc::InterleavedArgumentConstantIndex>());
+          iter.template dyn_cast<
+              cudaq::cc::InterleavedArgumentConstantIndex>());
     }
 
     currType =
@@ -864,7 +865,7 @@ struct FuseAddressArithmetic
           auto eleTy = cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
           auto subTy = eleTy.getElementType();
           auto simpleTy = cudaq::cc::PointerType::get(subTy);
-          auto simple = rewriter.create<cudaq::cc::CastOp>(
+          auto simple = cudaq::cc::CastOp::create(rewriter, 
               ptrOp.getLoc(), simpleTy, ptrOp.getBase());
 
           // Collect indices.
@@ -1071,16 +1072,16 @@ struct FuseWithConstantArray
         if (auto intTy = dyn_cast<IntegerType>(extval.getType())) {
           std::int32_t i = extval.getRawConstantIndices()[0];
           auto cval = cast<IntegerAttr>(conarr.getConstantValues()[i]).getInt();
-          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(extval, cval,
-                                                            intTy);
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(extval, intTy,
+                                                            cval);
 
           return success();
         }
         if (auto fltTy = dyn_cast<FloatType>(extval.getType())) {
           std::int32_t i = extval.getRawConstantIndices()[0];
           auto cval = cast<FloatAttr>(conarr.getConstantValues()[i]).getValue();
-          rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(extval, cval,
-                                                              fltTy);
+          rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(extval, fltTy,
+                                                              cval);
 
           return success();
         }
@@ -1356,8 +1357,8 @@ struct ForwardStdvecInitSize
       if (auto arrTy =
               dyn_cast<cudaq::cc::ArrayType>(init.getBuffer().getType()))
         if (!arrTy.isUnknownSize()) {
-          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
-              size, arrTy.getSize(), ty);
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(size, ty,
+                                                            arrTy.getSize());
           return success();
         }
     }
@@ -1375,9 +1376,6 @@ void cudaq::cc::StdvecSizeOp::getCanonicalizationPatterns(
 // LoopOp
 //===----------------------------------------------------------------------===//
 
-// Override the default.
-Region &cudaq::cc::LoopOp::getLoopBody() { return getBodyRegion(); }
-
 // The basic block of the step region must end in a continue op, which need not
 // be pretty printed if the loop has no block arguments. This ensures the step
 // block is properly terminated.
@@ -1389,7 +1387,7 @@ static void ensureStepTerminator(OpBuilder &builder, OperationState &result,
   auto addContinue = [&]() {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToEnd(block);
-    builder.create<cudaq::cc::ContinueOp>(result.location);
+    cudaq::cc::ContinueOp::create(builder, result.location);
   };
   if (block->empty()) {
     addContinue();
@@ -1617,69 +1615,82 @@ bool cudaq::cc::LoopOp::hasBreakInBody() {
 }
 
 void cudaq::cc::LoopOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
-    SmallVectorImpl<RegionSuccessor> &regions) {
-  if (!index) {
+    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
+  if (point.isParent()) {
     // loop op, successor is either the WHILE region, or the DO region if loop
     // is post conditional.
     if (isPostConditional())
-      regions.push_back(
-          RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
+      regions.emplace_back(&getBodyRegion(), getDoEntryArguments());
     else
-      regions.push_back(
-          RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+      regions.emplace_back(&getWhileRegion(), getWhileArguments());
     return;
   }
-  switch (index.value()) {
-  case 0:
-    // WHILE region, successors are the DO region and either the owning loop op
-    // (if no else region is present) or the else region.
-    regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
+
+  Operation *pred = point.getTerminatorPredecessorOrNull();
+  assert(pred && "must have a terminator");
+  Region *region = pred->getParentRegion();
+  assert(region && "must have a region");
+  if (region == &getWhileRegion()) {
+    // WHILE region, successors are the owning loop op and the DO region.
+    regions.emplace_back(&getBodyRegion(), getDoEntryArguments());
     if (hasPythonElse())
-      regions.push_back(
-          RegionSuccessor(&getElseRegion(), getElseEntryArguments()));
+      regions.emplace_back(&getElseRegion(), getElseEntryArguments());
     else
-      regions.push_back(RegionSuccessor(getResults()));
-    break;
-  case 1:
+      regions.emplace_back(getOperation(), getResults());
+  } else if (region == &getBodyRegion()) {
     // DO region, successor is STEP region (2) if present, or WHILE region (0)
     // if STEP is absent.
     if (hasStep())
-      regions.push_back(RegionSuccessor(&getStepRegion(), getStepArguments()));
+      regions.emplace_back(&getStepRegion(), getStepArguments());
     else
-      regions.push_back(
-          RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+      regions.emplace_back(&getWhileRegion(), getWhileArguments());
     // If the body contains a break, then the loop op is also a successor.
     if (hasBreakInBody())
-      regions.push_back(RegionSuccessor(getResults()));
-    break;
-  case 2:
+      regions.emplace_back(getOperation(), getResults());
+  } else if (region == &getStepRegion()) {
     // STEP region, if present, WHILE region is always successor.
     if (hasStep())
-      regions.push_back(
-          RegionSuccessor(&getWhileRegion(), getWhileArguments()));
-    break;
-  case 3:
+      regions.emplace_back(&getWhileRegion(), getWhileArguments());
+  } else if (region == &getElseRegion()) {
     // ELSE region, successors are the owning loop op.
     if (hasPythonElse())
-      regions.push_back(RegionSuccessor(getResults()));
-    break;
+      regions.emplace_back(getOperation(), getResults());
+  } else {
+    emitOpError("unhandled region");
   }
 }
 
 OperandRange
-cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  assert(index && "invalid index region");
-  switch (*index) {
-  case 0:
-    if (!isPostConditional())
-      return getInitialArgs();
-    break;
-  case 1:
-    if (isPostConditional())
-      return getInitialArgs();
-    break;
-  }
+cudaq::cc::LoopOp::getEntrySuccessorOperands(RegionSuccessor successor) {
+  // If the successor is the 'while' region (Region #0), pass the initial args.
+  if (successor.getSuccessor() == &getWhileRegion())
+    return getInitialArgs();
+
+  auto *region = successor.getSuccessor();
+  if (region == &getWhileRegion() && !isPostConditional())
+    return getInitialArgs();
+  if (region == &getBodyRegion() && isPostConditional())
+    return getInitialArgs();
+
+  // Otherwise, no operands are passed from the parent.
+  return {nullptr, 0};
+}
+
+SmallVector<Region *> cudaq::cc::LoopOp::getLoopRegions() {
+  return {&getWhileRegion(), &getBodyRegion(), &getStepRegion()};
+}
+
+OperandRange
+cudaq::cc::LoopOp::getEntrySuccessorOperands(RegionBranchPoint point) {
+  llvm::errs() << "getEntrySuccessorOperands: " << point << "\n";
+  assert(!point.isParent() && "invalid index region");
+  Operation *pred = point.getTerminatorPredecessorOrNull();
+  assert(pred && "must have a terminator");
+  Region *region = pred->getParentRegion();
+  if (region == &getWhileRegion() && !isPostConditional())
+    return getInitialArgs();
+  if (region == &getBodyRegion() && isPostConditional())
+    return getInitialArgs();
   return {nullptr, 0};
 }
 
@@ -1833,7 +1844,7 @@ static void ensureScopeRegionTerminator(OpBuilder &builder,
   }
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(block);
-  builder.create<cudaq::cc::ContinueOp>(result.location);
+  cudaq::cc::ContinueOp::create(builder, result.location);
 }
 
 ParseResult cudaq::cc::ScopeOp::parse(OpAsmParser &parser,
@@ -1853,13 +1864,12 @@ void cudaq::cc::ScopeOp::getRegionInvocationBounds(
     ArrayRef<Attribute> attrs, SmallVectorImpl<InvocationBounds> &bounds) {}
 
 void cudaq::cc::ScopeOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
-    SmallVectorImpl<RegionSuccessor> &regions) {
-  if (!index) {
-    regions.push_back(RegionSuccessor(&getRegion()));
+    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
+  if (point.isParent()) {
+    regions.emplace_back(&getRegion());
     return;
   }
-  regions.push_back(RegionSuccessor(getResults()));
+  regions.emplace_back(getOperation(), getResults());
 }
 
 // If quantumAllocs, then just look for any allocate memory effect. Otherwise,
@@ -1930,7 +1940,7 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
       succBlock = rewriter.createBlock(
           splitBlock, scope.getResultTypes(),
           SmallVector<Location>(scope.getNumResults(), loc));
-      rewriter.create<cf::BranchOp>(loc, splitBlock);
+      cf::BranchOp::create(rewriter, loc, splitBlock);
     }
     // Inline the cc.scope's region into the parent and create a branch to the
     // new successor block.
@@ -1939,13 +1949,13 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
     auto *initTerminator = initRegion.back().getTerminator();
     auto initTerminatorOperands = initTerminator->getOperands();
     rewriter.setInsertionPointToEnd(&initRegion.back());
-    rewriter.create<cf::BranchOp>(loc, succBlock, initTerminatorOperands);
+    cf::BranchOp::create(rewriter, loc, succBlock, initTerminatorOperands);
     rewriter.eraseOp(initTerminator);
     rewriter.inlineRegionBefore(initRegion, succBlock);
     // Replace the cc.scope with a branch to the newly inlined region's entry
     // block.
     rewriter.setInsertionPointToEnd(scopeBlock);
-    rewriter.create<cf::BranchOp>(loc, initBlock, ValueRange{});
+    cf::BranchOp::create(rewriter, loc, initBlock, ValueRange{});
     rewriter.replaceOp(scope, succBlock->getArguments());
     return success();
   }
@@ -2033,7 +2043,7 @@ static void ensureIfRegionTerminator(OpBuilder &builder, OperationState &result,
   }
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(block);
-  builder.create<cudaq::cc::ContinueOp>(result.location);
+  cudaq::cc::ContinueOp::create(builder, result.location);
 }
 
 ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
@@ -2101,16 +2111,31 @@ void cudaq::cc::IfOp::getRegionInvocationBounds(
 }
 
 void cudaq::cc::IfOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
-    SmallVectorImpl<RegionSuccessor> &regions) {
-  if (index) {
-    regions.push_back(RegionSuccessor(getResults()));
+    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
+  if (point.isParent()) {
+    regions.emplace_back(&getThenRegion());
+    if (!getElseRegion().empty())
+      regions.emplace_back(&getElseRegion());
+  } else {
+    regions.emplace_back(getOperation(), getResults());
+  }
+}
+
+void cudaq::cc::IfOp::getEntrySuccessorRegions(
+    ArrayRef<Attribute> operands, SmallVectorImpl<RegionSuccessor> &regions) {
+  FoldAdaptor adaptor(operands);
+  auto boolAttr = dyn_cast_or_null<BoolAttr>(adaptor.getCondition());
+  if (!boolAttr)
+    return;
+  if (boolAttr.getValue()) {
+    regions.emplace_back(&getThenRegion());
     return;
   }
-  // TODO: can constant fold if the condition is a constant here.
-  regions.push_back(RegionSuccessor(&getThenRegion()));
-  if (!getElseRegion().empty())
-    regions.push_back(RegionSuccessor(&getElseRegion()));
+  if (!getElseRegion().empty()) {
+    regions.emplace_back(&getElseRegion());
+    return;
+  }
+  regions.emplace_back(getOperation(), getResults());
 }
 
 template <typename A>
@@ -2124,7 +2149,7 @@ LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
   if (!regionOp)
     return failure();
   SmallVector<RegionSuccessor> successors;
-  regionOp.getSuccessorRegions(std::nullopt, {}, successors);
+  regionOp.getSuccessorRegions(RegionBranchPoint::parent(), successors);
   // For each region successor, determine the number of distinct linear-typed
   // definitions in the region.
   long linearMax = -1;
@@ -2156,18 +2181,77 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
 
   // This rewrite will determine if the condition is constant. If it is, then it
   // will elide the true or false region completely, depending on the constant's
-  // value.
+  // value. For cc.if ops with results, it inlines the surviving region and
+  // replaces the results with the cc.continue operands.
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
     auto cond = ifOp.getCondition();
-    if (!ifOp.getResults().empty())
-      return failure();
     auto con = cond.getDefiningOp<arith::ConstantIntOp>();
     if (!con)
       return failure();
     auto val = con.value();
     auto loc = ifOp.getLoc();
-    auto truth = rewriter.create<arith::ConstantIntOp>(loc, 1, 1);
+
+    // Handle cc.if with results by inlining the surviving region.
+    if (!ifOp.getResults().empty()) {
+      Region *survivingRegion = nullptr;
+      if (val) {
+        // Condition is true: use then region.
+        survivingRegion = &ifOp.getThenRegion();
+      } else {
+        // Condition is false: use else region if it exists.
+        if (ifOp.getElseRegion().empty()) {
+          // No else region and condition is false - this shouldn't happen for
+          // a well-formed cc.if with results, but handle it gracefully.
+          return failure();
+        }
+        survivingRegion = &ifOp.getElseRegion();
+      }
+
+      // The surviving region should have a single block ending in cc.continue.
+      if (survivingRegion->empty())
+        return failure();
+
+      // Collect results from all cc.continue ops and inline the region.
+      // For a proper cc.if with results, there should be exactly one path
+      // through each region ending in cc.continue.
+      SmallVector<Value> results;
+      Block &entryBlock = survivingRegion->front();
+
+      // Find the terminator cc.continue to get the result values.
+      // We need to walk all blocks because there might be nested control flow.
+      for (Block &block : *survivingRegion) {
+        if (auto contOp =
+                dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+          // For single-block regions, just grab the operands.
+          if (survivingRegion->hasOneBlock()) {
+            results = llvm::to_vector(contOp.getOperands());
+            rewriter.eraseOp(contOp);
+            break;
+          }
+        }
+      }
+
+      // If we couldn't find a simple single-block case, fall back to creating
+      // a new cc.if with only the surviving region.
+      if (results.empty() || results.size() != ifOp.getNumResults()) {
+        auto truth = arith::ConstantIntOp::create(rewriter, loc, 1, 1);
+        rewriter.replaceOpWithNewOp<cudaq::cc::IfOp>(
+            ifOp, ifOp.getResultTypes(), truth,
+            [&](OpBuilder &, Location, Region &region) {
+              region.takeBody(*survivingRegion);
+            });
+        return success();
+      }
+
+      // Inline the surviving region's block before the cc.if.
+      rewriter.inlineBlockBefore(&entryBlock, ifOp);
+      rewriter.replaceOp(ifOp, results);
+      return success();
+    }
+
+    // Original logic for cc.if without results.
+    auto truth = arith::ConstantIntOp::create(rewriter, loc, 1, 1);
     Region *newRegion = nullptr;
     if (val) {
       // The else block, if any, is dead.
@@ -2182,7 +2266,7 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
         OpBuilder::InsertionGuard guard(rewriter);
         Block *block = new Block();
         rewriter.setInsertionPointToEnd(block);
-        rewriter.create<cudaq::cc::ContinueOp>(loc);
+        cudaq::cc::ContinueOp::create(rewriter, loc);
         newRegion->push_back(block);
       }
     }
@@ -2369,8 +2453,8 @@ LogicalResult cudaq::cc::ConditionOp::verify() {
   return success();
 }
 
-MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
-    std::optional<unsigned> index) {
+MutableOperandRange
+cudaq::cc::ConditionOp::getMutableSuccessorOperands(RegionSuccessor point) {
   return getResultsMutable();
 }
 
@@ -2510,8 +2594,8 @@ struct FoldTrivialOffsetOf : public OpRewritePattern<cudaq::cc::OffsetOfOp> {
                                 PatternRewriter &rewriter) const override {
     // If there are no offsets, the offset is 0.
     if (offOp.getConstantIndices().empty()) {
-      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(offOp, 0,
-                                                        offOp.getType());
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(offOp, offOp.getType(),
+                                                        0);
       return success();
     }
 
@@ -2519,8 +2603,8 @@ struct FoldTrivialOffsetOf : public OpRewritePattern<cudaq::cc::OffsetOfOp> {
     if (std::all_of(offOp.getConstantIndices().begin(),
                     offOp.getConstantIndices().end(),
                     [](std::int32_t i) { return i == 0; })) {
-      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(offOp, 0,
-                                                        offOp.getType());
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(offOp, offOp.getType(),
+                                                        0);
       return success();
     }
 
@@ -2623,9 +2707,9 @@ struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
         auto sizeOpSz = sizeOp.getType().getIntOrFloatBitWidth();
         auto loc = sizeOp.getLoc();
         if (sizeOpSz < vSz)
-          v = rewriter.create<cudaq::cc::CastOp>(loc, sizeOp.getType(), v);
+          v = cudaq::cc::CastOp::create(rewriter, loc, sizeOp.getType(), v);
         else
-          v = rewriter.create<cudaq::cc::CastOp>(
+          v = cudaq::cc::CastOp::create(rewriter, 
               loc, sizeOp.getType(), v, cudaq::cc::CastOpMode::Unsigned);
       }
       rewriter.replaceOp(sizeOp, v);

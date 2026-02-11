@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -50,19 +50,19 @@ public:
     }
 
     if (c.hasAlwaysFalseCondition()) {
-      rewriter.startRootUpdate(loop);
+      rewriter.startOpModification(loop);
       rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(c.compareOp, 0, 1);
       loop->setAttr(cudaq::opt::DeadLoopAttr, rewriter.getUnitAttr());
-      rewriter.finalizeRootUpdate(loop);
+      rewriter.finalizeOpModification(loop);
       return success();
     }
     auto loc = loop.getLoc();
 
     // 1) Set initial value to 0.
     auto ty = c.initialValue.getType();
-    rewriter.startRootUpdate(loop);
+    rewriter.startOpModification(loop);
     auto createConstantOp = [&](std::int64_t val) -> Value {
-      return rewriter.create<arith::ConstantIntOp>(loc, val, ty);
+      return arith::ConstantIntOp::create(rewriter, loc, ty, val);
     };
     auto zero = createConstantOp(0);
     loop->setOperand(c.induction, zero);
@@ -74,68 +74,68 @@ public:
     Value step = c.stepValue;
     Value lower = c.initialValue;
     if (!c.stepIsAnAddOp())
-      step = rewriter.create<arith::SubIOp>(loc, zero, step);
+      step = arith::SubIOp::create(rewriter, loc, zero, step);
     if (c.isLinearExpr()) {
       // Induction is part of a linear expression. Deal with the terms of the
       // equation. `m` scales the step. `b` is an addend to the lower bound.
       if (c.addendValue) {
         if (c.negatedAddend) {
           // `m * i - b`, u += `b`.
-          upper = rewriter.create<arith::AddIOp>(loc, upper, c.addendValue);
+          upper = arith::AddIOp::create(rewriter, loc, upper, c.addendValue);
         } else {
           // `m * i + b`, u -= `b`.
-          upper = rewriter.create<arith::SubIOp>(loc, upper, c.addendValue);
+          upper = arith::SubIOp::create(rewriter, loc, upper, c.addendValue);
         }
       }
       if (c.minusOneMult) {
         // `b - m * i` (b eliminated), multiply lower and step by `-1` (`m`
         // follows).
         auto negOne = createConstantOp(-1);
-        lower = rewriter.create<arith::MulIOp>(loc, lower, negOne);
-        step = rewriter.create<arith::MulIOp>(loc, step, negOne);
+        lower = arith::MulIOp::create(rewriter, loc, lower, negOne);
+        step = arith::MulIOp::create(rewriter, loc, step, negOne);
       }
       if (c.scaleValue) {
         if (c.reciprocalScale) {
           // `1/m * i + b` (b eliminated), multiply upper by `m`.
-          upper = rewriter.create<arith::MulIOp>(loc, upper, c.scaleValue);
+          upper = arith::MulIOp::create(rewriter, loc, upper, c.scaleValue);
         } else {
           // `m * i + b` (b eliminated), multiple lower and step by `m`.
-          lower = rewriter.create<arith::MulIOp>(loc, lower, c.scaleValue);
-          step = rewriter.create<arith::MulIOp>(loc, step, c.scaleValue);
+          lower = arith::MulIOp::create(rewriter, loc, lower, c.scaleValue);
+          step = arith::MulIOp::create(rewriter, loc, step, c.scaleValue);
         }
       }
     }
     if (!c.isClosedIntervalForm()) {
       // Note: treating the step as a signed value to process countdown loops as
       // well as countup loops.
-      Value negStepCond = rewriter.create<arith::CmpIOp>(
-          loc, arith::CmpIPredicate::slt, step, zero);
+      Value negStepCond = arith::CmpIOp::create(
+          rewriter, loc, arith::CmpIPredicate::slt, step, zero);
       auto negOne = createConstantOp(-1);
       Value adj =
-          rewriter.create<arith::SelectOp>(loc, ty, negStepCond, negOne, one);
-      upper = rewriter.create<arith::SubIOp>(loc, upper, adj);
+          arith::SelectOp::create(rewriter, loc, ty, negStepCond, negOne, one);
+      upper = arith::SubIOp::create(rewriter, loc, upper, adj);
     }
-    Value diff = rewriter.create<arith::SubIOp>(loc, upper, lower);
-    Value disp = rewriter.create<arith::AddIOp>(loc, diff, step);
+    Value diff = arith::SubIOp::create(rewriter, loc, upper, lower);
+    Value disp = arith::AddIOp::create(rewriter, loc, diff, step);
     auto cmpOp = cast<arith::CmpIOp>(c.compareOp);
-    Value newUpper = rewriter.create<arith::DivSIOp>(loc, disp, step);
+    Value newUpper = arith::DivSIOp::create(rewriter, loc, disp, step);
     if (cudaq::opt::isSignedPredicate(cmpOp.getPredicate())) {
-      Value noLoopCond = rewriter.create<arith::CmpIOp>(
-          loc, arith::CmpIPredicate::sgt, newUpper, zero);
+      Value noLoopCond = arith::CmpIOp::create(
+          rewriter, loc, arith::CmpIPredicate::sgt, newUpper, zero);
       newUpper =
-          rewriter.create<arith::SelectOp>(loc, ty, noLoopCond, newUpper, zero);
+          arith::SelectOp::create(rewriter, loc, ty, noLoopCond, newUpper, zero);
     }
 
     // 3) Rewrite the comparison (!=) and step operations (+1).
     Value v1 = c.getCompareInduction();
     rewriter.setInsertionPoint(cmpOp);
-    Value newCmp = rewriter.create<arith::CmpIOp>(
-        cmpOp.getLoc(), arith::CmpIPredicate::ne, v1, newUpper);
+    Value newCmp = arith::CmpIOp::create(
+        rewriter, cmpOp.getLoc(), arith::CmpIPredicate::ne, v1, newUpper);
     cmpOp->replaceAllUsesWith(ValueRange{newCmp});
     auto v2 = c.stepOp->getOperand(
         c.stepIsAnAddOp() && c.shouldCommuteStepOp() ? 1 : 0);
     rewriter.setInsertionPoint(c.stepOp);
-    auto newStep = rewriter.create<arith::AddIOp>(c.stepOp->getLoc(), v2, one);
+    auto newStep = arith::AddIOp::create(rewriter, c.stepOp->getLoc(), v2, one);
     c.stepOp->replaceAllUsesWith(ValueRange{newStep.getResult()});
 
     // 4) Compute original induction value as a loop variant and replace the
@@ -144,12 +144,12 @@ public:
       Block *entry = &loop.getBodyRegion().front();
       rewriter.setInsertionPointToStart(entry);
       Value induct = entry->getArgument(c.induction);
-      auto mul = rewriter.create<arith::MulIOp>(loc, induct, c.stepValue);
+      auto mul = arith::MulIOp::create(rewriter, loc, induct, c.stepValue);
       Value newInd;
       if (c.stepIsAnAddOp())
-        newInd = rewriter.create<arith::AddIOp>(loc, c.initialValue, mul);
+        newInd = arith::AddIOp::create(rewriter, loc, c.initialValue, mul);
       else
-        newInd = rewriter.create<arith::SubIOp>(loc, c.initialValue, mul);
+        newInd = arith::SubIOp::create(rewriter, loc, c.initialValue, mul);
       induct.replaceUsesWithIf(newInd, [&](OpOperand &opnd) {
         auto *op = opnd.getOwner();
         return op != newStep.getOperation() && op != mul &&
@@ -158,7 +158,7 @@ public:
     }
     loop->setAttr(cudaq::opt::NormalizedLoopAttr, rewriter.getUnitAttr());
 
-    rewriter.finalizeRootUpdate(loop);
+    rewriter.finalizeOpModification(loop);
     LLVM_DEBUG(llvm::dbgs() << "loop after normalization: " << loop << '\n');
     return success();
   }
