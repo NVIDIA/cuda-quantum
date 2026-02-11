@@ -26,6 +26,7 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
                                  func, math)
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
+from cudaq.kernel_types import qubit, qvector
 from .captured_data import CapturedDataStorage
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
@@ -38,8 +39,6 @@ from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_calling_module)
 
 kDynamicPtrIndex: int = -2147483648
-
-qvector = cudaq_runtime.qvector
 
 # This file reproduces the cudaq::kernel_builder in Python
 
@@ -314,7 +313,7 @@ class PyKernel(object):
         Process input argument type. Specifically, try to infer the element type
         for a list, e.g. list[float].
         """
-        if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
+        if ty in [qvector, qubit]:
             return ty, None
         if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):
@@ -1553,6 +1552,21 @@ class PyKernel(object):
         else:
             emitFatalError("Noise channel parameter must be float")
 
+    @staticmethod
+    def _validate_noise_channel_probability_params(noise_channel, param_values):
+        """
+        Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
+        """
+        if not hasattr(noise_channel, 'num_parameters'):
+            return
+        for p in param_values:
+            if isinstance(p, (int, float)):
+                val = float(p)
+                if val < 0.0 or val > 1.0:
+                    raise RuntimeError(
+                        "probability must be in the range [0, 1]. " + "Got: " +
+                        str(val))
+
     def apply_noise(self, noise_channel, *args):
         """
         Apply a noise channel to the provided qubit or qubits.
@@ -1584,8 +1598,11 @@ class PyKernel(object):
             if isinstance(args[0], list):
                 # If the first argument is a list, assuming that it is the list
                 # of noise channel parameters.
+                param_values = args[0]
+                self._validate_noise_channel_probability_params(
+                    noise_channel, param_values)
                 noise_channel_params = [
-                    self.process_channel_param(p) for p in args[0]
+                    self.process_channel_param(p) for p in param_values
                 ]
                 # Qubit arguments
                 for p in args[1:]:
@@ -1594,6 +1611,9 @@ class PyKernel(object):
                         emitFatalError("Invalid qubit operand type")
                     target_qubits.append(p.mlirValue)
             else:
+                param_values = args[:noise_channel.num_parameters]
+                self._validate_noise_channel_probability_params(
+                    noise_channel, param_values)
                 for i, p in enumerate(args):
                     if i < noise_channel.num_parameters:
                         noise_channel_params.append(

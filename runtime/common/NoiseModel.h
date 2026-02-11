@@ -589,9 +589,15 @@ public:
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   depolarization_channel(const std::vector<cudaq::real> &ps) {
+    auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "depolarization_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto three = static_cast<real>(3.);
     auto negOne = static_cast<real>(-1.);
-    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability / three), std::sqrt(probability / three),
@@ -624,6 +630,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   amplitude_damping_channel(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "amplitude_damping_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
@@ -651,6 +663,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   bit_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "bit_flip_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
@@ -678,6 +696,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   phase_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "phase_flip_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto negOne = static_cast<real>(-1.);
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -721,6 +745,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   phase_damping(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "phase_damping probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, 0, 0, std::sqrt(probability)};
     ops = {k0v, k1v};
@@ -773,6 +803,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   y_error(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "y_error probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::complex<cudaq::real> i{0, 1};
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -949,9 +985,15 @@ public:
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
   depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
+    auto probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "depolarization2 probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto fifteen = static_cast<cudaq::real>(15.);
     auto negOne = static_cast<cudaq::real>(-1.);
-    auto probability = p[0];
 
     std::vector<std::vector<cudaq::complex>> paulis = {
         // I

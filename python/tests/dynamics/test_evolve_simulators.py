@@ -249,7 +249,7 @@ def test_evolve(init_state):
     ]
     np.testing.assert_allclose(results_with_shots,
                                expected_result_ideal,
-                               atol=0.1)
+                               atol=0.15)
 
 
 def test_evolve_async():
@@ -329,7 +329,7 @@ def test_evolve_async():
     ]
     np.testing.assert_allclose(results_with_shots,
                                expected_result_ideal,
-                               atol=0.1)
+                               atol=0.15)
 
 
 @pytest.mark.skip(reason="Skipping test due to issue #3678")

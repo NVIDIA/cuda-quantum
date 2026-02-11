@@ -19,6 +19,7 @@ from collections import deque
 from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime, load_intrinsic,
                                                   gen_vector_of_complex_constant
                                                  )
+from cudaq.kernel_types import qview
 from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
 from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            DenseBoolArrayAttr, DenseI32ArrayAttr,
@@ -29,12 +30,12 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
 from cudaq.mlir.passmanager import PassManager
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .captured_data import CapturedDataStorage
-from .utils import (Color, globalAstRegistry, globalRegisteredOperations,
-                    globalRegisteredTypes, nvqppPrefix, mlirTypeFromAnnotation,
-                    mlirTypeFromPyType, mlirTypeToPyType, getMLIRContext,
-                    recover_func_op, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType, resolve_qualified_symbol)
+from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
+                    nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
+                    mlirTypeToPyType, getMLIRContext, recover_func_op,
+                    is_recovered_value_ok, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    resolve_qualified_symbol)
 
 State = cudaq_runtime.State
 
@@ -49,7 +50,7 @@ State = cudaq_runtime.State
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
 
-ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, qview]
 
 
 class PyScopedSymbolTable(object):
@@ -3629,6 +3630,17 @@ class PyASTBridge(ast.NodeVisitor):
                                 "unsupported argument for Kraus channel in "
                                 "apply_noise", node)
 
+                        # Validate constant probability `params` are in [0, 1]
+                        for i in range(numParams):
+                            arg = node.args[1 + i]
+                            if isinstance(arg, ast.Constant) and isinstance(
+                                    arg.value, (int, float)):
+                                val = float(arg.value)
+                                if val < 0.0 or val > 1.0:
+                                    raise RuntimeError(
+                                        "probability must be in the range "
+                                        "[0, 1]. Got: " + str(val))
+
                         # This currently requires at least one qubit argument
                         params, values = self.__groupValues(
                             node.args[1:], [(numParams, numParams), (1, -1)])
@@ -5368,7 +5380,6 @@ def compile_to_mlir(uniqueId, astModule,
     potential dependent kernel lookups.
     """
 
-    global globalAstRegistry
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
