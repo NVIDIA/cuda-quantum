@@ -2661,25 +2661,47 @@ class PyASTBridge(ast.NodeVisitor):
             moduleNames.append(value.id)
             moduleNames.reverse()
 
-            devKey = '.'.join(moduleNames)
+            # Helper method to check that the module `obj`
+            # contains the proper path defined by the submodules
+            # in moduleNames[1:] and value named by pyVal.attr
+            def checkModule(obj, moduleNames):
+                try:
+                    # Check that the module contains the desired submodules
+                    for part in moduleNames[1:]:
+                        obj = getattr(obj, part)
+                    # Check that the module contains the desired attribute
+                    getattr(obj, pyVal.attr)
+                    return obj.__name__
+                except AttributeError:
+                    return None
+
+            # Check if we can find the desired name among the modules
             for module_name, module in sys.modules.items():
                 if module_name.split('.')[-1] == moduleNames[0]:
                     try:
                         obj = module
-                        for part in moduleNames[1:]:
-                            obj = getattr(obj, part)
-                        # Check that the module contains the desired attribute
-                        getattr(obj, pyVal.attr)
-                        # Get the full module path of the module we've found
-                        # This handles cases where, e.g., mod1 imports a submodule
-                        # from mod2, so the object is mod1, but the module path should
-                        # be that of mod2, which is where we would expect any C++
-                        # kernels to be registered
-                        devKey = obj.__name__
-                        return devKey, pyVal.attr
+                        devKey = checkModule(obj, moduleNames)
+                        if devKey:
+                            return devKey, pyVal.attr
                     except AttributeError:
                         continue
-            return devKey, pyVal.attr
+
+            # Look the qualified module name up in the python frames
+            # in case it was aliased (e.g., import mod1 as mod2)
+            obj = None
+            for frameinfo in inspect.stack():
+                frame = frameinfo.frame
+                if moduleNames[0] in frame.f_locals:
+                    obj = frame.f_locals.get(moduleNames[0])
+                elif moduleNames[0] in frame.f_globals:
+                    obj = frame.f_globals.get(moduleNames[0])
+                if obj:
+                    devKey = checkModule(obj, moduleNames)
+                    if devKey:
+                        return devKey, pyVal.attr
+
+            # Default return value
+            return '.'.join(moduleNames), pyVal.attr
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
