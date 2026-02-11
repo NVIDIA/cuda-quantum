@@ -25,7 +25,7 @@ struct AutoLaunchRestServerProcess {
 private:
   int m_pid;
   std::string m_url;
-  std::string m_ldLibPathEnv;
+  std::string m_libPathEnv;
 };
 
 // Helper to retrieve the number of GPU.

@@ -8,8 +8,8 @@
 
 #include "MQPUUtils.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "common/RestClient.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Program.h"
 #include <arpa/inet.h>
@@ -25,6 +25,10 @@
 #ifdef CUDAQ_ENABLE_CUDA
 #include "cuda_runtime_api.h"
 #endif
+
+// On macOS, environ is not automatically declared; POSIX requires explicit
+// declaration
+extern char **environ;
 
 // Check if a TCP/IP port is available for use
 bool portAvailable(int port) {
@@ -88,8 +92,14 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
   if (!serverApp)
     throw std::runtime_error("Unable to find CUDA-Q REST server to launch.");
 
-  // If the CUDAQ_DYNLIBS env var is set (typically from the Python
-  // environment), add these to the LD_LIBRARY_PATH.
+    // If the CUDAQ_DYNLIBS env var is set (typically from the Python
+    // environment), add these to the library search path.
+    // macOS uses DYLD_LIBRARY_PATH; Linux uses LD_LIBRARY_PATH.
+#ifdef __APPLE__
+  const char *libPathVar = "DYLD_LIBRARY_PATH";
+#else
+  const char *libPathVar = "LD_LIBRARY_PATH";
+#endif
   std::string libPaths;
   std::optional<llvm::SmallVector<llvm::StringRef>> Env;
   if (auto *ch = getenv("CUDAQ_DYNLIBS")) {
@@ -114,18 +124,18 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
         std::begin(libDirs), std::end(libDirs), std::string{},
         [](const std::string &a, const std::string &b) { return a + b + ':'; });
     dynLibs.pop_back();
-    if (auto *p = getenv("LD_LIBRARY_PATH")) {
+    if (auto *p = getenv(libPathVar)) {
       std::string envLibs = p;
       if (envLibs.size() > 0)
         dynLibs += ":" + envLibs;
     }
     for (char **env = environ; *env != nullptr; ++env) {
-      if (!std::string(*env).starts_with("LD_LIBRARY_PATH="))
+      if (!std::string(*env).starts_with(std::string(libPathVar) + "="))
         Env->push_back(*env);
     }
     // Cache the string as a member var to keep the pointer alive.
-    m_ldLibPathEnv = "LD_LIBRARY_PATH=" + dynLibs;
-    Env->push_back(m_ldLibPathEnv);
+    m_libPathEnv = std::string(libPathVar) + "=" + dynLibs;
+    Env->push_back(m_libPathEnv);
   }
 
   constexpr std::size_t PORT_MAX_RETRIES = 10;

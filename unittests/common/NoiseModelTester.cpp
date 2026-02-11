@@ -91,5 +91,23 @@ CUDAQ_TEST(NoiseModelTester, checkUnitaryDetection) {
   // Depolarization 2-qubit
   EXPECT_FALSE(depolarization2(0.1).unitary_ops.empty());
   EXPECT_FALSE(depolarization2(1e-4).unitary_ops.empty());
+
+  auto depol2_channel = depolarization2(0.3);
+  EXPECT_EQ(depol2_channel.size(), 16);
+  EXPECT_EQ(depol2_channel.unitary_ops.size(), 16);
+  EXPECT_EQ(depol2_channel.probabilities.size(), 16);
+
+  EXPECT_NEAR(depol2_channel.probabilities[0], 1.0 - 0.3, 1e-8);
+
+  for (std::size_t i = 1; i < 16; ++i) {
+    EXPECT_NEAR(depol2_channel.probabilities[i], 0.3 / 15.0, 1e-8);
+  }
+
+  auto depol2_small = depolarization2(1e-6);
+  EXPECT_EQ(depol2_small.size(), 16);
+  EXPECT_NEAR(depol2_small.probabilities[0], 1.0 - 1e-6, 1e-12);
+  for (std::size_t i = 1; i < 16; ++i) {
+    EXPECT_NEAR(depol2_small.probabilities[i], 1e-6 / 15.0, 1e-12);
+  }
 }
 #endif

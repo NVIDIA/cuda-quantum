@@ -74,25 +74,16 @@ def __broadcastSample(kernel,
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
-        cudaq_runtime.setExecutionContext(ctx)
-        try:
+        with ctx:
             kernel(*a)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         res = ctx.result
         results.append(res)
 
     return results
 
 
-def _detail_has_conditionals_on_measure(kernel):
+def _detail_check_conditionals_on_measure(kernel):
+    has_conditionals_on_measure_result = False
     if isa_kernel_decorator(kernel):
         if kernel.returnType is not None:
             raise RuntimeError(
@@ -106,23 +97,25 @@ def _detail_has_conditionals_on_measure(kernel):
                 if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
                         == operation.name.value and
                         'qubitMeasurementFeedback' in operation.attributes):
-                    return True
+                    has_conditionals_on_measure_result = True
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
-        return True
-    return False
+        has_conditionals_on_measure_result = True
+
+    if has_conditionals_on_measure_result:
+        raise RuntimeError(
+            f"`cudaq.sample` and `cudaq.sample_async` no longer support "
+            f"kernels that branch on measurement results. Kernel "
+            f"'{kernel.name}' uses conditional feedback. Use `cudaq.run` "
+            f"or `cudaq.run_async` instead. See CUDA-Q docs for migration guide."
+        )
 
 
-def _detail_check_explicit_measurements(explicit_measurements,
-                                        has_conditionals_on_measure_result):
-    if explicit_measurements:
-        if not cudaq_runtime.supportsExplicitMeasurements():
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported "
-                "on this target.")
-        if has_conditionals_on_measure_result:
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported "
-                "on kernel with conditional logic on a measurement result.")
+def _detail_check_explicit_measurements(explicit_measurements):
+    if explicit_measurements and not cudaq_runtime.supportsExplicitMeasurements(
+    ):
+        raise RuntimeError(
+            "The sampling option `explicit_measurements` is not supported "
+            "on this target.")
 
 
 def sample(kernel,
@@ -162,11 +155,9 @@ def sample(kernel,
           such results in the case of `sample` function broadcasting.
     """
 
-    has_conditionals_on_measure_result = _detail_has_conditionals_on_measure(
-        kernel)
+    _detail_check_conditionals_on_measure(kernel)
 
-    _detail_check_explicit_measurements(explicit_measurements,
-                                        has_conditionals_on_measure_result)
+    _detail_check_explicit_measurements(explicit_measurements)
 
     if noise_model:
         cudaq_runtime.set_noise(noise_model)
@@ -180,24 +171,14 @@ def sample(kernel,
         return res
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
+    ctx.kernelName = kernel.name if hasattr(kernel, 'name') else ''
     ctx.explicitMeasurements = explicit_measurements
     ctx.allowJitEngineCaching = True
-    cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
-        try:
+        with ctx:
             kernel(*args)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         # If the platform is a hardware QPU, launch only once
         countsTotalIsZero = counts.get_total_shots() == 0
         resultTotalWasReached = ctx.result.get_total_shots() == shots_count
@@ -218,9 +199,6 @@ def sample(kernel,
                   "loop.")
             break
         ctx.result.clear()
-        if counts.get_total_shots() < shots_count:
-            cudaq_runtime.setExecutionContext(ctx)
-
     cudaq_runtime.unset_noise()
     ctx.unset_jit_engine()
     return counts
@@ -284,10 +262,10 @@ def sample_async(decorator,
                              " or hardware QPU.")
 
     specMod, processedArgs = decorator.handle_call_arguments(*args)
-    has_conditionals_on_measure_result = _detail_has_conditionals_on_measure(
-        kernel)
-    _detail_check_explicit_measurements(explicit_measurements,
-                                        has_conditionals_on_measure_result)
+
+    _detail_check_conditionals_on_measure(kernel)
+
+    _detail_check_explicit_measurements(explicit_measurements)
 
     retTy = decorator.get_none_type()
     sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName,

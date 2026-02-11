@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>
@@ -43,26 +43,34 @@ public:
     return kernelFunc(args, /*isRemote=*/false);
   }
 
-  /// Overrides setExecutionContext to forward it to the ExecutionManager
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    ScopedTraceWithContext("DefaultPlatform::setExecutionContext",
-                           context->name);
-    executionContext = context;
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
+    ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
+                           context.name);
     if (noiseModel)
-      executionContext->noiseModel = noiseModel;
+      context.noiseModel = noiseModel;
 
-    cudaq::getExecutionManager()->setExecutionContext(executionContext);
+    context.executionManager = cudaq::getDefaultExecutionManager();
+    context.executionManager->configureExecutionContext(context);
   }
 
-  /// Overrides resetExecutionContext to forward to
-  /// the ExecutionManager. Also handles observe post-processing
-  void resetExecutionContext() override {
+  void beginExecution() override {
+    cudaq::getExecutionContext()->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    cudaq::getExecutionContext()->executionManager->endExecution();
+  }
+
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
     ScopedTraceWithContext(
-        executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
-        "DefaultPlatform::resetExecutionContext", executionContext->name);
-    handleObservation(executionContext);
-    cudaq::getExecutionManager()->resetExecutionContext();
-    executionContext = nullptr;
+        context.name == "observe" ? cudaq::TIMING_OBSERVE : 0,
+        "DefaultPlatform::finalizeExecutionContext", context.name);
+    handleObservation(context);
+
+    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
+        context);
   }
 };
 
@@ -75,13 +83,13 @@ public:
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
   }
 
+private:
   /// @brief Set the target backend. Here we have an opportunity to know the
   /// -qpu QPU target we are running on. This function will read in the qpu
   /// configuration file and search for the PLATFORM_QPU variable, and if found,
   /// will change from the DefaultQPU to the QPU subtype specified by that
   /// variable.
   void setTargetBackend(const std::string &backend) override {
-    executionContext.set(nullptr);
     platformQPUs.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 

@@ -10,7 +10,7 @@
 
 #include "common/Trace.h"
 #include "cudaq/algorithms/draw.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 #include "nvqir/Gates.h"
 #include <iostream>
 

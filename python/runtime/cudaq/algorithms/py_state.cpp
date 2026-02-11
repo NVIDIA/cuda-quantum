@@ -10,8 +10,8 @@
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "cudaq/algorithms/get_state.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -98,17 +98,14 @@ public:
       // Create an execution context, indicate this is for
       // extracting the state representation
       ExecutionContext context("extract-state");
-      // Perform the usual pattern set the context,
-      // execute and then reset
-      platform.set_exec_ctx(&context);
       // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
       // ModuleOp pointer as the first element in the args array in StreamLined
       // mode.
       auto args = argsData->getArgs();
       args.insert(args.begin(),
                   const_cast<void *>(static_cast<const void *>(&kernelMod)));
-      platform.launchKernel(kernelName, args);
-      platform.reset_exec_ctx();
+      platform.with_execution_context(
+          context, [&]() { platform.launchKernel(kernelName, args); });
       state = std::move(context.simulationState);
     }
   }
@@ -121,12 +118,12 @@ public:
     context.overlapComputeStates =
         std::make_pair(static_cast<const SimulationState *>(this),
                        static_cast<const SimulationState *>(&otherState));
-    platform.set_exec_ctx(&context);
     auto args = argsData->getArgs();
     args.insert(args.begin(),
                 const_cast<void *>(static_cast<const void *>(&kernelMod)));
-    platform.launchKernel(kernelName, args);
-    platform.reset_exec_ctx();
+
+    platform.with_execution_context(
+        context, [&]() { platform.launchKernel(kernelName, args); });
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
   }
@@ -161,9 +158,11 @@ class PyQPUState : public QPUState {
   OpaqueArguments *argsData;
 
 public:
-  PyQPUState(const std::string &in_kernelName, OpaqueArguments *argsDataToOwn)
+  PyQPUState(const std::string &in_kernelName, const std::string &in_kernelCode,
+             OpaqueArguments *argsDataToOwn)
       : argsData(argsDataToOwn) {
     this->kernelName = in_kernelName;
+    this->kernelQuake = in_kernelCode;
     this->args = argsData->getArgs();
   }
 
@@ -172,19 +171,17 @@ public:
 
 /// @brief Run `cudaq::get_state` for qpu targets on the provided
 /// kernel and args
-state pyGetStateQPU(py::object kernel, py::args args) {
-  if (py::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-
-  auto kernelName = kernel.attr("uniqName").cast<std::string>();
-  auto kernelMod = kernel.attr("qkeModule").cast<MlirModule>();
+state pyGetStateQPU(const std::string &kernelName, MlirModule kernelMod,
+                    py::args args) {
+  auto moduleOp = unwrap(kernelMod);
+  std::string mlirCode;
+  llvm::raw_string_ostream outStr(mlirCode);
+  mlir::OpPrintingFlags opf;
+  opf.enableDebugInfo(/*enable=*/true, /*pretty=*/false);
+  moduleOp.print(outStr, opf);
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-#if 0
-  auto [argWrapper, size, returnOffset] =
-      pyCreateNativeKernel(kernelName, kernelMod, *argData);
-#endif
-  return state(new PyQPUState(kernelName, argData));
+  return state(new PyQPUState(kernelName, mlirCode, argData));
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
@@ -747,10 +744,14 @@ index pair.
             self.to_host(hostData, numElements);
             dataPtr = reinterpret_cast<void *>(hostData);
           }
-          hostDataFromDevice.emplace_back(dataPtr, [](void *data) {
+          hostDataFromDevice.emplace_back(dataPtr, [precision](void *data) {
             CUDAQ_INFO("freeing data that was copied from GPU device for "
                        "compatibility with NumPy");
-            free(data);
+            // Use delete[] to match new[] allocation (not free())
+            if (precision == SimulationState::precision::fp32)
+              delete[] static_cast<std::complex<float> *>(data);
+            else
+              delete[] static_cast<std::complex<double> *>(data);
           });
         } else {
           dataPtr = self.get_tensor().data;
@@ -828,10 +829,12 @@ index pair.
           py::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "orca-photonics" ||
-            is_remote_platform() || is_emulated_platform())
+            holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
               "get_state is not supported in this context.");
+
+        if (is_remote_platform() || is_emulated_platform())
+          return pyGetStateQPU(shortName, module, args);
         return get_state_impl(shortName, module, retTy, args);
       },
       "See the python documenation for get_state.");

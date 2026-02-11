@@ -9,7 +9,6 @@
 #include "common/FmtCore.h"
 #include "common/JIT.h"
 #include "common/JsonConvert.h"
-#include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
@@ -21,6 +20,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
 #include "llvm/ADT/ScopeExit.h"
@@ -85,6 +85,39 @@ void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
   cudaq::getExecutionManager()->clearRegisteredOperations();
   // Destroys the LLJIT object
   jit.reset();
+}
+
+// Execute a function with execution context, except for "run" context which
+// should be executed without context wrapping.
+template <typename Func>
+auto withExecutionContextExceptRun(cudaq::ExecutionContext &io_context,
+                                   cudaq::quantum_platform &platform, Func &&fn)
+    -> decltype(fn()) {
+  if (io_context.name != "run") {
+    return platform.with_execution_context(io_context, std::forward<Func>(fn));
+  } else {
+    return fn();
+  }
+}
+
+/// Util to invoke a wrapped kernel defined by LLVM IR with serialized
+/// arguments.
+// Optionally, the JIT'ed kernel can be executed a number of
+// times along with a post-execution callback. For example, sample a dynamic
+// kernel.
+void invokeWrappedKernel(
+    std::function<void()> func, cudaq::ExecutionContext &executionContext,
+    std::size_t numTimes = 1,
+    std::function<void(std::size_t)> postExecCallback = {}) {
+  auto &platform = cudaq::get_platform();
+  for (std::size_t i = 0; i < numTimes; ++i) {
+    // Invoke the wrapper with serialized data and the kernel.
+    platform.with_execution_context(executionContext, [&]() {
+      func();
+      if (postExecCallback)
+        postExecCallback(i);
+    });
+  }
 }
 
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
@@ -303,22 +336,21 @@ public:
     }
     if (seed != 0)
       cudaq::set_random_seed(seed);
-    auto &platform = cudaq::get_platform();
     auto &requestInfo = m_codeTransform[reqId];
 
     // The lifetime of this pointer should be just as long as `platform` because
     // any calls to `platform` functions could invoke code that relies on the
     // JIT being present.
     std::unique_ptr<llvm::orc::LLJIT> llvmJit;
+    std::function<void()> wrappedKernel;
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
       if (io_context.name == "sample") {
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
-        platform.set_exec_ctx(&context);
-        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                             kernelArgs, argsSize);
-        platform.reset_exec_ctx();
+        std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+            ir, std::string(kernelName), kernelArgs, argsSize);
+        invokeWrappedKernel(wrappedKernel, context);
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
         // we'll have collected registerNames
@@ -330,67 +362,40 @@ public:
           io_context.hasConditionalsOnMeasureResults = true;
           // Need to run simulation shot-by-shot
           cudaq::sample_result counts;
-          platform.set_exec_ctx(&io_context);
           // Since registered operations may contain pointers to classes defined
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          llvmJit = cudaq::invokeWrappedKernel(
-              ir, std::string(kernelName), kernelArgs, argsSize,
-              io_context.shots, [&](std::size_t i) {
-                // Reset the context and get the single
-                // measure result, add it to the
-                // sample_result and clear the context
-                // result
-                platform.reset_exec_ctx();
-                counts += io_context.result;
-                io_context.result.clear();
-                if (i != (io_context.shots - 1))
-                  platform.set_exec_ctx(&io_context);
-              });
+          std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+              ir, std::string(kernelName), kernelArgs, argsSize);
+          invokeWrappedKernel(wrappedKernel, io_context, io_context.shots,
+                              [&](std::size_t i) {
+                                // Flush the single measure result and
+                                // add it to the sample_result
+                                counts += io_context.result;
+                                io_context.result.clear();
+                              });
           io_context.result = counts;
         } else {
           // If no conditionals, nothing special to do for library mode
-          platform.set_exec_ctx(&io_context);
           // Since registered operations may contain pointers to classes defined
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
-          llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                               kernelArgs, argsSize);
-          platform.reset_exec_ctx();
+          std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+              ir, std::string(kernelName), kernelArgs, argsSize);
+          invokeWrappedKernel(wrappedKernel, io_context);
         }
       } else {
-        platform.set_exec_ctx(&io_context);
-        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                             kernelArgs, argsSize);
-        platform.reset_exec_ctx();
+        std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+            ir, std::string(kernelName), kernelArgs, argsSize);
+        invokeWrappedKernel(wrappedKernel, io_context);
       }
     } else {
-      platform.set_exec_ctx(&io_context);
-      if (io_context.name == "sample" &&
-          io_context.hasConditionalsOnMeasureResults) {
-        // Need to run simulation shot-by-shot
-        cudaq::sample_result counts;
-        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
-                         std::string(kernelName), io_context.shots,
-                         [&](std::size_t i) {
-                           // Reset the context and get the single
-                           // measure result, add it to the
-                           // sample_result and clear the context
-                           // result
-                           platform.reset_exec_ctx();
-                           counts += io_context.result;
-                           io_context.result.clear();
-                           if (i != (io_context.shots - 1))
-                             platform.set_exec_ctx(&io_context);
-                         });
-        io_context.result = counts;
-      } else if (io_context.name == "run") {
+      if (io_context.name == "run") {
         // Handle cudaq::run: it should be executed in a context-free manner;
         // the output log is accumulated in the simulator output log.
-        platform.reset_exec_ctx();
         //  Clear the outputLog.
         auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
         circuitSimulator->outputLog.clear();
@@ -407,7 +412,6 @@ public:
       } else {
         invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName));
-        platform.reset_exec_ctx();
       }
     }
     // Clear the registered operations before the `llvmJit` goes out of scope
@@ -548,9 +552,13 @@ protected:
     // Note: currently, we only return data from kernel on single-shot
     // execution. Once we enable arbitrary sample return type, we can run this
     // in a loop and return a vector of return type.
+    auto &platform = cudaq::get_platform();
     if (numTimes == 1 && !returnArg.empty()) {
       simulationStart = std::chrono::high_resolution_clock::now();
-      llvm::Error error = engine->invokePacked(entryPointFunc, returnArg);
+      llvm::Error error =
+          withExecutionContextExceptRun(io_context, platform, [&]() {
+            return engine->invokePacked(entryPointFunc, returnArg);
+          });
       if (error)
         throw std::runtime_error("JIT invocation failed");
       if (postExecCallback)
@@ -566,7 +574,7 @@ protected:
       simulationStart = std::chrono::high_resolution_clock::now();
       for (std::size_t i = 0; i < numTimes; ++i) {
         // Invoke the kernel
-        fn();
+        withExecutionContextExceptRun(io_context, platform, fn);
         if (postExecCallback)
           postExecCallback(i);
       }

@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore environment
         id: restore_devdeps
@@ -66,6 +66,11 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build CUDA Quantum
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
@@ -90,27 +95,10 @@ jobs:
           image: cuda-quantum-dev:local
           shell: bash
           run: |
+            set -euo pipefail
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client==28.0.0
-            python3 -m pytest -v --durations=0 build/python/tests/interop/
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
-              exit 1
-            fi
-            ctest --output-on-failure --test-dir build -E "ctest-nvqpp|ctest-targettests"
-            ctest_status=$?
-            $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --time-tests --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
-            lit_status=$?
-            $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --time-tests --param nvqpp_site_config=build/targettests/lit.site.cfg.py build/targettests
-            targ_status=$?
-            $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --time-tests --param nvqpp_site_config=build/python/tests/mlir/lit.site.cfg.py build/python/tests/mlir
-            pymlir_status=$?
-            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
-              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
-              target tests status $targ_status, Python MLIR status $pymlir_status)."
-              exit 1
-            fi
+            python3 -m pip install iqm-client==28.0.0 --break-system-packages
+            bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
         uses: ./.github/actions/run-in-docker
@@ -174,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore environment
         id: restore_devdeps
@@ -205,6 +193,11 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Set up dev environment
         id: dev_env

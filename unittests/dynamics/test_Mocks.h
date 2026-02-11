@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 #include <CuDensityMatErrorHandling.h>
 #include <cmath>
 #include <complex>

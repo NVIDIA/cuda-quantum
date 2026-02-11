@@ -7,16 +7,15 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --enable-mlir %s -o %t
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
 #include <iostream>
 
 struct kernel {
-  void operator()(const int n_iter) __qpu__ {
+  bool operator()(const int n_iter) __qpu__ {
     cudaq::qubit q0;
     cudaq::qubit q1;
     std::vector<cudaq::measure_result> resultVector(n_iter);
@@ -26,8 +25,8 @@ struct kernel {
       if (resultVector[i])
         x(q1); // toggle q1 on every q0 coin toss that lands heads
     }
-    auto q1result = mz(q1); // the measured q1 should contain the parity bit for
-                            // the q0 measurements
+    return mz(q1); // the measured q1 should contain the parity bit for
+                   // the q0 measurements
   }
 };
 
@@ -37,12 +36,12 @@ int main() {
   int nIter = 5;
   cudaq::set_random_seed(13);
 
-  // Sample
-  auto counts = cudaq::sample(/*shots=*/nShots, kernel{}, nIter);
-  counts.dump();
+  auto results = cudaq::run(/*shots=*/nShots, kernel{}, nIter);
 
-  auto q1result_0 = counts.count("0", "q1result");
-  auto q1result_1 = counts.count("1", "q1result");
+  std::size_t q1result_0 =
+      std::ranges::count_if(results, [](const auto &r) { return r == 0; });
+  std::size_t q1result_1 = results.size() - q1result_0;
+
   if (q1result_0 + q1result_1 != nShots) {
     std::cout << "q1result_0 (" << q1result_0 << ") + q1result_1 ("
               << q1result_1 << ") != nShots (" << nShots << ")\n";

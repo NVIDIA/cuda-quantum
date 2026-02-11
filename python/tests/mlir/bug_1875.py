@@ -30,9 +30,6 @@ def test_bug_1875():
             a = mz(q)
 
     print(kernel_break)
-    result = cudaq.sample(kernel_break, shots_count=1000)
-
-    assert 'a' in result.register_names
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_break..

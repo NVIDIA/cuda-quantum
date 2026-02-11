@@ -15,13 +15,6 @@ namespace cudaq {
 /// @brief Base QPU class for analog platforms like `quera` and `pasqal`.
 /// Provides common functionality and implementation.
 class AnalogRemoteRESTQPU : public BaseRemoteRESTQPU {
-protected:
-  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
-    throw std::runtime_error("Not supported on this target.");
-  }
-
 public:
   /// @brief Check if this is a remote target
   virtual bool isRemote() override { return true; }
@@ -43,6 +36,8 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
+    auto executionContext = cudaq::getExecutionContext();
+
     if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");

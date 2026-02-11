@@ -6,6 +6,5 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1| if running in bash
-// RUN: nvq++ --version |& FileCheck %s
+// RUN: nvq++ --version 2>&1 | FileCheck %s
 // CHECK: nvq++ Version

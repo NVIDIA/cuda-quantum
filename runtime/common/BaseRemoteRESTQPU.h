@@ -15,11 +15,9 @@
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
-#include "common/cudaq_fmt.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -36,8 +34,11 @@
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/operators.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "nvqpp_config.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -58,6 +59,7 @@
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
 #include <fstream>
+#include <iostream>
 #include <netinet/in.h>
 #include <regex>
 #include <sys/socket.h>
@@ -147,14 +149,25 @@ protected:
     delete jit;
   }
 
-  virtual std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
+  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
+  extractQuakeCodeAndContext(const std::string &kernelName, void *data) {
+    auto context = cudaq::getOwningMLIRContext();
+
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(kernelName);
+    auto m_module = parseSourceString<mlir::ModuleOp>(quakeCode, context.get());
+    if (!m_module)
+      throw std::runtime_error("module cannot be parsed");
+
+    return std::make_tuple(m_module.release(), std::move(context), data);
+  }
 
 public:
   /// @brief The constructor
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+    cudaq::initializeMLIR();
   }
 
   BaseRemoteRESTQPU(BaseRemoteRESTQPU &&) = delete;
@@ -200,10 +213,8 @@ public:
   }
 
   /// Store the execution context for launchKernel
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (!context)
-      return;
-
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
     // This check ensures that a kernel is not called whilst actively being
     // used for resource counting (implying that the kernel was somehow
     // invoked from inside the choice function). This check may want to
@@ -211,22 +222,34 @@ public:
     // always fully reset, implying the end of the invocation, being being
     // set again, signaling a new invocation.
     if (nvqir::isUsingResourceCounterSimulator() &&
-        context->name != "resource-count")
+        context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    CUDAQ_INFO("Remote Rest QPU setting execution context to {}",
-               context->name);
+    CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
+               context.name);
 
-    // Execution context is valid
-    executionContext = context;
+    if (context.executionManager)
+      context.executionManager->configureExecutionContext(context);
   }
 
-  /// Reset the execution context
-  void resetExecutionContext() override {
-    // do nothing here
-    executionContext = nullptr;
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
+    if (context.executionManager)
+      context.executionManager->finalizeExecutionContext(context);
+  }
+
+  void beginExecution() override {
+    auto executionContext = getExecutionContext();
+    if (executionContext && executionContext->executionManager)
+      executionContext->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    auto executionContext = getExecutionContext();
+    if (executionContext && executionContext->executionManager)
+      getExecutionContext()->executionManager->endExecution();
   }
 
   /// @brief This setTargetBackend override is in charge of reading the
@@ -458,6 +481,8 @@ public:
                       const std::vector<void *> &rawArgs,
                       mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr,
                       void *updatedArgs) {
+    auto executionContext = cudaq::getExecutionContext();
+
     // Extract the kernel name
     auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
@@ -536,6 +561,9 @@ public:
         pm.addPass(cudaq::opt::createApplySpecialization(
             {.constantPropagation = true}));
         cudaq::opt::addAggressiveInlining(pm);
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createReplaceStateWithKernel());
+        cudaq::opt::addAggressiveInlining(pm);
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         CUDAQ_INFO("Run Quake Synth.\n");
@@ -559,8 +587,14 @@ public:
           continue;
         auto result = info[&artifact];
         if (result.hasConditionalsOnMeasure) {
-          executionContext->hasConditionalsOnMeasureResults = true;
-          break;
+          throw std::runtime_error(
+              "`cudaq::sample` and `cudaq::sample_async` no longer support "
+              "kernels "
+              "that branch on measurement results. Kernel '" +
+              kernelName +
+              "' uses conditional feedback. Use `cudaq::run` or "
+              "`cudaq::run_async` "
+              "instead. See CUDA-Q documentation for migration guide.");
         }
       }
     }
@@ -619,6 +653,31 @@ public:
     if (executionContext) {
       if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
+        // Warn if kernel has named measurement registers (sub-registers).
+        if (!executionContext->warnedNamedMeasurements) {
+          auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
+              std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+          if (funcOp) {
+            bool hasNamedMeasurements = false;
+            funcOp.walk([&](quake::MeasurementInterface meas) {
+              if (meas.getOptionalRegisterName().has_value()) {
+                hasNamedMeasurements = true;
+                return mlir::WalkResult::interrupt();
+              }
+              return mlir::WalkResult::advance();
+            });
+            if (hasNamedMeasurements) {
+              executionContext->warnedNamedMeasurements = true;
+              std::cerr
+                  << "WARNING: Kernel \"" << kernelName
+                  << "\" uses named measurement results "
+                  << "but is invoked in sampling mode. Support for "
+                  << "sub-registers in `sample_result` is deprecated and will "
+                  << "be removed in a future release. Use `run` to retrieve "
+                  << "individual measurement results." << std::endl;
+            }
+          }
+        }
         // No need to add measurements only to remove them eventually
         if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
           runPassPipeline("func.func(add-measurements)", moduleOp);
@@ -767,6 +826,8 @@ public:
                     const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
+    auto executionContext = cudaq::getExecutionContext();
+
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -788,6 +849,8 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
+
+    auto executionContext = cudaq::getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -813,6 +876,8 @@ public:
                                      mlir::Type resTy) override {
     CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
 
+    auto executionContext = cudaq::getExecutionContext();
+
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -835,22 +900,28 @@ public:
 
   void completeLaunchKernel(const std::string &kernelName,
                             std::vector<cudaq::KernelExecution> &&codes) {
+    auto executionContext = cudaq::getExecutionContext();
 
     // After performing lowerQuakeCode, check to see if we are simply drawing
     // the circuit. If so, perform the trace here and then return.
     if (executionContext->name == "tracer" && jitEngines.size() == 1) {
-      cudaq::getExecutionManager()->setExecutionContext(executionContext);
-      invokeJITKernelAndRelease(jitEngines[0], kernelName);
-      cudaq::getExecutionManager()->resetExecutionContext();
+      cudaq::ExecutionContext context("tracer");
+      context.executionManager = cudaq::getDefaultExecutionManager();
+      cudaq::get_platform().with_execution_context(context, [&]() {
+        invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      });
       jitEngines.clear();
+      executionContext->kernelTrace = std::move(context.kernelTrace);
       return;
     }
 
     if (executionContext->name == "resource-count") {
+      cudaq::ExecutionContext context("resource-count");
+      context.executionManager = cudaq::getDefaultExecutionManager();
       assert(jitEngines.size() == 1);
-      cudaq::getExecutionManager()->setExecutionContext(executionContext);
-      invokeJITKernelAndRelease(jitEngines[0], kernelName);
-      cudaq::getExecutionManager()->resetExecutionContext();
+      cudaq::get_platform().with_execution_context(context, [&]() {
+        invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      });
       jitEngines.clear();
       return;
     }
@@ -894,45 +965,22 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
-            if (isRun || hasConditionals) {
-              // Validate the execution logic: cudaq::run and cudaq::sample on
-              // conditional kernels should only generate one JIT'ed kernel.
+            if (isRun) {
+              // Validate the execution logic: cudaq::run kernels should only
+              // generate one JIT'ed kernel.
               assert(localJIT.size() == 1);
               executor->setShots(1); // run one shot at a time
 
-              // If this is adaptive profile and the kernel has conditionals or
-              // executed via cudaq::run, then you have to run the code
-              // localShots times instead of running the kernel once and
-              // sampling the state localShots times.
-
-              // If not executed via cudaq::run, we populate `counts` one shot
-              // at a time.
-              cudaq::sample_result counts;
-              for (std::size_t shot = 0; shot < localShots; shot++) {
-                cudaq::ExecutionContext context("sample", 1);
-                context.hasConditionalsOnMeasureResults = true;
-                if (!isRun)
-                  cudaq::getExecutionManager()->setExecutionContext(&context);
-
+              // If this is executed via cudaq::run, then you have to run the
+              // code localShots times
+              for (std::size_t shot = 0; shot < localShots; shot++)
                 invokeJITKernel(localJIT[0], kernelName);
-                if (!isRun) {
-                  cudaq::getExecutionManager()->resetExecutionContext();
-                  counts += context.result;
-                }
-              }
-              if (!isRun) {
-                // Process `counts` and store into `results`
-                for (auto &regName : counts.register_names()) {
-                  results.emplace_back(counts.to_map(regName), regName);
-                  results.back().sequentialData =
-                      counts.sequential_data(regName);
-                }
-              } else {
-                // Get QIR output log
-                const auto qirOutputLog = nvqir::getQirOutputLog();
-                executionContext->invocationResultBuffer.assign(
-                    qirOutputLog.begin(), qirOutputLog.end());
-              }
+
+              // Get QIR output log
+              const auto qirOutputLog = nvqir::getQirOutputLog();
+              executionContext->invocationResultBuffer.assign(
+                  qirOutputLog.begin(), qirOutputLog.end());
+
             } else {
               // Otherwise, this is a non-adaptive sampling or observe.
               // We run the kernel(s) (multiple kernels if this is a multi-term
@@ -940,9 +988,14 @@ public:
               for (std::size_t i = 0; i < codes.size(); i++) {
                 cudaq::ExecutionContext context("sample", localShots);
                 context.reorderIdx = reorderIdx;
-                cudaq::getExecutionManager()->setExecutionContext(&context);
-                invokeJITKernel(localJIT[i], kernelName);
-                cudaq::getExecutionManager()->resetExecutionContext();
+                context.executionManager = cudaq::getDefaultExecutionManager();
+                context.kernelName = kernelName;
+                context.warnedNamedMeasurements =
+                    executionContext ? executionContext->warnedNamedMeasurements
+                                     : false;
+                cudaq::get_platform().with_execution_context(context, [&]() {
+                  invokeJITKernel(localJIT[i], kernelName);
+                });
 
                 if (isObserve) {
                   // Use the code name instead of the global register.
@@ -960,7 +1013,6 @@ public:
                 }
               }
             }
-
             // Clean up the JIT engines. This functor owns these engine
             // instances.
             for (auto *jitEngine : localJIT)

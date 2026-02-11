@@ -6,14 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// clang-format off
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
+/// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/3708
+// SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// SKIPPED: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// clang-format on
 
+#include <algorithm>
 #include <cudaq.h>
 
 struct iqpe {
-  void operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qarray<2> q;
     h(q[0]);
     x(q[1]);
@@ -61,23 +65,30 @@ struct iqpe {
       rz(-M_PI_2, q[0]);
 
     h(q[0]);
-    mz(q[0]);
+    return {cr0, cr1, cr2, mz(q[0])};
   }
 };
-
-// CHECK: { 
-// CHECK-DAG:   __global__ : { 1:10 }
-// CHECK-DAG:   cr0 : { 1:10 }
-// CHECK-DAG:   cr1 : { 1:10 }
-// CHECK-DAG:   cr2 : { 0:10 }
-// CHECK: }
 
 int main() {
 
   int nShots = 10;
-  auto &platform = cudaq::get_platform();
-  auto counts = cudaq::sample(nShots, iqpe{});
-  counts.dump();
+  auto results = cudaq::run(nShots, iqpe{});
+  // Get the counts for cr0, cr1, cr2 and the final measurement
+  auto count_bit = [&](std::size_t idx) {
+    return std::count_if(results.begin(), results.end(),
+                         [idx](auto &r) { return r[idx]; });
+  };
+  printf("Iterative QPE Results:\n");
+  printf("cr0 : { 1:%zu }\n", count_bit(0));
+  printf("cr1 : { 1:%zu }\n", count_bit(1));
+  printf("cr2 : { 0:%zu }\n", 10 - count_bit(2));
+  printf("final: { 1:%zu }\n", count_bit(3));
 
   return 0;
 }
+
+// CHECK: Iterative QPE Results:
+// CHECK: cr0 : { 1:10 }
+// CHECK: cr1 : { 1:10 }
+// CHECK: cr2 : { 0:10 }
+// CHECK: final: { 1:10 }

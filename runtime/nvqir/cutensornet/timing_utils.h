@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #ifndef NTIMING
 #define LOG_API_TIME() ScopedTraceWithContext(__FUNCTION__);

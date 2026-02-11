@@ -10,6 +10,7 @@ import sys
 import pytest
 
 import cudaq
+from cudaq.kernel_types import KernelTypeError
 import numpy as np
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
@@ -510,3 +511,15 @@ def test_kernel_qvector_init_from_int():
     assert not '10' in counts
     assert not '01' in counts
     assert '00' in counts
+
+
+def test_kernel_qvector_init_outside_of_kernel():
+    # cannot instantiate a qvector outside a kernel
+    with pytest.raises(KernelTypeError):
+        cudaq.qvector(2)
+
+
+def test_qubit_init_outside_of_kernel():
+    # cannot instantiate a qubit outside a kernel
+    with pytest.raises(KernelTypeError):
+        cudaq.qubit()

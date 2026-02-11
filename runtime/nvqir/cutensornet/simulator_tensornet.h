@@ -144,13 +144,27 @@ public:
         return mapped;
       };
       for (auto &op : casted->getAppliedTensors()) {
-        if (op.isUnitary)
+        // Check for noise channel first (noise channel ops have deviceData ==
+        // nullptr and noiseChannel.has_value() == true)
+        if (op.noiseChannel.has_value()) {
+          const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                        op.noiseChannel->probabilities.size();
+          if (isGeneralChannel) {
+            m_state->applyGeneralChannel(mapQubitIdxs(op.targetQubitIds),
+                                         op.noiseChannel->tensorData);
+          } else {
+            m_state->applyUnitaryChannel(mapQubitIdxs(op.targetQubitIds),
+                                         op.noiseChannel->tensorData,
+                                         op.noiseChannel->probabilities);
+          }
+        } else if (op.isUnitary) {
           m_state->applyGate(mapQubitIdxs(op.controlQubitIds),
                              mapQubitIdxs(op.targetQubitIds), op.deviceData,
                              op.isAdjoint);
-        else
+        } else {
           m_state->applyQubitProjector(op.deviceData,
                                        mapQubitIdxs(op.targetQubitIds));
+        }
       }
       // Append the temp. pointer
       m_state->m_tempDevicePtrs.insert(

@@ -9,6 +9,16 @@
 // clang-format off
 // Simulators
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
+
+// Quantum emulators
+// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantum_machines_avail; then nvq++ --target quantum_machines --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -41,7 +51,7 @@ __qpu__ void test_complex_constant_array3() {
 }
 
 __qpu__ void test_complex_array_param(std::vector<cudaq::complex> inState) {
-  cudaq::qvector q1{cudaq::state(inState)};
+  cudaq::qvector q1{inState};
 }
 
 __qpu__ void test_complex_array_param_floating_point(
@@ -54,8 +64,7 @@ __qpu__ void test_real_constant_array() {
 }
 
 __qpu__ void test_real_constant_array_floating_point() {
-  cudaq::qvector v(
-      cudaq::state{std::vector<cudaq::real>({M_SQRT1_2, M_SQRT1_2, 0., 0.})});
+  cudaq::qvector v(std::vector<cudaq::real>({M_SQRT1_2, M_SQRT1_2, 0., 0.}));
 }
 
 __qpu__ void test_real_array_param(std::vector<cudaq::real> inState) {
@@ -65,6 +74,12 @@ __qpu__ void test_real_array_param(std::vector<cudaq::real> inState) {
 __qpu__ void
 test_real_array_param_floating_point(std::vector<cudaq::real> inState) {
   cudaq::qvector q1{inState};
+}
+
+__qpu__ void test_negative_amplitudes() {
+  cudaq::qvector v(
+      std::vector<std::complex<cudaq::real>>({M_SQRT1_2, -M_SQRT1_2}));
+  h(v); // this would result in |1> state
 }
 
 void printCounts(cudaq::sample_result &result) {
@@ -238,5 +253,11 @@ int main() {
       // CHECK: 01
       // CHECK: 11
     }
+  }
+  {
+    auto counts = cudaq::sample(test_negative_amplitudes);
+    printCounts(counts);
+
+    // CHECK: 1
   }
 }

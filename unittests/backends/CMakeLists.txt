@@ -32,9 +32,8 @@ set_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS ${default_backend_unittest
 # Helper function to create an executable to be used by the gtest unit tests
 # - target: positional argument, name of the executable
 # - BACKEND: named argument to specify a prefix for the test names
-# - BACKEND_CONFIG: if present, the test will link with backendConfig.cpp and 
-#     set NVQPP_TARGET_BACKEND_CONFIG with this value so the backend gets loaded 
-#     by a constructor before entering main.
+# - BACKEND_CONFIG: if present, the test will set NVQPP_TARGET_BACKEND_CONFIG 
+#     with this value so the backend gets loaded by a constructor before entering main.
 #     To avoid issues with semicolon the format is: backend key1=value1 key2=value2
 #     The function will convert this to           : backend;key1;value1;key2;value2
 #     Example:     infleqtion emulate=false url=http://localhost:62447
@@ -65,12 +64,10 @@ function(add_backend_unittest_executable target)
     set(libs ${default_backend_unittest_libs})
   endif()
 
-  # Add backendConfig.cpp to the list of files to compile and pass the configuration string
-  # to NVQPP_TARGET_BACKEND_CONFIG.
+  # Pass the configuration string to NVQPP_TARGET_BACKEND_CONFIG.
   if(ARG_BACKEND_CONFIG)
     string(REPLACE [[=]] [[\\;]] ARG_BACKEND_CONFIG "${ARG_BACKEND_CONFIG}")
     string(REPLACE [[ ]] [[\\;]] ARG_BACKEND_CONFIG "${ARG_BACKEND_CONFIG}")
-    target_sources(${target} PRIVATE ${CMAKE_BINARY_DIR}/targets/backendConfig.cpp)
     target_compile_definitions(${target} PRIVATE NVQPP_TARGET_BACKEND_CONFIG="${ARG_BACKEND_CONFIG}")
   endif()
 

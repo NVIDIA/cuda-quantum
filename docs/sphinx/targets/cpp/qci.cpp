@@ -34,22 +34,25 @@ struct teleportation {
     cx(qubits[0], qubits[1]);
     h(qubits[0]);
 
-    auto m1 = mz(qubits[0]);
-    auto m2 = mz(qubits[1]);
-
-    if (m1) {
+    if (mz(qubits[0])) {
       z(qubits[2]);
     }
 
-    if (m2) {
+    if (mz(qubits[1])) {
       x(qubits[2]);
     }
 
-    mz(qubits);
+    /// NOTE: If the return statement is changed to `mz(qubits)`, the program
+    /// fails. Ref: https://github.com/NVIDIA/cuda-quantum/issues/3708
+    return mz(qubits[2]);
   }
 };
 
 int main() {
-  auto result = cudaq::sample(teleportation{});
-  result.dump();
+  auto results = cudaq::run(20, teleportation{});
+  std::cout << "Measurement results of the teleported qubit:\n[ ";
+  for (auto r : results)
+    std::cout << r << " ";
+  std::cout << "]\n";
+  return 0;
 }

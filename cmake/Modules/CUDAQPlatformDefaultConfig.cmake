@@ -14,6 +14,9 @@ find_dependency(CUDAQEmDefault REQUIRED)
 set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
 
+set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQLogger REQUIRED)
+
 set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)
 

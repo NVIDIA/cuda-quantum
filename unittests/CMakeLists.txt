@@ -64,14 +64,13 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   # nvqir-simulation plugin may not get picked up. This works as is on clang
   # But here we add it purposefully to avoid that bug.
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(${TEST_EXE_NAME} PRIVATE -Wl,--no-as-needed)
+    target_link_options(${TEST_EXE_NAME} PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_link_libraries(${TEST_EXE_NAME}
     PUBLIC
     nvqir-${NVQIR_BACKEND}
     nvqir
     cudaq
-    fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
     gtest_main)
@@ -107,9 +106,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     set(TEST_LABELS "gpu_required")
   endif()
   if ("${TEST_LABELS}" STREQUAL "")
-    gtest_discover_tests(${TEST_EXE_NAME})
+    gtest_discover_tests(${TEST_EXE_NAME} DISCOVERY_TIMEOUT 120)
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" DISCOVERY_TIMEOUT 120)
   endif()
 endmacro()
 
@@ -158,7 +157,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_executable(test_mqpu main.cpp mqpu/mqpu_tester.cpp)
   # Need to force the link to nvqir-qpp here if gcc.
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_mqpu PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_mqpu PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_link_libraries(test_mqpu
     PRIVATE
@@ -181,7 +180,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   target_compile_definitions(test_custatevec_observe_from_sampling
                              PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_custatevec_observe_from_sampling PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_custatevec_observe_from_sampling PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_link_libraries(test_custatevec_observe_from_sampling
     PRIVATE
@@ -202,7 +201,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
       if (${NGPUS} GREATER_EQUAL 2)
         add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+          target_link_options(test_mpi PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
         endif()
         target_link_libraries(test_mpi
             PRIVATE
@@ -220,7 +219,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     add_executable(test_gpu_get_state main.cpp gpu/get_state_tester.cu)
     # Need to force the link to nvqir-qpp here if gcc.
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-      target_link_options(test_gpu_get_state PRIVATE -Wl,--no-as-needed)
+      target_link_options(test_gpu_get_state PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
     endif()
     target_compile_options(test_gpu_get_state PRIVATE -Wno-suggest-override -Wno-attributes)
     target_include_directories(test_gpu_get_state PRIVATE .)
@@ -251,12 +250,11 @@ if(TARGET nvqir-tensornet)
         message(STATUS "Building cutensornet MPI tests.")
         add_executable(test_tensornet_mpi mpi/tensornet_mpi_tester.cpp)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_tensornet_mpi PRIVATE -Wl,--no-as-needed)
+          target_link_options(test_tensornet_mpi PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
         endif()
         target_link_libraries(test_tensornet_mpi
             PRIVATE
             cudaq
-            fmt::fmt-header-only
             cudaq-platform-default
             nvqir-tensornet
             gtest)
@@ -277,7 +275,7 @@ if(TARGET nvqir-tensornet)
   target_compile_definitions(test_tensornet_observe_path_reuse
                              PRIVATE -DNVQIR_BACKEND_NAME=tensornet)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_tensornet_observe_path_reuse PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_tensornet_observe_path_reuse PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_link_libraries(test_tensornet_observe_path_reuse
     PRIVATE
@@ -297,13 +295,13 @@ set(CUDAQ_SPIN_TEST_SOURCES
 )
 add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
-  PRIVATE 
+  PRIVATE
   cudaq
   cudaq-operator
   gtest_main
   cudaq-platform-default)
 target_include_directories(test_spin PRIVATE operators)
-gtest_discover_tests(test_spin)
+gtest_discover_tests(test_spin DISCOVERY_TIMEOUT 120)
 
 # Create an executable for operators UnitTests
 set(CUDAQ_OPERATOR_TEST_SOURCES
@@ -321,7 +319,7 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_operators PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_operators PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_link_libraries(test_operators
   PRIVATE
@@ -329,7 +327,7 @@ target_link_libraries(test_operators
   cudaq
   gtest_main
   cudaq-platform-default)
-gtest_discover_tests(test_operators)
+gtest_discover_tests(test_operators DISCOVERY_TIMEOUT 120)
 
 if (CUDA_FOUND)
   find_package(CUDAToolkit REQUIRED)
@@ -368,12 +366,13 @@ if (CUDA_FOUND)
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-   target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_dynamics PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_link_libraries(test_dynamics
    PRIVATE
    cudaq-operator
    cudaq
+   cudaq-logger
    nvqir-dynamics
    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
    CUDA::cudart
@@ -382,14 +381,14 @@ if (CUDA_FOUND)
    CUDA::cusparse
    ${CUTENSORNET_LIB}
    gtest_main
-   fmt::fmt-header-only)
+   )
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
 
   # Multi-QPU evolve_async test
   add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-   target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_evolve_async PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_ANALOG_TARGET)
   target_link_libraries(test_evolve_async
@@ -405,7 +404,7 @@ if (CUDA_FOUND)
    CUDA::cusparse
    ${CUTENSORNET_LIB}
    gtest_main
-   fmt::fmt-header-only)
+   )
   # Count the number of GPUs
   find_program(NVIDIA_SMI "nvidia-smi")
   if(NVIDIA_SMI)
@@ -434,7 +433,7 @@ if (CUDA_FOUND)
           CUDA::cusparse
           ${CUTENSORNET_LIB}
           gtest_main
-          fmt::fmt-header-only)
+          )
 
         add_test(NAME DynamicsMPIBatchingTest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_dynamics_mpi_batching)
         set_tests_properties(DynamicsMPIBatchingTest PROPERTIES LABELS "gpu_required;mgpus_required")
@@ -449,20 +448,21 @@ add_subdirectory(plugin)
 add_subdirectory(qudit)
 add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_qudit PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_qudit PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_link_libraries(test_qudit
   PRIVATE
   cudaq
   cudaq-platform-default
   cudaq-em-qudit
+  nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_qudit)
+gtest_discover_tests(test_qudit DISCOVERY_TIMEOUT 120)
 
 # build the test photonics execution manager
 add_executable(test_photonics main.cpp photonics/PhotonicsTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_photonics PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_photonics PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_link_libraries(test_photonics
   PRIVATE
@@ -471,11 +471,11 @@ target_link_libraries(test_photonics
   cudaq-em-photonics
   nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_photonics)
+gtest_discover_tests(test_photonics DISCOVERY_TIMEOUT 120)
 
 add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_utils PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_link_libraries(test_utils
   PRIVATE
@@ -483,9 +483,9 @@ target_link_libraries(test_utils
   cudaq-platform-default
   cudaq-em-photonics
   nvqir
-  nvqir-qpp fmt::fmt-header-only
+  nvqir-qpp 
   gtest_main)
-gtest_discover_tests(test_utils)
+gtest_discover_tests(test_utils DISCOVERY_TIMEOUT 120)
 
 # Test for thread-local execution context storage
 add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
@@ -497,7 +497,6 @@ target_link_libraries(test_exec_ctx_thread
   PRIVATE
   cudaq
   cudaq-platform-default
-  fmt::fmt-header-only
   gtest_main)
 gtest_discover_tests(test_exec_ctx_thread)
 
@@ -517,7 +516,7 @@ if (MPI_CXX_FOUND)
     nvqir-qpp
     gtest
   )
-  target_link_options(test_mpi_plugin PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_mpi_plugin PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   # Check if `--allow-run-as-root` is supported (OpenMPI)
   # Note: MPICH doesn't need `--allow-run-as-root`.
   execute_process(COMMAND ${MPIEXEC} --allow-run-as-root -np ${NUM_PROCS} hostname ERROR_VARIABLE CHECK_ALLOW_RUN_AS_ROOT_RESULTS ERROR_STRIP_TRAILING_WHITESPACE OUTPUT_QUIET)
@@ -537,6 +536,7 @@ if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)
     message(FATAL_ERROR "find_package(Python) not run?")
   endif()
+
   execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error
@@ -550,11 +550,13 @@ if (CUDAQ_ENABLE_PYTHON)
   message(STATUS "OpenFermion PySCF found, enabling chemistry tests.")
   add_executable(test_domains main.cpp domains/ChemistryTester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_domains PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_domains PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
   target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp -DCUDAQ_SIMULATION_SCALAR_FP64)
   target_include_directories(test_domains PRIVATE .)
-  set_property(TARGET test_domains PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
+  # Embedded Python links to system framework, not venv, so needs explicit sitelib.
+  set_property(TARGET test_domains PROPERTY ENVIRONMENT
+    "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}")
   target_link_libraries(test_domains
     PRIVATE
     cudaq
@@ -565,5 +567,5 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
+    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" DISCOVERY_TIMEOUT 120)
 endif()

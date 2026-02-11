@@ -79,7 +79,7 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
     cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
     echo "Building PyBind11..."
     git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
-    mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
+    mkdir -p "tpls/pybind11/build" && cd "tpls/pybind11/build"
     cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYBIND11_TEST=False
     cmake --build . --target install --config Release
   fi
@@ -163,7 +163,11 @@ if [ -z "${llvm_projects##*openmp;*}" ]; then
   # There are no suitable distribution components for libomp. 
   # We instead manually build suitable targets.
   install_targets+=" omp"
-  llvm_components+="omptarget;openmp-resource-headers;"
+  # omptarget (GPU offloading) is only available on Linux with CUDA
+  if [ "$(uname)" != "Darwin" ]; then
+    llvm_components+="omptarget;"
+  fi
+  llvm_components+="openmp-resource-headers;"
   projects=("${projects[@]/openmp}")
 fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
@@ -274,6 +278,17 @@ else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
 fi
 
+# Install libomp if OpenMP was built (no standard install target exists for distribution builds)
+if [ -n "$(echo $install_targets | grep omp)" ]; then
+  echo "Installing OpenMP runtime (libomp)..."
+  if $verbose; then
+    cmake -P projects/openmp/runtime/src/cmake_install.cmake
+  else
+    cmake -P projects/openmp/runtime/src/cmake_install.cmake \
+      2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
+  fi
+fi
+
 # Build and install runtimes using the newly built toolchain.
 if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
@@ -291,21 +306,13 @@ if [ -n "$llvm_runtimes" ]; then
   else
     # Depending on the exact build configuration, 
     # no install step is defined for builtins when compiler-rt is built
-    # as runtime rather than as project. Similarly, no install step is 
-    # defined for libomp if we install a distribution.
+    # as runtime rather than as project.
     # Invoking the installation manually for these.
     if $verbose; then
       cmake -P runtimes/builtins-bins/cmake_install.cmake
-      if [ -n "$(echo $install_targets | grep omp)" ]; then
-        cmake -P projects/openmp/runtime/src/cmake_install.cmake
-      fi
     else
       cmake -P runtimes/builtins-bins/cmake_install.cmake \
         2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
-      if [ -n "$(echo $install_targets | grep omp)" ]; then
-        cmake -P projects/openmp/runtime/src/cmake_install.cmake \
-          2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
-      fi
     fi
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
 

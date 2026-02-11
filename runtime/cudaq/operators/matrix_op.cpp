@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 #include "cudaq/boson_op.h"
 #include "cudaq/fermion_op.h"

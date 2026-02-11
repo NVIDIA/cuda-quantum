@@ -589,9 +589,15 @@ public:
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   depolarization_channel(const std::vector<cudaq::real> &ps) {
+    auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "depolarization_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto three = static_cast<real>(3.);
     auto negOne = static_cast<real>(-1.);
-    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability / three), std::sqrt(probability / three),
@@ -624,6 +630,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   amplitude_damping_channel(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "amplitude_damping_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
@@ -651,6 +663,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   bit_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "bit_flip_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
@@ -678,6 +696,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   phase_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "phase_flip_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto negOne = static_cast<real>(-1.);
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -721,6 +745,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   phase_damping(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "phase_damping probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, 0, 0, std::sqrt(probability)};
     ops = {k0v, k1v};
@@ -773,6 +803,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   y_error(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "y_error probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::complex<cudaq::real> i{0, 1};
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -933,48 +969,71 @@ public:
 };
 
 /// @brief A 2-qubit depolarization error that applies one of the following
-/// errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX,
-/// ZY, and ZZ.
+/// errors with equal probability. Possible errors: IX, IY, IZ, XI, XX, XY, XZ,
+/// YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.
+///
+/// Nielsen & Chuang, "Quantum Computation and Quantum Information" (2010),
+/// Section 8.3.4, Equation 8.106:
+///   E(ρ) = (1-p)ρ + (p/d²-1)∑ P_i ρ P_i
+/// where d=4 for 2 qubits, giving (p/15) for each of the 15 non-identity
+/// two-qubit Pauli operators P_i.
 class depolarization2 : public kraus_channel {
 public:
-  /// @brief Number of parameters. The 1 parameter is the probability that each
-  /// one of the 15 error possibilities list above will occur. Only 1 of the 15
-  /// possible errors will happen (at most).
+  /// @brief Number of parameters. The 1 parameter is the total depolarization
+  /// probability p. Each of the 15 Pauli errors occurs with probability p/15.
   constexpr static std::size_t num_parameters = 1;
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
   depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
-    auto three = static_cast<cudaq::real>(3.);
-    auto negOne = static_cast<cudaq::real>(-1.);
     auto probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "depolarization2 probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
 
-    std::vector<std::vector<cudaq::complex>> singleQubitKraus = {
-        {std::sqrt(1 - probability), 0, 0, std::sqrt(1 - probability)},
-        {0, std::sqrt(probability / three), std::sqrt(probability / three), 0},
-        {0, cudaq::complex{0, negOne * std::sqrt(probability / three)},
-         cudaq::complex{0, std::sqrt(probability / three)}, 0},
-        {std::sqrt(probability / three), 0, 0,
-         negOne * std::sqrt(probability / three)}};
+    auto fifteen = static_cast<cudaq::real>(15.);
+    auto negOne = static_cast<cudaq::real>(-1.);
 
-    // Generate 2-qubit Kraus operators
-    ops.reserve(singleQubitKraus.size() * singleQubitKraus.size());
-    for (const auto &k1 : singleQubitKraus) {
-      for (const auto &k2 : singleQubitKraus) {
-        ops.push_back(details::kron(k1, 2, 2, k2, 2, 2));
+    std::vector<std::vector<cudaq::complex>> paulis = {
+        // I
+        {1, 0, 0, 1},
+        // X
+        {0, 1, 1, 0},
+        // Y
+        {0, cudaq::complex{0, negOne}, cudaq::complex{0, 1}, 0},
+        // Z
+        {1, 0, 0, negOne}};
+
+    ops.reserve(16);
+    for (std::size_t i = 0; i < 4; ++i) {
+      for (std::size_t j = 0; j < 4; ++j) {
+        auto kron_product = details::kron(paulis[i], 2, 2, paulis[j], 2, 2);
+
+        if (i == 0 && j == 0) {
+          for (auto &elem : kron_product) {
+            elem *= std::sqrt(1 - probability);
+          }
+        } else {
+          for (auto &elem : kron_product) {
+            elem *= std::sqrt(probability / fifteen);
+          }
+        }
+        ops.push_back(kron_product);
       }
     }
+
     this->parameters.push_back(probability);
     noise_type = cudaq::noise_model_type::depolarization2;
     validateCompleteness();
     generateUnitaryParameters();
   }
 
-  /// @brief Construct a two qubit Kraus channel that applies a depolarization
-  /// channel on either qubit independently.
+  /// @brief Construct a two qubit depolarization channel.
   ///
-  /// @param probability The probability of any depolarizing error happening in
-  /// the 2 qubits. (Setting this to 1.0 ensures that "II" cannot happen;
-  /// maximal mixing occurs at p = 0.9375.)
+  /// @param probability The total probability p of depolarization.
+  /// With p=1, the channel produces a maximally mixed state.
+  /// Each of the 15 non-identity Pauli errors occurs with probability p/15.
   depolarization2(const real probability)
       : depolarization2(std::vector<cudaq::real>{probability}) {}
   REGISTER_KRAUS_CHANNEL(
