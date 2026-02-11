@@ -378,7 +378,13 @@ class PyASTBridge(ast.NodeVisitor):
     MLIR code.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 knownResultType=None,
+                 *,
+                 uniqueId=None,
+                 kernelModuleName=None,
+                 locationOffset=('', 0),
+                 verbose=False):
         """
         The constructor. Initializes the `mlir.Value` stack, the `mlir.Context`,
         and the `mlir.Module` that we will be building upon. This class keeps
@@ -391,38 +397,14 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.symbolTable = PyScopedSymbolTable(error_handler=node_error)
         self.valueStack = PyStack(error_handler=node_error)
-        self.knownResultType = kwargs[
-            'knownResultType'] if 'knownResultType' in kwargs else None
-        self.uniqueId = kwargs['uniqueId'] if 'uniqueId' in kwargs else None
-        self.kernelModuleName = kwargs[
-            'kernelModuleName'] if 'kernelModuleName' in kwargs else None
-        if 'existingModule' in kwargs:
-            self.module = kwargs['existingModule']
-            self.ctx = self.module.context
-            self.loc = Location.unknown(context=self.ctx)
-        else:
-            self.ctx = getMLIRContext()
-            self.loc = Location.unknown(context=self.ctx)
-            self.module = Module.create(self.loc)
+        self.knownResultType = knownResultType
+        self.uniqueId = uniqueId
+        self.kernelModuleName = kernelModuleName
+        self.ctx = getMLIRContext()
+        self.loc = Location.unknown(context=self.ctx)
+        self.module = Module.create(self.loc)
 
-        # If the driver of this AST bridge instance has indicated that there is
-        # a return type from analysis on the Python AST, then we want to set the
-        # known result type so that the FuncOp can have it.
-        if 'returnTypeIsFromPython' in kwargs and kwargs[
-                'returnTypeIsFromPython'] and self.knownResultType is not None:
-            self.knownResultType = mlirTypeFromPyType(self.knownResultType,
-                                                      self.ctx)
-
-        self.capturedVars = {}
-        self.dependentCaptureVars = {}
-        self.liftedArgs = []
-        self.locationOffset = kwargs[
-            'locationOffset'] if 'locationOffset' in kwargs else ('', 0)
-        self.disableEntryPointTag = (kwargs['disableEntryPointTag']
-                                     if 'disableEntryPointTag' in kwargs else
-                                     False)
-        self.disableNvqppPrefix = kwargs[
-            'disableNvqppPrefix'] if 'disableNvqppPrefix' in kwargs else False
+        self.locationOffset = locationOffset
         self.indent_level = 0
         self.indent = 4 * " "
         self.buildingFunctionBody = False
@@ -433,7 +415,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.controlNegations = []
         self.pushPointerValue = False
         self.isSubscriptRoot = False
-        self.verbose = 'verbose' in kwargs and kwargs['verbose']
+        self.verbose = verbose
         self.currentNode = None
         self.firstLiftedPos = None
 
@@ -1763,10 +1745,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             # the full function name in MLIR is `__nvqpp__mlirgen__` + the
             # function name
-            if self.disableNvqppPrefix:
-                fullName = self.name
-            else:
-                fullName = nvqppPrefix + self.name
+            fullName = nvqppPrefix + self.name
 
             # Create the FuncOp
             f = func.FuncOp(fullName, (self.argTypes, [] if self.knownResultType
@@ -1776,9 +1755,10 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Set this kernel as an entry point if the argument types are
             # classical only
-            areQuantumTypes = [self.isQuantumType(ty) for ty in self.argTypes]
+            anyQuantumType = any(
+                self.isQuantumType(ty) for ty in self.argTypes)
             f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
-            if True not in areQuantumTypes and not self.disableEntryPointTag:
+            if not anyQuantumType:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
             # Create the entry block
@@ -1833,7 +1813,7 @@ class PyASTBridge(ast.NodeVisitor):
                     "processing error - unprocessed scope(s) in symbol table",
                     node)
 
-            if True not in areQuantumTypes:
+            if not anyQuantumType:
                 attr = DictAttr.get(
                     {
                         fullName:
@@ -5336,13 +5316,9 @@ class PyASTBridge(ast.NodeVisitor):
                 # is handled elsewhere.
                 return
 
-            # node.id is a non-local symbol. Lift it to a formal argument.
-            self.dependentCaptureVars[node.id] = value
-            # If `node.id` is in `liftedArgs`, it should already be in the
-            # symbol table and processed.
+            # If `node.id` is already captured, it should be in the symbol table
+            # and processed.
             assert not node.id in self.liftedArgs
-            if node.id not in self.liftedArgs:
-                self.liftedArgs.append(node.id)
 
             # Append as a new argument
             argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
@@ -5391,8 +5367,6 @@ def compile_to_mlir(uniqueId, astModule, **kwargs):
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
-    parentVariables = kwargs[
-        'parentVariables'] if 'parentVariables' in kwargs else {}
     preCompile = kwargs['preCompile'] if 'preCompile' in kwargs else False
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
@@ -5401,9 +5375,7 @@ def compile_to_mlir(uniqueId, astModule, **kwargs):
     bridge = PyASTBridge(uniqueId=uniqueId,
                          verbose=verbose,
                          knownResultType=returnType,
-                         returnTypeIsFromPython=True,
                          locationOffset=lineNumberOffset,
-                         capturedVariables=parentVariables,
                          kernelModuleName=kernelModuleName)
 
     ValidateArgumentAnnotations(bridge).visit(astModule)

@@ -77,18 +77,10 @@ class PyKernelDecorator(object):
                  verbose=False,
                  module=None,
                  kernelName=None,
-                 funcSrc=None,
                  signature=None,
                  location=None,
                  overrideGlobalScopedVars=None,
-                 decorator=None,
-                 fromBuilder=False):
-
-        if funcSrc is not None:
-            emitWarning(
-                "Passing 'funcSrc' to PyKernelDecorator is deprecated. Pass a string to `function` instead."
-            )
-            function = funcSrc
+                 decorator=None):
 
         self.location = location
         self.signature = signature
@@ -169,13 +161,6 @@ class PyKernelDecorator(object):
                 return True
         return False
 
-    def getKernelType(self):
-        if self.returnType:
-            resTys = [self.returnType]
-        else:
-            resTys = []
-        return FunctionType.get(inputs=self.argTypes, results=resTys)
-
     def pre_compile(self):
         """
         Compile the Python AST to portable Quake.
@@ -196,7 +181,7 @@ class PyKernelDecorator(object):
             id(self),
             self.astModule,
             verbose=self.verbose,
-            returnType=self.returnType,
+            returnType=self.return_type,
             location=self.location,
             parentVariables=self.globalScopedVars,
             preCompile=True,
@@ -455,7 +440,7 @@ class PyKernelDecorator(object):
             return self.firstLiftedPos
         return len(self.argTypes)
 
-    def handle_call_arguments(self, *args, ignoreReturnType=False):
+    def handle_call_arguments(self, *args):
         """
         Resolve all the arguments at the call site for this decorator.
         """
@@ -492,9 +477,9 @@ class PyKernelDecorator(object):
         return NoneType.get(self.qkeModule.context)
 
     def handle_call_results(self):
-        if not self.returnType:
+        if not self.return_type:
             return self.get_none_type()
-        return mlirTypeFromPyType(self.returnType, self.qkeModule.context)
+        return mlirTypeFromPyType(self.return_type, self.qkeModule.context)
 
     def launch_args_required(self):
         """
@@ -643,13 +628,13 @@ class PyKernelDecorator(object):
             emitFatalError('CUDA-Q kernel has return statement '
                            'but no return type annotation.')
 
-        self.returnType = self.signature.get('return', None)
+        self.return_type = self.signature.get('return', None)
 
     def _parse_signature_from_mlir(self):
         funcOp = recover_func_op(self.qkeModule, nvqppPrefix + self.uniqName)
         fnTy = FunctionType(TypeAttr(funcOp.attributes['function_type']).value)
         self.argTypes = fnTy.inputs
-        self.returnType = fnTy.results[0] if fnTy.results else None
+        self.return_type = fnTy.results[0] if fnTy.results else None
 
     def _parse_ast(self):
         self.astModule = ast.parse(self.funcSrc)
@@ -667,7 +652,6 @@ def mk_decorator(builder):
     that handles both CUDA-Q kernel object classes more unified.
     """
     return PyKernelDecorator(None,
-                             fromBuilder=True,
                              module=builder.module,
                              kernelName=builder.uniqName)
 

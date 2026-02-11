@@ -85,11 +85,11 @@ def __broadcastSample(kernel,
 def _detail_check_conditionals_on_measure(kernel):
     has_conditionals_on_measure_result = False
     if isa_kernel_decorator(kernel):
-        if kernel.returnType is not None:
+        if kernel.return_type is not None:
             raise RuntimeError(
                 f"The `sample` API only supports kernels that return None "
                 f"(void). Kernel '{kernel.name}' has return type "
-                f"'{kernel.returnType}'. Consider using `run` for kernels "
+                f"'{kernel.return_type}'. Consider using `run` for kernels "
                 f"that return values.")
         # Only check for kernels that are compiled, not library-mode kernels (e.g., photonics)
         if kernel.qkeModule is not None:
@@ -245,8 +245,8 @@ def sample_async(decorator,
     if (not isinstance(shots_count, int)) or (shots_count < 0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
-    if (decorator.returnType and
-            decorator.returnType != decorator.get_none_type()):
+    if (decorator.return_type and
+            decorator.return_type != decorator.get_none_type()):
         raise RuntimeError("The `sample_async` API only supports kernels that "
                            "return None (void). Consider using `run_async` for "
                            "kernels that return values.")
