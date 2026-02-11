@@ -2695,7 +2695,10 @@ class PyASTBridge(ast.NodeVisitor):
                     obj = frame.f_locals.get(moduleNames[0])
                 elif moduleNames[0] in frame.f_globals:
                     obj = frame.f_globals.get(moduleNames[0])
-                if obj:
+                if obj is not None:
+                    # In case a module has been imported multiple times, grab the latest
+                    if isinstance(obj, list):
+                        obj = obj[-1]
                     devKey = checkModule(obj, moduleNames)
                     if devKey:
                         return devKey, pyVal.attr
