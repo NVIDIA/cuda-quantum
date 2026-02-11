@@ -8621,6 +8621,15 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1ExecutionContext_1a48a76b343e31be61ee708b10e5a9ffa9 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[warnedNamedMeasurements]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE "Permalink to this definition"){.headerlink}\
+
+    :   Flag to indicate that a warning about named measurement
+        registers in sampling context has already been emitted.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_probabilities]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE "Permalink to this definition"){.headerlink}\
 
     :   Probability of occurrence of each error mechanism (column) in
