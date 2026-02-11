@@ -135,6 +135,11 @@ jobs:
             network=host
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build wheel
         id: wheel_build
         uses: docker/build-push-action@v5
