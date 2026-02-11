@@ -76,6 +76,7 @@ createHardwareTargetPrepPipeline(OpPassManager &pm,
                                  const TargetPrepPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
   createTargetPrepPipeline(pm, options);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
 
 /// Register the standard initial pipeline run for ALL target machines when
@@ -96,6 +97,7 @@ createEmulationTargetPrepPipeline(OpPassManager &pm,
   if (options.eraseNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
   createTargetPrepPipeline(pm, options);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
 
 /// Register the standard initial pipeline run for ALL target machines when

@@ -746,6 +746,41 @@ def test_apply_noise_builtin(target: str):
     cudaq.reset_target()
 
 
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_depolarization2_standard_formula(target: str):
+    cudaq.set_target(target)
+    cudaq.set_random_seed(42)
+
+    @cudaq.kernel
+    def cnot_echo():
+        q = cudaq.qvector(2)
+        x.ctrl(q[0], q[1])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    test_cases = [
+        (0.1, 0.70, 0.95),
+        (0.3, 0.45, 0.70),
+        (0.5, 0.30, 0.55),
+    ]
+
+    for p, min_expected, max_expected in test_cases:
+        noise_model = cudaq.NoiseModel()
+        depol2 = cudaq.Depolarization2(p)
+        noise_model.add_channel("x", [0, 1], depol2)
+
+        counts = cudaq.sample(cnot_echo,
+                              shots_count=10000,
+                              noise_model=noise_model)
+        prob_00 = counts.probability("00")
+
+        assert min_expected <= prob_00 <= max_expected, f"Expected probability to be in between {min_expected} and {max_expected}, got {prob_00:.4f}"
+
+        assert len(counts) == 4, f"Expected 4 outcomes, got {len(counts)}"
+
+    cudaq.reset_target()
+
+
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])
 def test_noise_observe_reset(target: str):
     cudaq.set_target(target)
@@ -1035,6 +1070,32 @@ def test_builder_apply_noise_inplace():
                       atol=1e-2)  # q stays, r decays
     assert np.isclose(counts.probability("01"), 0.5 * 0.75,
                       atol=1e-2)  # q decays, r stays
+    cudaq.reset_target()
+
+
+INVALID_PROBABILITY_MSG = (r"probability must be in the range|"
+                           r"not completely positive|trace preserving")
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_noise_validation_probability_check(target: str):
+    cudaq.set_target(target)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.DepolarizationChannel(-0.1)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.BitFlipChannel(1.5)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.Depolarization2(1.5)
+
+    depol_zero = cudaq.DepolarizationChannel(0.0)
+    depol_one = cudaq.DepolarizationChannel(1.0)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], depol_zero)
+    noise.add_channel("h", [0], depol_one)
+
     cudaq.reset_target()
 
 

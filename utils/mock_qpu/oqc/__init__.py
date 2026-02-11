@@ -9,14 +9,13 @@ from typing import Union
 
 import base64
 import ctypes
-import cudaq
 import uuid
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
-import json
 from typing import Any, Dict
+from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -123,10 +122,9 @@ async def postJob(data: Dict[str, Any],
         kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
         # Invoke the Kernel
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, 1000)
-        kernel()
-        results = cudaq.testing.finalize(qubits, context)
+        with PreallocatedQubitsContext(numQubitsRequired) as context:
+            kernel()
+        results = context.result
         results.dump()
         createdJobs[newId] = (task.task_id, results)
 

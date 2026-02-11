@@ -7,24 +7,23 @@
  ******************************************************************************/
 #pragma once
 
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 
+namespace llvm::orc {
+class LLJIT;
+}
+
 namespace cudaq {
-/// Util to invoke a wrapped kernel defined by LLVM IR with serialized
+
+/// Util to create a wrapped kernel defined by LLVM IR with serialized
 /// arguments.
 // Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
 // `packFunctionArguments` (slow for raw LLVM IR containing many functions from
 // included headers).
-// Optionally, the JIT'ed kernel can be executed a number of
-// times along with a post-execution callback. For example, sample a dynamic
-// kernel.
-std::unique_ptr<llvm::orc::LLJIT>
-invokeWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
-                    void *args, std::uint64_t argsSize,
-                    std::size_t numTimes = 1,
-                    std::function<void(std::size_t)> postExecCallback = {});
+std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
+createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
+                    void *args, std::uint64_t argsSize);
 } // namespace cudaq

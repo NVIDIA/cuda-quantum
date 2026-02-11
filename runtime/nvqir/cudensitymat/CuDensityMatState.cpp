@@ -11,7 +11,7 @@
 #include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 namespace cudaq {
 
@@ -165,7 +165,9 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
     const std::size_t dim = static_cast<std::size_t>(std::sqrt(dimension));
     if (indices[0] >= dim || indices[1] >= dim)
       throw std::runtime_error("CuDensityMatState indices out of range");
-    return extractValue(indices[0] * dim + indices[1]);
+    // cuDensityMat uses column-major (Fortran) storage order, so the linear
+    // index for element [row, col] is: col * numRows + row
+    return extractValue(indices[1] * dim + indices[0]);
   }
   if (indices.size() != 1)
     throw std::runtime_error(

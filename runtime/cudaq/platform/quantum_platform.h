@@ -52,20 +52,6 @@ using KernelExecutionTask = std::function<sample_result()>;
 /// a double expectation value.
 using ObserveTask = std::function<observe_result()>;
 
-namespace detail {
-/// Temporary per-thread execution context storage.
-/// Will be removed when executionContext is eliminated.
-struct PerThreadExecCtx {
-  PerThreadExecCtx();
-  ~PerThreadExecCtx();
-  ExecutionContext *get() const;
-  void set(ExecutionContext *ctx);
-
-  struct Impl;
-  std::unique_ptr<Impl> impl;
-};
-} // namespace detail
-
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
 /// query specific information about the targeted QPU(s) (e.g. number
@@ -88,13 +74,56 @@ public:
   virtual bool supports_task_distribution() const { return false; }
 
   /// Specify the execution context for the current thread.
-  void set_exec_ctx(ExecutionContext *ctx);
+  // [remove at]: runtime refactor release
+  [[deprecated("set_exec_ctx is deprecated - please use with_execution_context "
+               "instead.")]] void
+  set_exec_ctx(ExecutionContext *ctx);
 
   /// Return the current execution context
-  ExecutionContext *get_exec_ctx() const { return executionContext.get(); }
+  // [remove at]: runtime refactor release
+  [[deprecated("get_exec_ctx is deprecated - please use "
+               "cudaq::getExecutionContext() instead.")]] ExecutionContext *
+  get_exec_ctx() const {
+    return getExecutionContext();
+  }
 
   /// Reset the execution context for the current thread.
-  void reset_exec_ctx();
+  // [remove at]: runtime refactor release
+  [[deprecated("reset_exec_ctx is deprecated - please use "
+               "with_execution_context instead.")]] void
+  reset_exec_ctx();
+
+  /// @brief Execute the given function within the given execution context.
+  template <typename Callable, typename... Args>
+  auto with_execution_context(ExecutionContext &ctx, Callable &&f,
+                              Args &&...args) {
+    // Save the outer execution context (if any) so we can restore it after.
+    auto *outerContext = getExecutionContext();
+
+    configureExecutionContext(ctx);
+    detail::setExecutionContext(&ctx);
+    beginExecution();
+
+    auto cleanup = [this, &ctx, &outerContext]() {
+      detail::try_finally(
+          [this, &ctx] {
+            finalizeExecutionContext(ctx);
+            endExecution();
+          },
+          [&outerContext] {
+            detail::resetExecutionContext();
+            if (outerContext)
+              detail::setExecutionContext(outerContext);
+          });
+    };
+
+    if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+      detail::try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    } else {
+      return detail::try_finally([&] { return f(std::forward<Args>(args)...); },
+                                 cleanup);
+    }
+  }
 
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
@@ -111,9 +140,6 @@ public:
   /// The name of the platform, which also corresponds to the name of the
   /// platform file.
   std::string name() const { return platformName; }
-
-  /// Get the ID of the QPU in the current execution context.
-  std::size_t get_current_qpu() const;
 
   /// @brief Return true if the QPU is remote.
   bool is_remote(std::size_t qpu_id = 0) const;
@@ -141,6 +167,19 @@ public:
 
   /// @brief Turn off any noise models.
   void reset_noise(std::size_t qpu_id = 0);
+
+  /// Specify the execution context for this platform.
+  void configureExecutionContext(ExecutionContext &ctx) const;
+
+  /// @brief Post-process the results stored in @p ctx after execution on this
+  /// platform.
+  void finalizeExecutionContext(cudaq::ExecutionContext &ctx) const;
+
+  /// @brief Begin a new execution on this platform.
+  void beginExecution();
+
+  /// @brief End the current execution on this platform.
+  void endExecution();
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
@@ -219,10 +258,6 @@ protected:
 
   /// Name of the platform.
   std::string platformName;
-
-  /// Keep a per-thread pointer to the current execution context.
-  // TODO: Remove this
-  detail::PerThreadExecCtx executionContext;
 
   /// Optional logging stream for platform output.
   // If set, the platform and its QPUs will print info log to this stream.

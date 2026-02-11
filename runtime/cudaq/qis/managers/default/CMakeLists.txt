@@ -17,7 +17,7 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-operator PRIVATE cudaq nvqir cudaq-common fmt::fmt-header-only LLVMSupport)
+  PUBLIC cudaq-operator PRIVATE cudaq nvqir cudaq-common cudaq-logger fmt::fmt-header-only LLVMSupport)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-default-targets DESTINATION lib)
 

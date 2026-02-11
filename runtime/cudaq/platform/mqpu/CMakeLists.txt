@@ -15,7 +15,7 @@ add_subdirectory(remote)
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
 add_library(${LIBRARY_NAME}
-  SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
+  SHARED MultiQPUPlatform.cpp)
 target_include_directories(${LIBRARY_NAME}
     PUBLIC
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -28,12 +28,12 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
   PRIVATE
     cudaq-common
+    cudaq-logger
+    fmt::fmt-header-only
     cudaq
     mqpu_util
     CUDAQTargetConfigUtil
     pthread
-    spdlog::spdlog
-    fmt::fmt-header-only
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)

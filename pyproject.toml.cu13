@@ -18,19 +18,20 @@ requires-python = ">=3.11"
 license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
-  'custatevec-cu13 ~= 1.10',
-  'cutensornet-cu13 ~= 2.9',
-  'cudensitymat-cu13 ~= 0.3',  
   'numpy >= 1.24',
   'scipy >= 1.10.1',
   'requests >= 2.31',
-  'nvidia-cublas ~= 13.0',
-  'nvidia-curand ~= 10.4',
-  'nvidia-cusparse ~= 12.6',
-  'nvidia-cuda-runtime ~= 13.0',
-  'nvidia-cusolver ~= 12.0',
-  'nvidia-cuda-nvrtc ~= 13.0',
-  'cupy-cuda13x ~= 13.6.0'
+  # CUDA dependencies - excluded on macOS (CPU-only support)
+  'custatevec-cu13 ~= 1.12; sys_platform != "darwin"',
+  'cutensornet-cu13 ~= 2.11; sys_platform != "darwin"',
+  'cudensitymat-cu13 ~= 0.4; sys_platform != "darwin"',
+  'nvidia-cublas ~= 13.0; sys_platform != "darwin"',
+  'nvidia-curand ~= 10.4; sys_platform != "darwin"',
+  'nvidia-cusparse ~= 12.6; sys_platform != "darwin"',
+  'nvidia-cuda-runtime ~= 13.0; sys_platform != "darwin"',
+  'nvidia-cusolver ~= 12.0; sys_platform != "darwin"',
+  'nvidia-cuda-nvrtc ~= 13.0; sys_platform != "darwin"',
+  'cupy-cuda13x ~= 13.6.0; sys_platform != "darwin"',
 ]
 classifiers = [
     'Intended Audience :: Science/Research',
@@ -79,6 +80,14 @@ cmake.args = [
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
     "-DCUDAQ_BUILD_TESTS=TRUE"
 ]
+
+# macOS: Disable symbol stripping. LLVM's JIT relies on local symbols for
+# internal data structures (eg., PassRegistry). On macOS
+# with it's two-level namespace they are removed by stripping which
+# can cause failures so we disable.
+[[tool.scikit-build.overrides]]
+if.platform-system = "darwin"
+install.strip = false
 
 [tool.setuptools_scm]
 write_to = "_version.py"

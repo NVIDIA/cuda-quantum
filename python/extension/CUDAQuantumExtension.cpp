@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
 #include "cudaq.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
 #include "runtime/common/py_EvolveResult.h"
@@ -39,7 +39,7 @@
 #include "runtime/cudaq/operators/py_super_op.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
-#include "runtime/cudaq/qis/py_qubit_qis.h"
+#include "runtime/cudaq/qis/py_pauli_word.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/interop/PythonCppInterop.h"
@@ -75,31 +75,24 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "kernel_builder and ast_bridge when created new MLIR Contexts.");
   cudaqRuntime.def(
       "initialize_cudaq",
-      [&](py::kwargs kwargs) {
+      [&](std::optional<std::string> option, std::optional<bool> emulate,
+          std::optional<std::string> target) {
         CUDAQ_INFO("Calling initialize_cudaq.");
-        if (!kwargs)
-          return;
 
         std::map<std::string, std::string> extraConfig;
-        for (auto &[keyPy, valuePy] : kwargs) {
-          std::string key = py::str(keyPy);
-          if (key == "emulate") {
-            extraConfig.insert({"emulate", "true"});
-          }
-          if (key == "option") {
-            extraConfig.insert({"option", py::str(valuePy)});
-          }
+        if (emulate && *emulate) {
+          extraConfig.insert({"emulate", "true"});
         }
-
-        for (auto &[keyPy, valuePy] : kwargs) {
-          std::string key = py::str(keyPy);
-          std::string value = py::str(valuePy);
-          CUDAQ_INFO("Processing Python Arg: {} - {}", key, value);
-          if (key == "target")
-            holder->setTarget(value, extraConfig);
+        if (option && !option->empty()) {
+          extraConfig.insert({"option", *option});
+        }
+        if (target && !target->empty()) {
+          CUDAQ_INFO("Processing Python Arg: target - {}", *target);
+          holder->setTarget(*target, extraConfig);
         }
       },
-      "Initialize the CUDA-Q environment.");
+      py::arg("option") = py::none(), py::arg("emulate") = py::none(),
+      py::arg("target") = py::none(), "Initialize the CUDA-Q environment.");
 
   bindRuntimeTarget(cudaqRuntime, *holder.get());
   bindMeasureCounts(cudaqRuntime);
@@ -113,7 +106,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   bindOperatorsWrapper(cudaqRuntime);
   bindHandlersWrapper(cudaqRuntime);
   bindSuperOperatorWrapper(cudaqRuntime);
-  bindQIS(cudaqRuntime);
+  bindPauliWord(cudaqRuntime);
   bindOptimizerWrapper(cudaqRuntime);
   bindNoise(cudaqRuntime);
   bindExecutionContext(cudaqRuntime);
@@ -292,26 +285,14 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaqRuntime.def(
       "checkRegisteredCppDeviceKernel",
-      [](MlirModule mod,
-         const std::string &moduleName) -> std::optional<std::string> {
+      [](MlirModule mod, const std::string &moduleName)
+          -> std::optional<std::tuple<std::string, std::string>> {
         std::tuple<std::string, std::string> ret;
         try {
-          ret = python::getDeviceKernel(moduleName);
+          return python::getDeviceKernel(moduleName);
         } catch (...) {
           return std::nullopt;
         }
-
-        // Take the code for the kernel we found
-        // and add it to the input module, return
-        // the func op.
-        auto [kName, code] = ret;
-        auto ctx = unwrap(mod).getContext();
-        auto moduleB = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
-        auto moduleA = unwrap(mod);
-
-        // Merge symbols from moduleB into moduleA.
-        opt::factory::mergeModules(moduleA, *moduleB);
-        return kName;
       },
       "Given a python module name like `mod1.mod2.func`, see if there is a "
       "registered C++ quantum kernel. If so, add the kernel to the Module and "
