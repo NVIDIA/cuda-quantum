@@ -287,8 +287,11 @@ void bindNoiseChannels(py::module &mod) {
           py::arg("index"),
           "Return the :class:`KrausOperator` at the given index in this "
           ":class:`KrausChannel`.")
-      .def("append", &kraus_channel::push_back,
-           "Add a :class:`KrausOperator` to this :class:`KrausChannel`.");
+      .def(
+          "append",
+          [](kraus_channel &self, kraus_op op) { self.push_back(op); },
+          py::arg("operator"),
+          "Add a :class:`KrausOperator` to this :class:`KrausChannel`.");
 
   py::class_<depolarization_channel, kraus_channel>(
       mod, "DepolarizationChannel",
