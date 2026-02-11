@@ -440,7 +440,7 @@ jobs:
           version: v0.19.0
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
 
       - name: Extract cuda-quantum metadata
         id: metadata
@@ -601,7 +601,7 @@ jobs:
           version: v0.19.0
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
 
       - name: Build installer
         uses: docker/build-push-action@v5
@@ -716,7 +716,7 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             network=host
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
 
       - name: Build cuda-quantum wheel
         id: build_wheel
