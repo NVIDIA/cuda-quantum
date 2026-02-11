@@ -255,3 +255,37 @@ def test_callback_with_capture_quantum_and_classical():
         h(qs)
 
     cudaq_test_cpp_algo.run3(entry)
+
+def test_callback_with_return():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def entry(qs: cudaq.qview, i: int) -> int:
+        h(qs)
+        x(qs[i])
+        y(qs)
+        h(qs)
+        return i
+
+    cudaq_test_cpp_algo.run4(entry)
+
+def test_callback_with_callable():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def foo(qs: cudaq.qview):
+        x(qs)
+
+    @cudaq.kernel
+    def entry(qs: cudaq.qview, i: int) -> int:
+        h(qs)
+        x(qs[i])
+        foo(qs)
+        h(qs)
+        return i
+
+    cudaq_test_cpp_algo.run4(entry)

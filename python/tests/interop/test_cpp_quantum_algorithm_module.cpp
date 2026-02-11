@@ -68,4 +68,12 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
             qern, cudaq::most_curious_test);
       },
       "");
+  m.def(
+      "run4",
+      [](py::object qern) {
+        cudaq::python::launch_specialized_py_decorator<
+            cudaq::qkernel<std::size_t(cudaq::qvector<> &, std::size_t)>>(
+            qern, cudaq::callback_test);
+      },
+      "");
 }

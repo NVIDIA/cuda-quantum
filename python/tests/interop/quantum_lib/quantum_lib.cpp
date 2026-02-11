@@ -69,3 +69,10 @@ __qpu__ void cudaq::most_curious_test(
   cudaq::qvector qs(5);
   qern(qs, 4);
 }
+
+__qpu__ std::size_t cudaq::callback_test(
+    cudaq::qkernel<std::size_t(cudaq::qvector<> &, std::size_t)> &&qern) {
+  // qern takes a quantum argument and a classical argument and returns a value
+  cudaq::qvector qs(5);
+  return qern(qs, 4);
+}
