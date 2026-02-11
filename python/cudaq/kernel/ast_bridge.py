@@ -2643,7 +2643,6 @@ class PyASTBridge(ast.NodeVisitor):
 
         def resolveQualifiedName(pyVal):
             if isinstance(pyVal, ast.Name):
-                # Name is available locally
                 return None, pyVal.id
             if not isinstance(pyVal, ast.Attribute):
                 return None, None
@@ -2684,6 +2683,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
+
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast':
                     # Handle a debug print statement
@@ -3506,7 +3506,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 otherFuncName = f"{devKey}.{name}" if devKey else name
                                 maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
                                     self.module, otherFuncName)
-                                if maybeKernelName is not None:
+                                if maybeKernelName != None:
                                     self.emitFatalError(
                                         "calling cudaq.control or cudaq.adjoint on "
                                         "a kernel defined in C++ is not currently "
