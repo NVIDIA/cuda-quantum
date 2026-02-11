@@ -81,7 +81,16 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
       "run5",
       [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<
-            cudaq::qkernel<std::vector<float>()>>(qern, cudaq::py_ret_test);
+            cudaq::qkernel<std::vector<float>()>>(qern, cudaq::py_ret_test1);
+      },
+      "");
+
+  m.def(
+      "run6",
+      [](py::object qern) {
+        cudaq::python::launch_specialized_py_decorator<
+            cudaq::qkernel<std::vector<float>(std::size_t)>>(
+            qern, cudaq::py_ret_test2);
       },
       "");
 }

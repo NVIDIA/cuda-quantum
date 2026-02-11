@@ -292,7 +292,7 @@ def test_callback_with_callable():
 
     cudaq_test_cpp_algo.run4(entry)
 
-def test_py_kernel_from_cpp_with_return():
+def test_py_kernel_from_cpp_with_returns():
     pytest.importorskip('cudaq_test_cpp_algo')
 
     import cudaq_test_cpp_algo
@@ -302,3 +302,13 @@ def test_py_kernel_from_cpp_with_return():
         return [1.0, 2.0, 3.0]
 
     cudaq_test_cpp_algo.run5(foo)
+
+    @cudaq.kernel
+    def foo(i: int) -> list[float]:
+        if i % 2 == 1:
+            f = 1.0
+        else:
+            f = 0.5
+        return [f, 2.0, 3.0]
+
+    cudaq_test_cpp_algo.run6(foo)
