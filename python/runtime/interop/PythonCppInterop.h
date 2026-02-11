@@ -33,20 +33,20 @@ public:
     requires QKernelType<T>
   T getEntryPointFunction(As... as) {
     // Perform beta reduction on the kernel decorator.
-    void *p =
-        kernel
-            .attr("beta_reduction")(&execution_engine, std::forward<As>(as)...)
-            .template cast<void *>();
+    auto [p, cachedEngineHandle] =
+        kernel.attr("beta_reduction")(std::forward<As>(as)...)
+            .template cast<std::pair<void *, std::size_t>>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
+    cachedEngineKey = cachedEngineHandle;
     // Translate the pointer to the entry point code buffer to a `qkernel`.
     return T{fptr};
   }
 
 private:
   py::object kernel;
-  /*mlir::ExecutionEngine*/ void *execution_engine = nullptr;
+  std::optional<std::size_t> cachedEngineKey;
 };
 
 /// This template allows a single python decorator to be called from a C++
