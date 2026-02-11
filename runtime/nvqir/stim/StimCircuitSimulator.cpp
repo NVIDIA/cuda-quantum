@@ -389,11 +389,35 @@ protected:
     }
   }
 
+  /// @brief Check if gateName is a two-qubit Pauli product (e.g. "IX", "ZZ").
+  static bool isTwoQubitPauliProduct(const std::string &gateName) {
+    if (gateName.size() != 2)
+      return false;
+    static const std::string paulis = "IXYZ";
+    return paulis.find(gateName[0]) != std::string::npos &&
+           paulis.find(gateName[1]) != std::string::npos;
+  }
+
   void applyGate(const GateApplicationTask &task) override {
     std::string gateName(task.operationName);
     std::transform(gateName.begin(), gateName.end(), gateName.begin(),
                    ::toupper);
-    std::vector<std::uint32_t> stimTargets;
+
+    // Two-qubit Pauli product gates (e.g. "IX", "XY", "ZZ") decompose into
+    // independent single-qubit gates on each target qubit.
+    if (isTwoQubitPauliProduct(gateName)) {
+      if (!task.controls.empty() || task.targets.size() != 2)
+        throw std::runtime_error(fmt::format(
+            "Two-qubit Pauli product gate {} requires exactly 2 targets and "
+            "no controls, got {} targets and {} controls.",
+            task.operationName, task.targets.size(), task.controls.size()));
+      for (int i = 0; i < 2; i++) {
+        if (gateName[i] != 'I')
+          applyOpToSims(std::string(1, gateName[i]),
+                        {static_cast<std::uint32_t>(task.targets[i])});
+      }
+      return;
+    }
 
     // These CUDA-Q rotation gates have the same name as Stim "reset" gates.
     // Stim is a Clifford simulator, so it doesn't actually support rotational
@@ -409,23 +433,7 @@ protected:
     else if (gateName == "ID")
       gateName = "I";
 
-    // Decompose two-qubit Pauli product gates (e.g. "IX", "XY") into
-    // individual single-qubit Pauli gates on each target qubit. These names
-    // come from PTSBE noise channel op_names for pauli2/depolarization2.
-    if (gateName.size() == 2 && task.controls.empty() &&
-        task.targets.size() == 2) {
-      static const std::string paulis = "IXYZ";
-      if (paulis.find(gateName[0]) != std::string::npos &&
-          paulis.find(gateName[1]) != std::string::npos) {
-        for (int i = 0; i < 2; i++) {
-          if (gateName[i] != 'I')
-            applyOpToSims(std::string(1, gateName[i]),
-                          {static_cast<std::uint32_t>(task.targets[i])});
-        }
-        return;
-      }
-    }
-
+    std::vector<std::uint32_t> stimTargets;
     if (task.controls.size() > 1)
       throw std::runtime_error(
           "Gates with >1 controls not supported by Stim simulator");

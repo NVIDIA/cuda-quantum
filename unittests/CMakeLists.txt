@@ -86,6 +86,10 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "stim")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_STIM -DCUDAQ_SIMULATION_SCALAR_FP64)
+    target_include_directories(${TEST_EXE_NAME} PRIVATE
+      ${CMAKE_SOURCE_DIR}/runtime/nvqir/stim
+      ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
+    target_link_libraries(${TEST_EXE_NAME} PRIVATE libstim)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_SIMULATION_SCALAR_FP64)
@@ -118,7 +122,7 @@ endmacro()
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
-create_tests_with_backend(stim "")
+create_tests_with_backend(stim backends/StimTester.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")
