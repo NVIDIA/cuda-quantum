@@ -39,14 +39,13 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
 
   if (!isDensityMatrix) {
     Eigen::VectorXcd state(dimension);
-    const auto size = dimension;
     HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                 size * sizeof(std::complex<double>),
+                                 dimension * sizeof(std::complex<double>),
                                  cudaMemcpyDeviceToHost));
 
     Eigen::VectorXcd otherState(dimension);
     HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                                 size * sizeof(std::complex<double>),
+                                 dimension * sizeof(std::complex<double>),
                                  cudaMemcpyDeviceToHost));
     return std::abs(std::inner_product(
         state.begin(), state.end(), otherState.begin(),
@@ -59,14 +58,13 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   // The matrix side length is sqrt(dimension).
   const std::size_t matDim = static_cast<std::size_t>(std::sqrt(dimension));
   Eigen::MatrixXcd state(matDim, matDim);
-  const auto size = dimension;
   HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                               size * sizeof(std::complex<double>),
+                               dimension * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
   Eigen::MatrixXcd otherState(matDim, matDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                               size * sizeof(std::complex<double>),
+                               dimension * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
   return (state.adjoint() * otherState).trace();
