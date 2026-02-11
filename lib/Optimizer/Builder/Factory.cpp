@@ -54,7 +54,9 @@ Type genBufferType(Type ty) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
       SmallVector<Type> mems = {
-          cudaq::cc::PointerType::get(vecTy.getElementType()), i64Ty};
+          cudaq::cc::PointerType::get(
+              genBufferType<isOutput>(vecTy.getElementType())),
+          i64Ty};
       return cudaq::cc::StructType::get(ctx, mems);
     }
     return i64Ty;
@@ -72,9 +74,7 @@ Type genBufferType(Type ty) {
     return ty;
   }
   if (isa<quake::MeasureType>(ty)) {
-    auto i32Ty = IntegerType::get(ctx, 32);
-    auto i64Ty = IntegerType::get(ctx, 64);
-    return cudaq::cc::StructType::get(ctx, {i32Ty, i64Ty});
+    return IntegerType::get(ctx, 32);
   }
   return ty;
 }
@@ -436,12 +436,11 @@ Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
         IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));
   }
   if (isa<quake::MeasureType>(ty)) {
-    auto *ctx = ty.getContext();
-    auto i32Ty = IntegerType::get(ctx, 32);
-    auto i64Ty = IntegerType::get(ctx, 64);
-    // Return the `measure_result` struct {int result, size_t uniqueId}
-    return cc::StructType::get(ctx, {i32Ty, i64Ty});
+    return IntegerType::get(ty.getContext(), 32);
   }
+  if (auto ptrTy = dyn_cast<cc::PointerType>(ty))
+    return cc::PointerType::get(
+        convertToHostSideType(ptrTy.getElementType(), mod));
   return ty;
 }
 

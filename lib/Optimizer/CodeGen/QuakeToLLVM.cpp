@@ -287,9 +287,10 @@ public:
     auto loc = discr.getLoc();
     Value resultPtr = adaptor.getMeasurement();
     auto i1Ty = rewriter.getI1Type();
-    auto i1PtrTy = LLVM::LLVMPointerType::get(i1Ty);
-    auto cast = rewriter.create<LLVM::BitcastOp>(loc, i1PtrTy, resultPtr);
-    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(discr, i1Ty, cast);
+    auto readResultFn = cudaq::opt::qir0_1::ReadResultBody;
+    auto call =
+        rewriter.create<LLVM::CallOp>(loc, i1Ty, readResultFn, resultPtr);
+    rewriter.replaceOp(discr, call.getResult());
     return success();
   }
 };

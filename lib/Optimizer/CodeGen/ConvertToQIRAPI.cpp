@@ -145,6 +145,18 @@ struct QIRAPITypeConverter : public TypeConverter {
         return cudaq::cc::ArrayType::get(ty.getContext(), newEleTy, size);
       return cudaq::cc::ArrayType::get(newEleTy);
     });
+    addConversion([&](cudaq::cc::StructType ty) -> Type {
+      SmallVector<Type> members;
+      for (auto memTy : ty.getMembers())
+        members.push_back(convertType(memTy));
+      if (ty.getName())
+        return cudaq::cc::StructType::get(ty.getContext(), ty.getName(),
+                                          members, ty.getBitSize(),
+                                          ty.getAlignment(), ty.getPacked());
+      return cudaq::cc::StructType::get(ty.getContext(), members,
+                                        ty.getBitSize(), ty.getAlignment(),
+                                        ty.getPacked());
+    });
   }
 
   Type convertFunctionType(FunctionType ty) {
@@ -2086,6 +2098,12 @@ struct QuakeToQIRAPIPass
       return hasQuakeType(aty.getElementType());
     if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty))
       return hasQuakeType(sty.getElementType());
+    if (auto sty = dyn_cast<cudaq::cc::StructType>(ty)) {
+      for (auto memTy : sty.getMembers())
+        if (hasQuakeType(memTy))
+          return true;
+      return false;
+    }
     if (auto cty = dyn_cast<cudaq::cc::CallableType>(ty))
       return hasQuakeType(cty.getSignature());
     if (auto cty = dyn_cast<cudaq::cc::IndirectCallableType>(ty))
