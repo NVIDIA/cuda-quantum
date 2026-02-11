@@ -2667,7 +2667,13 @@ class PyASTBridge(ast.NodeVisitor):
                         obj = module
                         for part in moduleNames[1:]:
                             obj = getattr(obj, part)
+                        # Check that the module contains the desired attribute
                         getattr(obj, pyVal.attr)
+                        # Get the full module path of the module we've found
+                        # This handles cases where, e.g., mod1 imports a submodule
+                        # from mod2, so the object is mod1, but the module path should
+                        # be that of mod2, which is where we would expect any C++
+                        # kernels to be registered
                         devKey = obj.__name__
                         return devKey, pyVal.attr
                     except AttributeError:
