@@ -20,6 +20,7 @@
 #include <concepts>
 #include <cstdarg>
 #include <cstddef>
+#include <iostream>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
@@ -677,6 +678,19 @@ protected:
 
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
+
+    // Warn if there are named measurement registers beyond `__global__`
+    if (!executionContext->warnedNamedMeasurements &&
+        registerNameToMeasuredQubit.size() > 1) {
+      executionContext->warnedNamedMeasurements = true;
+      std::cerr
+          << "WARNING: Kernel \"" << executionContext->kernelName
+          << "\" uses named measurement results but is "
+             "invoked in sampling mode. Support for sub-registers in "
+             "`sample_result` is deprecated and will be removed in a future "
+             "release. Use `run` to retrieve individual measurement results."
+          << std::endl;
+    }
 
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,

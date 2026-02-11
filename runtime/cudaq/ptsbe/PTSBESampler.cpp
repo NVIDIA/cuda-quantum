@@ -51,19 +51,28 @@ std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
 }
 
 template <typename ScalarType>
-GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel) {
-  std::string gateName =
-      (sel.kraus_operator_index == KrausOperatorType::IDENTITY) ? "id"
-                                                                : sel.op_name;
-  auto gateEnum = nvqir::getGateNameFromString(gateName);
-  auto matrix = nvqir::getGateByName<ScalarType>(gateEnum, {});
-  return GateTask<ScalarType>(gateName, matrix, {}, sel.qubits, {});
+GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
+                                          const NoisePoint &noiseSite) {
+  auto k = static_cast<std::size_t>(sel.kraus_operator_index);
+  const auto &unitaryDouble = noiseSite.channel.unitary_ops.at(k);
+  std::vector<std::complex<ScalarType>> matrix;
+  matrix.reserve(unitaryDouble.size());
+  for (const auto &elem : unitaryDouble)
+    matrix.emplace_back(static_cast<ScalarType>(elem.real()),
+                        static_cast<ScalarType>(elem.imag()));
+  std::string opName;
+  if (noiseSite.channel.op_names && k < noiseSite.channel.op_names->size())
+    opName = (*noiseSite.channel.op_names)[k];
+  else
+    opName = noiseSite.channel.get_type_name() + "[" + std::to_string(k) + "]";
+  return GateTask<ScalarType>(opName, matrix, {}, sel.qubits, {});
 }
 
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
-                         const cudaq::KrausTrajectory &trajectory) {
+                         const cudaq::KrausTrajectory &trajectory,
+                         const std::vector<NoisePoint> &noiseSites) {
   const auto &selections = trajectory.kraus_selections;
 
   std::vector<GateTask<ScalarType>> merged;
@@ -76,7 +85,8 @@ mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
     // Insert all noise for this gate location
     while (noiseIdx < selections.size() &&
            selections[noiseIdx].circuit_location == gateIdx) {
-      merged.push_back(krausSelectionToTask<ScalarType>(selections[noiseIdx]));
+      merged.push_back(krausSelectionToTask<ScalarType>(selections[noiseIdx],
+                                                        noiseSites[noiseIdx]));
       ++noiseIdx;
     }
   }
@@ -95,9 +105,11 @@ mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeAndConvert(const cudaq::Trace &kernelTrace,
-                const cudaq::KrausTrajectory &trajectory) {
+                const cudaq::KrausTrajectory &trajectory,
+                const std::vector<NoisePoint> &noiseSites) {
   auto baseTasks = convertTrace<ScalarType>(kernelTrace);
-  return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory);
+  return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory,
+                                              noiseSites);
 }
 
 // ---------------------------------------------------------------------------
@@ -114,21 +126,25 @@ template std::vector<GateTask<double>>
 convertTrace<double>(const cudaq::Trace &);
 
 template GateTask<float>
-krausSelectionToTask<float>(const cudaq::KrausSelection &);
+krausSelectionToTask<float>(const cudaq::KrausSelection &, const NoisePoint &);
 template GateTask<double>
-krausSelectionToTask<double>(const cudaq::KrausSelection &);
+krausSelectionToTask<double>(const cudaq::KrausSelection &, const NoisePoint &);
 
 template std::vector<GateTask<float>>
 mergeTasksWithTrajectory<float>(const std::vector<GateTask<float>> &,
-                                const cudaq::KrausTrajectory &);
+                                const cudaq::KrausTrajectory &,
+                                const std::vector<NoisePoint> &);
 template std::vector<GateTask<double>>
 mergeTasksWithTrajectory<double>(const std::vector<GateTask<double>> &,
-                                 const cudaq::KrausTrajectory &);
+                                 const cudaq::KrausTrajectory &,
+                                 const std::vector<NoisePoint> &);
 
 template std::vector<GateTask<float>>
-mergeAndConvert<float>(const cudaq::Trace &, const cudaq::KrausTrajectory &);
+mergeAndConvert<float>(const cudaq::Trace &, const cudaq::KrausTrajectory &,
+                       const std::vector<NoisePoint> &);
 template std::vector<GateTask<double>>
-mergeAndConvert<double>(const cudaq::Trace &, const cudaq::KrausTrajectory &);
+mergeAndConvert<double>(const cudaq::Trace &, const cudaq::KrausTrajectory &,
+                        const std::vector<NoisePoint> &);
 
 // ---------------------------------------------------------------------------
 // Non-template implementations
@@ -181,7 +197,8 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
     simulator.setToZeroState();
 
-    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(baseTasks, traj);
+    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(baseTasks, traj,
+                                                            batch.noise_sites);
 
     for (const auto &task : mergedTasks)
       simulator.applyGate(task);

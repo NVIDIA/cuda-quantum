@@ -13,10 +13,6 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-// TODO: Move PTSBE integration out of core sample.h into cudaq::ptsbe
-// namespace to match the Python cudaq.ptsbe.sample() API separation.
-#include "cudaq/ptsbe/PTSBEOptions.h"
-#include "cudaq/ptsbe/PTSBESampleIntegration.h"
 
 constexpr int DEFAULT_NUM_SHOTS = 1000;
 
@@ -179,14 +175,10 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 /// @param noise noise model to use for the sample operation
 /// @param explicit_measurements whether or not to form the global register
 /// based on user-supplied measurement order.
-/// @param ptsbe_options PTSBE configuration. When set (has_value), enables
-/// PTSBE (Pre-Trajectory Sampling with Batch Execution) for trajectory-based
-/// noisy simulation. Requires noise model to be set.
 struct sample_options {
   std::size_t shots = DEFAULT_NUM_SHOTS;
   cudaq::noise_model noise;
   bool explicit_measurements = false;
-  std::optional<ptsbe::PTSBEOptions> ptsbe_options;
 };
 
 /// @overload
@@ -281,19 +273,10 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto shots = options.shots;
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
-
-  sample_result ret;
-  if (options.ptsbe_options) {
-    ret = ptsbe::runSamplingPTSBE(
-        [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-        kernelName, shots, *options.ptsbe_options);
-  } else {
-    ret = details::runSampling(
-              [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-              kernelName, shots, options.explicit_measurements)
-              .value();
-  }
-
+  auto ret = details::runSampling(
+                 [&]() mutable { kernel(std::forward<Args>(args)...); },
+                 platform, kernelName, shots, options.explicit_measurements)
+                 .value();
   platform.reset_noise();
   return ret;
 }
@@ -397,14 +380,6 @@ async_sample_result sample_async(const sample_options &options,
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
-
-  if (options.ptsbe_options) {
-    return ptsbe::runSamplingAsyncPTSBE(
-        [&kernel, ... args = std::forward<Args>(args)]() mutable {
-          kernel(std::forward<Args>(args)...);
-        },
-        platform, kernelName, options.shots, *options.ptsbe_options, qpu_id);
-  }
 
   auto ret = details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
@@ -529,35 +504,21 @@ std::vector<sample_result> sample(const sample_options &options,
 
   platform.set_noise(&options.noise);
 
-  // Validate PTSBE upfront so exceptions are thrown in calling thread
-  if (options.ptsbe_options)
-    ptsbe::validatePTSBEPreconditions(platform);
-
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.
   details::BroadcastFunctorType<sample_result, Args...> functor =
-      [&, explicit_mz = options.explicit_measurements,
-       ptsbe_opts = options.ptsbe_options](
+      [&, explicit_mz = options.explicit_measurements](
           std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
-
-    if (ptsbe_opts) {
-      return ptsbe::runSamplingPTSBE(
-          [&kernel, &singleIterParameters...]() mutable {
-            kernel(std::forward<Args>(singleIterParameters)...);
-          },
-          platform, kernelName, shots, *ptsbe_opts);
-    }
-
-    // Standard path
-    return details::runSampling(
-               [&kernel, &singleIterParameters...]() mutable {
-                 kernel(std::forward<Args>(singleIterParameters)...);
-               },
-               platform, kernelName, shots, explicit_mz, qpuId, nullptr,
-               counter, N)
-        .value();
+    auto ret = details::runSampling(
+                   [&kernel, &singleIterParameters...]() mutable {
+                     kernel(std::forward<Args>(singleIterParameters)...);
+                   },
+                   platform, kernelName, shots, explicit_mz, qpuId, nullptr,
+                   counter, N)
+                   .value();
+    return ret;
   };
 
   // Broadcast the executions and return the results.

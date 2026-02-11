@@ -13,11 +13,12 @@
     !defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/algorithms/broadcast.h"
 #include "cudaq/algorithms/sample.h"
 #include "cudaq/ptsbe/NoiseExtractor.h"
+#include "cudaq/ptsbe/PTSBEExecutionData.h"
 #include "cudaq/ptsbe/PTSBEOptions.h"
-#include "cudaq/ptsbe/PTSBESampleIntegration.h"
+#include "cudaq/ptsbe/PTSBESample.h"
+#include "cudaq/ptsbe/PTSBESampleResult.h"
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
@@ -99,30 +100,30 @@ CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesEmptyKernel) {
 // MCM DETECTION TESTS
 // ============================================================================
 
-CUDAQ_TEST(PTSBESampleTest, NoMCMWithEmptyRegisterNames) {
+CUDAQ_TEST(PTSBESampleTest, NoConditionalFeedbackWithEmptyRegisterNames) {
   cudaq::ExecutionContext ctx("tracer");
-  EXPECT_FALSE(hasMidCircuitMeasurements(ctx));
+  EXPECT_FALSE(hasConditionalFeedback("", ctx));
 }
 
-CUDAQ_TEST(PTSBESampleTest, DetectsMCMWithRegisterNames) {
+CUDAQ_TEST(PTSBESampleTest, DetectsConditionalFeedbackWithRegisterNames) {
   cudaq::ExecutionContext ctx("tracer");
   ctx.registerNames.push_back("mcm_0");
-  EXPECT_TRUE(hasMidCircuitMeasurements(ctx));
+  EXPECT_TRUE(hasConditionalFeedback("", ctx));
 }
 
-CUDAQ_TEST(PTSBESampleTest, ThrowsForMCMContext) {
+CUDAQ_TEST(PTSBESampleTest, ValidateKernelThrowsForMCMContext) {
   cudaq::ExecutionContext ctx("tracer");
   ctx.registerNames.push_back("mcm_result");
   try {
-    throwIfMidCircuitMeasurements(ctx);
+    validatePTSBEKernel("testKernel", ctx);
     FAIL() << "Expected an exception for MCM context";
   } catch (...) {
   }
 }
 
-CUDAQ_TEST(PTSBESampleTest, NoThrowForValidContext) {
+CUDAQ_TEST(PTSBESampleTest, ValidateKernelNoThrowForValidContext) {
   cudaq::ExecutionContext ctx("tracer");
-  EXPECT_NO_THROW(throwIfMidCircuitMeasurements(ctx));
+  EXPECT_NO_THROW(validatePTSBEKernel("testKernel", ctx));
 }
 
 // ============================================================================
@@ -180,20 +181,15 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
 // DISPATCH TESTS
 // ============================================================================
 
-// PTSBE is now fully implemented. With no trajectories generated (POC doesn't
-// have noise model integration yet), it returns an empty result.
+// ptsbe::sample with matching noise model produces non-empty results
 CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsResults) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
-  auto &platform = cudaq::get_platform();
-  platform.set_noise(&noise);
 
-  auto result = sampleWithPTSBE(bellKernel, 1000);
-  // With noise, trajectories are generated and results are non-empty
+  auto result = sample(noise, 1000, bellKernel);
+  // With noise matching circuit gates, trajectories are generated
   EXPECT_GT(result.size(), 0);
   EXPECT_EQ(result.get_total_shots(), 1000);
-
-  platform.reset_noise();
 }
 
 // Test that a batch with valid trace but no trajectories returns empty results
@@ -221,33 +217,19 @@ CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesTrace) {
 }
 
 // ============================================================================
-// CORE sample() INTEGRATION TESTS
+// PTSBE SAMPLE API TESTS
 // ============================================================================
 
-// Test that cudaq::sample() with ptsbe_options set requires a noise model
-CUDAQ_TEST(PTSBESampleTest, CoreSampleWithUsePTSBERequiresNoiseModel) {
-  cudaq::sample_options options;
-  options.shots = 1000;
-  options.ptsbe_options = PTSBEOptions{};
-  // No noise model set
+// Test that sample() with an empty noise model throws
+CUDAQ_TEST(PTSBESampleTest, PTSBESampleRequiresNoiseModel) {
+  cudaq::noise_model emptyNoise;
+  // No channels added - noise model is empty
 
-  // PTSBE requires noise model - should throw
   try {
-    cudaq::sample(options, bellKernel);
+    sample(emptyNoise, 1000, bellKernel);
     FAIL() << "Expected exception not thrown";
   } catch (...) {
   }
-}
-
-// Test that without ptsbe_options, normal sample path is used (no exception)
-CUDAQ_TEST(PTSBESampleTest, CoreSampleWithoutPTSBEUsesNormalPath) {
-  cudaq::sample_options options;
-  options.shots = 100;
-  // ptsbe_options defaults to nullopt - normal path
-
-  // Normal path should succeed without throwing
-  auto result = cudaq::sample(options, bellKernel);
-  EXPECT_GT(result.size(), 0);
 }
 
 CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
@@ -268,19 +250,17 @@ CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
   (void)result;
 }
 
-CUDAQ_TEST(PTSBESampleTest, CoreSampleWithPTSBEAndShotAllocationOption) {
+CUDAQ_TEST(PTSBESampleTest, PTSBESampleWithShotAllocationOption) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.02));
 
-  cudaq::sample_options options;
+  sample_options options;
   options.shots = 100;
   options.noise = noise;
-  PTSBEOptions ptsbe_opts;
-  ptsbe_opts.shot_allocation =
+  options.ptsbe.shot_allocation =
       ShotAllocationStrategy(ShotAllocationStrategy::Type::UNIFORM);
-  options.ptsbe_options = ptsbe_opts;
 
-  auto result = cudaq::sample(options, bellKernel);
+  auto result = sample(options, bellKernel);
   (void)result;
 }
 
@@ -304,97 +284,6 @@ CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesParameterizedKernel) {
   EXPECT_EQ(count, 2);
   // 2 qubits
   EXPECT_EQ(batch.measureQubits.size(), 2);
-}
-
-// Test that sample_async() with ptsbe_options set requires a noise model
-CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithUsePTSBERequiresNoiseModel) {
-  cudaq::sample_options options;
-  options.shots = 1000;
-  options.ptsbe_options = PTSBEOptions{};
-  // No noise model set
-
-  try {
-    auto future = cudaq::sample_async(options, 0, bellKernel);
-    future.get();
-    FAIL() << "Expected exception not thrown";
-  } catch (...) {
-  }
-}
-
-// Test async PTSBE with noise model (returns empty since no trajectories)
-CUDAQ_TEST(PTSBESampleTest, AsyncSampleWithPTSBEAndNoiseModel) {
-  cudaq::noise_model noise;
-  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.01));
-
-  cudaq::sample_options options;
-  options.shots = 100;
-  options.ptsbe_options = PTSBEOptions{};
-  options.noise = noise;
-
-  // Should not throw - PTSBE path with valid noise model
-  auto future = cudaq::sample_async(options, 0, bellKernel);
-  auto result = future.get();
-  // With no trajectories generated (POC), result is empty
-  EXPECT_EQ(result.size(), 0);
-}
-
-// Test that broadcast sample with ptsbe_options set requires a noise model
-CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithUsePTSBERequiresNoiseModel) {
-  cudaq::sample_options options;
-  options.shots = 100;
-  options.ptsbe_options = PTSBEOptions{};
-  // No noise model set
-
-  auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
-
-  try {
-    cudaq::sample(options, rotationKernel, std::move(params));
-    FAIL() << "Expected exception for PTSBE without noise model";
-  } catch (...) {
-  }
-}
-
-// Test broadcast PTSBE with noise model produces results
-CUDAQ_TEST(PTSBESampleTest, BroadcastSampleWithPTSBEAndNoiseModel) {
-  cudaq::noise_model noise;
-  noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
-
-  cudaq::sample_options options;
-  options.shots = 100;
-  options.ptsbe_options = PTSBEOptions{};
-  options.noise = noise;
-
-  auto params = cudaq::make_argset(std::vector<double>{0.5, 1.0, 1.5});
-
-  // Should not throw - PTSBE path with valid noise model
-  auto results = cudaq::sample(options, rotationKernel, std::move(params));
-  // Returns one result per parameter set
-  EXPECT_EQ(results.size(), 3);
-  // Each result should have measurement data
-  for (const auto &result : results) {
-    EXPECT_GT(result.size(), 0);
-  }
-}
-
-// Test broadcast PTSBE result count matches parameter count
-CUDAQ_TEST(PTSBESampleTest, BroadcastPTSBEResultCountMatchesParams) {
-  cudaq::noise_model noise;
-  noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
-
-  cudaq::sample_options options;
-  options.shots = 50;
-  options.ptsbe_options = PTSBEOptions{};
-  options.noise = noise;
-
-  // Test with different parameter counts
-  auto params5 =
-      cudaq::make_argset(std::vector<double>{0.1, 0.2, 0.3, 0.4, 0.5});
-  auto results5 = cudaq::sample(options, rotationKernel, std::move(params5));
-  EXPECT_EQ(results5.size(), 5);
-
-  auto params1 = cudaq::make_argset(std::vector<double>{1.57});
-  auto results1 = cudaq::sample(options, rotationKernel, std::move(params1));
-  EXPECT_EQ(results1.size(), 1);
 }
 
 // End-to-end test for PTSBE pipeline.
@@ -432,6 +321,7 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
 
   // Assign to batch
   batch.trajectories = std::move(trajectories);
+  batch.noise_sites = std::move(extraction.noise_sites);
 
   // Allocate shots across trajectories
   const std::size_t total_shots = 1000;
@@ -453,6 +343,194 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
 
   // Total counts should equal total shots
   EXPECT_EQ(result.get_total_shots(), total_shots);
+}
+
+// ============================================================================
+// EXECUTION DATA INTEGRATION TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithExecutionDataPopulatesData) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  options.ptsbe.return_execution_data = true;
+
+  auto result = sample(options, bellKernel);
+
+  ASSERT_TRUE(result.has_execution_data());
+  const auto &data = result.execution_data();
+
+  EXPECT_GT(data.instructions.size(), 0);
+  // Bell circuit: h, x -> 2 gates
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Gate), 2);
+  // Noise on h gate -> at least 1 noise instruction
+  EXPECT_GE(data.count_instructions(TraceInstructionType::Noise), 1);
+  // 2 qubits measured
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 2);
+
+  // First instruction should be the h gate
+  EXPECT_EQ(data.instructions[0].type, TraceInstructionType::Gate);
+  EXPECT_EQ(data.instructions[0].name, "h");
+
+  // Noise instructions should have a channel attached
+  for (const auto &inst : data.instructions) {
+    if (inst.type == TraceInstructionType::Noise) {
+      EXPECT_TRUE(inst.channel.has_value());
+      EXPECT_TRUE(inst.channel->is_unitary_mixture());
+    }
+  }
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithoutExecutionDataHasNoData) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  // return_execution_data defaults to false
+
+  auto result = sample(options, bellKernel);
+
+  EXPECT_FALSE(result.has_execution_data());
+}
+
+// ============================================================================
+// PTSBE SAMPLE RESULT TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultDefaultConstruction) {
+  sample_result r;
+  EXPECT_FALSE(r.has_execution_data());
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultMoveFromBaseResult) {
+  cudaq::CountsDictionary counts;
+  counts["00"] = 50;
+  counts["11"] = 50;
+  cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
+
+  sample_result r(std::move(baseResult));
+  EXPECT_FALSE(r.has_execution_data());
+  // Inherited data should be accessible
+  EXPECT_GT(r.size(), 0);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultConstructionWithExecutionData) {
+  cudaq::CountsDictionary counts;
+  counts["00"] = 40;
+  counts["11"] = 60;
+  cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
+
+  PTSBEExecutionData executionData;
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Gate, "h", {0}, {}, {}});
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Measurement, "mz", {0}, {}, {}});
+
+  sample_result r(std::move(baseResult), std::move(executionData));
+
+  ASSERT_TRUE(r.has_execution_data());
+  EXPECT_EQ(r.execution_data().instructions.size(), 2);
+  EXPECT_EQ(r.execution_data().instructions[0].name, "h");
+  EXPECT_EQ(r.execution_data().instructions[0].type,
+            TraceInstructionType::Gate);
+  EXPECT_EQ(r.execution_data().instructions[1].type,
+            TraceInstructionType::Measurement);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultInheritedAccess) {
+  cudaq::CountsDictionary counts;
+  counts["00"] = 50;
+  counts["11"] = 50;
+  cudaq::sample_result baseResult{cudaq::ExecutionResult(counts)};
+
+  sample_result r(std::move(baseResult));
+
+  EXPECT_GT(r.size(), 0);
+  auto mp = r.most_probable();
+  EXPECT_TRUE(mp == "00" || mp == "11");
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultExecutionDataThrowsWhenNotPresent) {
+  sample_result r;
+  EXPECT_THROW(r.execution_data(), std::runtime_error);
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleResultSetExecutionData) {
+  sample_result r;
+  EXPECT_FALSE(r.has_execution_data());
+
+  PTSBEExecutionData executionData;
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Gate, "h", {0}, {}, {}});
+  executionData.instructions.push_back(TraceInstruction{
+      TraceInstructionType::Noise, "depolarizing", {0}, {}, {0.01}});
+  executionData.instructions.push_back(
+      TraceInstruction{TraceInstructionType::Measurement, "mz", {0}, {}, {}});
+
+  r.set_execution_data(std::move(executionData));
+
+  ASSERT_TRUE(r.has_execution_data());
+  EXPECT_EQ(r.execution_data().instructions.size(), 3);
+  EXPECT_EQ(r.execution_data().instructions[0].name, "h");
+  EXPECT_EQ(r.execution_data().instructions[1].name, "depolarizing");
+  EXPECT_EQ(r.execution_data().instructions[2].name, "mz");
+}
+
+CUDAQ_TEST(PTSBESampleTest, SampleAsyncWithOptions) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 200;
+  options.noise = noise;
+  options.ptsbe.return_execution_data = true;
+
+  auto future = sample_async(options, bellKernel);
+  auto result = future.get();
+
+  EXPECT_EQ(result.get_total_shots(), 200);
+  ASSERT_TRUE(result.has_execution_data());
+  EXPECT_GT(result.execution_data().instructions.size(), 0);
+}
+
+CUDAQ_TEST(PTSBESampleTest, BroadcastReturnsMultipleResults) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
+  noise.add_all_qubit_channel("ry", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+
+  auto params = cudaq::make_argset(std::vector<double>{0.1, 0.5, 1.0});
+  auto results = sample(options, rotationKernel, params);
+
+  EXPECT_EQ(results.size(), 3);
+  for (auto &r : results) {
+    EXPECT_EQ(r.get_total_shots(), 100);
+    EXPECT_FALSE(r.to_map().empty());
+  }
+}
+
+CUDAQ_TEST(PTSBESampleTest, BroadcastResultCountMatchesParams) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
+  noise.add_all_qubit_channel("ry", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 50;
+  options.noise = noise;
+
+  std::vector<double> angles = {0.0, 0.25, 0.5, 0.75, 1.0};
+  auto params = cudaq::make_argset(angles);
+  auto results = sample(options, rotationKernel, params);
+
+  EXPECT_EQ(results.size(), angles.size());
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET

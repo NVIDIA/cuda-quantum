@@ -238,11 +238,13 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   batch.kernelTrace = trace;
   batch.measureQubits = {0};
 
-  // Add trajectory with X error after gate 0
-  // TODO: Update to use named error enum (e.g. X_ERROR) when KrausOperatorType
-  // is expanded beyond IDENTITY
+  // Noise site: depolarization on the id gate at circuit location 0
+  batch.noise_sites.push_back(
+      NoisePoint{0, {0}, "id", depolarization_channel(0.1)});
+
+  // Trajectory with X error (index 1 in depolarization) after gate 0
   std::vector<KrausSelection> selections = {
-      KrausSelection(0, {0}, "x", static_cast<KrausOperatorType>(1))};
+      KrausSelection(0, {0}, "id", static_cast<KrausOperatorType>(1))};
   KrausTrajectory traj(0, selections, 1.0, 100);
   batch.trajectories.push_back(traj);
 
@@ -266,15 +268,19 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   batch.kernelTrace = trace;
   batch.measureQubits = {0, 1};
 
-  // Trajectory 1: no noise, should give "11"
-  KrausTrajectory traj1(0, {}, 0.5, 100);
+  // Noise site: depolarization on the first x gate at circuit location 0
+  batch.noise_sites.push_back(
+      NoisePoint{0, {0}, "x", depolarization_channel(0.1)});
 
-  // Trajectory 2: X error on qubit 0 after first gate
-  // TODO: Update to use named error enum (e.g. X_ERROR) when KrausOperatorType
-  // is expanded beyond IDENTITY
-  std::vector<KrausSelection> selections = {
+  // Trajectory 1: identity noise (no error), should give "11"
+  std::vector<KrausSelection> selectionsId = {
+      KrausSelection(0, {0}, "x", KrausOperatorType::IDENTITY)};
+  KrausTrajectory traj1(0, selectionsId, 0.5, 100);
+
+  // Trajectory 2: X error (index 1) on qubit 0 after first gate
+  std::vector<KrausSelection> selectionsX = {
       KrausSelection(0, {0}, "x", static_cast<KrausOperatorType>(1))};
-  KrausTrajectory traj2(1, selections, 0.5, 100);
+  KrausTrajectory traj2(1, selectionsX, 0.5, 100);
 
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
@@ -368,13 +374,19 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   batch.kernelTrace = trace;
   batch.measureQubits = {0};
 
-  // Trajectory 1: X error flips to |1>
+  // Noise site: depolarization on the id gate at circuit location 0
+  batch.noise_sites.push_back(
+      NoisePoint{0, {0}, "id", depolarization_channel(0.1)});
+
+  // Trajectory 1: X error (index 1) flips to |1>
   std::vector<KrausSelection> selectionsWithX = {
-      KrausSelection(0, {0}, "x", static_cast<KrausOperatorType>(1))};
+      KrausSelection(0, {0}, "id", static_cast<KrausOperatorType>(1))};
   KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 100);
 
-  // Trajectory 2: no noise, stays |0>
-  KrausTrajectory trajNoError(1, {}, 0.5, 100);
+  // Trajectory 2: identity noise (no error), stays |0>
+  std::vector<KrausSelection> selectionsId = {
+      KrausSelection(0, {0}, "id", KrausOperatorType::IDENTITY)};
+  KrausTrajectory trajNoError(1, selectionsId, 0.5, 100);
 
   batch.trajectories.push_back(trajWithError);
   batch.trajectories.push_back(trajNoError);
