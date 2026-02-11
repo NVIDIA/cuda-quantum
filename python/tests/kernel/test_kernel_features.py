@@ -128,6 +128,39 @@ def test_adjoint():
     assert len(counts) == 1
     assert '101' in counts
 
+    # Testing whether cudaq.adjoint works on a qualified name
+
+    num_electrons = 2
+    num_qubits = 8
+
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
+
+    @cudaq.kernel
+    def kernel(withAdj: bool):
+        qubits = cudaq.qvector(num_qubits)
+        for i in range(num_electrons):
+            x(qubits[i])
+        cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        if withAdj:
+            cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
+                          num_qubits)
+
+    counts = cudaq.sample(kernel, False, shots_count=1000)
+    assert len(counts) == 6
+
+    # FIXME: This current fails due to a bug in ApplySpecialization
+    #counts = cudaq.sample(kernel, True, shots_count=1000)
+    #assert len(counts) == 1 and '00000000' in counts
+
 
 def test_control():
     """Test that we can control on kernel functions."""
@@ -157,6 +190,44 @@ def test_control():
     counts = cudaq.sample(test)
     assert len(counts) == 1
     assert '110' in counts
+
+    # Testing whether cudaq.control works on a qualified name
+    num_electrons = 2
+    num_qubits = 8
+
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
+
+    @cudaq.kernel
+    def kernel(withCtrl: int):
+        qubits = cudaq.qvector(num_qubits)
+        if not withCtrl:
+            for i in range(num_electrons):
+                x(qubits[i])
+            cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        else:
+            c = cudaq.qubit()
+            if withCtrl % 2:
+                x(c)
+            for i in range(num_electrons):
+                cx(c, qubits[i])
+            cudaq.control(cudaq.kernels.uccsd, c, qubits, thetas, num_electrons,
+                          num_qubits)
+
+    counts = cudaq.sample(kernel, 0, shots_count=1000)
+    assert len(counts) == 6
+    counts = cudaq.sample(kernel, 1, shots_count=1000)
+    assert len(counts) == 6
+    counts = cudaq.sample(kernel, 2, shots_count=1000)
+    assert len(counts) == 1 and '000000000' in counts
 
 
 def test_multi_control_gates():
@@ -367,7 +438,7 @@ def test_exp_pauli_zz():
 
 @pytest.mark.parametrize('target', ['default', 'stim'])
 def test_dynamic_circuit(target):
-    """Test that we correctly sample circuits with 
+    """Test that we correctly handle circuits with 
        mid-circuit measurements and conditionals."""
 
     if target == 'stim':
@@ -378,31 +449,28 @@ def test_dynamic_circuit(target):
     def simple():
         q = cudaq.qvector(2)
         h(q[0])
-        i = mz(q[0], register_name="c0")
-        if i:
-            x(q[1])
-        mz(q)
-
-    counts = cudaq.sample(simple, shots_count=100)
-    counts.dump()
-    c0 = counts.get_register_counts('c0')
-    assert '0' in c0 and '1' in c0
-    assert '00' in counts and '11' in counts
-
-    @cudaq.kernel
-    def simple():
-        q = cudaq.qvector(2)
-        h(q[0])
         i = mz(q[0])
         if i:
             x(q[1])
         mz(q)
 
-    counts = cudaq.sample(simple)
-    counts.dump()
-    c0 = counts.get_register_counts('i')
-    assert '0' in c0 and '1' in c0
-    assert '00' in counts and '11' in counts
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(simple, shots_count=100)
+    assert "no longer support" in repr(e)
+
+    @cudaq.kernel
+    def simple_run() -> list[bool]:
+        q = cudaq.qvector(2)
+        h(q[0])
+        i = mz(q[0])
+        if i:
+            x(q[1])
+        return mz(q)
+
+    results = cudaq.run(simple_run, shots_count=10)
+    for result in results:
+        assert len(result) == 2
+        assert result[0] == result[1]
 
     if target == 'stim':
         cudaq.set_target(save_target)
@@ -411,7 +479,7 @@ def test_dynamic_circuit(target):
 def test_teleport():
 
     @cudaq.kernel
-    def teleport():
+    def teleport() -> bool:
         q = cudaq.qvector(3)
         x(q[0])
         h(q[1])
@@ -430,14 +498,11 @@ def test_teleport():
         if b0:
             z(q[2])
 
-        mz(q[2])
+        return mz(q[2])
 
-    counts = cudaq.sample(teleport, shots_count=100)
-    counts.dump()
-    # Note this is testing that we can provide
-    # the register name automatically
-    b0 = counts.get_register_counts('b0')
-    assert '0' in b0 and '1' in b0
+    results = cudaq.run(teleport, shots_count=10)
+    for result in results:
+        assert result  # The teleported qubit should always be |1>
 
 
 def test_transitive_dependencies():
@@ -1002,7 +1067,7 @@ def test_array_value_assignment():
     assert "11" in counts
 
 
-def test_control_operations():
+def test_control_operations_1():
 
     @cudaq.kernel
     def test():
@@ -1014,7 +1079,7 @@ def test_control_operations():
     counts = cudaq.sample(test)
 
 
-def test_control_operations():
+def test_control_operations_2():
 
     @cudaq.kernel
     def test(angle: float):
@@ -1031,18 +1096,18 @@ def test_control_operations():
 def test_bool_op_short_circuit():
 
     @cudaq.kernel
-    def kernel():
+    def kernel() -> bool:
         qubits = cudaq.qvector(2)
         h(qubits[0])
         if mz(qubits[0]) and mz(qubits[1]):
             x(qubits[1])
-        mz(qubits[1])
+        return mz(qubits[1])
 
     print(kernel)
 
-    counts = cudaq.sample(kernel)
-    counts.dump()
-    assert len(counts) == 2 and '10' in counts and '00' in counts
+    results = cudaq.run(kernel, shots_count=10)
+    for res in results:
+        assert not res  # qubit 1 should always be in |0>
 
 
 def test_sample_async_issue_args_processed():
@@ -1319,15 +1384,18 @@ def test_list_float_pass_list_int():
 def test_cmpi_error_ints_different_widths():
 
     @cudaq.kernel
-    def test():
+    def test() -> bool:
         q = cudaq.qubit()
         i = mz(q)
         if i == 1:
             x(q)
+        return mz(q)
 
     test()
-    counts = cudaq.sample(test)
-    assert '0' in counts and len(counts) == 1
+    results = cudaq.run(test, shots_count=10)
+    assert len(results) == 10
+    for res in results:
+        assert res is False
 
 
 def test_aug_assign_add():
@@ -2605,37 +2673,38 @@ def test_attribute_access_on_call_results():
 def test_mid_circuit_measurements():
 
     @cudaq.kernel
-    def callee(register: cudaq.qview):
+    def callee(register: cudaq.qview) -> list[bool]:
+        result = [0, 0, 0, 0, 0, 0, 0, 0]
         for i in range(4):
+            j = i * 2
             if i % 2 == 0:
                 x(register[i])
 
-            m = mz(register[i])
+            result[j] = mz(register[i])
             reset(register[i])
 
-            if m:
+            if result[j]:
                 x(register[i])
             else:
                 h(register[i])
 
+            result[j + 1] = mz(register[i])
+
+        return result
+
     @cudaq.kernel
-    def caller():
+    def caller() -> list[bool]:
         qr = cudaq.qvector(4)
-        callee(qr)
+        return callee(qr)
 
-    counts = cudaq.sample(caller)
-    assert counts.register_names == ["__global__", "m"]
-
-    globalCounts = counts.get_register_counts("__global__")
-    assert len(globalCounts) == 4
-    assert "1010" in globalCounts
-    assert "1011" in globalCounts
-    assert "1110" in globalCounts
-    assert "1111" in globalCounts
-
-    mCounts = counts.get_register_counts("m")
-    assert len(mCounts) == 1
-    assert "1010" in mCounts
+    results = cudaq.run(caller, shots_count=10)
+    assert len(results) == 10
+    for res in results:
+        assert len(res) == 8
+        a0, a1, b0, b1, c0, c1, d0, d1 = res
+        assert a0 and a1 and c0 and c1
+        assert b0 is False and d0 is False
+        assert isinstance(b1, bool) and isinstance(d1, bool)
 
 
 def test_error_on_non_callable_type():
@@ -2650,6 +2719,97 @@ def test_error_on_non_callable_type():
 
         result = cudaq.sample(kernel, cudaq.pauli_word("X"))
     assert "object is not callable" in str(e.value)
+
+
+def test_struct_list_int_member():
+    """Test that list[int] members in a struct are correctly marshaled.
+
+    Regression test for a bug in handleStructMemberVariable where
+    the StdvecType branch always created std::vector<double> regardless
+    of the actual element type T. This caused list[int] values to be
+    stored as doubles; the kernel then read the IEEE 754 bit pattern
+    as int64, producing garbage values.
+
+    For example, int 7 was stored as double(7.0) = 0x401C000000000000,
+    and the kernel read it back as int64 4619567317775286272.
+    """
+    from dataclasses import dataclass
+
+    # Case 1: struct with a single list[int] member
+    @dataclass(slots=True)
+    class SingleListInt:
+        values: list[int]
+
+    @cudaq.kernel
+    def kernel_read_int(params: SingleListInt) -> int:
+        return params.values[0]
+
+    assert kernel_read_int(SingleListInt(values=[7])) == 7
+    assert kernel_read_int(SingleListInt(values=[0])) == 0
+    assert kernel_read_int(SingleListInt(values=[42])) == 42
+
+    # Case 2: struct with list[int] + list[float] members
+    @dataclass(slots=True)
+    class IntAndFloatLists:
+        integers: list[int]
+        floats: list[float]
+
+    @cudaq.kernel
+    def kernel_read_mixed(params: IntAndFloatLists) -> int:
+        return params.integers[0]
+
+    assert kernel_read_mixed(IntAndFloatLists(integers=[5], floats=[3.14])) == 5
+
+    # Case 3: use list[int] value for qvector allocation.
+    # This is the scenario that causes OOM crash when list[int] values
+    # are corrupted (e.g., 7 becomes ~4.6e18, causing qvector to allocate
+    # an impossible number of qubits).
+    @dataclass(slots=True)
+    class QubitConfig:
+        num_qubits: list[int]
+        angles: list[float]
+
+    @cudaq.kernel
+    def kernel_alloc_from_int(config: QubitConfig):
+        qubits = cudaq.qvector(config.num_qubits[0])
+        ry(config.angles[0], qubits[0])
+
+    instance = QubitConfig(num_qubits=[2], angles=[np.pi])
+    counts = cudaq.sample(kernel_alloc_from_int, instance)
+    assert len(counts) == 1 and '10' in counts
+
+
+def test_named_reg_in_sample(capfd):
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qubit()
+        x(q)
+        var = mz(q)
+
+    cudaq.sample(foo)
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+    @cudaq.kernel
+    def bar():
+        q = cudaq.qubit()
+        x(q)
+        mz(q)
+
+    cudaq.sample(bar)
+    captured = capfd.readouterr()
+    assert "WARNING" not in captured.err
+
+    @cudaq.kernel
+    def baz():
+        q = cudaq.qvector(2)
+        x(q[0])
+        mz(q, register_name="my_register")
+
+    cudaq.sample(baz)
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
 
 
 # leave for gdb debugging

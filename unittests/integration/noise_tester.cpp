@@ -406,6 +406,36 @@ CUDAQ_TEST(NoiseTest, checkApplyDepol2) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+CUDAQ_TEST(NoiseTest, checkDepol2StandardFormula) {
+  cudaq::set_random_seed(42);
+
+  struct cnot_echo {
+    void operator()() __qpu__ {
+      cudaq::qvector q(2);
+      x<cudaq::ctrl>(q[0], q[1]);
+      x<cudaq::ctrl>(q[0], q[1]);
+    }
+  };
+
+  std::vector<double> test_probs = {0.1, 0.3, 0.5};
+
+  for (double p : test_probs) {
+    cudaq::noise_model noise;
+    cudaq::depolarization2 depol2(p);
+
+    noise.add_channel<cudaq::types::x>({0, 1}, depol2);
+
+    auto counts = cudaq::sample({.shots = 1000, .noise = noise}, cnot_echo{});
+    double prob_00 = counts.probability("00");
+
+    if (p < 0.75) {
+      EXPECT_GT(prob_00, 0.20) << "p=" << p << " gave prob_00=" << prob_00;
+    }
+
+    EXPECT_EQ(counts.size(), 4) << "Should have 4 outcomes for p=" << p;
+  }
+}
+
 CUDAQ_TEST(NoiseTest, checkApplySimplePauliErrors) {
   cudaq::set_random_seed(13);
   double probability = 0.1;

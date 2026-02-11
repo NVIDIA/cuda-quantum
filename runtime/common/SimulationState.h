@@ -152,8 +152,9 @@ public:
   // is available or can be computed.
   virtual bool hasData() const { return true; }
 
-  /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  /// @brief Helper to retrieve (kernel name, kernel code, and `args` pointers)
+  virtual std::optional<
+      std::tuple<std::string, std::string, std::vector<void *>>>
   getKernelInfo() const {
     return std::nullopt;
   }

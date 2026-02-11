@@ -13,7 +13,7 @@ import textwrap
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc
-from .utils import (globalAstRegistry, mlirTypeFromAnnotation)
+from .utils import mlirTypeFromAnnotation
 
 
 class HasReturnNodeVisitor(ast.NodeVisitor):

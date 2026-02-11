@@ -11,7 +11,7 @@ target_link_libraries(mqpu_util
     PRIVATE
         LLVMSupport
         cudaq-common  
-        spdlog::spdlog 
+        cudaq-logger
         fmt::fmt-header-only
 )
 

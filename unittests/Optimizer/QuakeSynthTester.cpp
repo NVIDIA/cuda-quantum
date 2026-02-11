@@ -287,12 +287,6 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   kernel.h(aq);
   kernel.z(aq);
   kernel.h(q);
-  // FIXME: This test never really tested the c_if in this loop. The call to
-  // constantSize just returned 0.
-  std::size_t unrollBy = q.constantSize().has_value() ? *q.constantSize() : 0;
-  for (std::size_t i = 0; i < unrollBy; ++i) {
-    kernel.c_if(hiddenBits[i], [&]() { kernel.x<cudaq::ctrl>(aq, q[i]); });
-  }
   kernel.h(q);
   kernel.mz(q);
 

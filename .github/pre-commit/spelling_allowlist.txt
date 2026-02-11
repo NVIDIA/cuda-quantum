@@ -29,6 +29,7 @@ DGX
 DOI
 Deuteron
 Deutsch
+Devcontainer
 Doxygen
 Exponentiating
 FPGAs
@@ -71,6 +72,7 @@ MPS
 MSB
 Mandel
 Max-Cut
+Miniconda
 MyST
 NGC
 NVIDIA
@@ -382,5 +384,6 @@ vertices
 vqe
 waveforms
 wavefunction
+whitespace
 workflow
 zener

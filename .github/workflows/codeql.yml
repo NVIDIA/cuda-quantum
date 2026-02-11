@@ -19,13 +19,14 @@ on:
       - 'experimental/*'
       - 'features/*'
   merge_group:
-    types: 
-      - checks_requested
   schedule:
     - cron: '37 9 * * 2'
 
 jobs:
   analyze:
+    # Skip merge_group to avoid duplicate runs (code already scanned on pull_request)
+    # See https://github.com/github/codeql-action/issues/1537
+    if: ${{ github.event_name != 'merge_group' }}
     name: Analyze (${{ matrix.language }})
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
@@ -56,11 +57,11 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -83,6 +84,55 @@ jobs:
         exit 1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+
+  # The CodeQL action status is not reported in merge queues. See https://github.com/github/codeql-action/issues/1537.
+  # This is a workaround to check the status of the CodeQL analysis in the PR but not in the merge queue. See https://github.com/orgs/community/discussions/46757#discussioncomment-7768838
+  check_codeql_status:
+      name: Check CodeQL Status
+      needs: analyze
+      permissions:
+          contents: read
+          checks: read
+          pull-requests: read
+      runs-on: ubuntu-latest
+      if: ${{ github.event_name == 'pull_request' }}
+      steps:
+          - name: Authenticate gh CLI
+            run: |
+                gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          - name: Check CodeQL Status
+            run: |
+                response=$(gh api graphql -f query='
+                  {
+                    repository(owner: "${{ github.event.repository.owner.login }}", name: "${{ github.event.repository.name }}") {
+                      pullRequest(number: ${{ github.event.pull_request.number }}) {
+                        commits(last: 1) {
+                          nodes {
+                            commit {
+                              checkSuites(first: 1, filterBy: {checkName: "CodeQL"}) {
+                                nodes {
+                                  checkRuns(first: 1) {
+                                    nodes {
+                                      name
+                                      status
+                                      conclusion
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ')
+                conclusion=$(echo $response | jq -r '.data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[0].checkRuns.nodes[0].conclusion')
+                  if [ "$conclusion" != "SUCCESS" ]; then
+                    echo "$response"
+                    echo "CodeQL check failed"
+                    exit 1
+                  fi

@@ -1043,6 +1043,33 @@ def test_shots_count():
     assert len(results) == 37
 
 
+def test_issue_2798():
+
+    @cudaq.kernel
+    def verification(n_qubits: int) -> list[bool]:
+        qvector = cudaq.qvector(n_qubits)
+        h(qvector[0])
+        for i in range(n_qubits - 1):
+            cx(qvector[i], qvector[i + 1])
+        if mz(qvector[0]):
+            x(qvector[0])
+        return mz(qvector)
+
+    results_1 = cudaq.run_async(verification, 4, shots_count=10).get()
+    for result in results_1:
+        assert len(result) == 4
+        assert not result[0]  # first qubit should be 0
+        assert all(result[i] == result[1]
+                   for i in range(1, 4))  # rest should be the same
+
+    results_2 = cudaq.run_async(verification, 5, shots_count=10).get()
+    for result in results_2:
+        assert len(result) == 5
+        assert not result[0]  # first qubit should be 0
+        assert all(result[i] == result[1]
+                   for i in range(1, 5))  # rest should be the same
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

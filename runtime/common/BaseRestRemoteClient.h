@@ -11,7 +11,6 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
-#include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
@@ -25,6 +24,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -381,8 +381,8 @@ public:
         throw std::runtime_error("Missing first input state in state-overlap");
       if (!castedState2->getKernelInfo().has_value())
         throw std::runtime_error("Missing second input state in state-overlap");
-      auto [kernelName1, args1] = castedState1->getKernelInfo().value();
-      auto [kernelName2, args2] = castedState2->getKernelInfo().value();
+      auto [kernelName1, code1, args1] = castedState1->getKernelInfo().value();
+      auto [kernelName2, code2, args2] = castedState2->getKernelInfo().value();
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
 
       stateIrPayload1.entryPoint = kernelName1;

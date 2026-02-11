@@ -1295,3 +1295,54 @@ class TestDensityMatrixIndexing(TestSystem):
             _ = rho_2q[0, 4]
         with pytest.raises(RuntimeError, match="indices out of range"):
             _ = rho_2q[4, 4]
+
+        # Test column-major vs row-major indexing bug detection.
+        # We need a state with complex off-diagonal elements where
+        # rho[0,1] != rho[1,0] (they are complex conjugates).
+        # This detects if the indices are swapped due to wrong storage order.
+        theta = np.pi / 4  # 45 degrees
+        phi = np.pi / 3  # 60 degrees phase
+        c = np.cos(theta)
+        s = np.sin(theta)
+        exp_phi = np.exp(1j * phi)
+
+        # State: |psi> = cos(theta)|0> + sin(theta)*exp(i*phi)|1>
+        psi_complex = cudaq.State.from_data(
+            cp.array([c, s * exp_phi], dtype=cp.complex128))
+
+        result_complex = cudaq.evolve(
+            hamiltonian_1q,
+            {0: 2},
+            schedule,
+            psi_complex,
+            collapse_operators=[0.0001 * spin.z(0)
+                               ],  # Very weak to preserve state
+            store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+            integrator=integrator())
+
+        rho_complex = result_complex.final_state()
+
+        # Expected density matrix: rho = |psi><psi|
+        # rho[0,0] = cos^2(theta) = 0.5
+        # rho[0,1] = cos(theta)*sin(theta)*exp(-i*phi) (negative imaginary part)
+        # rho[1,0] = cos(theta)*sin(theta)*exp(+i*phi) (positive imaginary part)
+        # rho[1,1] = sin^2(theta) = 0.5
+        expected_01 = c * s * np.conj(
+            exp_phi)  # Should have negative imaginary part
+        expected_10 = c * s * exp_phi  # Should have positive imaginary part
+
+        accessed_01 = complex(rho_complex[0, 1])
+        accessed_10 = complex(rho_complex[1, 0])
+
+        # The key test: imaginary parts should have opposite signs
+        # If row-major/column-major bug exists, they would be swapped
+        assert accessed_01.imag < 0, \
+            f"rho[0,1] should have negative imaginary part, got {accessed_01.imag}"
+        assert accessed_10.imag > 0, \
+            f"rho[1,0] should have positive imaginary part, got {accessed_10.imag}"
+
+        # Also verify the values are close to expected
+        assert abs(accessed_01 - expected_01) < 0.01, \
+            f"rho[0,1] mismatch: expected {expected_01}, got {accessed_01}"
+        assert abs(accessed_10 - expected_10) < 0.01, \
+            f"rho[1,0] mismatch: expected {expected_10}, got {accessed_10}"

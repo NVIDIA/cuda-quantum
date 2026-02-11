@@ -23,10 +23,10 @@ static Resources estimate_resources_impl(
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
-  auto ctx = std::make_unique<ExecutionContext>("resource-count", 1);
-  ctx->kernelName = kernelName;
+  ExecutionContext ctx("resource-count", 1);
+  ctx.kernelName = kernelName;
   // Indicate that this is not an async exec
-  ctx->asyncExec = false;
+  ctx.asyncExec = false;
 
   // Use the resource counter simulator
   python::detail::switchToResourceCounterSimulator();
@@ -42,28 +42,21 @@ static Resources estimate_resources_impl(
   }
   python::detail::setChoiceFunction(*choice);
 
-  // Set the platform
-  platform.set_exec_ctx(ctx.get());
   try {
-    // Launch the kernel.
-    [[maybe_unused]] auto result =
-        cudaq::marshal_and_launch_module(kernelName, kernelMod, returnTy, args);
-
-    // Reset the platform.
-    platform.reset_exec_ctx();
-
-    // Save and clone counts data
-    Resources counts = *python::detail::getResourceCounts();
-    // Switch simulators back
+    platform.with_execution_context(ctx, [&]() {
+      [[maybe_unused]] auto result = cudaq::marshal_and_launch_module(
+          kernelName, kernelMod, returnTy, args);
+    });
+  } catch (...) {
     python::detail::stopUsingResourceCounterSimulator();
-    return counts;
-  } catch (std::exception &e) {
-    // Reset the platform.
-    platform.reset_exec_ctx();
-    // Switch simulators back
-    python::detail::stopUsingResourceCounterSimulator();
-    throw e;
+    throw;
   }
+
+  // Save and clone counts data
+  Resources counts = *python::detail::getResourceCounts();
+  // Switch simulators back
+  python::detail::stopUsingResourceCounterSimulator();
+  return counts;
 }
 
 void cudaq::bindCountResources(py::module &mod) {

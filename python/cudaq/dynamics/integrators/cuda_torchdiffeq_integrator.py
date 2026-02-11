@@ -39,6 +39,13 @@ except ImportError:
 
 try:
     from torchdiffeq import odeint
+    from torchdiffeq._impl.dopri5 import Dopri5Solver
+    from torchdiffeq._impl.dopri8 import Dopri8Solver
+    from torchdiffeq._impl.bosh3 import Bosh3Solver
+    from torchdiffeq._impl.adaptive_heun import AdaptiveHeunSolver
+    from torchdiffeq._impl.fehlberg2 import Fehlberg2
+    from torchdiffeq._impl.rk_common import _RungeKuttaState
+    from torchdiffeq._impl.misc import _rms_norm
 except ImportError:
     has_torchdiffeq = False
 
@@ -96,9 +103,16 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.order = None
         self.is_density_state = None
         self.batchSize = None
+        self._dimensions_list = None
+        self._solver_instance = None
 
     def compute_rhs(self, t, vec):
-        t_scalar = t.item()
+        if torch.is_tensor(t):
+            t_scalar = t.item()
+            if isinstance(t_scalar, complex):
+                t_scalar = t_scalar.real
+        else:
+            t_scalar = float(t.real) if isinstance(t, complex) else float(t)
         # Note: this RHS compute is on the hot path of the integrator;
         # hence, we minimize overhead as much as possible.
         # In particular, avoid data conversion between different frameworks.
@@ -106,25 +120,60 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         # Get device pointer of the input torch tensor
         device_ptr = vec.data_ptr()
         size = vec.numel()
+
+        if self._dimensions_list is None:
+            self._dimensions_list = list(self.dimensions)
+
         # Wrap the device pointer as a `cudaq::state` (no copy)
         temp_state = bindings.initializeState(device_ptr, size,
-                                              list(self.dimensions),
+                                              self._dimensions_list,
                                               self.batchSize)
         # Pre-allocate output tensor (torch tensor)
         result_vec = torch.zeros_like(vec)
         # Wrap the output tensor device pointer as a `cudaq::state` (no copy)
         result_state = bindings.initializeState(result_vec.data_ptr(), size,
-                                                list(self.dimensions),
+                                                self._dimensions_list,
                                                 self.batchSize)
         # Compute the RHS into the output state
         self.stepper.compute_inplace(temp_state, t_scalar, result_state)
         return result_vec
+
+    def _create_wrapped_rhs_func(self):
+        # Wrapper that adds the required callback methods
+        class RHSFuncWrapper:
+
+            def __init__(self, integrator):
+                self.integrator = integrator
+                self.callback_step = lambda *args, **kwargs: None
+                self.callback_accept_step = lambda *args, **kwargs: None
+                self.callback_reject_step = lambda *args, **kwargs: None
+
+            def __call__(self, t, y, perturb=None):
+                return self.integrator.compute_rhs(t, y)
+
+        return RHSFuncWrapper(self)
 
     def __post_init__(self):
         self.n_steps = self.integrator_options.get('nsteps', 10)
         self.atol = self.integrator_options.get('atol', self.atol)
         self.rtol = self.integrator_options.get('rtol', self.rtol)
         self.order = self.integrator_options.get('order', None)
+
+    def _is_adaptive_solver(self):
+        adaptive_solvers = [
+            'dopri5', 'dopri8', 'bosh3', 'adaptive_heun', 'fehlberg2'
+        ]
+        return self.solver in adaptive_solvers
+
+    def _get_solver_class(self):
+        solver_map = {
+            'dopri5': Dopri5Solver,
+            'dopri8': Dopri8Solver,
+            'bosh3': Bosh3Solver,
+            'adaptive_heun': AdaptiveHeunSolver,
+            'fehlberg2': Fehlberg2,
+        }
+        return solver_map.get(self.solver)
 
     def integrate(self, t):
         if self.stepper is None:
@@ -164,26 +213,55 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         y0_cupy = to_cupy_array(self.state)
         y0 = torch.from_dlpack(y0_cupy)
 
-        # time span
-        t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
+        if self._is_adaptive_solver():
+            solver_class = self._get_solver_class()
 
-        # solve ODE using TorchDiffEq
-        solution = odeint(self.compute_rhs,
-                          y0,
-                          t_span,
-                          method=self.solver,
-                          rtol=self.rtol,
-                          atol=self.atol)
+            if self._solver_instance is None:
+                wrapped_func = self._create_wrapped_rhs_func()
+                self._solver_instance = solver_class(func=wrapped_func,
+                                                     y0=y0,
+                                                     rtol=self.rtol,
+                                                     atol=self.atol,
+                                                     norm=_rms_norm)
+            else:
+                self._solver_instance.y0 = y0
+                if hasattr(self._solver_instance, 'rk_state'):
+                    self._solver_instance.first_step = self._solver_instance.rk_state.dt
 
-        # solution at final time
-        y_t = solution[-1]
+            # Initialize solver state
+            t_init = torch.tensor([self.t, t],
+                                  device='cuda',
+                                  dtype=torch.float64)
+            self._solver_instance._before_integrate(t_init)
+
+            t_target = torch.tensor(t, device='cuda', dtype=torch.float64)
+            y_t = self._solver_instance._advance(t_target)
+        else:
+            # time span
+            t_span = torch.tensor([self.t, t],
+                                  device='cuda',
+                                  dtype=torch.float64)
+
+            # solve ODE using TorchDiffEq
+            solution = odeint(self.compute_rhs,
+                              y0,
+                              t_span,
+                              method=self.solver,
+                              rtol=self.rtol,
+                              atol=self.atol)
+
+            # solution at final time
+            y_t = solution[-1]
 
         # convert the solution back to CuPy array
         y_t_cupy = cp.from_dlpack(y_t)
 
+        if self._dimensions_list is None:
+            self._dimensions_list = list(self.dimensions)
+
         # Keep results in GPU memory
         self.state = cudaq_runtime.State.from_data(y_t_cupy)
-        self.state = bindings.initializeState(self.state, list(self.dimensions),
+        self.state = bindings.initializeState(self.state, self._dimensions_list,
                                               self.is_density_state,
                                               self.batchSize)
         self.t = t
@@ -191,6 +269,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
         self.batchSize = bindings.getBatchSize(state)
+        self._solver_instance = None
 
 
 class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):

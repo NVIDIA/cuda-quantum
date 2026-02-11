@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #include "QPU.h"
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
+#include "common/ExecutionContext.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -139,9 +140,8 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
 }
 
 /// Scan \p module and set flags in the current platform context accordingly.
-static void establishExecutionContext(ModuleOp module) {
-  auto &plat = cudaq::get_platform();
-  auto *currentExecCtx = plat.get_exec_ctx();
+static void updateExecutionContext(ModuleOp module) {
+  auto *currentExecCtx = cudaq::getExecutionContext();
   if (!currentExecCtx)
     return;
 
@@ -156,12 +156,10 @@ static void establishExecutionContext(ModuleOp module) {
       break;
     }
   }
-
-  plat.set_exec_ctx(currentExecCtx);
 }
 
 static ExecutionEngine *alreadyBuiltJITCode() {
-  auto *currentExecCtx = cudaq::get_platform().get_exec_ctx();
+  auto *currentExecCtx = cudaq::getExecutionContext();
   if (!currentExecCtx || !currentExecCtx->allowJitEngineCaching)
     return {};
   return reinterpret_cast<ExecutionEngine *>(currentExecCtx->jitEng);
@@ -172,7 +170,7 @@ static ExecutionEngine *alreadyBuiltJITCode() {
 /// recompiled. This exploits the fact that the arguments processed at the
 /// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
 static bool cacheJITForPerformance(ExecutionEngine *jit) {
-  auto *currentExecCtx = cudaq::get_platform().get_exec_ctx();
+  auto *currentExecCtx = cudaq::getExecutionContext();
   if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
     if (!currentExecCtx->jitEng)
       currentExecCtx->jitEng = reinterpret_cast<void *>(jit);
@@ -216,7 +214,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
           if (f != funcOp)
             f.setPrivate();
 
-      establishExecutionContext(module);
+      updateExecutionContext(module);
 
       // 3. LLVM JIT the code so we can execute it.
       CUDAQ_INFO("Run Argument Synth.\n");
@@ -284,7 +282,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         if (f != funcOp)
           f.setPrivate();
 
-    establishExecutionContext(module);
+    updateExecutionContext(module);
 
     // 3. LLVM JIT the code so we can execute it.
     CUDAQ_INFO("Run Argument Synth.\n");

@@ -209,6 +209,8 @@ def test_properties():
     assert sum.max_degree == 3
 
     assert sum.term_count == 2
+    assert prod1.term_count == 1
+    assert prod2.term_count == 1
     assert prod1.ops_count == 2
     sum += prod1
     assert sum.term_count == 2

@@ -36,15 +36,16 @@ command=${command:-check}
 # Run the script from the top-level of the repo
 cd $(git rev-parse --show-toplevel)
 
-# The license-eye check is determined to ignore files ending in txt;
-# we hence create a temporary copy of these files to check.
-cmakelists=`find . -name *.txt -not -path "./tpls/*"`
+# The license-eye check ignores files ending in .txt by default;
+# we create a temporary copy of CMakeLists.txt files to check them.
+cmakelists=$(find . -name "CMakeLists.txt" -not -path "./tpls/*")
 for file in $cmakelists; do
   cp "$file"{,.tmp}
 done
 
 go install github.com/apache/skywalking-eyes/cmd/license-eye@latest
-"$GOPATH"/bin/license-eye header $command
+# Use GOPATH if set, otherwise default to ~/go (Go's default)
+"${GOPATH:-$HOME/go}/bin/license-eye" header $command
 status=$?
 
 for file in $cmakelists; do

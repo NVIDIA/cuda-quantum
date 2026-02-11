@@ -31,7 +31,7 @@ target_include_directories(nvqir_dynamics_bindings
         ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat 
         ${CUDENSITYMAT_INCLUDE_DIR}
         ${CUDAToolkit_INCLUDE_DIRS})
-target_link_libraries(nvqir_dynamics_bindings PRIVATE fmt::fmt-header-only)
+target_link_libraries(nvqir_dynamics_bindings PRIVATE cudaq-logger fmt::fmt-header-only)
 # Set output directory for ctest-based python test invocation, which uses cudaq python from the build directory. 
 set_target_properties(nvqir_dynamics_bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/python/cudaq/dynamics)
 install(TARGETS nvqir_dynamics_bindings DESTINATION cudaq/dynamics)

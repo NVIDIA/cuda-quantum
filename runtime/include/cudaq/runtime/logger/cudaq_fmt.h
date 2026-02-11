@@ -51,7 +51,7 @@ concept variant_alternative =
     is_variant_member<std::decay_t<T>, Variant>::value;
 
 //
-// Packed versions of format and print, implemented in Logger.cpp
+// Packed versions of format and print, implemented in logger.cpp
 //
 std::string format_packed(const std::string_view message,
                           const std::span<fmt_arg> &arr);

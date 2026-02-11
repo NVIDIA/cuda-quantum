@@ -167,6 +167,25 @@ def test_u3_ctrl_emulation():
     result = cudaq.sample(kernel)
 
 
+def test_quantinuum_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert len(counts) == 1
+
+
 def test_exp_pauli():
 
     @cudaq.kernel
@@ -374,6 +393,75 @@ def test_run():
         if result == qubitCount:
             non_zero_count += 1
     assert non_zero_count > 0
+
+    @cudaq.kernel
+    def kernel_with_conditional() -> list[bool]:
+        var = [True, True]
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        var[0] = mz(q0)
+        var[1] = mz(q1)
+        return var
+
+    results = cudaq.run(kernel_with_conditional, shots_count=2)
+    assert len(results) == 2
+    for res in results:
+        assert len(res) == 2
+        assert res[0] is False
+        assert res[1] is False
+
+
+def test_quantinuum_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '000' in counts
+    assert '100' in counts
+    assert not '001' in counts
+    assert not '010' in counts
+    assert not '011' in counts
+    assert not '101' in counts
+    assert not '110' in counts
+    assert not '111' in counts
+
+
+def test_named_reg_in_sample(capfd):
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qubit()
+        x(q)
+        var = mz(q)
+
+    cudaq.sample(foo).dump()
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+
+def test_sample_with_conditional():
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qvector(2)
+        h(q[0])
+        if (mz(q[0])):
+            x(q[1])
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(foo)
+    assert "no longer support" in repr(e)
 
 
 # leave for gdb debugging

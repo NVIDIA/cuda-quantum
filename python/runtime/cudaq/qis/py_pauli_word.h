@@ -1,23 +1,18 @@
-/*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s
+#pragma once
 
-#include "mid_circuit_measurement.inc"
+#include <pybind11/pybind11.h>
 
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
+namespace py = pybind11;
 
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-
-// CHECK: done
+namespace cudaq {
+/// @brief Bind the Quantum Instruction Set.
+void bindPauliWord(py::module &mod);
+} // namespace cudaq

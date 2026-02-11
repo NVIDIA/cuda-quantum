@@ -1,0 +1,118 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: 'Setup Pre-commit'
+description: 'Setup all dependencies for pre-commit CI jobs (call after checkout)'
+
+inputs:
+  cache-key-suffix:
+    description: 'Suffix for the pre-commit cache key (e.g., formatting, spelling)'
+    required: true
+  install-aspell:
+    description: 'Install aspell for spellchecking'
+    default: 'false'
+  install-node:
+    description: 'Install Node.js and markdown-link-check'
+    default: 'false'
+  install-go:
+    description: 'Install Go and license-eye'
+    default: 'false'
+
+outputs:
+  mode:
+    description: 'Check mode: "pr" for pull requests, "all" for full checks'
+    value: ${{ steps.files.outputs.mode }}
+  changed-files:
+    description: 'Path to file containing list of changed files (only in PR mode)'
+    value: '/tmp/changed_files.txt'
+
+runs:
+  using: 'composite'
+  steps:
+    # ========== Python & Pre-commit ==========
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install pre-commit
+      shell: bash
+      run: pip install pre-commit
+
+    - name: Cache pre-commit environments
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-${{ inputs.cache-key-suffix }}-${{ hashFiles('.pre-commit-config.yaml') }}-${{ runner.os }}
+        restore-keys: |
+          pre-commit-${{ inputs.cache-key-suffix }}-${{ hashFiles('.pre-commit-config.yaml') }}-
+          pre-commit-${{ inputs.cache-key-suffix }}-
+
+    # ========== Apt Packages (aspell for spellchecking) ==========
+    # Note: clang-format is provided by pre-commit's mirrors-clang-format, no system install needed
+    - name: Install system dependencies (aspell)
+      if: inputs.install-aspell == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+          aspell \
+          aspell-en
+
+    # ========== Node.js & npm packages ==========
+    - name: Set up Node.js
+      if: inputs.install-node == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Cache npm packages
+      if: inputs.install-node == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: npm-markdown-link-check-${{ runner.os }}
+        restore-keys: |
+          npm-markdown-link-check-
+
+    - name: Install markdown-link-check
+      if: inputs.install-node == 'true'
+      shell: bash
+      run: npm install -g markdown-link-check
+
+    # ========== Go (for license-eye) ==========
+    - name: Set up Go
+      if: inputs.install-go == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: false
+
+    - name: Cache Go modules
+      if: inputs.install-go == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: go-license-eye-${{ runner.os }}
+
+    # ========== File Detection ==========
+    - name: Determine files to check
+      id: files
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          # Fetch base commit (works with shallow clone)
+          git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
+          # Direct diff between base and HEAD (no merge-base needed)
+          changed_files=$(git diff --name-only --diff-filter=d ${{ github.event.pull_request.base.sha }} HEAD)
+          echo "$changed_files" > /tmp/changed_files.txt
+          echo "mode=pr" >> $GITHUB_OUTPUT
+        else
+          echo "mode=all" >> $GITHUB_OUTPUT
+        fi

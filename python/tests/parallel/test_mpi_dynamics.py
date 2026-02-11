@@ -340,6 +340,12 @@ def testMpiBatchedStatesInvalidBatchSize():
 
     num_ranks = cudaq.mpi.num_ranks()
 
+    # Skip if running with a single MPI rank, since any batch size is divisible by 1
+    if num_ranks == 1:
+        pytest.skip(
+            "This test requires at least 2 MPI ranks to test invalid batch size"
+        )
+
     # Simple single-qubit Hamiltonian
     hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
     dimensions = {0: 2}

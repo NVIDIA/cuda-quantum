@@ -26,6 +26,7 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
                                  func, math)
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
+from cudaq.kernel_types import qubit, qvector
 from .captured_data import CapturedDataStorage
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
@@ -38,8 +39,6 @@ from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_calling_module)
 
 kDynamicPtrIndex: int = -2147483648
-
-qvector = cudaq_runtime.qvector
 
 # This file reproduces the cudaq::kernel_builder in Python
 
@@ -314,7 +313,7 @@ class PyKernel(object):
         Process input argument type. Specifically, try to infer the element type
         for a list, e.g. list[float].
         """
-        if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
+        if ty in [qvector, qubit]:
             return ty, None
         if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):
@@ -1150,8 +1149,8 @@ class PyKernel(object):
 
         Note:
         Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Mid-circuit measurements are currently only supported 
-        through the use of :func:`c_if`.
+        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        supported.
 
         ```python
             # Example:
@@ -1198,8 +1197,8 @@ class PyKernel(object):
 
         Note:
         Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Mid-circuit measurements are currently only supported 
-        through the use of :func:`c_if`.
+        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        supported.
 
         ```python
             kernel = cudaq.make_kernel()
@@ -1245,8 +1244,8 @@ class PyKernel(object):
 
         Note:
         Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Mid-circuit measurements are currently only supported 
-        through the use of :func:`c_if`.
+        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        supported.
 
         ```python
             # Example:
@@ -1436,59 +1435,10 @@ class PyKernel(object):
             :class:`Kernel`.
 
         Raises:
-        RuntimeError: If the provided `measurement` is on more than 1 qubit.
-
-        ```python
-            # Example:
-            # Create a kernel and allocate a single qubit.
-            kernel = cudaq.make_kernel()
-            qubit = kernel.qalloc()
-            # Define a function that performs certain operations on the
-            # kernel and the qubit.
-            def then_function():
-                kernel.x(qubit)
-            kernel.x(qubit)
-            # Measure the qubit.
-            measurement = kernel.mz(qubit)
-            # Apply `then_function` to the `kernel` if the qubit was measured
-            # in the 1-state.
-            kernel.c_if(measurement, then_function))
-        ```
+        RuntimeError: No longer supported.
         """
-        with self.insertPoint, self.loc:
-            conditional = measurement.mlirValue
-            if not IntegerType.isinstance(conditional.type):
-                emitFatalError("c_if conditional must be of type `bool`.")
-
-            # [RFC]:
-            # The register names in the conditional tests need to be double
-            # checked; the code here may need to be adjusted to reflect the
-            # additional quake.discriminate conversion of the measurement.
-            if isinstance(conditional.owner.opview, quake.MzOp):
-                regName = StringAttr(
-                    conditional.owner.attributes['registerName']).value
-                if len(regName) == 0:
-                    conditional.owner.attributes.__setitem__(
-                        'registerName',
-                        StringAttr.get('auto_register_{}'.format(
-                            self.regCounter)))
-                    self.regCounter += 1
-
-            if self.getIntegerType(1) != conditional.type:
-                # not equal to 0, then compare with 1
-                condPred = IntegerAttr.get(self.getIntegerType(), 1)
-                conditional = arith.CmpIOp(condPred, conditional,
-                                           self.getConstantInt(0)).result
-
-            ifOp = cc.IfOp([], conditional, [])
-            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-            with InsertionPoint(thenBlock):
-                tmpIp = self.insertPoint
-                self.insertPoint = InsertionPoint(thenBlock)
-                function()
-                self.insertPoint = tmpIp
-                cc.ContinueOp([])
-            self.conditionalOnMeasure = True
+        emitFatalError(
+            "`c_if` is no longer supported. Use kernel mode with `run` API.")
 
     def for_loop(self, start, stop, function):
         """
@@ -1602,6 +1552,21 @@ class PyKernel(object):
         else:
             emitFatalError("Noise channel parameter must be float")
 
+    @staticmethod
+    def _validate_noise_channel_probability_params(noise_channel, param_values):
+        """
+        Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
+        """
+        if not hasattr(noise_channel, 'num_parameters'):
+            return
+        for p in param_values:
+            if isinstance(p, (int, float)):
+                val = float(p)
+                if val < 0.0 or val > 1.0:
+                    raise RuntimeError(
+                        "probability must be in the range [0, 1]. " + "Got: " +
+                        str(val))
+
     def apply_noise(self, noise_channel, *args):
         """
         Apply a noise channel to the provided qubit or qubits.
@@ -1633,8 +1598,11 @@ class PyKernel(object):
             if isinstance(args[0], list):
                 # If the first argument is a list, assuming that it is the list
                 # of noise channel parameters.
+                param_values = args[0]
+                self._validate_noise_channel_probability_params(
+                    noise_channel, param_values)
                 noise_channel_params = [
-                    self.process_channel_param(p) for p in args[0]
+                    self.process_channel_param(p) for p in param_values
                 ]
                 # Qubit arguments
                 for p in args[1:]:
@@ -1643,6 +1611,9 @@ class PyKernel(object):
                         emitFatalError("Invalid qubit operand type")
                     target_qubits.append(p.mlirValue)
             else:
+                param_values = args[:noise_channel.num_parameters]
+                self._validate_noise_channel_probability_params(
+                    noise_channel, param_values)
                 for i, p in enumerate(args):
                     if i < noise_channel.num_parameters:
                         noise_channel_params.append(

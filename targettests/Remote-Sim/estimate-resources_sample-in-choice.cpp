@@ -26,12 +26,8 @@
 struct mykernel {
   auto operator()() __qpu__ {
     cudaq::qubit q;
-
     x(q);
-
     auto m1 = mz(q);
-    if (m1)
-      x(q);
   }
 };
 

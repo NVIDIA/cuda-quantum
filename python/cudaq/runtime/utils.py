@@ -83,6 +83,8 @@ def __isBroadcast(kernel, *args):
         checkList.extend([list[float], list[complex], list[int], list[bool]])
         checkList.extend(
             ['list[float]', 'list[complex]', 'list[int]', 'list[bool]'])
+        checkList.extend(
+            [list[cudaq_runtime.pauli_word], 'list[cudaq.pauli_word]'])
         firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
         if (isinstance(firstArg, list) or
                 isinstance(firstArg, List)) and not firstArgTypeIsStdvec:

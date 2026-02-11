@@ -14,7 +14,7 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
   set (QPP_DEPENDENCIES "")
-  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common)
+  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-logger)
   add_openmp_configurations(${LIBRARY_NAME} QPP_DEPENDENCIES)
 
   target_include_directories(${LIBRARY_NAME}
