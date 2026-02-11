@@ -2641,15 +2641,12 @@ class PyASTBridge(ast.NodeVisitor):
             result = func.CallOp(kernel, values).result
             return self.__migrateLists(result, copy_list_to_stack)
 
-        # Returns a pair where the first element is a list of possible
-        # device keys containing the qualified name, and the second
-        # element is the qualified name
         def resolveQualifiedName(pyVal):
             if isinstance(pyVal, ast.Name):
                 # Name is available locally
-                return [], pyVal.id
+                return None, pyVal.id
             if not isinstance(pyVal, ast.Attribute):
-                return [], None
+                return None, None
 
             moduleNames = []
             value = pyVal.value
@@ -2658,29 +2655,24 @@ class PyASTBridge(ast.NodeVisitor):
                 moduleNames.append(value.attr)
                 value = value.value
             if not isinstance(value, ast.Name):
-                return [], None
+                return None, None
 
             self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
             moduleNames.append(value.id)
             moduleNames.reverse()
 
-            devKeys = ['.'.join(moduleNames)]
+            devKey = '.'.join(moduleNames)
             for module_name, module in sys.modules.items():
-                # TODO: this matching behaviour is suboptimal,
-                # because it requires further checks below (and seems a little weird),
-                # but it is necessary to be backwards compatible with previous behaviour here.
-                if module_name.endswith(moduleNames[0]):
+                if module_name.split('.')[-1] == moduleNames[0]:
                     try:
                         obj = module
                         for part in moduleNames[1:]:
                             obj = getattr(obj, part)
                         getattr(obj, pyVal.attr)
-                        devKey = f"{module_name}.{'.'.join(moduleNames[1:])}" if len(
-                            moduleNames) > 1 else module_name
-                        devKeys.append(devKey)
+                        devKey = obj.__name__
                     except AttributeError:
                         continue
-            return devKeys, pyVal.attr
+            return devKey, pyVal.attr
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
@@ -2690,8 +2682,8 @@ class PyASTBridge(ast.NodeVisitor):
             ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
                 return
 
-            devKeys, name = resolveQualifiedName(node.func)
-            for devKey in devKeys:
+            devKey, name = resolveQualifiedName(node.func)
+            if devKey:
                 # Handle debug functions
                 if devKey == 'cudaq.dbg.ast':
                     # Handle a debug print statement
@@ -2703,7 +2695,6 @@ class PyASTBridge(ast.NodeVisitor):
                 symName = processDecorator(name, path=devKey)
                 if symName:
                     node.func = ast.Name(symName)
-                    break
 
                 # Handle registered C++ kernels
                 elif cudaq_runtime.isRegisteredDeviceModule(devKey):
@@ -3509,26 +3500,17 @@ class PyASTBridge(ast.NodeVisitor):
 
                         otherFuncName = None
                         if node.args:
-                            devKeys, name = resolveQualifiedName(node.args[0])
-                            if len(devKeys) == 0 and name is not None:
-                                print("Here")
-                                # Default to looking locally
-                                devKeys.append(None)
-                            for devKey in devKeys:
-                                otherFuncName = processDecorator(name, path=devKey)
-
-                                if not otherFuncName:
-                                    otherFuncName = f"{devKey}.{name}" if devKey else name
-
-                                if otherFuncName:
-                                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                                        self.module, otherFuncName)
-                                    if maybeKernelName is not None:
-                                        self.emitFatalError(
-                                            "calling cudaq.control or cudaq.adjoint on "
-                                            "a kernel defined in C++ is not currently "
-                                            "supported", node)
-                                    break
+                            devKey, name = resolveQualifiedName(node.args[0])
+                            otherFuncName = processDecorator(name, path=devKey)
+                            if not otherFuncName:
+                                otherFuncName = f"{devKey}.{name}" if devKey else name
+                                maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                                    self.module, otherFuncName)
+                                if maybeKernelName is not None:
+                                    self.emitFatalError(
+                                        "calling cudaq.control or cudaq.adjoint on "
+                                        "a kernel defined in C++ is not currently "
+                                        "supported", node)
 
                         if not otherFuncName:
                             self.emitFatalError(
