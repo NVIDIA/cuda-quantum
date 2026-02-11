@@ -222,6 +222,16 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
           for (std::size_t i = 0; auto &v : asList)
             (*values)[i++] = v.cast<T>();
 
+          // CUDAQ-492 DEBUG: Print vector layout to diagnose flaky test.
+          fprintf(stderr,
+                  "CUDAQ-492 DEBUG: sizeof(vector)=%zu, data=%p, size=%zu, "
+                  "capacity=%zu, offset=%zu, raw bytes: ",
+                  sizeof(*values), (void *)values->data(), values->size(),
+                  values->capacity(), offset);
+          for (int i = 0; i < 24; i++)
+            fprintf(stderr, "%02x ", ((unsigned char *)values)[i]);
+          fprintf(stderr, "\n");
+
           std::memcpy(((char *)data) + offset, values, 16);
         };
 

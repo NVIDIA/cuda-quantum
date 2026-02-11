@@ -858,7 +858,15 @@ def test_list_of_dataclass_update_failures():
         return res
 
     result = test11(MyTuple([1], [1]), 2)
-    assert (result == [1, 2, 1, 1, 1, 1, 1, 3])
+    expected = [1, 2, 1, 1, 1, 1, 1, 3]
+    if result != expected:
+        import platform, sys
+        print(f"CUDAQ-492 DEBUG: result={result}")
+        print(f"CUDAQ-492 DEBUG: expected={expected}")
+        print(f"CUDAQ-492 DEBUG: platform={platform.machine()}, "
+              f"python={sys.version}, os={platform.platform()}")
+        print(f"CUDAQ-492 DEBUG: MLIR IR:\n{test11}")
+    assert (result == expected)
 
     with pytest.raises(RuntimeError) as e:
 
