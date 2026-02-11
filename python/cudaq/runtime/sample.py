@@ -148,7 +148,7 @@ def sample(kernel,
           an empty noise model.
       explicit_measurements (Optional[bool]): Whether or not to concatenate
           measurements in execution order for the returned sample result.
-      ptsbe_options (Optional[`ptsbe.PTSBEOptions`]): When provided, delegates
+      ptsbe_options (Optional[``ptsbe.PTSBEOptions``]): When provided, delegates
           to ``cudaq.ptsbe.sample()`` using these PTSBE-specific options
           together with the ``noise_model`` already supplied above.
 
