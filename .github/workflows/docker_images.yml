@@ -165,7 +165,7 @@ jobs:
           buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
           driver-opts: |
             network=host
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
    
       - name: Build Open MPI
         id: docker_build
@@ -316,7 +316,7 @@ jobs:
           buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
           driver-opts: |
             network=host
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
 
       - name: Extract metadata
         id: metadata
@@ -535,7 +535,7 @@ jobs:
           buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
           driver-opts: |
             network=host
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata

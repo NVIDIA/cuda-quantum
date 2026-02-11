@@ -133,7 +133,7 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             network=host
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.27.1
 
       - name: Build wheel
         id: wheel_build
