@@ -207,6 +207,36 @@ def test_sample_async():
     assert '1' in sample_result and len(sample_result) == 1
 
 
+def test_cudaq_sample_with_ptsbe_options():
+    """cudaq.sample() with ptsbe_options delegates to ptsbe.sample()."""
+    cudaq.set_target("qpp-cpu")
+    cudaq.set_random_seed(42)
+
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(0.01))
+    shots = 200
+    opts = cudaq.ptsbe.PTSBEOptions(
+        sampling_strategy=cudaq.ptsbe.ExhaustiveSamplingStrategy())
+    result = cudaq.sample(bell,
+                          noise_model=noise,
+                          shots_count=shots,
+                          ptsbe_options=opts)
+    assert isinstance(result, cudaq.SampleResult)
+    total = sum(result.count(bs) for bs in result)
+    assert total == shots
+    bell_counts = result.count("00") + result.count("11")
+    assert bell_counts > shots * 0.8
+
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

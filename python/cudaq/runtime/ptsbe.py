@@ -14,6 +14,18 @@ from .utils import __isBroadcast, __createArgumentSet
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
 
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class PTSBEOptions:
+    """Grouped PTSBE-specific options for use with cudaq.sample()."""
+    max_trajectories: Optional[int] = None
+    sampling_strategy: object = None
+    shot_allocation: object = None
+    return_execution_data: bool = False
+
 
 def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
                          max_trajectories):
