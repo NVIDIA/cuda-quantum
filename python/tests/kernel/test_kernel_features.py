@@ -800,20 +800,37 @@ def test_list_list_string_argument_error():
 
 def test_broadcast():
 
+    @cudaq.kernel
+    def kernel(l: list[list[int]]):
+        q = cudaq.qvector(2)
+        for inner in l:
+            for i in inner:
+                x(q[i])
+
+    # passing a list of lists works
+    counts = cudaq.sample(kernel, [[0, 1]])
+    # passing a 3-nested list works (broadcasting)
+    counts = cudaq.sample(kernel, [[[0, 1]], [[0, 1]]])
+    assert len(counts) == 2
+    # passing a singly-nested list fails
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def kernel(l: list[list[int]]):
-            q = cudaq.qvector(2)
-            for inner in l:
-                for i in inner:
-                    x(q[i])
-
-        #FIXME: update broadcast detection logic to allow this case.
-        # https://github.com/NVIDIA/cuda-quantum/issues/2895
-        counts = cudaq.sample(kernel, [[0, 1]])
+        counts = cudaq.sample(kernel, [0, 1])
     assert 'Invalid runtime argument type. Argument of type list[int] was provided' in repr(
         e)
+
+
+def test_broadcast_np_array():
+
+    @cudaq.kernel
+    def kernel(l: list[float]):
+        q = cudaq.qvector(2)
+
+    # passing a mix of list and np.array broadcasts properly
+    counts = cudaq.sample(kernel, [np.array([0, 1]), np.array([0, 1])])
+    assert len(counts) == 2
+    # passing a 2d np.array broadcasts properly
+    counts = cudaq.sample(kernel, np.array([[0, 1], [0, 1]]))
+    assert len(counts) == 2
 
 
 def test_list_creation_with_cast():
