@@ -79,13 +79,15 @@ NoiseExtractionResult extractNoiseSites(const cudaq::Trace &trace,
         continue;
       }
 
-      channel.generateUnitaryParameters();
-
-      // PTSBE requires all channels to be unitary mixtures; treat non-unitary
-      // as an error (no fallback).
-      if (!channel.is_unitary_mixture()) {
+      // Standard channels compute unitary_ops in their constructor (which
+      // runs in the caller's precision context). Only regenerate for channels
+      // that haven't been pre-computed (e.g. custom channels). Unconditionally
+      // regenerating could misinterpret fp32 Kraus data as fp64 because this
+      // translation unit is always compiled with cudaq::real = double.
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
+      if (!channel.is_unitary_mixture())
         throwUnitaryMixtureError(inst.name, instruction_idx);
-      }
 
       std::vector<std::size_t> qubits = qubitIdsFromInstruction(inst);
       result.noise_sites.push_back(createNoisePoint(

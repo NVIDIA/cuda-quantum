@@ -254,6 +254,11 @@ public:
   /// of whether cudaq::real is float or double.
   std::vector<double> probabilities;
 
+  /// @brief Optional names for each Kraus operator, parallel to ops.
+  /// For Pauli channels these are gate names (e.g., {"id", "x", "y", "z"}).
+  /// `nullopt` when names are not available.
+  std::optional<std::vector<std::string>> op_names = std::nullopt;
+
   virtual ~kraus_channel() = default;
 
   /// @brief The nullary constructor
@@ -637,6 +642,7 @@ public:
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"id", "x", "y", "z"};
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
@@ -703,6 +709,7 @@ public:
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"id", "x"};
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -737,6 +744,7 @@ public:
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"id", "z"};
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -844,6 +852,7 @@ public:
     noise_type = noise_model_type::y_error;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"id", "y"};
   }
   y_error(const real probability)
       : y_error(std::vector<cudaq::real>{probability}) {}
@@ -900,6 +909,7 @@ public:
     noise_type = cudaq::noise_model_type::pauli1;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"id", "x", "y", "z"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli1])
 };
@@ -975,6 +985,9 @@ public:
     noise_type = cudaq::noise_model_type::pauli2;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"ii", "ix", "iy", "iz", "xi", "xx",
+                                        "xy", "xz", "yi", "yx", "yy", "yz",
+                                        "zi", "zx", "zy", "zz"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli2])
 };
@@ -1053,6 +1066,9 @@ public:
     noise_type = cudaq::noise_model_type::depolarization2;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = std::vector<std::string>{"ii", "ix", "iy", "iz", "xi", "xx",
+                                        "xy", "xz", "yi", "yx", "yy", "yz",
+                                        "zi", "zx", "zy", "zz"};
   }
 
   /// @brief Construct a two qubit depolarization channel.

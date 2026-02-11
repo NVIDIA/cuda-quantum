@@ -59,7 +59,8 @@ def sample(kernel,
            noise_model=None,
            max_trajectories=None,
            sampling_strategy=None,
-           shot_allocation=None):
+           shot_allocation=None,
+           return_execution_data=False):
     """
     Sample using Pre-Trajectory Sampling with Batch Execution (`PTSBE`).
 
@@ -84,6 +85,9 @@ def sample(kernel,
       shot_allocation (``ShotAllocationStrategy`` or ``None``): Strategy for
           allocating shots across trajectories. ``None`` uses the default
           proportional allocation.
+      return_execution_data (bool): Include circuit structure, trajectory
+          specifications, and per-trajectory measurement outcomes in the
+          returned result. Defaults to ``False``.
 
     Returns:
       ``SampleResult``: Measurement results. Returns a list of results
@@ -104,7 +108,7 @@ def sample(kernel,
             result = cudaq_runtime.ptsbe.sample_impl(
                 decorator.uniqName, specMod, retTy, shots_count, noise_model,
                 max_trajectories, sampling_strategy, shot_allocation,
-                *processedArgs)
+                return_execution_data, *processedArgs)
             results.append(result)
         return results
 
@@ -114,7 +118,9 @@ def sample(kernel,
     return cudaq_runtime.ptsbe.sample_impl(decorator.uniqName, specMod, retTy,
                                            shots_count, noise_model,
                                            max_trajectories, sampling_strategy,
-                                           shot_allocation, *processedArgs)
+                                           shot_allocation,
+                                           return_execution_data,
+                                           *processedArgs)
 
 
 def sample_async(kernel,
@@ -123,7 +129,8 @@ def sample_async(kernel,
                  noise_model=None,
                  max_trajectories=None,
                  sampling_strategy=None,
-                 shot_allocation=None):
+                 shot_allocation=None,
+                 return_execution_data=False):
     """
     Asynchronously sample using PTSBE. Returns a future whose result
     can be retrieved via ``.get()``.
@@ -137,6 +144,7 @@ def sample_async(kernel,
           trajectory generation.
       shot_allocation (``ShotAllocationStrategy`` or ``None``): Strategy for
           allocating shots across trajectories.
+      return_execution_data (bool): Include execution data in the result.
 
     Returns:
       ``AsyncSampleResult``: A future whose ``.get()`` returns the
@@ -153,7 +161,8 @@ def sample_async(kernel,
 
     impl = cudaq_runtime.ptsbe.sample_async_impl(
         decorator.uniqName, specMod, retTy, shots_count, noise_model,
-        max_trajectories, sampling_strategy, shot_allocation, *processedArgs)
+        max_trajectories, sampling_strategy, shot_allocation,
+        return_execution_data, *processedArgs)
 
     result = AsyncSampleResult(impl, specMod)
     result._noise_model = noise_model  # prevent GC until .get() is called

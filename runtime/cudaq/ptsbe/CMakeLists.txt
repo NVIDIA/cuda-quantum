@@ -12,6 +12,7 @@
 
 # Source files
 set(PTSBE_SOURCES
+    PTSBEExecutionData.cpp
     PTSBESample.cpp
     PTSBESampleResult.cpp
     PTSBESampler.cpp
@@ -32,6 +33,7 @@ install(FILES
     PTSBEOptions.h
     PTSBESampler.h
     PTSBESampleResult.h
+    PTSBEExecutionData.h
     PTSBESample.h
     ShotAllocationStrategy.h
     PTSSamplingStrategy.h
