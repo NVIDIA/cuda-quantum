@@ -959,7 +959,8 @@ public:
           runKern->setAttr("no_this", unitAttr);
           SmallVector<Attribute> resultTys;
           for (auto rt : epKern.getFunctionType().getResults())
-            resultTys.emplace_back(TypeAttr::get(rt));
+            resultTys.emplace_back(TypeAttr::get(
+                cudaq::opt::factory::convertToHostSideType(rt, module)));
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);

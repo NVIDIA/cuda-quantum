@@ -235,11 +235,28 @@ public:
       return std::stoi(label.substr(1, label.size() - 2));
     if (label[0] == '.')
       return std::stoi(label.substr(1, label.size() - 1));
-    // Handle register-name labels like "r00000" or "result%0"
-    // by extracting trailing digits
-    auto pos = label.find_last_not_of("0123456789");
-    if (pos != std::string::npos && pos + 1 < label.size())
-      return std::stoi(label.substr(pos + 1));
+    // Handle register-name labels like "r00000" or "result%0".
+    // This logic is fragile; for example a user may have only one mz
+    // assigned to a variable like r00001 and it will be interpreted as
+    // index 1, potentially causing an out-of-bounds error. The proper
+    // fix is to disallow explicit mz operations in sampled kernels.
+    // Also, `run` is appropriate for getting sub-register results.
+    if (label.size() == 6 && label[0] == 'r') {
+      // Auto-generated labels: rNNNNN (r + exactly 5 digits)
+      bool allDigits = true;
+      for (std::size_t i = 1; i < 6; ++i) {
+        if (label[i] < '0' || label[i] > '9') {
+          allDigits = false;
+          break;
+        }
+      }
+      if (allDigits)
+        return std::stoi(label.substr(1));
+    }
+    // Named results: result%N
+    std::size_t percentPos = label.find('%');
+    if (percentPos != std::string::npos)
+      return std::stoi(label.substr(percentPos + 1));
     throw std::runtime_error("Index not found in label");
   }
 
