@@ -19,6 +19,7 @@
 
 #include "KrausTrajectory.h"
 #include "PTSBESampler.h"
+#include "PTSSamplingStrategy.h"
 #include "common/Trace.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
@@ -41,21 +42,25 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst);
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace);
 
-/// @brief Convert a KrausSelection to a GateApplicationTask
+/// @brief Convert a KrausSelection to a GateApplicationTask using the
+/// noise channel's unitary operators for the matrix
 template <typename ScalarType>
-GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel);
+GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
+                                          const NoisePoint &noiseSite);
 
 /// @brief Merge base tasks with trajectory noise insertions
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
-                         const cudaq::KrausTrajectory &trajectory);
+                         const cudaq::KrausTrajectory &trajectory,
+                         const std::vector<NoisePoint> &noiseSites);
 
 /// @brief Merge kernel trace with trajectory noise to produce task list
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeAndConvert(const cudaq::Trace &kernelTrace,
-                const cudaq::KrausTrajectory &trajectory);
+                const cudaq::KrausTrajectory &trajectory,
+                const std::vector<NoisePoint> &noiseSites);
 
 /// @brief Generic PTSBE execution implementation
 ///

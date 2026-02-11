@@ -22,8 +22,7 @@ cudaq_async_sample_cache_counter = 0
 class AsyncSampleResult:
 
     def __init__(self, *args, **kwargs):
-        if len(args) == 2 and isinstance(args[0],
-                                         cudaq_runtime.AsyncSampleResultImpl):
+        if len(args) == 2 and hasattr(args[0], 'get'):
             impl = args[0]
             mod = args[1]
             global cudaq_async_sample_module_cache

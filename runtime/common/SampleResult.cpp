@@ -511,5 +511,4 @@ void sample_result::reorder(const std::vector<std::size_t> &idx,
     s = newBits;
   }
 }
-
 } // namespace cudaq

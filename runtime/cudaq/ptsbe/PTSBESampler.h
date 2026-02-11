@@ -9,6 +9,7 @@
 #pragma once
 
 #include "KrausTrajectory.h"
+#include "PTSSamplingStrategy.h"
 #include "common/Trace.h"
 #include <concepts>
 #include <cstddef>
@@ -21,6 +22,11 @@ namespace cudaq::ptsbe {
 struct PTSBatch {
   /// @brief Captured kernel circuit
   cudaq::Trace kernelTrace;
+
+  /// @brief Noise sites from extractNoiseSites(trace, noiseModel).
+  /// Each NoisePoint carries the kraus_channel used to resolve trajectory
+  /// selections to unitary matrices during execution.
+  std::vector<NoisePoint> noise_sites;
 
   /// @brief Sampled noise trajectories
   std::vector<cudaq::KrausTrajectory> trajectories;
