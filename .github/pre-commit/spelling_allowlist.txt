@@ -306,6 +306,7 @@ prepend
 preprocessor
 probability
 programmatically
+ptsbe
 pybind
 qaoa
 qed
