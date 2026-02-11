@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,7 +15,8 @@
 #include <cudaq.h>
 
 struct kernel {
-  auto operator()() __qpu__ {
+  /// FIXME: This should also work with `auto`
+  bool operator()() __qpu__ {
     cudaq::qarray<3> q;
     // Initial state prep
     x(q[0]);
