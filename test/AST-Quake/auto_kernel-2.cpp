@@ -23,7 +23,7 @@ struct ak2 {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
 // CHECK-SAME: () -> !cc.stdvec<!quake.measure> attributes
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 8 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<5>

@@ -80,8 +80,8 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                 return {8};
               })
           .Case([](quake::MeasureType) -> std::optional<std::int32_t> {
-            // Size of `measure_result` {int result} = 4 bytes
-            return {4};
+            // Size of `measure_result` {int result, int id} = 8 bytes
+            return {8};
           })
           .Default({});
 

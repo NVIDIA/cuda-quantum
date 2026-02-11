@@ -74,7 +74,8 @@ Type genBufferType(Type ty) {
     return ty;
   }
   if (isa<quake::MeasureType>(ty)) {
-    return IntegerType::get(ctx, 32);
+    auto i32Ty = IntegerType::get(ctx, 32);
+    return cudaq::cc::StructType::get(ctx, {i32Ty, i32Ty});
   }
   return ty;
 }
@@ -436,7 +437,8 @@ Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
         IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));
   }
   if (isa<quake::MeasureType>(ty)) {
-    return IntegerType::get(ty.getContext(), 32);
+    auto i32Ty = IntegerType::get(ty.getContext(), 32);
+    return cudaq::cc::StructType::get(ty.getContext(), {i32Ty, i32Ty});
   }
   if (auto ptrTy = dyn_cast<cc::PointerType>(ty))
     return cc::PointerType::get(

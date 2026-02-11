@@ -36,7 +36,7 @@ struct VectorOfStaticVeq {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq() -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_0:.*]] = arith.constant 4 : i64
+// CHECK:           %[[VAL_0:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
@@ -88,7 +88,7 @@ struct VectorOfDynamicVeq {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfDynamicVeq(
 // CHECK-SAME:                                                    %[[VAL_0:.*]]: i32,
 // CHECK-SAME:                                                    %[[VAL_1:.*]]: i32) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32

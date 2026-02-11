@@ -26,10 +26,18 @@ private:
   /// The intrinsic measurement result
   int result = 0;
 
+  /// Unique integer for measure result identification
+  int uniqueId = -1; // unassigned
+
 public:
   // Constructors
   measure_result() = default;
   measure_result(int res) : result(res) {}
+  measure_result(int res, int id) : result(res), uniqueId(id) {}
+
+  // Accessors
+  int getResult() const { return result; }
+  int getUniqueId() const { return uniqueId; }
 
   // Operator overloads for conversions and comparisons
 #ifdef CUDAQ_LIBRARY_MODE

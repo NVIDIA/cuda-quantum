@@ -385,11 +385,21 @@ public:
             // Discriminate: !quake.measure -> i1
             auto i1Val = builder.create<quake::DiscriminateOp>(
                 loc, builder.getI1Type(), resultVal);
-            // Cast i1 -> i32 for host-side buffer
-            resultVal = builder.create<cudaq::cc::CastOp>(
+            // Cast i1 -> i32 for the value field
+            auto bitVal = builder.create<cudaq::cc::CastOp>(
                 loc, builder.getI32Type(), i1Val,
                 cudaq::cc::CastOpMode::Unsigned);
-            builder.create<cudaq::cc::StoreOp>(loc, resultVal, mem);
+            // Store value into the first field
+            auto valPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
+                SmallVector<cudaq::cc::ComputePtrArg>{0});
+            builder.create<cudaq::cc::StoreOp>(loc, bitVal, valPtr);
+            // Store id = -1 into the second field
+            auto negOne = builder.create<arith::ConstantIntOp>(loc, -1, 32);
+            auto idPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
+                SmallVector<cudaq::cc::ComputePtrArg>{1});
+            builder.create<cudaq::cc::StoreOp>(loc, negOne, idPtr);
           } else {
             auto resPtrTy = cudaq::cc::PointerType::get(resTy);
             Value castMem = mem;
