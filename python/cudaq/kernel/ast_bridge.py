@@ -2669,6 +2669,7 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = getattr(obj, part)
                         getattr(obj, pyVal.attr)
                         devKey = obj.__name__
+                        return devKey, pyVal.attr
                     except AttributeError:
                         continue
             return devKey, pyVal.attr
