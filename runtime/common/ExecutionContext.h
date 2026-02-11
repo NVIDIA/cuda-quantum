@@ -135,6 +135,10 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
+  /// @brief Flag to indicate that a warning about named measurement registers
+  /// in sampling context has already been emitted.
+  bool warnedNamedMeasurements = false;
+
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;
