@@ -162,59 +162,35 @@ def test_adjoint():
     #assert len(counts) == 1 and '00000000' in counts
 
 
-def test_adjoint_error(capfd):
-    """Tests that taking a currently unsupported adjoint results in a nice error"""
+# TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
+# See: https://github.com/NVIDIA/cuda-quantum/issues/3818
+@pytest.mark.xfail(raises=RuntimeError)
+def test_adjoint_bug():
+    num_electrons = 2
+    num_qubits = 8
 
-    # TODO: Fails due to dynamic scoping causing `i` to be reassigned in
-    # the second loop, instead of a fresh variable, so it is threaded
-    # through the loops by `memtoreg` causing `ApplyOpSpecialization` to
-    # fail because it cannot currently support multiple loop arguments
-    # (the first argument going through the range, the second being `i`)
-    @cudaq.kernel
-    def test_kernel_adjoint_loop(q: cudaq.qview, num_qubits: int):
-        for i in range(0, num_qubits):
-            x(q[i])
-        for i in range(0, num_qubits):
-            h(q[i])
-
-    @cudaq.kernel
-    def test_caller():
-        num_qubits = 3
-        q = cudaq.qvector(num_qubits)
-        cudaq.adjoint(test_kernel_adjoint_loop, q, num_qubits)
-
-    # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
-    with pytest.raises(RuntimeError):
-        counts = cudaq.sample(test_caller)
-    captured = capfd.readouterr().err
-    print(captured)
-    assert "ApplyOpSpecialization does not currently support loops returning values other than the iteration variable" in captured
-
-    # TODO: `k` is threaded through the loops by `memtoreg` causing
-    # `ApplyOpSpecialization` to fail because it cannot currently
-    # support multiple loop arguments
-    @cudaq.kernel
-    def test_kernel_adjoint_two_loops(q: cudaq.qview, num_qubits: int):
-        k = 0
-        for i in range(0, num_qubits):
-            x(q[i])
-            k += 1
-        for j in range(0, num_qubits):
-            h(q[j])
-            k += 1
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
 
     @cudaq.kernel
-    def test_caller():
-        num_qubits = 3
-        q = cudaq.qvector(num_qubits)
-        cudaq.adjoint(test_kernel_adjoint_two_loops, q, num_qubits)
+    def kernel(withAdj: bool):
+        qubits = cudaq.qvector(num_qubits)
+        for i in range(num_electrons):
+            x(qubits[i])
+        cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        if withAdj:
+            cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
+                          num_qubits)
 
-    # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
-    with pytest.raises(RuntimeError):
-        counts = cudaq.sample(test_caller)
-    captured = capfd.readouterr().err
-    print(captured)
-    assert "ApplyOpSpecialization does not currently support loops returning values other than the iteration variable" in captured
+    counts = cudaq.sample(kernel, True, shots_count=1000)
 
 
 def test_control():

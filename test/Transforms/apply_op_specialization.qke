@@ -6,14 +6,13 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --apply-op-specialization -split-input-file -verify-diagnostics
+// RUN: cudaq-opt %s --apply-op-specialization -split-input-file | FileCheck %s
 
 module {
     func.func @test_weird_arg_order(%arg0: !quake.veq<?>, %arg1: i64) attributes {"cudaq-kernel"} {
         %c1_i64 = arith.constant 1 : i64
         %c0_i64 = arith.constant 0 : i64
         %c4_i64 = arith.constant 4 : i64
-        // expected-error@+1 {{ApplyOpSpecialization: first loop operand expected to be stepped}}
         %0:2 = cc.loop while ((%arg2 = %c0_i64, %arg3 = %c0_i64) -> (i64, i64)) {
             %1 = arith.cmpi ult, %arg3, %c4_i64 : i64
             cc.condition %1(%arg2, %arg3 : i64, i64)
@@ -39,6 +38,10 @@ module {
         return
     }
 }
+
+// Currently, pass should refuse to create adjoint
+// See: https://github.com/NVIDIA/cuda-quantum/issues/3818
+// CHECK: quake.apply<adj>
 
 // -----
 
@@ -89,3 +92,7 @@ module {
         return
     }
 }
+
+// Currently, pass should refuse to create adjoint
+// See: https://github.com/NVIDIA/cuda-quantum/issues/3818
+// CHECK: quake.apply<adj>

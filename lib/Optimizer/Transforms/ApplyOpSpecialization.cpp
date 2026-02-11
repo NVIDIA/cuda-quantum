@@ -275,6 +275,17 @@ static bool regionHasUnstructuredControlFlow(Region &region) {
     if (!isa<cudaq::cc::IfOp>(op) && !cudaq::opt::isaMonotonicLoop(&op) &&
         op.getNumRegions() > 1)
       return true; // Op has multiple regions but is not a known Op.
+    if (auto loop = dyn_cast<cudaq::cc::LoopOp>(op)) {
+      auto contOp =
+          cast<cudaq::cc::ContinueOp>(loop.getStepBlock()->getTerminator());
+      if (!contOp.getOperand(0).getDefiningOp())
+        return true; // TODO: Currently, cloneReversedLoop requires that the
+                     // first operand is the induction variable
+      for (size_t i = 0; i < loop.getNumResults(); i++)
+        if (!loop.getResult(i).getUses().empty())
+          return true; // TODO: Threading variables through loops as
+                       // arguments/returns is not handled properly
+    }
     for (auto &reg : op.getRegions())
       if (regionHasUnstructuredControlFlow(reg))
         return true;
@@ -604,8 +615,8 @@ public:
   /// of a monotonic indexing function). The loop control could be in either the
   /// memory or value domain. The step and bounds of the original loop must be
   /// loop invariant.
-  cudaq::cc::LoopOp cloneReversedLoop(OpBuilder &builder,
-                                      cudaq::cc::LoopOp loop) {
+  static cudaq::cc::LoopOp cloneReversedLoop(OpBuilder &builder,
+                                             cudaq::cc::LoopOp loop) {
     auto loopComponents = cudaq::opt::getLoopComponents(loop);
     assert(loopComponents && "could not determine components of loop");
     auto stepIsAnAddOp = loopComponents->stepIsAnAddOp();
@@ -705,13 +716,6 @@ public:
           // In the value case, replace after the clone since we need to
           // thread the new value and it's trivial to find the stepOp.
           auto *stepOp = contOp.getOperand(0).getDefiningOp();
-          if (!stepOp) {
-            loop.emitError("ApplyOpSpecialization: first loop operand expected "
-                           "to be stepped. This may be a result of using a "
-                           "local variable in the loop");
-            signalPassFailure();
-            return;
-          }
           auto newBump = [&]() -> Value {
             if (stepIsAnAddOp)
               return rewriter.create<arith::SubIOp>(
@@ -730,8 +734,8 @@ public:
   /// For each Op in \p invertedOps, visit them in reverse order and move each
   /// to just in front of \p term (the end of the function). This reversal of
   /// the order of quantum operations is done recursively.
-  void reverseTheOpsInTheBlock(Location loc, Operation *term,
-                               SmallVector<Operation *> &&invertedOps) {
+  static void reverseTheOpsInTheBlock(Location loc, Operation *term,
+                                      SmallVector<Operation *> &&invertedOps) {
     OpBuilder builder(term);
     for (auto *op : llvm::reverse(invertedOps)) {
       auto invert = [&](Region &reg) {
@@ -752,23 +756,6 @@ public:
         continue;
       }
       if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
-        loopOp.dump();
-        if (loopOp.getNumResults() > 1) {
-          loopOp.dump();
-          for (size_t i = 0; i < loopOp.getNumResults(); i++) {
-            if (!loopOp.getResult(i).getUses().empty()) {
-              loopOp.emitError(
-                  "ApplyOpSpecialization does not currently support loops "
-                  "returning values other than the iteration variable. This "
-                  "happens as a result of some existing value being assigned "
-                  "to in a loop and then used afterwards.");
-              auto user = loopOp.getResult(i).getUses().begin().getUser();
-              if (user)
-                user->emitRemark("Used here after the loop");
-              signalPassFailure();
-            }
-          }
-        }
         LLVM_DEBUG(llvm::dbgs() << "moving loop: " << loopOp << ".\n");
         auto newLoopOp = cloneReversedLoop(builder, loopOp);
         LLVM_DEBUG(llvm::dbgs() << "  to: " << newLoopOp << ".\n");
