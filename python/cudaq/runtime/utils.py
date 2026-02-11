@@ -10,6 +10,7 @@ from __future__ import annotations
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import isa_kernel_decorator
 from cudaq.kernel.utils import mlirTypeToPyType
+from cudaq.mlir.ir import Type as MlirType
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc
 
@@ -21,72 +22,18 @@ def __isBroadcast(kernel, *args):
     # kernel could be a PyKernel or kernel decorator
     if isinstance(kernel, PyKernel):
         argTypes = kernel.mlirArgTypes
-        if len(argTypes) == 0 or len(args) == 0:
-            return False
-
-        # Quick check, if we have a 2d array anywhere, we know this is a broadcast
-        isDefinitelyBroadcast = True in [
-            hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
-        ]
-
-        if isDefinitelyBroadcast:
-            # Error check, did the user pass a single value for any of the other arguments
-            for i, arg in enumerate(args):
-                if isinstance(arg, (int, float, bool, str)):
-                    raise RuntimeError(
-                        f"2D array argument provided for an sample or observe broadcast, but argument {i} ({type(arg)}) must be a list."
-                    )
-
-        firstArg = args[0]
-        firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
-            return True
-
-        if hasattr(firstArg, "shape"):
-            shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsStdvec:
-                return True
-
-            if len(shape) == 2:
-                return True
-
-        return False
-
     elif isa_kernel_decorator(kernel):
         argTypes = kernel.arg_types()
-        if len(argTypes) == 0 or len(args) == 0:
-            return False
-
-        # Quick check, if we have a 2d array anywhere, we know this
-        # is a broadcast
-        isDefinitelyBroadcast = True in [
-            hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
-        ]
-
-        if isDefinitelyBroadcast:
-            # Error check, did the user pass a single value for any of the other arguments
-            for i, arg in enumerate(args):
-                if isinstance(arg, (int, float, bool, str)):
-                    raise RuntimeError(
-                        f"2D array argument provided for an observe broadcast, but argument {i} ({type(arg)}) must be a list."
-                    )
-
-        firstArg = args[0]
-        firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
-            return True
-
-        if hasattr(firstArg, "shape"):
-            shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsStdvec:
-                return True
-
-            if len(shape) == 2:
-                return True
-
+    else:
         return False
+
+    if len(args) == 0 or len(argTypes) == 0:
+        return False
+
+    firstArg = args[0]
+    num_nested_lists_arg = _count_nested_lists(firstArg)
+    num_nested_lists_type = _count_nested_lists(argTypes[0])
+    return num_nested_lists_arg == num_nested_lists_type + 1
 
 
 def __createArgumentSet(*args):
@@ -108,3 +55,27 @@ def __createArgumentSet(*args):
 
         argSet.append(tuple(currentArgs))
     return argSet
+
+
+def _count_nested_lists(obj: np.ndarray | MlirType | list) -> int:
+    """
+    Count the level of nesting of a list-like object.
+
+    Supports `np.ndarray`, `MlirType`, and `list`.
+    """
+    count = 0
+    while True:
+        if isinstance(obj, list):
+            count += 1
+            if len(obj) == 0:
+                break
+            obj = obj[0]
+        elif isinstance(obj, MlirType) and cc.StdvecType.isinstance(obj):
+            count += 1
+            obj = cc.StdvecType.getElementType(obj)
+        elif hasattr(obj, "shape"):
+            count += len(obj.shape)
+            break
+        else:
+            break
+    return count
