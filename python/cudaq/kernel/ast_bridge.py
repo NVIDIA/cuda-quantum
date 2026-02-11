@@ -2663,7 +2663,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Helper method to check that the module `obj`
             # contains the proper path defined by the submodules
-            # in moduleNames[1:] and value named by pyVal.attr
+            # in `moduleNames[1:]` and value named by `pyVal.attr``
             def checkModule(obj, moduleNames):
                 try:
                     # Check that the module contains the desired submodules
@@ -2687,7 +2687,7 @@ class PyASTBridge(ast.NodeVisitor):
                         continue
 
             # Look the qualified module name up in the python frames
-            # in case it was aliased (e.g., import mod1 as mod2)
+            # in case it was aliased (e.g., `import mod1 as mod2`)
             obj = None
             for frameinfo in inspect.stack():
                 frame = frameinfo.frame
