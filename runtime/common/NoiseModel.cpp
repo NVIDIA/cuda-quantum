@@ -189,7 +189,7 @@ void generateUnitaryParameters_fp64(
 kraus_channel::kraus_channel(const kraus_channel &other)
     : ops(other.ops), noise_type(other.noise_type),
       parameters(other.parameters), unitary_ops(other.unitary_ops),
-      probabilities(other.probabilities) {}
+      probabilities(other.probabilities), op_names(other.op_names) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
@@ -205,6 +205,7 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   parameters = other.parameters;
   unitary_ops = other.unitary_ops;
   probabilities = other.probabilities;
+  op_names = other.op_names;
   return *this;
 }
 

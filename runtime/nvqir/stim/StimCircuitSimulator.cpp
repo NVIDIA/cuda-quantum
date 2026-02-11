@@ -9,6 +9,7 @@
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
+#include <numeric>
 
 using namespace cudaq;
 
@@ -405,6 +406,25 @@ protected:
                       task.operationName));
     else if (gateName == "SDG")
       gateName = "S_DAG";
+    else if (gateName == "ID")
+      gateName = "I";
+
+    // Decompose two-qubit Pauli product gates (e.g. "IX", "XY") into
+    // individual single-qubit Pauli gates on each target qubit. These names
+    // come from PTSBE noise channel op_names for pauli2/depolarization2.
+    if (gateName.size() == 2 && task.controls.empty() &&
+        task.targets.size() == 2) {
+      static const std::string paulis = "IXYZ";
+      if (paulis.find(gateName[0]) != std::string::npos &&
+          paulis.find(gateName[1]) != std::string::npos) {
+        for (int i = 0; i < 2; i++) {
+          if (gateName[i] != 'I')
+            applyOpToSims(std::string(1, gateName[i]),
+                          {static_cast<std::uint32_t>(task.targets[i])});
+        }
+        return;
+      }
+    }
 
     if (task.controls.size() > 1)
       throw std::runtime_error(
@@ -417,18 +437,33 @@ protected:
       stimTargets.push_back(t);
     try {
       applyOpToSims(gateName, stimTargets);
-    } catch (std::out_of_range &e) {
+    } catch (...) {
       throw std::runtime_error(
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
                       "Stim can only simulate Clifford gates.",
-                      e.what()));
+                      task.operationName));
     }
   }
 
   /// @brief Set the current state back to the |0> state.
   void setToZeroState() override {
-    // We don't support re-using memory, so we just deallocate the state.
-    deallocateState();
+    if (!tableau || !sampleSim) {
+      deallocateState();
+      return;
+    }
+
+    // Reset all qubits to |0> and clear measurement records, preserving
+    // the allocated simulators for reuse (required by the PTSBE
+    // per-trajectory loop which calls setToZeroState between trajectories).
+    auto nq = sampleSim->num_qubits;
+    if (nq > 0) {
+      std::vector<std::uint32_t> allQubits(nq);
+      std::iota(allQubits.begin(), allQubits.end(), 0);
+      applyOpToSims("R", allQubits);
+    }
+    tableau->measurement_record.clear();
+    sampleSim->m_record.clear();
+    num_measurements = 0;
   }
 
   /// @brief Override the calculateStateDim because this is not a state vector
