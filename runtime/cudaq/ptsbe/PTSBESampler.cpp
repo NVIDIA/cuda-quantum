@@ -224,8 +224,11 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<double> &, const PTSBatch &);
 template <typename SimulatorType>
 std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
                                                 const PTSBatch &batch) {
-  if constexpr (PTSBECapable<SimulatorType>) {
-    return sim.sampleWithPTSBE(batch);
+
+  // Check if it is a BatchSimulator implementation
+  auto *batchSim = dynamic_cast<BatchSimulator *>(&sim);
+  if (batchSim) {
+    return batchSim->sampleWithPTSBE(batch);
   } else {
     return samplePTSBEGeneric(sim, batch);
   }
