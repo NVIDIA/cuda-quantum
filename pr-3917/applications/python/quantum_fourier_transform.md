@@ -1998,7 +1998,7 @@ Transform as a kernel in CUDA-Q, we can use the built-in
 [`adjoint`{.docutils .literal .notranslate}]{.pre} operation to create
 the Inverse Quantum Fourier Transform.
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [3]:
@@ -2026,17 +2026,6 @@ the Inverse Quantum Fourier Transform.
         '''Args:
         qubits (cudaq.qview): specifies the quantum register to which apply the inverse QFT.'''
         cudaq.adjoint(quantum_fourier_transform2, qubits)
-:::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    Here
 :::
 :::
 :::
@@ -2137,7 +2126,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum c712babd9f97003f73c9a50caf5e934ee4ffc61a)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 26f9bcdd207c3c6aee53cbde21b4168e2da9b005)
 :::
 :::
 :::
