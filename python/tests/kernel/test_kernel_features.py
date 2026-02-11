@@ -2779,6 +2779,39 @@ def test_struct_list_int_member():
     assert len(counts) == 1 and '10' in counts
 
 
+def test_named_reg_in_sample(capfd):
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qubit()
+        x(q)
+        var = mz(q)
+
+    cudaq.sample(foo)
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+    @cudaq.kernel
+    def bar():
+        q = cudaq.qubit()
+        x(q)
+        mz(q)
+
+    cudaq.sample(bar)
+    captured = capfd.readouterr()
+    assert "WARNING" not in captured.err
+
+    @cudaq.kernel
+    def baz():
+        q = cudaq.qvector(2)
+        x(q[0])
+        mz(q, register_name="my_register")
+
+    cudaq.sample(baz)
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

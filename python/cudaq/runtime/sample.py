@@ -171,6 +171,7 @@ def sample(kernel,
         return res
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
+    ctx.kernelName = kernel.name if hasattr(kernel, 'name') else ''
     ctx.explicitMeasurements = explicit_measurements
     ctx.allowJitEngineCaching = True
 
