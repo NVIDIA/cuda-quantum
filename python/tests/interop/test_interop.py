@@ -256,6 +256,7 @@ def test_callback_with_capture_quantum_and_classical():
 
     cudaq_test_cpp_algo.run3(entry)
 
+
 def test_callback_with_return():
     pytest.importorskip('cudaq_test_cpp_algo')
 
@@ -270,6 +271,7 @@ def test_callback_with_return():
         return i
 
     cudaq_test_cpp_algo.run4(entry)
+
 
 def test_callback_with_callable():
     pytest.importorskip('cudaq_test_cpp_algo')
