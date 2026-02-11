@@ -45,6 +45,12 @@
       },
       {
         "pattern": "openapi.html"
+      },
+      {
+        "pattern": "^https://developer.nvidia.com/cuquantum-sdk"
+      },
+      {
+        "pattern": "^https://developer.nvidia.com/cutensor$"
       }
     ]
 }

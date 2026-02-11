@@ -8,6 +8,8 @@ The latest version of CUDA-Q is on the main branch of our `GitHub repository <ht
 and is also available as a Docker image. More information about installing the nightly builds can be found 
 :doc:`here <using/install/install>`
 
+This version adds support for Python 3.14 and macOS arm64.
+
 - `Docker image (nightly builds) <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__

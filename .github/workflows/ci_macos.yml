@@ -146,7 +146,7 @@ jobs:
     needs: [devdeps, metadata]
     strategy:
       matrix:
-        python_version: ['3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.14']
       fail-fast: false
     runs-on: macos-26
     timeout-minutes: 90
@@ -224,7 +224,7 @@ jobs:
     needs: wheel
     strategy:
       matrix:
-        python_version: ['3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.14']
       fail-fast: false
     runs-on: macos-26
     timeout-minutes: 30
