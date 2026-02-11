@@ -564,7 +564,7 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
-    def beta_reduction(self, execEngine, *args):
+    def beta_reduction(self, *args):
         """
         Perform beta reduction on this kernel decorator in the current calling
         context. We are primary concerned with resolving the lambda lifted
@@ -580,8 +580,13 @@ class PyKernelDecorator(object):
         mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName,
                                                        specialized_module,
-                                                       mlirTy, execEngine,
-                                                       *processedArgs)
+                                                       mlirTy, *processedArgs)
+
+    def delete_cache_execution_engine(self, key):
+        """
+        Delete the `ExecutionEngine` cache given by a cache key.
+        """
+        cudaq_runtime.delete_cache_execution_engine(key)
 
     def resolve_decorator_at_callsite(self, callingMod):
         # Resolve all lifted arguments for `self`.
