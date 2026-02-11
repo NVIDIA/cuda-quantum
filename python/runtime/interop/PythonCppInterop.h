@@ -27,22 +27,16 @@ public:
                                "annotated with cudaq.kernel");
   }
 
-  CppPyKernelDecorator(py::object obj, void **cache_to) : kernel(obj) {
-    if (!py::hasattr(obj, "qkeModule"))
-      throw std::runtime_error("Invalid python kernel object passed, must be "
-                               "annotated with cudaq.kernel");
-    cached_engine = cache_to;
-  }
-
   ~CppPyKernelDecorator();
 
   template <typename T, typename... As>
     requires QKernelType<T>
   T getEntryPointFunction(As... as) {
-    auto cache = cached_engine ? cached_engine : &execution_engine;
     // Perform beta reduction on the kernel decorator.
-    void *p = kernel.attr("beta_reduction")(cache, std::forward<As>(as)...)
-                  .template cast<void *>();
+    void *p =
+        kernel
+            .attr("beta_reduction")(&execution_engine, std::forward<As>(as)...)
+            .template cast<void *>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
@@ -53,7 +47,6 @@ public:
 private:
   py::object kernel;
   /*mlir::ExecutionEngine*/ void *execution_engine = nullptr;
-  void **cached_engine = nullptr;
 };
 
 /// This template allows a single python decorator to be called from a C++
