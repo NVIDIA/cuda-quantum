@@ -442,6 +442,11 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Extract cuda-quantum metadata
         id: metadata
         uses: docker/metadata-action@v5
@@ -603,6 +608,11 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build installer
         uses: docker/build-push-action@v5
         with:
@@ -717,6 +727,11 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Build cuda-quantum wheel
         id: build_wheel
