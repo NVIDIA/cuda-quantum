@@ -9,7 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-from cudaq.kernel.utils import nvqppPrefix
+from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -89,7 +89,7 @@ def _detail_check_conditionals_on_measure(kernel):
             raise RuntimeError(
                 f"The `sample` API only supports kernels that return None "
                 f"(void). Kernel '{kernel.name}' has return type "
-                f"'{kernel.return_type}'. Consider using `run` for kernels "
+                f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
                 f"that return values.")
         # Only check for kernels that are compiled, not library-mode kernels (e.g., photonics)
         if kernel.qkeModule is not None:

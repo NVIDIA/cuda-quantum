@@ -8,27 +8,40 @@
 
 import ast
 import inspect
-import importlib
 import textwrap
-
-from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.dialects import cc
-from .utils import mlirTypeFromAnnotation
+from typing import Optional, Type
 
 
-class HasReturnNodeVisitor(ast.NodeVisitor):
+class FunctionDefVisitor(ast.NodeVisitor):
     """
-    This visitor will visit the function definition and report 
-    true if that function has a return statement.
+    This visitor will visit the function definition of `kernel_name` and report 
+    type annotations and whether the function has a return statement.
     """
 
-    def __init__(self):
-        self.hasReturnNode = False
+    arg_annotations: list[(str, Type)] = []
+    return_annotation: Optional[Type] = None
+    has_return_statement: bool = False
+    found: bool = False
+
+    def __init__(self, kernel_name: str):
+        self.kernel_name: str = kernel_name
 
     def visit_FunctionDef(self, node):
-        for n in node.body:
-            if isinstance(n, ast.Return) and n.value != None:
-                self.hasReturnNode = True
+        if node.name == self.kernel_name:
+            self.found = True
+            self.arg_annotations = [
+                (arg.arg, arg.annotation) for arg in node.args.args
+            ]
+            self.return_annotation = node.returns
+            self.has_return_statement = any(
+                isinstance(n, ast.Return) and n.value != None
+                for n in node.body)
+
+    def generic_visit(self, node):
+        if self.found:
+            # skip traversing the rest of the AST once found
+            return
+        super().generic_visit(node)
 
 
 class FindDepFuncsVisitor(ast.NodeVisitor):

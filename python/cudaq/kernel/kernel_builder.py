@@ -1360,39 +1360,36 @@ class PyKernel(object):
         closure here.
         Returns a `CreateLambdaOp` closure.
         """
+        # Add the target kernel to the current module.
         cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
+        fulluniq = nvqppPrefix + target.uniqName
+        fn = recover_func_op(self.module, fulluniq)
+
         # build the closure to capture the lifted `args`
         thisPyMod = recover_calling_module()
         if target.defModule != thisPyMod:
             m = target.defModule
         else:
             m = None
-        fulluniq = nvqppPrefix + target.uniqName
-        fn = recover_func_op(self.module, fulluniq)
-        funcTy = fn.type
-        if target.firstLiftedPos:
-            moduloInTys = funcTy.inputs[:target.firstLiftedPos]
-        else:
-            moduloInTys = funcTy.inputs
-        callableTy = cc.CallableType.get(self.ctx, moduloInTys, funcTy.results)
+        funcTy = target.signature.get_lifted_type()
+        callableTy = target.signature.get_callable_type()
         with insPt, self.loc:
             lamb = cc.CreateLambdaOp(callableTy, loc=self.loc)
             lamb.attributes.__setitem__('function_type', TypeAttr.get(funcTy))
             initRegion = lamb.initRegion
-            initBlock = Block.create_at_start(initRegion, moduloInTys)
+            initBlock = Block.create_at_start(initRegion, target.arg_types())
             inner = InsertionPoint(initBlock)
             with inner:
                 vs = []
                 for ba in initBlock.arguments:
                     vs.append(ba)
-                for i, a in enumerate(target.liftedArgs):
-                    v = recover_value_of(a, m)
+                for var in target.captured_variables():
+                    v = recover_value_of(var.name, m)
                     if isa_kernel_decorator(v):
                         # The recursive step
                         v = self.resolve_callable_arg(inner, v)
                     else:
-                        argTy = funcTy.inputs[target.firstLiftedPos + i]
-                        v = self.__getMLIRValueFromPythonArg(v, argTy)
+                        v = self.__getMLIRValueFromPythonArg(v, var.type)
                     vs.append(v)
                 if funcTy.results:
                     call = func.CallOp(fn, vs).result
@@ -1401,7 +1398,6 @@ class PyKernel(object):
                     func.CallOp(fn, vs)
                     cc.ReturnOp([])
                 return lamb
-
 
     def for_loop(self, start, stop, function):
         """
