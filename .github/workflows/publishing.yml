@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.assets_repo || github.repository }}
           ref: ${{ vars.data_branch }}
@@ -353,7 +353,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -545,7 +545,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -657,7 +657,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -837,7 +837,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
           path: github-repo
@@ -937,7 +937,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -1053,7 +1053,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -1156,7 +1156,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
