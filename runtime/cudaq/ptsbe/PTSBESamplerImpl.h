@@ -28,6 +28,15 @@
 
 namespace cudaq::ptsbe {
 
+// Abstract interface for batch simulator
+// Simulators can optionally implement this interface to provide a custom
+// implementation of sampleWithPTSBE.
+struct BatchSimulator {
+  virtual ~BatchSimulator() = default;
+  virtual std::vector<cudaq::sample_result>
+  sampleWithPTSBE(const PTSBatch &batch) = 0;
+};
+
 /// @brief Alias for CircuitSimulator gate task type
 template <typename ScalarType>
 using GateTask =
