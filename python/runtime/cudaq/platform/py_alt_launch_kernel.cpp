@@ -965,7 +965,7 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
                                                      resTy, cachedEngine);
   clone.erase();
   // `streamlinedSpecializeModule` should always set the cached engine pointer
-  if (cachedEngine)
+  if (!cachedEngine)
     throw std::runtime_error("Failed to retrieve the JIT engine pointer when "
                              "specializing the module.");
   // Use address of the allocated `ExecutionEngine` as the hash key to cache the
