@@ -89,10 +89,9 @@ void __nvqpp_cleanup_arrays();
 }
 
 // Results
-/// FIXME: What should this be?
-using Result = bool;
-static const Result ResultZeroVal = false;
-static const Result ResultOneVal = true;
+using Result = int;
+static const Result ResultZeroVal = 0;
+static const Result ResultOneVal = 1;
 inline Result *ResultZero = const_cast<Result *>(&ResultZeroVal);
 inline Result *ResultOne = const_cast<Result *>(&ResultOneVal);
 
