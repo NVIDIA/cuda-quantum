@@ -17,6 +17,7 @@ def test_ptsbe_sample_returns_sample_result(depol_noise):
                                 shots_count=100,
                                 sampling_strategy=strategy)
     assert isinstance(result, cudaq.SampleResult)
+    print(result)
     assert len(result) > 0
 
 

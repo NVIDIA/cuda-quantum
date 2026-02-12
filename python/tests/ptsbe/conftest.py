@@ -31,5 +31,5 @@ def density_matrix_target():
 @pytest.fixture
 def depol_noise():
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
     return noise

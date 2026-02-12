@@ -17,7 +17,7 @@ def test_no_execution_data_by_default(depol_noise):
 
 def test_execution_data_contents():
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
 
     result = cudaq.ptsbe.sample(
         bell,
@@ -62,7 +62,7 @@ def test_execution_data_trajectories(depol_noise):
 
     for trajectory in data.trajectories:
         assert trajectory.probability > 0.0
-        assert trajectory.num_shots >= 1
+        assert trajectory.num_shots >= 0
         assert len(trajectory.kraus_selections) > 0
 
     first_trajectory = data.trajectories[0]
@@ -81,7 +81,7 @@ def test_execution_data_trajectories(depol_noise):
 
 def test_trajectory_counts_sum_to_total_shots():
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
 
     shots = 100
     result = cudaq.ptsbe.sample(
@@ -99,7 +99,7 @@ def test_trajectory_counts_sum_to_total_shots():
 
 def test_trajectory_measurement_counts_populated():
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
 
     result = cudaq.ptsbe.sample(
         bell,

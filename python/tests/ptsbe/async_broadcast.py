@@ -13,7 +13,7 @@ from .kernels import bell, rotation_kernel
 
 def test_ptsbe_sample_async():
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(0.01))
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
     shots = 200
     future = cudaq.ptsbe.sample_async(bell,
                                       noise_model=noise,
