@@ -32,6 +32,18 @@ __qpu__ std::vector<bool> mz_test(int count) {
   return cudaq::to_bool_vector(mz(v));
 }
 
+__qpu__ auto return_mz() {
+  cudaq::qubit q;
+  h(q);
+  return mz(q);
+}
+
+__qpu__ auto return_vector_mz() {
+  cudaq::qvector q(3);
+  x(q);
+  return mz(q);
+}
+
 int main() {
   size_t shots = 20;
   int c = 0;
@@ -67,9 +79,39 @@ int main() {
     }
   }
 
+  {
+    const auto results = cudaq::run(shots, return_mz);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      c = 0;
+      for (auto i : results)
+        printf("%d: %d\n", c++, (bool)i);
+      printf("success - return_mz\n");
+    }
+  }
+
+  {
+    const auto results = cudaq::run(shots, return_vector_mz);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      c = 0;
+      for (auto &vec : results) {
+        printf("%d: {", c++);
+        for (auto b : vec)
+          printf("%d ", (bool)b);
+        printf("}\n");
+      }
+      printf("success - return_vector_mz\n");
+    }
+  }
+
   return 0;
 }
 
 // FAIL: `run` is not yet supported on this target
 // CHECK: success!
 // CHECK: success async!
+// CHECK: success - return_mz
+// CHECK: success - return_vector_mz

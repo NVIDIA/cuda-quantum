@@ -315,7 +315,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   // - Is this a struct does it have quantum types? Not allowed.
   if (!isa<quake::StruqType>(ty))
     for (auto fieldTy : fieldTys)
-      if (quake::isQuakeType(fieldTy))
+      if (quake::isQuantumType(fieldTy))
         reportClangError(
             x, mangler,
             "hybrid quantum-classical struct types are not allowed.");

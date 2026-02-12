@@ -28,8 +28,8 @@ __qpu__ uint64_t foo() {
   return qubit_values_to_integer(results);
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qubit_values_to_integer._Z23qubit_values_to_integerRKSt6vectorIN5cudaq14measure_resultESaIS1_EE(
-// CHECK-SAME:                                                                                                                                          %[[VAL_0:.*]]: !cc.stdvec<!quake.measure>) -> i64 attributes {"cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qubit_values_to_integer.{{.*}}(
+// CHECK-SAME:                                                                         %[[VAL_0:.*]]: !cc.stdvec<!quake.measure>) -> i64 attributes {"cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = cc.alloca i64

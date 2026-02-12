@@ -223,6 +223,11 @@ public:
               std::string(" x ") + std::to_string(*vecSz) + std::string(">")};
     if (isa<quake::MeasureType>(ty))
       return {"result"};
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
+      if (auto structTy =
+              dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
+        if (structTy.isIdentified() && structTy.getName() == "Result")
+          return {"result"};
     return {"error"};
   }
 
