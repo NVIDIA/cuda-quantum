@@ -9,7 +9,8 @@ import pytest
 import cudaq
 from pathlib import Path
 
-_NON_TEST_MODULES = frozenset({"conftest.py", "__init__.py", "kernels.py"})
+_NON_TEST_MODULES = frozenset(
+    {"conftest.py", "__init__.py", "kernels.py", "test_ptsbe.py"})
 
 
 def pytest_configure(config):
