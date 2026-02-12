@@ -59,6 +59,7 @@
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
 #include <fstream>
+#include <iostream>
 #include <netinet/in.h>
 #include <regex>
 #include <sys/socket.h>
@@ -586,8 +587,14 @@ public:
           continue;
         auto result = info[&artifact];
         if (result.hasConditionalsOnMeasure) {
-          executionContext->hasConditionalsOnMeasureResults = true;
-          break;
+          throw std::runtime_error(
+              "`cudaq::sample` and `cudaq::sample_async` no longer support "
+              "kernels "
+              "that branch on measurement results. Kernel '" +
+              kernelName +
+              "' uses conditional feedback. Use `cudaq::run` or "
+              "`cudaq::run_async` "
+              "instead. See CUDA-Q documentation for migration guide.");
         }
       }
     }
@@ -646,6 +653,31 @@ public:
     if (executionContext) {
       if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
+        // Warn if kernel has named measurement registers (sub-registers).
+        if (!executionContext->warnedNamedMeasurements) {
+          auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
+              std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+          if (funcOp) {
+            bool hasNamedMeasurements = false;
+            funcOp.walk([&](quake::MeasurementInterface meas) {
+              if (meas.getOptionalRegisterName().has_value()) {
+                hasNamedMeasurements = true;
+                return mlir::WalkResult::interrupt();
+              }
+              return mlir::WalkResult::advance();
+            });
+            if (hasNamedMeasurements) {
+              executionContext->warnedNamedMeasurements = true;
+              std::cerr
+                  << "WARNING: Kernel \"" << kernelName
+                  << "\" uses named measurement results "
+                  << "but is invoked in sampling mode. Support for "
+                  << "sub-registers in `sample_result` is deprecated and will "
+                  << "be removed in a future release. Use `run` to retrieve "
+                  << "individual measurement results." << std::endl;
+            }
+          }
+        }
         // No need to add measurements only to remove them eventually
         if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
           runPassPipeline("func.func(add-measurements)", moduleOp);
@@ -933,47 +965,22 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
-            if (isRun || hasConditionals) {
-              // Validate the execution logic: cudaq::run and cudaq::sample on
-              // conditional kernels should only generate one JIT'ed kernel.
+            if (isRun) {
+              // Validate the execution logic: cudaq::run kernels should only
+              // generate one JIT'ed kernel.
               assert(localJIT.size() == 1);
               executor->setShots(1); // run one shot at a time
 
-              // If this is adaptive profile and the kernel has conditionals or
-              // executed via cudaq::run, then you have to run the code
-              // localShots times instead of running the kernel once and
-              // sampling the state localShots times.
+              // If this is executed via cudaq::run, then you have to run the
+              // code localShots times
+              for (std::size_t shot = 0; shot < localShots; shot++)
+                invokeJITKernel(localJIT[0], kernelName);
 
-              // If not executed via cudaq::run, we populate `counts` one shot
-              // at a time.
-              cudaq::sample_result counts;
-              for (std::size_t shot = 0; shot < localShots; shot++) {
-                if (isRun) {
-                  invokeJITKernel(localJIT[0], kernelName);
-                } else {
-                  cudaq::ExecutionContext context("sample", 1);
-                  context.hasConditionalsOnMeasureResults = true;
-                  context.executionManager =
-                      cudaq::getDefaultExecutionManager();
-                  cudaq::get_platform().with_execution_context(context, [&]() {
-                    invokeJITKernel(localJIT[0], kernelName);
-                  });
-                  counts += context.result;
-                }
-              }
-              if (!isRun) {
-                // Process `counts` and store into `results`
-                for (auto &regName : counts.register_names()) {
-                  results.emplace_back(counts.to_map(regName), regName);
-                  results.back().sequentialData =
-                      counts.sequential_data(regName);
-                }
-              } else {
-                // Get QIR output log
-                const auto qirOutputLog = nvqir::getQirOutputLog();
-                executionContext->invocationResultBuffer.assign(
-                    qirOutputLog.begin(), qirOutputLog.end());
-              }
+              // Get QIR output log
+              const auto qirOutputLog = nvqir::getQirOutputLog();
+              executionContext->invocationResultBuffer.assign(
+                  qirOutputLog.begin(), qirOutputLog.end());
+
             } else {
               // Otherwise, this is a non-adaptive sampling or observe.
               // We run the kernel(s) (multiple kernels if this is a multi-term
@@ -982,6 +989,10 @@ public:
                 cudaq::ExecutionContext context("sample", localShots);
                 context.reorderIdx = reorderIdx;
                 context.executionManager = cudaq::getDefaultExecutionManager();
+                context.kernelName = kernelName;
+                context.warnedNamedMeasurements =
+                    executionContext ? executionContext->warnedNamedMeasurements
+                                     : false;
                 cudaq::get_platform().with_execution_context(context, [&]() {
                   invokeJITKernel(localJIT[i], kernelName);
                 });
@@ -1002,7 +1013,6 @@ public:
                 }
               }
             }
-
             // Clean up the JIT engines. This functor owns these engine
             // instances.
             for (auto *jitEngine : localJIT)

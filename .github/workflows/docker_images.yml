@@ -101,7 +101,7 @@ jobs:
   
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -166,7 +166,13 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
-   
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build Open MPI
         id: docker_build
         uses: docker/build-push-action@v5
@@ -232,7 +238,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -317,6 +323,12 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Extract metadata
         id: metadata
@@ -404,7 +416,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -536,6 +548,12 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
@@ -678,7 +696,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -797,7 +815,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -894,7 +912,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
