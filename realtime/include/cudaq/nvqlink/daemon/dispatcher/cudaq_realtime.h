@@ -231,6 +231,8 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
 // Call before cudaq_dispatcher_start() to avoid lazy-loading deadlocks.
 cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
                                                   uint32_t threads_per_block);
+cudaError_t cudaq_dispatch_kernel_cooperative_query_occupancy(
+    int *out_blocks, uint32_t threads_per_block);
 
 #ifdef __cplusplus
 }
