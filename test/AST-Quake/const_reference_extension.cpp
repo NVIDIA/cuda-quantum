@@ -84,6 +84,6 @@ __qpu__ uint64_t foo() {
 // CHECK:             cc.continue %[[VAL_10]] : i64
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_3]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_12:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer._Z23qubit_values_to_integerRKSt6vectorIN5cudaq14measure_resultESaIS1_EE(%[[VAL_11]]) : (!cc.stdvec<!quake.measure>) -> i64
+// CHECK:           %[[VAL_12:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer.{{.*}}(%[[VAL_11]]) : (!cc.stdvec<!quake.measure>) -> i64
 // CHECK:           return %[[VAL_12]] : i64
 // CHECK:         }

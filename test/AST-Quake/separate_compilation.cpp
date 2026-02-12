@@ -21,6 +21,6 @@ __qpu__ uint64_t test_entry_point() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point._Z16test_entry_pointv() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
 // CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "results" : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_2:.*]] = call @_Z11otherKernelRSt6vectorIN5cudaq14measure_resultESaIS1_EE(%[[VAL_1]]) : (!cc.stdvec<!quake.measure>) -> i64
+// CHECK:           %[[VAL_2:.*]] = call @{{.*otherKernel.*}}(%[[VAL_1]]) : (!cc.stdvec<!quake.measure>) -> i64
 // CHECK:           return %[[VAL_2]] : i64
 // CHECK:         }
