@@ -5543,12 +5543,6 @@
 <dd><p>The number of rows and columns of a Measurement Syndrome Matrix. Note: Measurement Syndrome Matrix is defined in <a class="reference external" href="https://arxiv.org/pdf/2407.13826">https://arxiv.org/pdf/2407.13826</a>. </p>
 </dd></dl>
 
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext6jitEngE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1ad0e38446b94bb1511fecabc7c9c309f2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">jitEng</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext6jitEngE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>For performance, a launcher may cache the JIT execution engine and use it for multiple discrete calls. This is actually a pointer to a <code class="docutils literal notranslate"><span class="pre">mlir::ExecutionEngine</span></code> object, but we hide that because of problems with the structure and organization of the runtime libraries. </p>
-</dd></dl>
-
 </div>
 </dd></dl>
 
@@ -6792,9 +6786,9 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel9push_backE8kraus_op">
-<span class="target" id="classcudaq_1_1kraus__channel_1a4c0ce018d87610e19c8783386211a6b9"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">push_back</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_opE" title="cudaq::kraus_op"><span class="n"><span class="pre">kraus_op</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">op</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_op" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Add a <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> to this channel. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel9push_backE8kraus_opNSt8optionalINSt6stringEEE">
+<span class="target" id="classcudaq_1_1kraus__channel_1ad4eb335a9071b16fb414bf890e448083"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">push_back</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_opE" title="cudaq::kraus_op"><span class="n"><span class="pre">kraus_op</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">op</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_opNSt8optionalINSt6stringEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Add a <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> to this channel. If name is not provided, a default name is generated from get_type_name(). </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -6807,6 +6801,12 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv">
 <span class="target" id="classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generateUnitaryParameters</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel25generateUnitaryParametersEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Checks if Kraus ops have unitary representations and saves them if they do. Users should only need to call this if they have modified the Kraus ops and want to recompute these values. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv">
+<span class="target" id="classcudaq_1_1kraus__channel_1a79d06d1d1a601d4f702d759b7612bbb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">populateDefaultOpNames</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Populate op_names with default names of the form type_name[index]. Called by constructors that do not set explicit op_names. </p>
 </dd></dl>
 
 </div>
@@ -6834,6 +6834,12 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel13probabilitiesE">
 <span class="target" id="classcudaq_1_1kraus__channel_1a9f9cfb565a7013493a72d67602442bca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel13probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>If all Kraus ops are - when scaled - unitary, this holds the probabilities of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel8op_namesE">
+<span class="target" id="classcudaq_1_1kraus__channel_1ac5d223516167de5416b8210169e035ea"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">op_names</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel8op_namesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Names for each Kraus operator, parallel to ops. For standard Pauli channels these are gate names (e.g., “id”, “x”). For other channels, defaults are generated as type_name[index]. Always has the same size as ops. </p>
 </dd></dl>
 
 </div>
