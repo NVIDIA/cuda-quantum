@@ -1399,6 +1399,23 @@ class PyKernel(object):
                     cc.ReturnOp([])
                 return lamb
 
+    def c_if(self, measurement, function):
+        """
+        Apply the `function` to the :class:`Kernel` if the provided single-qubit
+        `measurement` returns the 1-state.
+
+        Args:
+        measurement (:class:`QuakeValue`): The handle to the single qubit 
+            measurement instruction.
+        function (Callable): The function to conditionally apply to the 
+            :class:`Kernel`.
+
+        Raises:
+        RuntimeError: No longer supported.
+        """
+        emitFatalError(
+            "`c_if` is no longer supported. Use kernel mode with `run` API.")
+
     def for_loop(self, start, stop, function):
         """
         Add a for loop that starts from the given `start` index, ends at the
