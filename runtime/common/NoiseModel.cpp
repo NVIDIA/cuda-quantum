@@ -210,7 +210,15 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
 }
 
 std::vector<kraus_op> kraus_channel::get_ops() const { return ops; }
-void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
+
+void kraus_channel::push_back(kraus_op op, std::optional<std::string> name) {
+  ops.push_back(op);
+  if (name.has_value())
+    op_names.push_back(std::move(*name));
+  else
+    op_names.push_back(get_type_name() + "[" + std::to_string(ops.size() - 1) +
+                       "]");
+}
 
 void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,
