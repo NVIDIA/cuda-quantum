@@ -6,18 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import uuid
 import cudaq
-import uuid, base64, ctypes
+import json
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from llvmlite import binding as llvm
 
 app = FastAPI()
 
 
 class CreateJobRequest(BaseModel):
     model_id: str
+    session_id: str
     parameters: str
 
 
@@ -37,6 +38,13 @@ class Job(BaseModel):
     status: str
     session_id: str
     parameters: str
+
+
+class JobResult(BaseModel):
+    id: str
+    job_id: str
+    url: str
+    result: str
 
 
 class Session(BaseModel):
@@ -63,69 +71,51 @@ class Database:
     models: dict = {}
 
 
-database = Database()
-id = "b77a0dba-dc62-n069-83a1-cld32ac77e4e"
-database.platforms[id] = Platform(id=id, name="EMU-CUDAQ-H100")
-
-# Could how many times the client has requested the Job
 countJobGetRequests = 0
 
-llvm.initialize()
-llvm.initialize_native_target()
-llvm.initialize_native_asmprinter()
-
-target = llvm.Target.from_default_triple()
-targetMachine = target.create_target_machine()
-backing_mod = llvm.parse_assembly("")
-engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+database = Database()
+_FAKE_PLATFORM_ID = "b77a0dba-dc62-n069-83a1-cld32ac77e4e"
+database.platforms[_FAKE_PLATFORM_ID] = Platform(
+    id=_FAKE_PLATFORM_ID, name="EMU-CUDAQ-H100"
+)
 
 
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "required_num_qubits" in str(a):
-            return int(
-                str(a)
-                .split(f'required_num_qubits"=')[-1]
-                .split(" ")[0]
-                .replace('"', "")
-                .replace("'", "")
-            )
-        elif "requiredQubits" in str(a):
-            return int(
-                str(a)
-                .split(f'requiredQubits"=')[-1]
-                .split(" ")[0]
-                .replace('"', "")
-                .replace("'", "")
-            )
+@cudaq.kernel
+def _bell_kernel():
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    mz(qubits)
 
 
-def getKernelFunction(module):
-    for f in module.functions:
-        if not f.is_declaration:
-            return f
-    return None
+def _run_fake_job(job: Job):
+    # Try to retrieve provided shot counts
+    try:
+        shot_count = json.loads(job.parameters)["shots"]
+    except Exception as e:
+        shot_count = 100
 
+    # Run a bell state as mock execution
+    sample_result = cudaq.sample(_bell_kernel, shots_count=shot_count)
+    job.status = "completed"
 
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "requiredQubits" in str(a):
-            return int(
-                str(a)
-                .split('requiredQubits"=')[-1]
-                .split(" ")[0]
-                .replace('"', "")
-                .replace("'", "")
-            )
+    # Simplified qio result
+    result = json.dumps(
+        {
+            "serialization": json.dumps(sample_result.serialize()),
+            "serialization_format": 3,  # CUDA-Q Sample Result
+            "compression_format": 1,  # No compression
+        }
+    )
+
+    result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result)
+    database.job_results[result.id] = result
 
 
 @app.get("/platforms")
 async def listPlatforms():
     return (
-        [
-            {"id": platform.id, "name": platform.name}
-            for platform in database.platforms.values()
-        ],
+        [platform.model_dump() for platform in database.platforms.values()],
         201,
     )
 
@@ -137,7 +127,7 @@ async def getPlatform(platformId: str):
     if not platform:
         raise HTTPException(status_code=404, detail="Platform not found")
 
-    return ({"id": platform.id, "name": platform.name}, 201)
+    return (platform.model_dump(), 201)
 
 
 @app.post("/sessions")
@@ -146,14 +136,14 @@ async def createSession(request: CreateSessionRequest):
         name=request.name, id=str(uuid.uuid4()), platform_id=request.platform_id
     )
     database.sessions[session.id] = session
-    return ({"session_id": session.id}, 201)
+    return (session.model_dump(), 201)
 
 
 @app.post("/models")
 async def createModel(request: CreateModelRequest):
     model = Model(id=str(uuid.uuid4()), payload=request.payload)
     database.models[model.id] = model
-    return ({"id": model.id, "payload": model.payload}, 201)
+    return (model.model_dump(), 201)
 
 
 @app.post("/jobs")
@@ -162,50 +152,13 @@ async def createJob(request: CreateJobRequest):
         name=request.name,
         id=str(uuid.uuid4()),
         model_id=request.model_id,
-        status="created",
-        session_id=None,
+        status="waiting",
+        session_id=request.session_id,
         parameters=request.parameters,
     )
     database.jobs[job.id] = job
 
-    model = database.models.get(job.model_id)
-
-    print("Posting job with name = ", job.name, job.count)
-    newId = str(uuid.uuid4())
-    program = model.payload
-    decoded = base64.b64decode(program)
-    m = llvm.module.parse_bitcode(decoded)
-    mstr = str(m)
-    assert "entry_point" in mstr
-
-    # Get the function, number of qubits, and kernel name
-    function = getKernelFunction(m)
-    if function == None:
-        raise Exception("Could not find kernel function")
-    numQubitsRequired = getNumRequiredQubits(function)
-    kernelFunctionName = function.name
-
-    print("Kernel name = ", kernelFunctionName)
-    print("Requires {} qubits".format(numQubitsRequired))
-
-    # JIT Compile and get Function Pointer
-    engine.add_module(m)
-    engine.finalize_object()
-    engine.run_static_constructors()
-    funcPtr = engine.get_function_address(kernelFunctionName)
-    kernel = ctypes.CFUNCTYPE(None)(funcPtr)
-
-    # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
-    results.dump()
-
-    engine.remove_module(m)
-
-    # Job "created", return the id
-    return ({"job_token": newId}, 201)
+    return (job.model_dump(), 201)
 
 
 # Retrieve the job, simulate having to wait by counting to 3
@@ -214,19 +167,36 @@ async def createJob(request: CreateJobRequest):
 async def getJob(jobId: str):
     global countJobGetRequests
 
+    job = database.jobs.get(jobId)
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    job.status = "running"
+
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
-        return ({"job_id": jobId, "status": "running"}, 201)
+        return (job.model_dump(), 201)
+
+    _run_fake_job(job)
 
     countJobGetRequests = 0
-    # name, counts = createdJobs[jobId]
-    retData = []
-    for bits, count in counts.items():
-        retData += [bits] * count
 
-    # The simulators don't implement result recording features yet, so we have
-    # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
-    # downstream code to recognize that this isn't from a true QPU.
-    res = ({"status": "done", "results": {"MOCK_SERVER_RESULTS": retData}}, 201)
-    return res
+    return (job.model_dump(), 201)
+
+
+@app.get("/jobs/{jobId}/results")
+async def listJobResults(jobId: str):
+    if not database.jobs.get(jobId):
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return (
+        [
+            result.model_dump()
+            for result in list(
+                filter(lambda r: r.job_id == jobId, database.job_results.values())
+            )
+        ],
+        201,
+    )

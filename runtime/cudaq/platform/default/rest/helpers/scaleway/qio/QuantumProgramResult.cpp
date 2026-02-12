@@ -68,7 +68,7 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
   for (const auto &kv : counts) {
       const std::string &key = kv.first;
       std::size_t count = kv.second;
-      
+
       std::string bitstring = hexToBitstring(key, qiskitResult.header.n_qubits);
 
       // bitstring in long value
@@ -121,17 +121,17 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
     QuantumProgramResultSerializationFormat::CUDAQ_SAMPLE_RESULT_JSON_V1) {
       auto resultJson = json::parse(uncompressedSerialization);
       auto serialization = resultJson.get<std::vector<std::size_t>>();
-    
+
       sampleResult.deserialize(serialization);
   } else if (m_serializationFormat ==
     QuantumProgramResultSerializationFormat::QISKIT_RESULT_JSON_V1) {
       auto resultJson = json::parse(uncompressedSerialization);
       auto qiskitResults = resultJson["results"].get<std::vector<QiskitExperimentResult>>();
-      
+
       if (qiskitResults.size() == 0) {
         throw std::runtime_error("QuantumProgramResult: empty ExperimentResult");
       }
-      
+
       auto qiskitResult = qiskitResults[0];
       // /!\ Strange behaviour: exp.header field no unserialized before
       // must be done manually
@@ -144,6 +144,6 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
     throw std::runtime_error("QuantumProgramResult: Unsupported serialization "
         "format for conversion to cudaq::sample_result");
   }
-  
+
   return sampleResult;
 }
