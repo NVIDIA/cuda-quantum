@@ -150,9 +150,10 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs, mlir::Type resTy,
-                         void *cachedEngine) override {
+  void *
+  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                   const std::vector<void *> &rawArgs, mlir::Type resTy,
+                   std::optional<cudaq::JitEngine> &cachedEngine) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(
@@ -194,14 +195,7 @@ public:
                                      0, rawArgs);
       }();
 
-      auto jit = std::unique_ptr<mlir::ExecutionEngine>(
-          createQIRJITEngine(moduleOp, "qir-adaptive"));
-
-      auto funcPtr =
-          jit->lookup(std::string(runtime::cudaqGenPrefixName) + name);
-      if (!funcPtr)
-        throw std::runtime_error(
-            "cudaq::builder failed to get kernelReg function.");
+      auto jit = createQIRJITEngine(moduleOp, "qir-adaptive");
 
       ExecutionContext ctx(executionContextPtr->name,
                            executionContextPtr->shots,
@@ -209,7 +203,7 @@ public:
       ctx.kernelName = executionContextPtr->kernelName;
       ctx.executionManager = cudaq::getDefaultExecutionManager();
       cudaq::get_platform().with_execution_context(
-          ctx, [&]() { reinterpret_cast<void (*)()>(*funcPtr)(); });
+          ctx, [jit, name]() { jit.run(name); });
       in_resource_estimation = false;
       return {};
     }
