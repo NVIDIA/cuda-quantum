@@ -11,13 +11,18 @@
 #include "cudaq/algorithms/sample.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 using namespace cudaq;
 
@@ -55,7 +60,7 @@ static async_sample_result sample_async_impl(
       platform, kernelName, shots_count, explicit_measurements, qpu_id);
 }
 
-void cudaq::bindSampleAsync(py::module &mod) {
+void cudaq::bindSampleAsync(py::module_ &mod) {
   // Async. result wrapper for Python kernels, which also holds the Python MLIR
   // context.
   //
@@ -78,12 +83,12 @@ current thread until the results are available.  See `future
 <https://en.cppreference.com/w/cpp/thread/future>`_ for more information on this
 programming pattern.
 )#")
-      .def(py::init([](std::string inJson) {
-        async_sample_result f;
-        std::istringstream is(inJson);
-        is >> f;
-        return f;
-      }))
+      .def("__init__",
+           [](async_sample_result *self, std::string inJson) {
+             new (self) async_sample_result();
+             std::istringstream is(inJson);
+             is >> *self;
+           })
       .def("get", &async_sample_result::get,
            py::call_guard<py::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "

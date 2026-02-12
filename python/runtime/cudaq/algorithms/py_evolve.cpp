@@ -12,12 +12,17 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 namespace cudaq {
 
@@ -29,7 +34,7 @@ using spin_op_creator =
 static bool isPyKernelObject(py::object &kernel) {
   const std::string kernelTypeName =
       py::hasattr(kernel, "__class__")
-          ? kernel.attr("__class__").attr("__name__").cast<std::string>()
+          ? py::cast<std::string>(kernel.attr("__class__").attr("__name__"))
           : "";
   return (kernelTypeName == "PyKernel");
 }
@@ -47,8 +52,8 @@ pyEvolve(state initial_state, py::object kernel,
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>());
+  auto kernelName = py::cast<std::string>(kernel.attr("name"));
+  auto kernelMod = unwrap(py::cast<MlirModule>(kernel.attr("module")));
 
   std::vector<spin_op> spin_ops = {};
   for (auto &observable : observables) {
@@ -87,8 +92,8 @@ pyEvolve(state initial_state, std::vector<py::object> kernels,
     if (py::hasattr(kernel, "compile"))
       kernel.attr("compile")();
 
-    auto kernelName = kernel.attr("name").cast<std::string>();
-    auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>());
+    auto kernelName = py::cast<std::string>(kernel.attr("name"));
+    auto kernelMod = unwrap(py::cast<MlirModule>(kernel.attr("module")));
 
     launchFcts.push_back([kernelMod, kernelName](state state) mutable {
       auto *argData = new cudaq::OpaqueArguments();
@@ -129,8 +134,8 @@ pyEvolveAsync(state initial_state, py::object kernel,
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>()).clone();
-  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = unwrap(py::cast<MlirModule>(kernel.attr("module"))).clone();
+  auto kernelName = py::cast<std::string>(kernel.attr("name"));
 
   std::vector<spin_op> spin_ops = {};
   for (auto observable : observables) {
@@ -173,8 +178,8 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
 
     // IMPORTANT: we need to make sure no Python data is accessed in the async.
     // functor.
-    auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>()).clone();
-    auto kernelName = kernel.attr("name").cast<std::string>();
+    auto kernelMod = unwrap(py::cast<MlirModule>(kernel.attr("module"))).clone();
+    auto kernelName = py::cast<std::string>(kernel.attr("name"));
     launchFcts.push_back(
         [kernelMod = std::move(kernelMod), kernelName](state state) mutable {
           cudaq::OpaqueArguments argData;
@@ -279,7 +284,7 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
       py::arg("shots_count") = -1);
 
 /// @brief Bind the evolve cudaq function for circuit simulator
-void bindPyEvolve(py::module &mod) {
+void bindPyEvolve(py::module_ &mod) {
   // Sync evolve overloads
   DEFINE_PARAM_TYPE_OVERLOAD_VEC(long, mod);
   DEFINE_PARAM_TYPE_OVERLOAD_VEC(double, mod);

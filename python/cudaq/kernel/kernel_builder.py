@@ -727,7 +727,7 @@ class PyKernel(object):
                 "cse,quake-add-metadata),quake-propagate-metadata)",
                 context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
-            pm.run(cloned)
+            pm.run(cloned.operation)
             return str(cloned)
         return str(self.module)
 
@@ -1529,11 +1529,23 @@ class PyKernel(object):
             emitFatalError("Noise channel parameter must be float")
 
     @staticmethod
+    def _get_num_parameters(noise_channel):
+        """Return the num_parameters for a noise channel class,
+        supporting both the attribute (custom channels) and the
+        method (nanobind-bound built-in channels)."""
+        if hasattr(noise_channel, 'num_parameters'):
+            return noise_channel.num_parameters
+        if hasattr(noise_channel, 'get_num_parameters'):
+            return noise_channel.get_num_parameters()
+        return None
+
+    @staticmethod
     def _validate_noise_channel_probability_params(noise_channel, param_values):
         """
         Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
         """
-        if not hasattr(noise_channel, 'num_parameters'):
+        if not (hasattr(noise_channel, 'num_parameters') or
+                hasattr(noise_channel, 'get_num_parameters')):
             return
         for p in param_values:
             if isinstance(p, (int, float)):
@@ -1553,17 +1565,19 @@ class PyKernel(object):
             self.appliedNoiseChannels.append(noise_channel)
 
         if not issubclass(noise_channel, cudaq_runtime.KrausChannel):
-            if not hasattr(noise_channel, 'num_parameters'):
+            if not (hasattr(noise_channel, 'num_parameters') or
+                    hasattr(noise_channel, 'get_num_parameters')):
                 emitFatalError(
                     'apply_noise kraus channels must have `num_parameters` '
                     'constant class attribute specified.')
 
+            n_params = self._get_num_parameters(noise_channel)
             # We needs to have noise channel parameters + qubit arguments
             if isinstance(args[0], list):
-                if len(args[0]) != noise_channel.num_parameters:
+                if len(args[0]) != n_params:
                     emitFatalError(f"Invalid number of arguments passed to "
                                    f"apply_noise for channel `{noise_channel}`")
-            elif len(args) <= noise_channel.num_parameters:
+            elif len(args) <= n_params:
                 emitFatalError(f"Invalid number of arguments passed to "
                                f"apply_noise for channel `{noise_channel}`")
 
@@ -1587,11 +1601,12 @@ class PyKernel(object):
                         emitFatalError("Invalid qubit operand type")
                     target_qubits.append(p.mlirValue)
             else:
-                param_values = args[:noise_channel.num_parameters]
+                n_params = self._get_num_parameters(noise_channel)
+                param_values = args[:n_params]
                 self._validate_noise_channel_probability_params(
                     noise_channel, param_values)
                 for i, p in enumerate(args):
-                    if i < noise_channel.num_parameters:
+                    if i < n_params:
                         noise_channel_params.append(
                             self.process_channel_param(p))
                     else:
@@ -1618,7 +1633,7 @@ class PyKernel(object):
             pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                                    context=ctx)
             try:
-                pm.run(self.qkeModule)
+                pm.run(self.qkeModule.operation)
             except:
                 raise RuntimeError("could not compile code for '" +
                                    self.uniqName + "'.")

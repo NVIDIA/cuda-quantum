@@ -46,20 +46,30 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
-#include <pybind11/complex.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+// nanobind pytypes are in nanobind/nanobind.h
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
-PYBIND11_MODULE(_quakeDialects, m) {
+extern "C" void cudaq_ensure_default_launcher_linked(void);
+
+NB_MODULE(_quakeDialects, m) {
+  // Ensure the TU that registers PythonLauncher ("default") is linked so
+  // kernel launches work without an explicit set_target().
+  cudaq_ensure_default_launcher_linked();
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);

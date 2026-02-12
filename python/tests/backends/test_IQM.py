@@ -22,8 +22,13 @@ import pytest
 iqm_client = pytest.importorskip("iqm.iqm_client")
 
 try:
-    from utils.mock_qpu.iqm import startServer
+    from utils.mock_qpu.iqm import app
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
+    import uvicorn
+
+    def startServer(port):
+        cudaq.set_random_seed(13)
+        uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
 except:
     pytest.skip("Mock qpu not available, skipping IQM tests.",
                 allow_module_level=True)

@@ -8,14 +8,19 @@
 
 #include "cudaq/qis/execution_manager.h"
 #include <fmt/core.h>
-#include <pybind11/complex.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 
-void bindExecutionManager(py::module &mod) {
+void bindExecutionManager(py::module_ &mod) {
 
   mod.def(
       "applyQuantumOperation",

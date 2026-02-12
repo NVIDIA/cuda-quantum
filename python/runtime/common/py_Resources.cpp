@@ -6,8 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 #include "py_Resources.h"
 
@@ -17,7 +22,7 @@
 
 namespace cudaq {
 
-void bindResources(py::module &mod) {
+void bindResources(py::module_ &mod) {
   using namespace cudaq;
 
   py::class_<Resources>(

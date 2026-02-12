@@ -7,10 +7,17 @@
  ******************************************************************************/
 
 #include <complex>
-#include <pybind11/complex.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/set.h>
+#include <nanobind/stl/unordered_map.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -19,7 +26,7 @@
 
 namespace cudaq {
 
-void bindOperatorsModule(py::module &mod) {
+void bindOperatorsModule(py::module_ &mod) {
   // Binding the functions in `cudaq::operators` as `_pycudaq` submodule
   // so it's accessible directly in the cudaq namespace.
   auto operators_submodule = mod.def_submodule("operators");
@@ -94,7 +101,7 @@ void bindOperatorsModule(py::module &mod) {
       "degrees of freedom.");
 }
 
-void bindMatrixOperator(py::module &mod) {
+void bindMatrixOperator(py::module_ &mod) {
 
   auto matrix_op_class = py::class_<matrix_op>(mod, "MatrixOperator");
   auto matrix_op_term_class =
@@ -104,26 +111,29 @@ void bindMatrixOperator(py::module &mod) {
       .def(
           "__iter__",
           [](matrix_op &self) {
-            return py::make_iterator(self.begin(), self.end());
+            py::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(py::cast(*it));
+            return items.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(), "Loop through each term of the operator.")
+          "Loop through each term of the operator.")
 
       // properties
 
-      .def_property_readonly("parameters",
+      .def_prop_ro("parameters",
                              &matrix_op::get_parameter_descriptions,
                              "Returns a dictionary that maps each parameter "
                              "name to its description.")
-      .def_property_readonly("degrees", &matrix_op::degrees,
+      .def_prop_ro("degrees", &matrix_op::degrees,
                              "Returns a vector that lists all degrees of "
                              "freedom that the operator targets.")
-      .def_property_readonly("min_degree", &matrix_op::min_degree,
+      .def_prop_ro("min_degree", &matrix_op::min_degree,
                              "Returns the smallest index of the degrees of "
                              "freedom that the operator targets.")
-      .def_property_readonly("max_degree", &matrix_op::max_degree,
+      .def_prop_ro("max_degree", &matrix_op::max_degree,
                              "Returns the smallest index of the degrees of "
                              "freedom that the operator targets.")
-      .def_property_readonly("term_count", &matrix_op::num_terms,
+      .def_prop_ro("term_count", &matrix_op::num_terms,
                              "Returns the number of terms in the operator.")
 
       // constructors
@@ -154,13 +164,15 @@ void bindMatrixOperator(py::module &mod) {
 
       .def(
           "to_matrix",
-          [](const matrix_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const matrix_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("parameters") = parameter_map(),
+          py::arg("dimensions").none() = py::none(),
+          py::arg("parameters").none() = py::none(),
           py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -171,20 +183,30 @@ void bindMatrixOperator(py::module &mod) {
 
       .def(
           "to_matrix",
-          [](const matrix_op &self, dimension_map &dimensions,
-             bool invert_order, const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const matrix_op &self, dimension_map dimensions,
+             py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_matrix",
+          [](const matrix_op &self, py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat =
+                self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
+          },
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
 
       // comparisons
 
@@ -308,17 +330,21 @@ void bindMatrixOperator(py::module &mod) {
       .def("dump", &matrix_op::dump,
            "Prints the string representation of the operator to the standard "
            "output.")
-      .def("trim", &matrix_op::trim, py::arg("tol") = 0.0,
-           py::arg("parameters") = parameter_map(),
-           "Removes all terms from the sum for which the absolute value of the "
+      .def(
+          "trim",
+          [](matrix_op &self, double tol, std::optional<parameter_map> params) {
+            return self.trim(tol, params.value_or(parameter_map()));
+          },
+          py::arg("tol") = 0.0,
+          py::arg("parameters").none() = py::none(),
+          "Removes all terms from the sum for which the absolute value of the "
            "coefficient is below "
            "the given tolerance.")
       .def(
           "trim",
-          [](matrix_op &self, double tol, const py::kwargs &kwargs) {
+          [](matrix_op &self, double tol, py::kwargs kwargs) {
             return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
-          py::arg("tol") = 0.0,
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
           "the given tolerance.")
@@ -343,17 +369,20 @@ void bindMatrixOperator(py::module &mod) {
       .def(
           "__iter__",
           [](matrix_op_term &self) {
-            return py::make_iterator(self.begin(), self.end());
+            py::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(py::cast(*it));
+            return items.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(), "Loop through each term of the operator.")
+          "Loop through each term of the operator.")
 
       // properties
 
-      .def_property_readonly("parameters",
+      .def_prop_ro("parameters",
                              &matrix_op_term::get_parameter_descriptions,
                              "Returns a dictionary that maps each parameter "
                              "name to its description.")
-      .def_property_readonly("degrees", &matrix_op_term::degrees,
+      .def_prop_ro("degrees", &matrix_op_term::degrees,
                              "Returns a vector that lists all degrees of "
                              "freedom that the operator targets. "
                              "The order of degrees is from smallest to largest "
@@ -365,20 +394,20 @@ void bindMatrixOperator(py::module &mod) {
                              "that a state where the qubit with index 0 equals "
                              "1 with probability 1 is given by "
                              "the vector {0., 1., 0., 0.}.")
-      .def_property_readonly("min_degree", &matrix_op_term::min_degree,
+      .def_prop_ro("min_degree", &matrix_op_term::min_degree,
                              "Returns the smallest index of the degrees of "
                              "freedom that the operator targets.")
-      .def_property_readonly("max_degree", &matrix_op_term::max_degree,
+      .def_prop_ro("max_degree", &matrix_op_term::max_degree,
                              "Returns the smallest index of the degrees of "
                              "freedom that the operator targets.")
-      .def_property_readonly("ops_count", &matrix_op_term::num_ops,
+      .def_prop_ro("ops_count", &matrix_op_term::num_ops,
                              "Returns the number of operators in the product.")
-      .def_property_readonly(
+      .def_prop_ro(
           "term_id", &matrix_op_term::get_term_id,
           "The term id uniquely identifies the operators and targets (degrees) "
           "that they act on, "
           "but does not include information about the coefficient.")
-      .def_property_readonly(
+      .def_prop_ro(
           "coefficient", &matrix_op_term::get_coefficient,
           "Returns the unevaluated coefficient of the operator. The "
           "coefficient is a "
@@ -402,9 +431,10 @@ void bindMatrixOperator(py::module &mod) {
            "Creates a product operator with the given "
            "constant value. The returned operator does not target any degrees "
            "of freedom.")
-      .def(py::init([](const scalar_operator &scalar) {
-             return matrix_op_term() * scalar;
-           }),
+      .def("__init__",
+           [](matrix_op_term *self, const scalar_operator &scalar) {
+             new (self) matrix_op_term(matrix_op_term() * scalar);
+           },
            "Creates a product operator with non-constant scalar value.")
       .def(py::init<matrix_handler>(),
            "Creates a product operator with the given elementary operator.")
@@ -423,20 +453,26 @@ void bindMatrixOperator(py::module &mod) {
 
       // evaluations
 
-      .def("evaluate_coefficient", &matrix_op_term::evaluate_coefficient,
-           py::arg("parameters") = parameter_map(),
-           "Returns the evaluated coefficient of the product operator. The "
+      .def(
+          "evaluate_coefficient",
+          [](const matrix_op_term &self, std::optional<parameter_map> params) {
+            return self.evaluate_coefficient(params.value_or(parameter_map()));
+          },
+          py::arg("parameters").none() = py::none(),
+          "Returns the evaluated coefficient of the product operator. The "
            "parameters is a map of parameter names to their concrete, complex "
            "values.")
       .def(
           "to_matrix",
-          [](const matrix_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const matrix_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("parameters") = parameter_map(),
+          py::arg("dimensions").none() = py::none(),
+          py::arg("parameters").none() = py::none(),
           py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -446,20 +482,30 @@ void bindMatrixOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const matrix_op_term &self, dimension_map &dimensions,
-             bool invert_order, const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const matrix_op_term &self, dimension_map dimensions,
+             py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_matrix",
+          [](const matrix_op_term &self, py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat =
+                self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
+          },
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
 
       // comparisons
 
@@ -564,7 +610,7 @@ void bindMatrixOperator(py::module &mod) {
           "of freedom that are not included in the given set.");
 }
 
-void bindOperatorsWrapper(py::module &mod) {
+void bindOperatorsWrapper(py::module_ &mod) {
   bindMatrixOperator(mod);
   py::implicitly_convertible<double, matrix_op_term>();
   py::implicitly_convertible<std::complex<double>, matrix_op_term>();

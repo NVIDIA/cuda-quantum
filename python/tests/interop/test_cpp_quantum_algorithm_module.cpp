@@ -10,12 +10,17 @@
 #include "cudaq/algorithms/sample.h"
 #include "quantum_lib/quantum_lib.h"
 #include "runtime/interop/PythonCppInterop.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
+NB_MODULE(cudaq_test_cpp_algo, m) {
   // Example of how to expose C++ kernels.
   cudaq::python::addDeviceKernelInterop<cudaq::qview<>>(
       m, "qstd", "qft", "(Fake) Quantum Fourier Transform.");

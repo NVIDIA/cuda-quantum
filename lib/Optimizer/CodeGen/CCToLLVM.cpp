@@ -274,14 +274,30 @@ public:
   matchAndRewrite(cudaq::cc::CallIndirectCallableOp call, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = call.getLoc();
+    auto *ctx = rewriter.getContext();
     auto parentModule = call->getParentOfType<ModuleOp>();
-    auto funcPtrTy = getTypeConverter()->convertType(
-        cast<cudaq::cc::IndirectCallableType>(call.getCallee().getType())
-            .getSignature());
+    auto indirectTy =
+        cast<cudaq::cc::IndirectCallableType>(call.getCallee().getType());
+    mlir::FunctionType calleeFuncTy = indirectTy.getSignature();
+    auto funcPtrTy = getTypeConverter()->convertType(calleeFuncTy);
     auto ptrTy = getPtrType();
-    LLVM::LLVMFunctionType funcTy;
-    // FIXME
-    assert(false);
+    // Build LLVM function type from signature (opaque ptr has no element type).
+    SmallVector<Type> llvmArgTys;
+    for (Type argTy : calleeFuncTy.getInputs())
+      llvmArgTys.push_back(getTypeConverter()->convertType(argTy));
+    Type llvmRetTy;
+    if (calleeFuncTy.getNumResults() == 0)
+      llvmRetTy = LLVM::LLVMVoidType::get(ctx);
+    else if (calleeFuncTy.getNumResults() == 1)
+      llvmRetTy = getTypeConverter()->convertType(calleeFuncTy.getResult(0));
+    else {
+      SmallVector<Type> llvmResultTys;
+      for (Type resTy : calleeFuncTy.getResults())
+        llvmResultTys.push_back(getTypeConverter()->convertType(resTy));
+      llvmRetTy = LLVM::LLVMStructType::getLiteral(ctx, llvmResultTys);
+    }
+    LLVM::LLVMFunctionType funcTy =
+        LLVM::LLVMFunctionType::get(llvmRetTy, llvmArgTys);
     auto i64Ty = rewriter.getI64Type(); // intptr_t
     FlatSymbolRefAttr funSymbol = cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::runtime::getLinkableKernelDeviceSide, ptrTy, {i64Ty},
@@ -297,14 +313,12 @@ public:
     auto lookup =
         LLVM::BitcastOp::create(rewriter, loc, funcPtrTy, lookee.getResult());
 
-    // Call the function that was just found in the map.
+    // Call the function that was just found in the map. Use create() so
+    // operandSegmentSizes is set (LLVM 22 AttrSizedOperandSegments).
     SmallVector<Value> args = {lookup.getResult()};
     args.append(adaptor.getArgs().begin(), adaptor.getArgs().end());
-    if (isa<LLVM::LLVMVoidType>(funcTy.getReturnType()))
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, TypeRange{}, args);
-    else
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, funcTy.getReturnType(),
-                                                args);
+    auto newCall = LLVM::CallOp::create(rewriter, loc, funcTy, args);
+    rewriter.replaceOp(call, newCall.getResults());
     return success();
   }
 };
@@ -551,8 +565,7 @@ public:
                                                         op, offset);
         offsetVal++;
       }
-      auto tuplePtrTy = getPtrType();
-      tmp = cudaq::opt::factory::createLLVMTemporary(loc, rewriter, tuplePtrTy);
+      tmp = cudaq::opt::factory::createLLVMTemporary(loc, rewriter, tupleTy);
       LLVM::StoreOp::create(rewriter, loc, tupleVal, tmp);
     }
     Value tupleArg = LLVM::UndefOp::create(rewriter, loc, tupleArgTy);
@@ -596,8 +609,9 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto inputTy = sizeOfOp.getInputType();
     auto resultTy = sizeOfOp.getType();
-    if (quake::isQuakeType(inputTy) || cudaq::cc::isDynamicType(inputTy)) {
-      // Types that cannot be reified produce the poison op.
+    if (quake::isQuakeType(inputTy) ||
+        cudaq::cc::isDynamicallySizedType(inputTy)) {
+       // Types that cannot be reified produce the poison op.
       rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(sizeOfOp, resultTy);
       return success();
     }

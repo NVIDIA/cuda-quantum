@@ -10,15 +10,20 @@
 #include "common/EvolveResult.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include <optional>
-#include <pybind11/stl.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 /// @brief Bind the `cudaq::evolve_result` and `cudaq::async_evolve_result`
 /// data classes to python as `cudaq.EvolveResult` and
 /// `cudaq.AsyncEvolveResult`.
-void bindEvolveResult(py::module &mod) {
+void bindEvolveResult(py::module_ &mod) {
   py::class_<evolve_result>(
       mod, "EvolveResult",
       "Stores the execution data from an invocation of :func:`evolve`.\n")

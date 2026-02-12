@@ -14,7 +14,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 using namespace mlir;
 
@@ -42,7 +42,7 @@ static std::string translate_impl(const std::string &shortName,
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
   return StringSwitch<std::function<std::string()>>(formatPair.first)
-      .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
+      .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
                                                        format);
@@ -65,7 +65,7 @@ static std::string translate_impl(const std::string &shortName,
 }
 
 /// @brief Bind the translate cudaq function
-void cudaq::bindPyTranslate(py::module &mod) {
+void cudaq::bindPyTranslate(py::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
 }

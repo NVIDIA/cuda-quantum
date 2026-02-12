@@ -9,6 +9,8 @@
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/RuntimeMLIR.h"
 
+#include <memory>
+
 using namespace mlir;
 
 namespace {
@@ -34,4 +36,29 @@ public:
 };
 } // namespace
 
+// When compiled into the standalone libcudaq-rest-qpu.so, use
+// CUDAQ_REGISTER_TYPE directly (same DSO as the registry instantiation's
+// consumer). When compiled into the Python extension, we must register into
+// libcudaq's QPU registry via the C-linkage hook, same pattern as
+// PythonLauncher.
+#ifdef CUDAQ_PYTHON_EXTENSION
+extern "C" void cudaq_add_qpu_node(void *node_ptr);
+
+namespace {
+struct RemoteRESTQPURegistration {
+  llvm::SimpleRegistryEntry<cudaq::QPU> entry;
+  llvm::Registry<cudaq::QPU>::node node;
+  RemoteRESTQPURegistration()
+      : entry("remote_rest", "", &RemoteRESTQPURegistration::ctorFn),
+        node(entry) {
+    cudaq_add_qpu_node(&node);
+  }
+  static std::unique_ptr<cudaq::QPU> ctorFn() {
+    return std::make_unique<RemoteRESTQPU>();
+  }
+};
+static RemoteRESTQPURegistration s_remoteRESTQPURegistration;
+} // namespace
+#else
 CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteRESTQPU, remote_rest)
+#endif

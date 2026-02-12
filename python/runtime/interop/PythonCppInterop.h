@@ -9,11 +9,14 @@
 
 #include "common/JIT.h"
 #include "cudaq/qis/qkernel.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <optional>
-#include <pybind11/pybind11.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq::python {
 
@@ -35,9 +38,12 @@ public:
     requires QKernelType<T>
   T getEntryPointFunction(As... as) {
     // Perform beta reduction on the kernel decorator.
-    auto [p, cachedEngineHandle] =
-        kernel.attr("beta_reduction")(std::forward<As>(as)...)
-            .template cast<std::pair<void *, std::size_t>>();
+    // Returns a tuple (pointer_as_int, cached_engine_handle).
+    py::object result =
+        kernel.attr("beta_reduction")(std::forward<As>(as)...);
+    // Cast to intptr_t to avoid nanobind's "cannot return pointer to temporary"
+    void *p = reinterpret_cast<void *>(py::cast<intptr_t>(result[0]));
+    auto cachedEngineHandle = py::cast<std::size_t>(result[1]);
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
@@ -152,15 +158,13 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
 
   // FIXME Maybe Add replacement options (i.e., _pycudaq -> cudaq)
 
-  py::module_ sub;
-  if (py::hasattr(m, modName.c_str()))
-    sub = m.attr(modName.c_str()).cast<py::module_>();
-  else
-    sub = m.def_submodule(modName.c_str());
+  py::module_ sub = py::hasattr(m, modName.c_str())
+                        ? py::cast<py::module_>(m.attr(modName.c_str()))
+                        : m.def_submodule(modName.c_str());
 
   sub.def(
       kernelName.c_str(), [](Signature...) {}, docstring.c_str());
-  cudaq::python::registerDeviceKernel(sub.attr("__name__").cast<std::string>(),
+  cudaq::python::registerDeviceKernel(py::cast<std::string>(sub.attr("__name__")),
                                       kernelName, mangledArgs);
   return;
 }

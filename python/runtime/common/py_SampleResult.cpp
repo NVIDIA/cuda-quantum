@@ -6,8 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/operators.h>
+#include <nanobind/make_iterator.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 #include "py_SampleResult.h"
 
@@ -17,7 +24,7 @@
 
 namespace cudaq {
 
-void bindMeasureCounts(py::module &mod) {
+void bindMeasureCounts(py::module_ &mod) {
   using namespace cudaq;
 
   // TODO Bind the variants of this functions that take the register name
@@ -35,7 +42,7 @@ Note:
 Attributes:
 	register_names (List[str]): A list of the names of each measurement 
 		register that are stored in `self`.)#")
-      .def_property_readonly("register_names", &sample_result::register_names)
+      .def_prop_ro("register_names", &sample_result::register_names)
       .def(py::init<>())
       .def(
           "dump", [](sample_result &self) { self.dump(); },
@@ -63,8 +70,8 @@ Attributes:
             auto map = self.to_map();
             auto iter = map.find(bitstring);
             if (iter == map.end())
-              throw py::key_error("bitstring '" + bitstring +
-                                  "' does not exist");
+              throw py::key_error(("bitstring '" + bitstring +
+                                   "' does not exist").c_str());
 
             return iter->second;
           },
@@ -84,9 +91,11 @@ Returns:
       .def(
           "__iter__",
           [](sample_result &self) {
-            return py::make_key_iterator(self.begin(), self.end());
+            py::list keys;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              keys.append(py::cast(it->first));
+            return keys.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(),
           "Iterate through the :class:`SampleResult` dictionary.\n")
       .def("expectation", &sample_result::expectation,
            py::arg("register_name") = GlobalRegisterName,
@@ -180,17 +189,21 @@ Returns:
       .def(
           "items",
           [](sample_result &self) {
-            return py::make_iterator(self.begin(), self.end());
+            py::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(py::make_tuple(it->first, it->second));
+            return items.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(),
           "Return the key/value pairs in this :class:`SampleResult` "
           "dictionary.\n")
       .def(
           "values",
           [](sample_result &self) {
-            return py::make_value_iterator(self.begin(), self.end());
+            py::list values;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              values.append(py::cast(it->second));
+            return values.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(),
           "Return all values (the counts) in this :class:`SampleResult` "
           "dictionary.\n")
       .def(py::self += py::self)

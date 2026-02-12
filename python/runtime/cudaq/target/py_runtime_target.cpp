@@ -13,9 +13,14 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include <functional>
-#include <pybind11/functional.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 #include <shared_mutex>
 
 namespace {
@@ -58,26 +63,26 @@ parseTargetKwArgs(const py::kwargs &extraConfig) {
                              "in cudaq.set_target(). Please use the keyword "
                              "`option` in order to set the target options.");
   std::map<std::string, std::string> config;
-  for (auto &[key, value] : extraConfig) {
+  for (auto [key, value] : extraConfig) {
     std::string strValue = "";
     if (py::isinstance<py::bool_>(value))
-      strValue = value.cast<py::bool_>() ? "true" : "false";
+      strValue = py::cast<py::bool_>(value) ? "true" : "false";
     else if (py::isinstance<py::str>(value))
-      strValue = value.cast<std::string>();
+      strValue = py::cast<std::string>(value);
     else if (py::isinstance<py::int_>(value))
-      strValue = std::to_string(value.cast<int>());
+      strValue = std::to_string(py::cast<int>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");
 
     // Ignore empty parameter values
     if (!strValue.empty())
-      config.emplace(key.cast<std::string>(), strValue);
+      config.emplace(py::cast<std::string>(key), strValue);
   }
   return config;
 }
 
-void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
+void bindRuntimeTarget(py::module_ &mod, LinkedLibraryHolder &holder) {
 
   py::enum_<simulation_precision>(
       mod, "SimulationPrecision",
@@ -91,15 +96,15 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "CUDA-Q kernels will execute on. Instances of `cudaq.Target` describe "
       "what simulator they may leverage, the quantum_platform required for "
       "execution, and a description for the target.")
-      .def_readonly("name", &cudaq::RuntimeTarget::name,
+      .def_ro("name", &cudaq::RuntimeTarget::name,
                     "The name of the `cudaq.Target`.")
-      .def_readonly("simulator", &cudaq::RuntimeTarget::simulatorName,
+      .def_ro("simulator", &cudaq::RuntimeTarget::simulatorName,
                     "The name of the simulator this `cudaq.Target` leverages. "
                     "This will be empty for physical QPUs.")
-      .def_readonly("platform", &cudaq::RuntimeTarget::platformName,
+      .def_ro("platform", &cudaq::RuntimeTarget::platformName,
                     "The name of the quantum_platform implementation this "
                     "`cudaq.Target` leverages.")
-      .def_readonly("description", &cudaq::RuntimeTarget::description,
+      .def_ro("description", &cudaq::RuntimeTarget::description,
                     "A string describing the features for this `cudaq.Target`.")
       .def(
           "num_qpus",
@@ -209,7 +214,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       },
       "Unregister a callback identified by the input identifier.");
 
-  py::module_::import("atexit").attr("register")(py::cpp_function([]() {
+  py::module_::import_("atexit").attr("register")(py::cpp_function([]() {
     // Perform cleanup of registered callbacks, which might be Python objects.
     g_callbacks.clear();
   }));

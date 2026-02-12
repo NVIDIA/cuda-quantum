@@ -13,13 +13,18 @@
 #include "cudaq/algorithms/observe.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 using namespace cudaq;
 
@@ -92,8 +97,8 @@ observe_async_impl(const std::string &shortName, MlirModule module,
   // C++
   spin_op spin_operator = [](py::object &obj) -> spin_op {
     if (py::hasattr(obj, "_to_spinop"))
-      return obj.attr("_to_spinop")().cast<spin_op>();
-    return obj.cast<spin_op>();
+      return py::cast<spin_op>(obj.attr("_to_spinop")());
+    return py::cast<spin_op>(obj);
   }(spin_operator_obj);
   auto mod = unwrap(module);
   auto retTy = unwrap(returnTy);
@@ -165,10 +170,10 @@ pyObservePar(const PyParType &type, const std::string &shortName,
 /// broadcast. All these variants are handled here.
 static observe_result
 observe_parallel_impl(const std::string &shortName, MlirModule module,
-                      MlirType returnTy, py::type execution,
+                      MlirType returnTy, py::object execution,
                       spin_op &spin_operator, int shots,
                       std::optional<noise_model> noise, py::args arguments) {
-  std::string applicatorKey = py::str(execution.attr("__name__"));
+  std::string applicatorKey = std::string(py::str(execution.attr("__name__")).c_str());
   auto mod = unwrap(module);
   auto retTy = unwrap(returnTy);
   if (applicatorKey == "thread")
@@ -180,7 +185,7 @@ observe_parallel_impl(const std::string &shortName, MlirModule module,
   throw std::runtime_error("invalid parallel execution context");
 }
 
-void cudaq::bindObserveAsync(py::module &mod) {
+void cudaq::bindObserveAsync(py::module_ &mod) {
   auto parallelSubmodule = mod.def_submodule("parallel");
   py::class_<parallel::mpi>(
       parallelSubmodule, "mpi",

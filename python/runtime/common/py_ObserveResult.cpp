@@ -11,21 +11,23 @@
 #include "common/ObserveResult.h"
 #include "cudaq/algorithms/observe.h"
 
-namespace py = pybind11;
+#include <nanobind/stl/string.h>
+
+namespace py = nanobind;
 namespace {
 // FIXME(OperatorCpp): Remove this when the operator class is implemented in
 // C++
 cudaq::spin_op to_spin_op(py::object &obj) {
   if (py::hasattr(obj, "_to_spinop"))
-    return obj.attr("_to_spinop")().cast<cudaq::spin_op>();
-  return obj.cast<cudaq::spin_op>();
+    return py::cast<cudaq::spin_op>(obj.attr("_to_spinop")());
+  return py::cast<cudaq::spin_op>(obj);
 }
 cudaq::spin_op to_spin_op_term(py::object &obj) {
   auto op = cudaq::spin_op::empty();
   if (py::hasattr(obj, "_to_spinop"))
-    op = obj.attr("_to_spinop")().cast<cudaq::spin_op>();
+    op = py::cast<cudaq::spin_op>(obj.attr("_to_spinop")());
   else
-    op = obj.cast<cudaq::spin_op>();
+    op = py::cast<cudaq::spin_op>(obj);
   if (op.num_terms() != 1)
     throw std::invalid_argument("expecting a spin op with a single term");
   return *op.begin();
@@ -46,21 +48,18 @@ namespace cudaq {
 /// @brief Bind the `cudaq::observe_result` and `cudaq::async_observe_result`
 /// data classes to python as `cudaq.ObserveResult` and
 /// `cudaq.AsyncObserveResult`.
-void bindObserveResult(py::module &mod) {
+void bindObserveResult(py::module_ &mod) {
   py::class_<observe_result>(
       mod, "ObserveResult",
       "A data-type containing the results of a call to :func:`observe`. "
       "This includes any measurement counts data, as well as the global "
       "expectation value of the user-defined `spin_operator`.\n")
       .def(py::init<double, spin_op, sample_result>())
-      .def(py::init(
-          [](double exp_val, const spin_op &spin_op, sample_result result) {
-            return observe_result(exp_val, spin_op, result);
-          }))
-      .def(py::init(
-          [](double exp_val, py::object spin_op, sample_result result) {
-            return observe_result(exp_val, to_spin_op(spin_op), result);
-          }))
+      .def("__init__",
+          [](observe_result *self, double exp_val, py::object spin_op,
+             sample_result result) {
+            new (self) observe_result(exp_val, to_spin_op(spin_op), result);
+          })
       /// @brief Bind the member functions of `cudaq.ObserveResult`.
       .def("dump", &observe_result::dump,
            "Dump the raw data from the :class:`SampleResult` that are stored "
@@ -159,19 +158,19 @@ This kicks off a wait on the current thread until the results are available.
 
 See `future <https://en.cppreference.com/w/cpp/thread/future>`_
 for more information on this programming pattern.)#")
-      .def(py::init([](std::string inJson, spin_op op) {
-        async_observe_result f(&op);
-        std::istringstream is(inJson);
-        is >> f;
-        return f;
-      }))
-      .def(py::init([](std::string inJson, py::object op) {
-        auto as_spin_op = to_spin_op(op);
-        async_observe_result f(&as_spin_op);
-        std::istringstream is(inJson);
-        is >> f;
-        return f;
-      }))
+      .def("__init__",
+           [](async_observe_result *self, std::string inJson, spin_op op) {
+             new (self) async_observe_result(&op);
+             std::istringstream is(inJson);
+             is >> *self;
+           })
+      .def("__init__",
+           [](async_observe_result *self, std::string inJson, py::object op) {
+             auto as_spin_op = to_spin_op(op);
+             new (self) async_observe_result(&as_spin_op);
+             std::istringstream is(inJson);
+             is >> *self;
+           })
       .def("get", &async_observe_result::get,
            py::call_guard<py::gil_scoped_release>(),
            "Returns the :class:`ObserveResult` from the asynchronous observe "

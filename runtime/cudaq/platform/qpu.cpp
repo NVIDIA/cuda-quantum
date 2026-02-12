@@ -11,6 +11,16 @@
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 
+// Bridge so the Python extension can register PythonLauncher into this DSO's
+// registry. LLVM's Registry uses static inline Head/Tail, so each DSO that
+// instantiates the template gets its own copy; launchModule runs in this DSO
+// and reads the empty list. Registering via this function adds to our list.
+extern "C" void cudaq_add_module_launcher_node(void *node_ptr) {
+  using Node = llvm::Registry<cudaq::ModuleLauncher>::node;
+  llvm::Registry<cudaq::ModuleLauncher>::add_node(
+      static_cast<Node *>(node_ptr));
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs,

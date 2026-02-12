@@ -151,6 +151,43 @@ public:
     ::launchKernelStreamlineImpl(cudaq::getExecutionContext(), this->m_client,
                                  this->m_simName, name, rawArgs);
   }
+
+  cudaq::KernelThunkResultType
+  launchModule(const std::string &name, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs,
+               mlir::Type resTy) override {
+    CUDAQ_INFO("{}: Launch module named '{}' remote QPU {} (simulator = {})",
+               Derived::class_name, name, this->qpu_id, this->m_simName);
+
+    cudaq::ExecutionContext *executionContextPtr =
+        cudaq::getExecutionContext();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer")
+      return {};
+
+    // Default context for a 'fire-and-ignore' kernel launch.
+    static thread_local cudaq::ExecutionContext defaultContext("sample",
+                                                               /*shots=*/1);
+    cudaq::ExecutionContext &executionContext =
+        executionContextPtr ? *executionContextPtr : defaultContext;
+
+    // Use the module's own MLIRContext (PyRemoteSimulatorQPU does not
+    // initialize m_mlirContext, so the base-class launchKernelImpl would
+    // dereference a null unique_ptr).
+    auto *mlirContext = module->getContext();
+
+    std::string errorMsg;
+    const bool requestOkay = this->m_client->sendRequest(
+        *mlirContext, executionContext,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr,
+        /*vqe_n_params=*/0, this->m_simName, name,
+        /*kernelFunc=*/nullptr, /*kernelArgs=*/nullptr,
+        /*argsSize=*/0, &errorMsg, &rawArgs,
+        module.getOperation());
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+    return {};
+  }
 };
 
 namespace {
@@ -170,4 +207,25 @@ public:
 
 } // namespace
 
+#ifdef CUDAQ_PYTHON_EXTENSION
+extern "C" void cudaq_add_qpu_node(void *node_ptr);
+
+namespace {
+struct PyRemoteSimQPURegistration {
+  llvm::SimpleRegistryEntry<cudaq::QPU> entry;
+  llvm::Registry<cudaq::QPU>::node node;
+  PyRemoteSimQPURegistration()
+      : entry("RemoteSimulatorQPU", "",
+              &PyRemoteSimQPURegistration::ctorFn),
+        node(entry) {
+    cudaq_add_qpu_node(&node);
+  }
+  static std::unique_ptr<cudaq::QPU> ctorFn() {
+    return std::make_unique<PyRemoteSimulatorQPU>();
+  }
+};
+static PyRemoteSimQPURegistration s_pyRemoteSimQPURegistration;
+} // namespace
+#else
 CUDAQ_REGISTER_TYPE(cudaq::QPU, PyRemoteSimulatorQPU, RemoteSimulatorQPU)
+#endif

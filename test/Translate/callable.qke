@@ -39,7 +39,7 @@ func.func @baz(%0: !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>) {
 
 // CHECK-LABEL: define void @baz(ptr writeonly captures(none)
 // CHECK-SAME:                                                     %[[VAL_0:.*]]) local_unnamed_addr
-// CHECK:         %[[VAL_1:.*]] = alloca ptr, align 8
+// CHECK:         %[[VAL_1:.*]] = alloca {}, align 8
 // CHECK:         store ptr @bar, ptr %[[VAL_0]], align 8
 // CHECK:         %[[VAL_4:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_0]], i64 8
 // CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_4]], align 8
@@ -143,7 +143,7 @@ func.func @aloha() {
 }
 
 // CHECK-LABEL: define void @aloha() local_unnamed_addr {
-// CHECK:         %[[VAL_0:.*]] = alloca ptr, align 8
+// CHECK:         %[[VAL_0:.*]] = alloca { i32 }, align 8
 // CHECK:         store i32 32, ptr %[[VAL_0]], align 8
 // CHECK:         %[[VAL_3:.*]] = insertvalue { ptr, ptr } { ptr @waldo, ptr undef }, ptr %[[VAL_0]], 1
 // CHECK:         call void @ae({ ptr, ptr } %[[VAL_3]])
@@ -217,7 +217,7 @@ func.func @ala(%0: i32, %1: i32) {
 
 // CHECK-LABEL: define void @ala(i32 
 // CHECK-SAME:      %[[VAL_0:.*]], i32 %[[VAL_1:.*]]) local_unnamed_addr {
-// CHECK:         %[[VAL_2:.*]] = alloca ptr, align 8
+// CHECK:         %[[VAL_2:.*]] = alloca { i32, i32 }, align 8
 // CHECK:         store i32 %[[VAL_0]], ptr %[[VAL_2]], align 8
 // CHECK:         %[[VAL_4:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_2]], i64 4
 // CHECK:         store i32 %[[VAL_1]], ptr %[[VAL_4]], align 4

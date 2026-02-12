@@ -14,16 +14,12 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 using namespace cudaq;
 
-// FIXME: This is using a thread unsafe global?
-
-/// If we have any implicit device-to-host data transfers we will store that
-/// data here and ensure it is deleted properly.
-static std::vector<std::unique_ptr<void, std::function<void(void *)>>>
-    hostDataFromDevice;
+// Note: Removed unsafe global hostDataFromDevice vector.
+// Ownership is now managed via nb::capsule per-array.
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
   // Check that this is a valid bit string.
@@ -131,8 +127,8 @@ state pyGetStateRemote(py::object kernel, py::args args) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelName = kernel.attr("uniqName").cast<std::string>();
-  auto kernelMod = kernel.attr("qkeModule").cast<MlirModule>();
+  auto kernelName = py::cast<std::string>(kernel.attr("uniqName"));
+  auto kernelMod = py::cast<MlirModule>(kernel.attr("qkeModule"));
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 #if 0
@@ -193,74 +189,41 @@ state pyGetStateLibraryMode(py::object kernel, py::args args) {
   });
 }
 
-static py::buffer_info getCupyBufferInfo(py::buffer cupy_buffer) {
-  // Note: cupy 13.5+ arrays will bind (overload resolution) to a py::buffer
-  // type. However, we cannot access the underlying buffer info via a
-  // `.request()` as it will throw unless that is managed memory. Here, we
-  // retrieve and construct buffer_info from the CuPy array interface.
-
-  if (!py::hasattr(cupy_buffer, "__cuda_array_interface__")) {
-    throw std::runtime_error("Buffer is not a CuPy array");
-  }
-
-  py::dict cupy_array_info = cupy_buffer.attr("__cuda_array_interface__");
-  // Ref: https://numba.readthedocs.io/en/stable/cuda/cuda_array_interface.html
-  // example: {'shape': (2, 2), 'typestr': '<c16', 'descr': [('', '<c16')],
-  // 'stream': 1, 'version': 3, 'strides': None, 'data': (140222144708608,
-  // False)}
-  py::tuple dataInfo = cupy_array_info["data"].cast<py::tuple>();
-  void *dataPtr = (void *)dataInfo[0].cast<int64_t>();
-  const bool readOnly = dataInfo[1].cast<bool>();
-  auto shapeTuple = cupy_array_info["shape"].cast<py::tuple>();
-  std::vector<std::size_t> extents;
-  for (std::size_t i = 0; i < shapeTuple.size(); i++) {
-    extents.push_back(shapeTuple[i].cast<std::size_t>());
-  }
-  const std::string typeStr = cupy_array_info["typestr"].cast<std::string>();
-  if (typeStr != "<c16" && typeStr != "<c8") {
-    throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
-                             ". Supported types are: <c16 and <c8.");
-  }
-
-  const bool isDoublePrecision = typeStr == "<c16";
-
-  auto [dataTypeSize, desc] =
-      !isDoublePrecision
-          ? std::make_tuple(
-                sizeof(std::complex<float>),
-                py::format_descriptor<std::complex<float>>::format())
-          : std::make_tuple(
-                sizeof(std::complex<double>),
-                py::format_descriptor<std::complex<double>>::format());
-
-  std::vector<ssize_t> strides(extents.size(), dataTypeSize);
-  for (size_t i = 1; i < extents.size(); ++i)
-    strides[i] = strides[i - 1] * extents[i - 1];
-
-  return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
-                         desc, extents.size(),  /* ndim */
-                         extents,               /* shape */
-                         strides,               /* strides */
-                         readOnly               /* readonly */
-  );
+// Helper to determine if ndarray is complex float or complex double
+static bool isComplexFloat(const py::ndarray<> &arr) {
+  return arr.dtype() == py::dtype<std::complex<float>>();
 }
 
-static cudaq::state createStateFromPyBuffer(py::buffer data,
+static bool isComplexDouble(const py::ndarray<> &arr) {
+  return arr.dtype() == py::dtype<std::complex<double>>();
+}
+
+// Helper to check if object is a CuPy array (has __cuda_array_interface__)
+static bool isCupyArray(py::object obj) {
+  return py::hasattr(obj, "__cuda_array_interface__");
+}
+
+static cudaq::state createStateFromPyBuffer(py::object data,
                                             LinkedLibraryHolder &holder) {
-  const bool isHostData = !py::hasattr(data, "__cuda_array_interface__");
-  // Check that the target is GPU-based, i.e., can handle device
-  // pointer.
+  // If the object isn't directly ndarray-compatible (no buffer protocol or
+  // DLPack) but has __array__ (e.g. StateMemoryView), convert to numpy first.
+  if (!nanobind::ndarray_check(data) && py::hasattr(data, "__array__"))
+    data = data.attr("__array__")();
+
+  const bool isHostData = !isCupyArray(data);
   if (!holder.getTarget().config.GpuRequired && !isHostData)
     throw std::runtime_error(
         fmt::format("Current target '{}' does not support CuPy arrays.",
                     holder.getTarget().name));
 
-  auto info = isHostData ? data.request() : getCupyBufferInfo(data);
-  if (info.shape.size() > 2)
+  // Cast to generic ndarray to inspect properties
+  py::ndarray<> arr = py::cast<py::ndarray<>>(data);
+
+  if (arr.ndim() > 2)
     throw std::runtime_error(
         "state.from_data only supports 1D or 2D array data.");
-  if (info.format != py::format_descriptor<std::complex<float>>::format() &&
-      info.format != py::format_descriptor<std::complex<double>>::format())
+
+  if (!isComplexFloat(arr) && !isComplexDouble(arr))
     throw std::runtime_error(
         "A numpy array with only floating point elements passed to "
         "`state.from_data`. Input must be of complex float type. Please add to "
@@ -268,48 +231,55 @@ static cudaq::state createStateFromPyBuffer(py::buffer data,
         "`dtype=numpy.complex128` if simulation is FP64, or "
         "`dtype=cudaq.complex()` for precision-agnostic code.");
 
-  if (!isHostData || info.shape.size() == 1) {
-    if (info.format == py::format_descriptor<std::complex<float>>::format())
-      return state::from_data(std::make_pair(
-          reinterpret_cast<std::complex<float> *>(info.ptr), info.size));
+  const bool isDoublePrecision = isComplexDouble(arr);
+  const size_t totalSize = [&]() {
+    size_t s = 1;
+    for (size_t i = 0; i < arr.ndim(); ++i)
+      s *= arr.shape(i);
+    return s;
+  }();
 
-    return state::from_data(std::make_pair(
-        reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
-  } else { // 2D array
-    const std::size_t rows = info.shape[0];
-    const std::size_t cols = info.shape[1];
+  if (!isHostData || arr.ndim() == 1) {
+    // 1D array or GPU array
+    if (isDoublePrecision)
+      return state::from_data(std::make_pair(
+          reinterpret_cast<std::complex<double> *>(arr.data()), totalSize));
+    else
+      return state::from_data(std::make_pair(
+          reinterpret_cast<std::complex<float> *>(arr.data()), totalSize));
+  } else {
+    // 2D host array (density matrix)
+    const std::size_t rows = arr.shape(0);
+    const std::size_t cols = arr.shape(1);
     if (rows != cols)
       throw std::runtime_error(
           "state.from_data 2D array (density matrix) input must be "
           "square matrix data.");
-    const bool isDoublePrecision =
-        info.format == py::format_descriptor<std::complex<double>>::format();
-    const int64_t dataSize = isDoublePrecision ? sizeof(std::complex<double>)
-                                               : sizeof(std::complex<float>);
+
     const bool rowMajor =
-        info.strides[1] ==
-        dataSize; // check row-major: second stride == element size
+        arr.stride(1) ==
+        1; // check row-major: stride in elements (not bytes) for last dim
     const cudaq::complex_matrix::order matOrder =
         rowMajor ? cudaq::complex_matrix::order::row_major
                  : cudaq::complex_matrix::order::column_major;
     const cudaq::complex_matrix::Dimensions dim = {rows, cols};
-    if (isDoublePrecision)
-      return state::from_data(cudaq::complex_matrix(
-          std::vector<cudaq::complex_matrix::value_type>(
-              reinterpret_cast<std::complex<double> *>(info.ptr),
-              reinterpret_cast<std::complex<double> *>(info.ptr) + info.size),
-          dim, matOrder));
 
-    return state::from_data(cudaq::complex_matrix(
-        std::vector<cudaq::complex_matrix::value_type>(
-            reinterpret_cast<std::complex<float> *>(info.ptr),
-            reinterpret_cast<std::complex<float> *>(info.ptr) + info.size),
-        dim, matOrder));
+    if (isDoublePrecision) {
+      auto *ptr = reinterpret_cast<std::complex<double> *>(arr.data());
+      return state::from_data(cudaq::complex_matrix(
+          std::vector<cudaq::complex_matrix::value_type>(ptr, ptr + totalSize),
+          dim, matOrder));
+    } else {
+      auto *ptr = reinterpret_cast<std::complex<float> *>(arr.data());
+      return state::from_data(cudaq::complex_matrix(
+          std::vector<cudaq::complex_matrix::value_type>(ptr, ptr + totalSize),
+          dim, matOrder));
+    }
   }
 }
 
 /// @brief Bind the get_state cudaq function
-void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
+void cudaq::bindPyState(py::module_ &mod, LinkedLibraryHolder &holder) {
   py::enum_<InitialState>(mod, "InitialStateType",
                           "Enumeration describing the initial state "
                           "type to be created in the backend")
@@ -325,7 +295,7 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
            [](SimulationState::Tensor &tensor) {
              return reinterpret_cast<intptr_t>(tensor.data);
            })
-      .def_readonly("extents", &SimulationState::Tensor::extents)
+      .def_ro("extents", &SimulationState::Tensor::extents)
       .def("get_rank", &SimulationState::Tensor::get_rank)
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
@@ -429,44 +399,52 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Convert the address of the state object to an integer.")
       .def_static(
           "from_data",
-          [&](py::buffer data) {
+          [&holder](py::object data) {
+            // If data is a list/tuple of tensors, let the vector overload
+            // handle it. Without this guard, py::object greedily matches
+            // lists before the std::vector<py::object> overload is tried.
+            // (nanobind migration: replaces pybind11's py::buffer which
+            // naturally rejected non-buffer types)
+            if (py::isinstance<py::list>(data) ||
+                py::isinstance<py::tuple>(data))
+              throw py::next_overload();
             return createStateFromPyBuffer(data, holder);
           },
           "Return a state from data.")
+      // Note: The SimulationState::Tensor overload MUST come before the
+      // py::object overload because nanobind tries overloads in declaration
+      // order. std::vector<py::object> would greedily match lists of Tensor
+      // objects and then fail when trying to cast them to ndarray.
       .def_static(
           "from_data",
-          [&holder](const std::vector<py::buffer> &tensors) {
-            const bool isHostData =
-                tensors.empty() ||
-                !py::hasattr(tensors[0], "__cuda_array_interface__");
-            // Check that the target is GPU-based, i.e., can handle device
-            // pointer.
-            if (!holder.getTarget().config.GpuRequired && !isHostData)
-              throw std::runtime_error(fmt::format(
-                  "Current target '{}' does not support CuPy arrays.",
-                  holder.getTarget().name));
+          [](const std::vector<SimulationState::Tensor> &tensors) {
             TensorStateData tensorData;
             for (auto &tensor : tensors) {
-              auto info =
-                  isHostData ? tensor.request() : getCupyBufferInfo(tensor);
-              const std::vector<std::size_t> extents(info.shape.begin(),
-                                                     info.shape.end());
               tensorData.emplace_back(
-                  std::pair<const void *, std::vector<std::size_t>>{info.ptr,
-                                                                    extents});
+                  std::pair<const void *, std::vector<std::size_t>>{
+                      tensor.data, tensor.extents});
             }
             return state::from_data(tensorData);
           },
           "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
-          [](const std::vector<SimulationState::Tensor> &tensors) {
+          [&holder](const std::vector<py::object> &tensors) {
+            const bool isHostData =
+                tensors.empty() || !isCupyArray(tensors[0]);
+            if (!holder.getTarget().config.GpuRequired && !isHostData)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
             TensorStateData tensorData;
             for (auto &tensor : tensors) {
-
+              auto arr = py::cast<py::ndarray<>>(tensor);
+              std::vector<std::size_t> extents;
+              for (size_t i = 0; i < arr.ndim(); ++i)
+                extents.push_back(arr.shape(i));
               tensorData.emplace_back(
-                  std::pair<const void *, std::vector<std::size_t>>{
-                      tensor.data, tensor.extents});
+                  std::pair<const void *, std::vector<std::size_t>>{arr.data(),
+                                                                    extents});
             }
             return state::from_data(tensorData);
           },
@@ -479,7 +457,7 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             // (implementing Python array interface), may be overshadowed by any
             // std::vector overloads.
             TensorStateData tensorData;
-            for (auto &tensor : tensors) {
+            for (py::handle tensor : tensors) {
               // Make sure this is a CuPy array
               if (!py::hasattr(tensor, "data"))
                 throw std::runtime_error(
@@ -493,16 +471,16 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
 
               // We know this is a cupy device pointer. Start by ensuring it is
               // of proper complex type
-              auto typeStr = py::str(tensor.attr("dtype")).cast<std::string>();
+              auto typeStr = std::string(py::str(tensor.attr("dtype")).c_str());
               if (typeStr != "complex128")
                 throw std::runtime_error(
                     "invalid from_data operation on py::object tensors - "
                     "only cupy complex128 tensors supported.");
-              auto shape = tensor.attr("shape").cast<py::tuple>();
+              auto shape = py::cast<py::tuple>(tensor.attr("shape"));
               std::vector<std::size_t> extents;
               for (auto el : shape)
-                extents.emplace_back(el.cast<std::size_t>());
-              long ptr = data.attr("ptr").cast<long>();
+                extents.emplace_back(py::cast<std::size_t>(el));
+              long ptr = py::cast<long>(data.attr("ptr"));
               tensorData.emplace_back(
                   std::pair<const void *, std::vector<std::size_t>>{
                       reinterpret_cast<std::complex<double> *>(ptr), extents});
@@ -530,7 +508,7 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             // We know this is a cupy device pointer. Start by ensuring it is of
             // complex type
             auto typeStr =
-                py::str(opaqueData.attr("dtype")).cast<std::string>();
+                std::string(py::str(opaqueData.attr("dtype")).c_str());
             if (typeStr.find("float") != std::string::npos)
               throw std::runtime_error(
                   "CuPy array with only floating point elements passed to "
@@ -542,16 +520,16 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             // Compute the number of elements in the array
             std::vector<std::size_t> extents;
             auto numElements = [&]() {
-              auto shape = opaqueData.attr("shape").cast<py::tuple>();
+              auto shape = py::cast<py::tuple>(opaqueData.attr("shape"));
               std::size_t numElements = 1;
               for (auto el : shape) {
-                numElements *= el.cast<std::size_t>();
-                extents.emplace_back(el.cast<std::size_t>());
+                numElements *= py::cast<std::size_t>(el);
+                extents.emplace_back(py::cast<std::size_t>(el));
               }
               return numElements;
             }();
 
-            long ptr = data.attr("ptr").cast<long>();
+            long ptr = py::cast<long>(data.attr("ptr"));
             if (holder.getTarget().name == "dynamics") {
               // For dynamics, we need to send on the extents to distinguish
               // state vector vs density matrix.
@@ -695,7 +673,7 @@ index pair.
           [](state &self) {
             std::stringstream ss;
             self.dump(ss);
-            py::print(ss.str());
+            py::module_::import_("builtins").attr("print")(ss.str());
           },
           "Print the state to the console.")
       .def("__str__",
@@ -710,7 +688,7 @@ index pair.
           "Compute the overlap between the provided :class:`State`'s.")
       .def(
           "overlap",
-          [&holder](state &self, py::buffer &other) {
+          [&holder](state &self, py::object other) {
             if (self.get_num_tensors() != 1)
               throw std::runtime_error("overlap NumPy interop only supported "
                                        "for vector and matrix state data.");
@@ -737,7 +715,7 @@ index pair.
             // We know this is a cupy device pointer.
 
             // Start by ensuring it is of complex type
-            auto typeStr = py::str(other.attr("dtype")).cast<std::string>();
+            auto typeStr = std::string(py::str(other.attr("dtype")).c_str());
             if (typeStr.find("float") != std::string::npos)
               throw std::runtime_error(
                   "CuPy array with only floating point elements passed to "
@@ -761,15 +739,15 @@ index pair.
 
             // Compute the number of elements in the other array
             auto numOtherElements = [&]() {
-              auto shape = other.attr("shape").cast<py::tuple>();
+              auto shape = py::cast<py::tuple>(other.attr("shape"));
               std::size_t numElements = 1;
               for (auto el : shape)
-                numElements *= el.cast<std::size_t>();
+                numElements *= py::cast<std::size_t>(el);
               return numElements;
             }();
 
             // Cast the device ptr and perform the overlap
-            long ptr = data.attr("ptr").cast<long>();
+            long ptr = py::cast<long>(data.attr("ptr"));
             if (precision == SimulationState::precision::fp32)
               return self.overlap(state::from_data(
                   std::make_pair(reinterpret_cast<std::complex<float> *>(ptr),

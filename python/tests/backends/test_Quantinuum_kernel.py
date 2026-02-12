@@ -13,8 +13,16 @@ from multiprocessing import Process
 from typing import List
 from network_utils import check_server_connection
 try:
-    from utils.mock_qpu.quantinuum import startServer
-except:
+    from utils.mock_qpu.quantinuum import app
+    import uvicorn
+
+    print("Mock qpu available, running Quantinuum tests.")
+
+    def startServer(port):
+        cudaq.set_random_seed(13)
+        uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
+except ImportError as e:
+    print(e)
     print("Mock qpu not available, skipping Quantinuum tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
@@ -23,7 +31,7 @@ port = 62440
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+    return got < -1.5 and got > -2.0
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import inspect, numpy  # type: ignore
-from typing import Any, Callable, Mapping, Optional
+import numpy  # type: ignore
+from typing import Any, Callable, Mapping
 from numpy.typing import NDArray
 
-from ..helpers import NumericType, _aggregate_parameters, _args_from_kwargs, _parameter_docs
+from ..helpers import NumericType, _aggregate_parameters
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ScalarOperator
 
 
@@ -97,44 +97,3 @@ ScalarOperator.__radd__ = lambda self, other: _compose(self, other, lambda v1,
                                                        v2: v2 + v1)
 ScalarOperator.__rsub__ = lambda self, other: _compose(self, other, lambda v1,
                                                        v2: v2 - v1)
-
-
-def _instantiate(cls,
-                 generator: NumericType | Callable[..., NumericType],
-                 parameter_info: Optional[Mapping[str, str]] = None) -> None:
-    """
-    Instantiates a scalar operator.
-
-    Arguments:
-        generator: The value of the scalar operator as a function of its
-            parameters. The generator may take any number of complex-valued
-            arguments and must return a number. Each parameter must be passed
-            as a keyword argument when evaluating the operator. 
-    """
-    instance = super(ScalarOperator, cls).__new__(cls)
-    if isinstance(generator, NumericType):
-        instance.__init__(numpy.complex128(generator))
-    else:
-        # A variable number of arguments (i.e. `*args`) cannot be supported
-        # for generators; it would prevent proper argument handling while
-        # supporting additions and multiplication of all kinds of operators.
-        arg_spec = inspect.getfullargspec(generator)
-        if arg_spec.varargs is not None:
-            raise ValueError(
-                f"the function defining a scalar operator must not take *args")
-        if parameter_info is None:
-            parameter_info = {}
-            for arg_name in arg_spec.args + arg_spec.kwonlyargs:
-                parameter_info[arg_name] = _parameter_docs(
-                    arg_name, generator.__doc__)
-
-        def generator_wrapper(kwargs: dict[str, NumericType]):
-            generator_args, remaining_kwargs = _args_from_kwargs(
-                generator, **kwargs)
-            return generator(*generator_args, **remaining_kwargs)
-
-        instance.__init__(generator_wrapper, **parameter_info)
-    return instance
-
-
-ScalarOperator.__new__ = staticmethod(_instantiate)

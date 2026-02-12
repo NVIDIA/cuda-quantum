@@ -173,7 +173,6 @@ def test_list_update():
 
     assert test9() == 15
 
-
 def test_list_update_failures():
 
     @dataclass(slots=True)
@@ -205,7 +204,7 @@ def test_list_update_failures():
     # return values with dynamically sized element types are not yet supported
     with pytest.raises(RuntimeError) as e:
         cudaq.run(get_MyTuple, [0, 0])
-    assert 'Tuple size mismatch' in str(e.value)
+    assert 'Unsupported element type in struct type' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 

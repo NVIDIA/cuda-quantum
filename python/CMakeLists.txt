@@ -51,7 +51,7 @@ add_custom_target(
 
 add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
-add_subdirectory(runtime/cudaq/domains/plugins)
+# add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)

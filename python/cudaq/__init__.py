@@ -291,7 +291,7 @@ def __clearKernelRegistries():
 
 # Expose chemistry domain functions
 from .domains import chemistry
-from .kernels import uccsd
+# from .kernels import uccsd
 from .dbg import ast
 
 # ============================================================================ #

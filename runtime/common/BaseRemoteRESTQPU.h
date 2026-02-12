@@ -35,6 +35,19 @@ cudaq::Resources *getResourceCounts();
 bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
+// When compiled into the Python extension, the LLVM Registry<T> Head/Tail
+// static-inline pointers have hidden visibility (local 'b' symbols) instead
+// of GNU-unique ('u') symbols. This means registry::get<T> in the Python
+// extension sees an empty list even though dlopen'd .so plugins registered
+// into libcudaq-common's unique-symbol registry.  These C-linkage helpers
+// perform the lookup inside libcudaq-common so it works across DSO boundaries.
+#ifdef CUDAQ_PYTHON_EXTENSION
+extern "C" cudaq::ServerHelper *cudaq_find_server_helper(const char *name);
+extern "C" bool cudaq_has_server_helper(const char *name);
+extern "C" cudaq::Executor *cudaq_find_executor(const char *name);
+extern "C" bool cudaq_has_executor(const char *name);
+#endif
+
 namespace cudaq {
 
 class BaseRemoteRESTQPU : public QPU {
@@ -216,18 +229,31 @@ public:
     // Set the qpu name
     qpuName = mutableBackend;
     // Create the ServerHelper for this QPU and give it the backend config
+#ifdef CUDAQ_PYTHON_EXTENSION
+    serverHelper.reset(cudaq_find_server_helper(qpuName.c_str()));
+#else
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
+#endif
     if (!serverHelper) {
       throw std::runtime_error("ServerHelper not found for target: " + qpuName);
     }
 
     serverHelper->initialize(backendConfig);
     CUDAQ_INFO("Retrieving executor with name {}", qpuName);
+#ifdef CUDAQ_PYTHON_EXTENSION
+    bool hasExecutor = cudaq_has_executor(qpuName.c_str());
+    CUDAQ_INFO("Is this executor registered? {}", hasExecutor);
+    executor = hasExecutor
+                   ? std::unique_ptr<cudaq::Executor>(
+                         cudaq_find_executor(qpuName.c_str()))
+                   : std::make_unique<cudaq::Executor>();
+#else
     CUDAQ_INFO("Is this executor registered? {}",
                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
     executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
                    ? cudaq::registry::get<cudaq::Executor>(qpuName)
                    : std::make_unique<cudaq::Executor>();
+#endif
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());

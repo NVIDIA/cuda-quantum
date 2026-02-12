@@ -16,6 +16,10 @@ include(AddMLIRPython)
 # Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
 add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
+# Mark QPU sources compiled into the Python extension so they use the
+# cross-DSO registry hook (cudaq_add_qpu_node) instead of the local
+# CUDAQ_REGISTER_TYPE which would register into the wrong DSO.
+add_compile_definitions("CUDAQ_PYTHON_EXTENSION")
 
 ################################################################################
 # Sources
@@ -144,6 +148,11 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     # available.
     MLIRPythonExtension.RegisterEverything
     MLIRPythonSources.Core
+    # Include full MLIRPythonSources so dialect extensions' EMBED_CAPI_LINK_LIBS
+    # (e.g. obj.MLIRCAPILLVM for the LLVM dialect) are embedded into the common
+    # CAPI lib. Otherwise _mlirDialectsLLVM.so fails with undefined symbol
+    # mlirTypeIsALLVMStructType at runtime.
+    MLIRPythonSources
 )
 
 ################################################################################
@@ -163,6 +172,13 @@ add_mlir_python_modules(CUDAQuantumPythonModules
     CUDAQuantumPythonCAPI
   )
 
+# Suppress warnings-as-errors for upstream MLIR Python extension sources
+# that have minor GCC warnings (address-of-function, parentheses) in LLVM 22.
+if(TARGET CUDAQuantumPythonModules.extension._mlir.dso)
+  target_compile_options(CUDAQuantumPythonModules.extension._mlir.dso PRIVATE
+    -Wno-error=address -Wno-error=parentheses)
+endif()
+
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
@@ -171,6 +187,15 @@ if(APPLE)
   set(_origin_prefix "@loader_path")
 else()
   set(_origin_prefix "$ORIGIN")
+endif()
+
+## Retain all linked libraries (e.g. libcudaq) so that static initializers
+## (ModuleLauncher registry and PythonLauncher registration) run and resolve
+## in the same process. Without --no-as-needed the linker may drop libcudaq
+## and the launcher is never registered.
+if(CUDAQ_FORCE_LINK_FLAG)
+  target_link_options(CUDAQuantumPythonCAPI PRIVATE
+    ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 
 if (NOT SKBUILD)

@@ -119,6 +119,28 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
+// LLVM 22 no longer infers the nonnull attribute on GEP arguments pointing to
+// global constant strings during O3 optimization. The QIR profile verification
+// expects nonnull on pointer parameters of __quantum__rt__result_record_output
+// calls, so we explicitly add it here after optimization.
+void applyNonNullAttributes(llvm::Module *llvmModule) {
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (callInst && callInst->getCalledFunction()) {
+          auto funcName = callInst->getCalledFunction()->getName();
+          if (funcName == cudaq::opt::QIRRecordOutput ||
+              funcName == cudaq::opt::QIRArrayRecordOutput) {
+            for (unsigned i = 0; i < callInst->arg_size(); ++i) {
+              if (callInst->getArgOperand(i)->getType()->isPointerTy())
+                callInst->addParamAttr(i, llvm::Attribute::NonNull);
+            }
+          }
+        }
+      }
+}
+
 static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
   // Not a valid adaptive profile instruction
   // Check if it's in the extended instruction set
@@ -604,9 +626,11 @@ mlir::LogicalResult qirProfileTranslationFunction(
   if (failed(filterSpecificCodePatterns(llvmModule.get(), config)))
     return mlir::failure();
 
-  // Note: optimizeLLVM is the one that is setting nonnull attributes on
-  // the @__quantum__rt__result_record_output calls.
+  // Note: LLVM 22 no longer infers nonnull attributes on GEP arguments to
+  // @__quantum__rt__result_record_output during O3 optimization, so we
+  // explicitly add them after optimization.
   cudaq::optimizeLLVM(llvmModule.get());
+  applyNonNullAttributes(llvmModule.get());
   if (!cudaq::setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 

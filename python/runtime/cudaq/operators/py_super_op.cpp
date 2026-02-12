@@ -7,10 +7,15 @@
  ******************************************************************************/
 
 #include <complex>
-#include <pybind11/complex.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 #include "cudaq/operators.h"
 #include "py_helpers.h"
@@ -18,7 +23,7 @@
 
 namespace cudaq {
 
-void bindSuperOperatorWrapper(py::module &mod) {
+void bindSuperOperatorWrapper(py::module_ &mod) {
   auto super_op_class = py::class_<super_op>(mod, "SuperOperator");
 
   super_op_class
@@ -74,9 +79,11 @@ void bindSuperOperatorWrapper(py::module &mod) {
       .def(
           "__iter__",
           [](super_op &self) {
-            return py::make_iterator(self.begin(), self.end());
+            py::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(py::cast(*it));
+            return items.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(),
           "Loop through each term of the super-operator.")
       .def(py::self += py::self, py::is_operator());
 }

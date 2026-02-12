@@ -7,9 +7,14 @@
  ******************************************************************************/
 #include "py_CustomOpRegistry.h"
 #include "common/CustomOp.h"
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 namespace cudaq {
 struct py_unitary_operation : public unitary_operation {
@@ -22,7 +27,7 @@ struct py_unitary_operation : public unitary_operation {
   }
 };
 
-void bindCustomOpRegistry(py::module &mod) {
+void bindCustomOpRegistry(py::module_ &mod) {
   mod.def(
       "register_custom_operation",
       [&](const std::string &opName) {

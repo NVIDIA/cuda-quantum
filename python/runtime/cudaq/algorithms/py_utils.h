@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 #include <tuple>
 #include <unordered_map>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 
@@ -20,8 +20,8 @@ namespace cudaq {
 /// and global variables that are JSON compatible
 py::dict get_serializable_var_dict();
 
-/// @brief Fetch the Python source code from a `py::function`
-std::string get_source_code(const py::function &func);
+/// @brief Fetch the Python source code from a `py::callable`
+std::string get_source_code(const py::callable &func);
 
 /// @brief Find the variable name for a given Python object handle. It searches
 /// locally first, walks up the call stack, and finally checks the global
@@ -36,7 +36,7 @@ public:
 
   /// @brief Register class object
   static void registerClass(std::string &name, py::object cls) {
-    classes[name] = {cls, cls.attr("__annotations__").cast<py::dict>()};
+    classes[name] = {cls, py::cast<py::dict>(cls.attr("__annotations__"))};
   }
 
   /// @brief Is data class name registered
@@ -51,6 +51,6 @@ public:
   }
 };
 
-void bindPyDataClassRegistry(py::module &mod);
+void bindPyDataClassRegistry(py::module_ &mod);
 
 } // namespace cudaq

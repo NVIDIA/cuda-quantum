@@ -9,9 +9,9 @@
 #include "cudaq/domains/chemistry/MoleculePackageDriver.h"
 #include "cudaq/target_control.h"
 #include <map>
-#include <pybind11/embed.h>
+#include <pybind11/embed.h>  // nanobind has no embed equivalent; keep pybind11 for this
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace cudaq;
 
 namespace {
@@ -32,13 +32,13 @@ spin_op fromOpenFermionQubitOperator(const py::object &op) {
   auto terms = op.attr("terms");
   auto H = spin_op::empty();
   for (auto term : terms) {
-    auto termTuple = term.cast<py::tuple>();
+    auto termTuple = py::cast<py::tuple>(term);
     auto localTerm = spin_op::identity();
     for (auto &element : termTuple) {
-      auto casted = element.cast<std::pair<std::size_t, std::string>>();
+      auto casted = py::cast<std::pair<std::size_t, std::string>>(element);
       localTerm *= creatorMap[casted.second](casted.first);
     }
-    H += terms[term].cast<double>() * localTerm;
+    H += py::cast<double>(terms[term]) * localTerm;
   }
   return H;
 }
@@ -79,7 +79,7 @@ public:
     cudaq::__internal__::disableTargetModification();
 
     // Import the cudaq python chemistry module
-    auto cudaqModule = py::module_::import(ChemistryModuleName);
+    auto cudaqModule = py::module_::import_(ChemistryModuleName);
 
     // Reset it
     cudaq::__internal__::enableTargetModification();
@@ -96,7 +96,7 @@ public:
     auto hamiltonianGen = cudaqModule.attr(CreatorFunctionName);
     auto resultTuple = hamiltonianGen(pyGeometry, basis, multiplicity, charge,
                                       nElectrons, nActive)
-                           .cast<py::tuple>();
+                           py::cast<py::tuple>();
 
     // Get the spin_op representation
     auto spinOp = fromOpenFermionQubitOperator(resultTuple[0]);
@@ -106,38 +106,38 @@ public:
 
     // Extract the one-body integrals
     auto pyOneBody = openFermionMolecule.attr("one_body_integrals");
-    auto shape = pyOneBody.attr("shape").cast<py::tuple>();
+    auto shape = py::cast<py::tuple>(pyOneBody.attr("shape"));
     one_body_integrals oneBody(
-        {shape[0].cast<std::size_t>(), shape[1].cast<std::size_t>()});
+        {py::cast<std::size_t>(shape[0]), py::cast<std::size_t>(shape[1])});
     for (std::size_t i = 0; i < oneBody.shape[0]; i++)
       for (std::size_t j = 0; j < oneBody.shape[1]; j++)
         oneBody(i, j) =
-            pyOneBody.attr("__getitem__")(py::make_tuple(i, j)).cast<double>();
+            pyOneBody.attr("__getitem__")(py::make_tuple(i, py::cast<double>(j)));
 
     // Extract the two-body integrals
     auto pyTwoBody = openFermionMolecule.attr("two_body_integrals");
-    shape = pyTwoBody.attr("shape").cast<py::tuple>();
+    shape = py::cast<py::tuple>(pyTwoBody.attr("shape"));
     two_body_integals twoBody(
-        {shape[0].cast<std::size_t>(), shape[1].cast<std::size_t>(),
-         shape[2].cast<std::size_t>(), shape[3].cast<std::size_t>()});
+        {py::cast<std::size_t>(shape[0]), py::cast<std::size_t>(shape[1]),
+         py::cast<std::size_t>(shape[2]), py::cast<std::size_t>(shape[3])});
     for (std::size_t i = 0; i < twoBody.shape[0]; i++)
       for (std::size_t j = 0; j < twoBody.shape[1]; j++)
         for (std::size_t k = 0; k < twoBody.shape[2]; k++)
           for (std::size_t l = 0; l < twoBody.shape[3]; l++)
             twoBody(i, j, k, l) =
                 pyTwoBody.attr("__getitem__")(py::make_tuple(i, j, k, l))
-                    .cast<double>();
+                    py::cast<double>();
 
     // return a new molecular_hamiltonian
     return molecular_hamiltonian{
         spinOp,
         std::move(oneBody),
         std::move(twoBody),
-        openFermionMolecule.attr("n_electrons").cast<std::size_t>(),
-        openFermionMolecule.attr("n_orbitals").cast<std::size_t>(),
-        openFermionMolecule.attr("nuclear_repulsion").cast<double>(),
-        openFermionMolecule.attr("hf_energy").cast<double>(),
-        openFermionMolecule.attr("fci_energy").cast<double>()};
+        py::cast<std::size_t>(openFermionMolecule.attr("n_electrons")),
+        py::cast<std::size_t>(openFermionMolecule.attr("n_orbitals")),
+        py::cast<double>(openFermionMolecule.attr("nuclear_repulsion")),
+        py::cast<double>(openFermionMolecule.attr("hf_energy")),
+        py::cast<double>(openFermionMolecule.attr("fci_energy"))};
   }
 };
 

@@ -11,9 +11,14 @@
 #include "cudaq.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+namespace py = nanobind;
 
 namespace nvqir {
 void toggleDynamicQubitManagement();
@@ -21,7 +26,7 @@ void toggleDynamicQubitManagement();
 
 namespace cudaq {
 
-void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
+void bindTestUtils(py::module_ &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
 
   testingSubmodule.def(

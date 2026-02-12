@@ -12,10 +12,16 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <fmt/core.h>
-#include <pybind11/complex.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace nvqir {
 std::string_view getQirOutputLog();
@@ -24,27 +30,27 @@ void clearQirOutputLog();
 
 namespace cudaq {
 
-void bindExecutionContext(py::module &mod) {
+void bindExecutionContext(py::module_ &mod) {
   py::class_<cudaq::ExecutionContext>(mod, "ExecutionContext")
       .def(py::init<std::string>())
       .def(py::init<std::string, std::size_t, std::size_t>(), py::arg("name"),
            py::arg("shots"), py::arg("qpu_id") = 0)
-      .def_readwrite("kernelName", &cudaq::ExecutionContext::kernelName)
-      .def_readonly("result", &cudaq::ExecutionContext::result)
-      .def_readwrite("asyncExec", &cudaq::ExecutionContext::asyncExec)
-      .def_readonly("asyncResult", &cudaq::ExecutionContext::asyncResult)
-      .def_readwrite("hasConditionalsOnMeasureResults",
+      .def_rw("kernelName", &cudaq::ExecutionContext::kernelName)
+      .def_ro("result", &cudaq::ExecutionContext::result)
+      .def_rw("asyncExec", &cudaq::ExecutionContext::asyncExec)
+      .def_ro("asyncResult", &cudaq::ExecutionContext::asyncResult)
+      .def_rw("hasConditionalsOnMeasureResults",
                      &cudaq::ExecutionContext::hasConditionalsOnMeasureResults)
-      .def_readwrite("totalIterations",
+      .def_rw("totalIterations",
                      &cudaq::ExecutionContext::totalIterations)
-      .def_readwrite("batchIteration", &cudaq::ExecutionContext::batchIteration)
-      .def_readwrite("numberTrajectories",
+      .def_rw("batchIteration", &cudaq::ExecutionContext::batchIteration)
+      .def_rw("numberTrajectories",
                      &cudaq::ExecutionContext::numberTrajectories)
-      .def_readwrite("explicitMeasurements",
+      .def_rw("explicitMeasurements",
                      &cudaq::ExecutionContext::explicitMeasurements)
-      .def_readwrite("allowJitEngineCaching",
+      .def_rw("allowJitEngineCaching",
                      &cudaq::ExecutionContext::allowJitEngineCaching)
-      .def_readonly("invocationResultBuffer",
+      .def_ro("invocationResultBuffer",
                     &cudaq::ExecutionContext::invocationResultBuffer)
       .def("unset_jit_engine",
            [&](cudaq::ExecutionContext &execCtx) {
@@ -73,9 +79,10 @@ void bindExecutionContext(py::module &mod) {
              cudaq::detail::setExecutionContext(&ctx);
              platform.beginExecution();
              return ctx;
-           })
-      .def("__exit__", [](cudaq::ExecutionContext &ctx, py::object type,
-                          py::object value, py::object traceback) {
+           },
+           py::rv_policy::reference)
+      .def("__exit__", [](cudaq::ExecutionContext &ctx, py::handle type,
+                          py::handle value, py::handle traceback) {
         if (type.is_none()) {
           // No exception, so we finalize the context and reset it
           auto &platform = cudaq::get_platform();
@@ -89,8 +96,12 @@ void bindExecutionContext(py::module &mod) {
           // Reset, silencing any further exceptions
           detail::invoke_no_throw(detail::resetExecutionContext);
         }
+        // Return false so exceptions are not suppressed
         return false;
-      });
+      },
+      // nanobind rejects None args by default (unlike pybind11);
+      // mark each __exit__ parameter as accepting None.
+      py::arg().none(), py::arg().none(), py::arg().none());
   mod.def("supportsConditionalFeedback", []() {
     auto &platform = cudaq::get_platform();
     return platform.supports_conditional_feedback();
@@ -114,14 +125,18 @@ void bindExecutionContext(py::module &mod) {
   mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
   mod.def("decodeQirOutputLog",
-          [](const std::string &outputLog, py::buffer decodedResults) {
+          [](const std::string &outputLog, py::object decodedResults) {
             cudaq::RecordLogParser parser;
             parser.parse(outputLog);
-            auto info = decodedResults.request();
+            Py_buffer view;
+            if (PyObject_GetBuffer(decodedResults.ptr(), &view,
+                                   PyBUF_WRITABLE) != 0)
+              throw py::python_error();
             // Get the buffer and length of buffer (in bytes) from the parser.
             auto *origBuffer = parser.getBufferPtr();
             const std::size_t bufferSize = parser.getBufferSize();
-            std::memcpy(info.ptr, origBuffer, bufferSize);
+            std::memcpy(view.buf, origBuffer, bufferSize);
+            PyBuffer_Release(&view);
           });
 }
 } // namespace cudaq

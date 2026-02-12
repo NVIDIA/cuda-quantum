@@ -17,7 +17,12 @@ from cudaq import spin
 import numpy as np
 
 try:
-    from utils.mock_qpu.oqc import startServer
+    from utils.mock_qpu.oqc import app
+    import uvicorn
+
+    def startServer(port):
+        cudaq.set_random_seed(13)
+        uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
 except:
     print("Mock qpu not available, skipping OQC tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
