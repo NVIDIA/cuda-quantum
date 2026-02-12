@@ -39,6 +39,7 @@ public:
 
   void cache(std::size_t hash, mlir::ExecutionEngine *);
   bool hasJITEngine(std::size_t hash);
+  void deleteJITEngine(std::size_t hash);
   mlir::ExecutionEngine *getJITEngine(std::size_t hash);
 };
 } // namespace cudaq
