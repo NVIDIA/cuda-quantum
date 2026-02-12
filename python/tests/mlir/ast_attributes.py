@@ -66,7 +66,7 @@ def test_attribute_access():
 def test_attribute_failures():
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel1() -> int:
             l = [1, 2, 3]
             l[0] = 4
@@ -80,7 +80,7 @@ def test_attribute_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel2():
             qs = cudaq.qvector(2)
             qs.append(cudaq.qubit())
@@ -93,7 +93,7 @@ def test_attribute_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel3():
             angles = [0.5, 1.]
             angles.append(1.5)

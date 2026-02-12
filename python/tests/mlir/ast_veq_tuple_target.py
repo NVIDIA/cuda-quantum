@@ -19,7 +19,7 @@ def test_list_deconstruction():
         q: cudaq.qview
         r: cudaq.qubit
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel1():
         q0, q1, q2 = cudaq.qvector(3)
         x(q0)
@@ -28,7 +28,7 @@ def test_list_deconstruction():
 
     print(kernel1)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel2():
         (q0, q1), q2 = cudaq.qvector(2), cudaq.qubit()
         x(q0)
@@ -37,7 +37,7 @@ def test_list_deconstruction():
 
     print(kernel2)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel3():
         ts = cudaq.qvector(2)
         data = MyTuple(ts, cudaq.qubit())
@@ -48,7 +48,7 @@ def test_list_deconstruction():
 
     print(kernel3)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel4():
         (q0,), (q1, q2) = cudaq.qvector(1), cudaq.qvector(2)
         x(q0)
@@ -57,7 +57,7 @@ def test_list_deconstruction():
 
     print(kernel4)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel5():
         r1, r2 = [0.5, 1.]
         q = cudaq.qubit()
@@ -136,7 +136,7 @@ def test_list_deconstruction_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel1():
             (q0, q1), q2 = cudaq.qvector(3)
             x(q0)
@@ -150,7 +150,7 @@ def test_list_deconstruction_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel2():
             ts = cudaq.qvector(1)
             data = MyTuple(ts, cudaq.qubit())
@@ -184,7 +184,7 @@ def test_list_deconstruction_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel3():
             r1, r2 = [0.5, 1., 1.5]
             q = cudaq.qubit()

@@ -13,7 +13,7 @@ import cudaq
 
 def test_bug_1775():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test():
         qubit = cudaq.qubit()
         res = mz(qubit)

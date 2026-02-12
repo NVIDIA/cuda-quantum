@@ -14,7 +14,7 @@ import numpy
 
 def test_list_init():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel():
         q = cudaq.qvector(6)
         params = [1., 2., 3., 4.]
@@ -70,7 +70,7 @@ def test_list_conversion_fail():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test1(params: list[complex]):
             angles = numpy.array(params, dtype=float)
             q = cudaq.qubit()

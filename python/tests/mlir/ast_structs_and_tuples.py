@@ -20,7 +20,7 @@ def test_basic_struq():
         q: cudaq.qview
         r: cudaq.qview
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def entry():
         q = cudaq.qvector(2)
         r = cudaq.qvector(2)
@@ -42,7 +42,7 @@ def test_basic_struq():
 
 def test_tuple_assign_struq():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test():
         q, r, s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
         x(q, s)
@@ -50,7 +50,7 @@ def test_tuple_assign_struq():
 
     print(test)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test1():
         q, r, s = cudaq.qvector(1), cudaq.qubit(), cudaq.qubit()
         x(q)
@@ -60,7 +60,7 @@ def test_tuple_assign_struq():
     print(test1)
     print("result test1: " + str(cudaq.sample(test1)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test2():
         q = cudaq.qvector(2), cudaq.qubit(), cudaq.qubit()
         x(q[0])
@@ -70,7 +70,7 @@ def test_tuple_assign_struq():
     print(test2)
     print("result test2: " + str(cudaq.sample(test2)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test3():
         q = cudaq.qvector(3), cudaq.qubit(), cudaq.qubit()
         c, t1, t2 = q
@@ -81,7 +81,7 @@ def test_tuple_assign_struq():
     print(test3)
     print("result test3: " + str(cudaq.sample(test3)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test4():
         c, q = cudaq.qvector(4), (cudaq.qubit(), cudaq.qubit())
         x(c)
@@ -91,7 +91,7 @@ def test_tuple_assign_struq():
     print(test4)
     print("result test4: " + str(cudaq.sample(test4)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test5():
         c, (q1, q2) = cudaq.qvector(5), (cudaq.qubit(), cudaq.qubit())
         x(c)
@@ -101,7 +101,7 @@ def test_tuple_assign_struq():
     print(test5)
     print("result test5: " + str(cudaq.sample(test5)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test6():
         q, a = cudaq.qubit(), numpy.pi
         ry(a, q)
@@ -118,7 +118,7 @@ def test_tuple_assign_struq():
     def getMyTuple(arg: cudaq.qview) -> MyTuple:
         return MyTuple(arg[:-1], arg[-1])
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test7():
         reg = cudaq.qvector(3)
         q = getMyTuple(reg)
@@ -128,7 +128,7 @@ def test_tuple_assign_struq():
     print(test7)
     print("result test7: " + str(cudaq.sample(test7)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test8():
         reg = cudaq.qvector(4)
         q = getMyTuple(reg)
@@ -138,7 +138,7 @@ def test_tuple_assign_struq():
     print(test8)
     print("result test8: " + str(cudaq.sample(test8)))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test9():
         reg = cudaq.qvector(5)
         cs, t = getMyTuple(reg)
@@ -152,7 +152,7 @@ def test_tuple_assign_struq():
     def getTuple(arg: cudaq.qview) -> tuple[cudaq.qvector, cudaq.qubit]:
         return (arg[:-1], arg[-1])
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test10():
         reg = cudaq.qvector(6)
         q = getTuple(reg)
@@ -188,7 +188,7 @@ def test_tuple_assign_struq():
 
 def test_tuple_assign_struct():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test1() -> float:
         q, r = 1, 2.
         return q + r
@@ -196,7 +196,7 @@ def test_tuple_assign_struct():
     print(test1)
     print("result test1: " + str(test1()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test2() -> float:
         v = 2, 2.
         return v[0] + v[1]
@@ -204,7 +204,7 @@ def test_tuple_assign_struct():
     print(test2)
     print("result test2: " + str(test2()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test3() -> float:
         v = 3, 2.
         v1, v2 = v
@@ -222,7 +222,7 @@ def test_tuple_assign_struct():
     def getMyTuple(arg: int) -> MyTuple:
         return MyTuple(arg, 2.)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test4() -> float:
         v = getMyTuple(4)
         return v.first + v.second
@@ -230,7 +230,7 @@ def test_tuple_assign_struct():
     print(test4)
     print("result test4: " + str(test4()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test5() -> float:
         v1, v2 = getMyTuple(5)
         return v1 + v2
@@ -238,7 +238,7 @@ def test_tuple_assign_struct():
     print(test5)
     print("result test5: " + str(test5()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test6() -> float:
         v = (getMyTuple(5), 1)
         return v[0].first + v[0].second + v[1]
@@ -246,7 +246,7 @@ def test_tuple_assign_struct():
     print(test6)
     print("result test6: " + str(test6()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test7() -> float:
         v1, v2 = ((6, 2.), 1)
         return v1[0] + v1[1] + v2
@@ -254,7 +254,7 @@ def test_tuple_assign_struct():
     print(test7)
     print("result test7: " + str(test7()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test8() -> float:
         (v1, v2), v3 = ((7, 2.), 1)
         return v1 + v2 + v3
@@ -262,7 +262,7 @@ def test_tuple_assign_struct():
     print(test8)
     print("result test8: " + str(test8()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test9() -> float:
         (v1, v2), v3 = (getMyTuple(8), 1)
         return v1 + v2 + v3
@@ -274,7 +274,7 @@ def test_tuple_assign_struct():
     def getTuple(v1: int) -> tuple[int, float]:
         return v1, 1.
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test10() -> float:
         v = getTuple(1)
         return v[0] + v[1]
@@ -282,7 +282,7 @@ def test_tuple_assign_struct():
     print(test10)
     print("result test10: " + str(test10()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test11() -> float:
         v1, v2 = getTuple(2)
         return v1 + v2
@@ -290,7 +290,7 @@ def test_tuple_assign_struct():
     print(test11)
     print("result test11: " + str(test11()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test12() -> float:
         v = (getTuple(2), 1)
         return v[0][0] + v[0][1] + v[1]
@@ -298,7 +298,7 @@ def test_tuple_assign_struct():
     print(test12)
     print("result test12: " + str(test12()))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test13() -> int:
         # check argument conversion
         v = getTuple(5.0)
@@ -345,7 +345,7 @@ def test_tuple_assign_struct():
 def test_tuple_assign_failures():
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test1() -> float:
             v1, v2, v3 = ((1, 2), 3)
             return v1 + v2 + v3
@@ -356,7 +356,7 @@ def test_tuple_assign_failures():
         print(e)
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test2():
             q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit())
             x(q1)
@@ -369,7 +369,7 @@ def test_tuple_assign_failures():
         print(e)
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test3():
             v = cudaq.qubit(), 0.5
             rz(v[1], v[0])

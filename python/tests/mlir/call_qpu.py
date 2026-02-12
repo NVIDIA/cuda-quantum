@@ -19,14 +19,14 @@ import cudaq
 # call.
 def test_qpu_call_return_vector():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def func_achat(qv: cudaq.qvector) -> list[bool]:
         # measure the entire register
         return mz(qv)
 
     print(func_achat)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def func_shiim(qv: cudaq.qvector) -> int:
         vs = qv[1:3]
         bs = func_achat(vs)
@@ -38,7 +38,7 @@ def test_qpu_call_return_vector():
 
     print(func_shiim)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def main_kernel() -> int:
         qv = cudaq.qvector(8)
         x(qv)

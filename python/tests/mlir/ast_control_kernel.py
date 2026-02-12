@@ -13,7 +13,7 @@ import cudaq
 
 def test_control_kernel():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def applyX(q: cudaq.qubit):
         x(q)
 
@@ -24,7 +24,7 @@ def test_control_kernel():
     # CHECK:           return
     # CHECK:         }
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def bell():
         q = cudaq.qvector(2)
         h(q[0])

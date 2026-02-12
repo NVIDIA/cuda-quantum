@@ -23,25 +23,25 @@ def test_custom_quantum_type():
         ancx: cudaq.qview
         ancz: cudaq.qview
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def logicalH(p: patch):
         h(p.data)
 
     print(logicalH)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def logicalX(p: patch):
         x(p.ancx)
 
     print(logicalX)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def logicalZ(p: patch):
         z(p.ancz)
 
     print(logicalZ)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def run():
         q = cudaq.qvector(2)
         r = cudaq.qvector(2)

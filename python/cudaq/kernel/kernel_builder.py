@@ -1349,6 +1349,14 @@ class PyKernel(object):
         ```
         """
         if isa_kernel_decorator(target):
+            if not target.is_compiled():
+                name = target.name
+                emitFatalError(
+                    f"Kernel '{name}' must be compiled to be used in the kernel builder. "
+                    f"Call `{name}.compile()` before initializing the kernel builder, "
+                    f"or deactivate deferred compilation:\n\n"
+                    f"    @cudaq.kernel(defer_compilation=False)\n"
+                    f"    def {name}(...): ...\n")
             target = self.resolve_callable_arg(self.insertPoint, target)
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
@@ -1361,8 +1369,8 @@ class PyKernel(object):
         Returns a `CreateLambdaOp` closure.
         """
         # Add the target kernel to the current module.
-        cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
         fulluniq = nvqppPrefix + target.uniqName
+        cudaq_runtime.updateModule(fulluniq, self.module, target.qkeModule)
         fn = recover_func_op(self.module, fulluniq)
 
         # build the closure to capture the lifted `args`

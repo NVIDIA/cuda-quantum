@@ -571,41 +571,39 @@ def test_decrementing_range():
 
 
 def test_no_dynamic_Lists():
-    with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel
-        def kernel(params: List[float]):
-            params.append(1.0)
+    @cudaq.kernel
+    def kernel(params: List[float]):
+        params.append(1.0)
 
-        kernel([])
+    with pytest.raises(RuntimeError):
+        kernel.compile()
 
-    with pytest.raises(RuntimeError) as error:
+    @cudaq.kernel
+    def kernel():
+        l = [i for i in range(10)]
+        l.append(11)
 
-        @cudaq.kernel
-        def kernel():
-            l = [i for i in range(10)]
-            l.append(11)
+    with pytest.raises(RuntimeError):
+        kernel.compile()
 
-        print(kernel)
+    @cudaq.kernel
+    def kernel():
+        l = [[i, i, i] for i in range(10)]
+        l.append([11, 12, 13])
 
-    with pytest.raises(RuntimeError) as error:
-
-        @cudaq.kernel
-        def kernel():
-            l = [[i, i, i] for i in range(10)]
-            l.append([11, 12, 13])
-
-        print(kernel)
+    with pytest.raises(RuntimeError):
+        kernel.compile()
 
 
 def test_no_dynamic_lists():
-    with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel
-        def kernel(params: list[float]):
-            params.append(1.0)
+    @cudaq.kernel
+    def kernel(params: list[float]):
+        params.append(1.0)
 
-        print(kernel)
+    with pytest.raises(RuntimeError):
+        kernel.compile()
 
 
 def test_simple_return_types():
@@ -1326,14 +1324,13 @@ def test_disallow_list_no_element_type():
 
 def test_invalid_cudaq_type():
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def test():
+        q = cudaq.qreg(5)
+        h(q)
 
-        @cudaq.kernel
-        def test():
-            q = cudaq.qreg(5)
-            h(q)
-
-        print(test)
+    with pytest.raises(RuntimeError):
+        test.compile()
 
 
 def test_bool_list_elements():
@@ -2343,23 +2340,20 @@ def test_disallow_recursive_quantum_struct():
     class Holder:
         t: T
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        t = T(q)
+        hh = Holder(t)
 
-        @cudaq.kernel
-        def test():
-            q = cudaq.qvector(2)
-            t = T(q)
-            hh = Holder(t)
+    with pytest.raises(RuntimeError):
+        test.compile()
 
-        print(test)
-
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(RuntimeError):
 
         @cudaq.kernel
         def test(hh: Holder):
             pass
-
-        print(test)
 
 
 def test_disallow_struct_with_methods():
@@ -2417,46 +2411,45 @@ def test_issue_9():
 
 def test_issue_1641():
 
+    @cudaq.kernel
+    def less_arguments():
+        q = cudaq.qubit()
+        rx(3.14)
+
     with pytest.raises(RuntimeError) as error:
+        less_arguments.compile()
 
-        @cudaq.kernel
-        def less_arguments():
-            q = cudaq.qubit()
-            rx(3.14)
-
-        print(less_arguments)
     assert 'missing value' in repr(error)
     assert '(offending source -> rx(3.14))' in repr(error)
 
+    @cudaq.kernel
+    def wrong_arguments():
+        q = cudaq.qubit()
+        rx("random_argument", q)
+
     with pytest.raises(RuntimeError) as error:
+        wrong_arguments.compile()
 
-        @cudaq.kernel
-        def wrong_arguments():
-            q = cudaq.qubit()
-            rx("random_argument", q)
-
-        print(wrong_arguments)
     assert 'cannot convert value' in repr(error)
     assert "(offending source -> rx('random_argument', q))" in repr(error)
 
+    @cudaq.kernel
+    def wrong_type():
+        q = cudaq.qubit()
+        x("random_argument")
+
     with pytest.raises(RuntimeError) as error:
-
-        @cudaq.kernel
-        def wrong_type():
-            q = cudaq.qubit()
-            x("random_argument")
-
-        print(wrong_type)
+        wrong_type.compile()
     assert 'invalid argument type for target operand' in repr(error)
 
+    @cudaq.kernel
+    def invalid_ctrl():
+        q = cudaq.qubit()
+        rx.ctrl(np.pi, q)
+
     with pytest.raises(RuntimeError) as error:
+        invalid_ctrl.compile()
 
-        @cudaq.kernel
-        def invalid_ctrl():
-            q = cudaq.qubit()
-            rx.ctrl(np.pi, q)
-
-        print(invalid_ctrl)
     assert 'missing value' in repr(error)
     assert '(offending source -> rx.ctrl(np.pi, q))' in repr(error)
 

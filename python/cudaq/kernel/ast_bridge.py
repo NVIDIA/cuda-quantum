@@ -384,6 +384,7 @@ class PyASTBridge(ast.NodeVisitor):
                  *,
                  uniqueId=None,
                  kernelModuleName=None,
+                 parentVariables=None,
                  locationOffset=('', 0),
                  verbose=False):
         """
@@ -421,6 +422,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
+        self.parentVariables = parentVariables or {}
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -2528,6 +2530,11 @@ class PyASTBridge(ast.NodeVisitor):
                 decorator = resolve_qualified_symbol(name)
             else:
                 decorator = recover_kernel_decorator(name)
+                if decorator is None and name in self.parentVariables:
+                    from .kernel_decorator import isa_kernel_decorator
+                    var = self.parentVariables[name]
+                    if isa_kernel_decorator(var):
+                        decorator = var
 
             if decorator and not name in self.symbolTable:
                 callableTy = decorator.signature.get_callable_type()
@@ -2569,21 +2576,6 @@ class PyASTBridge(ast.NodeVisitor):
             # `visit_Return`; anything copied to the heap during return must be
             # copied back to the stack. Compiler optimizations should take care
             # of eliminating unnecessary copies.
-            return self.__migrateLists(result, copy_list_to_stack)
-
-        def processFunctionCall(kernel):
-            nrArgs = len(kernel.type.inputs)
-            values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
-            values = convertArguments([t for t in kernel.type.inputs], values)
-            if len(kernel.type.results) == 0:
-                func.CallOp(kernel, values)
-                return
-
-            # The logic for calls that return values must match the logic in
-            # `visit_Return`; anything copied to the heap during return must be
-            # copied back to the stack. Compiler optimizations should take care
-            # of eliminating unnecessary copies.
-            result = func.CallOp(kernel, values).result
             return self.__migrateLists(result, copy_list_to_stack)
 
         def resolveQualifiedName(pyVal):
@@ -5343,9 +5335,10 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, **kwargs):
 
     verbose = 'verbose' in kwargs and kwargs['verbose']
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
-    preCompile = kwargs['preCompile'] if 'preCompile' in kwargs else False
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
+    parentVariables = kwargs[
+        'parentVariables'] if 'parentVariables' in kwargs else None
 
     # Initialize the captured arguments list to be populated by the AST Bridge.
     signature.captured_args = []
@@ -5353,14 +5346,12 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, **kwargs):
     bridge = PyASTBridge(signature,
                          uniqueId=uniqueId,
                          verbose=verbose,
+                         parentVariables=parentVariables,
                          locationOffset=lineNumberOffset,
                          kernelModuleName=kernelModuleName)
 
     ValidateArgumentAnnotations(bridge).visit(astModule)
     ValidateReturnStatements(bridge).visit(astModule)
-
-    if not preCompile:
-        raise RuntimeError("must be precompile mode")
 
     # Build the AOT Quake Module for this kernel.
     bridge.visit(astModule)

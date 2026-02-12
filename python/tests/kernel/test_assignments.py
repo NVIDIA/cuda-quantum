@@ -333,27 +333,26 @@ def test_dataclass_update_failures():
         controls: cudaq.qview
         target: cudaq.qubit
 
+    # We do not currently allow any kind of updates to
+    # quantum structs.
+    @cudaq.kernel
+    def test1(t: MyQTuple, controls: cudaq.qview):
+        t.controls = controls
+
     with pytest.raises(RuntimeError) as e:
+        test1.compile()
 
-        # We do not currently allow any kind of updates to
-        # quantum structs.
-        @cudaq.kernel
-        def test1(t: MyQTuple, controls: cudaq.qview):
-            t.controls = controls
-
-        print(test1)
     assert 'accessing attribute of quantum tuple or dataclass does not produce a modifiable value' in str(
         e.value)
     assert '(offending source -> t.controls)' in str(e.value)
 
+    @cudaq.kernel
+    def test2(arg: MyQTuple, controls: cudaq.qview):
+        t = arg.copy()
+        t.controls = controls
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test2(arg: MyQTuple, controls: cudaq.qview):
-            t = arg.copy()
-            t.controls = controls
-
-        print(test2)
+        test2.compile()
     assert 'copy is not supported' in str(e.value)
     assert '(offending source -> arg.copy())' in str(e.value)
 
@@ -362,54 +361,54 @@ def test_dataclass_update_failures():
         angle: float
         idx: int
 
+    @cudaq.kernel
+    def update_tuple1(t: MyTuple):
+        t.angle = 5.
+
+    @cudaq.kernel
+    def test3() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple1(t)
+        return t
+
     with pytest.raises(RuntimeError) as e:
+        test3.compile()
 
-        @cudaq.kernel
-        def update_tuple1(t: MyTuple):
-            t.angle = 5.
-
-        @cudaq.kernel
-        def test3() -> MyTuple:
-            t = MyTuple(0., 0)
-            update_tuple1(t)
-            return t
-
-        print(test3)
     assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in str(
         e.value)
     assert '(offending source -> t.angle)' in str(e.value)
 
+    @cudaq.kernel
+    def update_tuple2(t: MyTuple):
+        t.angle += 5.
+
+    @cudaq.kernel
+    def test4() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple2(t)
+        return t
+
     with pytest.raises(RuntimeError) as e:
+        test4.compile()
 
-        @cudaq.kernel
-        def update_tuple2(t: MyTuple):
-            t.angle += 5.
-
-        @cudaq.kernel
-        def test4() -> MyTuple:
-            t = MyTuple(0., 0)
-            update_tuple2(t)
-            return t
-
-        print(test4)
     assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in str(
         e.value)
     assert '(offending source -> t.angle)' in str(e.value)
 
+    @cudaq.kernel
+    def update_tuple3(arg: MyTuple):
+        t = arg
+        t.angle = 5.
+
+    @cudaq.kernel
+    def test5() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple3(t)
+        return t
+
     with pytest.raises(RuntimeError) as e:
+        test5.compile()
 
-        @cudaq.kernel
-        def update_tuple3(arg: MyTuple):
-            t = arg
-            t.angle = 5.
-
-        @cudaq.kernel
-        def test5() -> MyTuple:
-            t = MyTuple(0., 0)
-            update_tuple3(t)
-            return t
-
-        print(test5())
     assert 'cannot assign dataclass passed as function argument to a local variable' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new value that can be assigned' in str(
@@ -421,47 +420,47 @@ def test_dataclass_update_failures():
         val: MyTuple
         num: int
 
+    @cudaq.kernel
+    def test6() -> NumberedMyTuple:
+        t = MyTuple(0.5, 1)
+        return NumberedMyTuple(t, 0)
+
     with pytest.raises(RuntimeError) as e:
+        test6.compile()
 
-        @cudaq.kernel
-        def test6() -> NumberedMyTuple:
-            t = MyTuple(0.5, 1)
-            return NumberedMyTuple(t, 0)
-
-        test6()
     assert ('only dataclass literals may be used as items in other '
             'container values' in str(e.value))
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
+    @cudaq.kernel
+    def test7(cond: bool) -> tuple[MyTuple, MyTuple]:
+        t1 = MyTuple(1, 1)
+        t2 = t1
+        if cond:
+            t3 = MyTuple(2, 2)
+            t1 = t3
+            t3.angle = 5
+        return (t1, t2)
+
     with pytest.raises(RuntimeError) as e:
+        test7.compile()
 
-        @cudaq.kernel
-        def test7(cond: bool) -> tuple[MyTuple, MyTuple]:
-            t1 = MyTuple(1, 1)
-            t2 = t1
-            if cond:
-                t3 = MyTuple(2, 2)
-                t1 = t3
-                t3.angle = 5
-            return (t1, t2)
-
-        test7(True)
     assert 'only literals can be assigned to variables defined in parent scope' in str(
         e.value)
     assert '(offending source -> t1 = t3)' in str(e.value)
 
+    @cudaq.kernel
+    def test8(cond: bool) -> MyTuple:
+        t1 = [MyTuple(1, 1)]
+        if cond:
+            t3 = MyTuple(2, 2)
+            t1[0] = t3
+            t3.angle = 5
+        return t1
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test8(cond: bool) -> MyTuple:
-            t1 = [MyTuple(1, 1)]
-            if cond:
-                t3 = MyTuple(2, 2)
-                t1[0] = t3
-                t3.angle = 5
-            return t1
-
         test8(True)
+
     assert 'only dataclass literals may be used as items in other container values' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
@@ -562,97 +561,90 @@ def test_list_of_tuple_updates():
 
 def test_list_of_tuple_update_failures():
 
+    @cudaq.kernel
+    def get_list_of_int_tuple(t: tuple[int, int],
+                              size: int) -> list[tuple[int, int]]:
+        l = [t for _ in range(size + 1)]
+        l[0] = (3, 3)
+        return l
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def get_list_of_int_tuple(t: tuple[int, int],
-                                  size: int) -> list[tuple[int, int]]:
-            l = [t for _ in range(size + 1)]
-            l[0] = (3, 3)
-            return l
-
         get_list_of_int_tuple((1, 2), 2)
     assert 'Expected a complex, floating, or integral type' in str(e.value)
 
+    @cudaq.kernel
+    def test2() -> list[int]:
+        t = (1, 2)
+        l = get_list_of_int_tuple(t, 2)
+        l[1][0] = 4
+        res = [0 for _ in range(6)]
+        for idx in range(3):
+            res[2 * idx] = l[idx][0]
+            res[2 * idx + 1] = l[idx][1]
+        return res
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test2() -> list[int]:
-            t = (1, 2)
-            l = get_list_of_int_tuple(t, 2)
-            l[1][0] = 4
-            res = [0 for _ in range(6)]
-            for idx in range(3):
-                res[2 * idx] = l[idx][0]
-                res[2 * idx + 1] = l[idx][1]
-            return res
-
-        print(test2)
+        test2.compile()
     assert 'tuple value cannot be modified' in str(e.value)
 
+    @cudaq.kernel
+    def assign_and_return_list_tuple(
+            value: tuple[list[int], list[int]]) -> tuple[list[int], list[int]]:
+        local = ([1], [1])
+        local = value
+        return local
+
+    @cudaq.kernel
+    def test3() -> list[int]:
+        l1 = [1]
+        t1 = (l1, l1)
+        t2 = assign_and_return_list_tuple(t1)
+        l1[0] = 2
+        return [l1[0], t1[0][0], t1[1][0], t2[0][0], t2[1][0]]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def assign_and_return_list_tuple(
-                value: tuple[list[int],
-                             list[int]]) -> tuple[list[int], list[int]]:
-            local = ([1], [1])
-            local = value
-            return local
-
-        @cudaq.kernel
-        def test3() -> list[int]:
-            l1 = [1]
-            t1 = (l1, l1)
-            t2 = assign_and_return_list_tuple(t1)
-            l1[0] = 2
-            return [l1[0], t1[0][0], t1[1][0], t2[0][0], t2[1][0]]
-
         test3()  # should output [2,2,2,2,2]
     assert 'cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list' in str(
         e.value)
 
+    @cudaq.kernel
+    def get_item(ls: list[tuple[list[int], list[int]]],
+                 idx: int) -> tuple[list[int], list[int]]:
+        return ls[idx]
+
+    @cudaq.kernel
+    def test4() -> list[int]:
+        l1 = [0, 0]
+        tlist = [(l1, l1)]
+        t = get_item(tlist, 0)
+        l1[1] = 3
+        # If we allowed the return in modify_and_return_item,
+        # the correct output would be [0, 3, 0, 3, 0, 3]
+        return [t[0][0], t[0][1], t[1][0], t[1][1], l1[0], l1[1]]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def get_item(ls: list[tuple[list[int], list[int]]],
-                     idx: int) -> tuple[list[int], list[int]]:
-            return ls[idx]
-
-        @cudaq.kernel
-        def test4() -> list[int]:
-            l1 = [0, 0]
-            tlist = [(l1, l1)]
-            t = get_item(tlist, 0)
-            l1[1] = 3
-            # If we allowed the return in modify_and_return_item,
-            # the correct output would be [0, 3, 0, 3, 0, 3]
-            return [t[0][0], t[0][1], t[1][0], t[1][1], l1[0], l1[1]]
-
         test4()
     assert 'return value must not contain a list that is a function argument or an item in a function argument' in str(
         e.value)
     assert '(offending source -> return ls[idx])' in str(e.value)
 
+    @cudaq.kernel
+    def test5():
+        l = [(0, 1) for _ in range(3)]
+        l[0][1] = 2
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test5():
-            l = [(0, 1) for _ in range(3)]
-            l[0][1] = 2
-
         test5()
     assert 'tuple value cannot be modified' in str(e.value)
     assert '(offending source -> l[0][1])' in str(e.value)
 
+    @cudaq.kernel
+    def test6():
+        l = [(0, [(1, 1)]) for _ in range(3)]
+        l[-1][1][0] = (2, 2)
+        l[2][1][0][0] = 3
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test6():
-            l = [(0, [(1, 1)]) for _ in range(3)]
-            l[-1][1][0] = (2, 2)
-            l[2][1][0][0] = 3
-
         test6()
     assert 'tuple value cannot be modified' in str(e.value)
     assert '(offending source -> l[2][1][0][0])' in str(e.value)
@@ -662,14 +654,13 @@ def test_list_of_tuple_update_failures():
         idx: int
         vals: tuple[int, list[int]]
 
+    @cudaq.kernel
+    def test7():
+        t = NumberedTuple(0, (0, [0]))
+        t.vals = (1, [1])
+        t.vals[1] = [2]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test7():
-            t = NumberedTuple(0, (0, [0]))
-            t.vals = (1, [1])
-            t.vals[1] = [2]
-
         test7()
     assert 'tuple value cannot be modified' in str(e.value)
     assert '(offending source -> t.vals[1])' in str(e.value)
@@ -865,40 +856,37 @@ def test_list_of_dataclass_update_failures():
     # result = test11(MyTuple([1], [1]), 2)
     # assert (result == [1, 2, 1, 1, 1, 1, 1, 3])
 
+    @cudaq.kernel
+    def get_MyTuple_list(t: MyTuple) -> list[MyTuple]:
+        return [t]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def get_MyTuple_list(t: MyTuple) -> list[MyTuple]:
-            return [t]
-
-        print(get_MyTuple_list)
+        get_MyTuple_list.compile()
     assert ('only dataclass literals may be used as items in other '
             'container values' in str(e.value))
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
+    @cudaq.kernel
+    def populate_MyTuple_list(t: MyTuple, size: int) -> list[MyTuple]:
+        # If we allowed this, then the following scenario would lead to
+        # incorrect behavior due to the copy of inner lists during return:
+        # Caller allocates l1, creates MyTuple using l1 as its first item,
+        # calls `populate_MyTuple_list`, modifies an item in l1.
+        # In this case, the correct behavior would be that the change to l1
+        # is reflected in the list returned by `populate_MyTuple_list`.
+        return [MyTuple(t.l1, t.l2) for _ in range(size)]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def populate_MyTuple_list(t: MyTuple, size: int) -> list[MyTuple]:
-            # If we allowed this, then the following scenario would lead to
-            # incorrect behavior due to the copy of inner lists during return:
-            # Caller allocates l1, creates MyTuple using l1 as its first item,
-            # calls `populate_MyTuple_list`, modifies an item in l1.
-            # In this case, the correct behavior would be that the change to l1
-            # is reflected in the list returned by `populate_MyTuple_list`.
-            return [MyTuple(t.l1, t.l2) for _ in range(size)]
-
-        print(populate_MyTuple_list)
+        populate_MyTuple_list.compile()
     assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new list' in str(e.value)
 
+    @cudaq.kernel
+    def get_MyTuple_list(size: int) -> list[MyTuple]:
+        return [MyTuple([1], [1]) for _ in range(size)]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def get_MyTuple_list(size: int) -> list[MyTuple]:
-            return [MyTuple([1], [1]) for _ in range(size)]
-
         print(get_MyTuple_list(2))
     assert 'Expected a complex, floating, or integral type' in str(e.value)
 
@@ -907,115 +895,108 @@ def test_list_of_dataclass_update_failures():
         return [t.copy(deep=True) for _ in range(size)]
 
     # TODO: support.
+    @cudaq.kernel
+    def test2() -> MyTuple:
+        l = populate_MyTuple_list2(MyTuple([1, 1], [1, 1]), 2)
+        l[0].l1 = [2]
+        return l[0]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test2() -> MyTuple:
-            l = populate_MyTuple_list2(MyTuple([1, 1], [1, 1]), 2)
-            l[0].l1 = [2]
-            return l[0]
-
         test2()
     assert 'Unsupported element type in struct type' in str(e.value)
 
+    @cudaq.kernel
+    def test3() -> list[MyTuple]:
+        t1 = MyTuple([1, 1], [1, 1])
+        t2 = MyTuple([2, 2], [2, 2])
+        l = [t1, t2]
+        return l
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test3() -> list[MyTuple]:
-            t1 = MyTuple([1, 1], [1, 1])
-            t2 = MyTuple([2, 2], [2, 2])
-            l = [t1, t2]
-            return l
-
         test3()
     assert 'only dataclass literals may be used as items in other container values' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
+    @cudaq.kernel
+    def test4() -> list[MyTuple]:
+        t = MyTuple([2, 2], [2, 2])
+        l = [MyTuple([1, 1], [1, 1]) for _ in range(3)]
+        l[0] = t
+        return l
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test4() -> list[MyTuple]:
-            t = MyTuple([2, 2], [2, 2])
-            l = [MyTuple([1, 1], [1, 1]) for _ in range(3)]
-            l[0] = t
-            return l
-
         test4()
     assert 'only dataclass literals may be used as items in other container values' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
+    @cudaq.kernel
+    def test5() -> tuple[MyTuple, MyTuple]:
+        t1 = MyTuple([1, 1], [1, 1])
+        t2 = MyTuple([2, 2], [2, 2])
+        return (t1, t2)
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test5() -> tuple[MyTuple, MyTuple]:
-            t1 = MyTuple([1, 1], [1, 1])
-            t2 = MyTuple([2, 2], [2, 2])
-            return (t1, t2)
-
         test5()
     assert 'only dataclass literals may be used as items in other container values' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
+    @cudaq.kernel
+    def test6() -> tuple[MyTuple, MyTuple]:
+        l = [MyTuple([1], [1])]
+        t = MyTuple([2], [2])
+        l[0] = t
+        t.first = [3]
+        l[0].second = 4
+        # If we allowed this, then
+        # t should be MyTuple(first=3, second=4) and
+        # l should be [MyTuple(first=3, second=4)]
+        return (l[0], t)
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test6() -> tuple[MyTuple, MyTuple]:
-            l = [MyTuple([1], [1])]
-            t = MyTuple([2], [2])
-            l[0] = t
-            t.first = [3]
-            l[0].second = 4
-            # If we allowed this, then
-            # t should be MyTuple(first=3, second=4) and
-            # l should be [MyTuple(first=3, second=4)]
-            return (l[0], t)
-
         test6()
     assert 'only dataclass literals may be used as items in other container values' in str(
         e.value)
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
+    @cudaq.kernel
+    def update_list(old: MyTuple, new: list[int]):
+        for idx, v in enumerate(new):
+            old.l1[idx] = v
+
+    @cudaq.kernel
+    def test7(cond: bool) -> list[int]:
+        l1 = [1, 1]
+        t = MyTuple(l1, l1)
+        if cond:
+            update_list(t, [2, 2])
+        t.l1[0] = 5
+        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def update_list(old: MyTuple, new: list[int]):
-            for idx, v in enumerate(new):
-                old.l1[idx] = v
-
-        @cudaq.kernel
-        def test7(cond: bool) -> list[int]:
-            l1 = [1, 1]
-            t = MyTuple(l1, l1)
-            if cond:
-                update_list(t, [2, 2])
-            t.l1[0] = 5
-            return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
-
         test7()
     assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in str(
         e.value)
     assert '(offending source -> old.l1)' in str(e.value)
 
+    @cudaq.kernel
+    def modify_and_return_item(ls: list[MyTuple], idx: int) -> MyTuple:
+        ls[idx].l1[0] = 2
+        return ls[idx]
+
+    @cudaq.kernel
+    def test8() -> list[int]:
+        l1 = [0, 0]
+        tlist = [MyTuple(l1, l1)]
+        t = modify_and_return_item(tlist, 0)
+        t.l1[1] = 3
+        # If we allowed the return in modify_and_return_item,
+        # the correct output would be [2, 3, 2, 3, 2, 3]
+        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def modify_and_return_item(ls: list[MyTuple], idx: int) -> MyTuple:
-            ls[idx].l1[0] = 2
-            return ls[idx]
-
-        @cudaq.kernel
-        def test8() -> list[int]:
-            l1 = [0, 0]
-            tlist = [MyTuple(l1, l1)]
-            t = modify_and_return_item(tlist, 0)
-            t.l1[1] = 3
-            # If we allowed the return in modify_and_return_item,
-            # the correct output would be [2, 3, 2, 3, 2, 3]
-            return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
-
         test8()
     assert 'return value must not contain a list that is a function argument or an item in a function argument' in str(
         e.value)
@@ -1220,28 +1201,22 @@ def test_var_scopes():
 
 def test_var_capture():
 
-    # We need to know the types or all captured values,
-    # so anything captured must be defined at kernel
-    # declaration time.
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test1() -> list[bool]:
-            q = cudaq.qvector(3)
-            if captured_bool:
-                x(q)
-            return mz(q)
-
-    assert "Invalid variable name requested" in str(e.value)
-
-    captured_bool = False
-
     @cudaq.kernel
     def test1() -> list[bool]:
         q = cudaq.qvector(3)
         if captured_bool:
             x(q)
         return mz(q)
+
+    # `captured_bool` is not defined yet, so compilation will fail
+    with pytest.raises(RuntimeError) as e:
+        test1.compile()
+    assert "Invalid variable name requested" in str(e.value)
+
+    captured_bool = False
+
+    # now succeeds
+    test1.compile()
 
     out = cudaq.run(test1, shots_count=10)
     assert all(res == [False, False, False] for res in out)
@@ -1295,16 +1270,17 @@ def test_var_capture_updates():
     # kernel2b(False) will still return the local variable,
     # which is uninitialized if the cond is False
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def kernel3() -> int:
+        if True:
+            # causes the variable to be added to the symbol table
+            cudaq.dbg.ast.print_i64(n)
+            # Change n, emits an error
+            n += 4
+        return n
 
-        @cudaq.kernel
-        def kernel3() -> int:
-            if True:
-                # causes the variable to be added to the symbol table
-                cudaq.dbg.ast.print_i64(n)
-                # Change n, emits an error
-                n += 4
-            return n
+    with pytest.raises(RuntimeError) as e:
+        kernel3.compile()
 
     assert "augment-assign target variable is not defined or cannot be assigned to" in str(
         e.value)
@@ -1312,13 +1288,14 @@ def test_var_capture_updates():
 
     ls = [1, 2, 3]
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def kernel4() -> list[int]:
+        vals = ls
+        vals[0] = 5
+        return vals
 
-        @cudaq.kernel
-        def kernel4() -> list[int]:
-            vals = ls
-            vals[0] = 5
-            return vals
+    with pytest.raises(RuntimeError) as e:
+        kernel4.compile()
 
     assert "lists passed as or contained in function arguments cannot be assigned to to a local variable" in str(
         e.value)
@@ -1331,14 +1308,14 @@ def test_var_capture_updates():
 
     assert kernel4() == [5, 2, 3] and ls == [1, 2, 3]
 
+    @cudaq.kernel
+    def kernel5() -> list[int]:
+        # `ls` is treated like any other function argument
+        ls[0] = 5
+        return ls
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def kernel5() -> list[int]:
-            # `ls` is treated like any other function argument
-            ls[0] = 5
-            return ls
-
+        kernel5.compile()
     assert "return value must not contain a list that is a function argument or an item in a function argument" in str(
         e.value)
 
@@ -1365,11 +1342,12 @@ def test_var_capture_updates():
 
     mtp = MyTuple(1, 5)
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def kernel7():
+        mtp.first = 2
 
-        @cudaq.kernel
-        def kernel7():
-            mtp.first = 2
+    with pytest.raises(RuntimeError) as e:
+        kernel7.compile()
 
     assert "value cannot be modified" in str(e.value)
     assert "(offending source -> mtp.first)" in str(e.value)
@@ -1455,7 +1433,7 @@ def test_inner_functions():
     # see also test_var_capture.
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test4b():
 
             def apply_ry():
@@ -1494,7 +1472,7 @@ def test_inner_functions():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test7() -> int:
             i = 0
 
@@ -1509,7 +1487,7 @@ def test_inner_functions():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test8() -> list[int]:
             ls = [0]
 

@@ -18,7 +18,7 @@ def test_bell_pair():
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def bell():
         qubits = cudaq.qvector(2)
         custom_h(qubits[0])
@@ -33,7 +33,7 @@ def test_custom_adjoint():
 
     cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel():
         q = cudaq.qubit()
         h(q)
