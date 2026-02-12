@@ -3,7 +3,7 @@
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 """Tests for cudaq.ptsbe Python configuration API."""
 
