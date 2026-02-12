@@ -39,24 +39,15 @@ def cnot_echo():
     mz(q)
 
 
-def _total_shots(result):
-    return sum(result.count(bs) for bs in result)
-
-
-def _probability(result, bitstring):
-    total = _total_shots(result)
-    return result.count(bitstring) / total if total else 0.0
-
-
 def test_check_bit_flip_type():
     cudaq.set_random_seed(42)
     noise = cudaq.NoiseModel()
     noise.add_channel("x", [0], cudaq.BitFlipChannel(0.1))
     result = cudaq.ptsbe.sample(x_op, noise_model=noise, shots_count=2000)
-    assert _total_shots(result) == 2000
+    assert sum(result.count(bs) for bs in result) == 2000
     assert len(result) == 2
-    p0 = _probability(result, "0")
-    p1 = _probability(result, "1")
+    p0 = result.probability("0")
+    p1 = result.probability("1")
     assert abs(p0 - 0.1) <= 0.1
     assert abs(p1 - 0.9) <= 0.1
 
@@ -68,9 +59,9 @@ def test_check_phase_flip_type():
     result = cudaq.ptsbe.sample(phase_flip_kernel,
                                 noise_model=noise,
                                 shots_count=2000)
-    assert _total_shots(result) == 2000
+    assert sum(result.count(bs) for bs in result) == 2000
     assert len(result) == 1
-    p0 = _probability(result, "0")
+    p0 = result.probability("0")
     assert abs(p0 - 1.0) <= 0.1
 
 
@@ -80,9 +71,9 @@ def test_check_depol2_standard_formula(p):
     noise = cudaq.NoiseModel()
     noise.add_channel("x", [0, 1], cudaq.Depolarization2(p))
     result = cudaq.ptsbe.sample(cnot_echo, noise_model=noise, shots_count=1000)
-    assert _total_shots(result) == 1000
+    assert sum(result.count(bs) for bs in result) == 1000
     assert len(result) == 4
-    prob_00 = _probability(result, "00")
+    prob_00 = result.probability("00")
     if p < 0.75:
         assert prob_00 > 0.20, f"p={p} gave prob_00={prob_00}"
 
@@ -92,9 +83,9 @@ def test_check_depol_type_simple():
     noise = cudaq.NoiseModel()
     noise.add_channel("x", [0], cudaq.DepolarizationChannel(0.75))
     result = cudaq.ptsbe.sample(x_op, noise_model=noise, shots_count=2000)
-    assert _total_shots(result) == 2000
+    assert sum(result.count(bs) for bs in result) == 2000
     assert len(result) == 2
-    p0 = _probability(result, "0")
-    p1 = _probability(result, "1")
+    p0 = result.probability("0")
+    p1 = result.probability("1")
     assert abs(p0 - 0.50) <= 0.2
     assert abs(p1 - 0.50) <= 0.2
