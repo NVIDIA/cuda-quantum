@@ -46,8 +46,6 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
-#include <llvm/IR/Module.h>
-#include <memory>
 
 namespace cudaq {
 
@@ -897,8 +895,7 @@ JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
     if (containsWireSet)
       insertSetupAndCleanupOperations(module);
 
-    std::unique_ptr<llvm::Module> llvmModule =
-        translateModuleToLLVMIR(module, llvmContext);
+    auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to LLVM IR failed.");
