@@ -109,7 +109,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, SingleNoiseInsertion) {
   // Should be: H, noise(Z), X
   ASSERT_EQ(merged.size(), 3u);
   EXPECT_EQ(merged[0].operationName, "h");
-  EXPECT_EQ(merged[1].operationName, "depolarization_channel[3]");
+  EXPECT_EQ(merged[1].operationName, "z");
   EXPECT_EQ(merged[1].targets[0], 0u);
   EXPECT_EQ(merged[2].operationName, "x");
 }
@@ -136,9 +136,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MultipleInsertionsSameIndex) {
 
   ASSERT_EQ(merged.size(), 3u);
   EXPECT_EQ(merged[0].operationName, "h");
-  EXPECT_EQ(merged[1].operationName, "depolarization_channel[1]");
+  EXPECT_EQ(merged[1].operationName, "x");
   EXPECT_EQ(merged[1].targets[0], 0u);
-  EXPECT_EQ(merged[2].operationName, "depolarization_channel[3]");
+  EXPECT_EQ(merged[2].operationName, "z");
   EXPECT_EQ(merged[2].targets[0], 1u);
 }
 
@@ -188,7 +188,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseAtLastGate) {
   ASSERT_EQ(merged.size(), 3u);
   EXPECT_EQ(merged[0].operationName, "h");
   EXPECT_EQ(merged[1].operationName, "x");
-  EXPECT_EQ(merged[2].operationName, "depolarization_channel[3]");
+  EXPECT_EQ(merged[2].operationName, "z");
 }
 
 /// Verify identity noise inserts the channel's identity unitary
@@ -212,7 +212,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, IdentityNoiseInsertion) {
 
   ASSERT_EQ(merged.size(), 3u);
   EXPECT_EQ(merged[0].operationName, "h");
-  EXPECT_EQ(merged[1].operationName, "depolarization_channel[0]");
+  EXPECT_EQ(merged[1].operationName, "id");
   EXPECT_EQ(merged[1].targets[0], 0u);
   // The identity unitary from depolarization_channel is the 2x2 identity
   ASSERT_EQ(merged[1].matrix.size(), 4u);
@@ -248,9 +248,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MixedIdentityAndErrorNoise) {
   // H, noise(I), X, noise(Y), Z
   ASSERT_EQ(merged.size(), 5u);
   EXPECT_EQ(merged[0].operationName, "h");
-  EXPECT_EQ(merged[1].operationName, "depolarization_channel[0]");
+  EXPECT_EQ(merged[1].operationName, "id");
   EXPECT_EQ(merged[2].operationName, "x");
-  EXPECT_EQ(merged[3].operationName, "depolarization_channel[2]");
+  EXPECT_EQ(merged[3].operationName, "y");
   EXPECT_EQ(merged[3].targets[0], 1u);
   EXPECT_EQ(merged[4].operationName, "z");
 }
@@ -290,7 +290,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseOnEveryGate) {
   // H, noise(Z), X, noise(X)
   ASSERT_EQ(merged.size(), 4u);
   EXPECT_EQ(merged[0].operationName, "h");
-  EXPECT_EQ(merged[1].operationName, "depolarization_channel[3]");
+  EXPECT_EQ(merged[1].operationName, "z");
   EXPECT_EQ(merged[2].operationName, "x");
-  EXPECT_EQ(merged[3].operationName, "depolarization_channel[1]");
+  EXPECT_EQ(merged[3].operationName, "x");
 }
