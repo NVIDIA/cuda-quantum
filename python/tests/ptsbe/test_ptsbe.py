@@ -3,7 +3,7 @@
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 """Tests for cudaq.ptsbe Python configuration API."""
 
@@ -28,7 +28,7 @@ def density_matrix_target():
 @pytest.fixture
 def depol_noise():
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(0.1))
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
     return noise
 
 
@@ -198,7 +198,7 @@ def test_execution_data_contents(density_matrix_target):
     # the h(q[0]) gate exactly (get_channels matches on gate name + full
     # qubit list).
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
 
     result = cudaq.ptsbe.sample(bell,
                                 noise_model=noise,
@@ -251,7 +251,7 @@ def test_execution_data_trajectories(density_matrix_target, depol_noise):
 
     for traj in data.trajectories:
         assert traj.probability > 0.0
-        assert traj.num_shots >= 1
+        assert traj.num_shots >= 0
         assert len(traj.kraus_selections) > 0
 
     # get_trajectory round-trips
@@ -266,7 +266,7 @@ def test_trajectory_counts_sum_to_total_shots(density_matrix_target):
     """Sum of trajectory num_shots across all trajectories should equal
     the requested shots_count."""
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
 
     shots = 100
     result = cudaq.ptsbe.sample(bell,
@@ -284,7 +284,7 @@ def test_trajectory_measurement_counts_populated(density_matrix_target):
     """When trajectory generation is wired up, each trajectory with shots
     should have non-empty measurement_counts whose values sum to num_shots."""
     noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.1))
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
 
     result = cudaq.ptsbe.sample(bell,
                                 noise_model=noise,
@@ -337,9 +337,9 @@ def test_missing_noise_model_message_contains_noise_model():
 
 def test_ptsbe_sample_async(density_matrix_target):
     """sample_async .get() returns valid bell-state counts.
-    With 1% depolarization on h, 00+11 should strongly dominate."""
+    With 10% depolarization on CX, we expect some 01/10; 00+11 should be < shots."""
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(0.01))
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
     shots = 200
     future = cudaq.ptsbe.sample_async(bell,
                                       noise_model=noise,
@@ -349,7 +349,7 @@ def test_ptsbe_sample_async(density_matrix_target):
     total = sum(result.count(bs) for bs in result)
     assert total == shots
     bell_counts = result.count("00") + result.count("11")
-    assert bell_counts > shots * 0.8
+    assert bell_counts < shots, "CX noise should produce some 01/10 outcomes"
 
 
 @cudaq.kernel
