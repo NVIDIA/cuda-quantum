@@ -41,6 +41,18 @@ globalRegisteredOperations = {}
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
 
+def createMLIRContext():
+    """
+    Create a fresh MLIR Context with all CUDA-Q dialects registered.
+    """
+    ctx = Context()
+    register_all_dialects(ctx)
+    quake.register_dialect(context=ctx)
+    cc.register_dialect(context=ctx)
+    cudaq_runtime.registerLLVMDialectTranslation(ctx)
+    return ctx
+
+
 def getMLIRContext():
     """
     This code creates an MLIRContext singleton for this python process. We do
@@ -51,11 +63,7 @@ def getMLIRContext():
     try:
         cudaq__global_mlir_context
     except NameError:
-        cudaq__global_mlir_context = Context()
-        register_all_dialects(cudaq__global_mlir_context)
-        quake.register_dialect(context=cudaq__global_mlir_context)
-        cc.register_dialect(context=cudaq__global_mlir_context)
-        cudaq_runtime.registerLLVMDialectTranslation(cudaq__global_mlir_context)
+        cudaq__global_mlir_context = createMLIRContext()
     return cudaq__global_mlir_context
 
 

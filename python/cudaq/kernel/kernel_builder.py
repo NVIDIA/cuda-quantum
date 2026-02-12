@@ -32,10 +32,10 @@ from .common.givens import givens_builder
 from .kernel_decorator import isa_kernel_decorator
 from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
-                    recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
-                    mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    recover_value_of, globalRegisteredOperations,
-                    recover_calling_module)
+                    createMLIRContext, recover_func_op, mlirTypeToPyType,
+                    cudaq__unique_attr_name, mlirTypeFromPyType,
+                    emitErrorIfInvalidPauli, recover_value_of,
+                    globalRegisteredOperations, recover_calling_module)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -246,7 +246,7 @@ class PyKernel(object):
     """
 
     def __init__(self, argTypeList):
-        self.ctx = getMLIRContext()
+        self.ctx = createMLIRContext()
 
         self.conditionalOnMeasure = False
         self.regCounter = 0
@@ -589,6 +589,16 @@ class PyKernel(object):
     def __createQuakeValue(self, value):
         return QuakeValue(value, self)
 
+    def __reloadModuleIntoContext(self, otherModule):
+        """
+        If `otherModule` lives in a different MLIR context than this builder,
+        reload it (round-trip through string) into this builder's context so
+        that module-merge operations work correctly.
+        """
+        if otherModule.context is not self.ctx:
+            return cudaq_runtime.reloadModule(otherModule, self.ctx)
+        return otherModule
+
     def __cloneOrGetFunction(self, astName, currentModule, target):
         """
         Get a the function with the given name.
@@ -601,13 +611,13 @@ class PyKernel(object):
         if astName in thisSymbolTable:
             return thisSymbolTable[astName], currentModule
         if isa_kernel_decorator(target):
-            otherModule = target.qkeModule
+            otherModule = self.__reloadModuleIntoContext(target.qkeModule)
             fulluniq = nvqppPrefix + target.uniqName
             cudaq_runtime.updateModule(fulluniq, currentModule, otherModule)
             fn = recover_func_op(currentModule, fulluniq)
             assert fn and "function may not disappear from module"
             return fn, currentModule
-        otherModule = target.module
+        otherModule = self.__reloadModuleIntoContext(target.module)
         cudaq_runtime.updateModule(target.funcName, currentModule, otherModule)
         fn = recover_func_op(currentModule, target.funcName)
         assert fn and "function may not disappear from module"
@@ -1360,7 +1370,8 @@ class PyKernel(object):
         closure here.
         Returns a `CreateLambdaOp` closure.
         """
-        cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
+        otherModule = self.__reloadModuleIntoContext(target.qkeModule)
+        cudaq_runtime.updateModule(self.uniqName, self.module, otherModule)
         # build the closure to capture the lifted `args`
         thisPyMod = recover_calling_module()
         if target.defModule != thisPyMod:
@@ -1616,8 +1627,9 @@ class PyKernel(object):
         used in a launch scenario. We reify the kernel as-is here.
         """
         if not hasattr(self, 'qkeModule'):
-            self.qkeModule = cudaq_runtime.cloneModule(self.module)
+            # Reload from the builder's private context into the global context
             ctx = getMLIRContext()
+            self.qkeModule = cudaq_runtime.reloadModule(self.module, ctx)
             pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                                    context=ctx)
             try:
@@ -1736,8 +1748,8 @@ class PyKernel(object):
             else:
                 processedArgs.append(arg)
 
-        retTy = NoneType.get(self.module.context)
         self.compile()
+        retTy = NoneType.get(self.qkeModule.context)
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
         cudaq_runtime.marshal_and_launch_module(self.name, specialized, retTy,
                                                 *processedArgs)
