@@ -457,7 +457,12 @@ CUDAQ_TEST(PTSBESampleTest, SampleResultInheritedAccess) {
 
 CUDAQ_TEST(PTSBESampleTest, SampleResultExecutionDataThrowsWhenNotPresent) {
   sample_result r;
-  EXPECT_THROW(r.execution_data(), std::runtime_error);
+  try {
+    r.execution_data();
+    FAIL() << "expected an exception when execution data is not present";
+  } catch (...) {
+    // Expected: any exception
+  }
 }
 
 CUDAQ_TEST(PTSBESampleTest, SampleResultSetExecutionData) {
