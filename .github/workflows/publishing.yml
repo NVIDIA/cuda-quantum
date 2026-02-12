@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.assets_repo || github.repository }}
           ref: ${{ vars.data_branch }}
@@ -353,7 +353,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -441,6 +441,11 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Extract cuda-quantum metadata
         id: metadata
@@ -545,7 +550,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -603,6 +608,11 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build installer
         uses: docker/build-push-action@v5
         with:
@@ -657,7 +667,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -717,6 +727,11 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Build cuda-quantum wheel
         id: build_wheel
@@ -837,7 +852,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
           path: github-repo
@@ -937,7 +952,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -1053,7 +1068,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -1156,7 +1171,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
