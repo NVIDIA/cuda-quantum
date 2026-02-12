@@ -167,14 +167,32 @@ pr-3804
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1777,7 +1795,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![536a85c3c1dc44778e95f5da72c331b1](../../_images/adapt-vqe.png){.no-scaled-link
+![1406fdbd288e42f0b8ab163db6487400](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>
@@ -1829,11 +1847,13 @@ style="width: 800px;"}
     #cudaq.mpi.initialize()
     #print(f"My rank {cudaq.mpi.rank()} of {cudaq.mpi.num_ranks()}", flush=True)
 
-    # Set the traget
+    # Set the target
     # Double precision is recommended for the best performance.
-    cudaq.set_target("nvidia", option = "fp64")
-
-    #cudaq.set_target("nvidia")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia", option = "fp64")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::
@@ -2050,7 +2070,7 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [14]:
 :::
 :::
 
@@ -2066,7 +2086,7 @@ Reference state here is Haretree Fock
         for i in range(nelectrons):
             x(qubits[i])
 
-    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, n_qubits, nelectrons))
+    state = cudaq.get_state(initial_state, n_qubits, nelectrons)
     print(state)
 :::
 :::
@@ -2139,7 +2159,7 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [16]:
 :::
 :::
 
@@ -2317,8 +2337,8 @@ Reference state here is Haretree Fock
                 E_prev=result_vqe.fun
 
                 # Prepare a trial state with the current ansatz.
-                state=cudaq.StateMemoryView(cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
-                                coef_single, pool_double, coef_double))
+                state=cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
+                                coef_single, pool_double, coef_double)
 
     # When using mpi
     #cudaq.mpi.finalize()

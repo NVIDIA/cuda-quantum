@@ -190,9 +190,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1020,7 +1030,9 @@ If you have already installed and configured CUDA-Q, or if you are using our
 found in our complete <a class="reference internal" href="install/install.html"><span class="doc">Installation Guide</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CUDA-Q is currently supported on Linux only. On Windows, you can use <a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/">Windows Subsystem for Linux (WSL)</a> to install CUDA-Q.</p>
+<p>CUDA-Q is supported on Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
+GPU-acceleration is available on Linux only; macOS provides CPU-based simulation.
+On Windows, you can use <a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/">Windows Subsystem for Linux (WSL)</a> to install CUDA-Q.</p>
 </div>
 <section id="install-cuda-q">
 <h2>Install CUDA-Q<a class="headerlink" href="#install-cuda-q" title="Permalink to this heading">¶</a></h2>
@@ -1085,16 +1097,19 @@ See <a class="reference internal" href="install/local_installation.html#blackwel
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
 <p>To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
-that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
-Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture and CUDA version (<code class="code docutils literal notranslate"><span class="pre">_cu12</span></code> suffix for CUDA 12 and <code class="code docutils literal notranslate"><span class="pre">_cu13</span></code> suffix for CUDA 13)
-from the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>;
-that is, the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
+that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer (or <code class="code docutils literal notranslate"><span class="pre">clang++</span></code> on macOS).
+Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your platform from the assets of the respective
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>:</p>
+<ul class="simple">
+<li><p><strong>Linux</strong>: Use <code class="code docutils literal notranslate"><span class="pre">_cu12</span></code> suffix for CUDA 12 or <code class="code docutils literal notranslate"><span class="pre">_cu13</span></code> for CUDA 13, with <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> for ARM or <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for Intel/AMD processors.</p></li>
+<li><p><strong>macOS</strong>: Use the <code class="code docutils literal notranslate"><span class="pre">_darwin</span></code> suffix with <code class="code docutils literal notranslate"><span class="pre">arm64</span></code> for Apple silicon.</p></li>
+</ul>
 <p>To install CUDA-Q, execute the commands</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
 .<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
-<p>If you have an NVIDIA GPU, please also install the <a class="reference external" href="https://developer.nvidia.com/cuda-downloads">CUDA Toolkit</a> to enable GPU-acceleration within CUDA-Q.</p>
+<p>If you have an NVIDIA GPU on Linux, please also install the <a class="reference external" href="https://developer.nvidia.com/cuda-downloads">CUDA Toolkit</a> to enable GPU-acceleration within CUDA-Q.</p>
 <p>Please see the complete <a class="reference internal" href="install/local_installation.html#install-prebuilt-binaries"><span class="std std-ref">installation guide</span></a> for more details, including</p>
 <ul class="simple">
 <li><p>a list of <a class="reference internal" href="install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">supported operating systems</span></a>,</p></li>
