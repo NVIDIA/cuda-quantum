@@ -128,26 +128,7 @@ protected:
 
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
-  std::vector<mlir::ExecutionEngine *> jitEngines;
-
-  /// @brief Invoke the kernel in the JIT engine
-  void invokeJITKernel(mlir::ExecutionEngine *jit,
-                       const std::string &kernelName) {
-    auto funcPtr = jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) +
-                               kernelName);
-    if (!funcPtr) {
-      throw std::runtime_error(
-          "cudaq::builder failed to get kernelReg function.");
-    }
-    reinterpret_cast<void (*)()>(*funcPtr)();
-  }
-
-  /// @brief Invoke the kernel in the JIT engine and then delete the JIT engine.
-  void invokeJITKernelAndRelease(mlir::ExecutionEngine *jit,
-                                 const std::string &kernelName) {
-    invokeJITKernel(jit, kernelName);
-    delete jit;
-  }
+  std::vector<JitEngine> jitEngines;
 
   std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
   extractQuakeCodeAndContext(const std::string &kernelName, void *data) {
@@ -889,9 +870,10 @@ public:
     return {};
   }
 
-  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs, mlir::Type resTy,
-                         void *cachedEngine) override {
+  void *
+  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                   const std::vector<void *> &rawArgs, mlir::Type resTy,
+                   std::optional<cudaq::JitEngine> &cachedEngine) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     throw std::runtime_error(
         "NYI: Remote rest execution via Python/C++ interop.");
@@ -907,9 +889,8 @@ public:
     if (executionContext->name == "tracer" && jitEngines.size() == 1) {
       cudaq::ExecutionContext context("tracer");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      cudaq::get_platform().with_execution_context(context, [&]() {
-        invokeJITKernelAndRelease(jitEngines[0], kernelName);
-      });
+      cudaq::get_platform().with_execution_context(
+          context, [&]() { jitEngines[0].run(kernelName); });
       jitEngines.clear();
       executionContext->kernelTrace = std::move(context.kernelTrace);
       return;
@@ -919,9 +900,8 @@ public:
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
       assert(jitEngines.size() == 1);
-      cudaq::get_platform().with_execution_context(context, [&]() {
-        invokeJITKernelAndRelease(jitEngines[0], kernelName);
-      });
+      cudaq::get_platform().with_execution_context(
+          context, [&]() { jitEngines[0].run(kernelName); });
       jitEngines.clear();
       return;
     }
@@ -974,7 +954,7 @@ public:
               // If this is executed via cudaq::run, then you have to run the
               // code localShots times
               for (std::size_t shot = 0; shot < localShots; shot++)
-                invokeJITKernel(localJIT[0], kernelName);
+                localJIT[0].run(kernelName);
 
               // Get QIR output log
               const auto qirOutputLog = nvqir::getQirOutputLog();
@@ -993,9 +973,8 @@ public:
                 context.warnedNamedMeasurements =
                     executionContext ? executionContext->warnedNamedMeasurements
                                      : false;
-                cudaq::get_platform().with_execution_context(context, [&]() {
-                  invokeJITKernel(localJIT[i], kernelName);
-                });
+                cudaq::get_platform().with_execution_context(
+                    context, [&]() { localJIT[i].run(kernelName); });
 
                 if (isObserve) {
                   // Use the code name instead of the global register.
@@ -1013,11 +992,6 @@ public:
                 }
               }
             }
-            // Clean up the JIT engines. This functor owns these engine
-            // instances.
-            for (auto *jitEngine : localJIT)
-              delete jitEngine;
-            localJIT.clear();
             return cudaq::sample_result(results);
           }));
 

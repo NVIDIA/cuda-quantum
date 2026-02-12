@@ -8,6 +8,7 @@
 
 #include "JIT.h"
 #include "ExecutionContext.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/ObjectCache.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -29,6 +30,8 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <cudaq/platform.h>
 #include <cxxabi.h>
+#include <llvm/Support/Error.h>
+#include <memory>
 #include <tuple>
 
 #define DEBUG_TYPE "cudaq-qpud"
@@ -144,3 +147,45 @@ cudaq::createWrappedKernel(std::string_view irString,
   };
   return std::make_tuple(std::move(jit), callable);
 }
+
+namespace cudaq {
+class JitEngine::Impl {
+public:
+  Impl(std::unique_ptr<mlir::ExecutionEngine> jitEngine)
+      : jitEngine(std::move(jitEngine)) {}
+  void run(const std::string &kernelName) const {
+    auto funcPtr = lookupRawNameOrFail(
+        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+    funcPtr();
+  }
+
+  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
+    auto funcPtr = jitEngine->lookup(kernelName);
+    if (!funcPtr) {
+      throw std::runtime_error("Failed looking function up in jitted module");
+    }
+    return reinterpret_cast<void (*)()>(*funcPtr);
+  }
+
+  std::size_t getKey() {
+    return reinterpret_cast<std::size_t>(jitEngine.get());
+  }
+
+private:
+  std::unique_ptr<mlir::ExecutionEngine> jitEngine;
+};
+
+JitEngine::JitEngine(std::unique_ptr<mlir::ExecutionEngine> jitEngine)
+    : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
+
+void JitEngine::run(const std::string &kernelName) const {
+  return impl->run(kernelName);
+}
+
+std::size_t JitEngine::getKey() const { return impl->getKey(); }
+
+void (*JitEngine::lookupRawNameOrFail(const std::string &kernelName) const)() {
+  return impl->lookupRawNameOrFail(kernelName);
+}
+
+} // namespace cudaq
