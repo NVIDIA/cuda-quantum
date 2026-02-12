@@ -1459,8 +1459,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE">cudaq::ExecutionContext::invocationResultBuffer (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext6jitEngE">cudaq::ExecutionContext::jitEng (C++ member)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10kernelNameE">cudaq::ExecutionContext::kernelName (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext11kernelTraceE">cudaq::ExecutionContext::kernelTrace (C++ member)</a>
@@ -1498,6 +1496,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext4spinE">cudaq::ExecutionContext::spin (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext15totalIterationsE">cudaq::ExecutionContext::totalIterations (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE">cudaq::ExecutionContext::warnedNamedMeasurements (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResultE">cudaq::ExecutionResult (C++ struct)</a>
 </li>
@@ -1601,15 +1601,19 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel10noise_typeE">cudaq::kraus_channel::noise_type (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel8op_namesE">cudaq::kraus_channel::op_names (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channelaSERK13kraus_channel">cudaq::kraus_channel::operator= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channelixEKNSt6size_tE">cudaq::kraus_channel::operator[] (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel10parametersE">cudaq::kraus_channel::parameters (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv">cudaq::kraus_channel::populateDefaultOpNames (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13probabilitiesE">cudaq::kraus_channel::probabilities (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_op">cudaq::kraus_channel::push_back (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_opNSt8optionalINSt6stringEEE">cudaq::kraus_channel::push_back (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel4sizeEv">cudaq::kraus_channel::size (C++ function)</a>
 </li>
@@ -1797,10 +1801,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli1::pauli1 (C++ function)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli1::pauli1 (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli2E">cudaq::pauli2 (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli214num_parametersE">cudaq::pauli2::num_parameters (C++ member)</a>
@@ -2433,6 +2437,8 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.degrees">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.delete_cache_execution_engine">delete_cache_execution_engine() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization1">Depolarization1 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization2">Depolarization2 (class in cudaq)</a>
@@ -2441,10 +2447,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize() (cudaq.SampleResult method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize() (cudaq.SampleResult method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.displace">displace() (in module cudaq.operators.custom)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.distribute_terms">distribute_terms() (cudaq.operators.boson.BosonOperator method)</a>
