@@ -24,10 +24,11 @@ cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
   return launcher->launchModule(name, module, rawArgs, resultTy);
 }
 
-void *cudaq::QPU::specializeModule(const std::string &name,
-                                   mlir::ModuleOp module,
-                                   const std::vector<void *> &rawArgs,
-                                   mlir::Type resultTy, void *cachedEngine) {
+void *
+cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
+                             const std::vector<void *> &rawArgs,
+                             mlir::Type resultTy,
+                             std::optional<cudaq::JitEngine> &cachedEngine) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
