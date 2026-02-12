@@ -104,6 +104,12 @@ struct BridgeConfig {
   cudaq_function_entry_t *d_function_entries = nullptr; ///< GPU function table
   size_t func_count = 0;                                ///< Number of entries
 
+  /// @brief Dispatch kernel grid configuration.
+  /// Defaults match the regular (non-cooperative) kernel.
+  cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
+  uint32_t num_blocks = 1;
+  uint32_t threads_per_block = 32;
+
   /// @brief Pointer to the dispatch kernel launch function.
   /// Default: cudaq_launch_dispatch_kernel_regular
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
@@ -321,12 +327,12 @@ inline int bridge_run(BridgeConfig &config) {
 
   cudaq_dispatcher_config_t dconfig{};
   dconfig.device_id = config.gpu_id;
-  dconfig.num_blocks = 1;
-  dconfig.threads_per_block = 32;
+  dconfig.num_blocks = config.num_blocks;
+  dconfig.threads_per_block = config.threads_per_block;
   dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
   dconfig.slot_size = static_cast<uint32_t>(config.page_size);
   dconfig.vp_id = 0;
-  dconfig.kernel_type = CUDAQ_KERNEL_REGULAR;
+  dconfig.kernel_type = config.kernel_type;
   dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
 
   if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {

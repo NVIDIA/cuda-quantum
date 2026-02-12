@@ -43,6 +43,12 @@ __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
 /// - RX data address comes from rx_flags[slot] (set by Hololink RX kernel)
 /// - TX response is written to tx_data + slot * tx_stride_sz
 /// - tx_flags[slot] is set to the TX slot address
+///
+/// When KernelType::is_cooperative is true, the kernel is launched via
+/// cudaLaunchCooperativeKernel and ALL threads participate in calling the
+/// RPC handler (needed for multi-block cooperative decode kernels like BP).
+/// Thread 0 polls/parses the header, broadcasts work via shared memory,
+/// then all threads call the handler after a grid.sync().
 template <typename KernelType>
 __global__ void dispatch_kernel_device_call_only(
     volatile std::uint64_t* rx_flags,
@@ -58,63 +64,197 @@ __global__ void dispatch_kernel_device_call_only(
   std::uint64_t local_packet_count = 0;
   std::size_t current_slot = 0;
 
-  while (!(*shutdown_flag)) {
-    if (tid == 0) {
-      std::uint64_t rx_value = rx_flags[current_slot];
-      if (rx_value != 0) {
-        // RX data address comes from rx_flags (set by Hololink RX kernel
-        // or host test harness to the address of the RX data slot)
-        void* rx_slot = reinterpret_cast<void*>(rx_value);
-        RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
-        if (header->magic != RPC_MAGIC_REQUEST) {
-          __threadfence_system();
-          rx_flags[current_slot] = 0;
-          continue;
+  if constexpr (KernelType::is_cooperative) {
+    //==========================================================================
+    // Cooperative path: ALL threads call the handler.
+    //
+    // Work descriptor in shared memory (block 0 broadcasts via grid.sync).
+    // Only block 0 needs shared memory for the descriptor; other blocks
+    // read the device-memory copies after the grid barrier.
+    //==========================================================================
+    __shared__ DeviceRPCFunction s_func;
+    __shared__ void*             s_arg_buffer;
+    __shared__ std::uint8_t*     s_output_buffer;
+    __shared__ std::uint32_t     s_arg_len;
+    __shared__ std::uint32_t     s_max_result_len;
+    __shared__ bool              s_have_work;
+
+    // Device-memory work descriptor visible to all blocks after grid.sync.
+    // We use a single set since the cooperative kernel processes one RPC at
+    // a time (all threads participate, so no pipelining).
+    __device__ static DeviceRPCFunction d_func;
+    __device__ static void*             d_arg_buffer;
+    __device__ static std::uint8_t*     d_output_buffer;
+    __device__ static std::uint32_t     d_arg_len;
+    __device__ static std::uint32_t     d_max_result_len;
+    __device__ static bool              d_have_work;
+
+    while (!(*shutdown_flag)) {
+      // --- Phase 1: Thread 0 polls and parses ---
+      if (tid == 0) {
+        s_have_work = false;
+        std::uint64_t rx_value = rx_flags[current_slot];
+        if (rx_value != 0) {
+          void* rx_slot = reinterpret_cast<void*>(rx_value);
+          RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
+          if (header->magic == RPC_MAGIC_REQUEST) {
+            const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+                header->function_id, function_table, func_count);
+            if (entry != nullptr &&
+                entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
+              std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+
+              s_func          = reinterpret_cast<DeviceRPCFunction>(
+                  entry->handler.device_fn_ptr);
+              s_arg_buffer    = static_cast<void*>(header + 1);
+              s_output_buffer = tx_slot + sizeof(RPCResponse);
+              s_arg_len       = header->arg_len;
+              s_max_result_len = tx_stride_sz - sizeof(RPCResponse);
+              s_have_work     = true;
+
+              // Publish to device memory for other blocks
+              d_func           = s_func;
+              d_arg_buffer     = s_arg_buffer;
+              d_output_buffer  = s_output_buffer;
+              d_arg_len        = s_arg_len;
+              d_max_result_len = s_max_result_len;
+              d_have_work      = true;
+            }
+          }
+          if (!s_have_work) {
+            // Bad magic or unsupported mode -- discard
+            __threadfence_system();
+            rx_flags[current_slot] = 0;
+          }
         }
+      }
 
-        std::uint32_t function_id = header->function_id;
-        std::uint32_t arg_len = header->arg_len;
-        void* arg_buffer = static_cast<void*>(header + 1);
+      // --- Phase 2: Broadcast to all threads ---
+      KernelType::sync();
 
-        const cudaq_function_entry_t* entry = dispatch_lookup_entry(
-            function_id, function_table, func_count);
-        
-        if (entry != nullptr && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
-          DeviceRPCFunction func = 
-              reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+      // Non-block-0 threads read from device memory
+      bool have_work;
+      DeviceRPCFunction func;
+      void* arg_buffer;
+      std::uint8_t* output_buffer;
+      std::uint32_t arg_len;
+      std::uint32_t max_result_len;
+      if (blockIdx.x == 0) {
+        have_work      = s_have_work;
+        func           = s_func;
+        arg_buffer     = s_arg_buffer;
+        output_buffer  = s_output_buffer;
+        arg_len        = s_arg_len;
+        max_result_len = s_max_result_len;
+      } else {
+        have_work      = d_have_work;
+        func           = d_func;
+        arg_buffer     = d_arg_buffer;
+        output_buffer  = d_output_buffer;
+        arg_len        = d_arg_len;
+        max_result_len = d_max_result_len;
+      }
 
-          // Compute TX slot address from symmetric TX data buffer
-          std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+      // --- Phase 3: ALL threads call the handler ---
+      std::uint32_t result_len = 0;
+      int status = 0;
+      if (have_work) {
+        status = func(arg_buffer, output_buffer, arg_len,
+                       max_result_len, &result_len);
+      }
 
-          // Handler writes results directly to TX slot (after response header)
-          std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
-          std::uint32_t result_len = 0;
-          std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
-          int status = func(arg_buffer, output_buffer, arg_len,
-                            max_result_len, &result_len);
+      // --- Phase 4: Sync, then thread 0 writes response ---
+      KernelType::sync();
 
-          // Write RPC response header to TX slot
-          RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
-          response->magic = RPC_MAGIC_RESPONSE;
-          response->status = status;
-          response->result_len = result_len;
+      if (tid == 0 && have_work) {
+        std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+        RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
+        response->magic = RPC_MAGIC_RESPONSE;
+        response->status = status;
+        response->result_len = result_len;
 
-          __threadfence_system();
-          // Signal TX with the TX slot address (symmetric with Hololink TX kernel)
-          tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
-        }
+        __threadfence_system();
+        tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
 
         __threadfence_system();
         rx_flags[current_slot] = 0;
         local_packet_count++;
         current_slot = (current_slot + 1) % num_slots;
       }
+
+      // Reset device-memory work flag for next iteration
+      if (tid == 0) {
+        d_have_work = false;
+      }
+
+      KernelType::sync();
+
+      if ((local_packet_count & 0xFF) == 0) {
+        __threadfence_system();
+      }
     }
+  } else {
+    //==========================================================================
+    // Regular path: only thread 0 calls the handler (unchanged).
+    //==========================================================================
+    while (!(*shutdown_flag)) {
+      if (tid == 0) {
+        std::uint64_t rx_value = rx_flags[current_slot];
+        if (rx_value != 0) {
+          // RX data address comes from rx_flags (set by Hololink RX kernel
+          // or host test harness to the address of the RX data slot)
+          void* rx_slot = reinterpret_cast<void*>(rx_value);
+          RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
+          if (header->magic != RPC_MAGIC_REQUEST) {
+            __threadfence_system();
+            rx_flags[current_slot] = 0;
+            continue;
+          }
 
-    KernelType::sync();
+          std::uint32_t function_id = header->function_id;
+          std::uint32_t arg_len = header->arg_len;
+          void* arg_buffer = static_cast<void*>(header + 1);
 
-    if ((local_packet_count & 0xFF) == 0) {
-      __threadfence_system();
+          const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+              function_id, function_table, func_count);
+
+          if (entry != nullptr && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
+            DeviceRPCFunction func =
+                reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+
+            // Compute TX slot address from symmetric TX data buffer
+            std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+
+            // Handler writes results directly to TX slot (after response header)
+            std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
+            std::uint32_t result_len = 0;
+            std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
+            int status = func(arg_buffer, output_buffer, arg_len,
+                              max_result_len, &result_len);
+
+            // Write RPC response header to TX slot
+            RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
+            response->magic = RPC_MAGIC_RESPONSE;
+            response->status = status;
+            response->result_len = result_len;
+
+            __threadfence_system();
+            // Signal TX with the TX slot address (symmetric with Hololink TX kernel)
+            tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
+          }
+
+          __threadfence_system();
+          rx_flags[current_slot] = 0;
+          local_packet_count++;
+          current_slot = (current_slot + 1) % num_slots;
+        }
+      }
+
+      KernelType::sync();
+
+      if ((local_packet_count & 0xFF) == 0) {
+        __threadfence_system();
+      }
     }
   }
 

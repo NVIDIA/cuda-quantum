@@ -19,6 +19,8 @@ namespace cudaq::realtime {
 /// is needed. Suitable for simple decode handlers that don't require
 /// grid-wide coordination.
 struct RegularKernel {
+  /// @brief Not a cooperative kernel -- handler is called by thread 0 only.
+  static constexpr bool is_cooperative = false;
   /// @brief Synchronize threads within a block.
   __device__ static void sync() { __syncthreads(); }
 };
@@ -29,6 +31,8 @@ struct RegularKernel {
 /// such as complex decoders with data dependencies across blocks.
 /// Requires kernel to be launched with cudaLaunchCooperativeKernel.
 struct CooperativeKernel {
+  /// @brief Cooperative kernel -- handler is called by ALL threads.
+  static constexpr bool is_cooperative = true;
   __device__ static void sync() { cooperative_groups::this_grid().sync(); }
 };
 
