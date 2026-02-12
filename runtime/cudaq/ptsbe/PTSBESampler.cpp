@@ -61,8 +61,8 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
     matrix.emplace_back(static_cast<ScalarType>(elem.real()),
                         static_cast<ScalarType>(elem.imag()));
   std::string opName;
-  if (noiseSite.channel.op_names && k < noiseSite.channel.op_names->size())
-    opName = (*noiseSite.channel.op_names)[k];
+  if (k < noiseSite.channel.op_names.size())
+    opName = noiseSite.channel.op_names[k];
   else
     opName = noiseSite.channel.get_type_name() + "[" + std::to_string(k) + "]";
   return GateTask<ScalarType>(opName, matrix, {}, sel.qubits, {});
