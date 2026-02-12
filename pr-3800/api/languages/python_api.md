@@ -3585,7 +3585,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3700988691]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[669621782]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -9408,7 +9408,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
