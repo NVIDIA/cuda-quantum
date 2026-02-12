@@ -968,9 +968,18 @@ public:
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
           SmallVector<Attribute> resultTys;
+          auto containsMeasureTy = [](Type ty) {
+            if (isa<quake::MeasureType>(ty))
+              return true;
+            if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty))
+              return isa<quake::MeasureType>(vecTy.getElementType());
+            return false;
+          };
           for (auto rt : epKern.getFunctionType().getResults())
             resultTys.emplace_back(TypeAttr::get(
-                cudaq::opt::factory::convertToHostSideType(rt, module)));
+                containsMeasureTy(rt)
+                    ? cudaq::opt::factory::convertToHostSideType(rt, module)
+                    : rt));
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);
