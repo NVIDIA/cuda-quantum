@@ -15,10 +15,7 @@
 #include <functional>
 #include <math.h>
 #include <optional>
-<<<<<<< HEAD
-=======
 #include <string>
->>>>>>> 71e16c72b6 (Add operation names to noise model (#3928))
 #include <unordered_map>
 #include <variant>
 #include <vector>
