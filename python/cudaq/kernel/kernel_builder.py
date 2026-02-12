@@ -820,7 +820,7 @@ class PyKernel(object):
                                        "(not a power of 2)")
 
                 # check state is normalized
-                norm = sum([np.conj(a) * a for a in initializer])
+                norm = np.sum(np.conj(initializer) * initializer)
                 if np.abs(norm.imag) > 1e-4 or np.abs(1. - norm.real) > 1e-4:
                     raise RuntimeError(
                         "invalid input state for qalloc (not normalized)")
