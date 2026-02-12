@@ -10,6 +10,7 @@
 
 #include "CodeGenConfig.h"
 #include "Environment.h"
+#include "JIT.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -813,8 +814,8 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
   }
 }
 
-mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo) {
+JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
+                             llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
@@ -905,7 +906,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
 
   auto jitOrError = mlir::ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
-  return jitOrError.get().release();
+  return JitEngine(std::move(jitOrError.get()));
 }
 
 } // namespace cudaq
