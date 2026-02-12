@@ -7,22 +7,19 @@
 # ============================================================================ #
 
 import ast
-import importlib
 import inspect
 import json
+from cudaq.kernel.utils import emitWarning
 import numpy as np
 import sys
 
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
-from cudaq.mlir.ir import (Block, ComplexType, F32Type, F64Type, FunctionType,
-                           IntegerType, NoneType, SymbolTable, Type, TypeAttr,
-                           UnitAttr, Location, Module, StringAttr,
-                           InsertionPoint)
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
+                           IntegerType, NoneType, TypeAttr, UnitAttr, Module)
 from .analysis import HasReturnNodeVisitor
-from .ast_bridge import (compile_to_mlir, PyASTBridge)
-from .captured_data import CapturedDataStorage
+from .ast_bridge import compile_to_mlir
 from .utils import (emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
@@ -86,173 +83,70 @@ class PyKernelDecorator(object):
                  overrideGlobalScopedVars=None,
                  decorator=None,
                  fromBuilder=False):
-        is_deserializing = isinstance(function, str)
 
-        # When initializing with a provided `funcSrc`, we cannot use inspect
-        # because we only have a string for the function source. That is - the
-        # "function" isn't actually a concrete Python Function object in memory
-        # that we can "inspect". Hence, use alternate approaches when
-        # initializing from `funcSrc`.
-        if is_deserializing:
-            self.kernelFunction = None
-            self.name = kernelName
-            self.location = location
-            self.signature = signature
-        else:
-            self.kernelFunction = function
-            self.name = (kernelName if kernelName != None else
-                         self.kernelFunction.__name__)
-            self.location = ((inspect.getfile(self.kernelFunction),
-                              inspect.getsourcelines(self.kernelFunction)[1])
-                             if self.kernelFunction is not None else ('', 0))
+        if funcSrc is not None:
+            emitWarning(
+                "Passing 'funcSrc' to PyKernelDecorator is deprecated. Pass a string to `function` instead."
+            )
+            function = funcSrc
 
-        self.capturedDataStorage = None
+        self.location = location
+        self.signature = signature
+        self.kernelModuleName = None
+        self.name = kernelName
+        self.verbose = verbose
         # The `qkeModule` will be the quake target independent ModuleOp
         self.qkeModule = None
         # The `nvqModule` will be (if present) the default simulation ModuleOp
         self.nvqModule = None
+        self.defModule = _recover_module('cudaq.kernel.kernel_decorator')
 
-        def recover_module(name):
-            """
-            All decorators are defined in this (`kernel_decorator.py`) module.
-            Strip all the frames from this module until we find the next
-            enclosing frame.
-            """
+        if isinstance(function, str):
+            self.kernelFunction = None
+            self.funcSrc = function
+        else:
+            self.kernelFunction = function
+            (src, loc) = _get_source(self.kernelFunction)
+            self.funcSrc = src
+            self.location = loc
 
-            def frame_and_mod(fr):
-                if fr is None:
-                    return None
-                mod = inspect.getmodule(fr)
-                if mod is not None and getattr(mod, "__name__", None):
-                    return mod.__name__
-                # Fallback to search module in `globals`
-                return fr.f_globals.get("__name__")
+        if self.kernelFunction:
+            self.kernelModuleName = self.kernelFunction.__module__
+            if self.name is None:
+                self.name = self.kernelFunction.__name__
 
-            frame = inspect.currentframe()
-            try:
-                # Walk back until we enter the decorator module
-                while frame is not None and frame_and_mod(frame) != name:
-                    frame = frame.f_back
+        if module is not None:
+            if self.kernelFunction is not None or self.funcSrc is not None:
+                raise RuntimeError(
+                    "constructor arguments `module` and `function` cannot be provided together."
+                )
 
-                if frame is None:
-                    return None
-
-                # Walk back until we leave the decorator module
-                while frame is not None and frame_and_mod(frame) == name:
-                    frame = frame.f_back
-
-                if frame is None:
-                    return None
-
-                mod = inspect.getmodule(frame)
-                if mod is not None:
-                    return mod
-
-                # Resolve by `globals` name
-                return sys.modules.get(frame.f_globals.get("__name__"))
-            finally:
-                del frame
-
-        self.defModule = recover_module('cudaq.kernel.kernel_decorator')
-        self.verbose = verbose
-        self.argTypes = None
-
-        if not fromBuilder:
-            # Get any global variables from parent scope.  We filter only types
-            # we accept: integers and floats.  Note here we assume that the
-            # parent scope is 2 stack frames up
-            self.parentFrame = inspect.stack()[2].frame
-            if overrideGlobalScopedVars:
-                self.globalScopedVars = {
-                    k: v for k, v in overrideGlobalScopedVars.items()
-                }
+            if decorator is not None:
+                # shallow copy attributes from `decorator`
+                self.__dict__.update(vars(decorator))
             else:
-                self.globalScopedVars = {
-                    k: v for k, v in dict(inspect.getmembers(self.parentFrame))
-                    ['f_locals'].items()
-                }
-
-            # Register any external class types that may be used in the kernel
-            # definition
-            for name, var in self.globalScopedVars.items():
-                if isinstance(var, type) and hasattr(var, '__annotations__'):
-                    globalRegisteredTypes.registerClass(name, var)
-
-        # Once the kernel is compiled to MLIR, we want to know what capture
-        # variables, if any, were used in the kernel. We need to track these.
-        self.dependentCaptures = None
-
-        if not self.kernelFunction and not is_deserializing:
-            if fromBuilder and module:
-                # Convert a builder to a decorator.
-                self.qkeModule = module
                 self.uniqueId = int(kernelName.split("..0x")[1], 16)
                 self.uniqName = kernelName
-                funcOp = recover_func_op(module, nvqppPrefix + kernelName)
-                fnTy = FunctionType(
-                    TypeAttr(funcOp.attributes['function_type']).value)
-                self.argTypes = fnTy.inputs
-                self.returnType = (fnTy.results[0]
-                                   if fnTy.results else self.get_none_type())
                 self.liftedArgs = []
                 self.firstLiftedPos = None
+
+            self.qkeModule = module
+            self._parse_signature_from_mlir()
+        else:
+            # Get any global variables from parent scope. Note here we assume
+            # that the parent scope is 2 stack frames up
+            self.parentFrame = inspect.stack()[2].frame
+            self.globalScopedVars = {}
+            if overrideGlobalScopedVars:
+                parentVars = overrideGlobalScopedVars
             else:
-                # Constructing a specialization of `decorator`.
-                # FIXME: is this used any longer?
-                if not decorator:
-                    raise RuntimeError("must pass in the decorator")
-                if not module:
-                    raise RuntimeError("must pass the new module")
-                # shallow copy everything
-                self.__dict__.update(vars(decorator))
-                # replace the MLIR module
-                self.qkeModule = module
-                # update the `argTypes` as specialization may have changed them
-                funcOp = recover_func_op(module,
-                                         nvqppPrefix + decorator.uniqName)
-                self.argTypes = FunctionType(
-                    TypeAttr(funcOp.attributes['function_type']).value).inputs
-            return
+                parentVars = self.parentFrame.f_locals
+            for name, var in parentVars.items():
+                self._add_global_scoped_var(name, var)
 
-        if not fromBuilder:
-            if is_deserializing:
-                self.funcSrc = funcSrc
-                self.kernelModuleName = None
-            else:
-                # Get the function source
-                src = inspect.getsource(self.kernelFunction)
-                self.kernelModuleName = self.kernelFunction.__module__
-
-                # Strip off the extra tabs
-                leadingSpaces = len(src) - len(src.lstrip())
-                self.funcSrc = '\n'.join(
-                    [line[leadingSpaces:] for line in src.split('\n')])
-
-            # Create the AST
-            self.astModule = ast.parse(self.funcSrc)
-            if verbose and importlib.util.find_spec('astpretty') is not None:
-                import astpretty
-                astpretty.pprint(self.astModule.body[0])
-
-        # Assign the signature for use later and
-        # keep a list of arguments (used for validation in the runtime)
-        if not is_deserializing:
-            self.signature = inspect.getfullargspec(
-                self.kernelFunction).annotations
-        self.arguments = [
-            (k, v) for k, v in self.signature.items() if k != 'return'
-        ]
-        self.returnType = self.signature[
-            'return'] if 'return' in self.signature else None
-
-        # Validate that we have a return type annotation if necessary
-        hasRetNodeVis = HasReturnNodeVisitor()
-        hasRetNodeVis.visit(self.astModule)
-        if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
-            emitFatalError('CUDA-Q kernel has return statement '
-                           'but no return type annotation.')
-
-        self.pre_compile()
+            self._parse_ast()
+            self._parse_signature_from_python()
+            self.pre_compile()
 
     def __del__(self):
         # explicitly call `del` on the MLIR `ModuleOp` wrappers.
@@ -296,13 +190,11 @@ class PyKernelDecorator(object):
         # Otherwise, `precompile` the kernel to portable MLIR.
         if self.qkeModule:
             raise RuntimeError(self.name + " was already compiled")
-        self.capturedDataStorage = None
         self.uniqueId = id(self)
         self.uniqName = self.name + ".." + hex(self.uniqueId)
-        self.qkeModule, self.argTypes, extraMetadata, self.liftedArgs, self.firstLiftedPos = compile_to_mlir(
+        self.qkeModule, self.argTypes, self.liftedArgs, self.firstLiftedPos = compile_to_mlir(
             id(self),
             self.astModule,
-            self.capturedDataStorage,
             verbose=self.verbose,
             returnType=self.returnType,
             location=self.location,
@@ -321,16 +213,7 @@ class PyKernelDecorator(object):
         return
 
     def convert_to_full_qir(self, vals):
-        # Clean up the captured data if the module needs recompilation.
-        self.capturedDataStorage = self.createStorage()
-
-        resMod, inputs, extraMetadata = self.lower_quake_to_codegen(vals)
-
-        # Grab the dependent capture variables, if any
-        self.dependentCaptures = None
-        if extraMetadata and 'dependent_captures' in extraMetadata:
-            self.dependentCaptures = extraMetadata['dependent_captures']
-        return resMod
+        return self.lower_quake_to_codegen(vals)
 
     def lower_quake_to_codegen(self, argValues):
         """
@@ -338,29 +221,15 @@ class PyKernelDecorator(object):
         generation. If argument values are provided, we run argument synthesis
         and specialize this instance of the kernel.
         """
-        uniq_name = nvqppPrefix + self.uniqName
         if not self.qkeModule:
             emitFatalError(f"no module in kernel decorator {self.name}")
         result = cudaq_runtime.cloneModule(self.qkeModule)
 
-        func_op = recover_func_op(self.qkeModule, uniq_name)
         if argValues:
             if len(self.argTypes) != len(argValues):
                 emitFatalError("wrong number of arguments provided")
-        outputs = FunctionType(
-            TypeAttr(func_op.attributes['function_type']).value).results
-        outTy = outputs[0] if outputs else self.get_none_type()
 
-        if argValues:
-            # Assume all arguments were synthesized.
-            inputs = []
-        else:
-            # No specialization, so just use the original arguments.
-            if not func_op:
-                emitFatalError(f"no entry point for {self.uniqName}")
-            inputs = FunctionType(
-                TypeAttr(func_op.attributes['function_type']).value).inputs
-        return result, inputs, {}
+        return result
 
     def merge_kernel(self, otherMod):
         """
@@ -522,12 +391,6 @@ class PyKernelDecorator(object):
                         ]
         return value
 
-    def createStorage(self):
-        return CapturedDataStorage(ctx=self.qkeModule.context,
-                                   loc=self.location,
-                                   name=self.name,
-                                   module=self.qkeModule)
-
     @staticmethod
     def type_to_str(t):
         """
@@ -569,14 +432,12 @@ class PyKernelDecorator(object):
         Convert a JSON string into a new PyKernelDecorator object.
         """
         j = json.loads(jStr)
-        return PyKernelDecorator(
-            'kernel',  # just set to any string
-            verbose=False,
-            kernelName=j['name'],
-            funcSrc=j['funcSrc'],
-            signature=j['signature'],
-            location=j['location'],
-            overrideGlobalScopedVars=overrideDict)
+        return PyKernelDecorator(function=j['funcSrc'],
+                                 verbose=False,
+                                 kernelName=j['name'],
+                                 signature=j['signature'],
+                                 location=j['location'],
+                                 overrideGlobalScopedVars=overrideDict)
 
     def convertStringsToPauli(self, arg):
         if isinstance(arg, str):
@@ -667,7 +528,7 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
-    def beta_reduction(self, execEngine, *args):
+    def beta_reduction(self, *args):
         """
         Perform beta reduction on this kernel decorator in the current calling
         context. We are primary concerned with resolving the lambda lifted
@@ -683,8 +544,13 @@ class PyKernelDecorator(object):
         mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName,
                                                        specialized_module,
-                                                       mlirTy, execEngine,
-                                                       *processedArgs)
+                                                       mlirTy, *processedArgs)
+
+    def delete_cache_execution_engine(self, key):
+        """
+        Delete the `ExecutionEngine` cache given by a cache key.
+        """
+        cudaq_runtime.delete_cache_execution_engine(key)
 
     def resolve_decorator_at_callsite(self, callingMod):
         # Resolve all lifted arguments for `self`.
@@ -753,6 +619,47 @@ class PyKernelDecorator(object):
         for i, arg in enumerate(args):
             self.process_argument(processedArgs, i, arg, resMod)
 
+    def _add_global_scoped_var(self, name, var):
+        self.globalScopedVars[name] = var
+
+        # Register any external class types that may be used in the kernel
+        # definition
+        if isinstance(var, type) and hasattr(var, '__annotations__'):
+            globalRegisteredTypes.registerClass(name, var)
+
+    def _parse_signature_from_python(self):
+        if not self.kernelFunction:
+            return
+
+        self.signature = inspect.getfullargspec(self.kernelFunction).annotations
+        self.arguments = [
+            (k, v) for k, v in self.signature.items() if k != 'return'
+        ]
+
+        # Validate that we have a return type annotation if necessary
+        hasRetNodeVis = HasReturnNodeVisitor()
+        hasRetNodeVis.visit(self.astModule)
+        if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
+            emitFatalError('CUDA-Q kernel has return statement '
+                           'but no return type annotation.')
+
+        self.returnType = self.signature.get('return', None)
+
+    def _parse_signature_from_mlir(self):
+        funcOp = recover_func_op(self.qkeModule, nvqppPrefix + self.uniqName)
+        fnTy = FunctionType(TypeAttr(funcOp.attributes['function_type']).value)
+        self.argTypes = fnTy.inputs
+        self.returnType = fnTy.results[0] if fnTy.results else None
+
+    def _parse_ast(self):
+        self.astModule = ast.parse(self.funcSrc)
+        if self.verbose:
+            try:
+                from astpretty import pprint
+                pprint(self.astModule.body[0])
+            except ImportError:
+                pass
+
 
 def mk_decorator(builder):
     """
@@ -788,3 +695,58 @@ def isa_kernel_decorator(object):
     Return True if and only if object is an instance of PyKernelDecorator.
     """
     return isinstance(object, PyKernelDecorator)
+
+
+def _get_source(function):
+    if function is None:
+        return None, None
+    # Get the function source location
+    location = (inspect.getfile(function), inspect.getsourcelines(function)[1])
+    # Get the function source
+    src = inspect.getsource(function)
+    # Strip off the extra tabs
+    leadingSpaces = len(src) - len(src.lstrip())
+    src = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])
+    return src, location
+
+
+def _recover_module(name):
+    """
+    All decorators are defined in this (`kernel_decorator.py`) module.
+    Strip all the frames from this module until we find the next
+    enclosing frame.
+    """
+
+    def frame_and_mod(fr):
+        if fr is None:
+            return None
+        mod = inspect.getmodule(fr)
+        if mod is not None and getattr(mod, "__name__", None):
+            return mod.__name__
+        # Fallback to search module in `globals`
+        return fr.f_globals.get("__name__")
+
+    frame = inspect.currentframe()
+    try:
+        # Walk back until we enter the decorator module
+        while frame is not None and frame_and_mod(frame) != name:
+            frame = frame.f_back
+
+        if frame is None:
+            return None
+
+        # Walk back until we leave the decorator module
+        while frame is not None and frame_and_mod(frame) == name:
+            frame = frame.f_back
+
+        if frame is None:
+            return None
+
+        mod = inspect.getmodule(frame)
+        if mod is not None:
+            return mod
+
+        # Resolve by `globals` name
+        return sys.modules.get(frame.f_globals.get("__name__"))
+    finally:
+        del frame
