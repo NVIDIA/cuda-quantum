@@ -27,7 +27,6 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
 from cudaq.kernel_types import qubit, qvector
-from .captured_data import CapturedDataStorage
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
 from .kernel_decorator import isa_kernel_decorator
@@ -263,10 +262,6 @@ class PyKernel(object):
         self.module.operation.attributes.__setitem__('quake.mangled_name_map',
                                                      attr)
 
-        self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
-                                                       loc=self.loc,
-                                                       name=self.name,
-                                                       module=self.module)
         # List of in-place applied noise channels (rather than pre-registered
         # noise classes)
         self.appliedNoiseChannels = []
@@ -291,22 +286,6 @@ class PyKernel(object):
                 func.ReturnOp([])
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
-
-        self._finalizer = weakref.finalize(self, PyKernel._cleanup,
-                                           self.capturedDataStorage)
-
-    @staticmethod
-    def _cleanup(capturedDataStorage):
-        """
-        Cleanup function to be called when the `PyKernel` instance is garbage
-        collected. This resource management method is used with
-        `weakref.finalize()` to ensure proper cleanup of resources. Note that
-        this method is intentionally empty since `CapturedDataStorage` has its
-        own `finalizer`. However, it is still included for maintaining the
-        reference to `CapturedDataStorage` until the `PyKernel` instance is
-        garbage collected ensuring proper cleanup order.
-        """
-        pass
 
     def __processArgType(self, ty):
         """
