@@ -7,8 +7,10 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/JIT.h"
 #include "cudaq/qis/qkernel.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <optional>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
