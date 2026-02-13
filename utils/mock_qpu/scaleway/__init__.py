@@ -176,6 +176,16 @@ async def createSession(request: CreateSessionRequest):
     return session.model_dump()
 
 
+@app.get(_BASE_PATH + "/sessions/{sessionId}")
+async def getSession(sessionId: str):
+    session = database.sessions.get(sessionId)
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    return session.model_dump()
+
+
 @app.post(_BASE_PATH + "/models")
 async def createModel(request: CreateModelRequest):
     model = Model(id=str(uuid.uuid4()), payload=request.payload)
@@ -236,5 +246,7 @@ async def listJobResults(jobId: str):
             )
         ],
     )
+
+    print("return results", results)
 
     return {"job_results": results, "total_count": len(results)}
