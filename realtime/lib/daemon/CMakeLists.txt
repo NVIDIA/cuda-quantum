@@ -21,7 +21,7 @@ if(CUDA_FOUND)
   
   target_include_directories(cudaq-realtime
     PUBLIC
-      $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
+      $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
   )
 
@@ -30,7 +30,7 @@ if(CUDA_FOUND)
       CUDA::cudart_static
   )
 
-  target_compile_definitions(cudaq-realtime PUBLIC NVQLINK_HAVE_CUDA)
+  target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
 
   set_target_properties(cudaq-realtime PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -47,7 +47,7 @@ if(CUDA_FOUND)
 
   target_include_directories(cudaq-realtime-dispatch
     PUBLIC
-      $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
+      $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
   )
 

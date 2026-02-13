@@ -8,8 +8,8 @@
 
 include(GNUInstallDirs)
 
-install(DIRECTORY ${CUDAQ_NVQLINK_INCLUDE_DIR}/cudaq
-  COMPONENT nvqlink-headers
+install(DIRECTORY ${CUDAQ_REALTIME_INCLUDE_DIR}/cudaq
+  COMPONENT cudaq-realtime-headers
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   FILES_MATCHING PATTERN "*.h"
 )

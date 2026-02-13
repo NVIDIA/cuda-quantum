@@ -54,7 +54,7 @@ jobs:
             # Build 
             apt update && apt install -y --no-install-recommends cmake git
             mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DNVQLINK_BUILD_TESTS=ON 
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON 
             make -j$(nproc)
 
       - name: 'Tar files'
