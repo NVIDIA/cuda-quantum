@@ -233,7 +233,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     // registers.
     auto ret = cudaq::sample_result(execResults);
 
-    CUDAQ_INFO("sampleResult ret {}", ret);
+    // CUDAQ_INFO("sampleResult ret {}", ret);
 
     return ret;
   } catch (const std::exception &e) {
