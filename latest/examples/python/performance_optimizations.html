@@ -190,9 +190,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1013,9 +1023,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="61cc6bab70af46b08281ff653686a45e" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="d1af2eac74b144b284f85c4b7c5c45f0" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="5506e326bb44440e97127da5d4120867" src="../../_images/gatefusion.png" /></p>
+<p><img alt="a87c8bfcc3094bd28f27c581489e06b1" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

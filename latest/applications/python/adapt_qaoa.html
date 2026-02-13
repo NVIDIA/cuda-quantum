@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1028,7 +1038,7 @@ using general variational quantum algorithm methods. If the norm of the gradient
 parameter</p>
 <p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
 <p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
-<div><p><img alt="639d8f46c34b4bc6a4bc218f534a50dc" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 1000px;" /></p>
+<div><p><img alt="ad8037e7c8e64dd0825c93dd537b0551" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 1000px;" /></p>
 </div><div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
@@ -1039,7 +1049,11 @@ parameter</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;fp64&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;fp64&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1221,7 +1235,7 @@ Number of pool operator:  46
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">###########################################</span>
@@ -1271,7 +1285,7 @@ Number of pool operator:  46
 <h2>Beginning of ADAPT-QAOA iteration:<a class="headerlink" href="#Beginning-of-ADAPT-QAOA-iteration:" title="Permalink to this heading">¶</a></h2>
 <p>Note that here in this tutorial, we set the seed for the random number generator. This ensures that the random choices are reproducible in each step of iteration when choosing operator pools if more than one operator pool has the same value. For production, users need to remove that.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Begining od ADAPT-QAOA iteration</span>

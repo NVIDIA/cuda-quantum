@@ -167,14 +167,32 @@ latest
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -2002,7 +2020,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![603c97fa728e43ada7be2bdd407bd8bb](../../_images/grovers-2D-plane.png)
+![a557a143449b4a14812c2fb0b2e46f5e](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2217,7 +2235,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![f2ed84034ae64268b63315e0a593a3ac](../../_images/grovers-steps1-3.png)
+![989369177343405ca4d998f34c64a2cf](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2229,7 +2247,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![0542a8f239694506a540446c0f3946ba](../../_images/grovers-full-rotation.png)
+![1c927446f38d42d8aabff6915adf225b](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

@@ -167,14 +167,32 @@ latest
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -2224,10 +2242,11 @@ Python
     // nvq++ iterative_qpe.cpp -o qpe.x && ./qpe.x
     // ```
 
+    #include <algorithm>
     #include <cudaq.h>
 
     struct iqpe {
-      void operator()() __qpu__ {
+      std::vector<bool> operator()() __qpu__ {
         cudaq::qarray<2> q;
         h(q[0]);
         x(q[1]);
@@ -2275,14 +2294,22 @@ Python
           rz(-M_PI_2, q[0]);
 
         h(q[0]);
-        mz(q[0]);
+        return {cr0, cr1, cr2, mz(q[0])};
       }
     };
 
     int main() {
-      auto counts = cudaq::sample(/*shots*/ 10, iqpe{});
-      counts.dump();
-
+      auto results = cudaq::run(/*shots*/ 10, iqpe{});
+      // Get the counts for `cr0`, `cr1`, `cr2` and the final measurement
+      auto count_bit = [&](std::size_t idx) {
+        return std::count_if(results.begin(), results.end(),
+                             [idx](auto &r) { return r[idx]; });
+      };
+      printf("Iterative QPE Results:\n");
+      printf("cr0 : { 1:%zu }\n", count_bit(0));
+      printf("cr1 : { 1:%zu }\n", count_bit(1));
+      printf("cr2 : { 0:%zu }\n", 10 - count_bit(2));
+      printf("final: { 1:%zu }\n", count_bit(3));
       return 0;
     }
 :::

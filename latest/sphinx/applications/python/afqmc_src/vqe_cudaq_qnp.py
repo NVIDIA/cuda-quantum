@@ -148,7 +148,9 @@ class VQE(object):
         """
         kernel, thetas = self.layers()
         state = convert_state_big_endian(
-            np.array(cudaq.get_state(kernel, param_list), dtype=complex))
+            np.array(
+                cudaq.StateMemoryView(cudaq.get_state(kernel, param_list),
+                                      dtype=complex)))
         return state
 
     def execute(self, hamiltonian):

@@ -167,14 +167,32 @@ latest
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1832,7 +1850,11 @@ The code below builds two CUDA-Q kernels corresponding to
     import numpy as np
     from functools import reduce
 
-    cudaq.set_target('nvidia')
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
     qubit_num = 2
 
@@ -1857,16 +1879,16 @@ The state vectors can be accessed using the [`get_state`{.docutils
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    psi_state = cudaq.get_state(psi, qubit_num)
+    psi_state = cudaq.StateMemoryView(cudaq.get_state(psi, qubit_num))
     print('Psi state: ', psi_state)
 
-    phi_state = cudaq.get_state(phi, qubit_num)
+    phi_state = cudaq.StateMemoryView(cudaq.get_state(phi, qubit_num))
     print('Phi state: ', phi_state)
 :::
 :::
@@ -1949,7 +1971,11 @@ basis.
 ::: highlight
     import cudaq
 
-    cudaq.set_target('nvidia')
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
 
     @cudaq.kernel
@@ -2112,7 +2138,13 @@ is specified and the number of GPUs available is determined.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    cudaq.set_target("nvidia", option="mqpu")
+    if cudaq.num_available_gpus() > 1 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia", option="mqpu")
+    elif cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
     target = cudaq.get_target()
     qpu_count = target.num_qpus()

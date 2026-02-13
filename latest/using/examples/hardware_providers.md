@@ -152,14 +152,32 @@ latest
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1818,7 +1836,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -1965,7 +1983,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -2114,7 +2132,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -2257,7 +2275,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -2407,7 +2425,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -3255,24 +3273,27 @@ C++
         cx(qubits[0], qubits[1]);
         h(qubits[0]);
 
-        auto m1 = mz(qubits[0]);
-        auto m2 = mz(qubits[1]);
-
-        if (m1) {
+        if (mz(qubits[0])) {
           z(qubits[2]);
         }
 
-        if (m2) {
+        if (mz(qubits[1])) {
           x(qubits[2]);
         }
 
-        mz(qubits);
+        /// NOTE: If the return statement is changed to `mz(qubits)`, the program
+        /// fails. Ref: https://github.com/NVIDIA/cuda-quantum/issues/3708
+        return mz(qubits[2]);
       }
     };
 
     int main() {
-      auto result = cudaq::sample(teleportation{});
-      result.dump();
+      auto results = cudaq::run(20, teleportation{});
+      std::cout << "Measurement results of the teleported qubit:\n[ ";
+      for (auto r : results)
+        std::cout << r << " ";
+      std::cout << "]\n";
+      return 0;
     }
 :::
 :::
@@ -3361,7 +3382,7 @@ C++
         }
         s(q[0]);
         r1(M_PI / 2, q[1]);
-        auto result = mz(q);
+        mz(q);
       }
     };
 

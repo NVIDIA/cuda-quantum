@@ -167,14 +167,32 @@ latest
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1893,7 +1911,7 @@ circuit diagram above:
     print(cudaq.draw(quantum_fourier_transform, input_state))
 
     # Print the statevector to the specified precision
-    statevector = np.array(cudaq.get_state(quantum_fourier_transform, input_state))
+    statevector = np.array(cudaq.StateMemoryView(cudaq.get_state(quantum_fourier_transform, input_state)))
     print(np.round(statevector, precision))
 :::
 :::
@@ -1983,7 +2001,7 @@ the Inverse Quantum Fourier Transform.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [3]:
 :::
 :::
 
@@ -2018,7 +2036,7 @@ above.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [4]:
 :::
 :::
 
@@ -2053,7 +2071,7 @@ above.
     print(cudaq.draw(verification_example, input_state))
 
     # Print the statevector to the specified precision
-    statevector = np.array(cudaq.get_state(verification_example, input_state))
+    statevector = np.array(cudaq.StateMemoryView(cudaq.get_state(verification_example, input_state)))
     print(np.round(statevector, precision))  # The result should be the input state
 :::
 :::
@@ -2065,25 +2083,25 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-         ╭───╮╭───╮╭─────────╮╭──────────╮                                      »
-    q0 : ┤ x ├┤ h ├┤ r1(1.5) ├┤ r1(0.75) ├──────────────────────────────────────»
-         ╰───╯╰───╯╰────┬────╯╰────┬─────╯╭───╮╭─────────╮          ╭──────────╮»
-    q1 : ───────────────●──────────┼──────┤ h ├┤ r1(1.5) ├──────────┤ r1(-1.5) ├»
-         ╭───╮                     │      ╰───╯╰────┬────╯╭───╮╭───╮╰────┬─────╯»
-    q2 : ┤ x ├─────────────────────●────────────────●─────┤ h ├┤ h ├─────●──────»
-         ╰───╯                                            ╰───╯╰───╯            »
+         ╭───╮╭───╮╭───────────╮╭────────────╮                            »
+    q0 : ┤ x ├┤ h ├┤ r1(1.571) ├┤ r1(0.7854) ├────────────────────────────»
+         ╰───╯╰───╯╰─────┬─────╯╰─────┬──────╯╭───╮╭───────────╮          »
+    q1 : ────────────────●────────────┼───────┤ h ├┤ r1(1.571) ├──────────»
+         ╭───╮                        │       ╰───╯╰─────┬─────╯╭───╮╭───╮»
+    q2 : ┤ x ├────────────────────────●──────────────────●──────┤ h ├┤ h ├»
+         ╰───╯                                                  ╰───╯╰───╯»
 
     ################################################################################
 
-         ╭───────────╮╭──────────╮╭───╮
-    ─────┤ r1(-0.75) ├┤ r1(-1.5) ├┤ h ├
-    ╭───╮╰─────┬─────╯╰────┬─────╯╰───╯
-    ┤ h ├──────┼───────────●───────────
-    ╰───╯      │
-    ───────────●───────────────────────
+                       ╭─────────────╮╭────────────╮╭───╮
+    ───────────────────┤ r1(-0.7854) ├┤ r1(-1.571) ├┤ h ├
+    ╭────────────╮╭───╮╰──────┬──────╯╰─────┬──────╯╰───╯
+    ┤ r1(-1.571) ├┤ h ├───────┼─────────────●────────────
+    ╰─────┬──────╯╰───╯       │
+    ──────●───────────────────●──────────────────────────
 
 
-    [0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.-0.j 0.-0.j 0.+0.j]
+    [0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.+0.j 0.+0.j 0.+0.j]
 :::
 :::
 :::
@@ -2091,7 +2109,7 @@ above.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [5]:
 :::
 :::
 
@@ -2108,7 +2126,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408cbf595ce6fe5f33dcd8b4c)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 300a7a704b2dedaedc04ae54a1c02210ae718c06)
 :::
 :::
 :::

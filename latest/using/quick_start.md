@@ -153,14 +153,32 @@ latest
     -   [Optimizers &
         Gradients](../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../examples/python/noisy_simulations.html){.reference
@@ -1745,8 +1763,10 @@ Guide]{.doc}](install/install.html){.reference .internal}.
 ::: {.admonition .note}
 Note
 
-CUDA-Q is currently supported on Linux only. On Windows, you can use
-[Windows Subsystem for Linux
+CUDA-Q is supported on Linux (x86_64 and ARM64) and macOS (ARM64/Apple
+silicon only). GPU-acceleration is available on Linux only; macOS
+provides CPU-based simulation. On Windows, you can use [Windows
+Subsystem for Linux
 (WSL)](https://learn.microsoft.com/en-us/windows/wsl/){.reference
 .external} to install CUDA-Q.
 :::
@@ -1865,17 +1885,23 @@ C++
 ::: {.tab-content .docutils}
 To develop CUDA-Q applications using C++, please make sure you have a
 C++ toolchain installed that supports C++20, for example [`g++`{.code
-.docutils .literal .notranslate}]{.pre} version 11 or newer. Download
-the [`install_cuda_quantum`{.code .docutils .literal
-.notranslate}]{.pre} file for your processor architecture and CUDA
-version ([`_cu12`{.code .docutils .literal .notranslate}]{.pre} suffix
-for CUDA 12 and [`_cu13`{.code .docutils .literal .notranslate}]{.pre}
-suffix for CUDA 13) from the assets of the respective [GitHub
+.docutils .literal .notranslate}]{.pre} version 11 or newer (or
+[`clang++`{.code .docutils .literal .notranslate}]{.pre} on macOS).
+Download the [`install_cuda_quantum`{.code .docutils .literal
+.notranslate}]{.pre} file for your platform from the assets of the
+respective [GitHub
 release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
-.external}; that is, the file with the [`aarch64`{.code .docutils
-.literal .notranslate}]{.pre} extension for ARM processors, and the one
-with [`x86_64`{.code .docutils .literal .notranslate}]{.pre} for, e.g.,
-Intel and AMD processors.
+.external}:
+
+-   **Linux**: Use [`_cu12`{.code .docutils .literal
+    .notranslate}]{.pre} suffix for CUDA 12 or [`_cu13`{.code .docutils
+    .literal .notranslate}]{.pre} for CUDA 13, with [`aarch64`{.code
+    .docutils .literal .notranslate}]{.pre} for ARM or [`x86_64`{.code
+    .docutils .literal .notranslate}]{.pre} for Intel/AMD processors.
+
+-   **macOS**: Use the [`_darwin`{.code .docutils .literal
+    .notranslate}]{.pre} suffix with [`arm64`{.code .docutils .literal
+    .notranslate}]{.pre} for Apple silicon.
 
 To install CUDA-Q, execute the commands
 
@@ -1886,7 +1912,7 @@ To install CUDA-Q, execute the commands
 :::
 :::
 
-If you have an NVIDIA GPU, please also install the [CUDA
+If you have an NVIDIA GPU on Linux, please also install the [CUDA
 Toolkit](https://developer.nvidia.com/cuda-downloads){.reference
 .external} to enable GPU-acceleration within CUDA-Q.
 

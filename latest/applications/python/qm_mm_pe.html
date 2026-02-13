@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1025,7 +1035,7 @@
 </section>
 <section id="PE-VQE-SCF-Algorithm-Steps">
 <h2>PE-VQE-SCF Algorithm Steps<a class="headerlink" href="#PE-VQE-SCF-Algorithm-Steps" title="Permalink to this heading">¶</a></h2>
-<div><p><img alt="acd56f77c3f24693b843da2ee3416141" class="no-scaled-link" src="../../_images/qm-mm-pe.png" style="width: 600px;" /></p>
+<div><p><img alt="1139d23c09d743aca9e008c991a6f942" class="no-scaled-link" src="../../_images/qm-mm-pe.png" style="width: 600px;" /></p>
 </div><section id="Step-1:-Initialize-(Classical-pre-processing)">
 <h3>Step 1: Initialize (Classical pre-processing)<a class="headerlink" href="#Step-1:-Initialize-(Classical-pre-processing)" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">

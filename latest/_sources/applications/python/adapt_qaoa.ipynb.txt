@@ -46,7 +46,11 @@
     "from scipy.optimize import minimize\n",
     "import random\n",
     "\n",
-    "cudaq.set_target(\"nvidia\", option=\"fp64\")"
+    "if cudaq.num_available_gpus() > 0 and cudaq.has_target(\"nvidia\"):\n",
+    "    cudaq.set_target(\"nvidia\", option=\"fp64\")\n",
+    "else:\n",
+    "    print(\"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.\")\n",
+    "    cudaq.set_target(\"qpp-cpu\")"
    ]
   },
   {
@@ -252,7 +256,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 21,
+   "execution_count": 19,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -309,7 +313,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 22,
+   "execution_count": 20,
    "metadata": {},
    "outputs": [
     {
@@ -537,7 +541,7 @@
  ],
  "metadata": {
   "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
+   "display_name": "Python 3",
    "language": "python",
    "name": "python3"
   },
@@ -551,7 +555,7 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.10.12"
+   "version": "3.12.3"
   }
  },
  "nbformat": 4,

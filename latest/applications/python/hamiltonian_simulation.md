@@ -167,14 +167,32 @@ latest
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1802,7 +1820,7 @@ terms:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [1]:
 :::
 :::
 
@@ -1837,7 +1855,7 @@ create the state [\\(\|0101\\ldots\\rangle\\)]{.math .notranslate
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [2]:
 :::
 :::
 
@@ -1899,7 +1917,7 @@ evolution.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [15]:
+    [3]:
 :::
 :::
 
@@ -1945,7 +1963,7 @@ initial state.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [16]:
+    [4]:
 :::
 :::
 
@@ -1985,7 +2003,7 @@ interactions in the X, Y, and Z directions.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [5]:
 :::
 :::
 
@@ -2016,7 +2034,7 @@ Construct the TFIM Hamiltonian as a [`cudaq.SpinOperator`{.docutils
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [6]:
 :::
 :::
 
@@ -2049,7 +2067,7 @@ for use in the Trotter step.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [7]:
 :::
 :::
 
@@ -2084,7 +2102,7 @@ the time evolution.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [20]:
+    [8]:
 :::
 :::
 
@@ -2156,6 +2174,20 @@ the time evolution.
 :::
 :::
 
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .stderr .docutils .container}
+::: highlight
+    /tmp/ipykernel_393541/1011071069.py:4: DeprecationWarning: use `evaluate_coefficient` instead
+      result.append(term.get_coefficient())
+    /tmp/ipykernel_393541/1011071069.py:10: DeprecationWarning: use `qubit_count` instead
+      n_spins = hamiltonian.get_qubit_count()
+:::
+:::
+:::
+
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .empty .docutils .container}
 :::
@@ -2163,7 +2195,7 @@ the time evolution.
 ::: {.output_area .docutils .container}
 ::: highlight
     Initialize state
-    Circuit execution time: 0.060 seconds
+    Circuit execution time: 2.244 seconds
 :::
 :::
 :::
@@ -2178,7 +2210,7 @@ function of time.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [21]:
+    [9]:
 :::
 :::
 
@@ -2214,7 +2246,7 @@ visualize results for expectation value over time.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [22]:
+    [10]:
 :::
 :::
 
@@ -2246,7 +2278,7 @@ Plot the expectation value over time.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [23]:
+    [11]:
 :::
 :::
 
@@ -2283,7 +2315,7 @@ needed to do it manually here is how it is done.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [24]:
+    [12]:
 :::
 :::
 
@@ -2342,7 +2374,7 @@ needed to do it manually here is how it is done.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [25]:
+    [13]:
 :::
 :::
 
@@ -2359,7 +2391,7 @@ needed to do it manually here is how it is done.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version 0.9.0 (https://github.com/NVIDIA/cuda-quantum b4d549b1951738f3a5a481d1d93bf090e1e622fa)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum d5e0513d54809a835d1c2c108c0692be10d7d1bb)
 :::
 :::
 :::

@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1025,13 +1035,13 @@ operator to be applied is chosen according to a simple criterion based on the gr
 <p>7- Perform a VQE experiment to re-optimize all parameters in the ansatz.</p>
 <p>8- go to step 4</p>
 <p>Below is a Schematic depiction of the ADAPT-VQE algorithm</p>
-<div><p><img alt="74296b556a75427ba4c331a6852e75a3" class="no-scaled-link" src="../../_images/adapt-vqe.png" style="width: 800px;" /></p>
+<div><p><img alt="551ea68e3b174898b30510eaded3d6f4" class="no-scaled-link" src="../../_images/adapt-vqe.png" style="width: 800px;" /></p>
 </div><div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># Requires pyscf to be installed
-%pip install pyscf
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Requires pyscf to be installed</span>
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">pyscf</span>
 </pre></div>
 </div>
 </div>
@@ -1053,17 +1063,19 @@ Note: you may need to restart the kernel to use updated packages.
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>import cudaq
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-# When use mpi
-#cudaq.mpi.initialize()
-#print(f&quot;My rank {cudaq.mpi.rank()} of {cudaq.mpi.num_ranks()}&quot;, flush=True)
+<span class="c1"># When use mpi</span>
+<span class="c1">#cudaq.mpi.initialize()</span>
+<span class="c1">#print(f&quot;My rank {cudaq.mpi.rank()} of {cudaq.mpi.num_ranks()}&quot;, flush=True)</span>
 
-# Set the traget
-# Double precision is recommended for the best performance.
-cudaq.set_target(&quot;nvidia&quot;, option = &quot;fp64&quot;)
-
-#cudaq.set_target(&quot;nvidia&quot;)
+<span class="c1"># Set the target</span>
+<span class="c1"># Double precision is recommended for the best performance.</span>
+<span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="s2">&quot;fp64&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.&quot;</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1074,19 +1086,19 @@ cudaq.set_target(&quot;nvidia&quot;, option = &quot;fp64&quot;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>import numpy as np
-from qchem.classical_pyscf import get_mol_hamiltonian
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
 
-# Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.
-geometry = &#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;
-molecular_data = get_mol_hamiltonian(xyz= geometry, spin=0, charge=0, basis=&#39;sto3g&#39;, ccsd=True, verbose=True)
+<span class="c1"># Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.</span>
+<span class="n">geometry</span> <span class="o">=</span> <span class="s1">&#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span> <span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;sto3g&#39;</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-obi = molecular_data[0]
-tbi = molecular_data[1]
-e_nn = molecular_data[2]
-nelectrons = molecular_data[3]
-norbitals = molecular_data[4]
-fermionic_hamiltonian = molecular_data[5]
+<span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">e_nn</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">nelectrons</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">norbitals</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">fermionic_hamiltonian</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1110,13 +1122,13 @@ overwrite output file: H 0-pyscf.log
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from qchem.hamiltonian import jordan_wigner_fermion
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span>
 
-# Convert the fermionic Hamiltonian to a qubit Hamiltonian
-spin_ham = jordan_wigner_fermion(obi, tbi, e_nn, tolerance = 1e-15)
-print(&#39;Total number of pauli hamiltonian terms: &#39;,spin_ham.term_count)
+<span class="c1"># Convert the fermionic Hamiltonian to a qubit Hamiltonian</span>
+<span class="n">spin_ham</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-15</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of pauli hamiltonian terms: &#39;</span><span class="p">,</span><span class="n">spin_ham</span><span class="o">.</span><span class="n">term_count</span><span class="p">)</span>
 
-print(spin_ham)
+<span class="nb">print</span><span class="p">(</span><span class="n">spin_ham</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1145,30 +1157,30 @@ Total number of pauli hamiltonian terms:  15
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from qchem.operator_pool import get_uccsd_pool
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.operator_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_uccsd_pool</span>
 
-n_qubits= norbitals * 2
+<span class="n">n_qubits</span><span class="o">=</span> <span class="n">norbitals</span> <span class="o">*</span> <span class="mi">2</span>
 
-pools = get_uccsd_pool(nelectrons, n_qubits)
+<span class="n">pools</span> <span class="o">=</span> <span class="n">get_uccsd_pool</span><span class="p">(</span><span class="n">nelectrons</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">)</span>
 
-print(&#39;Number of operator pool: &#39;, len(pools))
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of operator pool: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pools</span><span class="p">))</span>
 
-sign_pool = []
-mod_pool = []
-for i in range(len(pools)):
-    op_i = pools[i]
-    temp_op = []
-    temp_coef = []
+<span class="n">sign_pool</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">mod_pool</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pools</span><span class="p">)):</span>
+    <span class="n">op_i</span> <span class="o">=</span> <span class="n">pools</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">temp_op</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">temp_coef</span> <span class="o">=</span> <span class="p">[]</span>
 
-    for term in op_i:
-        temp_coef.append(term.evaluate_coefficient())
-        temp_op.append(term.get_pauli_word(n_qubits))
+    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">op_i</span><span class="p">:</span>
+        <span class="n">temp_coef</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">evaluate_coefficient</span><span class="p">())</span>
+        <span class="n">temp_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">))</span>
 
 
-    mod_pool.append(temp_op)
-    sign_pool.append(temp_coef)
-print(mod_pool)
-print(sign_pool)
+    <span class="n">mod_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_op</span><span class="p">)</span>
+    <span class="n">sign_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_coef</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">mod_pool</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sign_pool</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1190,22 +1202,22 @@ Number of operator pool:  3
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>def commutator(pools, ham):
-    com_op = []
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">commutator</span><span class="p">(</span><span class="n">pools</span><span class="p">,</span> <span class="n">ham</span><span class="p">):</span>
+    <span class="n">com_op</span> <span class="o">=</span> <span class="p">[]</span>
 
-    for i in range(len(pools)):
-        # We add the imaginary number that we excluded when generating the operator pool.
-        op = 1j * pools[i]
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pools</span><span class="p">)):</span>
+        <span class="c1"># We add the imaginary number that we excluded when generating the operator pool.</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">pools</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
-        com_op.append(ham * op - op * ham)
+        <span class="n">com_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ham</span> <span class="o">*</span> <span class="n">op</span> <span class="o">-</span> <span class="n">op</span> <span class="o">*</span> <span class="n">ham</span><span class="p">)</span>
 
-    return com_op
+    <span class="k">return</span> <span class="n">com_op</span>
 
-grad_op = commutator(pools, spin_ham)
-print(&#39;Number of op for gradient: &#39;, len(grad_op))
+<span class="n">grad_op</span> <span class="o">=</span> <span class="n">commutator</span><span class="p">(</span><span class="n">pools</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of op for gradient: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">grad_op</span><span class="p">))</span>
 
-#for op in grad_op:
-#    print(op)
+<span class="c1">#for op in grad_op:</span>
+<span class="c1">#    print(op)</span>
 </pre></div>
 </div>
 </div>
@@ -1225,18 +1237,18 @@ Number of op for gradient:  3
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># Get the initial state (reference state).
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the initial state (reference state).</span>
 
-@cudaq.kernel
-def initial_state(n_qubits:int, nelectrons:int):
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">initial_state</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
 
-    qubits = cudaq.qvector(n_qubits)
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
 
-    for i in range(nelectrons):
-        x(qubits[i])
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelectrons</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-state = cudaq.get_state(initial_state, n_qubits, nelectrons)
-print(state)
+<span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1256,38 +1268,38 @@ SV: [(0,0), (0,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>###################################
-# Quantum kernels
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">###################################</span>
+<span class="c1"># Quantum kernels</span>
 
-@cudaq.kernel
-def gradient(state:cudaq.State):
-    q = cudaq.qvector(state)
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">gradient</span><span class="p">(</span><span class="n">state</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
 
-@cudaq.kernel
-def kernel(theta: list[float], qubits_num: int, nelectrons: int, pool_single: list[cudaq.pauli_word],
-           coef_single: list[float], pool_double: list[cudaq.pauli_word], coef_double: list[float]):
-    q = cudaq.qvector(qubits_num)
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span>
+           <span class="n">coef_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">pool_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
 
-    for i in range(nelectrons):
-        x(q[i])
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelectrons</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-    count=0
-    for  i in range(0, len(coef_single), 2):
-        exp_pauli(coef_single[i] * theta[count], q, pool_single[i])
-        exp_pauli(coef_single[i+1] * theta[count], q, pool_single[i+1])
-        count+=1
+    <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">for</span>  <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef_single</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
 
-    for i in range(0, len(coef_double), 8):
-        exp_pauli(coef_double[i] * theta[count], q, pool_double[i])
-        exp_pauli(coef_double[i+1] * theta[count], q, pool_double[i+1])
-        exp_pauli(coef_double[i+2] * theta[count], q, pool_double[i+2])
-        exp_pauli(coef_double[i+3] * theta[count], q, pool_double[i+3])
-        exp_pauli(coef_double[i+4] * theta[count], q, pool_double[i+4])
-        exp_pauli(coef_double[i+5] * theta[count], q, pool_double[i+5])
-        exp_pauli(coef_double[i+6] * theta[count], q, pool_double[i+6])
-        exp_pauli(coef_double[i+7] * theta[count], q, pool_double[i+7])
-        count+=1
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef_double</span><span class="p">),</span> <span class="mi">8</span><span class="p">):</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coef_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">]</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">q</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">7</span><span class="p">])</span>
+        <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
 </pre></div>
 </div>
 </div>
@@ -1298,183 +1310,183 @@ def kernel(theta: list[float], qubits_num: int, nelectrons: int, pool_single: li
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from scipy.optimize import minimize
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 
-print(&#39;Beginning of ADAPT-VQE&#39;)
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Beginning of ADAPT-VQE&#39;</span><span class="p">)</span>
 
-threshold=1e-3
-E_prev=0.0
-e_stop=1e-5
-init_theta=0.0
+<span class="n">threshold</span><span class="o">=</span><span class="mf">1e-3</span>
+<span class="n">E_prev</span><span class="o">=</span><span class="mf">0.0</span>
+<span class="n">e_stop</span><span class="o">=</span><span class="mf">1e-5</span>
+<span class="n">init_theta</span><span class="o">=</span><span class="mf">0.0</span>
 
-theta_single=[]
-theta_double=[]
+<span class="n">theta_single</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">theta_double</span><span class="o">=</span><span class="p">[]</span>
 
-pool_single=[]
-pool_double=[]
+<span class="n">pool_single</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">pool_double</span><span class="o">=</span><span class="p">[]</span>
 
-coef_single=[]
-coef_double=[]
+<span class="n">coef_single</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">coef_double</span><span class="o">=</span><span class="p">[]</span>
 
-selected_pool=[]
+<span class="n">selected_pool</span><span class="o">=</span><span class="p">[]</span>
 
-for i in range(10):
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
 
-    print(&#39;Step: &#39;, i)
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step: &#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 
-    gradient_vec=[]
+    <span class="n">gradient_vec</span><span class="o">=</span><span class="p">[]</span>
 
-    for op in grad_op:
-        grad=cudaq.observe(gradient, op, state).expectation()
-        gradient_vec.append(grad)
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">grad_op</span><span class="p">:</span>
+        <span class="n">grad</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">gradient</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+        <span class="n">gradient_vec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grad</span><span class="p">)</span>
 
-    norm=np.linalg.norm(np.array(gradient_vec))
-    print(&#39;Norm of the gradient: &#39;, norm)
-
-
-    # When using mpi to parallelize gradient calculation: uncomment the following lines
-
-    #chunks=np.array_split(np.array(grad_op), cudaq.mpi.num_ranks())
-    #my_rank_op=chunks[cudaq.mpi.rank()]
-
-    #print(&#39;We have&#39;, len(grad_op), &#39;pool operators which we would like to split&#39;, flush=True)
-    #print(&#39;We have&#39;, len(my_rank_op), &#39;pool operators on this rank&#39;, cudaq.mpi.rank(), flush=True)
-
-    #gradient_vec_async=[]
-
-    #for op in my_rank_op:
-        #gradient_vec_async.append(cudaq.observe_async(gradient, op, state))
-
-    #gradient_vec_rank=[]
-    #for i in range(len(gradient_vec_async)):
-    #    get_result=gradient_vec_async[i].get()
-    #    get_expectation=get_result.expectation()
-    #    gradient_vec_rank.append(get_expectation)
-
-    #print(&#39;My rank has&#39;, len(gradient_vec_rank), &#39;gradients&#39;, flush=True)
-
-    #gradient_vec=cudaq.mpi.all_gather(len(gradient_vec_rank)*cudaq.mpi.num_ranks(), gradient_vec_rank)
+    <span class="n">norm</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Norm of the gradient: &#39;</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
 
 
-    if norm &lt;= threshold:
-        print(&#39;\n&#39;, &#39;Final Result: &#39;, &#39;\n&#39;)
-        print(&#39;Final parameters: &#39;, theta)
-        print(&#39;Selected pools: &#39;, selected_pool)
-        print(&#39;Number of pools: &#39;, len(selected_pool))
-        print(&#39;Final energy: &#39;, result_vqe.fun)
+    <span class="c1"># When using mpi to parallelize gradient calculation: uncomment the following lines</span>
 
-        break
+    <span class="c1">#chunks=np.array_split(np.array(grad_op), cudaq.mpi.num_ranks())</span>
+    <span class="c1">#my_rank_op=chunks[cudaq.mpi.rank()]</span>
 
-    else:
+    <span class="c1">#print(&#39;We have&#39;, len(grad_op), &#39;pool operators which we would like to split&#39;, flush=True)</span>
+    <span class="c1">#print(&#39;We have&#39;, len(my_rank_op), &#39;pool operators on this rank&#39;, cudaq.mpi.rank(), flush=True)</span>
 
-        max_grad=np.max(np.abs(gradient_vec))
-        print(&#39;max_grad: &#39;, max_grad)
+    <span class="c1">#gradient_vec_async=[]</span>
 
-        temp_pool = []
-        temp_sign = []
-        for i in range(len(mod_pool)):
-            if np.abs(gradient_vec[i]) == max_grad:
-                temp_pool.append(mod_pool[i])
-                temp_sign.append(sign_pool[i])
+    <span class="c1">#for op in my_rank_op:</span>
+        <span class="c1">#gradient_vec_async.append(cudaq.observe_async(gradient, op, state))</span>
 
-        print(&#39;Selected pool at current step: &#39;, temp_pool)
+    <span class="c1">#gradient_vec_rank=[]</span>
+    <span class="c1">#for i in range(len(gradient_vec_async)):</span>
+    <span class="c1">#    get_result=gradient_vec_async[i].get()</span>
+    <span class="c1">#    get_expectation=get_result.expectation()</span>
+    <span class="c1">#    gradient_vec_rank.append(get_expectation)</span>
 
-        selected_pool=selected_pool+temp_pool
+    <span class="c1">#print(&#39;My rank has&#39;, len(gradient_vec_rank), &#39;gradients&#39;, flush=True)</span>
 
-        tot_single=0
-        tot_double=0
-        for p in temp_pool:
-            if len(p) == 2:
-                tot_single += 1
-                for word in p:
-                    pool_single.append(word)
-            else:
-                tot_double += 1
-                for word in p:
-                    pool_double.append(word)
+    <span class="c1">#gradient_vec=cudaq.mpi.all_gather(len(gradient_vec_rank)*cudaq.mpi.num_ranks(), gradient_vec_rank)</span>
 
-        for coef in temp_sign:
-            if len(coef) == 2:
-                for value in coef:
-                    coef_single.append(value.real)
-            else:
-                for value in coef:
-                    coef_double.append(value.real)
 
-        print(&#39;pool single: &#39;, pool_single)
-        print(&#39;coef_single: &#39;, coef_single)
-        print(&#39;pool_double: &#39;, pool_double)
-        print(&#39;coef_double: &#39;, coef_double)
-        print(&#39;tot_single: &#39;, tot_single)
-        print(&#39;tot_double: &#39;, tot_double)
+    <span class="k">if</span> <span class="n">norm</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Final Result: &#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final parameters: &#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Selected pools: &#39;</span><span class="p">,</span> <span class="n">selected_pool</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of pools: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_pool</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final energy: &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
 
-        init_theta_single = [init_theta] * tot_single
-        init_theta_double = [init_theta] * tot_double
+        <span class="k">break</span>
 
-        theta_single = theta_single + init_theta_single
-        theta_double = theta_double + init_theta_double
-        print(&#39;theta_single&#39;, theta_single)
-        print(&#39;theta_double: &#39;, theta_double)
+    <span class="k">else</span><span class="p">:</span>
 
-        theta = theta_single + theta_double
-        print(&#39;theta&#39;, theta)
+        <span class="n">max_grad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;max_grad: &#39;</span><span class="p">,</span> <span class="n">max_grad</span><span class="p">)</span>
 
-        def cost(theta):
+        <span class="n">temp_pool</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">temp_sign</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mod_pool</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gradient_vec</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="n">max_grad</span><span class="p">:</span>
+                <span class="n">temp_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mod_pool</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">temp_sign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sign_pool</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-            theta=theta.tolist()
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Selected pool at current step: &#39;</span><span class="p">,</span> <span class="n">temp_pool</span><span class="p">)</span>
 
-            energy=cudaq.observe(kernel, spin_ham, theta, n_qubits, nelectrons, pool_single,
-                                coef_single, pool_double, coef_double).expectation()
+        <span class="n">selected_pool</span><span class="o">=</span><span class="n">selected_pool</span><span class="o">+</span><span class="n">temp_pool</span>
 
-            return energy
+        <span class="n">tot_single</span><span class="o">=</span><span class="mi">0</span>
+        <span class="n">tot_double</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">temp_pool</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">tot_single</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                    <span class="n">pool_single</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tot_double</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                    <span class="n">pool_double</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
 
-        def parameter_shift(theta):
-            parameter_count = len(theta)
-            grad = np.zeros(parameter_count)
-            theta2 = theta.copy()
-            for i in range(parameter_count):
-                theta2[i] = theta[i] + np.pi/4
-                exp_val_plus = cost(theta2)
-                theta2[i] = theta[i] - np.pi/4
-                exp_val_minus = cost(theta2)
-                grad[i] = (exp_val_plus - exp_val_minus)
-                theta2[i] = theta[i]
-            return grad
+        <span class="k">for</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">temp_sign</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">coef</span><span class="p">:</span>
+                    <span class="n">coef_single</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">coef</span><span class="p">:</span>
+                    <span class="n">coef_double</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
 
-        result_vqe=minimize(cost, theta, method=&#39;L-BFGS-B&#39;, jac=&#39;3-point&#39;, tol=1e-7)
-        # If want to use parameter shift to compute gradient, please uncomment the following line.
-        #result_vqe=minimize(cost, theta, method=&#39;L-BFGS-B&#39;, jac=parameter_shift, tol=1e-7)
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pool single: &#39;</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;coef_single: &#39;</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pool_double: &#39;</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;coef_double: &#39;</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;tot_single: &#39;</span><span class="p">,</span> <span class="n">tot_single</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;tot_double: &#39;</span><span class="p">,</span> <span class="n">tot_double</span><span class="p">)</span>
 
-        theta=result_vqe.x.tolist()
-        theta_single = theta[:tot_single]
-        theta_double = theta[tot_single:]
+        <span class="n">init_theta_single</span> <span class="o">=</span> <span class="p">[</span><span class="n">init_theta</span><span class="p">]</span> <span class="o">*</span> <span class="n">tot_single</span>
+        <span class="n">init_theta_double</span> <span class="o">=</span> <span class="p">[</span><span class="n">init_theta</span><span class="p">]</span> <span class="o">*</span> <span class="n">tot_double</span>
 
-        print(&#39;Optmized Energy: &#39;, result_vqe.fun)
-        print(&#39;Optimizer exited successfully: &#39;,result_vqe.success, flush=True)
-        print(result_vqe.message, flush=True)
+        <span class="n">theta_single</span> <span class="o">=</span> <span class="n">theta_single</span> <span class="o">+</span> <span class="n">init_theta_single</span>
+        <span class="n">theta_double</span> <span class="o">=</span> <span class="n">theta_double</span> <span class="o">+</span> <span class="n">init_theta_double</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;theta_single&#39;</span><span class="p">,</span> <span class="n">theta_single</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;theta_double: &#39;</span><span class="p">,</span> <span class="n">theta_double</span><span class="p">)</span>
 
-        dE= result_vqe.fun-E_prev
-        print(&#39;dE: &#39;, dE)
-        print(&#39;\n&#39;)
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta_single</span> <span class="o">+</span> <span class="n">theta_double</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
 
-        if np.abs(dE)&lt;=e_stop:
-            print(&#39;\n&#39;, &#39;Final Result: &#39;, &#39;\n&#39;)
-            print(&#39;Final parameters: &#39;, theta)
-            print(&#39;Selected pools: &#39;, selected_pool)
-            print(&#39;Number of pools: &#39;, len(selected_pool))
-            print(&#39;Final energy: &#39;, result_vqe.fun)
+        <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-            break
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
-        else:
-            E_prev=result_vqe.fun
+            <span class="n">energy</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">,</span>
+                                <span class="n">coef_single</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
-            # Prepare a trial state with the current ansatz.
-            state=cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
-                            coef_single, pool_double, coef_double)
+            <span class="k">return</span> <span class="n">energy</span>
 
-# When using mpi
-#cudaq.mpi.finalize()
+        <span class="k">def</span><span class="w"> </span><span class="nf">parameter_shift</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+            <span class="n">parameter_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">parameter_count</span><span class="p">)</span>
+            <span class="n">theta2</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">parameter_count</span><span class="p">):</span>
+                <span class="n">theta2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
+                <span class="n">exp_val_plus</span> <span class="o">=</span> <span class="n">cost</span><span class="p">(</span><span class="n">theta2</span><span class="p">)</span>
+                <span class="n">theta2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
+                <span class="n">exp_val_minus</span> <span class="o">=</span> <span class="n">cost</span><span class="p">(</span><span class="n">theta2</span><span class="p">)</span>
+                <span class="n">grad</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">exp_val_plus</span> <span class="o">-</span> <span class="n">exp_val_minus</span><span class="p">)</span>
+                <span class="n">theta2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">grad</span>
+
+        <span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="s1">&#39;3-point&#39;</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">)</span>
+        <span class="c1"># If want to use parameter shift to compute gradient, please uncomment the following line.</span>
+        <span class="c1">#result_vqe=minimize(cost, theta, method=&#39;L-BFGS-B&#39;, jac=parameter_shift, tol=1e-7)</span>
+
+        <span class="n">theta</span><span class="o">=</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">theta_single</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[:</span><span class="n">tot_single</span><span class="p">]</span>
+        <span class="n">theta_double</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">tot_single</span><span class="p">:]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optmized Energy: &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optimizer exited successfully: &#39;</span><span class="p">,</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">success</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">dE</span><span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="o">-</span><span class="n">E_prev</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dE: &#39;</span><span class="p">,</span> <span class="n">dE</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dE</span><span class="p">)</span><span class="o">&lt;=</span><span class="n">e_stop</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Final Result: &#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final parameters: &#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Selected pools: &#39;</span><span class="p">,</span> <span class="n">selected_pool</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of pools: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_pool</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Final energy: &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+
+            <span class="k">break</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">E_prev</span><span class="o">=</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span>
+
+            <span class="c1"># Prepare a trial state with the current ansatz.</span>
+            <span class="n">state</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">nelectrons</span><span class="p">,</span> <span class="n">pool_single</span><span class="p">,</span>
+                            <span class="n">coef_single</span><span class="p">,</span> <span class="n">pool_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span>
+
+<span class="c1"># When using mpi</span>
+<span class="c1">#cudaq.mpi.finalize()</span>
 </pre></div>
 </div>
 </div>

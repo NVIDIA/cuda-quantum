@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1107,7 +1117,7 @@
 <p>Let us now examine the geometric picture behind our current discussion. We’ll consider the ambient Hilbert space to be spanned by the standard basis vectors <span class="math notranslate nohighlight">\(|0\rangle, |1\rangle, \dots, |N-1\rangle\)</span>, where the full dimension is <span class="math notranslate nohighlight">\(N = 2^n\)</span>. Since the uniform superposition state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> can be expressed as a linear combination of the states <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> with real coefficients, all three states <span class="math notranslate nohighlight">\(|\xi\rangle, |G\rangle,\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>
 reside in a two-dimensional real subspace of the ambient Hilbert space, which we can visualize as a 2D plane as in the image below. Since, <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> are orthogonal, we can imagine them graphed as unit vectors in the positive <span class="math notranslate nohighlight">\(y\)</span> and positive <span class="math notranslate nohighlight">\(x\)</span> directions, respectively. From our previous expression, <span class="math notranslate nohighlight">\(\ket{\xi} = \sin(\theta) |G\rangle + \cos(\theta) |B\rangle,\)</span> we see that the state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> forms an angle <span class="math notranslate nohighlight">\(\theta\)</span> with
 <span class="math notranslate nohighlight">\(|B\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="603c97fa728e43ada7be2bdd407bd8bb" src="../../_images/grovers-2D-plane.png" /></p>
+<div style="text-align: center;"><p><img alt="a557a143449b4a14812c2fb0b2e46f5e" src="../../_images/grovers-2D-plane.png" /></p>
 </div><p>Given that the number of marked states <span class="math notranslate nohighlight">\(t\)</span> is typically small compared to <span class="math notranslate nohighlight">\(N\)</span>, it follows that <span class="math notranslate nohighlight">\(\theta = \arcsin\left(\sqrt{\frac{t}{N}}\right)\)</span> is a small angle. This assumption is reasonable, as otherwise, a sufficient number of independent queries to the oracle would likely yield a solution through classical search methods.</p>
 </section>
 <section id="Step-2:-Oracle-application">
@@ -1222,9 +1232,9 @@ animation below.</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{G} = r_\xi \circ r_B = H^{\otimes n} \big( 2|0^{\otimes n} \rangle \langle 0^{\otimes n}| - \text{Id} \big) H^{\otimes n} \mathcal{O}_f.\]</div>
 <p>The circuit diagram below puts together steps 1 through 3:</p>
-<div style="text-align: center;"><p><img alt="f2ed84034ae64268b63315e0a593a3ac" src="../../_images/grovers-steps1-3.png" /></p>
+<div style="text-align: center;"><p><img alt="989369177343405ca4d998f34c64a2cf" src="../../_images/grovers-steps1-3.png" /></p>
 </div><p>Running this circuit initializes <span class="math notranslate nohighlight">\(\ket{\xi}\)</span> and performs a rotation by <span class="math notranslate nohighlight">\(2\theta\)</span> (twice the angle between <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>) in the direction from <span class="math notranslate nohighlight">\(|B\rangle\)</span> to <span class="math notranslate nohighlight">\(|G\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="0542a8f239694506a540446c0f3946ba" src="../../_images/grovers-full-rotation.png" /></p>
+<div style="text-align: center;"><p><img alt="1c927446f38d42d8aabff6915adf225b" src="../../_images/grovers-full-rotation.png" /></p>
 </div><p>Let’s verify that the state resulting from one iteration of Grover’s algorithm brings us closer to the good state, <span class="math notranslate nohighlight">\(\ket{G}\)</span>. In particular, notice that the amplitudes of <code class="docutils literal notranslate"><span class="pre">1001</span></code> and <code class="docutils literal notranslate"><span class="pre">1111</span></code> in the resulting state have been amplified compared to the equal superposition of states.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
