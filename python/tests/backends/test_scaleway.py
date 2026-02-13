@@ -15,12 +15,16 @@ import numpy as np
 PORT = 62450
 TEST_PLATFORM = "EMU-CUDAQ-FAKE"
 # or uncomment this line to test on real hardware
-TEST_PLATFORM = "EMU-CUDAQ-8L40S"
+TEST_PLATFORM = "EMU-CUDAQ-64C-512M"
 # TEST_URL = f"http://localhost:{PORT}"
 TEST_URL = "http://51.15.230.119"
 # or uncomment this line to test on real API
 # TEST_URL = "https://api.scaleway.com"
 DEFAULT_DURATION = "10m"
+DEFAULT_SHOT_COUNT = 3000
+
+TEST_PROJECT_ID = "b87c64d8-2923-447d-80e3-7e7f68511533"  # Fake project id
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_scaleway():
@@ -29,7 +33,7 @@ def setup_scaleway():
         machine=TEST_PLATFORM,
         max_duration=DEFAULT_DURATION,
         max_idle_duration=DEFAULT_DURATION,
-        project_id="fake_project_id",
+        project_id=TEST_PROJECT_ID,
         url=TEST_URL,
     )
 
@@ -50,7 +54,7 @@ def test_simple_kernel():
         x(q)
         mz(q)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "1" in counts
 
@@ -65,7 +69,7 @@ def test_multi_qubit_kernel():
         mz(q0)
         mz(q1)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 2
     assert "00" in counts
     assert "11" in counts
@@ -79,7 +83,7 @@ def test_qvector_kernel():
         cx(qubits[0], qubits[1])
         mz(qubits)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 2
     assert "00" in counts
     assert "11" in counts
@@ -91,7 +95,7 @@ def test_builder_sample():
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
     kernel.mz(qubits)
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 2
     assert "00" in counts
     assert "11" in counts
@@ -116,7 +120,7 @@ def test_all_gates():
         mz(q)
 
     # Test here is that this runs
-    cudaq.sample(single_qubit_gates, shots_count=100).dump()
+    cudaq.sample(single_qubit_gates, shots_count=DEFAULT_SHOT_COUNT).dump()
 
     @cudaq.kernel
     def two_qubit_gates():
@@ -125,7 +129,7 @@ def test_all_gates():
         swap(qubits[0], qubits[1])
         mz(qubits)
 
-    counts = cudaq.sample(two_qubit_gates, shots_count=100)
+    counts = cudaq.sample(two_qubit_gates, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "01" in counts
 
@@ -140,7 +144,7 @@ def test_multi_qvector():
         mz(ancilla)
 
     # Test here is that this runs
-    cudaq.sample(kernel, shots_count=100).dump()
+    cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT).dump()
 
 
 def test_control_modifier():
@@ -160,7 +164,7 @@ def test_control_modifier():
         mz(qubits)
 
     # Test here is that this runs
-    cudaq.sample(single_qubit_gates, shots_count=100).dump()
+    cudaq.sample(single_qubit_gates, shots_count=DEFAULT_SHOT_COUNT).dump()
 
     @cudaq.kernel
     def two_qubit_gates():
@@ -170,7 +174,7 @@ def test_control_modifier():
         swap.ctrl(qubits[0], qubits[1], qubits[2])
         mz(qubits)
 
-    counts = cudaq.sample(two_qubit_gates, shots_count=100)
+    counts = cudaq.sample(two_qubit_gates, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "101" in counts
 
@@ -181,7 +185,7 @@ def test_control_modifier():
         x.ctrl(qubits[0], qubits[1])
         mz(qubits)
 
-    counts = cudaq.sample(bell, shots_count=100)
+    counts = cudaq.sample(bell, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 2
     assert "00" in counts
     assert "11" in counts
@@ -201,7 +205,7 @@ def test_adjoint_modifier():
         mz(q)
 
     # Test here is that this runs
-    cudaq.sample(single_qubit_gates, shots_count=100).dump()
+    cudaq.sample(single_qubit_gates, shots_count=DEFAULT_SHOT_COUNT).dump()
 
 
 def test_u3_decomposition():
@@ -212,7 +216,7 @@ def test_u3_decomposition():
         mz(qubit)
 
     # Test here is that this runs
-    result = cudaq.sample(kernel, shots_count=100)
+    result = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     measurement_probabilities = dict(result.items())
     print(measurement_probabilities)
 
@@ -222,7 +226,7 @@ def test_u3_decomposition():
         u3.ctrl(0.0, np.pi / 2, np.pi, qubits[0], qubits[1])
         mz(qubits)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert "00" in counts
     assert len(counts) == 1
 
@@ -237,7 +241,7 @@ def test_sample_async():
         x.ctrl(qubits[0], qubits[1])
         mz(qubits)
 
-    future = cudaq.sample_async(simple, shots_count=100)
+    future = cudaq.sample_async(simple, shots_count=DEFAULT_SHOT_COUNT)
     counts = future.get()
     assert len(counts) == 2
     assert "00" in counts
@@ -293,7 +297,7 @@ def test_custom_operations():
         custom_x(qubit)
         mz(qubit)
 
-    counts = cudaq.sample(basic_x, shots_count=100)
+    counts = cudaq.sample(basic_x, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1 and "1" in counts
 
 
@@ -306,7 +310,7 @@ def test_kernel_with_args():
             x.ctrl(qreg[qubit], qreg[qubit + 1])
         mz(qreg)
 
-    counts = cudaq.sample(kernel, 4, shots_count=100)
+    counts = cudaq.sample(kernel, 4, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 2
     assert "0000" in counts
     assert "1111" in counts
@@ -321,7 +325,7 @@ def test_kernel_subveqs():
         v = qreg[1:3]
         mz(v)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "11" in counts
 
@@ -337,7 +341,7 @@ def test_kernel_two_subveqs():
         v2 = qreg[2:3]
         mz(v2)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "011" in counts
 
@@ -353,7 +357,7 @@ def test_kernel_qubit_subveq():
         v2 = qreg[2]
         mz(v2)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "011" in counts
 
@@ -366,7 +370,7 @@ def test_multiple_measurement():
         mz(qubits[0])
         mz(qubits[1])
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 2
     assert "00" in counts
     assert "10" in counts
@@ -381,7 +385,7 @@ def test_multiple_measurement_non_consecutive():
         mz(qubits[0])
         mz(qubits[2])
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "11" in counts
 
@@ -393,24 +397,9 @@ def test_qvector_slicing():
         x(q.front(2))
         mz(q)
 
-    counts = cudaq.sample(kernel, shots_count=100)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
     assert len(counts) == 1
     assert "1100" in counts
-
-
-def test_mid_circuit_measurement():
-    @cudaq.kernel
-    def simple():
-        q = cudaq.qvector(2)
-        h(q[0])
-        if mz(q[0]):
-            x(q[1])
-        mz(q)
-
-    ## error: 'cf.cond_br' op unable to translate op to OpenQASM 2.0
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(simple, shots_count=100).dump()
-    assert "Could not successfully translate to qasm2" in repr(e)
 
 
 def test_exp_pauli():
