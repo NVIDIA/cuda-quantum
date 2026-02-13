@@ -17,9 +17,12 @@ TEST_PLATFORM = "EMU-CUDAQ-FAKE"
 TEST_URL = f"http://localhost:{PORT}"
 DEFAULT_DURATION = "10m"
 
+# from utils.start_mock_qpu import start_server
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_scaleway():
+    # start_server("scaleway")
+
     cudaq.set_target(
         "scaleway",
         machine=TEST_PLATFORM,

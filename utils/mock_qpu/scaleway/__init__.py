@@ -16,6 +16,10 @@ from pydantic import BaseModel
 app = FastAPI()
 
 
+class ListPlatformsRequest(BaseModel):
+    name: str
+
+
 class CreateJobRequest(BaseModel):
     model_id: str
     session_id: str
@@ -115,7 +119,16 @@ def _run_fake_job(job: Job):
 
 
 @app.get(_BASE_PATH + "/platforms")
-async def listPlatforms():
+async def listPlatforms(request: ListPlatformsRequest):
+    if request.name:
+        filtered_plts = list(
+            filter(lambda p: p.name == request.name, database.platforms.values())
+        )
+        return (
+            [platform.model_dump() for platform in filtered_plts],
+            201,
+        )
+
     return (
         [platform.model_dump() for platform in database.platforms.values()],
         201,
