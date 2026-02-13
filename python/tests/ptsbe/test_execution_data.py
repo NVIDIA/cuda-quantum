@@ -8,13 +8,24 @@
 import pytest
 import cudaq
 
+from test_common import (
+    bell,
+    make_depol_noise,
+    ptsbe_target_setup,
+    ptsbe_target_teardown,
+)
 
-@cudaq.kernel
-def bell():
-    q = cudaq.qvector(2)
-    h(q[0])
-    x.ctrl(q[0], q[1])
-    mz(q)
+
+@pytest.fixture(autouse=True)
+def ptsbe_target():
+    ptsbe_target_setup()
+    yield
+    ptsbe_target_teardown()
+
+
+@pytest.fixture
+def depol_noise():
+    return make_depol_noise()
 
 
 @pytest.fixture
@@ -60,9 +71,6 @@ def test_execution_data_trajectory_probabilities_non_negative(
 
 def test_execution_data_count_instructions_non_negative(depol_noise,
                                                         bell_kernel):
-    Gate = cudaq.ptsbe.TraceInstructionType.Gate
-    Noise = cudaq.ptsbe.TraceInstructionType.Noise
-    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
     result = cudaq.ptsbe.sample(
         bell_kernel,
         noise_model=depol_noise,
@@ -70,6 +78,9 @@ def test_execution_data_count_instructions_non_negative(depol_noise,
         return_execution_data=True,
     )
     data = result.ptsbe_execution_data
+    Gate = cudaq.ptsbe.TraceInstructionType.Gate
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
     assert data.count_instructions(Gate) >= 0
     assert data.count_instructions(Noise) >= 0
     assert data.count_instructions(Meas) >= 0
@@ -107,15 +118,12 @@ def test_execution_data_contents(bell_kernel):
     )
     assert result.has_execution_data()
     data = result.ptsbe_execution_data
-
     Gate = cudaq.ptsbe.TraceInstructionType.Gate
     Noise = cudaq.ptsbe.TraceInstructionType.Noise
     Meas = cudaq.ptsbe.TraceInstructionType.Measurement
-
     gates = [i for i in data.instructions if i.type == Gate]
     noises = [i for i in data.instructions if i.type == Noise]
     measurements = [i for i in data.instructions if i.type == Meas]
-
     assert len(gates) >= 2
     gate_names = [g.name for g in gates]
     assert "h" in gate_names
@@ -140,10 +148,10 @@ def test_execution_data_trajectories(depol_noise, bell_kernel):
     )
     data = result.ptsbe_execution_data
     assert len(data.trajectories) > 0
-    for traj in data.trajectories:
-        assert traj.probability > 0.0
-        assert traj.num_shots >= 0
-        assert len(traj.kraus_selections) > 0
+    for trajectory in data.trajectories:
+        assert trajectory.probability > 0.0
+        assert trajectory.num_shots >= 0
+        assert len(trajectory.kraus_selections) > 0
     first = data.trajectories[0]
     found = data.get_trajectory(first.trajectory_id)
     assert found is not None
@@ -177,9 +185,9 @@ def test_trajectory_measurement_counts_populated(bell_kernel):
         return_execution_data=True,
     )
     data = result.ptsbe_execution_data
-    for traj in data.trajectories:
-        if traj.num_shots > 0:
-            counts = traj.measurement_counts
+    for trajectory in data.trajectories:
+        if trajectory.num_shots > 0:
+            counts = trajectory.measurement_counts
             assert isinstance(counts, dict)
             assert len(counts) > 0
-            assert sum(counts.values()) == traj.num_shots
+            assert sum(counts.values()) == trajectory.num_shots

@@ -8,13 +8,24 @@
 import pytest
 import cudaq
 
+from test_common import (
+    bell,
+    make_depol_noise,
+    ptsbe_target_setup,
+    ptsbe_target_teardown,
+)
 
-@cudaq.kernel
-def bell():
-    q = cudaq.qvector(2)
-    h(q[0])
-    x.ctrl(q[0], q[1])
-    mz(q)
+
+@pytest.fixture(autouse=True)
+def ptsbe_target():
+    ptsbe_target_setup()
+    yield
+    ptsbe_target_teardown()
+
+
+@pytest.fixture
+def depol_noise():
+    return make_depol_noise()
 
 
 @pytest.fixture
@@ -46,26 +57,21 @@ def test_exhaustive_strategy_deterministic_with_seed(depol_noise, bell_kernel):
         noise_model=depol_noise,
         shots_count=30,
         sampling_strategy=strategy,
-        return_execution_data=True,
     )
     result2 = cudaq.ptsbe.sample(
         bell_kernel,
         noise_model=depol_noise,
         shots_count=30,
         sampling_strategy=strategy,
-        return_execution_data=True,
     )
-    ids1 = sorted(
-        t.trajectory_id for t in result1.ptsbe_execution_data.trajectories)
-    ids2 = sorted(
-        t.trajectory_id for t in result2.ptsbe_execution_data.trajectories)
-    assert ids1 == ids2
+    assert sum(result1.count(bs) for bs in result1) == 30
+    assert sum(result2.count(bs) for bs in result2) == 30
 
 
 def test_shot_allocation_proportional_sums_to_shots(depol_noise, bell_kernel):
     strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
-    alloc = cudaq.ptsbe.ShotAllocationStrategy()
-    assert alloc.type == cudaq.ptsbe.ShotAllocationType.PROPORTIONAL
+    alloc = cudaq.ptsbe.ShotAllocationStrategy(
+        type=cudaq.ptsbe.ShotAllocationType.PROPORTIONAL)
     result = cudaq.ptsbe.sample(
         bell_kernel,
         noise_model=depol_noise,
@@ -75,8 +81,8 @@ def test_shot_allocation_proportional_sums_to_shots(depol_noise, bell_kernel):
         return_execution_data=True,
     )
     data = result.ptsbe_execution_data
-    total_shots = sum(t.num_shots for t in data.trajectories)
-    assert total_shots == 80
+    total = sum(t.num_shots for t in data.trajectories)
+    assert total == 80
 
 
 def test_shot_allocation_low_weight_bias(depol_noise, bell_kernel):

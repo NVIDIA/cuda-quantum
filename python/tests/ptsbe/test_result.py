@@ -8,13 +8,24 @@
 import pytest
 import cudaq
 
+from test_common import (
+    bell,
+    make_depol_noise,
+    ptsbe_target_setup,
+    ptsbe_target_teardown,
+)
 
-@cudaq.kernel
-def bell():
-    q = cudaq.qvector(2)
-    h(q[0])
-    x.ctrl(q[0], q[1])
-    mz(q)
+
+@pytest.fixture(autouse=True)
+def ptsbe_target():
+    ptsbe_target_setup()
+    yield
+    ptsbe_target_teardown()
+
+
+@pytest.fixture
+def depol_noise():
+    return make_depol_noise()
 
 
 @pytest.fixture

@@ -8,35 +8,26 @@
 import pytest
 import cudaq
 
+from test_common import (
+    cnot_echo,
+    phase_flip_kernel,
+    ptsbe_target_setup,
+    ptsbe_target_teardown,
+    x_op,
+)
+
+
+@pytest.fixture(autouse=True)
+def ptsbe_target():
+    ptsbe_target_setup()
+    yield
+    ptsbe_target_teardown()
+
 
 @pytest.fixture(autouse=True)
 def cleanup_registries():
     yield
     cudaq.__clearKernelRegistries()
-
-
-@cudaq.kernel
-def x_op():
-    q = cudaq.qvector(1)
-    x(q[0])
-    mz(q)
-
-
-@cudaq.kernel
-def phase_flip_kernel():
-    q = cudaq.qvector(1)
-    h(q[0])
-    z(q[0])
-    h(q[0])
-    mz(q)
-
-
-@cudaq.kernel
-def cnot_echo():
-    q = cudaq.qvector(2)
-    x.ctrl(q[0], q[1])
-    x.ctrl(q[0], q[1])
-    mz(q)
 
 
 @pytest.fixture

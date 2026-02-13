@@ -8,20 +8,26 @@
 import pytest
 import cudaq
 
+from test_common import (
+    bell,
+    make_depol_noise,
+    ptsbe_target_setup,
+    ptsbe_target_teardown,
+    rotation_kernel,
+    mcm_kernel,
+)
 
-@cudaq.kernel
-def bell():
-    q = cudaq.qvector(2)
-    h(q[0])
-    x.ctrl(q[0], q[1])
-    mz(q)
+
+@pytest.fixture(autouse=True)
+def ptsbe_target():
+    ptsbe_target_setup()
+    yield
+    ptsbe_target_teardown()
 
 
-@cudaq.kernel
-def rotation_kernel(angle: float):
-    q = cudaq.qvector(1)
-    ry(angle, q[0])
-    mz(q)
+@pytest.fixture
+def depol_noise():
+    return make_depol_noise()
 
 
 @pytest.fixture
@@ -32,6 +38,11 @@ def bell_kernel():
 @pytest.fixture
 def rotation_kernel_fixture():
     return rotation_kernel
+
+
+@pytest.fixture
+def mcm_kernel_fixture():
+    return mcm_kernel
 
 
 def test_ptsbe_zero_shots_raises_or_empty(depol_noise, bell_kernel):
@@ -66,19 +77,9 @@ def test_ptsbe_sample_non_integer_shots_raises(depol_noise, bell_kernel):
                            shots_count=10.5)
 
 
-def test_mcm_kernel_rejected(depol_noise):
-
-    @cudaq.kernel
-    def mcm_kernel():
-        q = cudaq.qvector(2)
-        h(q[0])
-        b = mz(q[0])
-        if b:
-            x(q[1])
-        mz(q)
-
+def test_mcm_kernel_rejected(depol_noise, mcm_kernel_fixture):
     with pytest.raises(RuntimeError, match="conditional feedback|measurement"):
-        cudaq.ptsbe.sample(mcm_kernel, noise_model=depol_noise)
+        cudaq.ptsbe.sample(mcm_kernel_fixture, noise_model=depol_noise)
 
 
 def test_missing_noise_model_message_contains_noise_model(bell_kernel):
