@@ -194,6 +194,9 @@ Job V1Alpha1Client::getJob(const std::string &jobId) {
 
   try {
     auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+
+    CUDAQ_INFO("Get Job response: {}", response.dump());
+
     return response.get<Job>();
   } catch (const std::exception &e) {
     throw std::runtime_error("fail during get job " + jobId + ": " + e.what());
@@ -207,6 +210,8 @@ V1Alpha1Client::listJobResults(const std::string &jobId) {
 
   try {
     auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+
+    CUDAQ_INFO("List JobResult response: {}", response.dump());
 
     if (response.contains("job_results")) {
       return response["job_results"].get<std::vector<JobResult>>();

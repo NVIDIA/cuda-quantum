@@ -241,10 +241,10 @@ async def listJobResults(jobId: str):
     results = [
         result.model_dump()
         for result in list(
-            filter(lambda r: r.job_id == jobId, database.job_results.values())
+            filter(lambda r: r.job_id == jobId,
+                   database.job_results.values()
+            )
         )
     ]
-
-    print("return results", results)
 
     return {"job_results": results, "total_count": len(results)}
