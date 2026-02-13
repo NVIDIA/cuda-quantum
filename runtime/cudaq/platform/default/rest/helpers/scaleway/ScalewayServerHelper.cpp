@@ -221,7 +221,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     // Now add to `execResults` one register at a time
     for (const auto &[result, info] : output_names) {
-      CUDAQ_INFO("result info {}", info);
+      // CUDAQ_INFO("result info {}", info);
 
       CountsDictionary regCounts;
       for (const auto &[bits, count] : sampleResult)
