@@ -192,12 +192,14 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     std::vector<ExecutionResult> execResults;
 
+    auto &output_names = outputNames[jobId];
+
     // Get a reduced list of qubit numbers that were in the original program
     // so that we can slice the output data and extract the bits that the user
     // was interested in. Sort by QIR qubit number.
     std::vector<std::size_t> qubitNumbers;
-    qubitNumbers.reserve(outputNames.size());
-    for (auto &[result, info] : outputNames) {
+    qubitNumbers.reserve(output_names.size());
+    for (auto &[result, info] : output_names) {
       qubitNumbers.push_back(info.qubitNum);
     }
 
@@ -212,7 +214,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     }
 
     // Now add to `execResults` one register at a time
-    for (const auto &[result, info] : outputNames) {
+    for (const auto &[result, info] : output_names) {
       CountsDictionary regCounts;
       for (const auto &[bits, count] : sampleResult)
         regCounts[std::string{bits[info.qubitNum]}] += count;
