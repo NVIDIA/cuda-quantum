@@ -1,4 +1,7 @@
 on:
+  # Daily rebuild on main to ensure devdeps rebuilt as needed
+  schedule:
+    - cron: '0 4 * * *'  # aim to be ready by 9am CET/CEST
   workflow_dispatch:
     inputs:
       cache_base:
