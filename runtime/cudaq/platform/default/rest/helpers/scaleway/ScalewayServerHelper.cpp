@@ -196,8 +196,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     // so that we can slice the output data and extract the bits that the user
     // was interested in. Sort by QIR qubit number.
     std::vector<std::size_t> qubitNumbers;
-    qubitNumbers.reserve(output_names.size());
-    for (auto &[result, info] : output_names) {
+    qubitNumbers.reserve(outputNames.size());
+    for (auto &[result, info] : outputNames) {
       qubitNumbers.push_back(info.qubitNum);
     }
 
@@ -212,9 +212,9 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     }
 
     // Now add to `execResults` one register at a time
-    for (const auto &[result, info] : output_names) {
+    for (const auto &[result, info] : outputNames) {
       CountsDictionary regCounts;
-      for (const auto &[bits, count] : fullSampleResults)
+      for (const auto &[bits, count] : sampleResult)
         regCounts[std::string{bits[info.qubitNum]}] += count;
       execResults.emplace_back(regCounts, info.registerName);
     }
@@ -288,5 +288,22 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
 
   return m_sessionId;
 }
+
+// void ScalewayServerHelper::setOutputNames(const std::string &taskId,
+//                                         const std::string &output_names) {
+//   // Parse `output_names` into jobOutputNames.
+//   // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
+//   // for an example of how this was populated.
+//   OutputNamesType jobOutputNames;
+//   nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
+//   for (const auto &el : outputNamesJSON[0]) {
+//     auto result = el[0].get<std::size_t>();
+//     auto qubitNum = el[1][0].get<std::size_t>();
+//     auto registerName = el[1][1].get<std::string>();
+//     jobOutputNames[result] = {qubitNum, registerName};
+//   }
+
+//   outputNames[taskId] = jobOutputNames;
+// }
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ScalewayServerHelper, scaleway)
