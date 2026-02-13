@@ -223,7 +223,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     // CUDAQ_INFO("lookup for model id:{}", job.model_id);
     auto params = qio::QuantumComputationParameters::fromJson(job.parameters);
     // auto &output_names = outputNames[job.model_id];
-    auto &output_names = json::parse(params.options()["output_names"]get<std::string>());
+    auto &output_names = json::parse(params.options()["output_names"].get<std::string>());
 
     // Get a reduced list of qubit numbers that were in the original program
     // so that we can slice the output data and extract the bits that the user
