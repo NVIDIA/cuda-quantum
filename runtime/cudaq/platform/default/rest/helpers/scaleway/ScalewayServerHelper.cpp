@@ -203,6 +203,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
       qubitNumbers.push_back(info.qubitNum);
     }
 
+    CUDAQ_INFO("qubitNumbers {}", qubitNumbers);
+
     // For each original counts entry in the full sample results, reduce it
     // down to the user component and add to userGlobal. If qubitNumbers is empty,
     // that means all qubits were measured.
