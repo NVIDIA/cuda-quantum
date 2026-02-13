@@ -51,19 +51,24 @@ class KernelSignature:
     return_type: Optional[mlir.Type]
     # The name and types of the captured arguments to the kernel.
     #
-    # Will be `None` if the kernel has not been compiled.
+    # The list of captured arguments of a kernel is only known after the kernel
+    # has been compiled. We thus distinguish between two false-y values:
+    # - `captured_args = None` when the capture list is unknown (for kernels
+    #    before compilation)
+    # - `captured_args = []` when the capture list is known and empty (for
+    #    kernels after compilation)
     captured_args: Optional[list[CapturedVariable |
                                  CapturedLinkedKernel]] = None
 
     @staticmethod
     def parse_from_mlir(mlir_module: mlir.Module,
-                        kernel_name: str,
-                        compiled: bool = True) -> "KernelSignature":
+                        kernel_name: str) -> "KernelSignature":
         """
         Parse the signature of a CUDA-Q kernel from an MLIR module.
         
-        If `compiled` is `True`, the kernel has been compiled and the captured
-        arguments list is assumed to be empty.
+        The kernel is assumed to have no captured arguments, i.e. all arguments
+        of the MLIR `FuncOp` are treated as direct arguments to the kernel and
+        `captured_args` is set to `[]`.
         """
         funcOp = recover_func_op(mlir_module, nvqppPrefix + kernel_name)
         fnTy = mlir.FunctionType(
@@ -71,7 +76,7 @@ class KernelSignature:
         if len(fnTy.results) > 1:
             raise KernelSignatureError(
                 "Multiple return values in MLIR kernel are not supported")
-        captured_args = [] if compiled else None
+        captured_args = []
         return KernelSignature(
             arg_types=fnTy.inputs,
             return_type=fnTy.results[0] if fnTy.results else None,
@@ -81,7 +86,13 @@ class KernelSignature:
     @staticmethod
     def parse_from_ast(ast_module: ast.Module,
                        kernel_name: str) -> "KernelSignature":
-        """Parse the signature of a CUDA-Q kernel from a Python AST."""
+        """
+        Parse the signature of a CUDA-Q kernel from a Python AST.
+        
+        This does not perform any capture analysis (typically done during MLIR
+        compilation) and thus does not populate `captured_args`, the list of
+        arguments captured by the kernel.
+        """
         visitor = FunctionDefVisitor(kernel_name)
         visitor.visit(ast_module)
 

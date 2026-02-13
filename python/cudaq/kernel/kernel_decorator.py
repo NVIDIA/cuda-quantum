@@ -123,9 +123,8 @@ class PyKernelDecorator(object):
                 self.uniqName = kernelName
 
             self.qkeModule = module
-            self.signature = KernelSignature.parse_from_mlir(self.qkeModule,
-                                                             self.uniqName,
-                                                             compiled=True)
+            self.signature = KernelSignature.parse_from_mlir(
+                self.qkeModule, self.uniqName)
         else:
             # Get any global variables from parent scope. Note here we assume
             # that the parent scope is 2 stack frames up
@@ -457,8 +456,6 @@ class PyKernelDecorator(object):
 
         # Process any lifted arguments
         for arg in self.signature.captured_args:
-            # get the value associated with the variable named "a" in the
-            # current context.
             if isinstance(arg, CapturedLinkedKernel):
                 # Lifted argument is a registered C++ kernel, load and capture it
                 [linkedKernel,
