@@ -175,8 +175,6 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     throw std::runtime_error("Job done but no result.");
   }
 
-  auto job = m_qaasClient->getJob(jobId);
-
   auto firstResult = jobResults[0];
   std::string rawPayload;
 
@@ -201,6 +199,10 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     std::vector<ExecutionResult> execResults;
 
+    auto job = m_qaasClient->getJob(jobId);
+
+    CUDAQ_INFO("lookup for model id:{}", job.model_id);
+
     auto &output_names = outputNames[job.model_id];
 
     // Get a reduced list of qubit numbers that were in the original program
@@ -212,7 +214,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
       qubitNumbers.push_back(info.qubitNum);
     }
 
-    CUDAQ_INFO("qubitNumbers {}", qubitNumbers);
+    CUDAQ_INFO("qubitNumbers s:{} q:{}", output_names.size(), qubitNumbers);
 
     // For each original counts entry in the full sample results, reduce it
     // down to the user component and add to userGlobal. If qubitNumbers is empty,
@@ -310,10 +312,15 @@ void ScalewayServerHelper::setOutputNames(const std::string &taskId,
   OutputNamesType jobOutputNames;
   nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
 
+  CUDAQ_INFO("Create output names", output_names);
+
   for (const auto &el : outputNamesJson[0]) {
     auto result = el[0].get<std::size_t>();
     auto qubitNum = el[1][0].get<std::size_t>();
     auto registerName = el[1][1].get<std::string>();
+
+    CUDAQ_INFO("Create register id:{}, nb:{}, name:{}", taskId, qubitNum, registerName);
+
     jobOutputNames[result] = {qubitNum, registerName};
   }
 
