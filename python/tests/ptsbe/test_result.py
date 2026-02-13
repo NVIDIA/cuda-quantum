@@ -63,10 +63,10 @@ def test_ptsbe_result_count_valid_bitstrings(depol_noise, bell_kernel):
     assert total == 50
 
 
-def test_ptsbe_result_register_names_non_empty(depol_noise, bell_kernel):
+def test_ptsbe_result_supports_standard_access(depol_noise, bell_kernel):
     result = cudaq.ptsbe.sample(bell_kernel,
                                 noise_model=depol_noise,
-                                shots_count=10)
-    names = result.register_names
-    assert isinstance(names, list)
-    assert len(names) >= 0
+                                shots_count=100)
+    assert isinstance(result, cudaq.SampleResult)
+    reg_names = result.register_names
+    assert isinstance(reg_names, list)

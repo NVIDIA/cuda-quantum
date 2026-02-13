@@ -75,18 +75,6 @@ def test_execution_data_count_instructions_non_negative(depol_noise,
     assert data.count_instructions(Meas) >= 0
 
 
-def test_execution_data_get_trajectory_none_for_invalid_id(
-        depol_noise, bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=10,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    assert data.get_trajectory(1 << 30) is None
-
-
 def test_execution_data_kraus_selections_non_empty_per_trajectory(
         depol_noise, bell_kernel):
     result = cudaq.ptsbe.sample(
@@ -98,3 +86,100 @@ def test_execution_data_kraus_selections_non_empty_per_trajectory(
     data = result.ptsbe_execution_data
     for t in data.trajectories:
         assert len(t.kraus_selections) > 0
+
+
+def test_no_execution_data_by_default(depol_noise, bell_kernel):
+    result = cudaq.ptsbe.sample(bell_kernel,
+                                noise_model=depol_noise,
+                                shots_count=100)
+    assert not result.has_execution_data()
+    assert result.ptsbe_execution_data is None
+
+
+def test_execution_data_contents(bell_kernel):
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=noise,
+        shots_count=100,
+        return_execution_data=True,
+    )
+    assert result.has_execution_data()
+    data = result.ptsbe_execution_data
+
+    Gate = cudaq.ptsbe.TraceInstructionType.Gate
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
+
+    gates = [i for i in data.instructions if i.type == Gate]
+    noises = [i for i in data.instructions if i.type == Noise]
+    measurements = [i for i in data.instructions if i.type == Meas]
+
+    assert len(gates) >= 2
+    gate_names = [g.name for g in gates]
+    assert "h" in gate_names
+    assert "x" in gate_names
+    assert len(noises) >= 1
+    for n in noises:
+        assert len(n.targets) > 0
+    assert len(measurements) >= 1
+    assert len(gates) + len(noises) + len(measurements) == len(
+        data.instructions)
+    assert data.count_instructions(Gate) == len(gates)
+    assert data.count_instructions(Noise) == len(noises)
+    assert data.count_instructions(Meas) == len(measurements)
+
+
+def test_execution_data_trajectories(depol_noise, bell_kernel):
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=depol_noise,
+        shots_count=100,
+        return_execution_data=True,
+    )
+    data = result.ptsbe_execution_data
+    assert len(data.trajectories) > 0
+    for traj in data.trajectories:
+        assert traj.probability > 0.0
+        assert traj.num_shots >= 0
+        assert len(traj.kraus_selections) > 0
+    first = data.trajectories[0]
+    found = data.get_trajectory(first.trajectory_id)
+    assert found is not None
+    assert found.trajectory_id == first.trajectory_id
+    assert data.get_trajectory(999999) is None
+
+
+def test_trajectory_counts_sum_to_total_shots(bell_kernel):
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
+    shots = 100
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=noise,
+        shots_count=shots,
+        return_execution_data=True,
+    )
+    data = result.ptsbe_execution_data
+    assert len(data.trajectories) > 0
+    total = sum(t.num_shots for t in data.trajectories)
+    assert total == shots
+
+
+def test_trajectory_measurement_counts_populated(bell_kernel):
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=noise,
+        shots_count=100,
+        return_execution_data=True,
+    )
+    data = result.ptsbe_execution_data
+    for traj in data.trajectories:
+        if traj.num_shots > 0:
+            counts = traj.measurement_counts
+            assert isinstance(counts, dict)
+            assert len(counts) > 0
+            assert sum(counts.values()) == traj.num_shots

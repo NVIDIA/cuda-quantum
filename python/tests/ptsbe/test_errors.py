@@ -64,3 +64,23 @@ def test_ptsbe_sample_non_integer_shots_raises(depol_noise, bell_kernel):
         cudaq.ptsbe.sample(bell_kernel,
                            noise_model=depol_noise,
                            shots_count=10.5)
+
+
+def test_mcm_kernel_rejected(depol_noise):
+
+    @cudaq.kernel
+    def mcm_kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        b = mz(q[0])
+        if b:
+            x(q[1])
+        mz(q)
+
+    with pytest.raises(RuntimeError, match="conditional feedback|measurement"):
+        cudaq.ptsbe.sample(mcm_kernel, noise_model=depol_noise)
+
+
+def test_missing_noise_model_message_contains_noise_model(bell_kernel):
+    with pytest.raises(RuntimeError, match="noise_model"):
+        cudaq.ptsbe.sample(bell_kernel)

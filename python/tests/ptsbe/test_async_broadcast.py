@@ -112,3 +112,37 @@ def test_ptsbe_sample_async_get_consumes_future(bell_kernel):
     r = future.get()
     total = sum(r.count(bs) for bs in r)
     assert total == 15
+
+
+def test_ptsbe_sample_async(bell_kernel):
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
+    shots = 200
+    future = cudaq.ptsbe.sample_async(bell_kernel,
+                                      noise_model=noise,
+                                      shots_count=shots)
+    result = future.get()
+    assert isinstance(result, cudaq.SampleResult)
+    total = sum(result.count(bs) for bs in result)
+    assert total == shots
+    bell_counts = result.count("00") + result.count("11")
+    assert bell_counts < shots, "CX noise should produce some 01/10 outcomes"
+
+
+def test_ptsbe_broadcast(rotation_kernel_fixture):
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.01))
+    shots = 200
+    angles = [0.0, math.pi]
+    results = cudaq.ptsbe.sample(
+        rotation_kernel_fixture,
+        angles,
+        noise_model=noise,
+        shots_count=shots,
+    )
+    assert isinstance(results, list)
+    assert len(results) == 2
+    for r in results:
+        assert sum(r.count(bs) for bs in r) == shots
+    assert results[0].count("0") > shots * 0.8
+    assert results[1].count("1") > shots * 0.8
