@@ -122,7 +122,7 @@ Common
 
 .. _classcudaq_1_1ptsbe_1_1sample__result:
 
-**cudaq::ptsbe::sample_result** — Result type returned by ``ptsbe::sample()``, extending :cpp:class:`cudaq::sample_result` with optional execution data (trace and per-trajectory info). See ``PTSBESampleResult.h`` and ``PTSBEExecutionData.h``.
+**cudaq::`ptsbe`::sample_result** — Result type returned by ``ptsbe::sample()``, extending `cudaq::sample_result` with optional execution data (trace and per-trajectory info). See ``PTSBESampleResult.h`` and ``PTSBEExecutionData.h``.
 
 .. doxygenstruct:: cudaq::sample_options
     :members:
