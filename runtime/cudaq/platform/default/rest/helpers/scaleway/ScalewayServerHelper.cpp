@@ -190,7 +190,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     auto sampleResult = qioResult.toCudaqSampleResult();
 
-    CUDAQ_INFO("sampleResult {}", sampleResult);
+    // CUDAQ_INFO("sampleResult {}", sampleResult);
 
     std::vector<ExecutionResult> execResults;
 
@@ -221,7 +221,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     // Now add to `execResults` one register at a time
     for (const auto &[result, info] : output_names) {
-      CUDAQ_INFO("result info {} {}", result, info);
+      CUDAQ_INFO("result info {}", info);
 
       CountsDictionary regCounts;
       for (const auto &[bits, count] : sampleResult)

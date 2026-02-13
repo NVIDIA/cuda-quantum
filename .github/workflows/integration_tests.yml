@@ -26,6 +26,7 @@ on:
           - pasqal
           - qci
           - quantinuum
+          - scaleway
       single_test_name:
         type: string
         required: false
@@ -265,6 +266,9 @@ jobs:
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
+                ;;
+              scaleway)
+                filelist="targettests/scaleway/*.cpp"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
@@ -669,6 +673,24 @@ jobs:
                   echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
                   test_skip_sum=$((test_skip_sum+1))
                 fi
+                ;;
+
+                scaleway)
+                  nvq++ -v $filename --target scaleway
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
                 ;;
             esac
           done
