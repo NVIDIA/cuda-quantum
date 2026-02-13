@@ -368,7 +368,7 @@ def test_kernel_subveqs():
     print("test_kernel_subveqs", counts)
 
     assert len(counts) == 1
-    assert "11" in counts
+    assert "11" in counts # got 0110
 
 
 def test_kernel_two_subveqs():
@@ -386,7 +386,7 @@ def test_kernel_two_subveqs():
     print("test_kernel_two_subveqs", counts)
 
     assert len(counts) == 1
-    assert "011" in counts
+    assert "011" in counts # got 0110
 
 
 def test_kernel_qubit_subveq():
@@ -404,7 +404,7 @@ def test_kernel_qubit_subveq():
     print("test_kernel_qubit_subveq", counts)
 
     assert len(counts) == 1
-    assert "011" in counts
+    assert "011" in counts # got 0110
 
 
 def test_multiple_measurement():
