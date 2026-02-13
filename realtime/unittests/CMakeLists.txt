@@ -74,5 +74,9 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # ==============================================================================
+# Hololink bridge/emulator/playback tools (optional, not CI)
+# ==============================================================================
 
-
+if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
+  add_subdirectory(utils)
+endif()

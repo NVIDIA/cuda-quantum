@@ -33,12 +33,14 @@ namespace {
 //==============================================================================
 
 /// @brief Test handler that adds 1 to each byte.
-__device__ int increment_handler(void* buffer, std::uint32_t arg_len,
+__device__ int increment_handler(const void* input, void* output,
+                                  std::uint32_t arg_len,
                                   std::uint32_t max_result_len,
                                   std::uint32_t* result_len) {
-  std::uint8_t* data = static_cast<std::uint8_t*>(buffer);
+  const std::uint8_t* in_data = static_cast<const std::uint8_t*>(input);
+  std::uint8_t* out_data = static_cast<std::uint8_t*>(output);
   for (std::uint32_t i = 0; i < arg_len && i < max_result_len; ++i) {
-    data[i] = data[i] + 1;
+    out_data[i] = in_data[i] + 1;
   }
   *result_len = arg_len;
   return 0;
@@ -51,12 +53,14 @@ __device__ int increment_handler(void* buffer, std::uint32_t arg_len,
 constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID =
     cudaq::nvqlink::fnv1a_hash("rpc_increment");
 
-__device__ int rpc_increment_handler(void* buffer, std::uint32_t arg_len,
+__device__ int rpc_increment_handler(const void* input, void* output,
+                                     std::uint32_t arg_len,
                                      std::uint32_t max_result_len,
                                      std::uint32_t* result_len) {
-  std::uint8_t* data = static_cast<std::uint8_t*>(buffer);
+  const std::uint8_t* in_data = static_cast<const std::uint8_t*>(input);
+  std::uint8_t* out_data = static_cast<std::uint8_t*>(output);
   for (std::uint32_t i = 0; i < arg_len && i < max_result_len; ++i) {
-    data[i] = static_cast<std::uint8_t>(data[i] + 1);
+    out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
   }
   *result_len = arg_len;
   return 0;
@@ -146,6 +150,10 @@ void free_ring_buffer(volatile uint64_t* host_flags,
 extern "C" void launch_dispatch_kernel_wrapper(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
+    std::uint8_t* rx_data,
+    std::uint8_t* tx_data,
+    std::size_t rx_stride_sz,
+    std::size_t tx_stride_sz,
     cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
@@ -155,7 +163,8 @@ extern "C" void launch_dispatch_kernel_wrapper(
     std::uint32_t threads_per_block,
     cudaStream_t stream) {
   cudaq_launch_dispatch_kernel_regular(
-      rx_flags, tx_flags, function_table, func_count,
+      rx_flags, tx_flags, rx_data, tx_data, rx_stride_sz, tx_stride_sz,
+      function_table, func_count,
       shutdown_flag, stats, num_slots, num_blocks, threads_per_block, stream);
 }
 
@@ -163,7 +172,7 @@ extern "C" void launch_dispatch_kernel_wrapper(
 // Test Kernel for DeviceCallMode
 //==============================================================================
 
-using HandlerFunc = int (*)(void*, std::uint32_t, std::uint32_t, std::uint32_t*);
+using HandlerFunc = int (*)(const void*, void*, std::uint32_t, std::uint32_t, std::uint32_t*);
 
 __device__ HandlerFunc d_increment_handler = increment_handler;
 
@@ -171,14 +180,15 @@ __device__ HandlerFunc d_increment_handler = increment_handler;
 template <typename KernelType>
 __global__ void test_dispatch_kernel(
     HandlerFunc handler,
-    void* buffer,
+    const void* input,
+    void* output,
     std::uint32_t arg_len,
     std::uint32_t max_result_len,
     std::uint32_t* result_len,
     int* status) {
   
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    *status = handler(buffer, arg_len, max_result_len, result_len);
+    *status = handler(input, output, arg_len, max_result_len, result_len);
   }
   
   KernelType::sync();
@@ -212,10 +222,13 @@ protected:
 //==============================================================================
 
 TEST_F(DispatchKernelTest, IncrementHandlerBasic) {
-  // Prepare test data
+  // Prepare test data - separate input and output buffers
   std::vector<uint8_t> input = {0, 1, 2, 3, 4};
   std::vector<uint8_t> expected = {1, 2, 3, 4, 5};
-  CUDA_CHECK(cudaMemcpy(d_buffer_, input.data(), input.size(), 
+
+  void* d_input = nullptr;
+  CUDA_CHECK(cudaMalloc(&d_input, 1024));
+  CUDA_CHECK(cudaMemcpy(d_input, input.data(), input.size(), 
                         cudaMemcpyHostToDevice));
   
   // Get device function pointer
@@ -223,9 +236,9 @@ TEST_F(DispatchKernelTest, IncrementHandlerBasic) {
   CUDA_CHECK(cudaMemcpyFromSymbol(&h_handler, d_increment_handler, 
                                    sizeof(HandlerFunc)));
   
-  // Launch kernel
+  // Launch kernel with separate input/output buffers
   test_dispatch_kernel<cudaq::realtime::RegularKernel><<<1, 32>>>(
-      h_handler, d_buffer_, input.size(), 1024, d_result_len_, d_status_);
+      h_handler, d_input, d_buffer_, input.size(), 1024, d_result_len_, d_status_);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
   
@@ -239,22 +252,32 @@ TEST_F(DispatchKernelTest, IncrementHandlerBasic) {
   EXPECT_EQ(status, 0) << "Handler should return success";
   EXPECT_EQ(result_len, input.size()) << "Result length should match input";
   
-  // Verify data incremented
+  // Verify output buffer has incremented data
   std::vector<uint8_t> output(input.size());
   CUDA_CHECK(cudaMemcpy(output.data(), d_buffer_, output.size(), 
                         cudaMemcpyDeviceToHost));
   EXPECT_EQ(expected, output) << "Increment handler should add 1 to each byte";
+
+  // Verify input buffer is unchanged
+  std::vector<uint8_t> input_readback(input.size());
+  CUDA_CHECK(cudaMemcpy(input_readback.data(), d_input, input.size(),
+                        cudaMemcpyDeviceToHost));
+  EXPECT_EQ(input, input_readback) << "Input buffer should be unchanged";
+
+  cudaFree(d_input);
 }
 
 TEST_F(DispatchKernelTest, LargeBuffer) {
-  // Test with larger data
+  // Test with larger data - separate input/output buffers
   const std::size_t size = 512;
   std::vector<uint8_t> input(size);
   for (std::size_t i = 0; i < size; ++i) {
     input[i] = static_cast<uint8_t>(i & 0xFF);
   }
   
-  CUDA_CHECK(cudaMemcpy(d_buffer_, input.data(), input.size(), 
+  void* d_input = nullptr;
+  CUDA_CHECK(cudaMalloc(&d_input, 1024));
+  CUDA_CHECK(cudaMemcpy(d_input, input.data(), input.size(), 
                         cudaMemcpyHostToDevice));
   
   HandlerFunc h_handler;
@@ -262,7 +285,7 @@ TEST_F(DispatchKernelTest, LargeBuffer) {
                                    sizeof(HandlerFunc)));
   
   test_dispatch_kernel<cudaq::realtime::RegularKernel><<<1, 256>>>(
-      h_handler, d_buffer_, input.size(), 1024, d_result_len_, d_status_);
+      h_handler, d_input, d_buffer_, input.size(), 1024, d_result_len_, d_status_);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
   
@@ -271,7 +294,7 @@ TEST_F(DispatchKernelTest, LargeBuffer) {
                         cudaMemcpyDeviceToHost));
   EXPECT_EQ(result_len, size) << "Should process all bytes";
   
-  // Verify all bytes incremented
+  // Verify all bytes incremented in output buffer
   std::vector<uint8_t> output(size);
   CUDA_CHECK(cudaMemcpy(output.data(), d_buffer_, output.size(), 
                         cudaMemcpyDeviceToHost));
@@ -280,6 +303,8 @@ TEST_F(DispatchKernelTest, LargeBuffer) {
     uint8_t expected = static_cast<uint8_t>((i + 1) & 0xFF);
     EXPECT_EQ(output[i], expected) << "Mismatch at index " << i;
   }
+
+  cudaFree(d_input);
 }
 
 class HostApiDispatchTest : public ::testing::Test {
@@ -324,6 +349,10 @@ protected:
     cudaq_ringbuffer_t ringbuffer{};
     ringbuffer.rx_flags = rx_flags_;
     ringbuffer.tx_flags = tx_flags_;
+    ringbuffer.rx_data = rx_data_;
+    ringbuffer.tx_data = tx_data_;
+    ringbuffer.rx_stride_sz = slot_size_;
+    ringbuffer.tx_stride_sz = slot_size_;
     ASSERT_EQ(cudaq_dispatcher_set_ringbuffer(dispatcher_, &ringbuffer), CUDAQ_OK);
 
     cudaq_function_table_t table{};
@@ -382,8 +411,9 @@ protected:
                          std::int32_t* status_out = nullptr,
                          std::uint32_t* result_len_out = nullptr) {
     __sync_synchronize();
+    // Read from TX buffer (dispatch kernel writes response to symmetric TX)
     const std::uint8_t* slot_data =
-        const_cast<std::uint8_t*>(rx_data_host_) + slot * slot_size_;
+        const_cast<std::uint8_t*>(tx_data_host_) + slot * slot_size_;
     auto* response =
         reinterpret_cast<const cudaq::nvqlink::RPCResponse*>(slot_data);
 
@@ -603,7 +633,12 @@ TEST(GraphLaunchTest, DispatchKernelGraphLaunch) {
   // so that device-side cudaGraphLaunch() can work!
   cudaq_dispatch_graph_context* dispatch_ctx = nullptr;
   cudaError_t err = cudaq_create_dispatch_graph_regular(
-      d_rx_flags, d_tx_flags, d_function_entries, 1,
+      d_rx_flags, d_tx_flags,
+      reinterpret_cast<std::uint8_t*>(d_buffer),  // rx_data
+      reinterpret_cast<std::uint8_t*>(d_buffer),  // tx_data (same buffer for single-slot test)
+      buffer_size,  // rx_stride_sz
+      buffer_size,  // tx_stride_sz
+      d_function_entries, 1,
       d_graph_buffer_ptr, d_shutdown, d_stats, 1,
       1, 32, stream, &dispatch_ctx);
   

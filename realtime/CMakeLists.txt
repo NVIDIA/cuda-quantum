@@ -47,6 +47,9 @@ option(NVQLINK_BUILD_TESTS
        "Generate build targets for the NVQLINK unit tests" ON)
 option(NVQLINK_BUILD_EXAMPLES
        "Generate build targets for the NVQLINK example programs" ON)
+option(CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS
+       "Build Hololink bridge/emulator/playback tools (requires hololink)."
+       OFF)
 
 # Check for CUDA Support (ref: cuda-quantum/CMakeLists.txt)
 # ==============================================================================
