@@ -48,7 +48,7 @@ public:
   virtual std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
-  void setOutputNames(const std::string &taskId, const std::string &output_names) override;
+  void setOutputNames(const std::string &taskId, const std::string &output_names);
 
 protected:
   /// @brief Convenient function to ensure at least one QPU Session is alive
