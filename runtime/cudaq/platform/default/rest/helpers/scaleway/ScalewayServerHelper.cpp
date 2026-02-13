@@ -105,7 +105,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
     CUDAQ_INFO("Output names {}", output_names);
 
-    setOutputNames(circuitCode.name, output_names)
+    setOutputNames(circuitCode.name, output_names);
 
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
