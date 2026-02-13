@@ -137,8 +137,6 @@ def _run_fake_job(job: Job):
 
 @app.get(_BASE_PATH + "/platforms")
 async def listPlatforms(name: str | None = None):
-    print("list plt req", name)
-
     if name:
         filtered_plts = list(
             filter(lambda p: p.name == name, database.platforms.values())
@@ -147,7 +145,6 @@ async def listPlatforms(name: str | None = None):
     else:
         platforms = [platform.model_dump() for platform in database.platforms.values()]
 
-    print("found plt", platforms)
     return {"platforms": platforms, "total_count": len(platforms)}
 
 
@@ -158,7 +155,7 @@ async def getPlatform(platformId: str):
     if not platform:
         raise HTTPException(status_code=404, detail="Platform not found")
 
-    return (platform.model_dump(), 201)
+    return platform.model_dump()
 
 
 @app.post(_BASE_PATH + "/sessions")
@@ -167,14 +164,14 @@ async def createSession(request: CreateSessionRequest):
         name=request.name, id=str(uuid.uuid4()), platform_id=request.platform_id
     )
     database.sessions[session.id] = session
-    return (session.model_dump(), 201)
+    return session.model_dump()
 
 
 @app.post(_BASE_PATH + "/models")
 async def createModel(request: CreateModelRequest):
     model = Model(id=str(uuid.uuid4()), payload=request.payload)
     database.models[model.id] = model
-    return (model.model_dump(), 201)
+    return model.model_dump()
 
 
 @app.post(_BASE_PATH + "/jobs")
@@ -189,7 +186,7 @@ async def createJob(request: CreateJobRequest):
     )
     database.jobs[job.id] = job
 
-    return (job.model_dump(), 201)
+    return job.model_dump()
 
 
 # Retrieve the job, simulate having to wait by counting to 3
@@ -208,13 +205,13 @@ async def getJob(jobId: str):
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
-        return (job.model_dump(), 201)
+        return job.model_dump()
 
     _run_fake_job(job)
 
     countJobGetRequests = 0
 
-    return (job.model_dump(), 201)
+    return job.model_dump()
 
 
 @app.get(_BASE_PATH + "/jobs/{jobId}/results")
@@ -231,7 +228,4 @@ async def listJobResults(jobId: str):
         ],
     )
 
-    return (
-        {"job_results": results, "total_count": len(results)},
-        201,
-    )
+    return {"job_results": results, "total_count": len(results)}
