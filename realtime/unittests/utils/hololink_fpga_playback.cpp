@@ -38,7 +38,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
 //==============================================================================
 // Hololink Control Plane Protocol
@@ -287,14 +287,14 @@ static PlaybackArgs parse_args(int argc, char *argv[]) {
 /// Format: RPCHeader + ascending byte payload.
 static std::vector<uint8_t> build_rpc_message(uint32_t shot_index,
                                               uint32_t payload_size) {
-  using cudaq::nvqlink::fnv1a_hash;
-  using cudaq::nvqlink::RPCHeader;
+  using cudaq::realtime::fnv1a_hash;
+  using cudaq::realtime::RPCHeader;
 
   constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
 
   std::vector<uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
   auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
-  hdr->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
+  hdr->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
   hdr->function_id = FUNC_ID;
   hdr->arg_len = payload_size;
 
@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
                    static_cast<uint32_t>(args.page_size >> PAGE_SHIFT));
   ctrl.write_dword(vp + DP_MAX_BUFF, args.num_pages - 1);
 
-  size_t frame_size = sizeof(cudaq::nvqlink::RPCHeader) + args.payload_size;
+  size_t frame_size = sizeof(cudaq::realtime::RPCHeader) + args.payload_size;
   ctrl.write_dword(vp + DP_BUFFER_LENGTH, static_cast<uint32_t>(frame_size));
 
   // Set bridge IP for emulator GID derivation
@@ -480,10 +480,10 @@ int main(int argc, char *argv[]) {
       }
 
       // Parse RPCResponse
-      auto *resp = reinterpret_cast<const cudaq::nvqlink::RPCResponse *>(
+      auto *resp = reinterpret_cast<const cudaq::realtime::RPCResponse *>(
           response_bytes.data());
 
-      if (resp->magic != cudaq::nvqlink::RPC_MAGIC_RESPONSE) {
+      if (resp->magic != cudaq::realtime::RPC_MAGIC_RESPONSE) {
         std::cerr << "  Shot " << i << ": bad magic 0x" << std::hex
                   << resp->magic << std::dec << std::endl;
         continue;
@@ -497,7 +497,7 @@ int main(int argc, char *argv[]) {
 
       // Verify increment: each byte should be (shot_index + byte_index + 1)
       const uint8_t *result_data =
-          response_bytes.data() + sizeof(cudaq::nvqlink::RPCResponse);
+          response_bytes.data() + sizeof(cudaq::realtime::RPCResponse);
       bool ok = true;
       uint32_t check_len = std::min(resp->result_len, args.payload_size);
       for (uint32_t j = 0; j < check_len && ok; j++) {

@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace cudaq::nvqlink {
+namespace cudaq::realtime {
 
 //==============================================================================
 // RPC Protocol Structures (Wire Format)
@@ -129,4 +129,4 @@ struct __attribute__((packed)) cudaq_handler_schema_t {
   cudaq_type_desc_t results[4]; ///< Result type descriptors (max 4)
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::realtime

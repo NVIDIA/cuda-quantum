@@ -5,7 +5,7 @@ IncludeCategories:
     Priority:        4
   - Regex:           '^"cudaq/'
     Priority:        3
-  - Regex:           '^"(nvqlink|\.\.)/'
+  - Regex:           '^"(realtime|\.\.)/'
     Priority:        2
   - Regex:           '.*'
     Priority:        1

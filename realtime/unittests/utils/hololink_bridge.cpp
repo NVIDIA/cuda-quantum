@@ -27,9 +27,9 @@
 
 #include <cuda_runtime.h>
 
-#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/nvqlink/hololink_bridge_common.h"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/hololink_bridge_common.h"
 
 //==============================================================================
 // Increment RPC Handler Function Table
@@ -78,11 +78,11 @@ int main(int argc, char *argv[]) {
     std::cout << "=== Hololink Generic Bridge ===" << std::endl;
 
     // Parse common bridge args
-    cudaq::nvqlink::BridgeConfig config;
-    cudaq::nvqlink::parse_bridge_args(argc, argv, config);
+    cudaq::realtime::BridgeConfig config;
+    cudaq::realtime::parse_bridge_args(argc, argv, config);
 
     // Frame size: RPCHeader + 256 bytes payload
-    config.frame_size = sizeof(cudaq::nvqlink::RPCHeader) + 256;
+    config.frame_size = sizeof(cudaq::realtime::RPCHeader) + 256;
 
     std::cout << "Device: " << config.device << std::endl;
     std::cout << "Peer IP: " << config.peer_ip << std::endl;
@@ -110,12 +110,12 @@ int main(int argc, char *argv[]) {
 
     config.d_function_entries = d_function_entries;
     config.func_count = 1;
-    config.launch_fn = &cudaq::nvqlink::bridge_launch_dispatch_kernel;
+    config.launch_fn = &cudaq::realtime::bridge_launch_dispatch_kernel;
     config.cleanup_fn = [d_function_entries]() {
       cudaFree(d_function_entries);
     };
 
-    return cudaq::nvqlink::bridge_run(config);
+    return cudaq::realtime::bridge_run(config);
 
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
