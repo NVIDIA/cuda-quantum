@@ -90,8 +90,6 @@ jobs:
           # when the copied files change), macOS uses ORAS artifact caching with no
           # content-based invalidation. This hash ensures cache is rebuilt when
           # build scripts change. Update this list if new files affect the build.
-          # Note: the final deps_hash also incorporates the runner image version
-          # (computed in the build job on macOS) to detect tool updates (cmake, etc.).
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
@@ -99,8 +97,7 @@ jobs:
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
-          # Registry and image name base (without the deps hash suffix).
-          # The build job appends the full deps_hash which includes the runner image version.
+          # Registry and image name
           image_name_base=ghcr.io/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-macos-devdeps
           if [ -n "$pr_number" ]; then
             image_name_base=${image_name_base}-ci
@@ -114,7 +111,7 @@ jobs:
     name: Build macOS Cache
     needs: metadata
     runs-on: ${{ needs.metadata.outputs.runner }}
-    timeout-minutes: 180
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
