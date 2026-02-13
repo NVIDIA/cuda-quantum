@@ -320,7 +320,6 @@ def test_observe_async():
     future = cudaq.observe_async(kernel, hamiltonian, shots_count=1)
     result = future.get()
 
-    print(result.expectation())
     assert result.expectation() == -1.0
 
 
