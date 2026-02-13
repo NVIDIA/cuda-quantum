@@ -15,8 +15,6 @@ static constexpr int NUM_JIT_CACHE_ITEMS_TO_RETAIN = 100;
 
 JITExecutionCache::~JITExecutionCache() {
   std::scoped_lock<std::mutex> lock(mutex);
-  for (auto &[k, v] : cacheMap)
-    delete v.execEngine;
   cacheMap.clear();
 }
 bool JITExecutionCache::hasJITEngine(std::size_t hashkey) {
@@ -28,13 +26,12 @@ void JITExecutionCache::deleteJITEngine(std::size_t hash) {
   std::scoped_lock<std::mutex> lock(mutex);
   auto it = cacheMap.find(hash);
   if (it != cacheMap.end()) {
-    delete it->second.execEngine;
     lruList.erase(it->second.lruListIt);
     cacheMap.erase(it);
   }
 }
 
-void JITExecutionCache::cache(std::size_t hash, ExecutionEngine *jit) {
+void JITExecutionCache::cache(std::size_t hash, JitEngine jit) {
   std::scoped_lock<std::mutex> lock(mutex);
 
   lruList.push_back(hash);
@@ -44,14 +41,13 @@ void JITExecutionCache::cache(std::size_t hash, ExecutionEngine *jit) {
   if (cacheMap.size() >= NUM_JIT_CACHE_ITEMS_TO_RETAIN) {
     auto hashToRemove = lruList.begin();
     auto it = cacheMap.find(*hashToRemove);
-    delete it->second.execEngine;
     lruList.erase(hashToRemove);
     cacheMap.erase(it);
   }
 
   cacheMap.insert({hash, {jit, std::prev(lruList.end())}});
 }
-ExecutionEngine *JITExecutionCache::getJITEngine(std::size_t hash) {
+JitEngine JITExecutionCache::getJITEngine(std::size_t hash) {
   std::scoped_lock<std::mutex> lock(mutex);
   auto &item = cacheMap.at(hash);
 
@@ -61,4 +57,20 @@ ExecutionEngine *JITExecutionCache::getJITEngine(std::size_t hash) {
 
   return item.execEngine;
 }
+
+namespace {
+std::once_flag init_flag;
+std::unique_ptr<cudaq::JITExecutionCache> jitCache;
+} // namespace
+
+cudaq::JITExecutionCache &JITExecutionCache::getJITCache() {
+  // Runtime JIT cache for storage of JIT execution engines for Python-launched
+  // kernels. This is needed mainly for interop with C++, whereby we want to
+  // JIT-compile the Python kernel and then call it from C++.
+  std::call_once(init_flag, []() {
+    jitCache = std::make_unique<cudaq::JITExecutionCache>();
+  });
+  return *(jitCache.get());
+}
+
 } // namespace cudaq
