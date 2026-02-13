@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import cmath, numpy as np, pytest, random
-from cudaq import operators
+from cudaq import operators, boson
 from cudaq.operators import *
 from op_utils import *  # test helpers
 
@@ -419,7 +419,7 @@ def test_evaluation():
         return composite_op.evaluate(**kwargs)
 
     # test trivial evaluation
-    get_op = lambda: create(0) + annihilate(1)
+    get_op = lambda: boson.create(0) + boson.annihilate(1)
     assert numpy.allclose(get_op().to_matrix({
         0: 2,
         1: 3
@@ -752,10 +752,8 @@ def test_backwards_compatibility():
 
     check_composite(zero, zero_matrix, 0)
     check_composite(identity, identity_matrix, 1)
-    with pytest.warns(DeprecationWarning):
-        create(5)
-    with pytest.warns(DeprecationWarning):
-        annihilate(5)
+    boson.create(5)
+    boson.annihilate(5)
 
 
 # Run with: pytest -rP
