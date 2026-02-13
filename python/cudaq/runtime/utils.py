@@ -38,14 +38,14 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
+        firstArgTypeIsFlatStdvec = cc.StdvecType.isinstance(argTypes[0])
         if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
+                isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
             return True
 
         if hasattr(firstArg, "shape"):
             shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsStdvec:
+            if len(shape) == 1 and not firstArgTypeIsFlatStdvec:
                 return True
 
             if len(shape) == 2:
@@ -73,14 +73,18 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
+        firstArgTypeIsFlatStdvec = False  # whether `argTypes[0]` is a non-nested Vec
+        if cc.StdvecType.isinstance(argTypes[0]):
+            eleTy = cc.StdvecType.getElementType(argTypes[0])
+            if not cc.StdvecType.isinstance(eleTy):
+                firstArgTypeIsFlatStdvec = True
         if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
+                isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
             return True
 
         if hasattr(firstArg, "shape"):
             shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsStdvec:
+            if len(shape) == 1 and not firstArgTypeIsFlatStdvec:
                 return True
 
             if len(shape) == 2:
