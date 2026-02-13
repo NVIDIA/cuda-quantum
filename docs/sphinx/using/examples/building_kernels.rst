@@ -1,7 +1,19 @@
 Building Kernels
 ================
 This section will cover the most basic CUDA-Q construct, a quantum kernel.
-Topics include, building kernels, initializing states, and applying gate operations.
+Topics include, building kernels, initializing states, and applying gate operations.  You can learn the quantum circuit visualization tool below to build some common quantum circuits and the associated CUDA-Q kernels.  Then, you can learn more about the details of the syntax in the sections below.
+
+
+.. raw:: html
+
+   <iframe src="https://nvidia.github.io/cuda-q-academic/quick-start-to-quantum/interactive_widget/cudaq-hello-world.html" 
+           width="100%" 
+           height="1400px" 
+           frameborder="0" 
+           scrolling="no" 
+           style="border: 1px solid #e1e4e5; border-radius: 4px;">
+   </iframe>
+
 
 Defining Kernels
 ----------------
