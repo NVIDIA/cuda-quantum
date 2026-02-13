@@ -227,7 +227,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
     auto options = params.options();
 
-    CUDAQ_INFO("options {}", options);
+    // CUDAQ_INFO("options {}", options);
 
     auto outputNamesStr = options["output_names"].get<std::string>();
 
