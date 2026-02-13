@@ -136,7 +136,7 @@ def _run_fake_job(job: Job):
         }
     )
 
-    result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result)
+    result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result, url="")
     database.job_results[result.id] = result
 
 
