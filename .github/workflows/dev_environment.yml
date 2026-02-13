@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
@@ -143,6 +143,10 @@ jobs:
             pr_number=${{ inputs.pull_request_number || github.event.pull_request.number}}
           elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
             pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+          fi
+
+          if [ -n "$pr_number" ]; then
+            image_name=${image_name}-ci
           fi
 
           if ${{ inputs.pull_request_commit != '' }}; then
@@ -205,7 +209,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
           submodules: ${{ inputs.checkout_submodules }}
@@ -223,6 +227,12 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -242,6 +252,11 @@ jobs:
         run: |
           build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
+          if ${{ needs.metadata.outputs.pr_number != '' }}; then
+            registry_cache=${registry_cache}-ci
+          elif ${{ github.event_name == 'merge_group' }}; then
+            registry_cache=${registry_cache}-merge-group
+          fi
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${build_config_id:+-$build_config_id} | tr . -)
@@ -267,6 +282,14 @@ jobs:
             # We hence create a build cache only upon request.
             build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
+          elif ${{ needs.metadata.outputs.pr_number != '' }}; then
+            # for PRs, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
+          elif ${{ github.event_name == 'merge_group' }}; then
+            # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
@@ -285,6 +308,8 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+              elif ${{ github.event_name == 'merge_group' }}; then
+                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
@@ -390,6 +415,9 @@ jobs:
             # - https://github.com/docker/cli/issues/3350.
 
             remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}${{ needs.metadata.outputs.image_title }}
+            if ${{ needs.metadata.outputs.pr_number != '' }}; then
+              remote_image=${remote_image}-ci
+            fi
             remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
             echo "Trying to pull remote tag $remote_image:$remote_tag."
             docker pull $remote_image:$remote_tag || true

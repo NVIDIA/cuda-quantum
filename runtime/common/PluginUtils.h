@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #pragma once
-#include "Logger.h"
-#include "cudaq_fmt.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <dlfcn.h>
 #include <mutex>
 #include <string_view>

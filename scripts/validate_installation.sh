@@ -9,9 +9,34 @@
 # ============================================================================ #
 
 # Usage:
-# Launch the NVIDIA CUDA-Q Docker container, 
-# and run this script from the home directory.
-# Check the logged output.
+#
+# From repo root (auto-sets examples):
+#   bash scripts/validate_installation.sh              # Full validation
+#   bash scripts/validate_installation.sh default      # Test specific backend(s)
+#
+# In Docker container:
+#   Launch the NVIDIA CUDA-Q Docker container,
+#   and run this script from the home directory.
+#   Check the logged output.
+
+# Auto-setup if running from repo root (detected by presence of docs/sphinx/examples)
+# This allows running validation directly from the repo without manual setup.
+if [ -d "docs/sphinx/examples" ]; then
+    echo "Setting up examples from repo structure..."
+    repo_root="$(pwd)"
+    staging_dir="$repo_root/build/validation_staging"
+    rm -rf "${staging_dir:?}"
+    mkdir -p "$staging_dir"
+
+    for d in examples applications targets snippets; do
+        cp -r "docs/sphinx/$d" "$staging_dir/$d" || exit 1
+    done
+    # Remove Python subdirs from examples/applications/targets (use snippets for Python)
+    rm -rf "${staging_dir:?}/examples/python" "${staging_dir:?}/applications/python" "${staging_dir:?}/targets/python"
+    
+    cd "$staging_dir"
+    echo "Running validation from: $(pwd)"
+fi
 
 passed=0
 failed=0
@@ -46,6 +71,38 @@ if $mpi_available;
 then echo "MPI detected."
 else echo "No MPI detected."
 fi 
+
+# Check if a Python file should be skipped due to GPU/MPI requirements
+# Usage: should_skip_python_example <filepath>
+# Returns: 0 (true) if should skip, 1 (false) if should run
+# Sets: skip_reason variable with the reason for skipping
+should_skip_python_example() {
+    local file="$1"
+    skip_reason=""
+    
+    # Skip GPU-dependent examples when no GPU is available
+    if ! $gpu_available; then
+        if grep -q "import cupy\|from cupy" "$file"; then
+            skip_reason="requires cupy (CUDA-only)"
+            return 0
+        fi
+        # Check for nvidia/tensornet targets (direct or via remote-mqpu)
+        if grep -q "set_target.*['\"]nvidia\|['\"]tensornet" "$file"; then
+            skip_reason="requires GPU target"
+            return 0
+        fi
+    fi
+    
+    # Skip MPI examples when MPI is not available
+    if ! $mpi_available; then
+        if grep -q "cudaq\.mpi\|mpi_comm_world" "$file"; then
+            skip_reason="requires MPI"
+            return 0
+        fi
+    fi
+    
+    return 1
+}
 
 export UCX_LOG_LEVEL=warning
 requested_backends=`\
@@ -154,11 +211,12 @@ do
 
     # Look for a --target flag to nvq++ in the 
     # comment block at the beginning of the file.
-    intended_target=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+--target\s+\K\S+'`
+    # Note: using sed instead of grep -P for macOS compatibility
+    intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)
     if [ -n "$intended_target" ]; then
         echo "Intended for execution on $intended_target backend."
     fi
-    use_library_mode=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+-library-mode'`
+    use_library_mode=$(sed -e '/^$/,$d' "$ex" | grep -o '^//[[:space:]]*nvq++.*-library-mode' | head -1)
     if [ -n "$use_library_mode" ]; then
         nvqpp_extra_options="--library-mode"
     fi
@@ -223,16 +281,21 @@ do
 
         echo "Testing on $t target..."
         
-        # All target options to test for targets that support multiple configurations.
-        declare -A target_options=(
-            [nvidia]="fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu"
-            [tensornet]="fp32 fp64"
-            [tensornet-mps]="fp32 fp64"
-        )
-        if [[ -n "${target_options[$t]}" ]]; then
-            for opt in ${target_options[$t]}; do
+        # Get target options to test for targets that support multiple configurations.
+        # Note: Using case statement instead of associative arrays for macOS bash 3.2 compatibility
+        get_target_options() {
+            case "$1" in
+                nvidia) echo "fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu" ;;
+                tensornet) echo "fp32 fp64" ;;
+                tensornet-mps) echo "fp32 fp64" ;;
+                *) echo "" ;;
+            esac
+        }
+        target_opts=$(get_target_options "$t")
+        if [ -n "$target_opts" ]; then
+            for opt in $target_opts; do
                 echo "  Testing $t target option: ${opt}"
-                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${opt}"
+                nvq++ $nvqpp_extra_options "$ex" $target_flag --target-option "${opt}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -309,7 +372,15 @@ do
     let "samples+=1"
 
     skip_example=false
-    explicit_targets=`cat $ex | grep -Po "^\s*cudaq.set_target\((['\"])\K.*?(?=\1)"`
+    
+    # Check for GPU/MPI dependencies
+    if should_skip_python_example "$ex"; then
+        echo "Skipping: $skip_reason."
+        skip_example=true
+    fi
+    
+    # Note: using sed instead of grep -P for macOS compatibility
+    explicit_targets=$(sed -n "s/^[[:space:]]*cudaq\.set_target([[:space:]]*['\"][[:space:]]*\([^'\"]*\)[[:space:]]*['\"].*/\1/p" "$ex")
     for t in $explicit_targets; do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
@@ -413,16 +484,30 @@ then
         echo "Testing $filename:"
         echo "Source: $ex"
         let "samples+=1"
-        python3 $ex 1> /dev/null
-        status=$?
-        echo "Exited with code $status"
-        if [ "$status" -eq "0" ]; then 
-            let "passed+=1"
-            echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}"
+        
+        skip_snippet=false
+        # Check for GPU/MPI dependencies
+        if should_skip_python_example "$ex"; then
+            echo "Skipping: $skip_reason."
+            skip_snippet=true
+        fi
+        
+        if $skip_snippet; then
+            let "skipped+=1"
+            echo "Skipped."
+            echo ":white_flag: $filename: GPU/MPI required. Test skipped." >> "${tmpFile}"
         else
-            let "failed+=1"
-            echo ":x: Failed to run $filename." >> "${tmpFile}"
-        fi 
+            python3 $ex 1> /dev/null
+            status=$?
+            echo "Exited with code $status"
+            if [ "$status" -eq "0" ]; then 
+                let "passed+=1"
+                echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}"
+            else
+                let "failed+=1"
+                echo ":x: Failed to run $filename." >> "${tmpFile}"
+            fi
+        fi
     done
 fi
 

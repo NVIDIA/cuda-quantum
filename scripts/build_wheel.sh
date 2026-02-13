@@ -118,12 +118,14 @@ if $install_prereqs; then
     fi
     if $verbose; then
         source "$this_file_dir/install_prerequisites.sh" "$@"
+        prereq_exit=$?
     else
         source "$this_file_dir/install_prerequisites.sh" "$@" 2>&1 | tail -5
+        prereq_exit=$?
     fi
     # Restore positional parameters
     set -- "${saved_args[@]}"
-    if [ $? -ne 0 ]; then
+    if [ $prereq_exit -ne 0 ]; then
         echo "Error: Failed to install prerequisites" >&2
         exit 1
     fi
@@ -165,6 +167,42 @@ if [ ! -f "$pyproject_src" ]; then
 fi
 echo "Using pyproject: $pyproject_src"
 cp -f "$pyproject_src" pyproject.toml 2>/dev/null || true
+
+# Generate README.md from template
+if [ -f "python/README.md.in" ]; then
+  echo "Generating README from template..."
+  cp python/README.md.in python/README.md
+  
+  # Set template variables (matching original Dockerfile logic)
+  # CUDA_VERSION is the full version (e.g., "12.6"), cuda_variant is major only (e.g., "12")
+  package_name="cuda-quantum-cu${cuda_variant}"
+  cuda_version_full="${CUDA_VERSION:-${cuda_variant}.0}"
+  cuda_version_requirement=">= ${cuda_version_full}"
+  cuda_version_conda="${cuda_version_full}.0"
+  # Map conda version 13.0.0 -> 13.0.2 (conda channel doesn't have 13.0.0)
+  cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+  deprecation_notice=""  # No deprecation notice by default
+  
+  # Perform substitutions
+  # The template uses ${{ variable }} syntax - we use .{{ to match any char before {{
+  for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
+    value="${!variable}"
+    # Escape special characters in value for sed replacement
+    escaped_value=$(printf '%s\n' "$value" | sed 's/[&/\]/\\&/g')
+    if [ "$platform" = "Darwin" ]; then
+      sed -i '' "s/.{{[ ]*${variable}[ ]*}}/${escaped_value}/g" python/README.md
+    else
+      sed -i "s/.{{[ ]*${variable}[ ]*}}/${escaped_value}/g" python/README.md
+    fi
+  done
+  
+  # Verify all substitutions were made (use .{{ to match ${{ or any prefix)
+  if grep -q '.{{.*}}' python/README.md; then
+    echo "Error: Incomplete template substitutions in README.md" >&2
+    grep '.{{.*}}' python/README.md >&2
+    exit 1
+  fi
+fi
 
 # Set up library path environment variable
 if [ "$platform" = "Darwin" ]; then
@@ -339,8 +377,11 @@ else
     # Add build lib to library path for auditwheel
     eval "export $lib_path_var=\"\${$lib_path_var:+\$$lib_path_var:}$(pwd)/_skbuild/lib\""
 
-    mkdir -p wheelhouse
-    auditwheel_args="repair $wheel_file -w wheelhouse"
+    # Use temp directory that won't conflict with output_dir
+    auditwheel_tmp="_auditwheel_tmp"
+    rm -rf "${auditwheel_tmp:?}"
+    mkdir -p "$auditwheel_tmp"
+    auditwheel_args="repair $wheel_file -w $auditwheel_tmp"
     auditwheel_args="$auditwheel_args --exclude libcustatevec.so.1"
     auditwheel_args="$auditwheel_args --exclude libcutensornet.so.2"
     auditwheel_args="$auditwheel_args --exclude libcudensitymat.so.0"
@@ -363,7 +404,7 @@ else
     fi
 
     # Move repaired wheel to output
-    repaired_wheel=$(ls wheelhouse/*manylinux*.whl 2>/dev/null | head -1)
+    repaired_wheel=$(ls "${auditwheel_tmp:?}"/*manylinux*.whl 2>/dev/null | head -1)
     if [ -n "$repaired_wheel" ]; then
         mv "$repaired_wheel" "$output_dir/"
         echo "Repaired wheel: $output_dir/$(basename "$repaired_wheel")"
@@ -371,7 +412,7 @@ else
         mv "$wheel_file" "$output_dir/"
         echo "Wheel: $output_dir/$(basename "$wheel_file")"
     fi
-    rm -rf wheelhouse
+    rm -rf "${auditwheel_tmp:?}"
 fi
 
 echo "Done! Wheel available in $output_dir/"

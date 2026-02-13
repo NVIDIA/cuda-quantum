@@ -42,3 +42,5 @@ add_lit_testsuites(PYCUDAQMLIR ${CMAKE_CURRENT_SOURCE_DIR}
 add_test(NAME pycudaq-mlir
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-pycudaq-mlir
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+# Increase timeout for this test suite as it is slow on some runners
+set_tests_properties(pycudaq-mlir PROPERTIES TIMEOUT 1200)

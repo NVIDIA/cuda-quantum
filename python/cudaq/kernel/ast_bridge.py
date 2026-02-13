@@ -19,6 +19,7 @@ from collections import deque
 from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime, load_intrinsic,
                                                   gen_vector_of_complex_constant
                                                  )
+from cudaq.kernel_types import qview
 from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
 from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            DenseBoolArrayAttr, DenseI32ArrayAttr,
@@ -28,13 +29,12 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
 from cudaq.mlir.passmanager import PassManager
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
-from .captured_data import CapturedDataStorage
-from .utils import (Color, globalAstRegistry, globalRegisteredOperations,
-                    globalRegisteredTypes, nvqppPrefix, mlirTypeFromAnnotation,
-                    mlirTypeFromPyType, mlirTypeToPyType, getMLIRContext,
-                    recover_func_op, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType, resolve_qualified_symbol)
+from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
+                    nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
+                    mlirTypeToPyType, getMLIRContext, recover_func_op,
+                    is_recovered_value_ok, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    resolve_qualified_symbol)
 
 State = cudaq_runtime.State
 
@@ -49,7 +49,7 @@ State = cudaq_runtime.State
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
 
-ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, qview]
 
 
 class PyScopedSymbolTable(object):
@@ -378,7 +378,7 @@ class PyASTBridge(ast.NodeVisitor):
     MLIR code.
     """
 
-    def __init__(self, capturedDataStorage: CapturedDataStorage, **kwargs):
+    def __init__(self, **kwargs):
         """
         The constructor. Initializes the `mlir.Value` stack, the `mlir.Context`,
         and the `mlir.Module` that we will be building upon. This class keeps
@@ -404,20 +404,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.ctx = getMLIRContext()
             self.loc = Location.unknown(context=self.ctx)
             self.module = Module.create(self.loc)
-
-        # Create a new captured data storage or use the existing one passed from
-        # the current kernel decorator.
-        self.capturedDataStorage = capturedDataStorage
-        if (self.capturedDataStorage == None):
-            self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
-                                                           loc=self.loc,
-                                                           name=None,
-                                                           module=self.module)
-        else:
-            self.capturedDataStorage.setKernelContext(ctx=self.ctx,
-                                                      loc=self.loc,
-                                                      name=None,
-                                                      module=self.module)
 
         # If the driver of this AST bridge instance has indicated that there is
         # a return type from analysis on the Python AST, then we want to set the
@@ -1774,7 +1760,6 @@ class PyASTBridge(ast.NodeVisitor):
             # hiding symbols and replacing symbols (dynamic `injective` function
             # between scoped symbols and artifacts).
             self.name = node.name + ".." + hex(self.uniqueId)
-            self.capturedDataStorage.name = self.name
 
             # the full function name in MLIR is `__nvqpp__mlirgen__` + the
             # function name
@@ -2660,18 +2645,50 @@ class PyASTBridge(ast.NodeVisitor):
             moduleNames.append(value.id)
             moduleNames.reverse()
 
-            devKey = '.'.join(moduleNames)
+            # Helper method to check that the module `obj`
+            # contains the proper path defined by the submodules
+            # in `moduleNames[1:]` and value named by `pyVal.attr``
+            def checkModule(obj, moduleNames):
+                try:
+                    # Check that the module contains the desired submodules
+                    for part in moduleNames[1:]:
+                        obj = getattr(obj, part)
+                    # Check that the module contains the desired attribute
+                    getattr(obj, pyVal.attr)
+                    return obj.__name__
+                except AttributeError:
+                    return None
+
+            # Check if we can find the desired name among the modules
             for module_name, module in sys.modules.items():
                 if module_name.split('.')[-1] == moduleNames[0]:
                     try:
                         obj = module
-                        for part in moduleNames[1:]:
-                            obj = getattr(obj, part)
-                        devKey = f"{module_name}.{'.'.join(moduleNames[1:])}" if len(
-                            moduleNames) > 1 else module_name
+                        devKey = checkModule(obj, moduleNames)
+                        if devKey:
+                            return devKey, pyVal.attr
                     except AttributeError:
                         continue
-            return devKey, pyVal.attr
+
+            # Look the qualified module name up in the python frames
+            # in case it was aliased (e.g., `import mod1 as mod2`)
+            obj = None
+            for frameinfo in inspect.stack():
+                frame = frameinfo.frame
+                if moduleNames[0] in frame.f_locals:
+                    obj = frame.f_locals.get(moduleNames[0])
+                elif moduleNames[0] in frame.f_globals:
+                    obj = frame.f_globals.get(moduleNames[0])
+                if obj is not None:
+                    # In case a module has been imported multiple times, grab the latest
+                    if isinstance(obj, list):
+                        obj = obj[-1]
+                    devKey = checkModule(obj, moduleNames)
+                    if devKey:
+                        return devKey, pyVal.attr
+
+            # Default return value
+            return '.'.join(moduleNames), pyVal.attr
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
@@ -2698,15 +2715,34 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # Handle registered C++ kernels
                 elif cudaq_runtime.isRegisteredDeviceModule(devKey):
-                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                        self.module, devKey + '.' + name)
-                    if maybeKernelName != None:
-                        otherKernel = SymbolTable(
-                            self.module.operation)[maybeKernelName]
-                        res = processFunctionCall(otherKernel)
-                        if res is not None:
-                            self.pushValue(res)
-                        return
+                    deviceModuleName = devKey + '.' + name
+                    maybeDeviceKernel = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                        self.module, deviceModuleName)
+                    if maybeDeviceKernel != None:
+                        [kernelName, code] = maybeDeviceKernel
+                        # The linked kernel will be loaded when the kernel is invoked
+                        if deviceModuleName not in self.liftedArgs:
+                            self.liftedArgs.append(
+                                dict(linkedKernel=deviceModuleName))
+                        # TODO: Is there a nicer way to get the type from the C++ side?
+                        otherKernel = Module.parse(code, context=self.ctx)
+                        for op in otherKernel.body.operations:
+                            name = str(
+                                op.name).removeprefix('"').removesuffix('"')
+                            if name == kernelName:
+                                funcTy = FunctionType(
+                                    TypeAttr(
+                                        op.attributes['function_type']).value)
+                                callableTy = cc.CallableType.get(
+                                    self.ctx, funcTy.inputs, funcTy.results)
+                                callee = cudaq_runtime.appendKernelArgument(
+                                    self.kernelFuncOp, callableTy)
+                                self.argTypes.append(callableTy)
+                                self.symbolTable[deviceModuleName] = callee
+                                res = processDecoratorCall(deviceModuleName)
+                                if res is not None:
+                                    self.pushValue(res)
+                                return
 
         if isinstance(node.func, ast.Name):
             symName = (node.func.id if node.func.id in self.symbolTable else
@@ -3602,6 +3638,17 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 "unsupported argument for Kraus channel in "
                                 "apply_noise", node)
+
+                        # Validate constant probability `params` are in [0, 1]
+                        for i in range(numParams):
+                            arg = node.args[1 + i]
+                            if isinstance(arg, ast.Constant) and isinstance(
+                                    arg.value, (int, float)):
+                                val = float(arg.value)
+                                if val < 0.0 or val > 1.0:
+                                    raise RuntimeError(
+                                        "probability must be in the range "
+                                        "[0, 1]. Got: " + str(val))
 
                         # This currently requires at least one qubit argument
                         params, values = self.__groupValues(
@@ -5329,8 +5376,7 @@ class PyASTBridge(ast.NodeVisitor):
             node)
 
 
-def compile_to_mlir(uniqueId, astModule,
-                    capturedDataStorage: CapturedDataStorage, **kwargs):
+def compile_to_mlir(uniqueId, astModule, **kwargs):
     """
     Compile the given Python AST Module for the CUDA-Q kernel FunctionDef to an
     MLIR `ModuleOp`. Return both the `ModuleOp` and the list of function
@@ -5342,7 +5388,6 @@ def compile_to_mlir(uniqueId, astModule,
     potential dependent kernel lookups.
     """
 
-    global globalAstRegistry
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
@@ -5353,8 +5398,7 @@ def compile_to_mlir(uniqueId, astModule,
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
 
     # Create the AST Bridge
-    bridge = PyASTBridge(capturedDataStorage,
-                         uniqueId=uniqueId,
+    bridge = PyASTBridge(uniqueId=uniqueId,
                          verbose=verbose,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
@@ -5384,11 +5428,9 @@ def compile_to_mlir(uniqueId, astModule,
                                                 context=bridge.ctx))
     if verbose:
         print(bridge.module)
-    extraMetaData = {}
-    extraMetaData['dependent_captures'] = bridge.dependentCaptureVars
     # Clear the live operations cache. This avoids python crashing with
     # stale references being cached.
     bridge.module.context._clear_live_operations()
     # The only MLIR code object wrapped & tracked ought to be `newMod` now.
     cudaq_runtime.set_data_layout(bridge.module)
-    return bridge.module, bridge.argTypes, extraMetaData, bridge.liftedArgs, bridge.firstLiftedPos
+    return bridge.module, bridge.argTypes, bridge.liftedArgs, bridge.firstLiftedPos

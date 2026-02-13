@@ -55,11 +55,11 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                              "not supported on this target.");
 
   // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("sample", shots, qpu_id);
-  ctx->kernelName = kernelName;
-  ctx->batchIteration = batchIteration;
-  ctx->totalIterations = totalBatchIters;
-  ctx->explicitMeasurements = explicitMeasurements;
+  ExecutionContext ctx("sample", shots, qpu_id);
+  ctx.kernelName = kernelName;
+  ctx.batchIteration = batchIteration;
+  ctx.totalIterations = totalBatchIters;
+  ctx.explicitMeasurements = explicitMeasurements;
 
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we
@@ -68,32 +68,28 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
   // One extra check to see if we have mid-circuit
   // measures in library mode
-  if (!isRegistered && !ctx->hasConditionalsOnMeasureResults) {
+  if (!isRegistered && !ctx.hasConditionalsOnMeasureResults) {
     // Trace the kernel function
     ExecutionContext context("tracer");
     context.qpuId = qpu_id;
     auto &platform = get_platform();
-    platform.set_exec_ctx(&context);
-    wrappedKernel();
-    platform.reset_exec_ctx();
+    platform.with_execution_context(context,
+                                    std::forward<KernelFunctor>(wrappedKernel));
     // In trace mode, if we have a measure result
     // that is passed to an if statement, then
     // we'll have collected registernames
     if (!context.registerNames.empty()) {
       // append new register names to the main sample context
       for (std::size_t i = 0; i < context.registerNames.size(); ++i)
-        ctx->registerNames.emplace_back("auto_register_" + std::to_string(i));
+        ctx.registerNames.emplace_back("auto_register_" + std::to_string(i));
 
-      ctx->hasConditionalsOnMeasureResults = true;
+      ctx.hasConditionalsOnMeasureResults = true;
     }
   }
 #endif
 
   // Indicate that this is an async exec
-  ctx->asyncExec = futureResult != nullptr;
-
-  // Set the platform and the qpu id.
-  platform.set_exec_ctx(ctx.get());
+  ctx.asyncExec = futureResult != nullptr;
 
   auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   auto isQuantumDevice =
@@ -102,23 +98,23 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Loop until all shots are returned.
   cudaq::sample_result counts;
   while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
-    wrappedKernel();
+    platform.with_execution_context(ctx,
+                                    std::forward<KernelFunctor>(wrappedKernel));
     if (futureResult) {
-      *futureResult = ctx->futureResult;
+      *futureResult = ctx.futureResult;
       return std::nullopt;
     }
-    platform.reset_exec_ctx();
 
     // If target is hardware backend, need to launch only once, hence exit early
     if (isQuantumDevice)
-      return ctx->result;
+      return ctx.result;
 
     if (counts.get_total_shots() == 0)
-      counts = std::move(ctx->result); // optimize for first iteration
+      counts = std::move(ctx.result); // optimize for first iteration
     else
-      counts += ctx->result;
+      counts += ctx.result;
 
-    ctx->result.clear();
+    ctx.result.clear();
     if (counts.get_total_shots() == 0) {
       if (explicitMeasurements)
         throw std::runtime_error(
@@ -128,11 +124,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
              "of results when executed. Exiting shot loop to avoid "
              "infinite loop.");
       break;
-    }
-    // Reset the context for the next round,
-    // don't need to reset on the last exec
-    if (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
-      platform.set_exec_ctx(ctx.get());
     }
   }
   return counts;

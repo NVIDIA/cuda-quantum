@@ -8,6 +8,9 @@
 
 get_filename_component(CUDAQ_COMMON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
+set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQLogger REQUIRED)
+
 if(NOT TARGET cudaq::cudaq-common)
   include("${CUDAQ_COMMON_CMAKE_DIR}/CUDAQCommonTargets.cmake")
 endif()

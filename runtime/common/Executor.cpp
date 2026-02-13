@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "Executor.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,

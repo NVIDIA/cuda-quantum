@@ -10,7 +10,7 @@
 
 #include "CodeGenConfig.h"
 #include "Environment.h"
-#include "Logger.h"
+#include "JIT.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -26,6 +26,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -813,8 +814,8 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
   }
 }
 
-mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo) {
+JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
+                             llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
@@ -905,7 +906,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
 
   auto jitOrError = mlir::ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
-  return jitOrError.get().release();
+  return JitEngine(std::move(jitOrError.get()));
 }
 
 } // namespace cudaq

@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from .preallocated_qubits_context import PreallocatedQubitsContext
+
 # Default ports for each mock QPU backend
 MOCK_QPU_PORTS = {
     "quantinuum": 62440,

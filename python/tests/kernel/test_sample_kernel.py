@@ -170,6 +170,31 @@ def test_broadcastPy39Plus():
         assert len(c) == 2
 
 
+def test_list_pauli_word_not_broadcast():
+    """
+    Test that list[pauli_word] arguments are not incorrectly detected as 
+    broadcast arguments. This is a regression test for a bug where
+    list[pauli_word] was missing from the broadcast detection whitelist,
+    causing the list elements to be iterated as separate argument sets
+    instead of passing the whole list as a single argument.
+    """
+
+    @cudaq.kernel
+    def kernel_pauli_list(words: list[cudaq.pauli_word]):
+        qreg = cudaq.qvector(2)
+        exp_pauli(0.1, qreg, words[0])
+
+    # Test with list of pauli_word objects
+    words_obj = [cudaq.pauli_word("ZZ"), cudaq.pauli_word("XX")]
+    counts = cudaq.sample(kernel_pauli_list, words_obj)
+    assert len(counts) > 0
+
+    # Test with list of strings (auto-converted to pauli_word)
+    words_str = ["ZZ", "XX"]
+    counts = cudaq.sample(kernel_pauli_list, words_str)
+    assert len(counts) > 0
+
+
 def test_sample_async():
 
     @cudaq.kernel()

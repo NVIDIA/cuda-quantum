@@ -10,7 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 namespace cudaq {
 CuDensityMatExpectation::CuDensityMatExpectation(cudensitymatHandle_t handle,
                                                  cudensitymatOperator_t op)

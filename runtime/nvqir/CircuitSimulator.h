@@ -11,14 +11,16 @@
 #include "Gates.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
+#include "cudaq/runtime/logger/logger.h"
+#include <concepts>
 #include <cstdarg>
 #include <cstddef>
+#include <iostream>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
@@ -242,14 +244,14 @@ public:
   /// @brief Deallocate all the provided qubits.
   virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
 
-  /// @brief Reset the current execution context.
-  virtual void resetExecutionContext() = 0;
+  /// @brief Process the results stored in the given execution context.
+  virtual void finalizeExecutionContext(cudaq::ExecutionContext &context) = 0;
 
-  /// @brief Set the execution context
-  virtual void setExecutionContext(cudaq::ExecutionContext *context) = 0;
+  /// @brief Clean up after execution ends.
+  virtual void endExecution() {}
 
-  /// @brief Return the current execution context
-  virtual cudaq::ExecutionContext *getExecutionContext() = 0;
+  /// @brief Configure the execution context for this simulator.
+  virtual void configureExecutionContext(cudaq::ExecutionContext &context) = 0;
 
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
@@ -413,15 +415,6 @@ private:
   std::string currentCircuitName = "";
 
 protected:
-  /// @brief Return true if the simulator is in the tracer mode.
-  bool isInTracerMode() const {
-    return executionContext && executionContext->name == "tracer";
-  }
-
-  /// @brief The current Execution Context (typically this is null,
-  /// sampling, or spin_op observation.
-  cudaq::ExecutionContext *executionContext = nullptr;
-
   /// @brief A tracker for qubit allocation
   cudaq::QuditIdTracker tracker;
 
@@ -488,6 +481,8 @@ protected:
   /// @brief Get the number of shots to execute (only valid if executionContext
   /// is set)
   int getNumShotsToExec() const {
+    auto executionContext = cudaq::getExecutionContext();
+
     if (!executionContext)
       return 1;
     if (executionContext->hasConditionalsOnMeasureResults)
@@ -542,10 +537,11 @@ protected:
   }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
-  /// processing in resetExecutionContext. Return true to indicate this is
+  /// processing in finalizeExecutionContext. Return true to indicate this is
   /// sampling and to exit early. False otherwise.
   bool handleBasicSampling(const std::size_t qubitIdx,
                            const std::string &regName) {
+    auto executionContext = cudaq::getExecutionContext();
     if (executionContext && executionContext->name == "sample") {
 
       // Handle duplicate measurements in explicit measurements mode
@@ -621,25 +617,6 @@ protected:
     return ret.str();
   }
 
-  /// @brief Return true if the current execution is in batch mode
-  bool isInBatchMode() {
-    if (!executionContext)
-      return false;
-
-    if (executionContext->totalIterations == 0)
-      return false;
-
-    return true;
-  }
-
-  /// @brief Return true if the current execution is the
-  /// last execution of batch mode.
-  bool isLastBatch() {
-    return executionContext && executionContext->batchIteration > 0 &&
-           executionContext->batchIteration ==
-               executionContext->totalIterations - 1;
-  }
-
   /// @brief Add the given number of qubits to the state.
   virtual void addQubitsToState(std::size_t count,
                                 const void *state = nullptr) {
@@ -659,6 +636,8 @@ protected:
 
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
+    auto executionContext = cudaq::getExecutionContext();
+
     if (force && supportsBufferedSample &&
         executionContext->explicitMeasurements) {
       int nShots = getNumShotsToExec();
@@ -694,6 +673,19 @@ protected:
 
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
+
+    // Warn if there are named measurement registers beyond `__global__`
+    if (!executionContext->warnedNamedMeasurements &&
+        registerNameToMeasuredQubit.size() > 1) {
+      executionContext->warnedNamedMeasurements = true;
+      std::cerr
+          << "WARNING: Kernel \"" << executionContext->kernelName
+          << "\" uses named measurement results but is "
+             "invoked in sampling mode. Support for sub-registers in "
+             "`sample_result` is deprecated and will be removed in a future "
+             "release. Use `run` to retrieve individual measurement results."
+          << std::endl;
+    }
 
     if (registerNameToMeasuredQubit.empty()) {
       executionContext->result.append(execResult,
@@ -739,7 +731,7 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
-    if (isInTracerMode()) {
+    if (cudaq::isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
         controlsInfo.emplace_back(2, c);
@@ -754,7 +746,7 @@ protected:
           anglesProcessed.push_back(static_cast<ScalarType>(a));
       }
 
-      executionContext->kernelTrace.appendInstruction(
+      cudaq::getExecutionContext()->kernelTrace.appendInstruction(
           name, anglesProcessed, controlsInfo, targetsInfo);
       return;
     }
@@ -796,6 +788,8 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
+    auto executionContext = cudaq::getExecutionContext();
+
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
       if (isStateVectorSimulator() && summaryData.enabled)
@@ -921,7 +915,7 @@ public:
     if (!state)
       return allocateQubits(count);
 
-    if (!isInTracerMode() && count != state->getNumQubits())
+    if (!cudaq::isInTracerMode() && count != state->getNumQubits())
       throw std::invalid_argument("Dimension mismatch: the input state doesn't "
                                   "match the number of qubits");
 
@@ -937,7 +931,7 @@ public:
   }
 
   void deallocateQubits(const std::vector<std::size_t> &qubits) override {
-    if (executionContext) {
+    if (cudaq::getExecutionContext() != nullptr) {
       // Avoid deallocation as we may need to access the state after the
       // execution has completed.
       // TODO: reduce the cases where this is needed.
@@ -956,12 +950,12 @@ public:
       CUDAQ_INFO("Deallocating qubit {}", q);
       tracker.returnIndex(q);
     }
-    if (isInTracerMode()) {
+    if (cudaq::isInTracerMode()) {
       return;
     }
 
     if (getNumQubits() == 0) {
-      if (isInBatchMode() && !isLastBatch()) {
+      if (cudaq::isInBatchMode() && !cudaq::isLastBatch()) {
         setToZeroState();
         auto empty = std::queue<GateApplicationTask>{};
         std::swap(gateQueue, empty);
@@ -975,21 +969,17 @@ public:
   }
 
   /// @brief Reset the current execution context.
-  void resetExecutionContext() override {
-    // If null, do nothing
-    if (!executionContext)
-      return;
+  void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
+    // Get the ExecutionContext name
+    auto execContextName = context.name;
 
     // Flush the queue if there are any gates to apply
     flushGateQueue();
 
-    // Get the ExecutionContext name
-    auto execContextName = executionContext->name;
-
     // If we are sampling...
     if (execContextName == "sample") {
       // Sample the state over the specified number of shots
-      if (sampleQubits.empty() && !executionContext->explicitMeasurements) {
+      if (sampleQubits.empty() && !context.explicitMeasurements) {
         sampleQubits.resize(getNumQubits());
         if (sampleQubits.empty())
           throw std::runtime_error(
@@ -1023,15 +1013,15 @@ public:
             counts.appendResult(bitResults[j], 1);
           }
         }
-        executionContext->result.append(counts);
+        context.result.append(counts);
       }
 
       // Reorder the global register (if necessary). This might be necessary if
       // the mapping pass had run and we want to undo the shuffle that occurred
       // during mapping.
-      if (!executionContext->reorderIdx.empty()) {
-        executionContext->result.reorder(executionContext->reorderIdx);
-        executionContext->reorderIdx.clear();
+      if (!context.reorderIdx.empty()) {
+        context.result.reorder(context.reorderIdx);
+        context.reorderIdx.clear();
       }
 
       // Clear the sample bits for the next run
@@ -1042,22 +1032,24 @@ public:
     }
 
     // Set the state data if requested.
-    if (executionContext->name == "extract-state") {
-      executionContext->simulationState = getSimulationState();
+    if (context.name == "extract-state") {
+      context.simulationState = getSimulationState();
       // State is no longer valid, so clean up
       deallocateState();
     }
 
-    if (executionContext->name == "msm_size") {
-      executionContext->msm_dimensions = generateMSMSize();
+    if (context.name == "msm_size") {
+      context.msm_dimensions = generateMSMSize();
     }
 
-    if (executionContext->name == "msm") {
+    if (context.name == "msm") {
       generateMSM();
     }
+  }
 
-    bool shouldSetToZero = isInBatchMode() && !isLastBatch();
-    executionContext = nullptr;
+  /// @brief Clean up state after execution ends
+  void endExecution() override {
+    bool shouldSetToZero = cudaq::isInBatchMode() && !cudaq::isLastBatch();
 
     // Reset the state if we've deallocated all qubits.
     if (shouldSetToZero) {
@@ -1076,16 +1068,10 @@ public:
   }
 
   /// @brief Set the execution context
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    executionContext = context;
-    executionContext->canHandleObserve = canHandleObserve();
-    currentCircuitName = context->kernelName;
+  void configureExecutionContext(cudaq::ExecutionContext &context) override {
+    context.canHandleObserve = canHandleObserve();
+    currentCircuitName = context.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
-  }
-
-  /// @brief Return the current execution context
-  cudaq::ExecutionContext *getExecutionContext() override {
-    return executionContext;
   }
 
   /// @brief Apply a custom quantum operation
@@ -1256,6 +1242,8 @@ public:
   /// context, just measure, collapse, and return the bit.
   bool mz(const std::size_t qubitIdx,
           const std::string &registerName) override {
+    auto executionContext = cudaq::getExecutionContext();
+
     // Flush the Gate Queue
     flushGateQueue();
 
@@ -1269,7 +1257,7 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
-    if (isInTracerMode())
+    if (cudaq::isInTracerMode())
       return true;
 
     // Get the actual measurement from the subtype measureQubit implementation
@@ -1283,6 +1271,8 @@ public:
   // this function explicitly received a vector of qubit indices such that
   // only the relative order of the target in the spin op is relevant.
   void measureSpinOp(const cudaq::spin_op &op) override {
+    auto executionContext = cudaq::getExecutionContext();
+
     flushGateQueue();
 
     if (executionContext->canHandleObserve) {
@@ -1366,7 +1356,7 @@ private:
       nQubitsAllocated += numAllocs;
       stateDimension = calculateStateDim(nQubitsAllocated);
 
-      if (!isInTracerMode()) {
+      if (!cudaq::isInTracerMode()) {
         // Tell the subtype to allocate more qubits
         try {
           allocateQubits(numAllocs);
@@ -1379,7 +1369,8 @@ private:
 
       // May be that the state grows enough that we
       // want to handle observation via sampling
-      if (executionContext)
+      auto executionContext = cudaq::getExecutionContext();
+      if (executionContext != nullptr)
         executionContext->canHandleObserve = canHandleObserve();
     }
 
