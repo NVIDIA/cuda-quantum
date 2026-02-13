@@ -100,13 +100,6 @@ ServerJobPayload ScalewayServerHelper::createJob(
     ServerMessage taskRequest;
     CUDAQ_INFO("Job name {}", circuitCode.name);
 
-    auto output_names = circuitCode.output_names.dump();
-    backendConfig["output_names." + circuitCode.name] = output_names;
-
-    CUDAQ_INFO("Output names {}", output_names);
-
-    setOutputNames(circuitCode.name, output_names);
-
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
@@ -115,6 +108,13 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
     auto model = m_qaasClient->createModel(qioPayload);
     CUDAQ_INFO("Created model {}", model.id);
+
+    auto output_names = circuitCode.output_names.dump();
+    backendConfig["output_names." + model.id] = output_names;
+
+    CUDAQ_INFO("Output names {}", output_names);
+
+    setOutputNames(model.id, output_names);
 
     taskRequest["model_id"] = model.id;
     taskRequest["session_id"] = m_sessionId;
@@ -175,6 +175,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     throw std::runtime_error("Job done but no result.");
   }
 
+  auto job = m_qaasClient->getJob(jobId);
+
   auto firstResult = jobResults[0];
   std::string rawPayload;
 
@@ -199,7 +201,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     std::vector<ExecutionResult> execResults;
 
-    auto &output_names = outputNames[jobId];
+    auto &output_names = outputNames[job.model_id];
 
     // Get a reduced list of qubit numbers that were in the original program
     // so that we can slice the output data and extract the bits that the user
@@ -306,9 +308,9 @@ void ScalewayServerHelper::setOutputNames(const std::string &taskId,
   // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
   // for an example of how this was populated.
   OutputNamesType jobOutputNames;
-  nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
+  nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
 
-  for (const auto &el : outputNamesJSON[0]) {
+  for (const auto &el : outputNamesJson[0]) {
     auto result = el[0].get<std::size_t>();
     auto qubitNum = el[1][0].get<std::size_t>();
     auto registerName = el[1][1].get<std::string>();
