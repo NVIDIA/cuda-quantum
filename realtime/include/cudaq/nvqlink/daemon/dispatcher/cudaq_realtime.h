@@ -113,26 +113,23 @@ typedef struct {
 
 // Host launch function pointer type
 typedef void (*cudaq_dispatch_launch_fn_t)(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
-    uint8_t *rx_data, uint8_t *tx_data,
-    size_t rx_stride_sz, size_t tx_stride_sz,
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
+    uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
 // Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a)
 void cudaq_launch_dispatch_kernel_regular(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
-    uint8_t *rx_data, uint8_t *tx_data,
-    size_t rx_stride_sz, size_t tx_stride_sz,
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
+    uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
 void cudaq_launch_dispatch_kernel_cooperative(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
-    uint8_t *rx_data, uint8_t *tx_data,
-    size_t rx_stride_sz, size_t tx_stride_sz,
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
+    uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
@@ -176,9 +173,8 @@ typedef struct cudaq_dispatch_graph_context cudaq_dispatch_graph_context;
 //
 // Returns cudaSuccess on success, or an error code on failure.
 cudaError_t cudaq_create_dispatch_graph_regular(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
-    uint8_t *rx_data, uint8_t *tx_data,
-    size_t rx_stride_sz, size_t tx_stride_sz,
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
+    uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     void *graph_io_ctx, volatile int *shutdown_flag, uint64_t *stats,
     size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
@@ -231,8 +227,9 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
 // Call before cudaq_dispatcher_start() to avoid lazy-loading deadlocks.
 cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
                                                   uint32_t threads_per_block);
-cudaError_t cudaq_dispatch_kernel_cooperative_query_occupancy(
-    int *out_blocks, uint32_t threads_per_block);
+cudaError_t
+cudaq_dispatch_kernel_cooperative_query_occupancy(int *out_blocks,
+                                                  uint32_t threads_per_block);
 
 #ifdef __cplusplus
 }

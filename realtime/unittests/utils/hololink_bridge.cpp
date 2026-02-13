@@ -39,8 +39,8 @@
 // init_rpc_increment_function_table.cu (compiled by nvcc).  We declare the
 // host-callable setup function here so this .cpp can be compiled by g++.
 
-extern "C" void setup_rpc_increment_function_table(
-    cudaq_function_entry_t *d_entries);
+extern "C" void
+setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries);
 
 //==============================================================================
 // Main
@@ -82,8 +82,7 @@ int main(int argc, char *argv[]) {
     cudaq::nvqlink::parse_bridge_args(argc, argv, config);
 
     // Frame size: RPCHeader + 256 bytes payload
-    config.frame_size =
-        sizeof(cudaq::nvqlink::RPCHeader) + 256;
+    config.frame_size = sizeof(cudaq::nvqlink::RPCHeader) + 256;
 
     std::cout << "Device: " << config.device << std::endl;
     std::cout << "Peer IP: " << config.peer_ip << std::endl;

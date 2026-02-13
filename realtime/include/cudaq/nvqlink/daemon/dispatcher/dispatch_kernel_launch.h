@@ -87,11 +87,11 @@ constexpr std::uint32_t RPC_MAGIC_RESPONSE = 0x43555153; // 'CUQS'
 /// for writing the RPCResponse header to `tx_slot` and then setting
 /// `*tx_flag = tx_flag_value` after a `__threadfence_system()`.
 struct GraphIOContext {
-  void *rx_slot;                      ///< Input: RX slot (RPCHeader + args)
-  std::uint8_t *tx_slot;              ///< Output: TX slot for RPCResponse
-  volatile std::uint64_t *tx_flag;    ///< Pointer to TX flag for this slot
-  std::uint64_t tx_flag_value;        ///< Value to write to tx_flag when done
-  std::size_t tx_stride_sz;           ///< TX slot size (for max_result_len)
+  void *rx_slot;                   ///< Input: RX slot (RPCHeader + args)
+  std::uint8_t *tx_slot;           ///< Output: TX slot for RPCResponse
+  volatile std::uint64_t *tx_flag; ///< Pointer to TX flag for this slot
+  std::uint64_t tx_flag_value;     ///< Value to write to tx_flag when done
+  std::size_t tx_stride_sz;        ///< TX slot size (for max_result_len)
 };
 
 //==============================================================================

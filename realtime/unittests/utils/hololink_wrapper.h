@@ -43,14 +43,11 @@ typedef void *hololink_transceiver_t;
  * @param tx_only 1 to run TX-only kernel
  * @return Handle to transceiver, or NULL on failure
  */
-hololink_transceiver_t hololink_create_transceiver(const char *device_name,
-                                                   int ib_port,
-                                                   size_t frame_size,
-                                                   size_t page_size,
-                                                   unsigned num_pages,
-                                                   const char *peer_ip,
-                                                   int forward, int rx_only,
-                                                   int tx_only);
+hololink_transceiver_t
+hololink_create_transceiver(const char *device_name, int ib_port,
+                            size_t frame_size, size_t page_size,
+                            unsigned num_pages, const char *peer_ip,
+                            int forward, int rx_only, int tx_only);
 
 /**
  * Destroy a transceiver and free resources.
@@ -103,7 +100,7 @@ int hololink_get_gid(hololink_transceiver_t handle, uint8_t *gid_out);
  * @return 1 on success, 0 on failure
  */
 int hololink_reconnect_qp(hololink_transceiver_t handle,
-                           const uint8_t *remote_gid, uint32_t remote_qpn);
+                          const uint8_t *remote_gid, uint32_t remote_qpn);
 
 //==============================================================================
 // Ring buffer access

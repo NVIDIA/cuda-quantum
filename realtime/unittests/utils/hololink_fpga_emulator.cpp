@@ -65,39 +65,39 @@ static constexpr uint8_t REQUEST_FLAGS_ACK_REQUEST = 0x01;
 static constexpr uint8_t RESPONSE_SUCCESS = 0x00;
 
 // VP register offsets (relative to vp_address)
-static constexpr uint32_t DP_QP           = 0x00;
-static constexpr uint32_t DP_RKEY         = 0x04;
-static constexpr uint32_t DP_PAGE_LSB     = 0x08;
-static constexpr uint32_t DP_PAGE_MSB     = 0x0C;
-static constexpr uint32_t DP_PAGE_INC     = 0x10;
-static constexpr uint32_t DP_MAX_BUFF     = 0x14;
+static constexpr uint32_t DP_QP = 0x00;
+static constexpr uint32_t DP_RKEY = 0x04;
+static constexpr uint32_t DP_PAGE_LSB = 0x08;
+static constexpr uint32_t DP_PAGE_MSB = 0x0C;
+static constexpr uint32_t DP_PAGE_INC = 0x10;
+static constexpr uint32_t DP_MAX_BUFF = 0x14;
 static constexpr uint32_t DP_BUFFER_LENGTH = 0x18;
 
 // HIF register offsets (relative to hif_address)
-static constexpr uint32_t DP_VP_MASK      = 0x0C;
+static constexpr uint32_t DP_VP_MASK = 0x0C;
 
 // Player registers
-static constexpr uint32_t PLAYER_BASE     = 0x50000000;
-static constexpr uint32_t PLAYER_ENABLE   = PLAYER_BASE + 0x04;
-static constexpr uint32_t PLAYER_TIMER    = PLAYER_BASE + 0x08;
+static constexpr uint32_t PLAYER_BASE = 0x50000000;
+static constexpr uint32_t PLAYER_ENABLE = PLAYER_BASE + 0x04;
+static constexpr uint32_t PLAYER_TIMER = PLAYER_BASE + 0x08;
 static constexpr uint32_t PLAYER_WIN_SIZE = PLAYER_BASE + 0x0C;
-static constexpr uint32_t PLAYER_WIN_NUM  = PLAYER_BASE + 0x10;
+static constexpr uint32_t PLAYER_WIN_NUM = PLAYER_BASE + 0x10;
 
 // Playback BRAM
-static constexpr uint32_t RAM_BASE        = 0x50100000;
-static constexpr int BRAM_NUM_BANKS       = 16;
-static constexpr int BRAM_W_SAMPLE_ADDR   = 9;   // log2(512 entries)
-static constexpr int BRAM_BANK_STRIDE     = 1 << (BRAM_W_SAMPLE_ADDR + 2); // 2048
+static constexpr uint32_t RAM_BASE = 0x50100000;
+static constexpr int BRAM_NUM_BANKS = 16;
+static constexpr int BRAM_W_SAMPLE_ADDR = 9; // log2(512 entries)
+static constexpr int BRAM_BANK_STRIDE = 1 << (BRAM_W_SAMPLE_ADDR + 2); // 2048
 
 // ILA capture
-static constexpr uint32_t ILA_BASE        = 0x40000000;
-static constexpr uint32_t ILA_CTRL        = ILA_BASE + 0x00;
-static constexpr uint32_t ILA_STATUS      = ILA_BASE + 0x80;
+static constexpr uint32_t ILA_BASE = 0x40000000;
+static constexpr uint32_t ILA_CTRL = ILA_BASE + 0x00;
+static constexpr uint32_t ILA_STATUS = ILA_BASE + 0x80;
 static constexpr uint32_t ILA_SAMPLE_ADDR = ILA_BASE + 0x84;
-static constexpr uint32_t ILA_DATA_BASE   = 0x40100000;
-static constexpr int ILA_NUM_BANKS        = 17;
-static constexpr int ILA_W_ADDR           = 13;  // log2(8192 entries)
-static constexpr int ILA_BANK_STRIDE      = 1 << (ILA_W_ADDR + 2); // 32768
+static constexpr uint32_t ILA_DATA_BASE = 0x40100000;
+static constexpr int ILA_NUM_BANKS = 17;
+static constexpr int ILA_W_ADDR = 13; // log2(8192 entries)
+static constexpr int ILA_BANK_STRIDE = 1 << (ILA_W_ADDR + 2); // 32768
 
 // Ring buffer
 static constexpr int NUM_BUFFERS = 64;
@@ -159,8 +159,8 @@ public:
     return ibv_reg_mr(pd_, addr, size, access);
   }
 
-  ibv_qp *create_qp(ibv_cq *send_cq, ibv_cq *recv_cq,
-                     uint32_t max_send_wr = 64, uint32_t max_recv_wr = 64) {
+  ibv_qp *create_qp(ibv_cq *send_cq, ibv_cq *recv_cq, uint32_t max_send_wr = 64,
+                    uint32_t max_recv_wr = 64) {
     ibv_qp_init_attr init_attr{};
     init_attr.qp_type = IBV_QPT_UC; // Unreliable Connected - matches FPGA
     init_attr.send_cq = send_cq;
@@ -178,13 +178,13 @@ public:
     attr.port_num = port_;
     attr.pkey_index = 0;
     attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
-    return ibv_modify_qp(qp, &attr, IBV_QP_STATE | IBV_QP_PORT |
-                                        IBV_QP_PKEY_INDEX |
-                                        IBV_QP_ACCESS_FLAGS) == 0;
+    return ibv_modify_qp(qp, &attr,
+                         IBV_QP_STATE | IBV_QP_PORT | IBV_QP_PKEY_INDEX |
+                             IBV_QP_ACCESS_FLAGS) == 0;
   }
 
-  bool qp_to_rtr(ibv_qp *qp, const ibv_gid &remote_gid,
-                 uint32_t remote_qp_num, uint32_t psn = 0) {
+  bool qp_to_rtr(ibv_qp *qp, const ibv_gid &remote_gid, uint32_t remote_qp_num,
+                 uint32_t psn = 0) {
     ibv_qp_attr attr{};
     attr.qp_state = IBV_QPS_RTR;
     attr.path_mtu = port_attr_.active_mtu;
@@ -199,9 +199,9 @@ public:
     attr.ah_attr.sl = 0;
     attr.ah_attr.src_path_bits = 0;
     attr.ah_attr.port_num = port_;
-    return ibv_modify_qp(qp, &attr, IBV_QP_STATE | IBV_QP_PATH_MTU |
-                                        IBV_QP_DEST_QPN | IBV_QP_RQ_PSN |
-                                        IBV_QP_AV) == 0;
+    return ibv_modify_qp(qp, &attr,
+                         IBV_QP_STATE | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
+                             IBV_QP_RQ_PSN | IBV_QP_AV) == 0;
   }
 
   bool qp_to_rts(ibv_qp *qp, uint32_t psn = 0) {
@@ -229,9 +229,8 @@ public:
   }
 
   bool post_rdma_write_imm(ibv_qp *qp, uint64_t wr_id, void *local_addr,
-                           uint32_t length, uint32_t lkey,
-                           uint64_t remote_addr, uint32_t rkey,
-                           uint32_t imm_data) {
+                           uint32_t length, uint32_t lkey, uint64_t remote_addr,
+                           uint32_t rkey, uint32_t imm_data) {
     ibv_sge sge{};
     sge.addr = reinterpret_cast<uint64_t>(local_addr);
     sge.length = length;
@@ -387,8 +386,8 @@ struct RdmaTargetConfig {
   uint32_t qp_number = 0;
   uint32_t rkey = 0;
   uint64_t buffer_addr = 0;
-  uint32_t page_inc = 0;    // bytes
-  uint32_t max_buff = 0;    // max buffer index
+  uint32_t page_inc = 0; // bytes
+  uint32_t max_buff = 0; // max buffer index
   uint32_t buffer_length = 0;
 
   // Temporary storage for two-part address
@@ -415,8 +414,7 @@ struct RdmaTargetConfig {
 
   void print() const {
     std::cout << "  RDMA Target Config:" << std::endl;
-    std::cout << "    QP: 0x" << std::hex << qp_number << std::dec
-              << std::endl;
+    std::cout << "    QP: 0x" << std::hex << qp_number << std::dec << std::endl;
     std::cout << "    RKEY: 0x" << std::hex << rkey << std::dec << std::endl;
     std::cout << "    Buffer addr: 0x" << std::hex << buffer_addr << std::dec
               << std::endl;
@@ -431,10 +429,10 @@ struct RdmaTargetConfig {
 
 class ControlPlaneServer {
 public:
-  ControlPlaneServer(uint16_t port, uint32_t vp_address,
-                     uint32_t hif_address, RegisterFile &regs)
-      : port_(port), vp_addr_(vp_address), hif_addr_(hif_address),
-        regs_(regs) {}
+  ControlPlaneServer(uint16_t port, uint32_t vp_address, uint32_t hif_address,
+                     RegisterFile &regs)
+      : port_(port), vp_addr_(vp_address), hif_addr_(hif_address), regs_(regs) {
+  }
 
   ~ControlPlaneServer() { stop(); }
 
@@ -495,15 +493,9 @@ public:
   void clear_playback_trigger() { playback_triggered_ = false; }
 
   /// Get player config.
-  uint32_t window_size() const {
-    return regs_.read(PLAYER_WIN_SIZE);
-  }
-  uint32_t window_number() const {
-    return regs_.read(PLAYER_WIN_NUM);
-  }
-  uint32_t timer_spacing() const {
-    return regs_.read(PLAYER_TIMER);
-  }
+  uint32_t window_size() const { return regs_.read(PLAYER_WIN_SIZE); }
+  uint32_t window_number() const { return regs_.read(PLAYER_WIN_NUM); }
+  uint32_t timer_spacing() const { return regs_.read(PLAYER_TIMER); }
 
 private:
   void run() {
@@ -520,9 +512,8 @@ private:
 
       sockaddr_in client{};
       socklen_t clen = sizeof(client);
-      ssize_t len =
-          recvfrom(fd_, buf.data(), buf.size(), 0,
-                   reinterpret_cast<sockaddr *>(&client), &clen);
+      ssize_t len = recvfrom(fd_, buf.data(), buf.size(), 0,
+                             reinterpret_cast<sockaddr *>(&client), &clen);
       if (len < 6)
         continue;
 
@@ -756,9 +747,9 @@ private:
 /// @param window_index Window number
 /// @param cycles_per_window Number of 64-byte beats per window
 /// @return Reassembled window payload
-static std::vector<uint8_t>
-reassemble_window(const RegisterFile &regs, uint32_t window_index,
-                  uint32_t cycles_per_window) {
+static std::vector<uint8_t> reassemble_window(const RegisterFile &regs,
+                                              uint32_t window_index,
+                                              uint32_t cycles_per_window) {
   std::vector<uint8_t> payload(cycles_per_window * 64, 0);
   for (uint32_t cycle = 0; cycle < cycles_per_window; cycle++) {
     uint32_t sample_index = window_index * cycles_per_window + cycle;
@@ -802,9 +793,9 @@ static void store_ila_sample(RegisterFile &regs, uint32_t sample_index,
 
   // Bank 16: set control signals (tvalid=1, tlast=1, wr_tcnt=1)
   {
-    uint32_t ctrl_addr =
-        ILA_DATA_BASE + ((ILA_NUM_BANKS - 1) << (ILA_W_ADDR + 2)) +
-        (sample_index * 4);
+    uint32_t ctrl_addr = ILA_DATA_BASE +
+                         ((ILA_NUM_BANKS - 1) << (ILA_W_ADDR + 2)) +
+                         (sample_index * 4);
     uint32_t ctrl_val = 0;
     ctrl_val |= (1u << 0); // tvalid (bit 512)
     ctrl_val |= (1u << 1); // tlast  (bit 513)
@@ -827,7 +818,7 @@ struct EmulatorArgs {
   std::string bridge_ip = ""; // Bridge IP (for GID, auto-detect if empty)
   uint32_t vp_address = 0x1000;
   uint32_t hif_address = 0x0800;
-  size_t page_size = 256;     // Default slot size for responses RX
+  size_t page_size = 256; // Default slot size for responses RX
 };
 
 static void print_usage(const char *prog) {

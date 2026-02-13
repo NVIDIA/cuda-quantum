@@ -35,31 +35,26 @@ struct HololinkTransceiverImpl {
 // Lifecycle
 //==============================================================================
 
-hololink_transceiver_t hololink_create_transceiver(const char *device_name,
-                                                   int ib_port,
-                                                   size_t frame_size,
-                                                   size_t page_size,
-                                                   unsigned num_pages,
-                                                   const char *peer_ip,
-                                                   int forward, int rx_only,
-                                                   int tx_only) {
+hololink_transceiver_t
+hololink_create_transceiver(const char *device_name, int ib_port,
+                            size_t frame_size, size_t page_size,
+                            unsigned num_pages, const char *peer_ip,
+                            int forward, int rx_only, int tx_only) {
   try {
     auto *impl = new HololinkTransceiverImpl();
     impl->page_size = page_size;
     impl->num_pages = num_pages;
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(
-        device_name, static_cast<unsigned>(ib_port),
-        frame_size, page_size, num_pages,
-        peer_ip, forward != 0, rx_only != 0, tx_only != 0);
+        device_name, static_cast<unsigned>(ib_port), frame_size, page_size,
+        num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0);
     return reinterpret_cast<hololink_transceiver_t>(impl);
   } catch (const std::exception &e) {
     std::cerr << "ERROR: Failed to create GpuRoceTransceiver: " << e.what()
               << std::endl;
     return nullptr;
   } catch (...) {
-    std::cerr
-        << "ERROR: Failed to create GpuRoceTransceiver: unknown exception"
-        << std::endl;
+    std::cerr << "ERROR: Failed to create GpuRoceTransceiver: unknown exception"
+              << std::endl;
     return nullptr;
   }
 }
@@ -134,7 +129,7 @@ int hololink_get_gid(hololink_transceiver_t handle, uint8_t *gid_out) {
 //==============================================================================
 
 int hololink_reconnect_qp(hololink_transceiver_t handle,
-                           const uint8_t *remote_gid, uint32_t remote_qpn) {
+                          const uint8_t *remote_gid, uint32_t remote_qpn) {
   if (handle) {
     auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
     return impl->transceiver->reconnect_qp(remote_gid, remote_qpn) ? 1 : 0;

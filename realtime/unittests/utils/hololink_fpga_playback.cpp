@@ -171,8 +171,8 @@ public:
       off += 8;
     }
 
-    sendto(fd_, pkt.data(), pkt.size(), 0,
-           reinterpret_cast<sockaddr *>(&addr_), sizeof(addr_));
+    sendto(fd_, pkt.data(), pkt.size(), 0, reinterpret_cast<sockaddr *>(&addr_),
+           sizeof(addr_));
 
     uint8_t resp[16];
     ssize_t n = recv(fd_, resp, sizeof(resp), 0);
@@ -265,7 +265,8 @@ static PlaybackArgs parse_args(int argc, char *argv[]) {
           << "  --bridge-rkey=N       Bridge RKey\n"
           << "  --bridge-buffer=ADDR  Bridge buffer address\n"
           << "  --page-size=N         Ring buffer slot size (default: 384)\n"
-          << "  --num-pages=N         Number of ring buffer slots (default: 64)\n"
+          << "  --num-pages=N         Number of ring buffer slots (default: "
+             "64)\n"
           << "  --num-shots=N         Number of RPC messages (default: 100)\n"
           << "  --payload-size=N      Bytes per RPC payload (default: 8)\n"
           << "  --vp-address=ADDR     VP register base (default: 0x1000)\n"
@@ -285,9 +286,9 @@ static PlaybackArgs parse_args(int argc, char *argv[]) {
 /// Build one RPC message for the increment handler.
 /// Format: RPCHeader + ascending byte payload.
 static std::vector<uint8_t> build_rpc_message(uint32_t shot_index,
-                                               uint32_t payload_size) {
-  using cudaq::nvqlink::RPCHeader;
+                                              uint32_t payload_size) {
   using cudaq::nvqlink::fnv1a_hash;
+  using cudaq::nvqlink::RPCHeader;
 
   constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
 
@@ -372,8 +373,7 @@ int main(int argc, char *argv[]) {
   ctrl.write_dword(vp + DP_MAX_BUFF, args.num_pages - 1);
 
   size_t frame_size = sizeof(cudaq::nvqlink::RPCHeader) + args.payload_size;
-  ctrl.write_dword(vp + DP_BUFFER_LENGTH,
-                   static_cast<uint32_t>(frame_size));
+  ctrl.write_dword(vp + DP_BUFFER_LENGTH, static_cast<uint32_t>(frame_size));
 
   // Set bridge IP for emulator GID derivation
   {
@@ -396,8 +396,7 @@ int main(int argc, char *argv[]) {
   //============================================================================
   std::cout << "\n[2/4] Loading RPC messages into BRAM..." << std::endl;
 
-  uint32_t window_size =
-      static_cast<uint32_t>(frame_size);
+  uint32_t window_size = static_cast<uint32_t>(frame_size);
   uint32_t cycles_per_window = (window_size + 63) / 64;
 
   for (uint32_t shot = 0; shot < args.num_shots; shot++) {
@@ -462,8 +461,7 @@ int main(int argc, char *argv[]) {
       // Read response from ILA banks (the first bytes are RPCResponse header)
       std::vector<uint8_t> response_bytes(64, 0);
       for (int bank = 0; bank < std::min(ILA_NUM_BANKS - 1, 16); bank++) {
-        uint32_t addr =
-            ILA_DATA_BASE + (bank << (ILA_W_ADDR + 2)) + (i * 4);
+        uint32_t addr = ILA_DATA_BASE + (bank << (ILA_W_ADDR + 2)) + (i * 4);
         uint32_t val = ctrl.read_dword(addr);
         size_t byte_off = bank * 4;
         if (byte_off + 4 <= response_bytes.size())
@@ -501,11 +499,9 @@ int main(int argc, char *argv[]) {
       const uint8_t *result_data =
           response_bytes.data() + sizeof(cudaq::nvqlink::RPCResponse);
       bool ok = true;
-      uint32_t check_len =
-          std::min(resp->result_len, args.payload_size);
+      uint32_t check_len = std::min(resp->result_len, args.payload_size);
       for (uint32_t j = 0; j < check_len && ok; j++) {
-        uint8_t expected =
-            static_cast<uint8_t>(((i + j) & 0xFF) + 1);
+        uint8_t expected = static_cast<uint8_t>(((i + j) & 0xFF) + 1);
         if (result_data[j] != expected) {
           std::cerr << "  Shot " << i << " byte " << j << ": expected "
                     << (int)expected << " got " << (int)result_data[j]

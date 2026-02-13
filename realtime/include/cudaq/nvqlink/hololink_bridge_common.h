@@ -59,7 +59,7 @@ namespace cudaq::nvqlink {
   do {                                                                         \
     cudaError_t err = call;                                                    \
     if (err != cudaSuccess) {                                                  \
-      std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__ << ": "    \
+      std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__ << ": "     \
                 << cudaGetErrorString(err) << std::endl;                       \
       return 1;                                                                \
     }                                                                          \
@@ -88,13 +88,14 @@ struct BridgeConfig {
   std::string device = "rocep1s0f0"; ///< IB device name
   std::string peer_ip = "10.0.0.2";  ///< FPGA/emulator IP
   uint32_t remote_qp = 0x2;          ///< Remote QP number (FPGA default: 2)
-  int gpu_id = 0;                     ///< GPU device ID
-  int timeout_sec = 60;               ///< Runtime timeout in seconds
+  int gpu_id = 0;                    ///< GPU device ID
+  int timeout_sec = 60;              ///< Runtime timeout in seconds
 
   // Ring buffer sizing
-  size_t frame_size = 256;   ///< Minimum frame size (RPCHeader + payload)
-  size_t page_size = 384;    ///< Ring buffer slot size (>= frame_size, 128-aligned)
-  unsigned num_pages = 64;   ///< Number of ring buffer slots
+  size_t frame_size = 256; ///< Minimum frame size (RPCHeader + payload)
+  size_t page_size =
+      384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
+  unsigned num_pages = 64; ///< Number of ring buffer slots
 
   // QP exchange (emulator mode)
   bool exchange_qp = false;  ///< Use QP exchange protocol
@@ -211,9 +212,9 @@ inline int bridge_run(BridgeConfig &config) {
       config.device.c_str(), 1, // ib_port
       config.frame_size, config.page_size, config.num_pages,
       "0.0.0.0", // deferred connection
-      0,          // forward = false
-      1,          // rx_only = true
-      1           // tx_only = true
+      0,         // forward = false
+      1,         // rx_only = true
+      1          // tx_only = true
   );
 
   if (!transceiver) {
@@ -250,8 +251,7 @@ inline int bridge_run(BridgeConfig &config) {
   uint32_t our_rkey = hololink_get_rkey(transceiver);
   uint64_t our_buffer = hololink_get_buffer_addr(transceiver);
 
-  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec
-            << std::endl;
+  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
   std::cout << "  Buffer Addr: 0x" << std::hex << our_buffer << std::dec
             << std::endl;
@@ -308,14 +308,12 @@ inline int bridge_run(BridgeConfig &config) {
       cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
   volatile int *shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
   void *tmp_d_shutdown = nullptr;
-  BRIDGE_CUDA_CHECK(
-      cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-  volatile int *d_shutdown_flag =
-      static_cast<volatile int *>(tmp_d_shutdown);
+  BRIDGE_CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
+  volatile int *d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
   *shutdown_flag = 0;
   int zero = 0;
   BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
-                                sizeof(int), cudaMemcpyHostToDevice));
+                               sizeof(int), cudaMemcpyHostToDevice));
 
   uint64_t *d_stats = nullptr;
   BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
@@ -401,8 +399,7 @@ inline int bridge_run(BridgeConfig &config) {
 
   // Print QP info for FPGA stimulus tool
   std::cout << "\n=== Bridge Ready ===" << std::endl;
-  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec
-            << std::endl;
+  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
   std::cout << "  Buffer Addr: 0x" << std::hex << our_buffer << std::dec
             << std::endl;
