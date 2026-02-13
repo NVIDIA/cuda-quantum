@@ -33,6 +33,7 @@ Deutsch
 Devcontainer
 Doxygen
 Exponentiating
+FNV
 FPGA
 FPGAs
 Fermion
@@ -52,6 +53,7 @@ Hadamards
 Hamiltonian
 Hamiltonians
 Hololink
+Hololink's
 Homebrew
 IQM
 InfiniBand
@@ -80,6 +82,7 @@ Miniconda
 MyST
 NGC
 NIC
+NICs
 NVIDIA
 NVLink
 NVQIR
@@ -126,10 +129,12 @@ RHEL
 RPC
 RSA
 RSH
+Reusability
 SDK
 SLED
 SLES
 SLURM
+SMs
 SVD
 Sqale
 Stim
@@ -138,6 +143,7 @@ Superstaq
 TBI
 TCP
 TableGen
+Testability
 Toffoli
 Toshiko
 UCCSD
@@ -159,6 +165,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+api
 archiver
 arg
 args
@@ -207,6 +214,7 @@ coupler
 couplers
 cuQuantum
 cuTensor
+cudaHostAlloc
 cudaq
 cudaqx
 dataflow
@@ -266,7 +274,10 @@ gpu
 grovers
 hadamard
 hamiltonian
+handoff
 heisenberg
+hololink
+holoscan
 homogenous
 iff
 increment
@@ -287,6 +298,7 @@ iterable
 iteratively
 kets
 krylov
+libibverbs
 libunwind
 linker
 linkers
@@ -297,6 +309,7 @@ lossy
 lvalue
 macOS
 makefiles
+malloc
 merchantability
 mps
 multithreaded
@@ -309,6 +322,7 @@ normalization
 nullary
 num
 nvcc
+nvqlink
 observables
 optimizer
 optimizers
@@ -355,6 +369,7 @@ selectable
 sexualized
 shifter
 shifters
+sm
 splitter
 splitters
 sqale
@@ -383,6 +398,7 @@ summarize
 superpositions
 symplectic
 tablegen
+teardown
 templated
 toolchain
 toolchains
