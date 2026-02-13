@@ -38,11 +38,8 @@ def test_ptsbe_broadcast_bit_flip_noise():
 
 def test_ptsbe_sample_async_returns_future_like():
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1),
-                                num_controls=1)
-    future = cudaq.ptsbe.sample_async(
-        bell, noise_model=noise, shots_count=10
-    )
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
+    future = cudaq.ptsbe.sample_async(bell, noise_model=noise, shots_count=10)
     assert hasattr(future, "get")
     result = future.get()
     assert sum(result.count(bs) for bs in result) == 10
@@ -79,11 +76,10 @@ def test_ptsbe_broadcast_three_angles():
 
 def test_ptsbe_sample_async_get_consumes_future():
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.05),
+    noise.add_all_qubit_channel("x",
+                                cudaq.Depolarization2(0.05),
                                 num_controls=1)
-    future = cudaq.ptsbe.sample_async(
-        bell, noise_model=noise, shots_count=15
-    )
+    future = cudaq.ptsbe.sample_async(bell, noise_model=noise, shots_count=15)
     r = future.get()
     total = sum(r.count(bs) for bs in r)
     assert total == 15

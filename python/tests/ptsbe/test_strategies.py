@@ -12,8 +12,7 @@ from .kernels import bell
 def test_shot_allocation_uniform_sums_to_shots(depol_noise):
     strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
     alloc = cudaq.ptsbe.ShotAllocationStrategy(
-        type=cudaq.ptsbe.ShotAllocationType.UNIFORM
-    )
+        type=cudaq.ptsbe.ShotAllocationType.UNIFORM)
     result = cudaq.ptsbe.sample(
         bell,
         noise_model=depol_noise,
@@ -43,8 +42,10 @@ def test_exhaustive_strategy_deterministic_with_seed(depol_noise):
         sampling_strategy=strategy,
         return_execution_data=True,
     )
-    ids1 = sorted(t.trajectory_id for t in result1.ptsbe_execution_data.trajectories)
-    ids2 = sorted(t.trajectory_id for t in result2.ptsbe_execution_data.trajectories)
+    ids1 = sorted(
+        t.trajectory_id for t in result1.ptsbe_execution_data.trajectories)
+    ids2 = sorted(
+        t.trajectory_id for t in result2.ptsbe_execution_data.trajectories)
     assert ids1 == ids2
 
 
@@ -84,11 +85,13 @@ def test_shot_allocation_low_weight_bias(depol_noise):
 def test_probabilistic_strategy_different_seeds_valid(depol_noise):
     s1 = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=1)
     s2 = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=999)
-    r1 = cudaq.ptsbe.sample(
-        bell, noise_model=depol_noise, shots_count=25, sampling_strategy=s1
-    )
-    r2 = cudaq.ptsbe.sample(
-        bell, noise_model=depol_noise, shots_count=25, sampling_strategy=s2
-    )
+    r1 = cudaq.ptsbe.sample(bell,
+                            noise_model=depol_noise,
+                            shots_count=25,
+                            sampling_strategy=s1)
+    r2 = cudaq.ptsbe.sample(bell,
+                            noise_model=depol_noise,
+                            shots_count=25,
+                            sampling_strategy=s2)
     assert sum(r1.count(bs) for bs in r1) == 25
     assert sum(r2.count(bs) for bs in r2) == 25

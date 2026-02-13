@@ -7,8 +7,7 @@
 # ============================================================================ #
 import pytest
 import cudaq
-from .kernels import (bell, rotation_kernel, x_op, phase_flip_kernel,
-                      cnot_echo)
+from .kernels import (bell, rotation_kernel, x_op, phase_flip_kernel, cnot_echo)
 
 
 @pytest.fixture(autouse=True)
@@ -22,8 +21,7 @@ def ptsbe_target():
 @pytest.fixture
 def depol_noise():
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1),
-                                num_controls=1)
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
     return noise
 
 

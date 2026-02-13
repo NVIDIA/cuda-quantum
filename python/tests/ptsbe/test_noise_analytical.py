@@ -47,9 +47,7 @@ def test_check_depol2_standard_formula(p):
     cudaq.set_random_seed(42)
     noise = cudaq.NoiseModel()
     noise.add_channel("x", [0, 1], cudaq.Depolarization2(p))
-    result = cudaq.ptsbe.sample(cnot_echo,
-                                noise_model=noise,
-                                shots_count=1000)
+    result = cudaq.ptsbe.sample(cnot_echo, noise_model=noise, shots_count=1000)
     assert sum(result.count(bs) for bs in result) == 1000
     assert len(result) == 4
     prob_00 = result.probability("00")

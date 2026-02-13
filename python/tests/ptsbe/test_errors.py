@@ -35,6 +35,4 @@ def test_ptsbe_broadcast_empty_args_returns_empty_list():
 
 def test_ptsbe_sample_non_integer_shots_raises(depol_noise):
     with pytest.raises((RuntimeError, TypeError)):
-        cudaq.ptsbe.sample(
-            bell, noise_model=depol_noise, shots_count=10.5
-        )
+        cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=10.5)

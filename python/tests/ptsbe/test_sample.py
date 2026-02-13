@@ -10,9 +10,7 @@ from .kernels import bell
 
 
 def test_ptsbe_sample_result_total_shots_matches_requested(depol_noise):
-    result = cudaq.ptsbe.sample(
-        bell, noise_model=depol_noise, shots_count=100
-    )
+    result = cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=100)
     total = sum(result.count(bs) for bs in result)
     assert total == 100
 
@@ -30,9 +28,7 @@ def test_ptsbe_sample_single_shot(depol_noise):
 
 
 def test_ptsbe_sample_large_shots(depol_noise):
-    result = cudaq.ptsbe.sample(
-        bell, noise_model=depol_noise, shots_count=2000
-    )
+    result = cudaq.ptsbe.sample(bell, noise_model=depol_noise, shots_count=2000)
     total = sum(result.count(bs) for bs in result)
     assert total == 2000
 
