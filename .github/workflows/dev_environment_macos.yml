@@ -50,7 +50,8 @@ jobs:
       platform_tag: ${{ steps.build_info.outputs.platform_tag }}
       owner: ${{ steps.build_info.outputs.owner }}
       pr_number: ${{ steps.build_info.outputs.pr_number }}
-      image_name: ${{ steps.build_info.outputs.image_name }}
+      scripts_hash: ${{ steps.build_info.outputs.scripts_hash }}
+      image_name_base: ${{ steps.build_info.outputs.image_name_base }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -89,22 +90,25 @@ jobs:
           # when the copied files change), macOS uses ORAS artifact caching with no
           # content-based invalidation. This hash ensures cache is rebuilt when
           # build scripts change. Update this list if new files affect the build.
-          deps_hash=$(cat \
+          # Note: the final deps_hash also incorporates the runner image version
+          # (computed in the build job on macOS) to detect tool updates (cmake, etc.).
+          scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
             | sha256sum | cut -c1-8)
-          echo "deps_hash=$deps_hash"
+          echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
-          # Registry and image name
-          image_name=ghcr.io/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-macos-devdeps
+          # Registry and image name base (without the deps hash suffix).
+          # The build job appends the full deps_hash which includes the runner image version.
+          image_name_base=ghcr.io/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-macos-devdeps
           if [ -n "$pr_number" ]; then
-            image_name=${image_name}-ci
+            image_name_base=${image_name_base}-ci
           fi
 
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          image_name="${image_name}:${platform_tag}-${registry_cache_base}-${deps_hash}"
-          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          image_name_base="${image_name_base}:${platform_tag}-${registry_cache_base}-"
+          echo "image_name_base=$image_name_base" >> $GITHUB_OUTPUT
 
   build:
     name: Build macOS Cache
@@ -136,14 +140,27 @@ jobs:
       - name: Log in to GitHub CR
         run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Compute cache key
+        id: cache_key
+        run: |
+          # Combine build scripts hash with the runner image version to detect
+          # tool updates (cmake, compilers, etc.) that would invalidate the cache.
+          scripts_hash=${{ needs.metadata.outputs.scripts_hash }}
+          runner_image=${ImageVersion:-unknown}
+          deps_hash=$(echo "${scripts_hash}-${runner_image}" | shasum -a 256 | cut -c1-8)
+          image_name="${{ needs.metadata.outputs.image_name_base }}${deps_hash}"
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image deps_hash=$deps_hash"
+          echo "Image name: $image_name"
+
       - name: Check for cached image
         id: cache_check
         run: |
-          if oras manifest fetch ${{ needs.metadata.outputs.image_name }} > /dev/null 2>&1; then
-            echo "Cache hit: ${{ needs.metadata.outputs.image_name }}"
+          if oras manifest fetch ${{ steps.cache_key.outputs.image_name }} > /dev/null 2>&1; then
+            echo "Cache hit: ${{ steps.cache_key.outputs.image_name }}"
             echo "cache_hit=true" >> $GITHUB_OUTPUT
           else
-            echo "Cache miss: ${{ needs.metadata.outputs.image_name }}"
+            echo "Cache miss: ${{ steps.cache_key.outputs.image_name }}"
             echo "cache_hit=false" >> $GITHUB_OUTPUT
           fi
 
@@ -177,12 +194,12 @@ jobs:
           ls -lh macos-artifacts.tar.gz
           
           # Push directly to GHCR as OCI artifact using ORAS
-          oras push ${{ needs.metadata.outputs.image_name }} \
+          oras push ${{ steps.cache_key.outputs.image_name }} \
             macos-artifacts.tar.gz:application/gzip
           
           # Get digest for signing
-          digest=$(oras manifest fetch ${{ needs.metadata.outputs.image_name }} --descriptor | jq -r '.digest')
-          echo "digest=${{ needs.metadata.outputs.image_name }}@${digest}" >> $GITHUB_OUTPUT
+          digest=$(oras manifest fetch ${{ steps.cache_key.outputs.image_name }} --descriptor | jq -r '.digest')
+          echo "digest=${{ steps.cache_key.outputs.image_name }}@${digest}" >> $GITHUB_OUTPUT
 
       - name: Install Cosign
         if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
@@ -201,10 +218,10 @@ jobs:
         run: |
           if [ "${{ steps.cache_check.outputs.cache_hit }}" == "true" ]; then
             # Cache hit - use tag reference directly
-            echo "image_hash=${{ needs.metadata.outputs.image_name }}" >> $GITHUB_OUTPUT
+            echo "image_hash=${{ steps.cache_key.outputs.image_name }}" >> $GITHUB_OUTPUT
           else
             # Cache miss - use digest after push
-            echo "image_hash=${{ steps.push_image.outputs.digest || needs.metadata.outputs.image_name }}" >> $GITHUB_OUTPUT
+            echo "image_hash=${{ steps.push_image.outputs.digest || steps.cache_key.outputs.image_name }}" >> $GITHUB_OUTPUT
           fi
 
   finalize:
