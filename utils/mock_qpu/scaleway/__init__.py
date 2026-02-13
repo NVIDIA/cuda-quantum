@@ -95,6 +95,11 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
     version="0.0",
     availability="available",
     max_qubit_count=20,
+    max_circuit_count=1,
+    max_shot_count=10000,
+    metadata="",
+    technology="general_purpose",
+    type="simulator",
 )
 
 
