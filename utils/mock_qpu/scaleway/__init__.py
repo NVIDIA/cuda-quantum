@@ -119,18 +119,24 @@ def _run_fake_job(job: Job):
 
 
 @app.get(_BASE_PATH + "/platforms")
-async def listPlatforms(request: ListPlatformsRequest):
-    if request.name:
+async def listPlatforms(name: str | None = None):
+    print("list plt req", name)
+
+    if name:
         filtered_plts = list(
-            filter(lambda p: p.name == request.name, database.platforms.values())
+            filter(lambda p: p.name == name, database.platforms.values())
         )
+        platforms = [platform.model_dump() for platform in filtered_plts]
+
         return (
-            [platform.model_dump() for platform in filtered_plts],
+            {"platforms": platforms, "total_count": len(platforms)},
             201,
         )
 
+    platforms = [platform.model_dump() for platform in database.platforms.values()]
+
     return (
-        [platform.model_dump() for platform in database.platforms.values()],
+        {"platforms": platforms, "total_count": len(platforms)},
         201,
     )
 
@@ -206,12 +212,16 @@ async def listJobResults(jobId: str):
     if not database.jobs.get(jobId):
         raise HTTPException(status_code=404, detail="Job not found")
 
-    return (
+    results = (
         [
             result.model_dump()
             for result in list(
                 filter(lambda r: r.job_id == jobId, database.job_results.values())
             )
         ],
+    )
+
+    return (
+        {"job_results": results, "total_count": len(results)},
         201,
     )
