@@ -190,9 +190,13 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     auto sampleResult = qioResult.toCudaqSampleResult();
 
+    CUDAQ_INFO("sampleResult {}", sampleResult);
+
     std::vector<ExecutionResult> execResults;
 
     auto &output_names = outputNames[jobId];
+
+    CUDAQ_INFO("Output names {}", output_names);
 
     // Get a reduced list of qubit numbers that were in the original program
     // so that we can slice the output data and extract the bits that the user
@@ -202,6 +206,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     for (auto &[result, info] : output_names) {
       qubitNumbers.push_back(info.qubitNum);
     }
+
+    CUDAQ_INFO("qubitNumbers {}", qubitNumbers);
 
     // For each original counts entry in the full sample results, reduce it
     // down to the user component and add to userGlobal. If qubitNumbers is empty,
@@ -215,6 +221,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     // Now add to `execResults` one register at a time
     for (const auto &[result, info] : output_names) {
+      CUDAQ_INFO("result info {} {}", result, info);
+
       CountsDictionary regCounts;
       for (const auto &[bits, count] : sampleResult)
         regCounts[std::string{bits[info.qubitNum]}] += count;
@@ -224,6 +232,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     // Return a sample result including the global register and all individual
     // registers.
     auto ret = cudaq::sample_result(execResults);
+
+    CUDAQ_INFO("sampleResult ret {}", ret);
 
     return ret;
   } catch (const std::exception &e) {
