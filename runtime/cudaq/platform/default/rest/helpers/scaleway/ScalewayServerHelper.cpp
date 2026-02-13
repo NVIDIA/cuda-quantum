@@ -220,8 +220,10 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     auto job = m_qaasClient->getJob(jobId);
 
+    auto jsonParameters = json::parse(job.parameters)
+
     // CUDAQ_INFO("lookup for model id:{}", job.model_id);
-    auto params = qio::QuantumComputationParameters::fromJson(job.parameters);
+    auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
     // auto &output_names = outputNames[job.model_id];
     auto options = params.options();
     auto outputNamesStr = options["output_names"].get<std::string>();
