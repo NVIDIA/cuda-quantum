@@ -83,8 +83,8 @@ class Database:
 
 countJobGetRequests = 0
 
-_FAKE_PLATFORM_ID = "b77a0dba-dc62-n069-83a1-cld32ac77e4e"
 _BASE_PATH = "/qaas/v1alpha1"
+_FAKE_PLATFORM_ID = "b77a0dba-dc62-n069-83a1-cld32ac77e4e"
 
 database = Database()
 database.platforms[_FAKE_PLATFORM_ID] = Platform(
@@ -148,10 +148,7 @@ async def listPlatforms(name: str | None = None):
         platforms = [platform.model_dump() for platform in database.platforms.values()]
 
     print("found plt", platforms)
-    return (
-        {"platforms": platforms, "total_count": len(platforms)},
-        201,
-    )
+    return {"platforms": platforms, "total_count": len(platforms)}
 
 
 @app.get(_BASE_PATH + "/platforms/{platformId}")
