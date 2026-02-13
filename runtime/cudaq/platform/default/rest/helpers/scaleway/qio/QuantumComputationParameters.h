@@ -19,6 +19,8 @@ public:
 
   static QuantumComputationParameters fromJson(nlohmann::json json);
 
+  nlohmann::json options();
+
 private:
   std::size_t m_shots;
   nlohmann::json m_options;
