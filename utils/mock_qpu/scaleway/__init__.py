@@ -78,7 +78,7 @@ _BASE_PATH = "/qaas/v1alpha1"
 
 database = Database()
 database.platforms[_FAKE_PLATFORM_ID] = Platform(
-    id=_FAKE_PLATFORM_ID, name="EMU-CUDAQ-H100"
+    id=_FAKE_PLATFORM_ID, name="EMU-CUDAQ-FAKE"
 )
 
 

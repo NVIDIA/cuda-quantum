@@ -52,7 +52,7 @@ CUDAQ_TEST(ScalewayTester, executeOneMeasuredQubitProgram) {
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleMock(&argc, argv);
+  ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;
 }

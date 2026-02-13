@@ -12,16 +12,24 @@ import os
 from cudaq import spin
 import numpy as np
 
-## NOTE: Comment the following line which skips these tests in order to run in
-# local dev environment after setting Scaleway credentials.
-## NOTE: Scaleway costs apply
-pytestmark = pytest.mark.skip("Scaleway credentials required")
+PORT = 62450
+TEST_PLATFORM = "EMU-CUDAQ-FAKE"
+TEST_URL = f"http://localhost:{PORT}"
+DEFAULT_DURATION = "10m"
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
-    cudaq.set_target("scaleway")
+def setup_scaleway():
+    cudaq.set_target(
+        "scaleway",
+        machine=TEST_PLATFORM,
+        max_duration=DEFAULT_DURATION,
+        max_idle_duration=DEFAULT_DURATION,
+        url=TEST_URL,
+    )
+
     yield "Running the tests."
+
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
@@ -31,7 +39,6 @@ def assert_close(got) -> bool:
 
 
 def test_simple_kernel():
-
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
@@ -44,7 +51,6 @@ def test_simple_kernel():
 
 
 def test_multi_qubit_kernel():
-
     @cudaq.kernel
     def kernel():
         q0 = cudaq.qubit()
@@ -61,7 +67,6 @@ def test_multi_qubit_kernel():
 
 
 def test_qvector_kernel():
-
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -76,7 +81,6 @@ def test_qvector_kernel():
 
 
 def test_builder_sample():
-
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
@@ -89,7 +93,6 @@ def test_builder_sample():
 
 
 def test_all_gates():
-
     @cudaq.kernel
     def single_qubit_gates():
         q = cudaq.qubit()
@@ -123,7 +126,6 @@ def test_all_gates():
 
 
 def test_multi_qvector():
-
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -137,7 +139,6 @@ def test_multi_qvector():
 
 
 def test_control_modifier():
-
     @cudaq.kernel
     def single_qubit_gates():
         qubits = cudaq.qvector(2)
@@ -166,7 +167,7 @@ def test_control_modifier():
 
     counts = cudaq.sample(two_qubit_gates, shots_count=100)
     assert len(counts) == 1
-    assert '101' in counts
+    assert "101" in counts
 
     @cudaq.kernel
     def bell():
@@ -199,7 +200,6 @@ def test_adjoint_modifier():
 
 
 def test_u3_decomposition():
-
     @cudaq.kernel
     def kernel():
         qubit = cudaq.qubit()
@@ -218,7 +218,7 @@ def test_u3_decomposition():
         mz(qubits)
 
     counts = cudaq.sample(kernel, shots_count=100)
-    assert '00' in counts
+    assert "00" in counts
     assert len(counts) == 1
 
 
@@ -234,9 +234,9 @@ def test_sample_async():
 
     future = cudaq.sample_async(simple, shots_count=100)
     counts = future.get()
-    assert (len(counts) == 2)
-    assert ('00' in counts)
-    assert ('11' in counts)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
 
 
 def test_observe():
@@ -250,19 +250,23 @@ def test_observe():
         x.ctrl(qreg[1], qreg[0])
 
     # Define its spin Hamiltonian.
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    hamiltonian = (
+        5.907
+        - 2.1433 * spin.x(0) * spin.x(1)
+        - 2.1433 * spin.y(0) * spin.y(1)
+        + 0.21829 * spin.z(0)
+        - 6.125 * spin.z(1)
+    )
 
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=2000)
+    res = cudaq.observe(ansatz, hamiltonian, 0.59, shots_count=2000)
     print(res.expectation())
     assert assert_close(res.expectation())
 
     # Can also invoke `sample` on the same kernel
-    cudaq.sample(ansatz, .59).dump()
+    cudaq.sample(ansatz, 0.59).dump()
 
 
 def test_observe_async():
-
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -276,7 +280,6 @@ def test_observe_async():
 
 
 def test_custom_operations():
-
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     @cudaq.kernel
@@ -290,7 +293,6 @@ def test_custom_operations():
 
 
 def test_kernel_with_args():
-
     @cudaq.kernel
     def kernel(qubit_count: int):
         qreg = cudaq.qvector(qubit_count)
@@ -306,7 +308,6 @@ def test_kernel_with_args():
 
 
 def test_kernel_subveqs():
-
     @cudaq.kernel
     def kernel():
         qreg = cudaq.qvector(4)
@@ -321,7 +322,6 @@ def test_kernel_subveqs():
 
 
 def test_kernel_two_subveqs():
-
     @cudaq.kernel
     def kernel():
         qreg = cudaq.qvector(4)
@@ -338,7 +338,6 @@ def test_kernel_two_subveqs():
 
 
 def test_kernel_qubit_subveq():
-
     @cudaq.kernel
     def kernel():
         qreg = cudaq.qvector(4)
@@ -355,7 +354,6 @@ def test_kernel_qubit_subveq():
 
 
 def test_multiple_measurement():
-
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -370,7 +368,6 @@ def test_multiple_measurement():
 
 
 def test_multiple_measurement_non_consecutive():
-
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(3)
@@ -385,7 +382,6 @@ def test_multiple_measurement_non_consecutive():
 
 
 def test_qvector_slicing():
-
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(4)
@@ -398,7 +394,6 @@ def test_qvector_slicing():
 
 
 def test_mid_circuit_measurement():
-
     @cudaq.kernel
     def simple():
         q = cudaq.qvector(2)
@@ -413,26 +408,7 @@ def test_mid_circuit_measurement():
     assert "Could not successfully translate to qasm2" in repr(e)
 
 
-@pytest.mark.parametrize("platform", [
-    "EMU-CUDAQ-H100",
-    "EMU-CUDAQ-L40S"
-])
-def test_other_simulators(platform):
-    cudaq.set_target("scaleway", machine=platform)
-    test_qvector_kernel()
-    test_builder_sample()
-    cudaq.reset_target()
-
-
-@pytest.mark.parametrize("polling_interval_ms", [10, 100])
-def test_polling_interval(polling_interval_ms):
-    cudaq.set_target("scaleway", polling_interval_ms=polling_interval_ms)
-    test_qvector_kernel()
-    cudaq.reset_target()
-
-
 def test_exp_pauli():
-
     @cudaq.kernel
     def test():
         q = cudaq.qvector(2)
@@ -441,14 +417,13 @@ def test_exp_pauli():
 
     counts = cudaq.sample(test)
     counts.dump()
-    assert '00' in counts
-    assert '11' in counts
-    assert not '01' in counts
-    assert not '10' in counts
+    assert "00" in counts
+    assert "11" in counts
+    assert not "01" in counts
+    assert not "10" in counts
 
 
 def test_toffoli():
-
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(3)
@@ -458,7 +433,7 @@ def test_toffoli():
 
     counts = cudaq.sample(kernel)
     counts.dump()
-    assert '110' in counts
+    assert "110" in counts
     assert len(counts) == 1
 
 
