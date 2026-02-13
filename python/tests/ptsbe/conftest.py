@@ -7,21 +7,12 @@
 # ============================================================================ #
 import pytest
 import cudaq
-from pathlib import Path
-
-_NON_TEST_MODULES = frozenset(
-    {"conftest.py", "__init__.py", "kernels.py", "test_ptsbe.py"})
-
-
-def pytest_configure(config):
-    here = Path(__file__).resolve().parent
-    for path in sorted(here.glob("*.py")):
-        if path.name not in _NON_TEST_MODULES:
-            config.addinivalue_line("python_files", path.name)
+from .kernels import (bell, rotation_kernel, x_op, phase_flip_kernel,
+                      cnot_echo)
 
 
 @pytest.fixture(autouse=True)
-def density_matrix_target():
+def ptsbe_target():
     cudaq.set_target("density-matrix-cpu")
     cudaq.set_random_seed(42)
     yield
@@ -31,5 +22,31 @@ def density_matrix_target():
 @pytest.fixture
 def depol_noise():
     noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1),
+                                num_controls=1)
     return noise
+
+
+@pytest.fixture
+def bell_kernel():
+    return bell
+
+
+@pytest.fixture
+def rotation_kernel_fixture():
+    return rotation_kernel
+
+
+@pytest.fixture
+def x_op_kernel():
+    return x_op
+
+
+@pytest.fixture
+def phase_flip_kernel_fixture():
+    return phase_flip_kernel
+
+
+@pytest.fixture
+def cnot_echo_kernel():
+    return cnot_echo

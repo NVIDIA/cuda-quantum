@@ -7,36 +7,13 @@
 # ============================================================================ #
 import pytest
 import cudaq
+from .kernels import x_op, phase_flip_kernel, cnot_echo
 
 
 @pytest.fixture(autouse=True)
 def cleanup_registries():
     yield
     cudaq.__clearKernelRegistries()
-
-
-@cudaq.kernel
-def x_op():
-    q = cudaq.qvector(1)
-    x(q[0])
-    mz(q)
-
-
-@cudaq.kernel
-def phase_flip_kernel():
-    q = cudaq.qvector(1)
-    h(q[0])
-    z(q[0])
-    h(q[0])
-    mz(q)
-
-
-@cudaq.kernel
-def cnot_echo():
-    q = cudaq.qvector(2)
-    x.ctrl(q[0], q[1])
-    x.ctrl(q[0], q[1])
-    mz(q)
 
 
 def test_check_bit_flip_type():
@@ -70,7 +47,9 @@ def test_check_depol2_standard_formula(p):
     cudaq.set_random_seed(42)
     noise = cudaq.NoiseModel()
     noise.add_channel("x", [0, 1], cudaq.Depolarization2(p))
-    result = cudaq.ptsbe.sample(cnot_echo, noise_model=noise, shots_count=1000)
+    result = cudaq.ptsbe.sample(cnot_echo,
+                                noise_model=noise,
+                                shots_count=1000)
     assert sum(result.count(bs) for bs in result) == 1000
     assert len(result) == 4
     prob_00 = result.probability("00")
@@ -89,3 +68,40 @@ def test_check_depol_type_simple():
     p1 = result.probability("1")
     assert abs(p0 - 0.50) <= 0.2
     assert abs(p1 - 0.50) <= 0.2
+
+
+def test_bit_flip_zero_no_noise():
+    cudaq.set_random_seed(42)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], cudaq.BitFlipChannel(0.0))
+    result = cudaq.ptsbe.sample(x_op, noise_model=noise, shots_count=500)
+    assert sum(result.count(bs) for bs in result) == 500
+    assert result.probability("1") >= 0.99
+
+
+def test_bit_flip_one_full_flip():
+    cudaq.set_random_seed(42)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], cudaq.BitFlipChannel(1.0))
+    result = cudaq.ptsbe.sample(x_op, noise_model=noise, shots_count=500)
+    assert sum(result.count(bs) for bs in result) == 500
+    assert result.probability("0") >= 0.99
+
+
+def test_depol2_zero_no_noise():
+    cudaq.set_random_seed(42)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.0))
+    result = cudaq.ptsbe.sample(cnot_echo, noise_model=noise, shots_count=300)
+    assert sum(result.count(bs) for bs in result) == 300
+    assert len(result) == 1
+    assert result.probability("00") >= 0.99
+
+
+def test_depol_zero_no_noise_x_op():
+    cudaq.set_random_seed(42)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], cudaq.DepolarizationChannel(0.0))
+    result = cudaq.ptsbe.sample(x_op, noise_model=noise, shots_count=500)
+    assert sum(result.count(bs) for bs in result) == 500
+    assert result.probability("1") >= 0.99

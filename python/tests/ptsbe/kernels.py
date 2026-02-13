@@ -21,3 +21,27 @@ def rotation_kernel(angle: float):
     q = cudaq.qvector(1)
     ry(angle, q[0])
     mz(q)
+
+
+@cudaq.kernel
+def x_op():
+    q = cudaq.qvector(1)
+    x(q[0])
+    mz(q)
+
+
+@cudaq.kernel
+def phase_flip_kernel():
+    q = cudaq.qvector(1)
+    h(q[0])
+    z(q[0])
+    h(q[0])
+    mz(q)
+
+
+@cudaq.kernel
+def cnot_echo():
+    q = cudaq.qvector(2)
+    x.ctrl(q[0], q[1])
+    x.ctrl(q[0], q[1])
+    mz(q)
