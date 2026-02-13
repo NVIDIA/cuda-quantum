@@ -73,8 +73,10 @@ class Database:
 
 countJobGetRequests = 0
 
-database = Database()
 _FAKE_PLATFORM_ID = "b77a0dba-dc62-n069-83a1-cld32ac77e4e"
+_BASE_PATH = "/qaas/v1alpha1"
+
+database = Database()
 database.platforms[_FAKE_PLATFORM_ID] = Platform(
     id=_FAKE_PLATFORM_ID, name="EMU-CUDAQ-H100"
 )
@@ -112,7 +114,7 @@ def _run_fake_job(job: Job):
     database.job_results[result.id] = result
 
 
-@app.get("/platforms")
+@app.get(_BASE_PATH + "/platforms")
 async def listPlatforms():
     return (
         [platform.model_dump() for platform in database.platforms.values()],
@@ -120,7 +122,7 @@ async def listPlatforms():
     )
 
 
-@app.get("/platforms/{platformId}")
+@app.get(_BASE_PATH + "/platforms/{platformId}")
 async def getPlatform(platformId: str):
     platform = database.platforms.get(platformId)
 
@@ -130,7 +132,7 @@ async def getPlatform(platformId: str):
     return (platform.model_dump(), 201)
 
 
-@app.post("/sessions")
+@app.post(_BASE_PATH + "/sessions")
 async def createSession(request: CreateSessionRequest):
     session = Session(
         name=request.name, id=str(uuid.uuid4()), platform_id=request.platform_id
@@ -139,14 +141,14 @@ async def createSession(request: CreateSessionRequest):
     return (session.model_dump(), 201)
 
 
-@app.post("/models")
+@app.post(_BASE_PATH + "/models")
 async def createModel(request: CreateModelRequest):
     model = Model(id=str(uuid.uuid4()), payload=request.payload)
     database.models[model.id] = model
     return (model.model_dump(), 201)
 
 
-@app.post("/jobs")
+@app.post(_BASE_PATH + "/jobs")
 async def createJob(request: CreateJobRequest):
     job = Job(
         name=request.name,
@@ -163,7 +165,7 @@ async def createJob(request: CreateJobRequest):
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
-@app.get("/jobs/{jobId}")
+@app.get(_BASE_PATH + "/jobs/{jobId}")
 async def getJob(jobId: str):
     global countJobGetRequests
 
@@ -186,7 +188,7 @@ async def getJob(jobId: str):
     return (job.model_dump(), 201)
 
 
-@app.get("/jobs/{jobId}/results")
+@app.get(_BASE_PATH + "/jobs/{jobId}/results")
 async def listJobResults(jobId: str):
     if not database.jobs.get(jobId):
         raise HTTPException(status_code=404, detail="Job not found")

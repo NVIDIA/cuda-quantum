@@ -16,13 +16,29 @@
 #include <fstream>
 #include <regex>
 
-std::string backendString = "scaleway;emulate;false;url;"
-                            "http://localhost:62443";
+CUDAQ_TEST(ScalewayTester, checkSampleSync) {
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(2);
+  kernel.h(qubit[0]);
+  kernel.mz(qubit[0]);
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 2);
+}
+
+CUDAQ_TEST(ScalewayTester, checkSampleAsync) {
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(2);
+  kernel.h(qubit[0]);
+  kernel.mz(qubit[0]);
+
+  auto future = cudaq::sample_async(kernel);
+  auto counts = future.get();
+  EXPECT_EQ(counts.size(), 2);
+}
 
 CUDAQ_TEST(ScalewayTester, executeOneMeasuredQubitProgram) {
-  auto &platform = cudaq::get_platform();
-  // platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.x(qubit[0]);
@@ -36,7 +52,7 @@ CUDAQ_TEST(ScalewayTester, executeOneMeasuredQubitProgram) {
 }
 
 int main(int argc, char **argv) {
-  // ::testing::InitGoogleMock(&argc, argv);
+  ::testing::InitGoogleMock(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;
 }

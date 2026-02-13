@@ -8,20 +8,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Uncomment this and connect to Scaleway REST Server with authentication. You may need to change the "host.docker.internal" into Scaleway's server url
-# checkServerConnection() {
-#   PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
-# import socket
-# try:
-#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     s.connect(("host.docker.internal", 62450))
-#     s.close()
-# except Exception:
-#     exit(1)
-# EOF
-# }
-
-# Uncomment this and connect to mock_qpu backend server within the container (mock_qpu/scaleway) under main/utils
+# Check if mock server is up
 checkServerConnection() {
   PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
 import socket
@@ -40,6 +27,7 @@ PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/util
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
+
 while ! checkServerConnection; do
   sleep 1
   n=$((n+1))
@@ -48,9 +36,10 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+
 # Run the tests
 ./test_scaleway
-# Did they fail? 
+# Did they fail?
 testsPassed=$?
 # kill the server
 kill -INT $pid
