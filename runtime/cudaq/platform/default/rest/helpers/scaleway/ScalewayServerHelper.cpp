@@ -100,6 +100,13 @@ ServerJobPayload ScalewayServerHelper::createJob(
     ServerMessage taskRequest;
     CUDAQ_INFO("Job name {}", circuitCode.name);
 
+    auto output_names = circuitCode.output_names.dump();
+    config["output_names." + circuitCode.name] = output_names;
+
+    CUDAQ_INFO("Output names {}", output_names);
+
+    setOutputNames(circuitCode.name, output_names)
+
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
@@ -293,21 +300,22 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
   return m_sessionId;
 }
 
-// void ScalewayServerHelper::setOutputNames(const std::string &taskId,
-//                                         const std::string &output_names) {
-//   // Parse `output_names` into jobOutputNames.
-//   // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
-//   // for an example of how this was populated.
-//   OutputNamesType jobOutputNames;
-//   nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
-//   for (const auto &el : outputNamesJSON[0]) {
-//     auto result = el[0].get<std::size_t>();
-//     auto qubitNum = el[1][0].get<std::size_t>();
-//     auto registerName = el[1][1].get<std::string>();
-//     jobOutputNames[result] = {qubitNum, registerName};
-//   }
+void ScalewayServerHelper::setOutputNames(const std::string &taskId,
+                                        const std::string &output_names) {
+  // Parse `output_names` into jobOutputNames.
+  // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
+  // for an example of how this was populated.
+  OutputNamesType jobOutputNames;
+  nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
 
-//   outputNames[taskId] = jobOutputNames;
-// }
+  for (const auto &el : outputNamesJSON[0]) {
+    auto result = el[0].get<std::size_t>();
+    auto qubitNum = el[1][0].get<std::size_t>();
+    auto registerName = el[1][1].get<std::string>();
+    jobOutputNames[result] = {qubitNum, registerName};
+  }
+
+  outputNames[taskId] = jobOutputNames;
+}
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ScalewayServerHelper, scaleway)
