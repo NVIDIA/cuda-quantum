@@ -18,13 +18,14 @@ class FunctionDefVisitor(ast.NodeVisitor):
     type annotations and whether the function has a return statement.
     """
 
-    arg_annotations: list[(str, Type)] = []
+    arg_annotations: list[(str, Type)]
     return_annotation: Optional[Type] = None
     has_return_statement: bool = False
     found: bool = False
 
     def __init__(self, kernel_name: str):
         self.kernel_name: str = kernel_name
+        self.arg_annotations = []
 
     def visit_FunctionDef(self, node):
         if node.name == self.kernel_name:
