@@ -8657,19 +8657,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         Note: Measurement Syndrome Matrix is defined in
         [https://arxiv.org/pdf/2407.13826](https://arxiv.org/pdf/2407.13826){.reference
         .external}.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1ad0e38446b94bb1511fecabc7c9c309f2 .target}[[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[[jitEng]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext6jitEngE "Permalink to this definition"){.headerlink}\
-
-    :   For performance, a launcher may cache the JIT execution engine
-        and use it for multiple discrete calls. This is actually a
-        pointer to a [`mlir::ExecutionEngine`{.docutils .literal
-        .notranslate}]{.pre} object, but we hide that because of
-        problems with the structure and organization of the runtime
-        libraries.
     :::
 
 ```{=html}
@@ -10424,11 +10411,12 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1kraus__channel_1a4c0ce018d87610e19c8783386211a6b9 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[push_back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[op]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_op "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1kraus__channel_1ad4eb335a9071b16fb414bf890e448083 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[push_back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[op]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[name]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_opNSt8optionalINSt6stringEEE "Permalink to this definition"){.headerlink}\
 
     :   Add a [[kraus_op]{.std
         .std-ref}](#structcudaq_1_1kraus__op){.reference .internal} to
-        this channel.
+        this channel. If name is not provided, a default name is
+        generated from get_type_name().
 
     ```{=html}
     <!-- -->
@@ -10447,6 +10435,16 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     :   Checks if Kraus ops have unitary representations and saves them
         if they do. Users should only need to call this if they have
         modified the Kraus ops and want to recompute these values.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1kraus__channel_1a79d06d1d1a601d4f702d759b7612bbb9 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[populateDefaultOpNames]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv "Permalink to this definition"){.headerlink}\
+
+    :   Populate op_names with default names of the form
+        type_name\[index\]. Called by constructors that do not set
+        explicit op_names.
     :::
 
     ::: {.breathe-sectiondef .docutils .container}
@@ -10483,6 +10481,17 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     :   If all Kraus ops are - when scaled - unitary, this holds the
         probabilities of those ops. These values are always "double"
         regardless of whether cudaq::real is float or double.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1kraus__channel_1ac5d223516167de5416b8210169e035ea .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[op_names]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13kraus_channel8op_namesE "Permalink to this definition"){.headerlink}\
+
+    :   Names for each Kraus operator, parallel to ops. For standard
+        Pauli channels these are gate names (e.g., "id", "x"). For other
+        channels, defaults are generated as type_name\[index\]. Always
+        has the same size as ops.
     :::
 
 ```{=html}
