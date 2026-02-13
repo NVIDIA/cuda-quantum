@@ -40,24 +40,25 @@ def start_server(backend: str):
             from mock_qpu.quantinuum import app
         case "quantum_machines":
             from mock_qpu.quantum_machines import app
+        case "scaleway":
+            from mock_qpu.scaleway import app
         case _:
             # <backend> is in all_backend_names() but not handled!
-            raise ValueError(
-                f"case '{backend}' is not handled in start_mock_qpu.py")
+            raise ValueError(f"case '{backend}' is not handled in start_mock_qpu.py")
 
     cudaq.set_random_seed(13)
 
     print(f"Starting {backend} server on port {port}")
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
+    uvicorn.run(app, port=port, host="0.0.0.0", log_level="info")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Start one of the available mock QPU backend server.")
-    parser.add_argument("backend",
-                        type=str,
-                        help="backend name",
-                        choices=all_backend_names())
+        description="Start one of the available mock QPU backend server."
+    )
+    parser.add_argument(
+        "backend", type=str, help="backend name", choices=all_backend_names()
+    )
     args = parser.parse_args()
     backend = args.backend.lower()
 
