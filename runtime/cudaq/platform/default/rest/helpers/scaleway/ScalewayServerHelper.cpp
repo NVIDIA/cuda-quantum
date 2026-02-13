@@ -44,8 +44,32 @@ std::string getValueOrDefault(const BackendConfig &config,
   return !providedValue.empty() ? providedValue : defaultValue;
 }
 
-std::string serializeParametersToQio(size_t nb_shots) {
-  qio::QuantumComputationParameters parameters(nb_shots, {});
+std::string serializeParametersToQio(size_t nb_shots, std::string output_names) {
+  // auto output_names = circuitCode.output_names.dump();
+  // backendConfig["output_names." + model.id] = output_names;
+
+  CUDAQ_INFO("Output names {}", output_names);
+
+  // OutputNamesType jobOutputNames;
+  // nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
+
+  // CUDAQ_INFO("Create output names {} {}", taskId, output_names);
+
+  // for (const auto &el : outputNamesJson[0]) {
+  //   auto result = el[0].get<std::size_t>();
+  //   auto qubitNum = el[1][0].get<std::size_t>();
+  //   auto registerName = el[1][1].get<std::string>();
+
+  //   CUDAQ_INFO("Create register res:{}, nb:{}, name:{}", result, qubitNum, registerName);
+
+  //   jobOutputNames[result] = {qubitNum, registerName};
+  // }
+
+  // outputNames[taskId] = jobOutputNames;
+
+  // setOutputNames(model.id, output_names);
+
+  qio::QuantumComputationParameters parameters(nb_shots, {"output_names": output_names});
 
   return parameters.toJson().dump();
 }
@@ -103,18 +127,11 @@ ServerJobPayload ScalewayServerHelper::createJob(
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
-    std::string qioParams = serializeParametersToQio(shots);
+    std::string qioParams = serializeParametersToQio(shots, circuitCode.output_names.dump());
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
     auto model = m_qaasClient->createModel(qioPayload);
     CUDAQ_INFO("Created model {}", model.id);
-
-    auto output_names = circuitCode.output_names.dump();
-    backendConfig["output_names." + model.id] = output_names;
-
-    CUDAQ_INFO("Output names {}", output_names);
-
-    setOutputNames(model.id, output_names);
 
     taskRequest["model_id"] = model.id;
     taskRequest["session_id"] = m_sessionId;
@@ -201,9 +218,10 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     auto job = m_qaasClient->getJob(jobId);
 
-    CUDAQ_INFO("lookup for model id:{}", job.model_id);
-
-    auto &output_names = outputNames[job.model_id];
+    // CUDAQ_INFO("lookup for model id:{}", job.model_id);
+    auto params = qio::QuantumComputationParameters::fromJson(job.parameters);
+    // auto &output_names = outputNames[job.model_id];
+    auto &output_names = json::parse(params.options.get<std::string>("output_names"))
 
     // Get a reduced list of qubit numbers that were in the original program
     // so that we can slice the output data and extract the bits that the user
@@ -304,27 +322,27 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
   return m_sessionId;
 }
 
-void ScalewayServerHelper::setOutputNames(const std::string &taskId,
-                                        const std::string &output_names) {
-  // Parse `output_names` into jobOutputNames.
-  // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
-  // for an example of how this was populated.
-  OutputNamesType jobOutputNames;
-  nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
+// void ScalewayServerHelper::setOutputNames(const std::string &taskId,
+//                                         const std::string &output_names) {
+//   // Parse `output_names` into jobOutputNames.
+//   // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
+//   // for an example of how this was populated.
+//   OutputNamesType jobOutputNames;
+//   nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
 
-  CUDAQ_INFO("Create output names", output_names);
+//   CUDAQ_INFO("Create output names {} {}", taskId, output_names);
 
-  for (const auto &el : outputNamesJson[0]) {
-    auto result = el[0].get<std::size_t>();
-    auto qubitNum = el[1][0].get<std::size_t>();
-    auto registerName = el[1][1].get<std::string>();
+//   for (const auto &el : outputNamesJson[0]) {
+//     auto result = el[0].get<std::size_t>();
+//     auto qubitNum = el[1][0].get<std::size_t>();
+//     auto registerName = el[1][1].get<std::string>();
 
-    CUDAQ_INFO("Create register id:{}, nb:{}, name:{}", taskId, qubitNum, registerName);
+//     CUDAQ_INFO("Create register res:{}, nb:{}, name:{}", result, qubitNum, registerName);
 
-    jobOutputNames[result] = {qubitNum, registerName};
-  }
+//     jobOutputNames[result] = {qubitNum, registerName};
+//   }
 
-  outputNames[taskId] = jobOutputNames;
-}
+//   outputNames[taskId] = jobOutputNames;
+// }
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ScalewayServerHelper, scaleway)
