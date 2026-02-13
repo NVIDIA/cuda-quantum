@@ -38,9 +38,6 @@ namespace cudaq {
 
 class Compiler {
 
-  /// @brief The current execution context.
-  ExecutionContext *executionContext = nullptr;
-
   /// @brief The Pass pipeline string, configured by the
   /// QPU configuration file in the platform path.
   std::string passPipelineConfig = "canonicalize";
@@ -89,7 +86,7 @@ public:
   Compiler(cudaq::ServerHelper *,
            const std::map<std::string, std::string> &backendConfig,
            config::TargetConfig &config, const noise_model *noiseModel,
-           ExecutionContext *executionContext, bool emulate);
+           bool emulate);
   ~Compiler();
 
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,

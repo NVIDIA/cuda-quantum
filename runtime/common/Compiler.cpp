@@ -117,8 +117,8 @@ Compiler::extractQuakeCodeAndContext(const std::string &kernelName,
 Compiler::Compiler(ServerHelper *serverHelper,
                    const std::map<std::string, std::string> &backendConfig,
                    config::TargetConfig &config, const noise_model *noiseModel,
-                   ExecutionContext *executionContext, bool emulate)
-    : executionContext(executionContext), emulate(emulate) {
+                   bool emulate)
+    : emulate(emulate) {
 
   cudaq::initializeMLIR();
 

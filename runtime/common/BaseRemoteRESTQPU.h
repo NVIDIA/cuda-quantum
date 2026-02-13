@@ -255,7 +255,7 @@ public:
 
     // Get the Quake code, lowered according to config file.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, executionContext, emulate);
+                      noiseModel, emulate);
     auto codes = compiler.lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
   }
@@ -284,7 +284,7 @@ public:
     // the arguments. Python should be using the streamlined argument synthesis,
     // but apparently it isn't. This works around that bug.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, executionContext, emulate);
+                      noiseModel, emulate);
     auto codes = rawArgs.empty() ? compiler.lowerQuakeCode(kernelName, args)
                                  : compiler.lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
@@ -308,7 +308,7 @@ public:
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, executionContext, emulate);
+                      noiseModel, emulate);
     completeLaunchKernel(kernelName,
                          compiler.lowerQuakeCode(kernelName, module, rawArgs));
     return {};

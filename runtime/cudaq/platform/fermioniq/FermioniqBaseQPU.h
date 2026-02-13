@@ -66,7 +66,7 @@ public:
       executionContext = &defaultContext;
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, executionContext, emulate);
+                      noiseModel, emulate);
     auto codes = rawArgs.empty()
                      ? compiler.lowerQuakeCode(kernelName, args, {})
                      : compiler.lowerQuakeCode(kernelName, nullptr, rawArgs);
