@@ -20,7 +20,6 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module)
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir
-from .captured_data import CapturedDataStorage
 from .utils import (emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
@@ -96,15 +95,11 @@ class PyKernelDecorator(object):
         self.kernelModuleName = None
         self.name = kernelName
         self.verbose = verbose
-        self.capturedDataStorage = None
         # The `qkeModule` will be the quake target independent ModuleOp
         self.qkeModule = None
         # The `nvqModule` will be (if present) the default simulation ModuleOp
         self.nvqModule = None
         self.defModule = _recover_module('cudaq.kernel.kernel_decorator')
-        # Once the kernel is compiled to MLIR, we want to know what capture
-        # variables, if any, were used in the kernel. We need to track these.
-        self.dependentCaptures = None
 
         if isinstance(function, str):
             self.kernelFunction = None
@@ -195,13 +190,11 @@ class PyKernelDecorator(object):
         # Otherwise, `precompile` the kernel to portable MLIR.
         if self.qkeModule:
             raise RuntimeError(self.name + " was already compiled")
-        self.capturedDataStorage = None
         self.uniqueId = id(self)
         self.uniqName = self.name + ".." + hex(self.uniqueId)
-        self.qkeModule, self.argTypes, extraMetadata, self.liftedArgs, self.firstLiftedPos = compile_to_mlir(
+        self.qkeModule, self.argTypes, self.liftedArgs, self.firstLiftedPos = compile_to_mlir(
             id(self),
             self.astModule,
-            self.capturedDataStorage,
             verbose=self.verbose,
             returnType=self.returnType,
             location=self.location,
@@ -220,16 +213,7 @@ class PyKernelDecorator(object):
         return
 
     def convert_to_full_qir(self, vals):
-        # Clean up the captured data if the module needs recompilation.
-        self.capturedDataStorage = self.createStorage()
-
-        resMod, inputs, extraMetadata = self.lower_quake_to_codegen(vals)
-
-        # Grab the dependent capture variables, if any
-        self.dependentCaptures = None
-        if extraMetadata and 'dependent_captures' in extraMetadata:
-            self.dependentCaptures = extraMetadata['dependent_captures']
-        return resMod
+        return self.lower_quake_to_codegen(vals)
 
     def lower_quake_to_codegen(self, argValues):
         """
@@ -237,29 +221,15 @@ class PyKernelDecorator(object):
         generation. If argument values are provided, we run argument synthesis
         and specialize this instance of the kernel.
         """
-        uniq_name = nvqppPrefix + self.uniqName
         if not self.qkeModule:
             emitFatalError(f"no module in kernel decorator {self.name}")
         result = cudaq_runtime.cloneModule(self.qkeModule)
 
-        func_op = recover_func_op(self.qkeModule, uniq_name)
         if argValues:
             if len(self.argTypes) != len(argValues):
                 emitFatalError("wrong number of arguments provided")
-        outputs = FunctionType(
-            TypeAttr(func_op.attributes['function_type']).value).results
-        outTy = outputs[0] if outputs else self.get_none_type()
 
-        if argValues:
-            # Assume all arguments were synthesized.
-            inputs = []
-        else:
-            # No specialization, so just use the original arguments.
-            if not func_op:
-                emitFatalError(f"no entry point for {self.uniqName}")
-            inputs = FunctionType(
-                TypeAttr(func_op.attributes['function_type']).value).inputs
-        return result, inputs, {}
+        return result
 
     def merge_kernel(self, otherMod):
         """
@@ -420,12 +390,6 @@ class PyKernelDecorator(object):
                             for element in value
                         ]
         return value
-
-    def createStorage(self):
-        return CapturedDataStorage(ctx=self.qkeModule.context,
-                                   loc=self.location,
-                                   name=self.name,
-                                   module=self.qkeModule)
 
     @staticmethod
     def type_to_str(t):
