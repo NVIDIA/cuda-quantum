@@ -7,7 +7,6 @@
 # ============================================================================ #
 import pytest
 import cudaq
-from .kernels import (bell, rotation_kernel, x_op, phase_flip_kernel, cnot_echo)
 
 
 @pytest.fixture(autouse=True)
@@ -23,28 +22,3 @@ def depol_noise():
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("x", cudaq.Depolarization2(0.1), num_controls=1)
     return noise
-
-
-@pytest.fixture
-def bell_kernel():
-    return bell
-
-
-@pytest.fixture
-def rotation_kernel_fixture():
-    return rotation_kernel
-
-
-@pytest.fixture
-def x_op_kernel():
-    return x_op
-
-
-@pytest.fixture
-def phase_flip_kernel_fixture():
-    return phase_flip_kernel
-
-
-@pytest.fixture
-def cnot_echo_kernel():
-    return cnot_echo
