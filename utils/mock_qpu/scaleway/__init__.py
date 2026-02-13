@@ -60,6 +60,12 @@ class Platform(BaseModel):
     backend_name: str
     provider_name: str
     version: str
+    type: str
+    technology: str
+    max_qubit_count: int
+    max_shot_count: int
+    max_circuit_count: int
+    metadata: str
 
 
 class Model(BaseModel):
@@ -88,6 +94,7 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
     backend_name="cudaq",
     version="0.0",
     availability="available",
+    max_qubit_count=20,
 )
 
 
