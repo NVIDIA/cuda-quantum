@@ -224,11 +224,11 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     auto params = qio::QuantumComputationParameters::fromJson(job.parameters);
     // auto &output_names = outputNames[job.model_id];
     auto options = params.options();
-    auto output_names_str = options["output_names"].get<std::string>();
-    auto &output_names_json = json::parse(output_names_str);
+    auto outputNamesStr = options["output_names"].get<std::string>();
+    auto outputNamesJson = json::parse(outputNamesStr);
     OutputNamesType jobOutputNames;
 
-    for (const auto &el : output_names_json[0]) {
+    for (const auto &el : outputNamesJson[0]) {
       auto result = el[0].get<std::size_t>();
       auto qubitNum = el[1][0].get<std::size_t>();
       auto registerName = el[1][1].get<std::string>();
