@@ -101,7 +101,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
     CUDAQ_INFO("Job name {}", circuitCode.name);
 
     auto output_names = circuitCode.output_names.dump();
-    config["output_names." + circuitCode.name] = output_names;
+    backendConfig["output_names." + circuitCode.name] = output_names;
 
     CUDAQ_INFO("Output names {}", output_names);
 
