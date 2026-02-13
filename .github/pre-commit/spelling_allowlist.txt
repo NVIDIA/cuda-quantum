@@ -50,6 +50,7 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+Hololink
 Homebrew
 IQM
 InfiniBand
@@ -118,6 +119,7 @@ QuTiP
 Quake
 Quantinuum
 RHEL
+RPC
 RSA
 RSH
 SDK
@@ -135,6 +137,7 @@ TableGen
 Toffoli
 Toshiko
 UCCSD
+UINT
 VQE
 Vazirani
 WSL
@@ -152,6 +155,8 @@ ancilla
 ansatz
 ansatzes
 archiver
+arg
+args
 arity
 auxillary
 backend
@@ -181,6 +186,7 @@ comparator
 comparators
 composability
 composable
+config
 constructible
 controlled
 coprocessing
@@ -244,10 +250,12 @@ extensibility
 extremal
 fermionic
 fermioniq
+fmt
 fourier
 frontend
 frontends
 functors
+gpu
 grovers
 hadamard
 hamiltonian
@@ -267,6 +275,7 @@ integrators
 interferometer
 interoperational
 intrinsics
+ip
 iterable
 iteratively
 kets
@@ -290,6 +299,8 @@ namespaces
 natively
 normalization
 nullary
+num
+nvcc
 observables
 optimizer
 optimizers
@@ -311,6 +322,7 @@ programmatically
 pybind
 qaoa
 qed
+qp
 quantize
 quantized
 qubit
