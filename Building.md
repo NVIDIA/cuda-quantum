@@ -67,6 +67,7 @@ detected running the command `nvidia-smi` in your development environment.
 
 CUDA-Q can be built on macOS for development purposes. Note that:
 
+- **ARM64 only**: Only Apple silicon Macs are supported; Intel Macs are not supported
 - **CPU-only**: No CUDA/GPU support is available on macOS
 - **Apple Clang**: Uses the system compiler (no need to install GCC or LLVM separately)
 - **Prerequisites required**: You must use `-p` to install LLVM and other dependencies
@@ -111,7 +112,7 @@ export LLVM_PROJECTS='clang;lld;mlir;python-bindings'
 ### macOS Limitations
 
 - **JIT exception handling on macOS M-series**: C++ exceptions thrown from JIT-compiled
-  code cannot be caught on macOS ARM64 (Apple Silicon). This is a known upstream
+  code cannot be caught on macOS ARM64 (Apple silicon). This is a known upstream
   LLVM bug ([llvm-project#49036](https://github.com/llvm/llvm-project/issues/49036))
   caused by libunwind not properly handling exception unwinding in JIT-executed
   code on Darwin ARM64.
@@ -163,7 +164,7 @@ this case a clean retry usually requires one of the following:
 - Resetting your build cudaq directory `rm -rf build`
 - Resetting one of your install `*_INSTALL_PREFIX` paths by removing the
   directory. Eg., `rm - /usr/local/llvm`. *Warning* Linux uses
-  `/usr/local`/`/opt` and MacOS `~/.local` for *other* system installations
+  `/usr/local`/`/opt` and macOS `~/.local` for *other* system installations
   so do not blindly remove these directories.
 - Resetting one of the submodule build folders, eg.,
   `rm -rf tpls/pybind11/build` or `rm -rf ~/.llvm-project/build`.

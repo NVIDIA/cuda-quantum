@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "Logger.h"
-#include "FmtCore.h"
-#include "Timing.h"
+#include "cudaq/runtime/logger/logger.h"
+#include "common/FmtCore.h"
+#include "common/Timing.h"
 #include "fmt/args.h"
 #include <filesystem>
 #include <set>
@@ -57,6 +57,9 @@ __attribute__((constructor)) void initializeLogger() {
     auto fileLogger = spdlog::basic_logger_mt("cudaqFileLogger", envVal);
     spdlog::set_default_logger(fileLogger);
     spdlog::flush_on(spdlog::get_level());
+  } else {
+    // make sure warnings always show before crashes
+    spdlog::flush_on(spdlog::level::warn);
   }
 
   // Parse comma separated integers into g_timingList. Process integer values
@@ -93,6 +96,7 @@ namespace details {
 void trace(const std::string_view msg) { spdlog::trace(msg); }
 void info(const std::string_view msg) { spdlog::info(msg); }
 void warn(const std::string_view msg) { spdlog::warn(msg); }
+void error(const std::string_view msg) { spdlog::error(msg); }
 void debug(const std::string_view msg) {
 #ifdef CUDAQ_DEBUG
   spdlog::debug(msg);

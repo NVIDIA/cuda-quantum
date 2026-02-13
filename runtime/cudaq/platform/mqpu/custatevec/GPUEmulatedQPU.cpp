@@ -7,16 +7,15 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "cuda_runtime_api.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>
-#include <spdlog/cfg/env.h>
 
 namespace {
 
@@ -24,9 +23,6 @@ namespace {
 /// execution tasks and sets the CUDA GPU device that it
 /// represents. There is a GPUEmulatedQPU per available GPU.
 class GPUEmulatedQPU : public cudaq::QPU {
-protected:
-  std::map<std::size_t, cudaq::ExecutionContext *> contexts;
-
 public:
   GPUEmulatedQPU() : QPU(){};
   GPUEmulatedQPU(std::size_t id) : QPU(id) {}
@@ -47,29 +43,33 @@ public:
     return kernelFunc(args, /*differentMemorySpace=*/false);
   }
 
-  /// Overrides setExecutionContext to forward it to the ExecutionManager
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    cudaSetDevice(qpu_id);
-
-    CUDAQ_INFO("MultiQPUPlatform::setExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts.emplace(tid, context);
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
+    CUDAQ_INFO("MultiQPUPlatform::configureExecutionContext QPU {}", qpu_id);
     if (noiseModel)
-      contexts[tid]->noiseModel = noiseModel;
+      context.noiseModel = noiseModel;
 
-    cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
+    context.executionManager = cudaq::getDefaultExecutionManager();
+    context.executionManager->configureExecutionContext(context);
   }
 
-  /// Overrides resetExecutionContext to forward to
-  /// the ExecutionManager. Also handles observe post-processing
-  void resetExecutionContext() override {
-    CUDAQ_INFO("MultiQPUPlatform::resetExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    auto ctx = contexts[tid];
-    handleObservation(ctx);
-    cudaq::getExecutionManager()->resetExecutionContext();
-    contexts[tid] = nullptr;
-    contexts.erase(tid);
+  void beginExecution() override {
+    cudaSetDevice(qpu_id);
+    cudaq::getExecutionContext()->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    cudaq::getExecutionContext()->executionManager->endExecution();
+  }
+
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
+    CUDAQ_INFO("MultiQPUPlatform::finalizeExecutionContext QPU {}", qpu_id);
+
+    handleObservation(context);
+
+    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
+        context);
   }
 };
 } // namespace

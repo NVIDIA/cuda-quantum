@@ -396,10 +396,12 @@ int main(int argc, char **argv) {
   // the source install.
   std::filesystem::path cudaqIncludeDir = cudaqInstallPath / "include";
   auto cudaqHeader = cudaqIncludeDir / "cudaq.h";
-  if (!std::filesystem::exists(cudaqHeader))
+  bool useFallbackIncludes = false;
+  if (!std::filesystem::exists(cudaqHeader)) {
     // need to fall back to the build environment.
     cudaqIncludeDir = std::string(FALLBACK_CUDAQ_INCLUDE_DIR);
-
+    useFallbackIncludes = true;
+  }
   // One final check here, do we have this header, if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
     llvm::errs() << "Invalid CUDA-Q install configuration, cannot find "
@@ -419,6 +421,10 @@ int main(int argc, char **argv) {
   // Add the default path to the cudaq headers.
   clArgs.push_back("-I" + cudaqIncludeDir.string());
 
+  // Add the new runtime include path if needed
+  if (useFallbackIncludes) {
+    clArgs.push_back("-I" + std::string(FALLBACK_REFACTORED_CUDAQ_INCLUDE_DIR));
+  }
   // Add preprocessor macro definitions, if any.
   for (auto &def : macroDefines)
     clArgs.push_back("-D" + def);

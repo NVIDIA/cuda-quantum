@@ -123,7 +123,7 @@ public:
     CUDAQ_INFO(
         "{}: Launch VQE kernel named '{}' remote QPU {} (simulator = {})",
         Derived::class_name, name, this->qpu_id, this->m_simName);
-    ::launchVqeImpl(this->getExecutionContextForMyThread(), this->m_client,
+    ::launchVqeImpl(cudaq::getExecutionContext(), this->m_client,
                     this->m_simName, name, kernelArgs, gradient, H, optimizer,
                     n_params, shots);
   }
@@ -135,7 +135,7 @@ public:
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("{}: Launch kernel named '{}' remote QPU {} (simulator = {})",
                Derived::class_name, name, this->qpu_id, this->m_simName);
-    ::launchKernelImpl(this->getExecutionContextForMyThread(), this->m_client,
+    ::launchKernelImpl(cudaq::getExecutionContext(), this->m_client,
                        this->m_simName, name,
                        make_degenerate_kernel_type(kernelFunc), args,
                        voidStarSize, resultOffset, rawArgs);
@@ -148,9 +148,8 @@ public:
     CUDAQ_INFO("{}: Streamline launch kernel named '{}' remote QPU {} "
                "(simulator = {})",
                Derived::class_name, name, this->qpu_id, this->m_simName);
-    ::launchKernelStreamlineImpl(this->getExecutionContextForMyThread(),
-                                 this->m_client, this->m_simName, name,
-                                 rawArgs);
+    ::launchKernelStreamlineImpl(cudaq::getExecutionContext(), this->m_client,
+                                 this->m_simName, name, rawArgs);
   }
 };
 

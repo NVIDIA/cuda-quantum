@@ -50,9 +50,6 @@ protected:
   /// configuration.
   std::map<std::string, std::string> backendConfig;
 
-  /// @brief Mapping of thread and execution context
-  std::unordered_map<std::size_t, cudaq::ExecutionContext *> contexts;
-
 private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
@@ -100,20 +97,23 @@ public:
   /// @brief Return true if the current backend is remote
   virtual bool isRemote() override { return !emulate; }
 
-  /// @brief Store the execution context for launching kernel
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU::setExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts.emplace(tid, context);
-    cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
+    context.executionManager = getDefaultExecutionManager();
+    context.executionManager->configureExecutionContext(context);
   }
 
-  /// @brief Overrides resetExecutionContext
-  void resetExecutionContext() override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts[tid] = nullptr;
-    contexts.erase(tid);
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
+    context.executionManager->finalizeExecutionContext(context);
+  }
+
+  void beginExecution() override {
+    getExecutionContext()->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    getExecutionContext()->executionManager->endExecution();
   }
 
   /// @brief This setTargetBackend override is in charge of reading the

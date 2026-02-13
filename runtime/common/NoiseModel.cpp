@@ -8,9 +8,9 @@
 
 #include "NoiseModel.h"
 #include "FmtCore.h"
-#include "Logger.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <numeric>
 #include <optional>
 
@@ -189,7 +189,7 @@ void generateUnitaryParameters_fp64(
 kraus_channel::kraus_channel(const kraus_channel &other)
     : ops(other.ops), noise_type(other.noise_type),
       parameters(other.parameters), unitary_ops(other.unitary_ops),
-      probabilities(other.probabilities) {}
+      probabilities(other.probabilities), op_names(other.op_names) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
@@ -205,11 +205,20 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   parameters = other.parameters;
   unitary_ops = other.unitary_ops;
   probabilities = other.probabilities;
+  op_names = other.op_names;
   return *this;
 }
 
 std::vector<kraus_op> kraus_channel::get_ops() const { return ops; }
-void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
+
+void kraus_channel::push_back(kraus_op op, std::optional<std::string> name) {
+  ops.push_back(op);
+  if (name.has_value())
+    op_names.push_back(std::move(*name));
+  else
+    op_names.push_back(get_type_name() + "[" + std::to_string(ops.size() - 1) +
+                       "]");
+}
 
 void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,

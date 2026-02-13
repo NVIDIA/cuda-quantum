@@ -5,8 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "common/Logger.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <cassert>
 #include <cudensitymat.h>
 #include <dlfcn.h>
@@ -86,7 +86,8 @@ int cudensitymatMpiCommRank(const cudensitymatDistributedCommunicator_t *comm,
   return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
 }
 
-int cudensitymatMpiBarrier(const cudensitymatDistributedCommunicator_t *comm) {
+int cudensitymatMpiBarrier(const cudensitymatDistributedCommunicator_t *comm,
+                           void *barrierBuffer) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Barrier(&cudaqComm);
 }
@@ -106,6 +107,17 @@ int cudensitymatMpiWaitRequest(cudensitymatDistributedRequest_t request) {
 int cudensitymatMpiTestRequest(cudensitymatDistributedRequest_t request,
                                int32_t *completed) {
   return getMpiPluginInterface()->TestRequest(request, completed);
+}
+
+// cuQuantum 26.1.0 added groupStart/groupEnd for NCCL group operations support.
+int cudensitymatMpiGroupStart() {
+  // Success - MPI doesn't need group operations
+  return 0;
+}
+
+int cudensitymatMpiGroupEnd() {
+  // Success - MPI doesn't need group operations
+  return 0;
 }
 
 int cudensitymatMpiSend(const cudensitymatDistributedCommunicator_t *comm,
@@ -212,6 +224,8 @@ cudensitymatDistributedInterface_t cudensitymatCommInterface = {
     cudensitymatMpiDestroyRequest,
     cudensitymatMpiWaitRequest,
     cudensitymatMpiTestRequest,
+    cudensitymatMpiGroupStart,
+    cudensitymatMpiGroupEnd,
     cudensitymatMpiSend,
     cudensitymatMpiSendAsync,
     cudensitymatMpiRecv,

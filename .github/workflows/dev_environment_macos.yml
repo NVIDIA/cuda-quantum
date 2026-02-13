@@ -1,0 +1,226 @@
+on:
+  workflow_call:
+    inputs:
+      platforms:
+        type: string
+        required: false
+        description: The platform to build for (e.g., darwin/arm64).
+        default: darwin/arm64
+      registry_cache_from:
+        required: false
+        type: string
+        description: The name of the branch from which the cache should be loaded.
+      pull_request_number:
+        required: false
+        type: string
+        description: The issue number of the pull request.
+      pull_request_commit:
+        required: false
+        type: string
+        description: The commit to check out. Only used when pull_request_number is set.
+      checkout_submodules:
+        required: false
+        type: boolean
+        description: Whether to checkout submodules.
+        default: false
+      matrix_key:
+        required: false
+        type: string
+        description: The key for the cloudposse GitHub action matrix output.
+      environment:
+        required: false
+        type: string
+        description: The GitHub environment for registry access.
+    outputs:
+      image_hash:
+        description: "The image reference for the cached macOS artifacts."
+        value: ${{ jobs.finalize.outputs.image_hash }}
+
+name: CUDA Quantum macOS dev environment cache
+
+jobs:
+  metadata:
+    name: Metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      runner: ${{ steps.build_info.outputs.runner }}
+      platform_tag: ${{ steps.build_info.outputs.platform_tag }}
+      owner: ${{ steps.build_info.outputs.owner }}
+      pr_number: ${{ steps.build_info.outputs.pr_number }}
+      image_name: ${{ steps.build_info.outputs.image_name }}
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
+
+      - name: Determine build arguments
+        id: build_info
+        run: |
+          # Platform detection
+          platform_tag=$(echo "${{ inputs.platforms }}" | sed 's/darwin\///g' | tr -d ' ')
+          echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+          echo "runner=macos-26" >> $GITHUB_OUTPUT
+
+          # Owner (lowercase)
+          repo_owner=${{ github.repository_owner }}
+          echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
+
+          # PR number detection
+          if ${{ inputs.pull_request_number != '' }}; then
+            pr_number=${{ inputs.pull_request_number }}
+          elif ${{ github.event.pull_request.number != '' }}; then
+            pr_number=${{ github.event.pull_request.number }}
+          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
+            pr_number=$(echo ${{ github.ref_name }} | cut -d / -f2)
+          fi
+          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+
+          # Compute hash of key build scripts for cache invalidation.
+          # Unlike Linux CI which uses Docker layer caching (automatically invalidates
+          # when the copied files change), macOS uses ORAS artifact caching with no
+          # content-based invalidation. This hash ensures cache is rebuilt when
+          # build scripts change. Update this list if new files affect the build.
+          deps_hash=$(cat \
+            scripts/install_prerequisites.sh \
+            scripts/build_llvm.sh \
+            scripts/set_env_defaults.sh \
+            | sha256sum | cut -c1-8)
+          echo "deps_hash=$deps_hash"
+
+          # Registry and image name
+          image_name=ghcr.io/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-macos-devdeps
+          if [ -n "$pr_number" ]; then
+            image_name=${image_name}-ci
+          fi
+
+          registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
+          image_name="${image_name}:${platform_tag}-${registry_cache_base}-${deps_hash}"
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build macOS Cache
+    needs: metadata
+    runs-on: ${{ needs.metadata.outputs.runner }}
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    outputs:
+      image_hash: ${{ steps.image_hash.outputs.image_hash }}
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
+          submodules: ${{ inputs.checkout_submodules }}
+
+      - name: Install ORAS
+        run: brew install oras
+
+      - name: Log in to GitHub CR
+        run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Check for cached image
+        id: cache_check
+        run: |
+          if oras manifest fetch ${{ needs.metadata.outputs.image_name }} > /dev/null 2>&1; then
+            echo "Cache hit: ${{ needs.metadata.outputs.image_name }}"
+            echo "cache_hit=true" >> $GITHUB_OUTPUT
+          else
+            echo "Cache miss: ${{ needs.metadata.outputs.image_name }}"
+            echo "cache_hit=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build macOS prerequisites
+        if: steps.cache_check.outputs.cache_hit != 'true'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '13.0'
+        run: |
+          # Fix CI runner quirk: gcc pre-installed but not linked
+          brew unlink gcc 2>/dev/null || true
+          brew link gcc --overwrite 2>/dev/null || true
+          
+          # Build prerequisites without Python bindings
+          # Python bindings are rebuilt per-Python-version in wheel jobs
+          source scripts/set_env_defaults.sh
+          export LLVM_PROJECTS='clang;lld;mlir;openmp'
+          
+          echo "Building prerequisites..."
+          echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"
+          echo "LLVM_PROJECTS=$LLVM_PROJECTS"
+          
+          bash scripts/install_prerequisites.sh
+
+      - name: Package and push cache artifact
+        id: push_image
+        if: steps.cache_check.outputs.cache_hit != 'true'
+        run: |
+          # Package artifacts
+          echo "Packaging artifacts from ~/.local and ~/.llvm-project..."
+          tar -czf macos-artifacts.tar.gz -C $HOME .local .llvm-project
+          ls -lh macos-artifacts.tar.gz
+          
+          # Push directly to GHCR as OCI artifact using ORAS
+          oras push ${{ needs.metadata.outputs.image_name }} \
+            macos-artifacts.tar.gz:application/gzip
+          
+          # Get digest for signing
+          digest=$(oras manifest fetch ${{ needs.metadata.outputs.image_name }} --descriptor | jq -r '.digest')
+          echo "digest=${{ needs.metadata.outputs.image_name }}@${digest}" >> $GITHUB_OUTPUT
+
+      - name: Install Cosign
+        if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
+        env:
+          DIGEST: ${{ steps.push_image.outputs.digest }}
+        run: cosign sign --yes "${DIGEST}"
+
+      - name: Set image hash
+        id: image_hash
+        run: |
+          if [ "${{ steps.cache_check.outputs.cache_hit }}" == "true" ]; then
+            # Cache hit - use tag reference directly
+            echo "image_hash=${{ needs.metadata.outputs.image_name }}" >> $GITHUB_OUTPUT
+          else
+            # Cache miss - use digest after push
+            echo "image_hash=${{ steps.push_image.outputs.digest || needs.metadata.outputs.image_name }}" >> $GITHUB_OUTPUT
+          fi
+
+  finalize:
+    name: Finalize
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+    needs: [metadata, build]
+
+    outputs:
+      image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        id: write_json
+        with:
+          matrix-step-name: ${{ inputs.matrix_key && 'dev_environment_macos' }}
+          matrix-key: ${{ inputs.matrix_key }}
+          outputs: |
+            image_hash: ${{ needs.build.outputs.image_hash }}
