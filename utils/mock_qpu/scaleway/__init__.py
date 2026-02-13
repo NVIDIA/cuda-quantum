@@ -238,14 +238,12 @@ async def listJobResults(jobId: str):
     if not database.jobs.get(jobId):
         raise HTTPException(status_code=404, detail="Job not found")
 
-    results = (
-        [
-            result.model_dump()
-            for result in list(
-                filter(lambda r: r.job_id == jobId, database.job_results.values())
-            )
-        ],
-    )
+    results = [
+        result.model_dump()
+        for result in list(
+            filter(lambda r: r.job_id == jobId, database.job_results.values())
+        )
+    ]
 
     print("return results", results)
 
