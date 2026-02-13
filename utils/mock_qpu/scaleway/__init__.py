@@ -17,6 +17,7 @@ app = FastAPI()
 
 
 class CreateJobRequest(BaseModel):
+    name: str
     model_id: str
     session_id: str
     parameters: str
@@ -25,6 +26,8 @@ class CreateJobRequest(BaseModel):
 class CreateSessionRequest(BaseModel):
     platform_id: str
     name: str
+    max_duration: str
+    max_idle_duration: str
 
 
 class CreateModelRequest(BaseModel):
@@ -51,6 +54,8 @@ class Session(BaseModel):
     name: str
     id: str
     platform_id: str
+    max_duration: str
+    max_idle_duration: str
 
 
 class Platform(BaseModel):
@@ -161,7 +166,11 @@ async def getPlatform(platformId: str):
 @app.post(_BASE_PATH + "/sessions")
 async def createSession(request: CreateSessionRequest):
     session = Session(
-        name=request.name, id=str(uuid.uuid4()), platform_id=request.platform_id
+        name=request.name,
+        id=str(uuid.uuid4()),
+        platform_id=request.platform_id,
+        max_duration=request.max_duration,
+        max_idle_duration=request.max_idle_duration,
     )
     database.sessions[session.id] = session
     return session.model_dump()
