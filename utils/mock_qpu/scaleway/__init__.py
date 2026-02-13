@@ -56,6 +56,10 @@ class Session(BaseModel):
 class Platform(BaseModel):
     name: str
     id: str
+    availability: str
+    backend_name: str
+    provider_name: str
+    version: str
 
 
 class Model(BaseModel):
@@ -78,7 +82,12 @@ _BASE_PATH = "/qaas/v1alpha1"
 
 database = Database()
 database.platforms[_FAKE_PLATFORM_ID] = Platform(
-    id=_FAKE_PLATFORM_ID, name="EMU-CUDAQ-FAKE"
+    id=_FAKE_PLATFORM_ID,
+    name="EMU-CUDAQ-FAKE",
+    provider_name="nvidia",
+    backend_name="cudaq",
+    version="0.0",
+    availability="available",
 )
 
 
@@ -123,16 +132,10 @@ async def listPlatforms(name: str | None = None):
             filter(lambda p: p.name == name, database.platforms.values())
         )
         platforms = [platform.model_dump() for platform in filtered_plts]
+    else:
+        platforms = [platform.model_dump() for platform in database.platforms.values()]
 
-        print("found plt", platforms)
-
-        return (
-            {"platforms": platforms, "total_count": len(platforms)},
-            201,
-        )
-
-    platforms = [platform.model_dump() for platform in database.platforms.values()]
-
+    print("found plt", platforms)
     return (
         {"platforms": platforms, "total_count": len(platforms)},
         201,

@@ -90,6 +90,8 @@ V1Alpha1Client::listPlatforms(const std::string platformName) {
   try {
     auto response = m_client.get(m_baseUrl, path, headers, m_secure);
 
+    CUDAQ_INFO("List Platform response: {}", response.dump());
+
     if (response.contains("platforms")) {
       return response["platforms"].get<std::vector<Platform>>();
     }
@@ -152,6 +154,9 @@ Session V1Alpha1Client::getSession(const std::string &sessionId) {
 
   try {
     auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+
+    CUDAQ_INFO("Get Session response: {}", response.dump());
+
     return response.get<Session>();
   } catch (const std::exception &e) {
     throw std::runtime_error("fail during get session " + sessionId + ": " +
