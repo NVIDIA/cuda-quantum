@@ -20,6 +20,7 @@
 #   -i <packages_dir>: Directory containing wheel files (--find-links)
 #   -p <python_version>: Python version (default: 3.11)
 #   -q: Quick test mode (only run core tests)
+#   -F: Force fresh venv (macOS only; delete and recreate instead of reusing)
 #
 # Examples:
 #   # From repo root with auto-detection:
@@ -40,13 +41,17 @@ __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":c:f:i:p:qv:" opt; do
+fresh_venv=false
+while getopts ":c:f:Fi:p:qv:" opt; do
     case $opt in
     c)
         cuda_version_conda="$OPTARG"
         ;;
     f)
         root_folder="$OPTARG"
+        ;;
+    F)
+        fresh_venv=true
         ;;
     p)
         python_version="$OPTARG"
@@ -67,6 +72,19 @@ while getopts ":c:f:i:p:qv:" opt; do
     esac
 done
 OPTIND=$__optind__
+
+# Sanitize environment: unset variables that could leak build-tree or
+# system-installed CUDA-Q libraries into the validation environment.
+# Without this, DYLD_LIBRARY_PATH from a prior build step can cause the
+# wheel to load libraries from _skbuild/ instead of its own bundled copies,
+# masking packaging bugs.
+unset DYLD_LIBRARY_PATH
+unset DYLD_FALLBACK_LIBRARY_PATH
+unset LD_LIBRARY_PATH
+unset CUDAQ_INSTALL_PREFIX
+unset CUDA_QUANTUM_PATH
+unset PYTHONPATH
+echo "Environment sanitized (unset DYLD_LIBRARY_PATH, LD_LIBRARY_PATH, CUDAQ_INSTALL_PREFIX, CUDA_QUANTUM_PATH, PYTHONPATH)"
 
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
@@ -145,8 +163,13 @@ if $is_macos; then
     # macOS: use venv (simpler, no conda ToS issues, no MPI needed for CPU-only)
     venv_dir="$HOME/.venv/cudaq-validation"
 
+    if $fresh_venv && [ -d "$venv_dir" ]; then
+        echo "Removing existing venv at $venv_dir"
+        rm -rf "$venv_dir"
+    fi
+
     if [ -d "$venv_dir" ]; then
-        echo "Reusing existing venv at $venv_dir (delete it to start fresh)"
+        echo "Reusing existing venv at $venv_dir (use -F to start fresh)"
     else
         echo "Creating venv at $venv_dir"
         python3 -m venv "$venv_dir"
@@ -208,10 +231,14 @@ if ! $is_macos; then
 fi
 status_sum=0
 
+# Run all tests from a temp directory so the repo tree (cwd, _skbuild/,
+# etc.) cannot accidentally be found via sys.path or dyld search paths
+# to ensure the wheel is installed in isolation.
+test_workdir=$(mktemp -d)
+echo "Running tests from isolated directory: $test_workdir"
+cd "$test_workdir"
+
 # Smoke test: verify cudaq can be imported in a clean environment.
-# This catches wheel packaging issues (e.g., missing native libraries,
-# flat namespace symbol resolution failures on macOS) before running
-# the full test suite.
 echo "==> Smoke test: import cudaq"
 python3 -c "import cudaq; print('cudaq version:', cudaq.__version__)"
 if [ $? -ne 0 ]; then
