@@ -16,10 +16,6 @@ from pydantic import BaseModel
 app = FastAPI()
 
 
-class ListPlatformsRequest(BaseModel):
-    name: str
-
-
 class CreateJobRequest(BaseModel):
     model_id: str
     session_id: str
@@ -127,6 +123,8 @@ async def listPlatforms(name: str | None = None):
             filter(lambda p: p.name == name, database.platforms.values())
         )
         platforms = [platform.model_dump() for platform in filtered_plts]
+
+        print("found plt", platforms)
 
         return (
             {"platforms": platforms, "total_count": len(platforms)},
