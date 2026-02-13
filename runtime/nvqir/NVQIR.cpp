@@ -701,6 +701,8 @@ void __quantum__qis__trap(std::int64_t code) {
     CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
   } else if (code == 1) {
     CUDAQ_ERROR("unsupported return type from entry-point kernel");
+  } else if (code == 2) {
+    CUDAQ_ERROR("illegal execution of unreachable code");
   } else {
     CUDAQ_ERROR("code generation failure for target");
   }

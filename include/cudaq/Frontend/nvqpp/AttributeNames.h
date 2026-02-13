@@ -22,6 +22,9 @@ static constexpr const char kernelAttrName[] = "cudaq-kernel";
 /// Name of the attribute attached to device call functions.
 static constexpr const char deviceCallAttrName[] = "cudaq-devicecall";
 
+/// Name of the attribute attached to auto-generated device call functions.
+static constexpr const char autoDeviceCallAttrName[] = "cudaq-autogen";
+
 /// Name of the annotation attribute attached to unitary generator function for
 /// user-defined custom operations
 static constexpr const char generatorAnnotation[] =

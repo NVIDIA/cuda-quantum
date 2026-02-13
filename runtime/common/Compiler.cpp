@@ -182,7 +182,14 @@ Compiler::Compiler(ServerHelper *serverHelper,
 
     // 5. Apply the target-agnostic finalization passes. This lowers the IR to
     // CFG form.
-    passPipelineConfig += ",jit-finalize-pipeline";
+    // If this is not emulation, and the codegen translation is quake, then we
+    // want to keep device calls as-is, to be submitted to the server for
+    // lowering and execution.
+    passPipelineConfig +=
+        ",jit-finalize-pipeline{lower-device-calls=" +
+        std::string{(codegenTranslation == "quake" && !emulate) ? "false"
+                                                                : "true"} +
+        "}";
 
     // 6. Apply the target-specific low-level passes.
     if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
