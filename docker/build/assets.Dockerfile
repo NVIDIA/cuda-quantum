@@ -181,6 +181,7 @@ ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
 ADD "NOTICE" /cuda-quantum/NOTICE
+ADD "CITATION.cff" /cuda-quantum/CITATION.cff
 
 ARG release_version=
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=$release_version
