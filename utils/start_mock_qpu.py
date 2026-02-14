@@ -40,6 +40,8 @@ def start_server(backend: str):
             from mock_qpu.quantinuum import app
         case "quantum_machines":
             from mock_qpu.quantum_machines import app
+        case "qudora":
+            from mock_qpu.qudora import app
         case _:
             # <backend> is in all_backend_names() but not handled!
             raise ValueError(

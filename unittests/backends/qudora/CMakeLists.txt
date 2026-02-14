@@ -6,19 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(anyon)
-if (AWSSDK_ROOT)
-  add_subdirectory(braket)
-endif()
-add_subdirectory(infleqtion)
-add_subdirectory(ionq)
-add_subdirectory(iqm)
-add_subdirectory(oqc)
-if (CUDAQ_ENABLE_QCI_BACKEND)
-  add_subdirectory(qci)
-endif()
-add_subdirectory(quantinuum)
-if (CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
-  add_subdirectory(quantum_machines)
-endif()
-add_subdirectory(qudora)
+add_backend_unittest_executable(test_qudora 
+  SOURCES QudoraTester.cpp
+  BACKEND qudora
+  BACKEND_CONFIG "qudora emulate=false url=http://localhost:62450/jobs")
+
+
+configure_file(QudoraStartServerAndTest.sh.in QudoraStartServerAndTest.sh @ONLY)
+add_test(NAME qudora-tests COMMAND bash QudoraStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
