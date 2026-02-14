@@ -27,7 +27,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu32) || 'linux-amd64-cpu32' }}
     permissions:
       contents: read
       packages: read
@@ -96,8 +96,18 @@ jobs:
           shell: bash
           run: |
             set -euo pipefail
+
+            # Set up virtual environment
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y && apt-get install -y python3-venv
+
+            VENV_DIR="$HOME/.venvs/cudaq"
+            python3 -m venv --system-site-packages "$VENV_DIR"
+            . "$VENV_DIR/bin/activate"
+
+            # Install dependencies and run tests
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client==28.0.0 --break-system-packages
+            pip install iqm-client==28.0.0
             bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
@@ -241,8 +251,8 @@ jobs:
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
               exit 1
             fi
-            python -m pip install pytest
-            python -m pytest -v --durations=0  python/tests/ \
+            pip install pytest
+            pytest -v --durations=0  python/tests/ \
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
@@ -250,7 +260,7 @@ jobs:
               exit 1
             fi
             for backendTest in python/tests/backends/*.py; do
-              python -m pytest -v --durations=0  $backendTest
+              pytest -v --durations=0  $backendTest
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,
