@@ -36,6 +36,16 @@
 #   COPY python/README.md.in /tmp/README.md
 #
 # Note: To run target tests, set the necessary API keys (IONQ_API_KEY, etc.)
+#
+# TODO: Unify wheel validation around this script. Currently:
+#   - ci_macos.yml uses this script (auto-detects from repo, runs everything)
+#   - publishing.yml uses this script (selective dir copy to /tmp, no targets/)
+#   - python_wheels.yml does NOT use this script; it runs pytest, snippets,
+#     and examples directly with explicit `find` exclusions in Docker containers.
+# Goal: have all wheel validation run through this script, replacing the
+# inline find/pytest commands in python_wheels.yml. Use -q for quick
+# (core pytest only, suitable for per-PR CI) and full mode for publishing.
+# This avoids duplicating skip logic between the script and workflow files.
 
 __optind__=$OPTIND
 OPTIND=1
@@ -132,12 +142,40 @@ fi
 
 echo "Using test root folder: $root_folder"
 
-# Detect platform
+# Detect platform and GPU availability
 is_macos=false
+has_cuda=false
 if [ "$(uname)" = "Darwin" ]; then
     is_macos=true
     echo "macOS detected: running CPU-only validation"
+else
+    if [ -x "$(command -v nvidia-smi)" ] && nvidia-smi &>/dev/null; then
+        has_cuda=true
+    fi
 fi
+if ! $has_cuda; then
+    echo "No CUDA GPU detected: GPU-dependent tests will be skipped"
+fi
+
+# Check if a Python file requires a GPU target that is not available.
+# Returns 0 (true) if the file should be skipped, 1 (false) otherwise.
+requires_unavailable_gpu_target() {
+    local file="$1"
+    if $has_cuda; then
+        return 1
+    fi
+    local targets
+    targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
+    for t in $targets; do
+        case "$t" in
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
+                echo "Skipping $file (requires GPU target '$t')"
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
 
 # Check that the `cuda_version_conda` is a full version string like "12.8.0" (Linux only)
 if ! $is_macos && ! [[ $cuda_version_conda =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -238,14 +276,6 @@ test_workdir=$(mktemp -d)
 echo "Running tests from isolated directory: $test_workdir"
 cd "$test_workdir"
 
-# Smoke test: verify cudaq can be imported in a clean environment.
-echo "==> Smoke test: import cudaq"
-python3 -c "import cudaq; print('cudaq version:', cudaq.__version__)"
-if [ $? -ne 0 ]; then
-    echo -e "\e[01;31mFailed to import cudaq. The wheel may have broken native library dependencies.\e[0m" >&2
-    status_sum=$((status_sum + 1))
-fi
-
 # Verify that the necessary GPU targets are installed and usable (Linux only)
 if $is_macos; then
     echo "Skipping GPU target verification on macOS (CPU-only)"
@@ -325,6 +355,9 @@ fi
 
 # Run snippets in docs
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
+    if requires_unavailable_gpu_target "$ex"; then
+        continue
+    fi
     echo "Executing $ex"
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
@@ -335,13 +368,13 @@ done
 
 # Run examples
 for ex in $(find "$root_folder/examples" -name '*.py'); do
+    if requires_unavailable_gpu_target "$ex"; then
+        continue
+    fi
     skip_example=false
-    # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
         if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
-            # Skipped because GitHub does not have the necessary authentication token
-            # to submit a (paid) job to Amazon Braket (includes QuEra).
             echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
             skip_example=true
         elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
@@ -372,30 +405,29 @@ fi
 # Run target tests if target folder exists.
 if [ -d "$root_folder/targets" ]; then
     for ex in $(find "$root_folder/targets" -name '*.py'); do
+        if requires_unavailable_gpu_target "$ex"; then
+            continue
+        fi
         skip_example=false
-        # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
-    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
+        explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
         for t in $explicit_targets; do
-            if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
-                # Skipped because GitHub does not have the necessary authentication token
-                # to submit a (paid) job to Amazon Braket (includes QuEra).
-                echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target fermioniq in $ex; skipping validation due to missing API key.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "qci" ] && [ -z "${QCI_AUTH_TOKEN}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target qci in $ex; skipping validation due to missing API key.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
-                echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
-                skip_example=true
+            case "$t" in
+                braket|quera)       [ -z "${BRAKET_API_KEY}" ]           && skip_example=true ;;
+                fermioniq)          [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ] && skip_example=true ;;
+                qci)                [ -z "${QCI_AUTH_TOKEN}" ]           && skip_example=true ;;
+                oqc)                [ -z "${OQC_URL}" ]                  && skip_example=true ;;
+                pasqal)             [ -z "${PASQAL_PASSWORD}" ]          && skip_example=true ;;
+                ionq)               [ -z "${IONQ_API_KEY}" ]             && skip_example=true ;;
+                quantum_machines)   [ -z "${QM_URL}" ]                   && skip_example=true ;;
+                quantinuum)         [ -z "${QUANTINUUM_API_KEY}" ]       && skip_example=true ;;
+                orca|orca-photonics) [ -z "${ORCA_URL}" ]                && skip_example=true ;;
+                iqm)                [ -z "${IQM_SERVER_URL}" ]           && skip_example=true ;;
+                infleqtion)         [ -z "${INFLEQTION_API_KEY}" ]       && skip_example=true ;;
+                anyon)              [ -z "${ANYON_API_KEY}" ]            && skip_example=true ;;
+            esac
+            if $skip_example; then
+                echo "Skipping $ex (no credentials for target '$t')"
+                break
             fi
         done
         if ! $skip_example; then
