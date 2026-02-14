@@ -13,7 +13,7 @@ import cudaq
 
 def test_bug_1875():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel_break():
         ancilla_a = cudaq.qubit()
         ancilla_b = cudaq.qubit()

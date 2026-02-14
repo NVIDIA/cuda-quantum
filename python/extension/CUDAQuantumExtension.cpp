@@ -268,6 +268,20 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "Release a qudit of given id.", py::arg("level"), py::arg("id"));
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
+  cudaqRuntime.def(
+      "reloadModule",
+      [](MlirModule mod, MlirContext targetCtx) -> MlirModule {
+        std::string str;
+        llvm::raw_string_ostream os(str);
+        unwrap(mod)->print(os);
+        auto parsed = mlir::parseSourceString<mlir::ModuleOp>(
+            os.str(), mlir::ParserConfig(unwrap(targetCtx)));
+        if (!parsed)
+          throw std::runtime_error(
+              "Failed to reload module into target context");
+        return wrap(parsed.release());
+      },
+      "Reload (stringify + parse) a module into a different MLIR context.");
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
     return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });

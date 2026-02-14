@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,7 +15,7 @@ import cudaq
 
 def test_for_ndarray():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def cost(thetas: np.ndarray):  # can pass 1D ndarray or list
         q = cudaq.qvector(4)
         i = 0

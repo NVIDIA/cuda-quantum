@@ -16,7 +16,7 @@ import cudaq
 # Check that the `qubitMeasurementFeedback` metadata is properly set.
 def test_conditional_on_vars():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test1():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -30,7 +30,7 @@ def test_conditional_on_vars():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test2():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -44,7 +44,7 @@ def test_conditional_on_vars():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test3():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -58,7 +58,7 @@ def test_conditional_on_vars():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test4():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -72,7 +72,7 @@ def test_conditional_on_vars():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test5():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -86,7 +86,7 @@ def test_conditional_on_vars():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test5
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test6():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -103,7 +103,7 @@ def test_conditional_on_vars():
 
 def test_conditional_on_measure():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test7():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -116,7 +116,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test7
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test8():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -129,7 +129,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test8
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test9():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -142,7 +142,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test9
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test10():
         data = cudaq.qvector(2)
         ancilla = cudaq.qvector(2)
@@ -155,7 +155,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test11():
         data = cudaq.qubit()
         res = mz(data)
@@ -169,7 +169,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test11
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test12():
         data = cudaq.qubit()
         res = mz(data)
@@ -184,7 +184,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test12
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test13():
         qubits = cudaq.qvector(2)
         h(qubits)
@@ -200,7 +200,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test13
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test14():
         qubits = cudaq.qvector(2)
         h(qubits)
@@ -217,7 +217,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test14
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test15():
         qubits = cudaq.qvector(2)
         h(qubits)
@@ -232,7 +232,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test15
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test16():
         qubits = cudaq.qvector(2)
         x(qubits)
@@ -248,7 +248,7 @@ def test_conditional_on_measure():
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test16
     # CHECK-SAME: qubitMeasurementFeedback = true
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def test17():
         qubits = cudaq.qvector(2)
         x(qubits)

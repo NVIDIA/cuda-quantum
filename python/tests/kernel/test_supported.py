@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from cudaq.kernel.ast_bridge import KernelSignature
 import os, sys, pytest
 import ast, inspect
 import cudaq
@@ -16,7 +17,8 @@ def test_unprocessed_ast():
     node_visitors = inspect.getmembers(
         sys.modules['ast'],
         lambda v: inspect.isclass(v) and issubclass(v, ast.NodeVisitor))
-    dummy_bridge = cudaq.PyASTBridge()
+    dummy_bridge = cudaq.PyASTBridge(
+        KernelSignature(arg_types=[], return_type=None))
 
     unsupported_nodes = set()
     for _, cls in node_visitors:

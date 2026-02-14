@@ -852,7 +852,7 @@ def test_list_comprehension_call():
 def test_list_comprehension_void():
     print("test_list_comprehension_void:")
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel1():
         q = cudaq.qvector(6)
         [h(r) for r in q]
@@ -1031,7 +1031,7 @@ def test_list_comprehension_failures():
     print("test_list_comprehension_failures:")
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel1() -> float:
             combined = [1.0 for _ in range(5)]
             res = 0
@@ -1046,7 +1046,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel2() -> int:
             q = cudaq.qvector(6)
             x(q)
@@ -1062,7 +1062,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel3() -> bool:
             q = cudaq.qvector(6)
             x(q)
@@ -1076,7 +1076,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel4() -> bool:
             q = cudaq.qvector(6)
             x(q)
@@ -1090,7 +1090,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel5() -> bool:
             vals = [[] for _ in range(3)]
             if vals[0] == [(1, 2)]:
@@ -1109,7 +1109,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel6() -> MyTuple:
             cvals = [1j for _ in range(3)]
             vals = [MyTuple(0, v) for v in cvals]
@@ -1125,7 +1125,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel7() -> int:
             v = (5, 1)
             l = [0. for _ in range(v)]
@@ -1138,7 +1138,7 @@ def test_list_comprehension_failures():
 
     try:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel8() -> int:
             l = [0. for _ in range(1.)]
             return len(l)

@@ -13,7 +13,7 @@ import cudaq
 
 def test_break():
 
-    @cudaq.kernel(verbose=False)
+    @cudaq.kernel(defer_compilation=False)
     def kernel(x: float):
         q = cudaq.qvector(4)
         for i in range(10):

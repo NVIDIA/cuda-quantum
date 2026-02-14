@@ -1441,6 +1441,20 @@ def test_call_invalid_attribute_on_a_kernel():
     assert "not supported on PyKernel" in str(e.value)
 
 
+def test_builder_survives_decorator_compilation():
+    """kernel builder context must survive @cudaq.kernel compilation."""
+    kernel = cudaq.make_kernel()
+
+    @cudaq.kernel()
+    def kernel2():
+        pass
+
+    kernel2()
+
+    # This should not crash -- the builder has its own context.
+    kernel.qalloc(1)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

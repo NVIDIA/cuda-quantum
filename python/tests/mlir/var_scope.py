@@ -13,7 +13,7 @@ import cudaq
 
 def test_var_scope():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel():
         qubits = cudaq.qvector(2)
         var_int = 42
@@ -32,7 +32,7 @@ def test_var_scope():
 
 def test_variable_name():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def slice():
         q = cudaq.qvector(4)
         # The next statement is not an error. `slice` is a local variable that

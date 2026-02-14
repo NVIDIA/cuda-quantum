@@ -15,7 +15,7 @@ import cudaq
 
 def test_qft():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def iqft(qubits: cudaq.qview):
         N = qubits.size()
         for i in range(N // 2):

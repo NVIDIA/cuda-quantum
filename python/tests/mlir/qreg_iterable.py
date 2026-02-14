@@ -13,7 +13,7 @@ import cudaq
 
 def test_qreg_iter():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def foo(N: int):
         q = cudaq.qvector(N)
         for r in q:

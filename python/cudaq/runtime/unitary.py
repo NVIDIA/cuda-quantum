@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,7 +37,7 @@ def get_unitary(kernel, *args):
     else:
         decorator = mk_decorator(kernel)
     specMod, processedArgs = decorator.handle_call_arguments(*args)
-    returnTy = (decorator.returnType
-                if decorator.returnType else decorator.get_none_type())
+    returnTy = (decorator.return_type
+                if decorator.return_type else decorator.get_none_type())
     return cudaq_runtime.get_unitary_impl(decorator.uniqName, specMod, returnTy,
                                           *processedArgs)

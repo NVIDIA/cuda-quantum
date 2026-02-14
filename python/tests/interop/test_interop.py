@@ -169,9 +169,9 @@ def test_cpp_kernel_from_python_2():
                 x(c)
             cudaq.control(cudaq_test_cpp_algo.qstd.uccsd, c, q, 2)
 
-        counts = cudaq.sample(callQftAndAnother, False)
+        counts = cudaq.sample(callUCCSD, False)
         assert len(counts) == 1 and '0000' in counts
-        counts = cudaq.sample(callQftAndAnother, True)
+        counts = cudaq.sample(callUCCSD, True)
         assert len(counts) > 1
 
     assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(

@@ -13,7 +13,7 @@ import cudaq
 
 def test_iterate_list_init():
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernel(x: float):
         q = cudaq.qvector(4)
         for i in [0, 1, 2, 3]:
