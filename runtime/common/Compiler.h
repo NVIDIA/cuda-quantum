@@ -8,14 +8,13 @@
 #pragma once
 
 #include "JIT.h"
-#include "ServerHelper.h"
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace cudaq {
-class ServerHElper;
+class ServerHelper;
 struct KernelExecution;
 class ExecutionContext;
 class noise_model;

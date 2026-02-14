@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "Compiler.h"
+#include "ServerHelper.h"
 #include "common/ArgumentConversion.h"
 #include "common/CodeGenConfig.h"
 #include "common/DeviceCodeRegistry.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
-#include "common/Executor.h"
 #include "common/FmtCore.h"
 #include "common/NoiseModel.h"
 #include "common/Resources.h"
@@ -25,9 +25,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/Support/Base64.h"
-#include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
