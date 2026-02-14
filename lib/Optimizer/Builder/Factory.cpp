@@ -54,7 +54,9 @@ Type genBufferType(Type ty) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
       SmallVector<Type> mems = {
-          cudaq::cc::PointerType::get(vecTy.getElementType()), i64Ty};
+          cudaq::cc::PointerType::get(
+              genBufferType<isOutput>(vecTy.getElementType())),
+          i64Ty};
       return cudaq::cc::StructType::get(ctx, mems);
     }
     return i64Ty;
@@ -70,6 +72,10 @@ Type genBufferType(Type ty) {
   if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
     assert(!cudaq::cc::isDynamicType(ty) && "must be a type of static extent");
     return ty;
+  }
+  if (isa<quake::MeasureType>(ty)) {
+    auto i32Ty = IntegerType::get(ctx, 32);
+    return cudaq::cc::StructType::get(ctx, {i32Ty, i32Ty});
   }
   return ty;
 }
@@ -430,6 +436,13 @@ Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
     return cc::PointerType::get(factory::stlVectorType(
         IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));
   }
+  if (isa<quake::MeasureType>(ty)) {
+    auto i32Ty = IntegerType::get(ty.getContext(), 32);
+    return cudaq::cc::StructType::get(ty.getContext(), {i32Ty, i32Ty});
+  }
+  if (auto ptrTy = dyn_cast<cc::PointerType>(ty))
+    return cc::PointerType::get(
+        convertToHostSideType(ptrTy.getElementType(), mod));
   return ty;
 }
 
@@ -644,7 +657,7 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
       hasSRet = true;
     } else {
       assert(funcTy.getNumResults() == 1);
-      resultTy = funcTy.getResult(0);
+      resultTy = convertToHostSideType(funcTy.getResult(0), module);
     }
   }
   // If this kernel is a plain old function or a static member function, we

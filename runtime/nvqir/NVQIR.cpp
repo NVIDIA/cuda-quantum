@@ -671,19 +671,25 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
 }
 
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
-  auto *ctx = cudaq::getExecutionContext();
-  if (ctx && ctx->name == "run") {
-
-    std::string regName(reinterpret_cast<const char *>(name));
-    auto qI = qubitToSizeT(measRes2QB[r]);
-    auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
-    quantumRTGenericRecordOutput("RESULT", (b ? 1 : 0), regName.c_str());
+  std::string regName(reinterpret_cast<const char *>(name));
+  // Resolve the Result* to a boolean value and write to the output log.
+  // Base profile - value stored in measRes2Val
+  auto iter = measRes2Val.find(r);
+  if (iter != measRes2Val.end()) {
+    quantumRTGenericRecordOutput("RESULT", (iter->second ? 1 : 0),
+                                 regName.c_str());
     return;
   }
-
-  if (name && qubitPtrIsIndex)
-    __quantum__qis__mz__to__register(measRes2QB[r],
-                                     reinterpret_cast<const char *>(name));
+  // Full QIR - r is ResultOne or ResultZero (measurement already happened)
+  if (r == ResultOne || r == ResultZero) {
+    bool val = (r == ResultOne);
+    quantumRTGenericRecordOutput("RESULT", (val ? 1 : 0), regName.c_str());
+    return;
+  }
+  // Fallback - use qubit mapping and re-measure
+  auto qI = qubitToSizeT(measRes2QB[r]);
+  auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
+  quantumRTGenericRecordOutput("RESULT", (b ? 1 : 0), regName.c_str());
 }
 
 static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {

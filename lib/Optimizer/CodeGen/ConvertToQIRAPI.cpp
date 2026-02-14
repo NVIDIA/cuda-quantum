@@ -134,6 +134,29 @@ struct QIRAPITypeConverter : public TypeConverter {
     addConversion(
         [&](quake::MeasureType ty) { return getResultType(ty.getContext()); });
     addConversion([&](quake::StruqType ty) { return convertStruqType(ty); });
+    addConversion([&](cudaq::cc::StdvecType ty) {
+      return cudaq::cc::StdvecType::get(ty.getContext(),
+                                        convertType(ty.getElementType()));
+    });
+    addConversion([&](cudaq::cc::ArrayType ty) {
+      auto newEleTy = convertType(ty.getElementType());
+      auto size = ty.getSize();
+      if (size)
+        return cudaq::cc::ArrayType::get(ty.getContext(), newEleTy, size);
+      return cudaq::cc::ArrayType::get(newEleTy);
+    });
+    addConversion([&](cudaq::cc::StructType ty) -> Type {
+      SmallVector<Type> members;
+      for (auto memTy : ty.getMembers())
+        members.push_back(convertType(memTy));
+      if (ty.getName())
+        return cudaq::cc::StructType::get(ty.getContext(), ty.getName(),
+                                          members, ty.getBitSize(),
+                                          ty.getAlignment(), ty.getPacked());
+      return cudaq::cc::StructType::get(ty.getContext(), members,
+                                        ty.getBitSize(), ty.getAlignment(),
+                                        ty.getPacked());
+    });
   }
 
   Type convertFunctionType(FunctionType ty) {
@@ -579,8 +602,9 @@ struct DiscriminateOpRewrite
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
     Value m = adaptor.getMeasurement();
-    auto i1PtrTy = cudaq::cc::PointerType::get(rewriter.getI1Type());
-    auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
+    auto resultTy = typeConverter->convertType(disc.getResult().getType());
+    auto ptrTy = cudaq::cc::PointerType::get(resultTy);
+    auto cast = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, m);
     rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, cast);
     return success();
   }
@@ -1618,6 +1642,24 @@ struct OpInterfacePattern : public OpConversionPattern<OP> {
   matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto newResultTy = getTypeConverter()->convertType(op.getType());
+
+    // Check if result type changed
+    bool resultChanged = (newResultTy != op.getType());
+
+    // Check if any operand types changed
+    bool operandsChanged = false;
+    for (auto [oldOp, newOp] :
+         llvm::zip(op->getOperands(), adaptor.getOperands())) {
+      if (oldOp.getType() != newOp.getType()) {
+        operandsChanged = true;
+        break;
+      }
+    }
+
+    // Only convert if something actually changed
+    if (!resultChanged && !operandsChanged)
+      return failure();
+
     rewriter.replaceOpWithNewOp<OP>(op, newResultTy, adaptor.getOperands(),
                                     op->getAttrs());
     return success();
@@ -1631,6 +1673,9 @@ using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
 using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
+using ComputePtrOpPattern = OpInterfacePattern<cudaq::cc::ComputePtrOp>;
+using StdvecInitOpPattern = OpInterfacePattern<cudaq::cc::StdvecInitOp>;
+using StdvecDataOpPattern = OpInterfacePattern<cudaq::cc::StdvecDataOp>;
 
 struct InstantiateCallablePattern
     : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
@@ -1658,6 +1703,18 @@ struct StoreOpPattern : public OpConversionPattern<cudaq::cc::StoreOp> {
   matchAndRewrite(cudaq::cc::StoreOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<cudaq::cc::StoreOp>(
+        op, TypeRange{}, adaptor.getOperands(), op->getAttrs());
+    return success();
+  }
+};
+
+struct LogOutputOpPattern : public OpConversionPattern<cudaq::cc::LogOutputOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::LogOutputOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<cudaq::cc::LogOutputOp>(
         op, TypeRange{}, adaptor.getOperands(), op->getAttrs());
     return success();
   }
@@ -1737,14 +1794,15 @@ struct CallableClosurePattern
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
-                  CallableFuncPattern, CallCallableOpPattern,
-                  CallIndirectCallableOpPattern, CallIndirectOpPattern,
-                  CallOpPattern, CallNoInlineOpPattern, CallVarargOpPattern,
-                  CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
-                  FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
-                  InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
-                  SelectOpPattern, StoreOpPattern, UndefOpPattern>(
+  patterns.insert<
+      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
+      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
+      CallIndirectOpPattern, CallOpPattern, CallNoInlineOpPattern,
+      CallVarargOpPattern, CastOpPattern, ComputePtrOpPattern,
+      CondBranchOpPattern, CreateLambdaPattern, FuncConstantPattern,
+      FuncSignaturePattern, FuncToPtrPattern, InstantiateCallablePattern,
+      LoadOpPattern, LogOutputOpPattern, PoisonOpPattern, SelectOpPattern,
+      StdvecInitOpPattern, StdvecDataOpPattern, StoreOpPattern, UndefOpPattern>(
       typeConverter, ctx);
 }
 
@@ -2017,7 +2075,8 @@ struct QuakeToQIRAPIPass
         cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
         cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
         cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
-        cudaq::cc::LoadOp>([&](Operation *op) {
+        cudaq::cc::LoadOp, cudaq::cc::ComputePtrOp, cudaq::cc::StdvecInitOp,
+        cudaq::cc::StdvecDataOp, cudaq::cc::LogOutputOp>([&](Operation *op) {
       for (auto opnd : op->getOperands())
         if (hasQuakeType(opnd.getType()))
           return false;
@@ -2035,6 +2094,16 @@ struct QuakeToQIRAPIPass
   static bool hasQuakeType(Type ty) {
     if (auto pty = dyn_cast<cudaq::cc::PointerType>(ty))
       return hasQuakeType(pty.getElementType());
+    if (auto aty = dyn_cast<cudaq::cc::ArrayType>(ty))
+      return hasQuakeType(aty.getElementType());
+    if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty))
+      return hasQuakeType(sty.getElementType());
+    if (auto sty = dyn_cast<cudaq::cc::StructType>(ty)) {
+      for (auto memTy : sty.getMembers())
+        if (hasQuakeType(memTy))
+          return true;
+      return false;
+    }
     if (auto cty = dyn_cast<cudaq::cc::CallableType>(ty))
       return hasQuakeType(cty.getSignature());
     if (auto cty = dyn_cast<cudaq::cc::IndirectCallableType>(ty))

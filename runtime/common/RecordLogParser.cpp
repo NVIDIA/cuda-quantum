@@ -105,77 +105,6 @@ void cudaq::RecordLogParser::handleOutput(
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
   cudaq::trim(recLabel);
-  if (recType == "RESULT") {
-    // Sample-type QIR output, where we have an array of `RESULT` per shot. For
-    // example,
-    //  START
-    //  OUTPUT    RESULT  1       r00000
-    //  ....
-    //  OUTPUT    RESULT  1       r00009
-    //  END       0
-
-    currentOutput = OutputType::RESULT;
-    const bool isUninitializedContainer =
-        (containerMeta.m_type == ContainerType::NONE) ||
-        (containerMeta.m_type == ContainerType::ARRAY &&
-         containerMeta.elementCount == 0);
-    if (isUninitializedContainer) {
-      // NOTE: This is a temporary workaround until all backends consistently
-      // use the new transformation pass that wraps result records inside an
-      // array record output. For now, we permit "naked" RESULT records, i.e.,
-      // if the QIR produced by a sampled kernel emits a sequence of RESULT
-      // records without enclosing them in an ARRAY, we interpret them
-      // collectively as an array of results.
-      // NOTE: This assumption prevents us from correctly supporting `run` with
-      // `qir-base` profile.
-      containerMeta.m_type = ContainerType::ARRAY;
-      containerMeta.elementCount =
-          std::stoul(metadata[ResultCountMetadataName]);
-      containerMeta.arrayType = "i1";
-      preallocateArray();
-    }
-
-    // Note: For ordered schema, we expect the results are sequential in the
-    // same order that mz operations are called. This may include results in
-    // named registers (specified in kernel code) and other auto-generated
-    // register names. If index cannot be extracted from the label, we fall back
-    // to using this mechanism.
-    auto idxLabel = std::to_string(containerMeta.processedElements);
-
-    // Get the index from the label, if feasible.
-    /// TODO: The `sample` API should be updated to not allow explicit
-    /// measurement operations in the kernel when targeting hardware backends.
-    // Until then, we handle both cases here - auto-generated labels like
-    // r00000, r00001, ... and named results like result%0, result%1, ...
-    if (!recLabel.empty()) {
-      std::size_t percentPos = recLabel.find('%');
-      if (percentPos != std::string::npos) {
-        idxLabel = recLabel.substr(percentPos + 1);
-      }
-      // This logic is fragile; for example user may have only one mz assigned
-      // to variable like r00001 and it will be interpreted as index 1, and
-      // cause `Array index out of bounds` error. The proper fix is to disallow
-      // explicit mz operations in sampled kernels. Also, `run` is appropriate
-      // for getting sub-register results.
-      else if (recLabel.size() == 6 && recLabel[0] == 'r') {
-        // check that the last 5 characters are all digits
-        bool allDigits = true;
-        for (std::size_t i = 1; i < 6; ++i) {
-          if (recLabel[i] < '0' || recLabel[i] > '9') {
-            allDigits = false;
-            break;
-          }
-        }
-        if (allDigits) {
-          idxLabel = recLabel.substr(1);
-        }
-      }
-    }
-
-    processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
-    containerMeta.processedElements++;
-    return;
-  }
   if (recType == "ARRAY") {
     containerMeta.m_type = ContainerType::ARRAY;
     containerMeta.elementCount = std::stoul(recValue);
@@ -196,6 +125,8 @@ void cudaq::RecordLogParser::handleOutput(
     }
     return;
   }
+  if (recType == "RESULT")
+    currentOutput = OutputType::RESULT;
   if (recType == "BOOL")
     currentOutput = OutputType::BOOL;
   else if (recType == "INT")
@@ -223,6 +154,8 @@ void cudaq::RecordLogParser::handleOutput(
 cudaq::details::DataHandlerBase &
 cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
   // Static handlers for different data types
+  static details::DataHandler<cudaq::measure_result> measureResultHandler(
+      std::make_unique<details::MeasureResultConverter>());
   static details::DataHandler<bool> boolHandler(
       std::make_unique<details::BooleanConverter>());
   static details::DataHandler<std::int8_t> i8Handler(
@@ -238,6 +171,8 @@ cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
   static details::DataHandler<double> f64Handler(
       std::make_unique<details::FloatConverter<double>>());
   // Map data type to the corresponding handler
+  if (dataType == "result")
+    return measureResultHandler;
   if (dataType == "i1")
     return boolHandler;
   else if (dataType == "i8")
@@ -279,7 +214,7 @@ void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
   // For result type, we don't use the record label (register name) as the type
   // annotation.
   if (currentOutput == OutputType::RESULT)
-    label = "i1";
+    label = "result";
   if (label.empty()) {
     if (currentOutput == OutputType::BOOL)
       label = "i1";

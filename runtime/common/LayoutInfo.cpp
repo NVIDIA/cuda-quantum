@@ -46,6 +46,8 @@ cudaq::LayoutInfoType extractLayout(const std::string &kernelName,
     return kernelFunc.getResultTypes()[0];
   }();
 
+  returnTy = cudaq::opt::factory::convertToHostSideType(returnTy, moduleOp);
+
   auto attr = moduleOp->getAttr(cudaq::opt::factory::targetDataLayoutAttrName);
   if (!attr)
     throw std::runtime_error("module is malformed. missing data layout.");
