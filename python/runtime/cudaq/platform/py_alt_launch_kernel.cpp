@@ -369,6 +369,10 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
   for (auto [i, zippy] : llvm::enumerate(llvm::zip(args, mlirTys))) {
     py::object arg = py::reinterpret_borrow<py::object>(std::get<0>(zippy));
     Type kernelArgTy = std::get<1>(zippy);
+    if (arg.is_none()) {
+      argData.emplace_back(nullptr, [](void *ptr) {});
+      continue;
+    }
     llvm::TypeSwitch<Type, void>(kernelArgTy)
         .Case([&](ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
