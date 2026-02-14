@@ -82,9 +82,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }
 
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override { return false; }
-
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
 

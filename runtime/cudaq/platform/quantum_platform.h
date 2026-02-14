@@ -131,9 +131,6 @@ public:
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
 
-  /// @brief Return whether the QPU has conditional feedback support
-  bool supports_conditional_feedback(std::size_t qpu_id = 0) const;
-
   /// @brief Return whether the QPU supports explicit measurements.
   bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
 

@@ -91,10 +91,6 @@ void bindExecutionContext(py::module &mod) {
         }
         return false;
       });
-  mod.def("supportsConditionalFeedback", []() {
-    auto &platform = cudaq::get_platform();
-    return platform.supports_conditional_feedback();
-  });
   mod.def("supportsExplicitMeasurements", []() {
     auto &platform = cudaq::get_platform();
     return platform.supports_explicit_measurements();

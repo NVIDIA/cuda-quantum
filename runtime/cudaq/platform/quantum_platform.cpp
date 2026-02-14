@@ -173,11 +173,6 @@ std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
   return platformQPUs[qpu_id]->getNumQubits();
 }
 
-bool quantum_platform::supports_conditional_feedback(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  return platformQPUs[qpu_id]->supportsConditionalFeedback();
-}
-
 bool quantum_platform::supports_explicit_measurements(
     std::size_t qpu_id) const {
   validateQpuId(qpu_id);
