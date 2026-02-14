@@ -40,7 +40,7 @@ def test_state_vector_simple():
         x.ctrl(qubits[0], qubits[1])
 
     # Get the quantum state, which should be a vector.
-    got_state = cudaq.StateMemoryView(cudaq.get_state(bell))
+    got_state = cudaq.get_state(bell)
 
     want_state = cudaq.State.from_data(
         np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
@@ -62,8 +62,7 @@ def test_state_vector_simple():
         # if not np.isclose(got_vector[i], got_vector_b[i]):
         print(f"want = {want_state[i]}")
         print(f"got = {got_vector[i]}")
-    assert np.allclose(np.array(cudaq.StateMemoryView(want_state)),
-                       np.array(got_state))
+    assert np.allclose(want_state, np.array(got_state))
     cudaq.reset_target()
 
 
@@ -72,7 +71,7 @@ def check_state_vector_integration(entity):
                           dtype=np.complex128)
 
     def objective(x):
-        got_state = cudaq.StateMemoryView(cudaq.get_state(entity, x))
+        got_state = cudaq.get_state(entity, x)
         return 1. - np.real(np.dot(want_state.transpose(), got_state))
 
     # Compute the parameters that make this kernel produce the
@@ -85,8 +84,7 @@ def check_state_vector_integration(entity):
     assert np.isclose(optimal_infidelity, 0.0, atol=1e-3)
 
     # Check the state from the kernel at the fixed parameters.
-    bell_state = cudaq.StateMemoryView(
-        cudaq.get_state(entity, optimal_parameters))
+    bell_state = cudaq.get_state(entity, optimal_parameters)
     print(bell_state)
     assert np.allclose(want_state, bell_state, atol=1e-3)
 
@@ -150,7 +148,7 @@ def test_state_density_matrix_simple():
         h(qubits[0])
         x.ctrl(qubits[0], qubits[1])
 
-    got_state = cudaq.StateMemoryView(cudaq.get_state(bell))
+    got_state = cudaq.get_state(bell)
     print(got_state)
 
     want_state = np.array([[0.5, 0.0, 0.0, 0.5], [0.0, 0.0, 0.0, 0.0],
@@ -186,7 +184,7 @@ def test_state_vector_async():
     future = cudaq.get_state_async(kernel, np.pi, np.pi / 2.)
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=np.complex128)
-    state = cudaq.StateMemoryView(future.get())
+    state = future.get()
     print(state)
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
