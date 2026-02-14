@@ -666,9 +666,10 @@ def mk_decorator(builder):
     Make a kernel decorator object from a kernel builder object to make any code
     that handles both CUDA-Q kernel object classes more unified.
     """
+    builder.compile()
     return PyKernelDecorator(None,
                              fromBuilder=True,
-                             module=builder.module,
+                             module=builder.qkeModule,
                              kernelName=builder.uniqName)
 
 
