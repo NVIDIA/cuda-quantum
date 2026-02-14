@@ -42,7 +42,7 @@
 #   - publishing.yml uses this script (selective dir copy to /tmp, no targets/)
 #   - python_wheels.yml does NOT use this script; it runs pytest, snippets,
 #     and examples directly with explicit `find` exclusions in Docker containers.
-# Goal: have all wheel validation run through this script, replacing the
+# The goal is to have all wheel validation run through this script, replacing the
 # inline find/pytest commands in python_wheels.yml. Use -q for quick
 # (core pytest only, suitable for per-PR CI) and full mode for publishing.
 # This avoids duplicating skip logic between the script and workflow files.
@@ -392,9 +392,6 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
     fi
 done
 
-# Guard: ensure snippets and examples were actually found and executed.
-# If both find commands returned zero results, the staging directory is
-# likely misconfigured (broken symlinks, missing source dirs, etc.).
 snippet_count=$(find "$root_folder/snippets" -name '*.py' 2>/dev/null | wc -l)
 example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
 if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
@@ -409,25 +406,36 @@ if [ -d "$root_folder/targets" ]; then
             continue
         fi
         skip_example=false
-        explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
+        # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
+    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
         for t in $explicit_targets; do
-            case "$t" in
-                braket|quera)       [ -z "${BRAKET_API_KEY}" ]           && skip_example=true ;;
-                fermioniq)          [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ] && skip_example=true ;;
-                qci)                [ -z "${QCI_AUTH_TOKEN}" ]           && skip_example=true ;;
-                oqc)                [ -z "${OQC_URL}" ]                  && skip_example=true ;;
-                pasqal)             [ -z "${PASQAL_PASSWORD}" ]          && skip_example=true ;;
-                ionq)               [ -z "${IONQ_API_KEY}" ]             && skip_example=true ;;
-                quantum_machines)   [ -z "${QM_URL}" ]                   && skip_example=true ;;
-                quantinuum)         [ -z "${QUANTINUUM_API_KEY}" ]       && skip_example=true ;;
-                orca|orca-photonics) [ -z "${ORCA_URL}" ]                && skip_example=true ;;
-                iqm)                [ -z "${IQM_SERVER_URL}" ]           && skip_example=true ;;
-                infleqtion)         [ -z "${INFLEQTION_API_KEY}" ]       && skip_example=true ;;
-                anyon)              [ -z "${ANYON_API_KEY}" ]            && skip_example=true ;;
-            esac
-            if $skip_example; then
-                echo "Skipping $ex (no credentials for target '$t')"
-                break
+            if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
+                # Skipped because GitHub does not have the necessary authentication token
+                # to submit a (paid) job to Amazon Braket (includes QuEra).
+                echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target fermioniq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "qci" ] && [ -z "${QCI_AUTH_TOKEN}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target qci in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "quantum_machines" ] || [ "$t" == "quantinuum" ] || \
+                 [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
+                 [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
+                # These targets require remote backends that are not available
+                # in CI or local dev without explicit setup.
+                echo "Skipping $ex (remote target '$t' not available)"
+                skip_example=true
             fi
         done
         if ! $skip_example; then
