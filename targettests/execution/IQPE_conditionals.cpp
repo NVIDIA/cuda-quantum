@@ -89,7 +89,7 @@ int main() {
 }
 
 // CHECK: Iterative QPE Results:
-// CHECK: cr0 : { 1:10 }
-// CHECK: cr1 : { 1:10 }
-// CHECK: cr2 : { 0:10 }
-// CHECK: final: { 1:10 }
+// CHECK: First : { 1:10 }
+// CHECK: Second: { 1:10 }
+// CHECK: Third : { 0:10 }
+// CHECK: Final : { 1:10 }
