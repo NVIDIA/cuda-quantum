@@ -10,6 +10,7 @@
 
 #include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
+#include "common/JIT.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"

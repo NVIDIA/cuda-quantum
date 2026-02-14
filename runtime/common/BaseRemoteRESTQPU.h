@@ -15,6 +15,7 @@
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/FmtCore.h"
+#include "common/JIT.h"
 #include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
