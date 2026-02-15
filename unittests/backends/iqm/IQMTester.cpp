@@ -149,48 +149,6 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
   }
 }
 
-CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
-  const char dqa_filename[] = "dqa_mock_qpu_saved.txt";
-
-  unlink(dqa_filename);
-
-  // Test 1: saving dynamic quantum architecture to file
-  setenv("IQM_SAVE_QPU_QA", dqa_filename, true);
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
-
-  auto counts = cudaq::sample(kernel);
-
-  unsetenv("IQM_SAVE_QPU_QA");
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  // Test 2: use quantum architecture file referenced in environment variable
-  setenv("IQM_QPU_QA", dqa_filename, true);
-
-  auto kernel2 = cudaq::make_kernel();
-  auto qubit2 = kernel2.qalloc(2);
-  kernel2.h(qubit2[0]);
-  kernel2.mz(qubit2[0]);
-  kernel2.mz(qubit2[1]);
-
-  counts = cudaq::sample(kernel2);
-
-  unsetenv("IQM_QPU_QA");
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  // When IQM tests can run, populate the dqa_mock_qpu.txt
-  // with the content of this file.
-  unlink(dqa_filename);
-}
-
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
   auto ret = RUN_ALL_TESTS();

@@ -108,6 +108,7 @@ add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
     CodeGenConfig.cpp
+    Compiler.cpp
     Environment.cpp
     JIT.cpp
     RuntimeMLIR.cpp
@@ -149,6 +150,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
+    CUDAQTargetConfigUtil
     cudaq-logger
 )
 

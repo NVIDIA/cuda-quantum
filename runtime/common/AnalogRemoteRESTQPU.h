@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include <optional>
 
 namespace cudaq {
 
@@ -53,7 +54,7 @@ public:
     std::string strArgs = charArgs;
     nlohmann::json j;
     std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, j, mapping_reorder_idx);
+    codes.emplace_back(name, strArgs, std::nullopt, j, mapping_reorder_idx);
 
     if (executionContext) {
       executor->setShots(executionContext->shots);
