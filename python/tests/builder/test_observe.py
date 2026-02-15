@@ -675,7 +675,8 @@ def test_observe_list():
 
     sum = 5.907
     for r in results:
-        sum += r.expectation() * np.real(r.get_spin().get_coefficient())
+        sum += r.expectation() * np.real(
+            next(iter(r.get_spin())).evaluate_coefficient())
     print(sum)
     want_expectation_value = -1.7487948611472093
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)
@@ -732,7 +733,8 @@ def test_combine_sweep():
         # Id term offset
         sum = 5.907
         for r in perParamResult:
-            sum += r.expectation() * np.real(r.get_spin().get_coefficient())
+            sum += r.expectation() * np.real(
+                next(iter(r.get_spin())).evaluate_coefficient())
         assert assert_close(expectedEnergy, sum, tolerance=1e-2)
 
 
