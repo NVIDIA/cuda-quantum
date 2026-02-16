@@ -123,7 +123,9 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
 
 def _run_job(job: Job):
     # Try to retrieve provided shot counts
-    model = QuantumComputationModel.from_json_str(job.payload)
+    payload = database.models[job.model_id]
+
+    model = QuantumComputationModel.from_json_str(payload)
     params = QuantumComputationParameters.from_json_str(job.parameters)
 
     # try:
