@@ -28,7 +28,8 @@ QuantumComputationParameters::fromJson(json j) {
 
   CUDAQ_INFO("from json hey {}", s);
 
-  auto o = j.value("options", {});
+  // auto o = j.value("options", {});
+  auto o = j["options"].get<json>();
 
   CUDAQ_INFO("from json 2");
 
