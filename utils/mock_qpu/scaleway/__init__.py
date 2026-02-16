@@ -19,6 +19,7 @@ from qio.core import (
     QuantumProgramResult,
 )
 
+
 class CreateJobRequest(BaseModel):
     name: str
     model_id: str
@@ -83,6 +84,7 @@ class Model(BaseModel):
 
 app = FastAPI()
 
+
 class Database:
     jobs: dict = {}
     platforms: dict = {}
@@ -102,7 +104,7 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
     name="EMU-CUDAQ-FAKE",
     provider_name="nvidia",
     backend_name="cudaq",
-    version="0.0",
+    version="0.1",
     availability="available",
     max_qubit_count=20,
     max_circuit_count=1,
@@ -113,46 +115,31 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
 )
 
 
-# @cudaq.kernel
-# def _bell_kernel():
-#     qubits = cudaq.qvector(2)
-#     h(qubits[0])
-#     x.ctrl(qubits[0], qubits[1])
-#     mz(qubits)
-
-
 def _run_job(job: Job):
-    # Try to retrieve provided shot counts
-    payload = database.models[job.model_id].payload
+    try:
+        payload = database.models[job.model_id].payload
 
-    model = QuantumComputationModel.from_json_str(payload)
-    params = QuantumComputationParameters.from_json_str(job.parameters)
+        model = QuantumComputationModel.from_json_str(payload)
+        params = QuantumComputationParameters.from_json_str(job.parameters)
 
-    # try:
-        # shot_count = json.loads(job.parameters)["shots"]
-    shot_count = params.shots
-    # except Exception as e:
-        # shot_count = 100
+        shot_count = params.shots
 
-    kernel = model.programs[0].to_cudaq_kernel()
+        kernel = model.programs[0].to_cudaq_kernel()
 
-    # Run a bell state as mock execution
-    sample_result = cudaq.sample(kernel, shots_count=shot_count)
-    job.status = "completed"
+        sample_result = cudaq.sample(kernel, shots_count=shot_count)
 
-    # Simplified qio result
-    # result = json.dumps(
-    #     {
-    #         "serialization": json.dumps(sample_result.serialize()),
-    #         "serialization_format": 3,  # CUDA-Q Sample Result
-    #         "compression_format": 1,  # No compression
-    #     }
-    # )
+        result = QuantumProgramResult.from_cudaq_sample_result(
+            sample_result
+        ).to_json_str()
 
-    result = QuantumProgramResult.from_cudaq_sample_result(sample_result).to_json_str()
-
-    job_result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result, url="")
-    database.job_results[job_result.id] = job_result
+        job_result = JobResult(
+            id=str(uuid.uuid4()), job_id=job.id, result=result, url=""
+        )
+        database.job_results[job_result.id] = job_result
+        job.status = "completed"
+    except Exception as e:
+        job.status = "error"
+        job.progress_message = str(e)
 
 
 @app.get(_BASE_PATH + "/platforms")
@@ -188,6 +175,7 @@ async def createSession(request: CreateSessionRequest):
         max_idle_duration=request.max_idle_duration,
     )
     database.sessions[session.id] = session
+
     return session.model_dump()
 
 
@@ -205,6 +193,7 @@ async def getSession(sessionId: str):
 async def createModel(request: CreateModelRequest):
     model = Model(id=str(uuid.uuid4()), payload=request.payload)
     database.models[model.id] = model
+
     return model.model_dump()
 
 
@@ -256,9 +245,7 @@ async def listJobResults(jobId: str):
     results = [
         result.model_dump()
         for result in list(
-            filter(lambda r: r.job_id == jobId,
-                   database.job_results.values()
-            )
+            filter(lambda r: r.job_id == jobId, database.job_results.values())
         )
     ]
 
