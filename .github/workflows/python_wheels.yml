@@ -171,9 +171,11 @@ jobs:
 
       - name: Extract ccache from build
         run: |
-          # Use a second build targeting the ccache-export stage
+          # The final image is scratch with only the .whl, so we target the
+          # ccache-export stage. Uses buildx to hit the
+          # same builder cache as the step above.
           mkdir -p /tmp/ccache-export
-          DOCKER_BUILDKIT=1 docker build \
+          docker buildx build \
             -f ./docker/release/cudaq.wheel.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
