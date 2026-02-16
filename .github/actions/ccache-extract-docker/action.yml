@@ -61,9 +61,19 @@ runs:
           docker rm "$container_id" >/dev/null 2>&1 || true
         fi
 
-        if [ -d "$output/.ccache" ] || [ -d "$output/$(basename "$ccache_dir")" ]; then
-          echo "Extracted ccache data to $output"
-          du -sh "$output" 2>/dev/null || true
+        # Locate the extracted ccache directory
+        if [ -d "$output/.ccache" ]; then
+          extracted="$output/.ccache"
+        elif [ -d "$output/$(basename "$ccache_dir")" ]; then
+          extracted="$output/$(basename "$ccache_dir")"
         else
           echo "No ccache data found at $ccache_dir in container."
+          exit 0
         fi
+
+        echo "Extracted ccache data to $output"
+        du -sh "$extracted" 2>/dev/null || true
+
+        # Print ccache stats (ccache is installed on the host by ccache-setup)
+        echo "=== ccache stats ==="
+        CCACHE_DIR="$extracted" ccache -s 2>/dev/null || true
