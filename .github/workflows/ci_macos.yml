@@ -86,9 +86,12 @@ jobs:
   # ============================================================================
   build_and_test:
     name: Build & Test (arm64)
-    needs: devdeps
+    needs: [devdeps, metadata]
     runs-on: macos-26
     timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
 
@@ -103,23 +106,30 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install ORAS
-        run: brew install oras
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
 
       - name: Restore prerequisites from GHCR
         run: |
           set -e  # Exit on error
-          # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
 
-          # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
           echo "=== Restored prerequisites ==="
           du -sh ~/.local || true
           du -sh ~/.llvm-project || true
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-build
+          output-path: ~/.ccache
+          registry-token: ${{ github.token }}
+          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
+          base-branch: ${{ needs.metadata.outputs.pull_request_base }}
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -140,6 +150,14 @@ jobs:
       - name: Run tests
         run: bash scripts/run_tests.sh -v
 
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: arm64-build
+          cache-path: ~/.ccache
+          registry-token: ${{ github.token }}
+          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
+
   # ============================================================================
   # Build Python wheels for all supported Python versions
   # Rebuilds MLIR Python bindings for each Python version from cached LLVM
@@ -153,6 +171,9 @@ jobs:
       fail-fast: false
     runs-on: macos-26
     timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
@@ -169,19 +190,26 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install ORAS
-        run: brew install oras
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
 
       - name: Restore prerequisites from GHCR
         run: |
           set -e  # Exit on error
-          # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
 
-          # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-wheel
+          output-path: ~/.ccache
+          registry-token: ${{ github.token }}
+          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
+          base-branch: ${{ needs.metadata.outputs.pull_request_base }}
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -209,6 +237,14 @@ jobs:
           # Find and report the built wheel
           wheel_file=$(ls dist/cuda_quantum*.whl 2>/dev/null | head -1)
           echo "Built wheel: $wheel_file"
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: arm64-wheel
+          cache-path: ~/.ccache
+          registry-token: ${{ github.token }}
+          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -269,6 +305,9 @@ jobs:
     needs: [devdeps, metadata]
     runs-on: macos-26
     timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
     env:
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
@@ -285,19 +324,26 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install ORAS
-        run: brew install oras
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
 
       - name: Restore prerequisites from GHCR
         run: |
           set -e  # Exit on error
-          # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
 
-          # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-installer
+          output-path: ~/.ccache
+          registry-token: ${{ github.token }}
+          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
+          base-branch: ${{ needs.metadata.outputs.pull_request_base }}
 
       - name: Install dependencies
         run: |
@@ -316,6 +362,14 @@ jobs:
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: arm64-installer
+          cache-path: ~/.ccache
+          registry-token: ${{ github.token }}
+          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
 
       - name: Build installer
         run: |

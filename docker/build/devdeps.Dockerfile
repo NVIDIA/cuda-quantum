@@ -155,7 +155,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
 ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git gdb ninja-build file lldb \
+        git gdb ninja-build file lldb ccache \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
         -r /cuda-quantum/requirements-dev.txt \

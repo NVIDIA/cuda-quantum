@@ -19,6 +19,10 @@
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.6-gcc11-main
+# Default empty stage for ccache data. CI overrides this with
+# --build-context ccache-data=<path> to inject a pre-populated cache,
+# while local/devcontainer builds get a harmless no-op (empty scratch).
+FROM scratch AS ccache-data
 FROM $base_image AS wheelbuild
 
 ARG release_version=
@@ -29,6 +33,14 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 ARG python_version=3.10
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true; \
+    else \
+        echo "No ccache data injected using empty scratch stage."; \
+    fi
 RUN echo "Building MLIR bindings for python${python_version}" && \
     python${python_version} -m pip install --no-cache-dir numpy && \
     rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
@@ -45,7 +57,13 @@ RUN cd /cuda-quantum && \
         -c $(echo ${CUDA_VERSION} | cut -d . -f1) \
         -o wheelhouse \
         -a assets \
-        -v
+        -v && \
+    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true)
+
+# Export ccache data so CI can extract it for persistence.
+# Build with --target ccache-export --output type=local,dest=/tmp/ccache-out
+FROM scratch AS ccache-export
+COPY --from=wheelbuild /root/.ccache /ccache
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 

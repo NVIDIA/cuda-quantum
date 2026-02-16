@@ -1,0 +1,96 @@
+name: ccache-push
+description: Push ccache data to GHCR via ORAS
+
+inputs:
+  cache-key:
+    description: 'Tag prefix for the ccache artifact, e.g. arm64-build, amd64-devenv'
+    required: true
+  cache-path:
+    description: 'Path to the ccache data directory to push (e.g. ~/.ccache)'
+    required: true
+  registry-token:
+    description: 'GitHub token for GHCR authentication'
+    required: true
+  pr-number:
+    description: 'PR number for tag (empty for non-PR builds)'
+    required: false
+    default: ''
+  miss-threshold:
+    description: 'Skip push if ccache miss rate is below this percentage. Set to 0 to always push.'
+    required: false
+    default: '10'
+  ref-name:
+    description: 'Branch name used for tag when not a PR build'
+    required: false
+    default: ${{ github.ref_name }}
+
+outputs:
+  pushed:
+    description: 'Whether the ccache artifact was pushed'
+    value: ${{ steps.push.outputs.pushed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push ccache to GHCR
+      id: push
+      continue-on-error: true
+      shell: bash
+      run: |
+        cache_path="${{ inputs.cache-path }}"
+        miss_threshold="${{ inputs.miss-threshold }}"
+
+        # Expand ~ in cache_path
+        cache_path="${cache_path/#\~/$HOME}"
+
+        # Validate cache path has content
+        if [ ! -d "$cache_path" ] || [ -z "$(ls -A "$cache_path" 2>/dev/null)" ]; then
+          echo "No ccache data found at $cache_path; skipping push."
+          echo "pushed=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Print full stats and check miss rate if ccache is available
+        if command -v ccache &>/dev/null; then
+          echo "=== ccache stats ==="
+          ccache -s 2>/dev/null || true
+        fi
+        if [ "$miss_threshold" -gt 0 ] 2>/dev/null && command -v ccache &>/dev/null; then
+          cache_miss=$(ccache -s 2>/dev/null | grep "cache miss" | grep -o '[0-9]*' | head -1)
+          cache_hit=$(ccache -s 2>/dev/null | grep "cache hit" | grep -o '[0-9]*' | head -1)
+          total=$((${cache_hit:-0} + ${cache_miss:-0}))
+          if [ "$total" -gt 0 ]; then
+            miss_pct=$((cache_miss * 100 / total))
+            echo "ccache miss rate: ${miss_pct}% ($cache_miss misses / $total total)"
+            if [ "$miss_pct" -lt "$miss_threshold" ]; then
+              echo "Miss rate below ${miss_threshold}%; skipping push."
+              echo "pushed=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          else
+            echo "No compilations detected; skipping push."
+            echo "pushed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+
+        # Determine tag
+        repo_owner="${{ github.repository_owner }}"
+        platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
+        image="ghcr.io/${repo_owner,,}/cuda-quantum-${platform}-ccache"
+        cache_key="${{ inputs.cache-key }}"
+        pr_number="${{ inputs.pr-number }}"
+
+        if [ -n "$pr_number" ]; then
+          tag="${cache_key}-pr-${pr_number}"
+        else
+          tag="${cache_key}-${{ inputs.ref-name }}"
+        fi
+
+        # Tar the contents of the cache directory (not the directory itself)
+        tar -czf ccache-data.tar.gz -C "$cache_path" .
+        echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+        oras push "$image:$tag" ccache-data.tar.gz
+        rm -f ccache-data.tar.gz
+        echo "Pushed ccache to $image:$tag"
+        echo "pushed=true" >> $GITHUB_OUTPUT

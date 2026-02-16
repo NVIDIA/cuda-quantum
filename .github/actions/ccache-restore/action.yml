@@ -1,0 +1,75 @@
+name: ccache-restore
+description: Restore ccache data from GHCR via ORAS
+
+inputs:
+  cache-key:
+    description: 'Tag prefix for the ccache artifact, e.g. arm64-build, amd64-devenv'
+    required: true
+  output-path:
+    description: 'Directory to extract ccache data into'
+    required: false
+    default: '/tmp/ccache-data'
+  registry-token:
+    description: 'GitHub token for GHCR authentication'
+    required: true
+  pr-number:
+    description: 'PR number for tag lookup (empty for non-PR builds)'
+    required: false
+    default: ''
+  base-branch:
+    description: 'Base branch to fall back to when PR cache is not found'
+    required: false
+    default: 'main'
+
+outputs:
+  restored:
+    description: 'Whether a ccache artifact was successfully restored'
+    value: ${{ steps.restore.outputs.restored }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore ccache from GHCR
+      id: restore
+      continue-on-error: true
+      shell: bash
+      run: |
+        repo_owner="${{ github.repository_owner }}"
+        platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
+        image="ghcr.io/${repo_owner,,}/cuda-quantum-${platform}-ccache"
+        cache_key="${{ inputs.cache-key }}"
+        pr_number="${{ inputs.pr-number }}"
+        base_branch="${{ inputs.base-branch }}"
+
+        echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+
+        mkdir -p "${{ inputs.output-path }}"
+
+        # Try tags in priority order: PR-specific cache first (most relevant),
+        # then the PR's target branch (e.g. releases/0.9), then main as
+        # final fallback.
+        tags=()
+        if [ -n "$pr_number" ]; then
+          tags+=("${cache_key}-pr-${pr_number}")
+        fi
+        if [ -n "$base_branch" ]; then
+          tags+=("${cache_key}-${base_branch}")
+        fi
+        tags+=("${cache_key}-main")
+
+        restored=false
+        for tag in "${tags[@]}"; do
+          echo "Trying $image:$tag ..."
+          if oras pull "$image:$tag" 2>/dev/null; then
+            tar -xzf ccache-data.tar.gz -C "${{ inputs.output-path }}"
+            rm -f ccache-data.tar.gz
+            echo "Restored ccache from $image:$tag"
+            restored=true
+            break
+          fi
+        done
+
+        if ! $restored; then
+          echo "No ccache found; starting fresh."
+        fi
+        echo "restored=$restored" >> $GITHUB_OUTPUT

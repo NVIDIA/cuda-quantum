@@ -18,6 +18,10 @@
 #    as the LLVM dependencies have been built with.
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc11-main
+# Default empty stage for ccache data. CI overrides this with
+# --build-context ccache-data=<path> to inject a pre-populated cache,
+# while the devcontainer builds get a the scratch as a noop.
+FROM scratch AS ccache-data
 FROM $base_image
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
@@ -48,7 +52,15 @@ RUN if [ -n "$mpi" ]; \
 # to create the released cuda-quantum image.
 ARG install=
 ARG git_source_sha=xxxxxxxx
-RUN if [ -n "$install" ]; \
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true; \
+    else \
+        echo "No ccache data injected using empty scratch stage."; \
+    fi && \
+    if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
@@ -61,4 +73,5 @@ RUN if [ -n "$install" ]; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \
         fi; \
         echo "source-sha: $git_source_sha" > "$CUDAQ_INSTALL_PREFIX/build_info.txt"; \
-    fi
+    fi && \
+    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true)

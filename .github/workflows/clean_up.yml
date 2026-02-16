@@ -71,7 +71,7 @@ jobs:
 
     strategy:
       matrix:
-        image_name: [cuda-quantum, cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devdeps, open-mpi]
+        image_name: [cuda-quantum, cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devdeps, open-mpi, cuda-quantum-macos-devdeps, cuda-quantum-macos-devdeps-ci, cuda-quantum-macos-ccache, cuda-quantum-linux-ccache]
       fail-fast: false
 
     steps:
@@ -251,3 +251,35 @@ jobs:
 
           git commit -m "Cleaning up stale docs preview for PRs open > 5 days."
           git push
+  pr_ccache_cleanup:
+    name: Clean up PR ccache artifacts
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+
+    steps:
+      - run: |
+          pr_number=${{ github.event.pull_request.number }}
+          repo_owner=${{ github.repository_owner }}
+
+          for package in cuda-quantum-macos-ccache cuda-quantum-linux-ccache; do
+            echo "Cleaning up $package for PR #${pr_number}..."
+            versions=`gh api --paginate \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /orgs/${repo_owner}/packages/container/${package}/versions 2>/dev/null || echo "[]"`
+
+            echo "$versions" | jq -r ".[] | select(.metadata.container.tags[] | test(\"pr-${pr_number}$\")).id" | while read version_id; do
+              if [ -n "$version_id" ]; then
+                echo "Deleting version $version_id from $package"
+                gh api --method DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  /orgs/${repo_owner}/packages/container/${package}/versions/${version_id} 2>/dev/null || true
+              fi
+            done
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

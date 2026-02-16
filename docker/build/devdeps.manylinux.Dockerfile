@@ -71,7 +71,7 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
 RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
-        ninja-build cmake python3-devel \
+        ninja-build cmake python3-devel ccache \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \

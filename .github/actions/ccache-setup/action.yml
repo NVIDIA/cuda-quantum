@@ -1,0 +1,43 @@
+name: ccache-setup
+description: Install ORAS and ccache, configure ccache settings
+
+inputs:
+  max-size:
+    description: 'Maximum ccache cache size'
+    required: false
+    default: '3G'
+  compression:
+    description: 'Enable ccache compression'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install ORAS
+      shell: bash
+      run: |
+        if command -v oras &>/dev/null; then
+          echo "ORAS already installed: $(oras version)"
+          exit 0
+        fi
+        if [ "$(uname)" = "Darwin" ]; then
+          brew install oras
+        else
+          sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends oras
+        fi
+
+    - name: Install and configure ccache
+      shell: bash
+      run: |
+        if ! command -v ccache &>/dev/null; then
+          if [ "$(uname)" = "Darwin" ]; then
+            brew install ccache
+          else
+            echo "ccache not found; skipping configuration (expected inside Docker image)."
+            exit 0
+          fi
+        fi
+        ccache --set-config=max_size=${{ inputs.max-size }}
+        ccache --set-config=compression=${{ inputs.compression }}
+        ccache -z
