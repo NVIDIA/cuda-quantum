@@ -84,8 +84,8 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   } else if (codegenTranslation.starts_with("qasm2")) {
     for (auto &op : moduleOp) {
       if (op.hasAttr(cudaq::entryPointAttrName) && op.hasAttr("output_names")) {
-        if (auto strAttr = op.getAttr(cudaq::opt::QIROutputNamesAttrName)
-                               .dyn_cast_or_null<mlir::StringAttr>()) {
+        if (auto strAttr = mlir::dyn_cast_if_present<mlir::StringAttr>(
+                op.getAttr(cudaq::opt::QIROutputNamesAttrName))) {
           output_names = nlohmann::json::parse(strAttr.getValue());
           break;
         }
@@ -636,8 +636,8 @@ mlir::ModuleOp Compiler::lowerQuakeCodeBuildModule(
       auto funcType = builder.getFunctionType(argTypes, resTypes);
 
       // Create a *declaration* (no body) for the callback function.
-      [[maybe_unused]] auto decl = builder.create<mlir::func::FuncOp>(
-          deviceCall.getLoc(), calleeName, funcType);
+      [[maybe_unused]] auto decl = mlir::func::FuncOp::create(
+          builder, deviceCall.getLoc(), calleeName, funcType);
       decl.setPrivate();
       deviceCallCallees.insert(calleeName.str());
     });
@@ -650,7 +650,7 @@ mlir::ModuleOp Compiler::lowerQuakeCodeBuildModule(
   // FIXME this should be added to the builder.
   if (!func->hasAttr(cudaq::entryPointAttrName))
     func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-  auto moduleOp = builder.create<mlir::ModuleOp>();
+  auto moduleOp = mlir::ModuleOp::create(builder);
   moduleOp->setAttrs(m_module->getAttrDictionary());
   auto mangledNameMap = m_module->getAttrOfType<mlir::DictionaryAttr>(
       cudaq::runtime::mangledNameMap);

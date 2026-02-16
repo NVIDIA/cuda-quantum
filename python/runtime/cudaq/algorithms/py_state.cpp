@@ -15,6 +15,7 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/ndarray.h>
 
 using namespace cudaq;
 
@@ -301,81 +302,69 @@ void cudaq::bindPyState(py::module_ &mod, LinkedLibraryHolder &holder) {
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
 
   py::class_<state>(
-      mod, "State", py::buffer_protocol(),
+      mod, "State",
       "A data-type representing the quantum state of the internal simulator. "
       "This type is not user-constructible and instances can only be retrieved "
       "via the `cudaq.get_state(...)` function or the static "
       "`cudaq.State.from_data()` method.\n")
-      .def_buffer([](const state &self) {
-        if (self.get_num_tensors() != 1)
-          throw std::runtime_error("Numpy interop is only supported for vector "
-                                   "and matrix state data.");
+      .def(
+          "to_numpy",
+          [](const state &self) -> py::object {
+            if (self.get_num_tensors() != 1)
+              throw std::runtime_error(
+                  "Numpy interop is only supported for vector "
+                  "and matrix state data.");
 
-        // This method is used by Pybind to enable interoperability with NumPy
-        // array data. We therefore must be careful since the state data may
-        // actually be on GPU device.
+            auto stateVector = self.get_tensor();
+            auto precision = self.get_precision();
+            std::vector<size_t> shape(stateVector.extents.begin(),
+                                      stateVector.extents.end());
 
-        // Get the data pointer.
-        // Data may be on GPU device, if so we must make a copy to host.
-        // If users do not want this copy, they will have to operate apart
-        // from Numpy
-        void *dataPtr = nullptr;
-        auto stateVector = self.get_tensor();
-        auto precision = self.get_precision();
-        if (self.is_on_gpu()) {
-          // This is device data, transfer to host, which gives us
-          // ownership of a new data pointer on host. Store it globally
-          // here so we ensure that it gets cleaned up.
-          auto numElements = stateVector.get_num_elements();
-          if (precision == SimulationState::precision::fp32) {
-            auto *hostData = new std::complex<float>[numElements];
-            self.to_host(hostData, numElements);
-            dataPtr = reinterpret_cast<void *>(hostData);
-          } else {
-            auto *hostData = new std::complex<double>[numElements];
-            self.to_host(hostData, numElements);
-            dataPtr = reinterpret_cast<void *>(hostData);
-          }
-          hostDataFromDevice.emplace_back(dataPtr, [precision](void *data) {
-            CUDAQ_INFO("freeing data that was copied from GPU device for "
-                       "compatibility with NumPy");
-            // Use delete[] to match new[] allocation (not free())
-            if (precision == SimulationState::precision::fp32)
-              delete[] static_cast<std::complex<float> *>(data);
-            else
-              delete[] static_cast<std::complex<double> *>(data);
-          });
-        } else {
-          dataPtr = self.get_tensor().data;
-        }
+            if (self.is_on_gpu()) {
+              auto numElements = stateVector.get_num_elements();
 
-        // We need to know the precision of the simulation data to get the
-        // data type size and the format descriptor
-        auto [dataTypeSize, desc] =
-            precision == SimulationState::precision::fp32
-                ? std::make_tuple(
-                      sizeof(std::complex<float>),
-                      py::format_descriptor<std::complex<float>>::format())
-                : std::make_tuple(
-                      sizeof(std::complex<double>),
-                      py::format_descriptor<std::complex<double>>::format());
+              if (precision == SimulationState::precision::fp32) {
+                auto *hostData = new std::complex<float>[numElements];
+                self.to_host(hostData, numElements);
 
-        // Get the shape of the data. Return buffer info in a correctly
-        // shaped manner.
-        auto shape = self.get_tensor().extents;
-        if (shape.size() != 1)
-          return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
-                                 desc, 2,               /* ndim */
-                                 {shape[0], shape[1]},  /* shape */
-                                 {dataTypeSize * static_cast<ssize_t>(shape[1]),
-                                  dataTypeSize}, /* strides */
-                                 true            /* readonly */
-          );
-        return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
-                               desc, 1,               /* ndim */
-                               {shape[0]},            /* shape */
-                               {dataTypeSize});
-      })
+                py::capsule owner(hostData, [](void *p) noexcept {
+                  CUDAQ_INFO("freeing data that was copied from GPU device "
+                             "for compatibility with NumPy");
+                  delete[] static_cast<std::complex<float> *>(p);
+                });
+
+                return py::cast(py::ndarray<py::numpy, std::complex<float>>(
+                    hostData, shape.size(), shape.data(), owner));
+              } else {
+                auto *hostData = new std::complex<double>[numElements];
+                self.to_host(hostData, numElements);
+
+                py::capsule owner(hostData, [](void *p) noexcept {
+                  CUDAQ_INFO("freeing data that was copied from GPU device "
+                             "for compatibility with NumPy");
+                  delete[] static_cast<std::complex<double> *>(p);
+                });
+
+                return py::cast(py::ndarray<py::numpy, std::complex<double>>(
+                    hostData, shape.size(), shape.data(), owner));
+              }
+            } else {
+              if (precision == SimulationState::precision::fp32) {
+                return py::cast(py::ndarray<py::numpy, std::complex<float>>(
+                    stateVector.data, shape.size(), shape.data(),
+                    py::handle()));
+              } else {
+                return py::cast(py::ndarray<py::numpy, std::complex<double>>(
+                    stateVector.data, shape.size(), shape.data(),
+                    py::handle()));
+              }
+            }
+          },
+          "Convert to a NumPy array.")
+      .def("__array__",
+           [](py::object self, py::args, py::kwargs) {
+             return self.attr("to_numpy")();
+           })
       .def(
           "__len__",
           [](state &self) {
