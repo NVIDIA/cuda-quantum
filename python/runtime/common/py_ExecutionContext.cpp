@@ -29,6 +29,7 @@ void bindExecutionContext(py::module &mod) {
       .def(py::init<std::string>())
       .def(py::init<std::string, std::size_t, std::size_t>(), py::arg("name"),
            py::arg("shots"), py::arg("qpu_id") = 0)
+      .def_readwrite("kernelName", &cudaq::ExecutionContext::kernelName)
       .def_readonly("result", &cudaq::ExecutionContext::result)
       .def_readwrite("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_readonly("asyncResult", &cudaq::ExecutionContext::asyncResult)
@@ -48,10 +49,7 @@ void bindExecutionContext(py::module &mod) {
       .def("unset_jit_engine",
            [&](cudaq::ExecutionContext &execCtx) {
              if (execCtx.jitEng) {
-               auto *p =
-                   reinterpret_cast<mlir::ExecutionEngine *>(execCtx.jitEng);
-               delete p;
-               execCtx.jitEng = nullptr;
+               execCtx.jitEng = std::nullopt;
                execCtx.allowJitEngineCaching = false;
              }
            })

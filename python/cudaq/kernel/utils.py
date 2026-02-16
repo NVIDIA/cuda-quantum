@@ -24,22 +24,15 @@ from cudaq.mlir.dialects import quake, cc
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType, Context,
                            Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
+from cudaq.kernel_types import qubit, qvector, qview
 
 State = cudaq_runtime.State
-qvector = cudaq_runtime.qvector
-qview = cudaq_runtime.qview
-qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
 
 ahkPrefix = '__analog_hamiltonian_kernel__'
-
-# Keep a global registry of all kernel Python AST modules keyed on their name
-# (without `__nvqpp__mlirgen__` prefix). The values in this dictionary are a
-# tuple of the AST module and the source code location for the kernel.
-globalAstRegistry = {}
 
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}

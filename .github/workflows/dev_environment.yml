@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
@@ -209,7 +209,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
           submodules: ${{ inputs.checkout_submodules }}
@@ -227,6 +227,12 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -248,6 +254,8 @@ jobs:
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
           if ${{ needs.metadata.outputs.pr_number != '' }}; then
             registry_cache=${registry_cache}-ci
+          elif ${{ github.event_name == 'merge_group' }}; then
+            registry_cache=${registry_cache}-merge-group
           fi
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
@@ -278,6 +286,10 @@ jobs:
             # for PRs, also push buildkit cache to the registry to speed up subsequent builds
             cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
+          elif ${{ github.event_name == 'merge_group' }}; then
+            # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
@@ -296,6 +308,8 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+              elif ${{ github.event_name == 'merge_group' }}; then
+                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"

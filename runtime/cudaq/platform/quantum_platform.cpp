@@ -97,6 +97,28 @@ void quantum_platform::validateQpuId(std::size_t qpuId) const {
   }
 }
 
+// [remove at]: runtime refactor release
+// Deprecated: Use with_execution_context instead.
+void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
+  configureExecutionContext(*ctx);
+  detail::setExecutionContext(ctx);
+  beginExecution();
+}
+
+// [remove at]: runtime refactor release
+// Deprecated: Use with_execution_context instead.
+void quantum_platform::reset_exec_ctx() {
+  auto *ctx = getExecutionContext();
+  if (ctx == nullptr)
+    return;
+
+  detail::try_finally([this, ctx] { finalizeExecutionContext(*ctx); },
+                      [this] {
+                        endExecution();
+                        detail::resetExecutionContext();
+                      });
+}
+
 // Specify the execution context for this platform.
 // This delegates to the targeted QPU
 void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
@@ -205,11 +227,10 @@ KernelThunkResultType quantum_platform::launchModule(
   return qpu->launchModule(kernelName, module, rawArgs, resTy);
 }
 
-void *quantum_platform::specializeModule(const std::string &kernelName,
-                                         mlir::ModuleOp module,
-                                         const std::vector<void *> &rawArgs,
-                                         mlir::Type resTy, void *cachedEngine,
-                                         std::size_t qpu_id) {
+void *quantum_platform::specializeModule(
+    const std::string &kernelName, mlir::ModuleOp module,
+    const std::vector<void *> &rawArgs, mlir::Type resTy,
+    std::optional<cudaq::JitEngine> &cachedEngine, std::size_t qpu_id) {
   validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
   return qpu->specializeModule(kernelName, module, rawArgs, resTy,
@@ -308,10 +329,10 @@ cudaq::KernelThunkResultType cudaq::streamlinedLaunchModule(
   return platform.launchModule(kernelName, moduleOp, rawArgs, resTy, qpu_id);
 }
 
-void *cudaq::streamlinedSpecializeModule(const std::string &kernelName,
-                                         mlir::ModuleOp moduleOp,
-                                         const std::vector<void *> &rawArgs,
-                                         mlir::Type resTy, void *cachedEngine) {
+void *cudaq::streamlinedSpecializeModule(
+    const std::string &kernelName, mlir::ModuleOp moduleOp,
+    const std::vector<void *> &rawArgs, mlir::Type resTy,
+    std::optional<cudaq::JitEngine> &cachedEngine) {
   ScopedTraceWithContext("streamlinedSpecializeModule", kernelName,
                          rawArgs.size());
 

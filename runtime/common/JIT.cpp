@@ -8,6 +8,7 @@
 
 #include "JIT.h"
 #include "ExecutionContext.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/ObjectCache.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -29,13 +30,16 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <cudaq/platform.h>
 #include <cxxabi.h>
+#include <llvm/Support/Error.h>
+#include <memory>
+#include <tuple>
 
 #define DEBUG_TYPE "cudaq-qpud"
 
-std::unique_ptr<llvm::orc::LLJIT> cudaq::invokeWrappedKernel(
-    std::string_view irString, const std::string &entryPointFn, void *args,
-    std::uint64_t argsSize, ExecutionContext &executionContext,
-    std::size_t numTimes, std::function<void(std::size_t)> postExecCallback) {
+std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
+cudaq::createWrappedKernel(std::string_view irString,
+                           const std::string &entryPointFn, void *args,
+                           std::uint64_t argsSize) {
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
@@ -137,15 +141,51 @@ std::unique_ptr<llvm::orc::LLJIT> cudaq::invokeWrappedKernel(
       llvm::cantFail(jit->lookup(mangledKernelNames.second));
   auto *fptrWrapper =
       wrapperSymbolAddr.toPtr<void (*)(const void *, unsigned long, void *)>();
-  auto &platform = cudaq::get_platform();
-  for (std::size_t i = 0; i < numTimes; ++i) {
-    // Invoke the wrapper with serialized data and the kernel.
-    platform.with_execution_context(executionContext, [&]() {
-      fptrWrapper(args, argsSize, fptr);
-      if (postExecCallback)
-        postExecCallback(i);
-    });
+
+  auto callable = [args, argsSize, fptr, fptrWrapper]() {
+    fptrWrapper(args, argsSize, fptr);
+  };
+  return std::make_tuple(std::move(jit), callable);
+}
+
+namespace cudaq {
+class JitEngine::Impl {
+public:
+  Impl(std::unique_ptr<mlir::ExecutionEngine> jitEngine)
+      : jitEngine(std::move(jitEngine)) {}
+  void run(const std::string &kernelName) const {
+    auto funcPtr = lookupRawNameOrFail(
+        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+    funcPtr();
   }
 
-  return jit;
+  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
+    auto funcPtr = jitEngine->lookup(kernelName);
+    if (!funcPtr) {
+      throw std::runtime_error("Failed looking function up in jitted module");
+    }
+    return reinterpret_cast<void (*)()>(*funcPtr);
+  }
+
+  std::size_t getKey() {
+    return reinterpret_cast<std::size_t>(jitEngine.get());
+  }
+
+private:
+  std::unique_ptr<mlir::ExecutionEngine> jitEngine;
+};
+
+JitEngine::JitEngine(std::unique_ptr<mlir::ExecutionEngine> jitEngine)
+    : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
+
+void JitEngine::run(const std::string &kernelName) const {
+  return impl->run(kernelName);
 }
+
+std::size_t JitEngine::getKey() const { return impl->getKey(); }
+
+void (*JitEngine::lookupRawNameOrFail(const std::string &kernelName) const)() {
+  return impl->lookupRawNameOrFail(kernelName);
+}
+
+} // namespace cudaq

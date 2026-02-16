@@ -9,9 +9,14 @@
 Shared pytest fixtures and markers for CUDA-Q Python tests.
 """
 
+import os
 import sys
 import platform
 import pytest
+
+_tests_dir = os.path.dirname(os.path.abspath(__file__))
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
 
 
 def pytest_configure(config):

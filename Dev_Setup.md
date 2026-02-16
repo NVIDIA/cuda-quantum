@@ -121,8 +121,9 @@ may be beneficial.
 
 ## Working on macOS
 
-macOS is supported for development builds (CPU-only, no GPU support). The
-development container is not available on macOS, so you will need to set up
+macOS is supported for development builds on ARM64 (Apple silicon) only.
+Intel Macs are not supported. GPU support is not available on macOS.
+The development container is not available on macOS, so you will need to set up
 your environment manually.
 
 ### Prerequisites

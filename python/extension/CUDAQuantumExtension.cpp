@@ -39,7 +39,7 @@
 #include "runtime/cudaq/operators/py_super_op.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
-#include "runtime/cudaq/qis/py_qubit_qis.h"
+#include "runtime/cudaq/qis/py_pauli_word.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/interop/PythonCppInterop.h"
@@ -106,7 +106,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   bindOperatorsWrapper(cudaqRuntime);
   bindHandlersWrapper(cudaqRuntime);
   bindSuperOperatorWrapper(cudaqRuntime);
-  bindQIS(cudaqRuntime);
+  bindPauliWord(cudaqRuntime);
   bindOptimizerWrapper(cudaqRuntime);
   bindNoise(cudaqRuntime);
   bindExecutionContext(cudaqRuntime);
@@ -285,26 +285,14 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaqRuntime.def(
       "checkRegisteredCppDeviceKernel",
-      [](MlirModule mod,
-         const std::string &moduleName) -> std::optional<std::string> {
+      [](MlirModule mod, const std::string &moduleName)
+          -> std::optional<std::tuple<std::string, std::string>> {
         std::tuple<std::string, std::string> ret;
         try {
-          ret = python::getDeviceKernel(moduleName);
+          return python::getDeviceKernel(moduleName);
         } catch (...) {
           return std::nullopt;
         }
-
-        // Take the code for the kernel we found
-        // and add it to the input module, return
-        // the func op.
-        auto [kName, code] = ret;
-        auto ctx = unwrap(mod).getContext();
-        auto moduleB = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
-        auto moduleA = unwrap(mod);
-
-        // Merge symbols from moduleB into moduleA.
-        opt::factory::mergeModules(moduleA, *moduleB);
-        return kName;
       },
       "Given a python module name like `mod1.mod2.func`, see if there is a "
       "registered C++ quantum kernel. If so, add the kernel to the Module and "

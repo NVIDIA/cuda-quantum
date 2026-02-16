@@ -7,27 +7,44 @@
  ******************************************************************************/
 #pragma once
 
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 
-namespace cudaq {
-class ExecutionContext;
+namespace llvm::orc {
+class LLJIT;
+}
 
-/// Util to invoke a wrapped kernel defined by LLVM IR with serialized
+namespace mlir {
+class ExecutionEngine;
+}
+
+namespace cudaq {
+
+/// Util to create a wrapped kernel defined by LLVM IR with serialized
 /// arguments.
 // Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
 // `packFunctionArguments` (slow for raw LLVM IR containing many functions from
 // included headers).
-// Optionally, the JIT'ed kernel can be executed a number of
-// times along with a post-execution callback. For example, sample a dynamic
-// kernel.
-std::unique_ptr<llvm::orc::LLJIT>
-invokeWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
-                    void *args, std::uint64_t argsSize,
-                    ExecutionContext &executionContext,
-                    std::size_t numTimes = 1,
-                    std::function<void(std::size_t)> postExecCallback = {});
+std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
+createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
+                    void *args, std::uint64_t argsSize);
+
+/// JitEngine is a type-erased class that is wrapping an mlir::ExecutionEngine
+/// without introducing any link time dependency on MLIR for the client of the
+/// class. Memory management for of the mlir::ExecutionEngine is handled
+/// internally.
+class JitEngine {
+public:
+  JitEngine(std::unique_ptr<mlir::ExecutionEngine>);
+  void run(const std::string &kernelName) const;
+  void (*lookupRawNameOrFail(const std::string &kernelName) const)();
+  std::size_t getKey() const;
+
+private:
+  class Impl;
+  std::shared_ptr<Impl> impl;
+};
 } // namespace cudaq

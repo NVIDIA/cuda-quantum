@@ -73,6 +73,26 @@ public:
   /// supports parallel distribution of quantum tasks.
   virtual bool supports_task_distribution() const { return false; }
 
+  /// Specify the execution context for the current thread.
+  // [remove at]: runtime refactor release
+  [[deprecated("set_exec_ctx is deprecated - please use with_execution_context "
+               "instead.")]] void
+  set_exec_ctx(ExecutionContext *ctx);
+
+  /// Return the current execution context
+  // [remove at]: runtime refactor release
+  [[deprecated("get_exec_ctx is deprecated - please use "
+               "cudaq::getExecutionContext() instead.")]] ExecutionContext *
+  get_exec_ctx() const {
+    return getExecutionContext();
+  }
+
+  /// Reset the execution context for the current thread.
+  // [remove at]: runtime refactor release
+  [[deprecated("reset_exec_ctx is deprecated - please use "
+               "with_execution_context instead.")]] void
+  reset_exec_ctx();
+
   /// @brief Execute the given function within the given execution context.
   template <typename Callable, typename... Args>
   auto with_execution_context(ExecutionContext &ctx, Callable &&f,
@@ -190,11 +210,11 @@ public:
                const std::vector<void *> &rawArgs, mlir::Type resultTy,
                std::size_t qpu_id);
 
-  [[nodiscard]] void *specializeModule(const std::string &kernelName,
-                                       mlir::ModuleOp module,
-                                       const std::vector<void *> &rawArgs,
-                                       mlir::Type resultTy, void *cachedEngine,
-                                       std::size_t qpu_id);
+  [[nodiscard]] void *
+  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
+                   std::optional<cudaq::JitEngine> &cachedEngine,
+                   std::size_t qpu_id);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

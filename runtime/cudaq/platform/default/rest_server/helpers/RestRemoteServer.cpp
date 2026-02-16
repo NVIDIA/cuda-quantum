@@ -100,6 +100,26 @@ auto withExecutionContextExceptRun(cudaq::ExecutionContext &io_context,
   }
 }
 
+/// Util to invoke a wrapped kernel defined by LLVM IR with serialized
+/// arguments.
+// Optionally, the JIT'ed kernel can be executed a number of
+// times along with a post-execution callback. For example, sample a dynamic
+// kernel.
+void invokeWrappedKernel(
+    std::function<void()> func, cudaq::ExecutionContext &executionContext,
+    std::size_t numTimes = 1,
+    std::function<void(std::size_t)> postExecCallback = {}) {
+  auto &platform = cudaq::get_platform();
+  for (std::size_t i = 0; i < numTimes; ++i) {
+    // Invoke the wrapper with serialized data and the kernel.
+    platform.with_execution_context(executionContext, [&]() {
+      func();
+      if (postExecCallback)
+        postExecCallback(i);
+    });
+  }
+}
+
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
@@ -322,13 +342,15 @@ public:
     // any calls to `platform` functions could invoke code that relies on the
     // JIT being present.
     std::unique_ptr<llvm::orc::LLJIT> llvmJit;
+    std::function<void()> wrappedKernel;
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
       if (io_context.name == "sample") {
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
-        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                             kernelArgs, argsSize, context);
+        std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+            ir, std::string(kernelName), kernelArgs, argsSize);
+        invokeWrappedKernel(wrappedKernel, context);
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
         // we'll have collected registerNames
@@ -345,14 +367,15 @@ public:
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          llvmJit = cudaq::invokeWrappedKernel(
-              ir, std::string(kernelName), kernelArgs, argsSize, io_context,
-              io_context.shots, [&](std::size_t i) {
-                // Flush the single measure result and add it to the
-                // sample_result
-                counts += io_context.result;
-                io_context.result.clear();
-              });
+          std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+              ir, std::string(kernelName), kernelArgs, argsSize);
+          invokeWrappedKernel(wrappedKernel, io_context, io_context.shots,
+                              [&](std::size_t i) {
+                                // Flush the single measure result and
+                                // add it to the sample_result
+                                counts += io_context.result;
+                                io_context.result.clear();
+                              });
           io_context.result = counts;
         } else {
           // If no conditionals, nothing special to do for library mode
@@ -360,12 +383,14 @@ public:
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
-          llvmJit = cudaq::invokeWrappedKernel(
-              ir, std::string(kernelName), kernelArgs, argsSize, io_context);
+          std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+              ir, std::string(kernelName), kernelArgs, argsSize);
+          invokeWrappedKernel(wrappedKernel, io_context);
         }
       } else {
-        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                             kernelArgs, argsSize, io_context);
+        std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+            ir, std::string(kernelName), kernelArgs, argsSize);
+        invokeWrappedKernel(wrappedKernel, io_context);
       }
     } else {
       if (io_context.name == "run") {

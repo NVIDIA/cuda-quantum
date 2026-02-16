@@ -14,6 +14,8 @@
 #include <cstdint>
 #include <functional>
 #include <math.h>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -228,6 +230,12 @@ public:
   /// of whether cudaq::real is float or double.
   std::vector<double> probabilities;
 
+  /// @brief Names for each Kraus operator, parallel to ops.
+  /// For standard Pauli channels these are gate names (e.g., "id", "x").
+  /// For other channels, defaults are generated as type_name[index].
+  /// Always has the same size as ops.
+  std::vector<std::string> op_names;
+
   virtual ~kraus_channel() = default;
 
   /// @brief The nullary constructor
@@ -244,6 +252,7 @@ public:
     (ops.emplace_back(std::move(inputLists)), ...);
     validateCompleteness();
     generateUnitaryParameters();
+    populateDefaultOpNames();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as lvalue
@@ -251,6 +260,7 @@ public:
   kraus_channel(const std::vector<kraus_op> &inOps) : ops(inOps) {
     validateCompleteness();
     generateUnitaryParameters();
+    populateDefaultOpNames();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as rvalue
@@ -275,7 +285,8 @@ public:
   std::vector<kraus_op> get_ops() const;
 
   /// @brief Add a kraus_op to this channel.
-  void push_back(kraus_op op);
+  /// If name is not provided, a default name is generated from get_type_name().
+  void push_back(kraus_op op, std::optional<std::string> name = std::nullopt);
 
   std::string get_type_name() const {
     return get_noise_model_type_name(noise_type);
@@ -296,6 +307,16 @@ public:
       return;
     }
     generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
+  }
+
+  /// @brief Populate op_names with default names of the form type_name[index].
+  /// Called by constructors that do not set explicit op_names.
+  void populateDefaultOpNames() {
+    op_names.clear();
+    auto typeName = get_type_name();
+    op_names.reserve(ops.size());
+    for (std::size_t i = 0; i < ops.size(); ++i)
+      op_names.push_back(typeName + "[" + std::to_string(i) + "]");
   }
 };
 
@@ -589,9 +610,15 @@ public:
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   depolarization_channel(const std::vector<cudaq::real> &ps) {
+    auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "depolarization_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto three = static_cast<real>(3.);
     auto negOne = static_cast<real>(-1.);
-    auto probability = ps[0];
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability / three), std::sqrt(probability / three),
@@ -605,6 +632,7 @@ public:
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "x", "y", "z"};
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
@@ -624,6 +652,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   amplitude_damping_channel(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "amplitude_damping_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
@@ -632,6 +666,7 @@ public:
     validateCompleteness();
     // Note: amplitude damping is non-unitary, so there is no value in calling
     // generateUnitaryParameters().
+    populateDefaultOpNames();
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
@@ -651,6 +686,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   bit_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "bit_flip_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
@@ -659,6 +700,7 @@ public:
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "x"};
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -678,6 +720,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   phase_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "phase_flip_channel probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto negOne = static_cast<real>(-1.);
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -687,6 +735,7 @@ public:
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "z"};
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -700,10 +749,12 @@ public:
   amplitude_damping(const std::vector<cudaq::real> &p)
       : amplitude_damping_channel(p) {
     noise_type = noise_model_type::amplitude_damping;
+    populateDefaultOpNames();
   }
   amplitude_damping(const real probability)
       : amplitude_damping_channel(probability) {
     noise_type = noise_model_type::amplitude_damping;
+    populateDefaultOpNames();
   }
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::amplitude_damping])
@@ -721,6 +772,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   phase_damping(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "phase_damping probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, 0, 0, std::sqrt(probability)};
     ops = {k0v, k1v};
@@ -729,6 +786,7 @@ public:
     validateCompleteness();
     // Note: phase damping is non-unitary, so there is no value in calling
     // generateUnitaryParameters().
+    populateDefaultOpNames();
   }
   phase_damping(const real probability)
       : phase_damping(std::vector<cudaq::real>{probability}) {}
@@ -742,9 +800,11 @@ class z_error : public phase_flip_channel {
 public:
   z_error(const std::vector<cudaq::real> &p) : phase_flip_channel(p) {
     noise_type = noise_model_type::z_error;
+    op_names = {"id", "z"};
   }
   z_error(const real probability) : phase_flip_channel(probability) {
     noise_type = noise_model_type::z_error;
+    op_names = {"id", "z"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::z_error])
 };
@@ -755,9 +815,11 @@ class x_error : public bit_flip_channel {
 public:
   x_error(const std::vector<cudaq::real> &p) : bit_flip_channel(p) {
     noise_type = noise_model_type::x_error;
+    op_names = {"id", "x"};
   }
   x_error(const real probability) : bit_flip_channel(probability) {
     noise_type = noise_model_type::x_error;
+    op_names = {"id", "x"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::x_error])
 };
@@ -773,6 +835,12 @@ public:
   constexpr static std::size_t num_targets = 1;
   y_error(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "y_error probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     std::complex<cudaq::real> i{0, 1};
     std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
                                     std::sqrt(1 - probability)},
@@ -782,6 +850,7 @@ public:
     noise_type = noise_model_type::y_error;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "y"};
   }
   y_error(const real probability)
       : y_error(std::vector<cudaq::real>{probability}) {}
@@ -838,6 +907,7 @@ public:
     noise_type = cudaq::noise_model_type::pauli1;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "x", "y", "z"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli1])
 };
@@ -913,6 +983,8 @@ public:
     noise_type = cudaq::noise_model_type::pauli2;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"ii", "ix", "iy", "iz", "xi", "xx", "xy", "xz",
+                "yi", "yx", "yy", "yz", "zi", "zx", "zy", "zz"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli2])
 };
@@ -923,10 +995,12 @@ public:
   depolarization1(const std::vector<cudaq::real> &p)
       : depolarization_channel(p) {
     noise_type = noise_model_type::depolarization1;
+    op_names = {"id", "x", "y", "z"};
   }
   depolarization1(const real probability)
       : depolarization_channel(probability) {
     noise_type = noise_model_type::depolarization1;
+    op_names = {"id", "x", "y", "z"};
   }
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::depolarization1])
@@ -949,9 +1023,15 @@ public:
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
   depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
+    auto probability = p[0];
+    if (probability < 0.0 || probability > 1.0)
+      throw std::runtime_error(
+          "depolarization2 probability must be in the range [0, 1]. "
+          "Got: " +
+          std::to_string(probability));
+
     auto fifteen = static_cast<cudaq::real>(15.);
     auto negOne = static_cast<cudaq::real>(-1.);
-    auto probability = p[0];
 
     std::vector<std::vector<cudaq::complex>> paulis = {
         // I
@@ -985,6 +1065,8 @@ public:
     noise_type = cudaq::noise_model_type::depolarization2;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"ii", "ix", "iy", "iz", "xi", "xx", "xy", "xz",
+                "yi", "yx", "yy", "yz", "zi", "zx", "zy", "zz"};
   }
 
   /// @brief Construct a two qubit depolarization channel.

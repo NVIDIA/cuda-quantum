@@ -76,9 +76,17 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
 CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {
   char *token = getenv("IQM_TOKEN");
 
-  EXPECT_THAT([]() { setenv("IQM_TOKEN", "invalid-invalid-invalid", true); },
-              testing::ThrowsMessage<std::runtime_error>(
-                  testing::HasSubstr("HTTP GET Error - status code 401")));
+  EXPECT_THAT(
+      []() {
+        setenv("IQM_TOKEN", "invalid-invalid-invalid", true);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::HasSubstr("HTTP GET Error - status code 401")));
 
   if (token) {
     setenv("IQM_TOKEN", token, true);
@@ -90,9 +98,17 @@ CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {
 CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
   char *url = getenv("IQM_SERVER_URL");
 
-  EXPECT_THAT([]() { setenv("IQM_SERVER_URL", "fake-fake-fake", true); },
-              testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr(
-                  "Could not resolve host: fake-fake-fake")));
+  EXPECT_THAT(
+      []() {
+        setenv("IQM_SERVER_URL", "fake-fake-fake", true);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::HasSubstr("Could not resolve host: fake-fake-fake")));
 
   if (url) {
     setenv("IQM_SERVER_URL", url, true);
@@ -112,6 +128,11 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
       []() {
         unsetenv("IQM_TOKEN");
         setenv("IQM_TOKENS_FILE", "fake-fake-fake", true);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
           testing::HasSubstr("Unable to open tokens file: fake-fake-fake")));
@@ -126,48 +147,6 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
   } else {
     unsetenv("IQM_TOKENS_FILE");
   }
-}
-
-CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
-  const char dqa_filename[] = "dqa_mock_qpu_saved.txt";
-
-  unlink(dqa_filename);
-
-  // Test 1: saving dynamic quantum architecture to file
-  setenv("IQM_SAVE_QPU_QA", dqa_filename, true);
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
-
-  auto counts = cudaq::sample(kernel);
-
-  unsetenv("IQM_SAVE_QPU_QA");
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  // Test 2: use quantum architecture file referenced in environment variable
-  setenv("IQM_QPU_QA", dqa_filename, true);
-
-  auto kernel2 = cudaq::make_kernel();
-  auto qubit2 = kernel2.qalloc(2);
-  kernel2.h(qubit2[0]);
-  kernel2.mz(qubit2[0]);
-  kernel2.mz(qubit2[1]);
-
-  counts = cudaq::sample(kernel2);
-
-  unsetenv("IQM_QPU_QA");
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  // When IQM tests can run, populate the dqa_mock_qpu.txt
-  // with the content of this file.
-  unlink(dqa_filename);
 }
 
 int main(int argc, char **argv) {

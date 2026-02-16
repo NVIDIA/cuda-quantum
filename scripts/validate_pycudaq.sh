@@ -86,7 +86,7 @@ if [ -z "$root_folder" ]; then
         # Use staging location in repo (gitignored via /*build*/)
         staging_dir="$repo_root/build/validation"
         echo "Setting up staging directory: $staging_dir"
-        rm -rf "$staging_dir"
+        rm -rf "${staging_dir:?}"
         mkdir -p "$staging_dir"
 
         # Symlink test files to staging (mirrors CI copy structure)
@@ -295,7 +295,8 @@ done
 # Run examples
 for ex in $(find "$root_folder/examples" -name '*.py'); do
     skip_example=false
-    explicit_targets=$(cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")')
+    # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
+    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
         if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
             # Skipped because GitHub does not have the necessary authentication token
@@ -321,7 +322,8 @@ done
 if [ -d "$root_folder/targets" ]; then
     for ex in $(find "$root_folder/targets" -name '*.py'); do
         skip_example=false
-        explicit_targets=$(cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")')
+        # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
+    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
         for t in $explicit_targets; do
             if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
                 # Skipped because GitHub does not have the necessary authentication token

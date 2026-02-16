@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -83,8 +83,8 @@ def translate(kernel, *args, format="qir:0.1"):
         raise RuntimeError(f"Invalid number of arguments passed to translate. "
                            f"{suppliedArgs} given, {deducedArgs} deduced, and "
                            f"{launchArgsReq} required.")
-    retTy = (decorator.returnType
-             if decorator.returnType else decorator.get_none_type())
+    retTy = (decorator.return_type
+             if decorator.return_type else decorator.get_none_type())
     # Arguments are resolved. Specialize this kernel and translate to the
     # selected transport layer.
     return cudaq_runtime.translate_impl(decorator.uniqName, specMod, retTy,
