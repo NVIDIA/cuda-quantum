@@ -210,43 +210,24 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
 
   try {
-    auto jsonPayload = json::parse(rawPayload);
-
-    auto qioResult = qio::QuantumProgramResult::fromJson(jsonPayload);
-
-    auto sampleResult = qioResult.toCudaqSampleResult();
-
-    std::vector<ExecutionResult> execResults;
-
     auto job = m_qaasClient->getJob(jobId);
-
-    CUDAQ_INFO("job param {}", job.parameters);
 
     auto jsonParameters = json::parse(job.parameters);
 
-    CUDAQ_INFO("hey 1");
-
     auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
-
-    CUDAQ_INFO("hey 2");
 
     auto options = params.options();
 
-    CUDAQ_INFO("hey 3");
-
     auto outputNamesStr = options["output_names"].get<std::string>();
 
-    CUDAQ_INFO("outputNamesStr {}", outputNamesStr);
-
     auto outputNamesJson = json::parse(outputNamesStr);
+
     OutputNamesType jobOutputNames;
 
     for (const auto &el : outputNamesJson[0]) {
       auto result = el[0].get<std::size_t>();
       auto qubitNum = el[1][0].get<std::size_t>();
       auto registerName = el[1][1].get<std::string>();
-
-      CUDAQ_INFO("Create register res:{}, nb:{}, name:{}", result, qubitNum, registerName);
 
       jobOutputNames[result] = {qubitNum, registerName};
     }
@@ -262,9 +243,17 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     CUDAQ_INFO("qubitNumbers s:{} q:{}", jobOutputNames.size(), qubitNumbers);
 
+    auto jsonPayload = json::parse(rawPayload);
+
+    auto qioResult = qio::QuantumProgramResult::fromJson(jsonPayload);
+
+    auto sampleResult = qioResult.toCudaqSampleResult();
+
     // For each original counts entry in the full sample results, reduce it
     // down to the user component and add to userGlobal. If qubitNumbers is empty,
     // that means all qubits were measured.
+    std::vector<ExecutionResult> execResults;
+
     if (qubitNumbers.empty()) {
       execResults.emplace_back(ExecutionResult{sampleResult.to_map()});
     } else {
