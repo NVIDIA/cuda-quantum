@@ -106,6 +106,7 @@ runs:
 
         # Tar the contents of the cache directory (not the directory itself)
         tar -czf ccache-data.tar.gz -C "$cache_path" .
+        echo "ccache tarball size: $(du -sh ccache-data.tar.gz | cut -f1) (uncompressed: $(du -sh "$cache_path" | cut -f1))"
         echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
         oras push "$image:$tag" ccache-data.tar.gz
         rm -f ccache-data.tar.gz

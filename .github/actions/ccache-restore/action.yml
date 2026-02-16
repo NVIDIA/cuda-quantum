@@ -75,9 +75,10 @@ runs:
         for tag in "${tags[@]}"; do
           echo "Trying $image:$tag ..."
           if oras pull "$image:$tag" 2>/dev/null; then
+            echo "Downloaded ccache tarball: $(du -sh ccache-data.tar.gz | cut -f1)"
             tar -xzf ccache-data.tar.gz -C "${{ inputs.output-path }}"
             rm -f ccache-data.tar.gz
-            echo "Restored ccache from $image:$tag"
+            echo "Restored ccache from $image:$tag (extracted: $(du -sh "${{ inputs.output-path }}" | cut -f1))"
             restored=true
             break
           fi
