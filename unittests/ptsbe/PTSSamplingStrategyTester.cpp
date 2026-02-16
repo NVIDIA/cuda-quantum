@@ -208,6 +208,30 @@ TEST(ProbabilisticSamplingStrategyTest, RequestMoreThanPossible) {
   EXPECT_EQ(patterns.size(), 4);
 }
 
+TEST(ProbabilisticSamplingStrategyTest, FewPossibleTrajectoriesDiscoversAll) {
+  std::vector<NoisePoint> noise_points;
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "x";
+  np.channel = cudaq::depolarization_channel(0.001);
+  noise_points.push_back(np);
+
+  ProbabilisticSamplingStrategy strategy(42);
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 1000000);
+
+  EXPECT_EQ(trajectories.size(), 4);
+
+  std::set<std::size_t> operator_indices;
+  for (const auto &traj : trajectories) {
+    ASSERT_EQ(traj.kraus_selections.size(), 1);
+    operator_indices.insert(static_cast<std::size_t>(
+        traj.kraus_selections[0].kraus_operator_index));
+  }
+  EXPECT_EQ(operator_indices.size(), 4);
+}
+
 TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
   std::vector<NoisePoint> noise_points;
 
