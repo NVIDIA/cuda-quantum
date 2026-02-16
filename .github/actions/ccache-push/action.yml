@@ -12,7 +12,7 @@ inputs:
     description: 'GitHub token for GHCR authentication'
     required: true
   pr-number:
-    description: 'PR number for tag (empty for non-PR builds)'
+    description: 'PR number for tag. Auto-detected from ref_name when empty.'
     required: false
     default: ''
   miss-threshold:
@@ -56,8 +56,19 @@ runs:
           ccache -s 2>/dev/null || true
         fi
         if [ "$miss_threshold" -gt 0 ] 2>/dev/null && command -v ccache &>/dev/null; then
-          cache_miss=$(ccache -s 2>/dev/null | grep "cache miss" | grep -o '[0-9]*' | head -1)
-          cache_hit=$(ccache -s 2>/dev/null | grep "cache hit" | grep -o '[0-9]*' | head -1)
+          # Use --print-stats for machine-readable output (ccache 4.4+).
+          # Format: tab-separated key\tvalue lines.
+          stats=$(ccache --print-stats 2>/dev/null || true)
+          if [ -n "$stats" ]; then
+            cache_miss=$(echo "$stats" | awk -F'\t' '$1=="cache_miss"{print $2}')
+            direct_hit=$(echo "$stats" | awk -F'\t' '$1=="direct_cache_hit"{print $2}')
+            preproc_hit=$(echo "$stats" | awk -F'\t' '$1=="preprocessed_cache_hit"{print $2}')
+            cache_hit=$((${direct_hit:-0} + ${preproc_hit:-0}))
+          else
+            # Fallback for ccache 3.x: parse human-readable output
+            cache_miss=$(ccache -s 2>/dev/null | grep "cache miss" | grep -o '[0-9]*' | head -1)
+            cache_hit=$(ccache -s 2>/dev/null | grep "cache hit" | grep -o '[0-9]*' | head -1)
+          fi
           total=$((${cache_hit:-0} + ${cache_miss:-0}))
           if [ "$total" -gt 0 ]; then
             miss_pct=$((cache_miss * 100 / total))
@@ -79,7 +90,13 @@ runs:
         platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
         image="ghcr.io/${repo_owner,,}/cuda-quantum-${platform}-ccache"
         cache_key="${{ inputs.cache-key }}"
+
+        # Auto-detect PR number from ref name if not provided
         pr_number="${{ inputs.pr-number }}"
+        if [ -z "$pr_number" ]; then
+          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
+          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
+        fi
 
         if [ -n "$pr_number" ]; then
           tag="${cache_key}-pr-${pr_number}"

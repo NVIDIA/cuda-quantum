@@ -128,8 +128,6 @@ jobs:
           cache-key: arm64-build
           output-path: ~/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
-          base-branch: ${{ needs.metadata.outputs.pull_request_base }}
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -156,7 +154,6 @@ jobs:
           cache-key: arm64-build
           cache-path: ~/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
 
   # ============================================================================
   # Build Python wheels for all supported Python versions
@@ -208,8 +205,6 @@ jobs:
           cache-key: arm64-wheel
           output-path: ~/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
-          base-branch: ${{ needs.metadata.outputs.pull_request_base }}
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -244,7 +239,6 @@ jobs:
           cache-key: arm64-wheel
           cache-path: ~/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -342,8 +336,6 @@ jobs:
           cache-key: arm64-installer
           output-path: ~/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
-          base-branch: ${{ needs.metadata.outputs.pull_request_base }}
 
       - name: Install dependencies
         run: |
@@ -369,7 +361,6 @@ jobs:
           cache-key: arm64-installer
           cache-path: ~/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ needs.metadata.outputs.pull_request_number }}
 
       - name: Build installer
         run: |

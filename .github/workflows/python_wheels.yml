@@ -124,21 +124,17 @@ jobs:
       - name: Set up ccache and ORAS
         uses: ./.github/actions/ccache-setup
 
-      - name: Compute cache metadata
-        id: cache_meta
+      - name: Compute platform ID
+        id: platform_meta
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
-          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
-          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
-          cache-key: ${{ steps.cache_meta.outputs.platform_id }}-wheel
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-wheel
           registry-token: ${{ github.token }}
-          pr-number: ${{ steps.cache_meta.outputs.pr_number }}
 
       - name: Set up context for buildx
         run: |
@@ -190,10 +186,9 @@ jobs:
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
         with:
-          cache-key: ${{ steps.cache_meta.outputs.platform_id }}-wheel
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-wheel
           cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ steps.cache_meta.outputs.pr_number }}
 
       - name: Upload wheel
         uses: actions/upload-artifact@v4

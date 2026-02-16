@@ -333,19 +333,11 @@ jobs:
       - name: Set up ccache and ORAS
         uses: ./.github/actions/ccache-setup
 
-      - name: Compute cache metadata
-        id: cache_meta
-        run: |
-          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
-          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
-          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
-
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
           registry-token: ${{ github.token }}
-          pr-number: ${{ steps.cache_meta.outputs.pr_number }}
 
       - name: Extract metadata
         id: metadata
@@ -377,15 +369,9 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Extract ccache from image
-        run: |
-          container_id=$(docker create "${{ steps.metadata.outputs.tags }}" 2>/dev/null) || true
-          if [ -z "$container_id" ]; then
-            echo "Could not create container; skipping ccache extraction."
-            exit 0
-          fi
-          mkdir -p /tmp/ccache-out
-          docker cp $container_id:/root/.ccache /tmp/ccache-out/ 2>/dev/null || true
-          docker rm $container_id
+        uses: ./.github/actions/ccache-extract-docker
+        with:
+          image: ${{ steps.metadata.outputs.tags }}
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
@@ -393,7 +379,6 @@ jobs:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
           cache-path: /tmp/ccache-out/.ccache
           registry-token: ${{ github.token }}
-          pr-number: ${{ steps.cache_meta.outputs.pr_number }}
 
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
@@ -596,19 +581,11 @@ jobs:
       - name: Set up ccache and ORAS
         uses: ./.github/actions/ccache-setup
 
-      - name: Compute cache metadata
-        id: cache_meta
-        run: |
-          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
-          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
-          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
-
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
           registry-token: ${{ github.token }}
-          pr-number: ${{ steps.cache_meta.outputs.pr_number }}
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
@@ -640,6 +617,18 @@ jobs:
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
+
+      - name: Extract ccache from release image
+        uses: ./.github/actions/ccache-extract-docker
+        with:
+          image: ${{ steps.cudaqdev_metadata.outputs.tags }}
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          cache-path: /tmp/ccache-out/.ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: inputs.environment

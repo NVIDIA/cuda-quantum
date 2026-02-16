@@ -1,0 +1,69 @@
+name: ccache-extract-docker
+description: Extract ccache data from a Docker image or a stopped container
+
+inputs:
+  image:
+    description: 'Docker image name to extract ccache from'
+    required: true
+  output-path:
+    description: 'Directory to store extracted ccache data'
+    required: false
+    default: '/tmp/ccache-out'
+  ccache-dir:
+    description: 'Path to ccache directory inside the container'
+    required: false
+    default: '/root/.ccache'
+  from-container:
+    description: >
+      If true, extract from the most recently stopped container created from
+      the image (useful when compilation ran inside a container rather than
+      during docker build). If false, create a fresh container from the image.
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Extract ccache from Docker
+      shell: bash
+      run: |
+        image="${{ inputs.image }}"
+        output="${{ inputs.output-path }}"
+        ccache_dir="${{ inputs.ccache-dir }}"
+        from_container="${{ inputs.from-container }}"
+
+        mkdir -p "$output"
+
+        if [ "$from_container" = "true" ]; then
+          # Find the most recently stopped container from this image
+          container_id=$(docker ps -a --filter "ancestor=$image" --filter "status=exited" \
+            --format "{{.ID}}" | head -1)
+          if [ -z "$container_id" ]; then
+            echo "No stopped container found for $image; skipping ccache extraction."
+            exit 0
+          fi
+          echo "Extracting ccache from stopped container $container_id (image: $image)"
+          docker cp "$container_id:$ccache_dir" "$output/" 2>/dev/null || true
+        else
+          # Try to create a container; pull the image first if not available locally
+          container_id=$(docker create "$image" 2>/dev/null) || true
+          if [ -z "$container_id" ]; then
+            echo "Image not local; attempting docker pull..."
+            docker pull "$image" 2>/dev/null || true
+            container_id=$(docker create "$image" 2>/dev/null) || true
+          fi
+          if [ -z "$container_id" ]; then
+            echo "Could not create container from $image; skipping ccache extraction."
+            exit 0
+          fi
+          echo "Extracting ccache from image $image"
+          docker cp "$container_id:$ccache_dir" "$output/" 2>/dev/null || true
+          docker rm "$container_id" >/dev/null 2>&1 || true
+        fi
+
+        if [ -d "$output/.ccache" ] || [ -d "$output/$(basename "$ccache_dir")" ]; then
+          echo "Extracted ccache data to $output"
+          du -sh "$output" 2>/dev/null || true
+        else
+          echo "No ccache data found at $ccache_dir in container."
+        fi

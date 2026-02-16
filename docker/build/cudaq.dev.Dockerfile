@@ -20,7 +20,7 @@
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc11-main
 # Default empty stage for ccache data. CI overrides this with
 # --build-context ccache-data=<path> to inject a pre-populated cache,
-# while the devcontainer builds get a the scratch as a noop.
+# while the devcontainer builds get the scratch as a noop.
 FROM scratch AS ccache-data
 FROM $base_image
 

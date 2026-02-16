@@ -13,13 +13,13 @@ inputs:
     description: 'GitHub token for GHCR authentication'
     required: true
   pr-number:
-    description: 'PR number for tag lookup (empty for non-PR builds)'
+    description: 'PR number for tag lookup. Auto-detected from ref_name when empty.'
     required: false
     default: ''
   base-branch:
-    description: 'Base branch to fall back to when PR cache is not found'
+    description: 'Base branch to fall back to. Auto-detected from PR target when empty.'
     required: false
-    default: 'main'
+    default: ''
 
 outputs:
   restored:
@@ -38,8 +38,22 @@ runs:
         platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
         image="ghcr.io/${repo_owner,,}/cuda-quantum-${platform}-ccache"
         cache_key="${{ inputs.cache-key }}"
+
+        # Auto-detect PR number from ref name if not provided
         pr_number="${{ inputs.pr-number }}"
+        if [ -z "$pr_number" ]; then
+          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
+          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
+        fi
+
+        # Auto-detect base branch from PR if not provided
         base_branch="${{ inputs.base-branch }}"
+        if [ -z "$base_branch" ] && [ -n "$pr_number" ]; then
+          export GH_TOKEN="${{ inputs.registry-token }}"
+          base_branch=$(gh pr view "$pr_number" -R "${{ github.repository }}" \
+            --json baseRefName --jq .baseRefName 2>/dev/null || true)
+        fi
+        base_branch="${base_branch:-main}"
 
         echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -52,7 +66,7 @@ runs:
         if [ -n "$pr_number" ]; then
           tags+=("${cache_key}-pr-${pr_number}")
         fi
-        if [ -n "$base_branch" ]; then
+        if [ -n "$base_branch" ] && [ "$base_branch" != "main" ]; then
           tags+=("${cache_key}-${base_branch}")
         fi
         tags+=("${cache_key}-main")
