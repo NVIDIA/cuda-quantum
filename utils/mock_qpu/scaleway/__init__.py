@@ -149,10 +149,10 @@ def _run_job(job: Job):
     #     }
     # )
 
-    result = QuantumProgramResult.from_cudaq_sample_result(result).to_json_str()
+    result = QuantumProgramResult.from_cudaq_sample_result(sample_result).to_json_str()
 
-    result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result, url="")
-    database.job_results[result.id] = result
+    job_result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result, url="")
+    database.job_results[job_result.id] = job_result
 
 
 @app.get(_BASE_PATH + "/platforms")
