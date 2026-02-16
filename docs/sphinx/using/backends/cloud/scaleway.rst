@@ -62,9 +62,14 @@ The target backend for quantum kernel execution can be selected using the
 .. code:: python
 
    import cudaq
+   # Use credentials from environment variables
    cudaq.set_target("scaleway")
 
-By default, kernels are executed on a Scaleway quantum emulator.
+   # You can specify manually your credentials
+   cudaq.set_target("scaleway", project_id="XXXXX", secret_key="XXXXX")
+
+
+By default, kernels are executed on a Scaleway quantum emulator ``EMU-CUDAQ-H100``.
 
 To select a specific Scaleway device, set the ``machine`` parameter:
 
@@ -78,6 +83,45 @@ To select a specific Scaleway device, set the ``machine`` parameter:
 
 where ``EMU-CUDAQ-H100`` identifies an emulator or QPU offer available through Scaleway
 Quantum as a Service. See Scaleway QaaS webpage to see all available offers.
+
+The service will dynamically allocate a dedicated GPU server for your need.
+
+This allocation can take up to few minutes. To use the same session between different script execution
+or users, you can specify a ``deduplication_id``.
+
+The session will be created if doesn't exist, else it will retrieve and use the matching one.
+
+.. code:: python
+
+   machine = "EMU-CUDAQ-H100"
+   # The deduplication identifier is a convenient way to keep using the same resource
+   # between script calls or user
+   # Notes: The target ``machine`` must be the same as well as Scaleway project id
+   cudaq.set_target("scaleway", machine=machine, deduplication_id="my-workshop")
+
+You can specify the maximal duration or the maximal idle duration to limit the billing.
+
+.. code:: python
+
+   machine = "EMU-CUDAQ-H100"
+   # The underlying QPU session will be killed after 30 minutes
+   # or after 5 idle minutes without new jobs
+   cudaq.set_target("scaleway", machine=machine, max_duration="30m", max_idle_duration="5min")
+
+If you want to manually shutdown a QPU session, you can do it by calling the Scaleway's QaaS API:
+
+.. code:: bash
+   # List active sessions
+   curl -X GET \
+      -H "X-Auth-Token: $SCW_SECRET_KEY" \
+      "https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=XXXXX"
+
+   # Terminate the session
+   curl -X POST \
+      -H "X-Auth-Token: $SCW_SECRET_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{}' \
+      "https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate"
 
 The number of shots for a kernel execution can be specified via the
 ``shots_count`` argument to ``cudaq.sample``. The default value is 1000.
