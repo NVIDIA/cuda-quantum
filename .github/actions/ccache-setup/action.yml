@@ -21,11 +21,12 @@ runs:
           echo "ORAS already installed: $(oras version)"
           exit 0
         fi
-        if [ "$(uname)" = "Darwin" ]; then
-          brew install oras
-        else
-          sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends oras
-        fi
+        oras_version="1.2.2"
+        os=$(uname -s | tr '[:upper:]' '[:lower:]')
+        arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+        curl -sLO "https://github.com/oras-project/oras/releases/download/v${oras_version}/oras_${oras_version}_${os}_${arch}.tar.gz"
+        sudo tar -xzf oras_*.tar.gz -C /usr/local/bin/ oras
+        rm -f oras_*.tar.gz
 
     - name: Install and configure ccache
       shell: bash

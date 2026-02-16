@@ -34,9 +34,9 @@ runs:
       continue-on-error: true
       shell: bash
       run: |
-        repo_owner="${{ github.repository_owner }}"
+        repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
-        image="ghcr.io/${repo_owner,,}/cuda-quantum-${platform}-ccache"
+        image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
         cache_key="${{ inputs.cache-key }}"
 
         # Auto-detect PR number from ref name if not provided
