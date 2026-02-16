@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "JIT.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include <memory>
 
@@ -22,6 +23,7 @@ class Module;
 }
 
 namespace cudaq {
+
 /// @brief Function to lower MLIR to target
 /// @param op MLIR operation
 /// @param output Output stream
@@ -55,10 +57,11 @@ bool setupTargetTriple(llvm::Module *);
 void optimizeLLVM(llvm::Module *);
 
 /// @brief Lower ModuleOp to a full QIR LLVMIR representation
-/// and return an ExecutionEngine pointer for JIT function pointer
-/// execution. Clients are responsible for deleting this pointer.
-mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo);
+/// and return a module for JIT function pointer
+/// execution. JitEngine is automatically deleted when its resource count
+/// goes to zero.
+JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
+                             llvm::StringRef convertTo);
 
 class Translation {
 public:

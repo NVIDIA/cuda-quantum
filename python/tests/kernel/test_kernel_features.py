@@ -16,6 +16,8 @@ import sys
 import cudaq
 from cudaq import spin
 
+from test_helpers import h2_hamiltonian_4q
+
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -349,15 +351,7 @@ def test_observe():
 
 def test_pauli_word_input():
 
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
 
     @cudaq.kernel
     def kernel(theta: float, var: cudaq.pauli_word):
@@ -397,15 +391,7 @@ def test_pauli_word_input():
 
 
 def test_exp_pauli():
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
 
     @cudaq.kernel
     def kernel(theta: float):
@@ -2777,6 +2763,39 @@ def test_struct_list_int_member():
     instance = QubitConfig(num_qubits=[2], angles=[np.pi])
     counts = cudaq.sample(kernel_alloc_from_int, instance)
     assert len(counts) == 1 and '10' in counts
+
+
+def test_named_reg_in_sample(capfd):
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qubit()
+        x(q)
+        var = mz(q)
+
+    cudaq.sample(foo)
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+    @cudaq.kernel
+    def bar():
+        q = cudaq.qubit()
+        x(q)
+        mz(q)
+
+    cudaq.sample(bar)
+    captured = capfd.readouterr()
+    assert "WARNING" not in captured.err
+
+    @cudaq.kernel
+    def baz():
+        q = cudaq.qvector(2)
+        x(q[0])
+        mz(q, register_name="my_register")
+
+    cudaq.sample(baz)
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
 
 
 # leave for gdb debugging

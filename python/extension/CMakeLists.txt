@@ -67,7 +67,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/platform/JITExecutionCache.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
-    ../runtime/cudaq/qis/py_qubit_qis.cpp
+    ../runtime/cudaq/qis/py_pauli_word.cpp
     ../runtime/cudaq/operators/py_helpers.cpp
     ../runtime/cudaq/operators/py_matrix.cpp
     ../runtime/cudaq/operators/py_scalar_op.cpp
@@ -88,6 +88,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/common/LayoutInfo.cpp
     ../../runtime/common/RuntimeMLIR.cpp
     ../../runtime/common/RuntimePyMLIR.cpp
+    ../../runtime/common/JIT.cpp
+    ../../runtime/common/Compiler.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp

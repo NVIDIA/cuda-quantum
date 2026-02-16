@@ -39,7 +39,7 @@
 #include "runtime/cudaq/operators/py_super_op.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
-#include "runtime/cudaq/qis/py_qubit_qis.h"
+#include "runtime/cudaq/qis/py_pauli_word.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/interop/PythonCppInterop.h"
@@ -106,7 +106,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   bindOperatorsWrapper(cudaqRuntime);
   bindHandlersWrapper(cudaqRuntime);
   bindSuperOperatorWrapper(cudaqRuntime);
-  bindQIS(cudaqRuntime);
+  bindPauliWord(cudaqRuntime);
   bindOptimizerWrapper(cudaqRuntime);
   bindNoise(cudaqRuntime);
   bindExecutionContext(cudaqRuntime);

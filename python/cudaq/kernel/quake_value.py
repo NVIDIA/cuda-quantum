@@ -10,9 +10,8 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import arith, quake, cc
 from cudaq.mlir.ir import (DenseI32ArrayAttr, F64Type, FloatAttr, Location,
                            IntegerAttr, IntegerType)
+from cudaq.kernel_types import qvector
 from .utils import mlirTypeFromPyType
-
-qvector = cudaq_runtime.qvector
 
 
 class QuakeValue(object):

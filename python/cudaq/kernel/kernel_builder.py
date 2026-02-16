@@ -26,7 +26,7 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
                                  func, math)
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
-from .captured_data import CapturedDataStorage
+from cudaq.kernel_types import qubit, qvector
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
 from .kernel_decorator import isa_kernel_decorator
@@ -38,8 +38,6 @@ from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_calling_module)
 
 kDynamicPtrIndex: int = -2147483648
-
-qvector = cudaq_runtime.qvector
 
 # This file reproduces the cudaq::kernel_builder in Python
 
@@ -264,10 +262,6 @@ class PyKernel(object):
         self.module.operation.attributes.__setitem__('quake.mangled_name_map',
                                                      attr)
 
-        self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
-                                                       loc=self.loc,
-                                                       name=self.name,
-                                                       module=self.module)
         # List of in-place applied noise channels (rather than pre-registered
         # noise classes)
         self.appliedNoiseChannels = []
@@ -293,28 +287,12 @@ class PyKernel(object):
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
 
-        self._finalizer = weakref.finalize(self, PyKernel._cleanup,
-                                           self.capturedDataStorage)
-
-    @staticmethod
-    def _cleanup(capturedDataStorage):
-        """
-        Cleanup function to be called when the `PyKernel` instance is garbage
-        collected. This resource management method is used with
-        `weakref.finalize()` to ensure proper cleanup of resources. Note that
-        this method is intentionally empty since `CapturedDataStorage` has its
-        own `finalizer`. However, it is still included for maintaining the
-        reference to `CapturedDataStorage` until the `PyKernel` instance is
-        garbage collected ensuring proper cleanup order.
-        """
-        pass
-
     def __processArgType(self, ty):
         """
         Process input argument type. Specifically, try to infer the element type
         for a list, e.g. list[float].
         """
-        if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
+        if ty in [qvector, qubit]:
             return ty, None
         if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):
@@ -1382,39 +1360,36 @@ class PyKernel(object):
         closure here.
         Returns a `CreateLambdaOp` closure.
         """
+        # Add the target kernel to the current module.
         cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
+        fulluniq = nvqppPrefix + target.uniqName
+        fn = recover_func_op(self.module, fulluniq)
+
         # build the closure to capture the lifted `args`
         thisPyMod = recover_calling_module()
         if target.defModule != thisPyMod:
             m = target.defModule
         else:
             m = None
-        fulluniq = nvqppPrefix + target.uniqName
-        fn = recover_func_op(self.module, fulluniq)
-        funcTy = fn.type
-        if target.firstLiftedPos:
-            moduloInTys = funcTy.inputs[:target.firstLiftedPos]
-        else:
-            moduloInTys = funcTy.inputs
-        callableTy = cc.CallableType.get(self.ctx, moduloInTys, funcTy.results)
+        funcTy = target.signature.get_lifted_type()
+        callableTy = target.signature.get_callable_type()
         with insPt, self.loc:
             lamb = cc.CreateLambdaOp(callableTy, loc=self.loc)
             lamb.attributes.__setitem__('function_type', TypeAttr.get(funcTy))
             initRegion = lamb.initRegion
-            initBlock = Block.create_at_start(initRegion, moduloInTys)
+            initBlock = Block.create_at_start(initRegion, target.arg_types())
             inner = InsertionPoint(initBlock)
             with inner:
                 vs = []
                 for ba in initBlock.arguments:
                     vs.append(ba)
-                for i, a in enumerate(target.liftedArgs):
-                    v = recover_value_of(a, m)
+                for var in target.captured_variables():
+                    v = recover_value_of(var.name, m)
                     if isa_kernel_decorator(v):
                         # The recursive step
                         v = self.resolve_callable_arg(inner, v)
                     else:
-                        argTy = funcTy.inputs[target.firstLiftedPos + i]
-                        v = self.__getMLIRValueFromPythonArg(v, argTy)
+                        v = self.__getMLIRValueFromPythonArg(v, var.type)
                     vs.append(v)
                 if funcTy.results:
                     call = func.CallOp(fn, vs).result
@@ -1553,6 +1528,21 @@ class PyKernel(object):
         else:
             emitFatalError("Noise channel parameter must be float")
 
+    @staticmethod
+    def _validate_noise_channel_probability_params(noise_channel, param_values):
+        """
+        Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
+        """
+        if not hasattr(noise_channel, 'num_parameters'):
+            return
+        for p in param_values:
+            if isinstance(p, (int, float)):
+                val = float(p)
+                if val < 0.0 or val > 1.0:
+                    raise RuntimeError(
+                        "probability must be in the range [0, 1]. " + "Got: " +
+                        str(val))
+
     def apply_noise(self, noise_channel, *args):
         """
         Apply a noise channel to the provided qubit or qubits.
@@ -1584,8 +1574,11 @@ class PyKernel(object):
             if isinstance(args[0], list):
                 # If the first argument is a list, assuming that it is the list
                 # of noise channel parameters.
+                param_values = args[0]
+                self._validate_noise_channel_probability_params(
+                    noise_channel, param_values)
                 noise_channel_params = [
-                    self.process_channel_param(p) for p in args[0]
+                    self.process_channel_param(p) for p in param_values
                 ]
                 # Qubit arguments
                 for p in args[1:]:
@@ -1594,6 +1587,9 @@ class PyKernel(object):
                         emitFatalError("Invalid qubit operand type")
                     target_qubits.append(p.mlirValue)
             else:
+                param_values = args[:noise_channel.num_parameters]
+                self._validate_noise_channel_probability_params(
+                    noise_channel, param_values)
                 for i, p in enumerate(args):
                     if i < noise_channel.num_parameters:
                         noise_channel_params.append(
