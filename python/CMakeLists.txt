@@ -36,6 +36,19 @@ if (CUDA_FOUND)
 endif()
 
 set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
+
+# Remove stale dialect wrapper files before the MLIR Python bindings
+# re-create them as symlinks. cmake -E create_symlink fails if the
+# destination already exists as a regular file; CopyPythonFiles (which
+# runs after .sources) leaves regular copies that would block the next
+# rebuild.
+add_custom_target(
+  CleanMLIRDialectCopies
+  COMMAND ${CMAKE_COMMAND} -E rm -f
+    ${CMAKE_BINARY_DIR}/python/cudaq/mlir/dialects/quake.py
+    ${CMAKE_BINARY_DIR}/python/cudaq/mlir/dialects/cc.py
+)
+
 add_custom_target(
   CopyPythonFiles ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -49,6 +62,9 @@ add_custom_target(
   BYPRODUCTS "${METADATA_FILE}"
 )
 
+# Build order: CleanMLIRDialectCopies -> .sources (symlinks) -> CopyPythonFiles
+add_dependencies(CUDAQuantumPythonModules.sources CleanMLIRDialectCopies)
+add_dependencies(CopyPythonFiles CUDAQuantumPythonModules.sources)
 add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
 add_subdirectory(runtime/cudaq/domains/plugins)
