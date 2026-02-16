@@ -14,6 +14,10 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-cu12-llvm-main -f docker/build/assets.Dockerfile .
 
+# Default empty stage for ccache data. CI overrides this with
+# --build-context ccache-data=<path> to inject a pre-populated cache.
+FROM scratch AS ccache-data
+
 # [Operating System]
 ARG base_image=amd64/almalinux:8
 FROM ${base_image} AS prereqs
@@ -35,7 +39,8 @@ ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}
 
 # [Build Dependencies]
-RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip
+RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip epel-release && \
+    dnf install -y --nobest --setopt=install_weak_deps=False ccache
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -65,6 +70,14 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true; \
+    else \
+        echo "No ccache data injected using empty scratch stage."; \
+    fi
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm
@@ -134,7 +147,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v
+    bash scripts/build_cudaq.sh -t llvm -v && \
+    echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true)
     ## [<CUDAQuantumCppBuild]
 
 # Validate that the nvidia backend was built.
@@ -211,7 +225,8 @@ RUN cd /cuda-quantum && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
-    python3 -m build --wheel
+    python3 -m build --wheel && \
+    echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
     ## [<CUDAQuantumPythonBuild]
 
 # The '[a-z]*linux_[^\.]*' is meant to catch things like:

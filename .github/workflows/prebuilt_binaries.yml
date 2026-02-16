@@ -104,10 +104,13 @@ jobs:
           registry_cache=`echo "${{ inputs.build_cache }}" | (egrep -o 'type=registry,ref=[a-zA-Z0-9_:/\.-]*' || echo)`
           registry_cache_image=`echo $registry_cache | rev | cut -d : -f2- | rev`
 
+          ccache_key=${platform_tag}-${build_config_id:+$build_config_id-}assets
+
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
+          echo "ccache_key=$ccache_key" >> $GITHUB_OUTPUT
           echo "artifact_name=cudaq-${tag_prefix}installer-${{ github.run_id }}" >> $GITHUB_OUTPUT
           {
             echo 'additional_build_caches<<multiline'
@@ -138,6 +141,15 @@ jobs:
         with:
           enable-apt: true
 
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.config.outputs.ccache_key }}
+          registry-token: ${{ github.token }}
+
       - name: Extract metadata
         id: metadata
         uses: docker/metadata-action@v5
@@ -161,6 +173,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/assets.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}
@@ -172,6 +186,18 @@ jobs:
             ${{ inputs.build_cache }}
             ${{ steps.config.outputs.additional_build_caches }}
           push: true
+
+      - name: Extract ccache from assets image
+        uses: ./.github/actions/ccache-extract-docker
+        with:
+          image: ${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.config.outputs.ccache_key }}
+          cache-path: /tmp/ccache-out/.ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: inputs.environment
