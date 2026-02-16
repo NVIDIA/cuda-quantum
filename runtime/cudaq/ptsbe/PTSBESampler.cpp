@@ -45,8 +45,12 @@ template <typename ScalarType>
 std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
   std::vector<GateTask<ScalarType>> tasks;
   tasks.reserve(trace.getNumInstructions());
-  for (const auto &inst : trace)
+  for (const auto &inst : trace) {
+    // Skip apply_noise; they become noise insertions only, not gate tasks
+    if (inst.noise_channel_key.has_value())
+      continue;
     tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
+  }
   return tasks;
 }
 

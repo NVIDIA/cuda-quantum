@@ -58,46 +58,53 @@ NoiseExtractionResult extractNoiseSites(const cudaq::Trace &trace,
   std::size_t instruction_idx = 0;
 
   for (const auto &inst : trace) {
+    if (inst.noise_channel_key.has_value()) {
+      // Inline apply_noise: insert after the last gate (instruction_idx - 1)
+      std::size_t loc = (instruction_idx > 0) ? instruction_idx - 1 : 0;
+      std::intptr_t key = *inst.noise_channel_key;
+      cudaq::kraus_channel channel = noise_model.get_channel(key, inst.params);
+      if (channel.empty())
+        continue;
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
+      if (!channel.is_unitary_mixture())
+        throwUnitaryMixtureError(inst.name, loc);
+      std::vector<std::size_t> qubits = qubitIdsFromInstruction(inst);
+      result.noise_sites.push_back(createNoisePoint(
+          loc, inst.name, std::move(qubits), std::move(channel)));
+      result.noisy_instructions++;
+      continue;
+    }
+
+    // Gate: look up channels by gate name and qubits
     std::vector<std::size_t> target_qubits;
     target_qubits.reserve(inst.targets.size());
-    for (const auto &q : inst.targets) {
+    for (const auto &q : inst.targets)
       target_qubits.push_back(q.id);
-    }
     std::vector<std::size_t> control_qubits;
     control_qubits.reserve(inst.controls.size());
-    for (const auto &q : inst.controls) {
+    for (const auto &q : inst.controls)
       control_qubits.push_back(q.id);
-    }
 
     auto channels = noise_model.get_channels(inst.name, target_qubits,
                                              control_qubits, inst.params);
-
     bool instruction_has_noise = false;
 
     for (auto channel : channels) {
-      if (channel.empty()) {
+      if (channel.empty())
         continue;
-      }
-
-      // Standard channels compute unitary_ops in their constructor (which
-      // runs in the caller's precision context). Only regenerate for channels
-      // that haven't been pre-computed (e.g. custom channels). Unconditionally
-      // regenerating could misinterpret fp32 Kraus data as fp64 because this
-      // translation unit is always compiled with cudaq::real = double.
       if (!channel.is_unitary_mixture())
         channel.generateUnitaryParameters();
       if (!channel.is_unitary_mixture())
         throwUnitaryMixtureError(inst.name, instruction_idx);
-
       std::vector<std::size_t> qubits = qubitIdsFromInstruction(inst);
       result.noise_sites.push_back(createNoisePoint(
           instruction_idx, inst.name, std::move(qubits), std::move(channel)));
       instruction_has_noise = true;
     }
 
-    if (instruction_has_noise) {
+    if (instruction_has_noise)
       result.noisy_instructions++;
-    }
 
     instruction_idx++;
   }
