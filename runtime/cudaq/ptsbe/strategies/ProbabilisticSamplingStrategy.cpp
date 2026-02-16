@@ -38,7 +38,13 @@ ProbabilisticSamplingStrategy::generateTrajectories(
   std::size_t actual_target = std::min(max_trajectories, total_possible);
 
   std::size_t trajectory_id = 0;
-  std::size_t max_attempts = actual_target * ATTEMPT_MULTIPLIER;
+  const std::size_t base_attempts = actual_target * ATTEMPT_MULTIPLIER;
+  constexpr std::size_t MAX_ATTEMPTS_CAP = 500000;
+  std::size_t min_attempts_for_coverage =
+      (total_possible <= 10000)
+          ? std::min(total_possible * 5000, MAX_ATTEMPTS_CAP)
+          : base_attempts;
+  std::size_t max_attempts = std::max(base_attempts, min_attempts_for_coverage);
   std::size_t attempts = 0;
 
   while (results.size() < max_trajectories && attempts < max_attempts) {
