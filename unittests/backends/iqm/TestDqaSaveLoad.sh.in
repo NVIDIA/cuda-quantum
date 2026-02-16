@@ -1,0 +1,19 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+#!/bin/bash
+
+dqa_filename="dqa_mock_qpu_saved.txt"
+export IQM_SAVE_QPU_QA=$dqa_filename
+export IQM_QPU_QA=$dqa_filename
+./test_iqm_save_load --gtest_filter=IQMTester.dqaSaveFile || exit 1
+
+unset IQM_SAVE_QPU_QA
+./test_iqm_save_load --gtest_filter=IQMTester.dqaLoadFile || exit 1
+
+./test_iqm_save_load --gtest_filter=IQMTester.dqaRemoveFile || exit 1
