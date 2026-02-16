@@ -507,7 +507,7 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
             py::list arguments = arg.attr("resolved");
             auto startLiftedArgs = [&]() -> std::optional<unsigned> {
               if (!arguments.empty())
-                return decorator.attr("firstLiftedPos").cast<unsigned>();
+                return decorator.attr("formal_arity")().cast<unsigned>();
               return std::nullopt;
             }();
             // build the recursive closure in a C++ object
