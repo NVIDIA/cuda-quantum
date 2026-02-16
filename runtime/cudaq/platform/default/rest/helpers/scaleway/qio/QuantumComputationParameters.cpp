@@ -36,7 +36,7 @@ QuantumComputationParameters::fromJson(json j) {
 
   CUDAQ_INFO("from json 3");
 
-  return k
+  return k;
 }
 
 nlohmann::json QuantumComputationParameters::options() {
