@@ -8,6 +8,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+@Python_EXECUTABLE@ -c "import qio" 2> /dev/null
+if [ $? -ne 0 ]; then
+    echo "qio is not installed. It is required for testing Scaleway integration. Please install it using pip install qio. Skipping Scaleway tests."
+    exit 77
+fi
+
+
 # Check if mock server is up
 checkServerConnection() {
   PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF

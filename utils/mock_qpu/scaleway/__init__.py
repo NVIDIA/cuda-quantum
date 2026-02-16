@@ -13,8 +13,11 @@ import json
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-app = FastAPI()
-
+from qio.core import (
+    QuantumComputationModel,
+    QuantumComputationParameters,
+    QuantumProgramResult,
+)
 
 class CreateJobRequest(BaseModel):
     name: str
@@ -78,6 +81,8 @@ class Model(BaseModel):
     payload: str
 
 
+app = FastAPI()
+
 class Database:
     jobs: dict = {}
     platforms: dict = {}
@@ -108,33 +113,41 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
 )
 
 
-@cudaq.kernel
-def _bell_kernel():
-    qubits = cudaq.qvector(2)
-    h(qubits[0])
-    x.ctrl(qubits[0], qubits[1])
-    mz(qubits)
+# @cudaq.kernel
+# def _bell_kernel():
+#     qubits = cudaq.qvector(2)
+#     h(qubits[0])
+#     x.ctrl(qubits[0], qubits[1])
+#     mz(qubits)
 
 
-def _run_fake_job(job: Job):
+def _run_job(job: Job):
     # Try to retrieve provided shot counts
-    try:
-        shot_count = json.loads(job.parameters)["shots"]
-    except Exception as e:
-        shot_count = 100
+    model = QuantumComputationModel.from_json_str(job.payload)
+    params = QuantumComputationParameters.from_json_str(job.parameters)
+
+    # try:
+        # shot_count = json.loads(job.parameters)["shots"]
+    shot_count = params.shots
+    # except Exception as e:
+        # shot_count = 100
+
+    kernel = model.programs[0].to_cudaq_kernel()
 
     # Run a bell state as mock execution
-    sample_result = cudaq.sample(_bell_kernel, shots_count=shot_count)
+    sample_result = cudaq.sample(kernel, shots_count=shot_count)
     job.status = "completed"
 
     # Simplified qio result
-    result = json.dumps(
-        {
-            "serialization": json.dumps(sample_result.serialize()),
-            "serialization_format": 3,  # CUDA-Q Sample Result
-            "compression_format": 1,  # No compression
-        }
-    )
+    # result = json.dumps(
+    #     {
+    #         "serialization": json.dumps(sample_result.serialize()),
+    #         "serialization_format": 3,  # CUDA-Q Sample Result
+    #         "compression_format": 1,  # No compression
+    #     }
+    # )
+
+    result = QuantumProgramResult.from_cudaq_sample_result(result).to_json_str()
 
     result = JobResult(id=str(uuid.uuid4()), job_id=job.id, result=result, url="")
     database.job_results[result.id] = result
