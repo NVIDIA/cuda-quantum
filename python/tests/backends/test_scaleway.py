@@ -12,15 +12,15 @@ import os
 from cudaq import spin
 import numpy as np
 
+TEST_PORT = 62450
 TEST_PLATFORM = "EMU-CUDAQ-FAKE"
-TEST_URL = f"http://localhost:{PORT}"
+TEST_URL = f"http://localhost:{TEST_PORT}"
 
 # or uncomment this line to test on real hardware
 # TEST_PLATFORM = "EMU-CUDAQ-64C-512M"
 # TEST_URL = "http://51.15.230.119"
 # TEST_URL = "https://api.scaleway.com"
 
-PORT = 62450
 TEST_PROJECT_ID = "b87c64d8-2923-447d-80e3-7e7f68511533"  # Fake project id
 DEFAULT_DURATION = "10m"
 DEFAULT_SHOT_COUNT = 3000
