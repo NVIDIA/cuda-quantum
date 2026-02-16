@@ -45,30 +45,6 @@ std::string getValueOrDefault(const BackendConfig &config,
 }
 
 std::string serializeParametersToQio(size_t nb_shots, std::string output_names) {
-  // auto output_names = circuitCode.output_names.dump();
-  // backendConfig["output_names." + model.id] = output_names;
-
-  CUDAQ_INFO("Output names {}", output_names);
-
-  // OutputNamesType jobOutputNames;
-  // nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
-
-  // CUDAQ_INFO("Create output names {} {}", taskId, output_names);
-
-  // for (const auto &el : outputNamesJson[0]) {
-  //   auto result = el[0].get<std::size_t>();
-  //   auto qubitNum = el[1][0].get<std::size_t>();
-  //   auto registerName = el[1][1].get<std::string>();
-
-  //   CUDAQ_INFO("Create register res:{}, nb:{}, name:{}", result, qubitNum, registerName);
-
-  //   jobOutputNames[result] = {qubitNum, registerName};
-  // }
-
-  // outputNames[taskId] = jobOutputNames;
-
-  // setOutputNames(model.id, output_names);
-
   json options;
   options["output_names"] = output_names;
   qio::QuantumComputationParameters parameters(nb_shots, options);
@@ -179,8 +155,11 @@ bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("Scaleway Job Error: " + err);
   }
 
-  return (status == "completed" || status == "cancelled" ||
-          status == "cancelling");
+  if (status == "cancelled" || status == "cancelling") {
+    throw std::runtime_error("Scaleway Job is cancelled");
+  }
+
+  return status == "completed";
 }
 
 cudaq::sample_result
@@ -210,8 +189,6 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
 
   try {
-    auto job = m_qaasClient->getJob(jobId);
-
     auto jsonParameters = json::parse(job.parameters);
 
     auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
@@ -338,28 +315,5 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
 
   return m_sessionId;
 }
-
-// void ScalewayServerHelper::setOutputNames(const std::string &taskId,
-//                                         const std::string &output_names) {
-//   // Parse `output_names` into jobOutputNames.
-//   // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
-//   // for an example of how this was populated.
-//   OutputNamesType jobOutputNames;
-//   nlohmann::json outputNamesJson = nlohmann::json::parse(output_names);
-
-//   CUDAQ_INFO("Create output names {} {}", taskId, output_names);
-
-//   for (const auto &el : outputNamesJson[0]) {
-//     auto result = el[0].get<std::size_t>();
-//     auto qubitNum = el[1][0].get<std::size_t>();
-//     auto registerName = el[1][1].get<std::string>();
-
-//     CUDAQ_INFO("Create register res:{}, nb:{}, name:{}", result, qubitNum, registerName);
-
-//     jobOutputNames[result] = {qubitNum, registerName};
-//   }
-
-//   outputNames[taskId] = jobOutputNames;
-// }
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ScalewayServerHelper, scaleway)

@@ -13,16 +13,15 @@ from cudaq import spin
 import numpy as np
 
 TEST_PLATFORM = "EMU-CUDAQ-FAKE"
+TEST_URL = f"http://localhost:{PORT}"
+
 # or uncomment this line to test on real hardware
-TEST_PLATFORM = "EMU-CUDAQ-64C-512M"
-# TEST_URL = f"http://localhost:{PORT}"
-TEST_URL = "http://51.15.230.119"
-# or uncomment this line to test on real API
+# TEST_PLATFORM = "EMU-CUDAQ-64C-512M"
+# TEST_URL = "http://51.15.230.119"
 # TEST_URL = "https://api.scaleway.com"
-TEST_PROJECT_ID = "b87c64d8-2923-447d-80e3-7e7f68511533"  # Fake project id
 
 PORT = 62450
-
+TEST_PROJECT_ID = "b87c64d8-2923-447d-80e3-7e7f68511533"  # Fake project id
 DEFAULT_DURATION = "10m"
 DEFAULT_SHOT_COUNT = 3000
 DEFAULT_DEDUPLICATION_ID = "cudaq-test-scaleway"
@@ -368,7 +367,7 @@ def test_kernel_subveqs():
     print("test_kernel_subveqs", counts)
 
     assert len(counts) == 1
-    assert "11" in counts # got 0110
+    assert "11" in counts  # got 0110
 
 
 def test_kernel_two_subveqs():
@@ -386,7 +385,7 @@ def test_kernel_two_subveqs():
     print("test_kernel_two_subveqs", counts)
 
     assert len(counts) == 1
-    assert "011" in counts # got 0110
+    assert "011" in counts  # got 0110
 
 
 def test_kernel_qubit_subveq():
@@ -404,7 +403,7 @@ def test_kernel_qubit_subveq():
     print("test_kernel_qubit_subveq", counts)
 
     assert len(counts) == 1
-    assert "011" in counts # got 0110
+    assert "011" in counts  # got 0110
 
 
 def test_multiple_measurement():
@@ -469,6 +468,7 @@ def test_exp_pauli():
     assert not "10" in counts
 
 
+# TODO: Not yet supported
 # def test_toffoli():
 #     @cudaq.kernel
 #     def kernel():
