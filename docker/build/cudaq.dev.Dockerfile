@@ -52,6 +52,7 @@ RUN if [ -n "$mpi" ]; \
 # to create the released cuda-quantum image.
 ARG install=
 ARG git_source_sha=xxxxxxxx
+ENV CCACHE_DIR=/root/.ccache
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
         echo "Importing ccache data..." && \

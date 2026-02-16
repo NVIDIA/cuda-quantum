@@ -41,4 +41,9 @@ runs:
         fi
         ccache --set-config=max_size=${{ inputs.max-size }}
         ccache --set-config=compression=${{ inputs.compression }}
+        # Pin cache_dir to ~/.ccache so all actions use a consistent path.
+        # ccache 4.x defaults to platform-specific dirs (e.g.
+        # ~/Library/Caches/ccache on macOS, ~/.cache/ccache on Linux).
+        ccache --set-config=cache_dir="$HOME/.ccache"
+        echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
         ccache -z

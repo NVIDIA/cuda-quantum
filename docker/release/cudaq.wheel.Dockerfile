@@ -33,6 +33,7 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 ARG python_version=3.10
+ENV CCACHE_DIR=/root/.ccache
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
         echo "Importing ccache data..." && \
