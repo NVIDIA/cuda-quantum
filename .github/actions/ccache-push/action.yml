@@ -55,7 +55,13 @@ runs:
           echo "=== ccache stats ==="
           ccache -s 2>/dev/null || true
         fi
-        if [ "$miss_threshold" -gt 0 ] 2>/dev/null && command -v ccache &>/dev/null; then
+
+        # Always push on the default branch to keep the baseline fresh
+        default_branch="${{ github.event.repository.default_branch }}"
+        default_branch="${default_branch:-main}"
+        is_default_branch=$( [ "${{ github.ref_name }}" = "$default_branch" ] && echo true || echo false )
+
+        if [ "$miss_threshold" -gt 0 ] 2>/dev/null && ! $is_default_branch && command -v ccache &>/dev/null; then
           # Use --print-stats for machine-readable output (ccache 4.4+).
           # Format: tab-separated key\tvalue lines.
           stats=$(ccache --print-stats 2>/dev/null || true)
@@ -83,6 +89,8 @@ runs:
             echo "pushed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+        elif $is_default_branch; then
+          echo "On default branch ($default_branch); always pushing to keep baseline fresh."
         fi
 
         # Determine tag
