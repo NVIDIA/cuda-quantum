@@ -125,13 +125,14 @@ struct BridgeConfig {
 
 /// @brief Parse common bridge arguments from the command line.
 ///
-/// Recognised flags: --device=, --peer-ip=, --remote-qp=, --gpu=,
-/// --timeout=, --page-size=, --num-pages=, --exchange-qp, --exchange-port=.
-/// Unknown flags are silently ignored (so tool-specific flags can coexist).
+/// Recognized flags: `--device=`, `--peer-ip=`, `--remote-qp=`, `--gpu=`,
+/// `--timeout=`, `--page-size=`, `--num-pages=`, `--exchange-qp`,
+/// `--exchange-port=`. Unknown flags are silently ignored (so tool-specific
+/// flags can co-exist).
 ///
 /// @param argc Argument count
 /// @param argv Argument vector
-/// @param[out] config Bridge configuration to populate
+/// @param [out] config Bridge configuration to populate
 inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];

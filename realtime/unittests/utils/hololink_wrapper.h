@@ -9,8 +9,8 @@
 /// @file hololink_wrapper.h
 /// @brief C interface to Hololink GpuRoceTransceiver.
 ///
-/// This wrapper avoids fmt library conflicts between Hololink (which uses
-/// Holoscan's fmt) and CUDA files compiled by nvcc.
+/// This wrapper avoids `fmt` library conflicts between Hololink (which uses
+/// Holoscan's `fmt`) and CUDA files compiled by nvcc.
 
 #ifndef HOLOLINK_WRAPPER_H
 #define HOLOLINK_WRAPPER_H
