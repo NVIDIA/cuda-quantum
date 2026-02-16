@@ -239,7 +239,7 @@ async def getJob(jobId: str):
         countJobGetRequests += 1
         return job.model_dump()
 
-    _run_fake_job(job)
+    _run_job(job)
 
     countJobGetRequests = 0
 
