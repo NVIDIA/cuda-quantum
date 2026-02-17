@@ -57,7 +57,8 @@ runs:
 
         echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
-        mkdir -p "${{ inputs.output-path }}"
+        output_path="${{ inputs.output-path }}"
+        mkdir -p "$output_path"
 
         # Try tags in priority order: PR-specific cache first (most relevant),
         # then the PR's target branch (e.g. releases/0.9), then main as
@@ -76,9 +77,9 @@ runs:
           echo "Trying $image:$tag ..."
           if oras pull "$image:$tag" 2>/dev/null; then
             echo "Downloaded ccache tarball: $(du -sh ccache-data.tar.gz | cut -f1)"
-            tar -xzf ccache-data.tar.gz -C "${{ inputs.output-path }}"
+            tar -xzf ccache-data.tar.gz -C "$output_path"
             rm -f ccache-data.tar.gz
-            echo "Restored ccache from $image:$tag (extracted: $(du -sh "${{ inputs.output-path }}" | cut -f1))"
+            echo "Restored ccache from $image:$tag (extracted: $(du -sh "$output_path" | cut -f1))"
             restored=true
             break
           fi

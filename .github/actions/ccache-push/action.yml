@@ -40,9 +40,6 @@ runs:
         cache_path="${{ inputs.cache-path }}"
         miss_threshold="${{ inputs.miss-threshold }}"
 
-        # Expand ~ in cache_path
-        cache_path="${cache_path/#\~/$HOME}"
-
         # Validate cache path has content
         if [ ! -d "$cache_path" ] || [ -z "$(ls -A "$cache_path" 2>/dev/null)" ]; then
           echo "No ccache data found at $cache_path; skipping push."

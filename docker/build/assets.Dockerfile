@@ -14,12 +14,13 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-cu12-llvm-main -f docker/build/assets.Dockerfile .
 
+# [Operating System]
+ARG base_image=amd64/almalinux:8
+
 # Default empty stage for ccache data. CI overrides this with
 # --build-context ccache-data=<path> to inject a pre-populated cache.
 FROM scratch AS ccache-data
 
-# [Operating System]
-ARG base_image=amd64/almalinux:8
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
 ARG cuda_version=12.6
