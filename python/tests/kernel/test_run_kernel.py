@@ -1086,7 +1086,6 @@ def test_create_and_modify_struct():
     assert results[0] == Bar(True, True, 4.14)
 
 
-@pytest.mark.skip_macos_arm64_jit
 def test_unsupported_return_type():
 
     with pytest.raises(RuntimeError) as e:

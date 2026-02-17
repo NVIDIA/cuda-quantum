@@ -168,7 +168,6 @@ def test_choice_function_2():
     assert counts3.count("01") + counts3.count("11") == 10
 
 
-@pytest.mark.skip_macos_arm64_jit
 def test_sample_in_choice():
 
     @cudaq.kernel
