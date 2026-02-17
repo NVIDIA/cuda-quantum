@@ -5,6 +5,10 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+import functools
+import time
+import warnings
+
 import pytest
 import os, math, sys
 import numpy as np
@@ -13,6 +17,45 @@ import cudaq
 from cudaq import spin
 
 num_qpus = 3
+
+
+def retry_on_flaky_connection(platform="darwin", max_attempts=3, delay=0.5):
+    """Retry decorator for tests that hit transient localhost HTTP
+    connection errors.
+
+    See https://github.com/NVIDIA/cuda-quantum/issues/3910
+    """
+
+    def decorator(func):
+        if sys.platform != platform:
+            return func
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except RuntimeError as e:
+                    is_last = attempt == max_attempts - 1
+                    if "status code 0" in str(e) and not is_last:
+                        warnings.warn(
+                            f"[flaky retry] attempt {attempt + 1}/"
+                            f"{max_attempts}: {e}",
+                            RuntimeWarning,
+                            stacklevel=2)
+                        time.sleep(delay * (attempt + 1))
+                        continue
+                    if "status code 0" in str(e):
+                        warnings.warn(
+                            f"[flaky retry] all {max_attempts} "
+                            f"attempts exhausted",
+                            RuntimeWarning,
+                            stacklevel=2)
+                    raise
+
+        return wrapper
+
+    return decorator
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
@@ -278,9 +321,9 @@ def test_state_kernel():
 
 def check_overlap(entity_bell, entity_x):
     with pytest.raises(RuntimeError) as e:
-        state1 = cudaq.StateMemoryView(cudaq.get_state(entity_bell))
+        state1 = cudaq.get_state(entity_bell)
         state1.dump()
-        state2 = cudaq.StateMemoryView(cudaq.get_state(entity_x))
+        state2 = cudaq.get_state(entity_x)
         state2.dump()
     assert "get_state is not supported" in repr(e)
 
@@ -323,13 +366,13 @@ def check_overlap_param(entity):
         for i in range(num_tests):
             angle1 = (np.random.rand() * 2.0 * np.pi
                      )  # random angle in [0, 2pi] range
-            state1 = cudaq.StateMemoryView(cudaq.get_state(entity, angle1))
+            state1 = cudaq.get_state(entity, angle1)
             print("First angle =", angle1)
             state1.dump()
             angle2 = (np.random.rand() * 2.0 * np.pi
                      )  # random angle in [0, 2pi] range
             print("Second angle =", angle2)
-            state2 = cudaq.StateMemoryView(cudaq.get_state(entity, angle2))
+            state2 = cudaq.get_state(entity, angle2)
             state2.dump()
             overlap = state1.overlap(state2)
             expected = np.abs(
@@ -450,6 +493,9 @@ def test_run():
     assert non_zero_count > 0
 
 
+# May be flaky on macOS CI due to
+# https://github.com/NVIDIA/cuda-quantum/issues/3910
+@retry_on_flaky_connection(platform="darwin")
 def test_run_async():
 
     shots = 10
