@@ -290,7 +290,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     CUDAQ_INFO("Run Argument Synth.\n");
     if (enablePythonCodegenDump)
       module.dump();
-    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump, !isPureDevice);
+    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
+                     !isPureDevice);
 
     // 4. Execute the code right here, right now.
     auto jit = cudaq::createQIRJITEngine(module, "qir:");
@@ -298,7 +299,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       throw std::runtime_error("cache must not be populated");
     cachedEngine = jit;
 
-    std::string entryName = (resultTy && !isPureDevice) ? name + ".thunk" : fullName;
+    std::string entryName =
+        (resultTy && !isPureDevice) ? name + ".thunk" : fullName;
     auto funcPtr = jit.lookupRawNameOrFail(entryName);
     return reinterpret_cast<void *>(funcPtr);
   }

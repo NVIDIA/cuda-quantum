@@ -529,7 +529,9 @@ class PyKernelDecorator(object):
         if isPureDevice:
             for operation in self.qkeModule.body.operations:
                 if operation.name.value.endswith(self.uniqName):
-                    operation.attributes.__setitem__("cudaq_puredevice", UnitAttr.get(context=operation.context))
+                    operation.attributes.__setitem__(
+                        "cudaq_puredevice",
+                        UnitAttr.get(context=operation.context))
                     break
         #self.kernelFunction.attributes.__setitem__('cudaq_puredevice', UnitAttr.get())
         specialized_module, processedArgs = self.handle_call_arguments(
