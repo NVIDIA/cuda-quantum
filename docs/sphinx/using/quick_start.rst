@@ -60,6 +60,16 @@ Once you completed the installation, please follow the instructions
       sudo -E bash install_cuda_quantum*.$(uname -m) --accept 
       . /etc/profile
 
+   Alternatively, install to a custom location without sudo:
+
+   .. code-block:: bash
+
+      bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+
+   In both cases, the installer configures your shell profile so that CUDA-Q
+   is available in new shells automatically. To use it in the current shell,
+   run ``source /opt/nvidia/cudaq/set_env.sh`` (or the path you chose).
+
    If you have an NVIDIA GPU on Linux, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
 
    Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including

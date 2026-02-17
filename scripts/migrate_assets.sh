@@ -57,7 +57,17 @@ find_symlinks() {
 # does not perform any validation regarding whether the copied
 # files are compatible or functional after moving them.
 
-# Process command line arguments
+# Process command line arguments.
+# Pre-process long options (getopts only handles short options).
+args=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --installpath) args+=(-t "$2"); shift 2 ;;
+        *) args+=("$1"); shift ;;
+    esac
+done
+set -- "${args[@]}"
+
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:s:t:" opt; do

@@ -289,17 +289,23 @@ the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-qua
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
 pre-built binaries as well as a script to move them to the correct locations. You will need
 `bash`, `tar`, and `gzip` to run the installer.
-The installation location of CUDA-Q is not currently configurable and using the installer
-hence requires admin privileges on the system. We may revise that in the future; please see and
-upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.
-
-To install CUDA-Q, execute the command
+To install CUDA-Q to the default location (``/opt/nvidia/cudaq``), execute the command
 
 .. literalinclude:: ../../../../docker/test/installer/linux.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumInstall]
     :end-before: [<CUDAQuantumInstall]
+
+To install to a custom location (no sudo required), pass ``--installpath``:
+
+.. code-block:: bash
+
+   bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+
+In both cases, the installer configures your shell profile so that CUDA-Q
+is available in new shells automatically. To use it in the current shell,
+run ``source <installpath>/set_env.sh``.
 
 .. note:: 
 
