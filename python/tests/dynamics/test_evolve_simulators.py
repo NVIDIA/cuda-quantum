@@ -461,6 +461,93 @@ def test_evolve_no_intermediate_results():
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
 
 
+def test_evolve_density_matrix_numpy_layout():
+    """Test that State.from_data accepts numpy density matrices in both C-order and F-order
+    (row-major and column-major) and produces the same evolution results."""
+    cudaq.set_random_seed(13)
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    steps = np.linspace(0, 10, 101)
+    schedule = Schedule(steps, ["time"])
+
+    rho_c = np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128, order="C")
+    assert rho_c.flags["C_CONTIGUOUS"] and not rho_c.flags["F_CONTIGUOUS"]
+
+    rho_f = np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128, order="F")
+    assert rho_f.flags["F_CONTIGUOUS"]
+
+    rho0_c = cudaq.State.from_data(rho_c)
+    rho0_f = cudaq.State.from_data(rho_f)
+
+    result_c = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0_c,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+    schedule.reset()
+    result_f = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0_f,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+
+    exp_c = result_c.expectation_values()
+    exp_f = result_f.expectation_values()
+    assert exp_c is not None and exp_f is not None
+    np.testing.assert_allclose(
+        [[e.expectation() for e in step] for step in exp_c],
+        [[e.expectation() for e in step] for step in exp_f],
+        atol=1e-10,
+        err_msg=
+        "C-order and F-order density matrix initial states should give same evolution",
+    )
+
+    get_result = lambda idx, res: [
+        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+    ]
+    ideal_results = [get_result(0, result_c), get_result(1, result_c)]
+    np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.01)
+
+
+def test_evolve_from_data_random_density_matrix_preserved():
+    if cudaq.get_target().name != "dynamics":
+        pytest.skip("N=64 qudit evolution requires dynamics target")
+    from cudaq.operators import boson
+
+    np.random.seed(42)
+    N = 64
+    rho = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+    state = cudaq.State.from_data(rho)
+
+    schedule = Schedule([0.0], ["t"])
+    hamiltonian = 0.0 * boson.number(0)
+    dimensions = {0: N}
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    final_state = evolution_result.final_state()
+
+    for i in range(N):
+        for j in range(N):
+            assert np.abs(final_state[i, j] - rho[i, j]) < 1e-9
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
