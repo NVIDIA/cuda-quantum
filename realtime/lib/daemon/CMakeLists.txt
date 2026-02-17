@@ -68,4 +68,9 @@ if(CUDA_FOUND)
     POSITION_INDEPENDENT_CODE ON
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
+
+  install(TARGETS cudaq-realtime-dispatch
+    COMPONENT realtime-lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
 endif()
