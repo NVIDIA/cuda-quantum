@@ -456,14 +456,15 @@ jobs:
     needs: [metadata, build]
 
     outputs:
-      image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
-      cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
-      tar_archive: ${{ fromJson(steps.write_json.outputs.result).tar_archive }}
-      build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
+      image_hash: ${{ fromJson(steps.write_json.outputs.result || steps.write_json_retry1.outputs.result).image_hash }}
+      cache_key: ${{ fromJson(steps.write_json.outputs.result || steps.write_json_retry1.outputs.result).cache_key }}
+      tar_archive: ${{ fromJson(steps.write_json.outputs.result || steps.write_json_retry1.outputs.result).tar_archive }}
+      build_cache: ${{ fromJson(steps.write_json.outputs.result || steps.write_json_retry1.outputs.result).build_cache }}
 
     steps:        
       - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         id: write_json
+        continue-on-error: true
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
           matrix-key: ${{ inputs.matrix_key }}
@@ -473,3 +474,27 @@ jobs:
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}
             image_tag: ${{ needs.metadata.outputs.image_tags }}
+
+      # matrix write has known issues, see
+      # https://github.com/actions/upload-artifact/issues/560
+      - name: Wait before retry
+        if: steps.write_json.outcome == 'failure'
+        run: sleep 15
+
+      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        id: write_json_retry1
+        if: steps.write_json.outcome == 'failure'
+        continue-on-error: true
+        with:
+          matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
+          matrix-key: ${{ inputs.matrix_key }}
+          outputs: |
+            image_hash: ${{ needs.build.outputs.image_hash }}
+            cache_key: ${{ needs.build.outputs.tar_cache }}
+            tar_archive: ${{ needs.build.outputs.tar_archive }}
+            build_cache: ${{ needs.build.outputs.build_cache }}
+            image_tag: ${{ needs.metadata.outputs.image_tags }}
+
+      - name: Fail if matrix write failed after retry
+        if: steps.write_json.outcome == 'failure' && steps.write_json_retry1.outcome != 'success'
+        run: exit 1
