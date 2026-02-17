@@ -45,9 +45,35 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+    launchImpl(kernelName, [&](Compiler &compiler) {
+      return rawArgs.empty()
+                 ? compiler.lowerQuakeCode(kernelName, args, {})
+                 : compiler.lowerQuakeCode(kernelName, nullptr, rawArgs);
+    });
+    return {};
+  }
 
-    auto executionContext = getExecutionContext();
+  void launchKernel(const std::string &kernelName,
+                    const std::vector<void *> &rawArgs) override {
+    launchKernel(kernelName, nullptr, nullptr, 0, 0, rawArgs);
+  }
 
+  KernelThunkResultType launchModule(const std::string &kernelName,
+                                     mlir::ModuleOp module,
+                                     const std::vector<void *> &rawArgs,
+                                     mlir::Type resTy) override {
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})", kernelName);
+    launchImpl(kernelName, [&](Compiler &compiler) {
+      return compiler.lowerQuakeCode(kernelName, module, rawArgs);
+    });
+    return {};
+  }
+
+private:
+  void
+  launchImpl(const std::string &kernelName,
+             std::function<std::vector<KernelExecution>(Compiler &)> lower) {
+    auto *executionContext = getExecutionContext();
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -61,58 +87,44 @@ public:
     // executionContext.
     // Once the codes are generated, we reset it.
     cudaq::ExecutionContext defaultContext("sample", 1);
-    auto *originalContext = executionContext;
-    if (executionContext->name == "observe")
-      executionContext = &defaultContext;
+    cudaq::ExecutionContext *originalContext = nullptr;
+    if (executionContext->name == "observe") {
+      originalContext = executionContext;
+      cudaq::detail::setExecutionContext(&defaultContext);
+    }
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = rawArgs.empty()
-                     ? compiler.lowerQuakeCode(kernelName, args, {})
-                     : compiler.lowerQuakeCode(kernelName, nullptr, rawArgs);
-    if (codes.size() != 1) {
+    auto codes = lower(compiler);
+
+    if (codes.size() != 1)
       throw std::runtime_error("Provider only allows 1 circuit at a time.");
-    }
 
-    executionContext = originalContext;
+    if (originalContext && originalContext->name == "observe") {
 
-    if (executionContext->name == "observe") {
-      auto spin = executionContext->spin.value();
+      auto spin = originalContext->spin.value();
       auto user_data = nlohmann::json::object();
       auto obs = nlohmann::json::array();
-
       for (const auto &term : spin) {
-        auto spin_op = nlohmann::json::object();
-
         auto terms = nlohmann::json::array();
-
-        auto termStr = term.get_term_id();
-
-        terms.push_back(termStr);
-
+        terms.push_back(term.get_term_id());
         auto coeff = term.evaluate_coefficient();
         auto coeff_str = cudaq_fmt::format("{}{}{}j", coeff.real(),
                                            coeff.imag() < 0.0 ? "-" : "+",
                                            std::fabs(coeff.imag()));
-
         terms.push_back(coeff_str);
-
         obs.push_back(terms);
       }
-
       user_data["observable"] = obs;
-
       codes[0].user_data = user_data;
     }
 
     completeLaunchKernel(kernelName, std::move(codes));
 
-    return {};
-  }
-
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    launchKernel(kernelName, nullptr, nullptr, 0, 0, rawArgs);
+    if (originalContext) {
+      originalContext->result = defaultContext.result;
+      cudaq::detail::setExecutionContext(originalContext);
+    }
   }
 };
 } // namespace cudaq
