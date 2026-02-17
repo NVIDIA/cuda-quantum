@@ -126,7 +126,7 @@ jobs:
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: arm64-build
-          output-path: ${{ env.HOME }}/.ccache
+          output-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
 
       - name: Install Python dependencies
@@ -152,7 +152,7 @@ jobs:
         uses: ./.github/actions/ccache-push
         with:
           cache-key: arm64-build
-          cache-path: ${{ env.HOME }}/.ccache
+          cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
 
   # ============================================================================
@@ -203,7 +203,7 @@ jobs:
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: arm64-wheel
-          output-path: ${{ env.HOME }}/.ccache
+          output-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
 
       - name: Install Python dependencies
@@ -237,7 +237,7 @@ jobs:
         uses: ./.github/actions/ccache-push
         with:
           cache-key: arm64-wheel
-          cache-path: ${{ env.HOME }}/.ccache
+          cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
 
       - name: Upload wheel artifact
@@ -334,7 +334,7 @@ jobs:
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: arm64-installer
-          output-path: ${{ env.HOME }}/.ccache
+          output-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
 
       - name: Install dependencies
@@ -359,7 +359,7 @@ jobs:
         uses: ./.github/actions/ccache-push
         with:
           cache-key: arm64-installer
-          cache-path: ${{ env.HOME }}/.ccache
+          cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
 
       - name: Build installer
