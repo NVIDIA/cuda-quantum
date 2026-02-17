@@ -9,3 +9,9 @@
 add_cudaq_dialect(Quake quake)
 add_cudaq_interface(QuakeInterfaces)
 add_cudaq_dialect_doc(QuakeDialect quake)
+install_cudaq_dialect_headers(Quake 
+  QuakeDialect.h
+  QuakeOps.h
+  QuakeTypes.h
+  QuakeInterfaces.h
+)
