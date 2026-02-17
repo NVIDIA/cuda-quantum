@@ -569,3 +569,7 @@ if (CUDAQ_ENABLE_PYTHON)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" DISCOVERY_TIMEOUT 120)
 endif()
+
+add_executable(test_extension_point extension/test_extension_point.cpp)
+target_link_libraries(test_extension_point PRIVATE GTest::gtest_main cudaq)
+gtest_discover_tests(test_extension_point)
