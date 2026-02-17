@@ -336,6 +336,11 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
+# Export ccache data so CI can extract it for persistence.
+# Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+FROM scratch AS ccache-export
+COPY --from=cpp_build /root/.ccache /ccache
+
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 

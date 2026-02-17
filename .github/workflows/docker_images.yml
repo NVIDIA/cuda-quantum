@@ -368,16 +368,24 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
-      - name: Extract ccache from image
-        uses: ./.github/actions/ccache-extract-docker
-        with:
-          image: ${{ steps.metadata.outputs.tags }}
+      - name: Extract ccache from build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
-          cache-path: /tmp/ccache-out/.ccache
+          cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
       - name: Write matrix outputs
@@ -618,16 +626,24 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: true
 
-      - name: Extract ccache from release image
-        uses: ./.github/actions/ccache-extract-docker
-        with:
-          image: ${{ steps.cudaqdev_metadata.outputs.tags }}
+g      - name: Extract ccache from release build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.devdeps_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
-          cache-path: /tmp/ccache-out/.ccache
+          cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
       - name: Install Cosign

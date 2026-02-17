@@ -22,7 +22,7 @@ ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc11-main
 # --build-context ccache-data=<path> to inject a pre-populated cache,
 # while the devcontainer builds get the scratch as a noop.
 FROM scratch AS ccache-data
-FROM $base_image
+FROM $base_image AS devbuild
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
@@ -76,3 +76,10 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         echo "source-sha: $git_source_sha" > "$CUDAQ_INSTALL_PREFIX/build_info.txt"; \
     fi && \
     echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true)
+
+# Export ccache data so CI can extract it for persistence.
+# Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+FROM scratch AS ccache-export
+COPY --from=devbuild /root/.ccache /ccache
+
+FROM devbuild
