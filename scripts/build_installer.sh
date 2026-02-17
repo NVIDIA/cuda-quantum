@@ -191,6 +191,9 @@ assets_parent="$repo_root/build"
 mkdir -p "$assets_parent"
 rm -rf "$assets_parent/cuda_quantum_assets"
 
+# Default installation target (same for both platforms)
+default_target='/opt/nvidia/cudaq'
+
 echo "Creating installer assets..."
 
 # Verify CUDA dependencies exist (Linux only)
@@ -205,11 +208,11 @@ if $include_cuda_deps; then
   fi
 fi
 
-echo "  Copying LLVM assets..."
-echo "  Copying CUDA-Q assets..."
+echo "  Copying CUDA-Q installation..."
+echo "  Merging LLVM tools and libraries..."
 if $include_cuda_deps; then
-  echo "  Copying cuQuantum assets..."
-  echo "  Copying cuTensor assets..."
+  echo "  Merging cuQuantum libraries..."
+  echo "  Merging cuTensor libraries..."
 fi
 
 # Export CUDAQ_INSTALL_PREFIX so documented snippet works
@@ -219,20 +222,48 @@ export CUDAQ_INSTALL_PREFIX="$install_dir"
 pushd "$assets_parent" >/dev/null
 
 # [>CUDAQuantumAssets]
-mkdir -p cuda_quantum_assets/llvm/bin cuda_quantum_assets/llvm/lib cuda_quantum_assets/llvm/include
-cp -a "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/llvm/bin/
-rm -f cuda_quantum_assets/llvm/bin/clang-format*
-cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/
-cp -a "${LLVM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/llvm/lib/
-cp -a "${LLVM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/llvm/include/
-# Copy cuTensor and cuQuantum (Linux only; variables unset on macOS)
-if $include_cuda_deps; then
-  cp -a "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets
-  cp -a "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets
-fi
-# Copy CUDA-Q installation and build config
-cp -a "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml
+# Stage all assets into a single merged prefix.
+# All dependencies are merged into the CUDAQ installation directory so that
+# existing relative RPATHs ($ORIGIN/../lib, @loader_path/../lib) cover
+# everything and no hardcoded absolute paths are needed.
 cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
+
+# Merge LLVM tools into CUDAQ bin/
+cp -a "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/cudaq/bin/
+rm -f cuda_quantum_assets/cudaq/bin/clang-format*
+cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" cuda_quantum_assets/cudaq/bin/
+if [ -f "${LLVM_INSTALL_PREFIX}/bin/ld.lld" ]; then
+  cp -a "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/cudaq/bin/
+fi
+
+# Merge LLVM libs into CUDAQ lib/ (libomp, clang resource dir)
+cp -a "${LLVM_INSTALL_PREFIX}/lib/libomp"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+if [ -d "${LLVM_INSTALL_PREFIX}/lib/clang" ]; then
+  cp -a "${LLVM_INSTALL_PREFIX}/lib/clang" cuda_quantum_assets/cudaq/lib/
+fi
+
+# Merge cuQuantum/cuTensor libs and headers.
+# Try both lib64/ and lib/ since different distros use different conventions;
+# || true prevents set -e from aborting when a glob matches nothing.
+if $include_cuda_deps; then
+  cp -a "${CUQUANTUM_INSTALL_PREFIX}/lib64/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+  cp -a "${CUQUANTUM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+  cp -a "${CUQUANTUM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/cudaq/include/ 2>/dev/null || true
+  cp -a "${CUTENSOR_INSTALL_PREFIX}/lib64/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+  cp -a "${CUTENSOR_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+  cp -a "${CUTENSOR_INSTALL_PREFIX}/include/"* cuda_quantum_assets/cudaq/include/ 2>/dev/null || true
+fi
+
+# Generate build_config.xml for the merged layout.
+# LLVM_INSTALL_PREFIX points to the CUDAQ prefix itself (all tools merged in).
+# cuQuantum/cuTensor fields are empty (libs already in $PREFIX/lib/).
+cat > cuda_quantum_assets/build_config.xml << BCONFIG
+<build_config>
+<LLVM_INSTALL_PREFIX>${default_target}</LLVM_INSTALL_PREFIX>
+<CUQUANTUM_INSTALL_PREFIX></CUQUANTUM_INSTALL_PREFIX>
+<CUTENSOR_INSTALL_PREFIX></CUTENSOR_INSTALL_PREFIX>
+</build_config>
+BCONFIG
 # [<CUDAQuantumAssets]
 
 popd >/dev/null
@@ -261,9 +292,6 @@ fi
 if [ -f "$repo_root/LICENSE" ]; then
   makeself_args="$makeself_args --license $repo_root/LICENSE"
 fi
-
-# Default installation target (same for both platforms)
-default_target='/opt/nvidia/cudaq'
 
 makeself $makeself_args \
   "$cuda_quantum_assets" \
