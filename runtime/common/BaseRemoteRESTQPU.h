@@ -87,11 +87,6 @@ public:
   /// @return
   bool isSimulator() override { return emulate; }
 
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override {
-    return codegenTranslation == "qir-adaptive";
-  }
-
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
 

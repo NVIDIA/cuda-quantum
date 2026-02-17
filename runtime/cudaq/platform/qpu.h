@@ -136,9 +136,6 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this QPU has conditional feedback support
-  virtual bool supportsConditionalFeedback() { return false; }
-
   /// @brief Return whether this QPU supports explicit measurements
   virtual bool supportsExplicitMeasurements() { return true; }
 
