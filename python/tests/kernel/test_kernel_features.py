@@ -2798,6 +2798,37 @@ def test_named_reg_in_sample(capfd):
     assert "WARNING" in captured.err
 
 
+def test_trap_fail():
+    """Tests that a recoverable run time error correctly clears the simulator"""
+
+    @cudaq.kernel
+    def unadjointable(q: cudaq.qview):
+        while True:
+            if mz(q[1]):
+                x(q[1])
+                break
+
+    @cudaq.kernel
+    def kernel_with_trap():
+        q = cudaq.qvector(2)
+        h(q)
+        cudaq.adjoint(unadjointable, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(kernel_with_trap, shots_count=1)
+
+    @cudaq.kernel
+    def simple():
+        q = cudaq.qvector(2)
+        ctrl = q.front()
+        x(ctrl, q[1])
+
+    counts = cudaq.sample(simple)
+    print(counts)
+    assert len(counts) == 1
+    assert '00' in counts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
