@@ -41,6 +41,10 @@ runs:
         ccache --set-config=max_size=${{ inputs.max-size }}
         ccache --set-config=compression=${{ inputs.compression }}
         ccache --set-config=cache_dir="$HOME/.ccache"
+        # Normalize absolute paths under the workspace so __FILE__ macros
+        # and hash_dir produce consistent hashes across CI runs.
+        ccache --set-config=base_dir="${GITHUB_WORKSPACE:-$(pwd)}"
+        ccache --set-config=log_file="${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
         # CI checkouts create files with fresh timestamps every run.
         # Without these, ccache hashes include mtime/ctime causing misses
         # on identical content.

@@ -154,6 +154,7 @@ jobs:
           cache-key: arm64-build
           cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
+          upload-log: 'true'
 
   # ============================================================================
   # Build Python wheels for all supported Python versions
@@ -239,6 +240,7 @@ jobs:
           cache-key: arm64-wheel
           cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
+          upload-log: 'true'
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -361,6 +363,7 @@ jobs:
           cache-key: arm64-installer
           cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
+          upload-log: 'true'
 
       - name: Build installer
         run: |

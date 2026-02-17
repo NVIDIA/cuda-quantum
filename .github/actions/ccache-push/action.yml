@@ -23,6 +23,10 @@ inputs:
     description: 'Branch name used for tag when not a PR build'
     required: false
     default: ${{ github.ref_name }}
+  upload-log:
+    description: 'Upload the ccache log file as a short-lived artifact for debugging'
+    required: false
+    default: 'false'
 
 outputs:
   pushed:
@@ -117,3 +121,28 @@ runs:
         rm -f ccache-data.tar.gz
         echo "Pushed ccache to $image:$tag"
         echo "pushed=true" >> $GITHUB_OUTPUT
+
+    - name: Summarize ccache log
+      if: always()
+      shell: bash
+      run: |
+        log_file="${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
+        if [ ! -f "$log_file" ]; then
+          echo "No ccache log file found."
+          exit 0
+        fi
+
+        echo "=== ccache miss reasons ==="
+        grep -o '\[ccache\] Result: [a-z_]*' "$log_file" | sort | uniq -c | sort -rn || true
+
+        echo ""
+        echo "=== ccache log size: $(wc -l < "$log_file") lines ==="
+
+    - name: Upload ccache log
+      if: always() && inputs.upload-log == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ccache-log-${{ github.job }}
+        path: ${{ github.workspace }}/ccache.log
+        retention-days: 1
+        if-no-files-found: ignore
