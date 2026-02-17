@@ -122,27 +122,11 @@ runs:
         echo "Pushed ccache to $image:$tag"
         echo "pushed=true" >> $GITHUB_OUTPUT
 
-    - name: Summarize ccache log
-      if: always()
-      shell: bash
-      run: |
-        log_file="${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
-        if [ ! -f "$log_file" ]; then
-          echo "No ccache log file found."
-          exit 0
-        fi
-
-        echo "=== ccache miss reasons ==="
-        grep -o '\[ccache\] Result: [a-z_]*' "$log_file" | sort | uniq -c | sort -rn || true
-
-        echo ""
-        echo "=== ccache log size: $(wc -l < "$log_file") lines ==="
-
     - name: Upload ccache log
       if: always() && inputs.upload-log == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: ccache-log-${{ github.job }}
+        name: ccache-log-${{ inputs.cache-key }}
         path: ${{ github.workspace }}/ccache.log
         retention-days: 1
         if-no-files-found: ignore
