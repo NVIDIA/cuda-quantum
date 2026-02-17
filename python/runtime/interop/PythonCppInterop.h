@@ -31,12 +31,34 @@ public:
 
   ~CppPyKernelDecorator();
 
+  /// Fully compiles this python kernel, returning a `qkernel` that can
+  /// be directly invoked by host code. Do not pass the returned `qkernel`
+  /// into other kernels, as this will lead to bad things.
   template <typename T, typename... As>
     requires QKernelType<T>
   T getEntryPointFunction(As... as) {
     // Perform beta reduction on the kernel decorator.
     auto [p, cachedEngineHandle] =
-        kernel.attr("beta_reduction")(std::forward<As>(as)...)
+        kernel.attr("beta_reduction")(false, std::forward<As>(as)...)
+            .template cast<std::pair<void *, std::size_t>>();
+    // Set lsb to 1 to denote this is NOT a C++ kernel.
+    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
+    auto *fptr = reinterpret_cast<typename T::function_type *>(p);
+    cachedEngineKey = cachedEngineHandle;
+    // Translate the pointer to the entry point code buffer to a `qkernel`.
+    return T{fptr};
+  }
+
+  /// Fully compiles this python kernel, returning a `qkernel` that can
+  /// be indirectly invoked by other kernels. Only pass the returned
+  /// `qkernel` into other kernels, calling it directly from host code
+  /// will lead to bad things.
+  template <typename T, typename... As>
+    requires QKernelType<T>
+  T getDirectKernelCall(As... as) {
+    // Perform beta reduction on the kernel decorator.
+    auto [p, cachedEngineHandle] =
+        kernel.attr("beta_reduction")(true, std::forward<As>(as)...)
             .template cast<std::pair<void *, std::size_t>>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
@@ -59,7 +81,7 @@ template <typename KT, typename ALGO, typename... As>
 auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
   cudaq::python::CppPyKernelDecorator decorator(qern);
   auto entryPoint =
-      decorator.getEntryPointFunction<KT>(std::forward<As>(as)...);
+      decorator.getPureDeviceFunction<KT>(std::forward<As>(as)...);
   return algo(std::move(entryPoint));
 }
 

@@ -514,7 +514,7 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
-    def beta_reduction(self, *args):
+    def beta_reduction(self, isPureDevice, *args):
         """
         Perform beta reduction on this kernel decorator in the current calling
         context. We are primary concerned with resolving the lambda lifted
@@ -526,7 +526,14 @@ class PyKernelDecorator(object):
         passed to algorithms written in C++ that call back to these Python
         kernels in a functional composition.
         """
-        specialized_module, processedArgs = self.handle_call_arguments(*args)
+        if isPureDevice:
+            for operation in self.qkeModule.body.operations:
+                if operation.name.value.endswith(self.uniqName):
+                    operation.attributes.__setitem__("cudaq_puredevice", UnitAttr.get(context=operation.context))
+                    break
+        #self.kernelFunction.attributes.__setitem__('cudaq_puredevice', UnitAttr.get())
+        specialized_module, processedArgs = self.handle_call_arguments(
+            *args, allow_no_args=True)
         mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName,
                                                        specialized_module,
