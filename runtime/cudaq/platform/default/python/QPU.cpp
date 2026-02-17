@@ -10,6 +10,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
+#include "common/JIT.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
