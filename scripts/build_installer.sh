@@ -269,9 +269,31 @@ popd >/dev/null
 # Full path for rest of script
 cuda_quantum_assets="$assets_parent/cuda_quantum_assets"
 
-# Copy install script
-cp "$this_file_dir/migrate_assets.sh" "$cuda_quantum_assets/install.sh"
-chmod a+x "$cuda_quantum_assets/install.sh"
+# Copy migration script (does the actual file moving)
+cp "$this_file_dir/migrate_assets.sh" "$cuda_quantum_assets/migrate_assets.sh"
+chmod a+x "$cuda_quantum_assets/migrate_assets.sh"
+
+# Create install.sh entry point that supports --installpath <dir>.
+# makeself passes user arguments (after --) to this script.
+cat > "$cuda_quantum_assets/install.sh" << 'WRAPPER'
+#!/bin/bash
+target="/opt/nvidia/cudaq"
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --installpath)
+            target="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Usage: install_cuda_quantum... --accept [-- --installpath <dir>]" >&2
+            exit 1
+            ;;
+    esac
+done
+bash migrate_assets.sh -t "$target"
+WRAPPER
+chmod +x "$cuda_quantum_assets/install.sh"
 
 # ============================================================================ #
 # Create self-extracting archive
@@ -295,11 +317,15 @@ makeself $makeself_args \
   "$cuda_quantum_assets" \
   "$output_dir/$installer_name" \
   "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
-  bash install.sh -t "$default_target"
+  bash install.sh
 
 echo ""
 echo "Done! Installer created: $output_dir/$installer_name"
-echo "To install: bash $output_dir/$installer_name --accept"
+echo "To install (default: /opt/nvidia/cudaq):"
+echo "  sudo bash $output_dir/$installer_name --accept"
+echo ""
+echo "To install to a custom location (no sudo required):"
+echo "  bash $output_dir/$installer_name --accept -- --installpath \$HOME/.cudaq"
 
 # Cleanup staging
 if ! $verbose; then
