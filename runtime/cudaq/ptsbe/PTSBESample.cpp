@@ -52,12 +52,8 @@ void validatePTSBEPreconditions(quantum_platform &platform,
   if (!platform.is_simulator())
     throw std::runtime_error("PTSBE is only supported on simulators.");
 
-  const auto *noise = platform.get_noise();
-  if (!noise || noise->empty())
-    throw std::runtime_error(
-        "PTSBE requires a non-empty noise model. "
-        "Pass noise_model=... to cudaq.ptsbe.sample() or set noise on "
-        "the platform before calling ptsbe::sample().");
+  // noise_model is optional: noise can come from the model (gate-based) and/or
+  // from cudaq.apply_noise() in the kernel.
 }
 
 std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {

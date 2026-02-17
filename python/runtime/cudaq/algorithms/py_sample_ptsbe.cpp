@@ -380,7 +380,7 @@ Args:
   module: The MLIR module.
   return_type: The MLIR return type.
   shots_count: The number of shots.
-  noise_model: The noise model (required for PTSBE).
+  noise_model: Optional noise model for gate-based noise; may be None.
   max_trajectories: Maximum unique trajectories, or None to use shots.
   sampling_strategy: Sampling strategy or None for default (probabilistic).
   shot_allocation: Shot allocation strategy or None for default (proportional).
