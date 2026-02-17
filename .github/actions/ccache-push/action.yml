@@ -126,7 +126,7 @@ runs:
       if: always() && inputs.upload-log == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: ccache-log-${{ inputs.cache-key }}
+        name: ccache-log-${{ inputs.cache-key }}-${{ github.run_attempt }}
         path: ${{ github.workspace }}/ccache.log
         retention-days: 1
         if-no-files-found: ignore
