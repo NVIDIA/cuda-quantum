@@ -16,7 +16,8 @@ psutil
 numpy==1.26.4
 notebook==7.5.2
 nbconvert==7.17.0
-llvmlite==0.44.0
+llvmlite==0.46.0
+nanobind==2.11.0
 scipy==1.16.3
 requests==2.32.3
 fastapi==0.111.0
