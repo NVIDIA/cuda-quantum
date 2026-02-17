@@ -35,6 +35,7 @@ void bindExecutionContext(py::module &mod) {
       .def_readonly("asyncResult", &cudaq::ExecutionContext::asyncResult)
       .def_readwrite("hasConditionalsOnMeasureResults",
                      &cudaq::ExecutionContext::hasConditionalsOnMeasureResults)
+      .def_readwrite("noiseModel", &cudaq::ExecutionContext::noiseModel)
       .def_readwrite("totalIterations",
                      &cudaq::ExecutionContext::totalIterations)
       .def_readwrite("batchIteration", &cudaq::ExecutionContext::batchIteration)
