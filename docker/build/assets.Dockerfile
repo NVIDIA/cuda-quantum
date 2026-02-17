@@ -71,6 +71,9 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
         echo "Importing ccache data..." && \

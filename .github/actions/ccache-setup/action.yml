@@ -40,14 +40,15 @@ runs:
         fi
         ccache --set-config=max_size=${{ inputs.max-size }}
         ccache --set-config=compression=${{ inputs.compression }}
-        ccache --set-config=cache_dir="$HOME/.ccache"
-        # Normalize absolute paths under the workspace so __FILE__ macros
-        # and hash_dir produce consistent hashes across CI runs.
-        ccache --set-config=base_dir="${GITHUB_WORKSPACE:-$(pwd)}"
-        echo "CCACHE_LOGFILE=${GITHUB_WORKSPACE:-$(pwd)}/ccache.log" >> $GITHUB_ENV
-        # CI checkouts create files with fresh timestamps every run.
-        # Without these, ccache hashes include mtime/ctime causing misses
-        # on identical content.
-        ccache --set-config=sloppiness=include_file_mtime,include_file_ctime,time_macros,pch_defines
-        echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+        # Use environment variables for settings that must be visible to all
+        # ccache invocations (env vars override config file and avoid issues
+        # with config file location resolution).
+        {
+          echo "CCACHE_DIR=$HOME/.ccache"
+          echo "CCACHE_BASEDIR=${GITHUB_WORKSPACE:-$(pwd)}"
+          echo "CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines"
+          echo "CCACHE_LOGFILE=${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
+        } >> $GITHUB_ENV
+        # Export for the ccache -z call below (GITHUB_ENV only applies to subsequent steps)
+        export CCACHE_DIR="$HOME/.ccache"
         ccache -z
