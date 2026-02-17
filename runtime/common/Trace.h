@@ -29,7 +29,7 @@ constexpr std::string_view TRACE_APPLY_NOISE_NAME = "apply_noise";
 ///
 /// Instructions may be gates or apply_noise (inline noise). When
 /// noise_channel_key is set, the instruction represents apply_noise and the
-/// channel is resolved later via noise_model::get_channel(key, params).
+/// channel is resolved later via noise_model::get_channel(key, `params`).
 class Trace {
 public:
   struct Instruction {
