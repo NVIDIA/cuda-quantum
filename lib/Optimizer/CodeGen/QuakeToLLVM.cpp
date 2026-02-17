@@ -69,14 +69,13 @@ public:
     if (adaptor.getOperands().empty()) {
       auto type = cast<quake::VeqType>(alloca.getResult().getType());
       auto constantSize = type.getSize();
-      sizeOperand =
-          arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(),
-                                      constantSize);
+      sizeOperand = arith::ConstantIntOp::create(
+          rewriter, loc, rewriter.getI64Type(), constantSize);
     } else {
       sizeOperand = adaptor.getOperands().front();
       if (cast<IntegerType>(sizeOperand.getType()).getWidth() < 64) {
         sizeOperand = LLVM::ZExtOp::create(rewriter, loc, rewriter.getI64Type(),
-                                                    sizeOperand);
+                                           sizeOperand);
       }
     }
 
@@ -146,9 +145,8 @@ public:
     } else {
       auto type = cast<quake::VeqType>(allocTy);
       auto constantSize = type.getSize();
-      sizeOperand =
-          arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(),
-                                      constantSize);
+      sizeOperand = arith::ConstantIntOp::create(
+          rewriter, loc, rewriter.getI64Type(), constantSize);
     }
 
     // Create QIR allocation with initializer function.
@@ -244,24 +242,25 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
-    Value zero = arith::ConstantIntOp::create(rewriter, loc,
-                                              rewriter.getI64Type(), 0);
-    Value one = arith::ConstantIntOp::create(rewriter, loc,
-                                             rewriter.getI64Type(), 1);
+    Value zero =
+        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 0);
+    Value one =
+        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 1);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight = arith::ConstantIntOp::create(rewriter, loc,
-                                               rewriter.getI32Type(), 8);
+    Value eight =
+        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI32Type(), 8);
     // Function to convert a QIR Qubit value to an Array value.
     auto wrapQubitInArray = [&](Value v) -> Value {
       if (v.getType() != cudaq::opt::getQubitType(context))
         return v;
-      auto createCall = LLVM::CallOp::create(rewriter, 
-          loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
+      auto createCall = LLVM::CallOp::create(
+          rewriter, loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
       auto result = createCall.getResult();
       auto call = LLVM::CallOp::create(rewriter, loc, i8PtrTy, getSymbolRef,
-                                                ArrayRef<Value>{result, zero});
-      Value pointer = LLVM::BitcastOp::create(rewriter, 
-          loc, cudaq::opt::factory::getPointerType(i8PtrTy), call.getResult());
+                                       ArrayRef<Value>{result, zero});
+      Value pointer = LLVM::BitcastOp::create(
+          rewriter, loc, cudaq::opt::factory::getPointerType(i8PtrTy),
+          call.getResult());
       auto cast = LLVM::BitcastOp::create(rewriter, loc, i8PtrTy, v);
       LLVM::StoreOp::create(rewriter, loc, cast, pointer);
       return result;
@@ -272,8 +271,8 @@ public:
     auto frontArr = wrapQubitInArray(adaptor.getOperands().front());
     for (auto oper : adaptor.getOperands().drop_front(1)) {
       auto backArr = wrapQubitInArray(oper);
-      auto glue = LLVM::CallOp::create(rewriter, 
-          loc, qirArrayTy, concatFunc, ArrayRef<Value>{frontArr, backArr});
+      auto glue = LLVM::CallOp::create(rewriter, loc, qirArrayTy, concatFunc,
+                                       ArrayRef<Value>{frontArr, backArr});
       frontArr = glue.getResult();
     }
     rewriter.replaceOp(concat, frontArr);
@@ -311,8 +310,7 @@ public:
     auto qir_array_get_element_ptr_1d = cudaq::opt::QIRArrayGetElementPtr1d;
 
     auto array_qbit_type = cudaq::opt::getArrayType(context);
-    auto qbit_element_ptr_type =
-        cudaq::opt::factory::getPointerType(context);
+    auto qbit_element_ptr_type = cudaq::opt::factory::getPointerType(context);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qir_array_get_element_ptr_1d, qbit_element_ptr_type,
@@ -331,12 +329,12 @@ public:
         idx_operand = LLVM::ZExtOp::create(rewriter, loc, i64Ty, idx_operand);
     }
 
-    auto get_qbit_qir_call = LLVM::CallOp::create(rewriter, 
-        loc, qbit_element_ptr_type, symbolRef,
+    auto get_qbit_qir_call = LLVM::CallOp::create(
+        rewriter, loc, qbit_element_ptr_type, symbolRef,
         llvm::ArrayRef({adaptor.getOperands().front(), idx_operand}));
 
-    auto bitcast = LLVM::BitcastOp::create(rewriter,
-        loc, cudaq::opt::factory::getPointerType(context),
+    auto bitcast = LLVM::BitcastOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context),
         get_qbit_qir_call.getResult());
     rewriter.replaceOpWithNewOp<LLVM::LoadOp>(
         extract, cudaq::opt::getQubitType(context), bitcast.getResult());
@@ -373,7 +371,8 @@ public:
     std::int64_t count = 0;
     for (auto op : adaptor.getOperands()) {
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{count});
-      result = LLVM::InsertValueOp::create(rewriter, loc, toTy, result, op, off);
+      result =
+          LLVM::InsertValueOp::create(rewriter, loc, toTy, result, op, off);
       count++;
     }
     rewriter.replaceOp(mkStruq, result);
@@ -403,14 +402,14 @@ public:
 
     auto lowArg = [&]() -> Value {
       if (!adaptor.getLower())
-        return arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(),
-                                           adaptor.getRawLower());
+        return arith::ConstantIntOp::create(
+            rewriter, loc, rewriter.getI64Type(), adaptor.getRawLower());
       return adaptor.getLower();
     }();
     auto highArg = [&]() -> Value {
       if (!adaptor.getUpper())
-        return arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(),
-                                           adaptor.getRawUpper());
+        return arith::ConstantIntOp::create(
+            rewriter, loc, rewriter.getI64Type(), adaptor.getRawUpper());
       return adaptor.getUpper();
     }();
     auto extend = [&](Value &v) -> Value {
@@ -489,8 +488,9 @@ public:
       auto pauliConst = builder.genCStringLiteralAppendNul(
           loc, parentModule, *instOp.getPauliLiteral());
       // Create a pauli reference and make it the last operand.
-      operands.push_back(LLVM::AddressOfOp::create(rewriter, 
-          loc, cudaq::opt::factory::getPointerType(pauliConst.getType()),
+      operands.push_back(LLVM::AddressOfOp::create(
+          rewriter, loc,
+          cudaq::opt::factory::getPointerType(pauliConst.getType()),
           pauliConst.getSymName()));
     }
     auto pauliWord = operands.back();
@@ -545,8 +545,8 @@ public:
     Value alloca = cudaq::opt::factory::createLLVMTemporary(
         loc, rewriter, cudaq::opt::factory::getPointerType(context));
     LLVM::StoreOp::create(rewriter, loc, pauliWord, alloca);
-    auto castedPauli = LLVM::BitcastOp::create(rewriter, 
-        loc, cudaq::opt::factory::getPointerType(context), alloca);
+    auto castedPauli = LLVM::BitcastOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context), alloca);
     operands.pop_back();
     operands.push_back(castedPauli);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
@@ -614,8 +614,8 @@ public:
     // function.
     FlatSymbolRefAttr applyMultiControlFunction;
     SmallVector<Value> args;
-    Value ctrlOpPointer = LLVM::AddressOfOp::create(rewriter,
-        loc, cudaq::opt::factory::getPointerType(context),
+    Value ctrlOpPointer = LLVM::AddressOfOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context),
         qirFunctionSymbolRef);
     Value numControlOperands =
         arith::ConstantIntOp::create(rewriter, loc, i64Type, numControls);
@@ -638,8 +638,8 @@ public:
       applyMultiControlFunction = cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::NVQIRInvokeWithControlBits,
           LLVM::LLVMVoidType::get(context),
-          {i64Type, cudaq::opt::factory::getPointerType(context)},
-          parentModule, true);
+          {i64Type, cudaq::opt::factory::getPointerType(context)}, parentModule,
+          true);
     } else {
       // Otherwise use the general function, which can handle registers of
       // qubits and multiple target qubits. Get symbol for the
@@ -664,8 +664,8 @@ public:
               loc, rewriter, parentModule, numControls, adaptor.getControls(),
               instOp.getControls());
       args.push_back(isArrayAndLengthArr);
-      args.push_back(
-          arith::ConstantIntOp::create(rewriter, loc, i64Type, numTargetOperands));
+      args.push_back(arith::ConstantIntOp::create(rewriter, loc, i64Type,
+                                                  numTargetOperands));
     }
     args.push_back(ctrlOpPointer);
     args.append(instOperands.begin(), instOperands.end());
@@ -801,8 +801,9 @@ public:
     // The remaining scenarios are best handled with the
     // invokeRotationWithControlQubits function.
 
-    Value ctrlOpPointer = LLVM::AddressOfOp::create(rewriter,
-        loc, cudaq::opt::factory::getPointerType(context), instSymbolRef);
+    Value ctrlOpPointer = LLVM::AddressOfOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context),
+        instSymbolRef);
 
     // Get symbol for
     // void invokeRotationWithControlQubits(double param, const std::size_t
@@ -987,8 +988,9 @@ public:
     // The remaining scenarios are best handled with the
     // invokeU3RotationWithControlQubits function.
 
-    Value ctrlOpPointer = LLVM::AddressOfOp::create(rewriter,
-        loc, cudaq::opt::factory::getPointerType(context), instSymbolRef);
+    Value ctrlOpPointer = LLVM::AddressOfOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context),
+        instSymbolRef);
 
     // Get symbol for void invokeU3RotationWithControlQubits(double theta,
     // double phi, double lambda, const std::size_t numControlOperands, i64*
@@ -1103,8 +1105,7 @@ public:
       // Change the function name
       qFunctionName += "__to__register";
       // Append a string type argument
-      funcTypes.push_back(
-          cudaq::opt::factory::getPointerType(context));
+      funcTypes.push_back(cudaq::opt::factory::getPointerType(context));
       appendName = true;
     } else {
       // If no register name is supplied, make one up. Zero pad the counter so
@@ -1140,11 +1141,12 @@ public:
     rewriter.restoreInsertionPoint(insertPoint);
 
     // Get the string address and bit cast
-    auto regNameRef = LLVM::AddressOfOp::create(rewriter,
-        loc, cudaq::opt::factory::getPointerType(context),
+    auto regNameRef = LLVM::AddressOfOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context),
         regNameGlobal.getSymName());
-    auto castedRegNameRef = LLVM::BitcastOp::create(rewriter, 
-        loc, cudaq::opt::factory::getPointerType(context), regNameRef);
+    auto castedRegNameRef = LLVM::BitcastOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context),
+        regNameRef);
 
     // Append to the args list
     if (appendName)
@@ -1154,9 +1156,9 @@ public:
         qFunctionName, cudaq::opt::getResultType(context),
         llvm::ArrayRef(funcTypes), parentModule);
 
-    auto callOp = LLVM::CallOp::create(rewriter,
-        loc, cudaq::opt::getResultType(context), symbolRef,
-        ArrayRef<Value>(args));
+    auto callOp =
+        LLVM::CallOp::create(rewriter, loc, cudaq::opt::getResultType(context),
+                             symbolRef, ArrayRef<Value>(args));
     if (regName)
       callOp->setAttr("registerName", regName);
     auto i1Ty = rewriter.getI1Type();
@@ -1186,7 +1188,7 @@ public:
         {cudaq::opt::getArrayType(context)}, parentModule);
 
     auto c = LLVM::CallOp::create(rewriter, loc, rewriter.getI64Type(),
-                                           symbolRef, adaptor.getOperands());
+                                  symbolRef, adaptor.getOperands());
     vecsize->getResult(0).replaceAllUsesWith(c->getResult(0));
     rewriter.eraseOp(vecsize);
     return success();
@@ -1225,13 +1227,13 @@ public:
       // be a call to __quantum__qis__mz(Qubit*) and that in the LLVM dialect,
       // functions always have a single result, this should be fine. If things
       // change, we will need to update this.
-      auto bitcast = LLVM::BitcastOp::create(rewriter,
-          loc, cudaq::opt::factory::getPointerType(context),
+      auto bitcast = LLVM::BitcastOp::create(
+          rewriter, loc, cudaq::opt::factory::getPointerType(context),
           adaptor.getOperands().front());
 
       // Load the bool
       auto loadBit = LLVM::LoadOp::create(rewriter, loc, rewriter.getI1Type(),
-                                                   bitcast.getResult());
+                                          bitcast.getResult());
 
       // Replace all uses of the llvm.ptr<Result> with the i1, which includes
       // the return op. Do not replace its use in the bitcast.
@@ -1279,22 +1281,23 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayGetElementPtr1d, ptrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
-    Value zero = arith::ConstantIntOp::create(rewriter, loc,
-                                              rewriter.getI64Type(), 0);
-    Value one = arith::ConstantIntOp::create(rewriter, loc,
-                                             rewriter.getI64Type(), 1);
+    Value zero =
+        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 0);
+    Value one =
+        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 1);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight = arith::ConstantIntOp::create(rewriter, loc,
-                                               rewriter.getI32Type(), 8);
+    Value eight =
+        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI32Type(), 8);
     if (v.getType() != cudaq::opt::getQubitType(context))
       return v;
-    auto createCall = LLVM::CallOp::create(rewriter, 
-        loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
+    auto createCall = LLVM::CallOp::create(rewriter, loc, qirArrayTy, symbolRef,
+                                           ArrayRef<Value>{eight, one});
     auto result = createCall.getResult();
     auto call = LLVM::CallOp::create(rewriter, loc, ptrTy, getSymbolRef,
-                                              ArrayRef<Value>{result, zero});
-    Value pointer = LLVM::BitcastOp::create(rewriter, 
-        loc, cudaq::opt::factory::getPointerType(ptrTy), call.getResult());
+                                     ArrayRef<Value>{result, zero});
+    Value pointer = LLVM::BitcastOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(ptrTy),
+        call.getResult());
     auto cast = LLVM::BitcastOp::create(rewriter, loc, ptrTy, v);
     LLVM::StoreOp::create(rewriter, loc, cast, pointer);
     return result;
@@ -1324,8 +1327,8 @@ public:
                                       adaptor.getTargets().front());
     for (auto oper : adaptor.getTargets().drop_front(1)) {
       auto backArr = wrapQubitInArray(loc, rewriter, parentModule, oper);
-      auto glue = LLVM::CallOp::create(rewriter, 
-          loc, qirArrayTy, concatFunc, ArrayRef<Value>{targetArr, backArr});
+      auto glue = LLVM::CallOp::create(rewriter, loc, qirArrayTy, concatFunc,
+                                       ArrayRef<Value>{targetArr, backArr});
       targetArr = glue.getResult();
     }
 
@@ -1341,17 +1344,17 @@ public:
               cudaq::opt::QIRArrayCreateArray,
               cudaq::opt::getArrayType(context),
               {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
-      controlArr = LLVM::CallOp::create(rewriter, loc,
-                           cudaq::opt::getArrayType(context), symbolRef,
-                           ArrayRef<Value>{zero32, zero})
-                       .getResult();
+      controlArr =
+          LLVM::CallOp::create(rewriter, loc, cudaq::opt::getArrayType(context),
+                               symbolRef, ArrayRef<Value>{zero32, zero})
+              .getResult();
     } else {
       controlArr = wrapQubitInArray(loc, rewriter, parentModule,
                                     adaptor.getControls().front());
       for (auto oper : adaptor.getControls().drop_front(1)) {
         auto backArr = wrapQubitInArray(loc, rewriter, parentModule, oper);
-        auto glue = LLVM::CallOp::create(rewriter, 
-            loc, qirArrayTy, concatFunc, ArrayRef<Value>{controlArr, backArr});
+        auto glue = LLVM::CallOp::create(rewriter, loc, qirArrayTy, concatFunc,
+                                         ArrayRef<Value>{controlArr, backArr});
         controlArr = glue.getResult();
       }
     }
@@ -1386,11 +1389,12 @@ public:
     // Shift back to the function
     rewriter.restoreInsertionPoint(insertPoint);
     // Get the string address and bit cast
-    auto opNameRef = LLVM::AddressOfOp::create(rewriter, 
-        loc, cudaq::opt::factory::getPointerType(opNameGlobal.getType()),
+    auto opNameRef = LLVM::AddressOfOp::create(
+        rewriter, loc,
+        cudaq::opt::factory::getPointerType(opNameGlobal.getType()),
         opNameGlobal.getSymName());
-    auto castedOpNameRef = LLVM::BitcastOp::create(rewriter, 
-        loc, cudaq::opt::factory::getPointerType(context), opNameRef);
+    auto castedOpNameRef = LLVM::BitcastOp::create(
+        rewriter, loc, cudaq::opt::factory::getPointerType(context), opNameRef);
 
     if (!globalOp)
       return op.emitOpError("global not found for custom op");

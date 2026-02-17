@@ -16,12 +16,12 @@
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/schedule.h"
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 namespace py = nanobind;
 namespace {
@@ -88,9 +88,8 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
               std::vector<int64_t> modeExtents,
               const std::vector<cudaq::sum_op<cudaq::matrix_handler>>
                   &hamiltonians,
-              const std::vector<
-                  std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
-                  &list_collapse_ops,
+              const std::vector<std::vector<
+                  cudaq::sum_op<cudaq::matrix_handler>>> &list_collapse_ops,
               bool is_master_equation) {
              std::unordered_map<std::string, std::complex<double>> params;
              for (const auto &param : schedule.get_parameters()) {

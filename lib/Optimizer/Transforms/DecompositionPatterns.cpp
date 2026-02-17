@@ -138,8 +138,7 @@ public:
   OpTy create(Location location, Value &target) {
     OpTy op;
     op = OpTy::create(rewriter, location, getResultType(target), false,
-                      ValueRange{}, ValueRange{}, target,
-                      DenseBoolArrayAttr{});
+                      ValueRange{}, ValueRange{}, target, DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
@@ -152,8 +151,7 @@ public:
   OpTy create(Location location, bool is_adj, Value &target) {
     OpTy op;
     op = OpTy::create(rewriter, location, getResultType(target), is_adj,
-                      ValueRange{}, ValueRange{}, target,
-                      DenseBoolArrayAttr{});
+                      ValueRange{}, ValueRange{}, target, DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
@@ -166,8 +164,7 @@ public:
   OpTy create(Location location, Value &control, Value &target) {
     OpTy op;
     op = OpTy::create(rewriter, location, getResultType(control, target), false,
-                      ValueRange{}, control, target,
-                      DenseBoolArrayAttr{});
+                      ValueRange{}, control, target, DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
@@ -200,9 +197,9 @@ public:
   OpTy create(Location location, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
     OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(controls, target), false,
-                      parameters, controls, target,
-                      DenseBoolArrayAttr{});
+    op =
+        OpTy::create(rewriter, location, getResultType(controls, target), false,
+                     parameters, controls, target, DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
@@ -218,9 +215,9 @@ public:
   OpTy create(Location location, SmallVectorImpl<Value> &controls,
               Value &target) {
     OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(controls, target), false,
-                      ValueRange{}, controls, target,
-                      DenseBoolArrayAttr{});
+    op =
+        OpTy::create(rewriter, location, getResultType(controls, target), false,
+                     ValueRange{}, controls, target, DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
@@ -235,9 +232,9 @@ public:
   template <typename OpTy>
   OpTy create(Location location, SmallVectorImpl<Value> &targets) {
     OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(targets), false,
-                      ValueRange{}, ValueRange{}, targets,
-                      DenseBoolArrayAttr{});
+    op =
+        OpTy::create(rewriter, location, getResultType(targets), false,
+                     ValueRange{}, ValueRange{}, targets, DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
@@ -508,10 +505,10 @@ struct ExpPauliDecomposition
 
       if (pauliWordStr[i] == 'Y') {
         APFloat d(M_PI_2);
-        Value param = arith::ConstantFloatOp::create(rewriter, 
-            loc, rewriter.getF64Type(), d);
+        Value param = arith::ConstantFloatOp::create(rewriter, loc,
+                                                     rewriter.getF64Type(), d);
         quake::RxOp::create(rewriter, loc, ValueRange{param}, ValueRange{},
-                                     ValueRange{qubitI});
+                            ValueRange{qubitI});
       } else if (pauliWordStr[i] == 'X') {
         quake::HOp::create(rewriter, loc, ValueRange{qubitI});
       }
@@ -528,15 +525,16 @@ struct ExpPauliDecomposition
     std::vector<std::pair<Value, Value>> toReverse;
     for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
       quake::XOp::create(rewriter, loc, ValueRange{qubitSupport[i]},
-                                  ValueRange{qubitSupport[i + 1]});
+                         ValueRange{qubitSupport[i + 1]});
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
     // Note: `Rz(theta)` = `exp(-i*theta/2 Z)`
-    Value negTwoTheta = arith::MulFOp::create(rewriter, 
-        loc, createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
+    Value negTwoTheta = arith::MulFOp::create(
+        rewriter, loc,
+        createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
     quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta}, ValueRange{},
-                                 ValueRange{qubitSupport.back()});
+                        ValueRange{qubitSupport.back()});
 
     std::reverse(toReverse.begin(), toReverse.end());
     for (auto &[i, j] : toReverse)
@@ -549,10 +547,10 @@ struct ExpPauliDecomposition
 
       if (pauliWordStr[k] == 'Y') {
         APFloat d(-M_PI_2);
-        Value param = arith::ConstantFloatOp::create(rewriter, 
-            loc, rewriter.getF64Type(), d);
+        Value param = arith::ConstantFloatOp::create(rewriter, loc,
+                                                     rewriter.getF64Type(), d);
         quake::RxOp::create(rewriter, loc, ValueRange{param}, ValueRange{},
-                                     ValueRange{qubitK});
+                            ValueRange{qubitK});
       } else if (pauliWordStr[k] == 'X') {
         quake::HOp::create(rewriter, loc, ValueRange{qubitK});
       }

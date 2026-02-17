@@ -14,8 +14,8 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ScopedPrinter.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Analysis/TopologicalSortUtils.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 #define DEBUG_TYPE "quantum-mapper"
 
@@ -384,8 +384,8 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
   auto wireType = builder.getType<quake::WireType>();
   auto addSwap = [&](Placement::DeviceQ q0, Placement::DeviceQ q1) {
     placement.swap(q0, q1);
-    auto swap = quake::SwapOp::create(builder, 
-        builder.getUnknownLoc(), TypeRange{wireType, wireType}, false,
+    auto swap = quake::SwapOp::create(
+        builder, builder.getUnknownLoc(), TypeRange{wireType, wireType}, false,
         ValueRange{}, ValueRange{},
         ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
         DenseBoolArrayAttr{});
@@ -576,9 +576,9 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 
     auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
-    auto wireSetOp = quake::WireSetOp::create(builder, 
-        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(),
-        adjacency);
+    auto wireSetOp = quake::WireSetOp::create(builder, builder.getUnknownLoc(),
+                                              mappedWireSetName,
+                                              d.getNumQubits(), adjacency);
     wireSetOp.setPrivate();
     return wireSetOp;
   }
@@ -820,11 +820,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       Type resTy = builder.getI1Type();
       for (unsigned i = 0; i < sources.size(); i++) {
         if (sources[i] != nullptr) {
-          auto measureOp = quake::MzOp::create(builder, 
-              finalQubitWire[i].getLoc(), TypeRange{measTy, wireTy},
-              finalQubitWire[i]);
+          auto measureOp =
+              quake::MzOp::create(builder, finalQubitWire[i].getLoc(),
+                                  TypeRange{measTy, wireTy}, finalQubitWire[i]);
           quake::DiscriminateOp::create(builder, finalQubitWire[i].getLoc(),
-                                                resTy, measureOp.getMeasOut());
+                                        resTy, measureOp.getMeasOut());
 
           wireToVirtualQ.insert(
               {measureOp.getWires()[0], wireToVirtualQ[finalQubitWire[i]]});
@@ -848,8 +848,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     builder.setInsertionPointAfter(lastSource);
     for (unsigned i = 0; i < deviceInstance->getNumQubits(); i++) {
       if (!sources[i]) {
-        auto borrowOp = quake::BorrowWireOp::create(builder, 
-            unknownLoc, wireTy, mappedWireSetName, i);
+        auto borrowOp = quake::BorrowWireOp::create(builder, unknownLoc, wireTy,
+                                                    mappedWireSetName, i);
         wireToVirtualQ[borrowOp.getResult()] = Placement::VirtualQ(i);
         sources[i] = borrowOp;
       }
@@ -887,7 +887,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       } else {
         // highestMappedQubit = i;
         quake::ReturnWireOp::create(builder, phyToWire[i].getLoc(),
-                                            phyToWire[i]);
+                                    phyToWire[i]);
       }
     }
 

@@ -27,8 +27,8 @@
 #include <complex>
 #include <functional>
 #include <future>
-#include <nanobind/stl/complex.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/complex.h>
 
 namespace py = nanobind;
 
@@ -82,9 +82,11 @@ void checkArgumentType(py::handle arg, int index, const std::string &word) {
         "kernel argument" + word + " type is '" +
         std::string(py_ext::typeName<T>()) + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
-        ", value=" + std::string(py::str(arg).c_str()) +
-        ", type=" + std::string(py::str(py::handle(
-            reinterpret_cast<PyObject *>(Py_TYPE(arg.ptr())))).c_str()) + ").");
+        ", value=" + std::string(py::str(arg).c_str()) + ", type=" +
+        std::string(py::str(py::handle(reinterpret_cast<PyObject *>(
+                                Py_TYPE(arg.ptr()))))
+                        .c_str()) +
+        ").");
   }
 }
 

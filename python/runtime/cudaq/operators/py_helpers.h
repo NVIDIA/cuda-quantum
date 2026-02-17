@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-#include <nanobind/ndarray.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 
 namespace py = nanobind;
 

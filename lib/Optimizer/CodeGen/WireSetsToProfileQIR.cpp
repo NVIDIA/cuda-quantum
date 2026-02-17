@@ -145,8 +145,8 @@ struct GeneralRewrite : OpConversionPattern<OP> {
                                   adaptor.getControls().end());
         qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
         func::CallOp::create(rewriter, loc, mlir::TypeRange{},
-                                      cudaq::opt::NVQIRInvokeWithControlBits,
-                                      callParamVals);
+                             cudaq::opt::NVQIRInvokeWithControlBits,
+                             callParamVals);
         rewriter.replaceOp(qop, qubits);
         return success();
       }
@@ -156,7 +156,7 @@ struct GeneralRewrite : OpConversionPattern<OP> {
                                 adaptor.getControls().end());
       qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
       func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
-                                    adaptor.getOperands());
+                           adaptor.getOperands());
       rewriter.replaceOp(qop, qubits);
       return success();
     }
@@ -193,7 +193,7 @@ struct ResetRewrite : OpConversionPattern<quake::ResetOp> {
     auto loc = reset.getLoc();
     std::string funcName = toQisBodyName(std::string("reset"));
     func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
-                                  adaptor.getOperands());
+                         adaptor.getOperands());
     rewriter.replaceOp(reset, qubits);
     return success();
   }
@@ -283,15 +283,15 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
     // FIXME: Must use sequentially assigned result ids
     std::string funcName = toQisBodyName(std::string("mz"));
     auto loc = meas.getLoc();
-    Value idCon = arith::ConstantIntOp::create(rewriter, loc, resultCount++, 64);
+    Value idCon =
+        arith::ConstantIntOp::create(rewriter, loc, resultCount++, 64);
     auto imTy =
         cudaq::cc::PointerType::get(NoneType::get(rewriter.getContext()));
     idCon = cudaq::cc::CastOp::create(rewriter, loc, imTy, idCon);
-    Value resultVal = cudaq::cc::CastOp::create(rewriter, 
-        loc, cudaq::opt::getResultType(rewriter.getContext()), idCon);
-    func::CallOp::create(rewriter, 
-        loc, mlir::TypeRange{}, funcName,
-        ValueRange{adaptor.getTargets()[0], resultVal});
+    Value resultVal = cudaq::cc::CastOp::create(
+        rewriter, loc, cudaq::opt::getResultType(rewriter.getContext()), idCon);
+    func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
+                         ValueRange{adaptor.getTargets()[0], resultVal});
     rewriter.replaceOp(meas, ValueRange{resultVal, adaptor.getTargets()[0]});
 
     auto regName = meas.getRegisterName();
@@ -306,15 +306,15 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
       auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
                                                     regName->size() + 1);
       auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
-      Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, 
-          loc, ptrArrTy, nameObj.getName());
+      Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, loc, ptrArrTy,
+                                                     nameObj.getName());
       auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
       Value nameValCStr =
           cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
 
       func::CallOp::create(rewriter, loc, mlir::TypeRange{},
-                                    cudaq::opt::QIRRecordOutput,
-                                    ValueRange{resultVal, nameValCStr});
+                           cudaq::opt::QIRRecordOutput,
+                           ValueRange{resultVal, nameValCStr});
     }
 
     // Populate resultQubitVals[]
@@ -362,14 +362,14 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
                                                   iter->second.size() + 1);
     auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
     Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, loc, ptrArrTy,
-                                                            nameObj.getName());
+                                                   nameObj.getName());
     auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     Value nameValCStr =
         cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
 
-    func::CallOp::create(rewriter, 
-        loc, mlir::TypeRange{}, cudaq::opt::QIRRecordOutput,
-        ValueRange{adaptor.getMeasurement(), nameValCStr});
+    func::CallOp::create(rewriter, loc, mlir::TypeRange{},
+                         cudaq::opt::QIRRecordOutput,
+                         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
       std::string funcName = toQisBodyName(std::string("read_result"));
       rewriter.replaceOpWithNewOp<func::CallOp>(
@@ -607,8 +607,9 @@ struct WireSetToProfileQIRPostPass
             auto parentFuncOp =
                 callableRegion->getParentOfType<mlir::func::FuncOp>();
 
-            if (auto reqQubits = dyn_cast_if_present<StringAttr>(
-                    parentFuncOp->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName))) {
+            if (auto reqQubits =
+                    dyn_cast_if_present<StringAttr>(parentFuncOp->getAttr(
+                        cudaq::opt::qir0_1::RequiredQubitsAttrName))) {
               std::uint32_t thisFuncReqQubits = 0;
               if (!reqQubits.strref().getAsInteger(10, thisFuncReqQubits)) {
                 auto thisFuncHighestIdentity = thisFuncReqQubits - 1;
@@ -619,8 +620,9 @@ struct WireSetToProfileQIRPostPass
               }
             }
 
-            if (auto reqResults = dyn_cast_if_present<StringAttr>(
-                    parentFuncOp->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName))) {
+            if (auto reqResults =
+                    dyn_cast_if_present<StringAttr>(parentFuncOp->getAttr(
+                        cudaq::opt::qir0_1::RequiredResultsAttrName))) {
               std::uint32_t thisFuncReqResults = 0;
               if (!reqResults.strref().getAsInteger(10, thisFuncReqResults)) {
                 auto thisFuncHighestResult = thisFuncReqResults - 1;

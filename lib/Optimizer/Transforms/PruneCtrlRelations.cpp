@@ -60,7 +60,7 @@ public:
         if (auto fromCtrl = cv.template getDefiningOp<quake::FromControlOp>()) {
           input = fromCtrl.getCtrlbit();
         } else {
-          input = quake::ToControlOp::create(rewriter,loc, ctrlTy, cv);
+          input = quake::ToControlOp::create(rewriter, loc, ctrlTy, cv);
         }
         newCtrls.push_back(input);
         coarity--;
@@ -72,9 +72,9 @@ public:
     // Create a copy of `op` with the correct coarity and with the control wires
     // each now passing through a ToControlOp.
     SmallVector<Type> wireTys{coarity, wireTy};
-    auto newOp = OP::create(rewriter,
-        loc, wireTys, op.getIsAdjAttr(), op.getParameters(), newCtrls,
-        op.getTargets(), op.getNegatedQubitControlsAttr());
+    auto newOp = OP::create(rewriter, loc, wireTys, op.getIsAdjAttr(),
+                            op.getParameters(), newCtrls, op.getTargets(),
+                            op.getNegatedQubitControlsAttr());
 
     // Loop over the original controls again, this time adding a FromControlOp
     // so that the IR will type check when we replace the old op.
@@ -82,8 +82,8 @@ public:
     for (auto i : llvm::enumerate(op.getControls())) {
       auto cv = i.value();
       if (cv.getType() == wireTy) {
-        Value fromCtrl = quake::FromControlOp::create(rewriter,
-            loc, wireTy, newCtrls[i.index()]);
+        Value fromCtrl = quake::FromControlOp::create(rewriter, loc, wireTy,
+                                                      newCtrls[i.index()]);
         op.getResult(i.index()).replaceAllUsesWith(fromCtrl);
       } else {
         op.getResult(i.index()).replaceAllUsesWith(newOp.getResult(newIdx++));
@@ -134,8 +134,8 @@ public:
     auto func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<WRAPPER_GATE_OPS, ForwardControl>(ctx);
-    if (failed(applyPatternsGreedily(func.getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(
+            applyPatternsGreedily(func.getOperation(), std::move(patterns)))) {
       signalPassFailure();
     }
   }

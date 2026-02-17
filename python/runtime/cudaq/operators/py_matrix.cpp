@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <nanobind/stl/complex.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators/matrix.h"
 #include "py_helpers.h"
@@ -30,30 +30,30 @@ void bindComplexMatrix(py::module_ &mod) {
       mod, "ComplexMatrix",
       "The :class:`ComplexMatrix` is a thin wrapper around a "
       "matrix of complex<double> elements.")
-      .def("__init__",
-           [](complex_matrix *self, py::object b) {
-             auto arr = py::cast<py::ndarray<>>(b);
-             if (arr.ndim() != 2)
-               throw std::runtime_error("ComplexMatrix requires a 2D array");
-             if (arr.shape(0) == 0 || arr.shape(1) == 0)
-               throw std::runtime_error("Matrix dimensions must be non-zero.");
+      .def(
+          "__init__",
+          [](complex_matrix *self, py::object b) {
+            auto arr = py::cast<py::ndarray<>>(b);
+            if (arr.ndim() != 2)
+              throw std::runtime_error("ComplexMatrix requires a 2D array");
+            if (arr.shape(0) == 0 || arr.shape(1) == 0)
+              throw std::runtime_error("Matrix dimensions must be non-zero.");
 
-             new (self) complex_matrix(arr.shape(0), arr.shape(1));
+            new (self) complex_matrix(arr.shape(0), arr.shape(1));
 
-             // Stride-aware element-wise copy so both row-major (C) and
-             // column-major (Fortran) layouts are handled correctly.
-             // nanobind strides are counted in elements, not bytes.
-             auto *dest = self->get_data(complex_matrix::order::row_major);
-             auto *src = static_cast<std::complex<double> *>(arr.data());
-             auto stride0 = arr.stride(0);
-             auto stride1 = arr.stride(1);
-             for (size_t i = 0; i < arr.shape(0); ++i)
-               for (size_t j = 0; j < arr.shape(1); ++j)
-                 dest[i * arr.shape(1) + j] =
-                     src[i * stride0 + j * stride1];
-           },
-           "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
-           "numpy.ndarray.")
+            // Stride-aware element-wise copy so both row-major (C) and
+            // column-major (Fortran) layouts are handled correctly.
+            // nanobind strides are counted in elements, not bytes.
+            auto *dest = self->get_data(complex_matrix::order::row_major);
+            auto *src = static_cast<std::complex<double> *>(arr.data());
+            auto stride0 = arr.stride(0);
+            auto stride1 = arr.stride(1);
+            for (size_t i = 0; i < arr.shape(0); ++i)
+              for (size_t j = 0; j < arr.shape(1); ++j)
+                dest[i * arr.shape(1) + j] = src[i * stride0 + j * stride1];
+          },
+          "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
+          "numpy.ndarray.")
       .def(
           "to_numpy",
           [](complex_matrix &op) { return details::cmat_to_numpy(op); },

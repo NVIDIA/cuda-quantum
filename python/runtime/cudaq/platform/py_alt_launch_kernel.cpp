@@ -25,11 +25,11 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
-#include "llvm/TargetParser/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
-#include "llvm/TargetParser/Host.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -42,12 +42,12 @@
 #include "mlir/Transforms/Passes.h"
 #include <fmt/core.h>
 #include <nanobind/ndarray.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 namespace py = nanobind;
 using namespace mlir;
@@ -453,7 +453,8 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
               handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
                                          elements[i]);
           } else {
-            py::dict attributes = py::cast<py::dict>(arg.attr("__annotations__"));
+            py::dict attributes =
+                py::cast<py::dict>(arg.attr("__annotations__"));
             for (std::size_t i = 0;
                  const auto &[attr_name, unused] : attributes) {
               py::object attr_value =
@@ -538,9 +539,9 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
           // See if we have a backup type handler.
           bool success = backupHandler(argData, arg, i);
           if (!success)
-            throw std::runtime_error(
-                "Could not pack argument: " + std::string(py::str(arg).c_str()) +
-                " Type: " + mlirTypeToString(ty));
+            throw std::runtime_error("Could not pack argument: " +
+                                     std::string(py::str(arg).c_str()) +
+                                     " Type: " + mlirTypeToString(ty));
         });
   }
 }

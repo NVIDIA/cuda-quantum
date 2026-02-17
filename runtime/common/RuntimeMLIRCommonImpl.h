@@ -28,15 +28,15 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/TargetParser/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
-#include "llvm/TargetParser/Host.h"
-#include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/InitAllDialects.h"
@@ -804,9 +804,9 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
     mlir::OpBuilder builder(&block, block.begin());
     auto loc = builder.getUnknownLoc();
 
-    auto origMode = mlir::LLVM::CallOp::create(
-        builder, loc, mlir::TypeRange{boolTy}, isDynamicSymbol,
-        mlir::ValueRange{});
+    auto origMode =
+        mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{boolTy},
+                                   isDynamicSymbol, mlir::ValueRange{});
 
     // Create constant op
     auto numQubitsVal =
@@ -825,9 +825,9 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
     // At the end of the function, deallocate the qubits and restore the
     // simulator state.
     builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
-    mlir::LLVM::CallOp::create(
-        builder, loc, mlir::TypeRange{voidTy}, releaseSymbol,
-        mlir::ValueRange{qubitAlloc.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               releaseSymbol,
+                               mlir::ValueRange{qubitAlloc.getResult()});
     mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
                                setDynamicSymbol,
                                mlir::ValueRange{origMode.getResult()});
@@ -921,8 +921,7 @@ JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to LLVM IR failed.");
 
-    auto tmBuilderOrError =
-        llvm::orc::JITTargetMachineBuilder::detectHost();
+    auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
     if (tmBuilderOrError) {
       auto tmOrError = tmBuilderOrError->createTargetMachine();
       if (tmOrError)

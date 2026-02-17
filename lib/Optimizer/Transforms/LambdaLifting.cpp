@@ -206,8 +206,9 @@ struct CreateLambdaOpPattern
       }
       callableArgs.append(thunk.getArguments().begin() + 1,
                           thunk.getArguments().end());
-      auto result = func::CallOp::create(
-          rewriter, loc, sig.getResults(), getLiftedLambdaName(counter), callableArgs);
+      auto result =
+          func::CallOp::create(rewriter, loc, sig.getResults(),
+                               getLiftedLambdaName(counter), callableArgs);
       func::ReturnOp::create(rewriter, loc, result.getResults());
     }
 
@@ -312,11 +313,11 @@ struct ComputeActionOpPattern
       return failure();
     auto computeArgs = getArgs(comAct.getCompute());
     quake::ApplyOp::create(rewriter, loc, TypeRange{}, computeCallee,
-                                    /*isAdjoint=*/comAct.getIsDagger(),
-                                    ValueRange{}, computeArgs);
+                           /*isAdjoint=*/comAct.getIsDagger(), ValueRange{},
+                           computeArgs);
     quake::ApplyOp::create(rewriter, loc, TypeRange{}, actionCallee,
-                                    /*isAdjoint=*/false, ValueRange{},
-                                    getArgs(comAct.getAction()));
+                           /*isAdjoint=*/false, ValueRange{},
+                           getArgs(comAct.getAction()));
     rewriter.replaceOpWithNewOp<quake::ApplyOp>(
         comAct, TypeRange{}, computeCallee,
         /*isAdjoint=*/!comAct.getIsDagger(), ValueRange{}, computeArgs);

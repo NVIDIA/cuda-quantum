@@ -285,6 +285,7 @@ multithreaded
 mutex
 namespace
 namespaces
+nanobind
 natively
 normalization
 nullary

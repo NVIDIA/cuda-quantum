@@ -7,17 +7,17 @@
  ******************************************************************************/
 
 #include <complex>
-#include <nanobind/stl/complex.h>
-#include <nanobind/stl/function.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
 #include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators.h"
 #include "py_handlers.h"
@@ -44,39 +44,41 @@ void bindOperatorHandlers(py::module_ &mod) {
           [](const matrix_handler &self) { return self.to_string(false); },
           "Returns the id used to define and instantiate the operator.")
       .def_prop_ro("degrees", &matrix_handler::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets.")
-      .def_prop_ro("parameters",
-                             &matrix_handler::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets.")
+      .def_prop_ro("parameters", &matrix_handler::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
       .def_prop_ro("expected_dimensions",
-                             &matrix_handler::get_expected_dimensions,
-                             "The number of levels, that is the dimension, for "
-                             "each degree of freedom "
-                             "in canonical order that the operator acts on. A "
-                             "value of zero or less "
-                             "indicates that the operator is defined for any "
-                             "dimension of that degree.")
+                   &matrix_handler::get_expected_dimensions,
+                   "The number of levels, that is the dimension, for "
+                   "each degree of freedom "
+                   "in canonical order that the operator acts on. A "
+                   "value of zero or less "
+                   "indicates that the operator is defined for any "
+                   "dimension of that degree.")
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
-      .def("__init__",
-           [](matrix_handler *self, std::string operator_id,
-              std::vector<std::size_t> degrees) {
-             new (self) matrix_handler(std::move(operator_id), std::move(degrees));
-           },
-           py::arg("id"), py::arg("degrees"),
-           "Creates the matrix operator with the given id acting on the given "
-           "degrees of "
-           "freedom. Throws a runtime exception if no operator with that id "
-           "has been defined.")
+      .def(
+          "__init__",
+          [](matrix_handler *self, std::string operator_id,
+             std::vector<std::size_t> degrees) {
+            new (self)
+                matrix_handler(std::move(operator_id), std::move(degrees));
+          },
+          py::arg("id"), py::arg("degrees"),
+          "Creates the matrix operator with the given id acting on the given "
+          "degrees of "
+          "freedom. Throws a runtime exception if no operator with that id "
+          "has been defined.")
       .def(py::init<const matrix_handler &>(), "Copy constructor.")
       .def("__eq__", &matrix_handler::operator==, py::is_operator())
       .def("to_string", &matrix_handler::to_string, py::arg("include_degrees"),
            "Returns the string representation of the operator.")
       .def(
           "to_matrix",
-          [](const matrix_handler &self, std::optional<dimension_map> dimensions,
+          [](const matrix_handler &self,
+             std::optional<dimension_map> dimensions,
              std::optional<parameter_map> params) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
@@ -88,11 +90,11 @@ void bindOperatorHandlers(py::module_ &mod) {
           "Returns the matrix representation of the operator.")
       .def(
           "to_matrix",
-          [](const matrix_handler &self, std::optional<dimension_map> dimensions,
-             py::kwargs kwargs) {
+          [](const matrix_handler &self,
+             std::optional<dimension_map> dimensions, py::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
-            auto cmat = self.to_matrix(dims,
-                                       details::kwargs_to_param_map(kwargs));
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions").none() = py::none(),
@@ -122,12 +124,11 @@ void bindOperatorHandlers(py::module_ &mod) {
           "callback function.");
 
   py::class_<boson_handler>(mod, "BosonOperatorElement")
-      .def_prop_ro(
-          "target", &boson_handler::target,
-          "Returns the degree of freedom that the operator targets.")
+      .def_prop_ro("target", &boson_handler::target,
+                   "Returns the degree of freedom that the operator targets.")
       .def_prop_ro("degrees", &boson_handler::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets.")
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
       .def(py::init<const boson_handler &>(), "Copy constructor.")
@@ -151,20 +152,19 @@ void bindOperatorHandlers(py::module_ &mod) {
           [](const boson_handler &self, std::optional<dimension_map> dimensions,
              py::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
-            auto cmat = self.to_matrix(dims,
-                                       details::kwargs_to_param_map(kwargs));
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions").none() = py::none(),
           "Returns the matrix representation of the operator.");
 
   py::class_<fermion_handler>(mod, "FermionOperatorElement")
-      .def_prop_ro(
-          "target", &fermion_handler::target,
-          "Returns the degree of freedom that the operator targets.")
+      .def_prop_ro("target", &fermion_handler::target,
+                   "Returns the degree of freedom that the operator targets.")
       .def_prop_ro("degrees", &fermion_handler::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets.")
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
       .def(py::init<const fermion_handler &>(), "Copy constructor.")
@@ -173,7 +173,8 @@ void bindOperatorHandlers(py::module_ &mod) {
            "Returns the string representation of the operator.")
       .def(
           "to_matrix",
-          [](const fermion_handler &self, std::optional<dimension_map> dimensions,
+          [](const fermion_handler &self,
+             std::optional<dimension_map> dimensions,
              std::optional<parameter_map> params) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
@@ -185,23 +186,22 @@ void bindOperatorHandlers(py::module_ &mod) {
           "Returns the matrix representation of the operator.")
       .def(
           "to_matrix",
-          [](const fermion_handler &self, std::optional<dimension_map> dimensions,
-             py::kwargs kwargs) {
+          [](const fermion_handler &self,
+             std::optional<dimension_map> dimensions, py::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
-            auto cmat = self.to_matrix(dims,
-                                       details::kwargs_to_param_map(kwargs));
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions").none() = py::none(),
           "Returns the matrix representation of the operator.");
 
   py::class_<spin_handler>(mod, "SpinOperatorElement")
-      .def_prop_ro(
-          "target", &spin_handler::target,
-          "Returns the degree of freedom that the operator targets.")
+      .def_prop_ro("target", &spin_handler::target,
+                   "Returns the degree of freedom that the operator targets.")
       .def_prop_ro("degrees", &spin_handler::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets.")
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
       .def(py::init<const spin_handler &>(), "Copy constructor.")
@@ -227,8 +227,8 @@ void bindOperatorHandlers(py::module_ &mod) {
           [](const spin_handler &self, std::optional<dimension_map> dimensions,
              py::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
-            auto cmat = self.to_matrix(dims,
-                                       details::kwargs_to_param_map(kwargs));
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions").none() = py::none(),

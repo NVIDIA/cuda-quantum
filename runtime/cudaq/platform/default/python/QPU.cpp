@@ -296,8 +296,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 } // namespace
 
 // Register into libcudaq's ModuleLauncher registry (the one launchModule uses).
-// Do not use CUDAQ_REGISTER_TYPE here: it would instantiate the Registry template
-// in this DSO, giving a second Head/Tail, so the launcher would never be found.
+// Do not use CUDAQ_REGISTER_TYPE here: it would instantiate the Registry
+// template in this DSO, giving a second Head/Tail, so the launcher would never
+// be found.
 extern "C" void cudaq_add_module_launcher_node(void *node_ptr);
 
 namespace {

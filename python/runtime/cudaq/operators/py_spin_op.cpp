@@ -7,17 +7,17 @@
  ******************************************************************************/
 
 #include <complex>
-#include <nanobind/stl/complex.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
-#include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
 #include <nanobind/stl/set.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -141,32 +141,31 @@ void bindSpinOperator(py::module_ &mod) {
       // properties
 
       .def_prop_ro("parameters", &spin_op::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
       .def_prop_ro("degrees", &spin_op::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets. "
-                             "The order of degrees is from smallest to largest "
-                             "and reflects the ordering of "
-                             "the matrix returned by `to_matrix`. "
-                             "Specifically, the indices of a statevector "
-                             "with two qubits are {00, 01, 10, 11}. An "
-                             "ordering of degrees {0, 1} then indicates "
-                             "that a state where the qubit with index 0 equals "
-                             "1 with probability 1 is given by "
-                             "the vector {0., 1., 0., 0.}.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets. "
+                   "The order of degrees is from smallest to largest "
+                   "and reflects the ordering of "
+                   "the matrix returned by `to_matrix`. "
+                   "Specifically, the indices of a statevector "
+                   "with two qubits are {00, 01, 10, 11}. An "
+                   "ordering of degrees {0, 1} then indicates "
+                   "that a state where the qubit with index 0 equals "
+                   "1 with probability 1 is given by "
+                   "the vector {0., 1., 0., 0.}.")
       .def_prop_ro("min_degree", &spin_op::min_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("max_degree", &spin_op::max_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("term_count", &spin_op::num_terms,
-                             "Returns the number of terms in the operator.")
+                   "Returns the number of terms in the operator.")
       // only exists for spin operators
-      .def_prop_ro(
-          "qubit_count", &spin_op::num_qubits<spin_handler>,
-          "Return the number of qubits this operator acts on.")
+      .def_prop_ro("qubit_count", &spin_op::num_qubits<spin_handler>,
+                   "Return the number of qubits this operator acts on.")
 
       // constructors
 
@@ -186,22 +185,24 @@ void bindSpinOperator(py::module_ &mod) {
       .def(py::init<std::vector<double> &>(), py::arg("data"),
            "Creates an operator based on a serialized data representation.")
       // NOTE: only supported on spin ops so far
-      .def("__init__",
-           [](spin_op *self, const std::string &fileName) {
-             binary_spin_op_reader reader;
-             new (self) spin_op(reader.read(fileName));
-           },
-           "Creates an operator based on a serialized data representation in "
-           "the given file.")
+      .def(
+          "__init__",
+          [](spin_op *self, const std::string &fileName) {
+            binary_spin_op_reader reader;
+            new (self) spin_op(reader.read(fileName));
+          },
+          "Creates an operator based on a serialized data representation in "
+          "the given file.")
       .def(py::init<const spin_op_term &>(),
            "Creates a sum operator with the given term.")
       .def(py::init<const spin_op &>(), "Copy constructor.")
       // NOTE: only supported on spin ops
-      .def("__init__",
-           [](spin_op *self, py::object obj) {
-             new (self) spin_op(fromOpenFermionQubitOperator(obj));
-           },
-           "Convert an OpenFermion operator to a CUDA-Q spin operator.")
+      .def(
+          "__init__",
+          [](spin_op *self, py::object obj) {
+            new (self) spin_op(fromOpenFermionQubitOperator(obj));
+          },
+          "Convert an OpenFermion operator to a CUDA-Q spin operator.")
       .def(
           "copy", [](const spin_op &self) { return spin_op(self); },
           "Creates a copy of the operator.")
@@ -248,8 +249,7 @@ void bindSpinOperator(py::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const spin_op &self, dimension_map dimensions,
-             py::kwargs kwargs) {
+          [](const spin_op &self, dimension_map dimensions, py::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
@@ -266,8 +266,7 @@ void bindSpinOperator(py::module_ &mod) {
           [](const spin_op &self, py::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
-            auto cmat =
-                self.to_matrix(dimension_map(), pm, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
@@ -295,8 +294,7 @@ void bindSpinOperator(py::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const spin_op &self, dimension_map dimensions,
-             py::kwargs kwargs) {
+          [](const spin_op &self, dimension_map dimensions, py::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             return self.to_sparse_matrix(dimensions, pm, invert_order);
@@ -455,11 +453,10 @@ void bindSpinOperator(py::module_ &mod) {
           [](spin_op &self, double tol, std::optional<parameter_map> params) {
             return self.trim(tol, params.value_or(parameter_map()));
           },
-          py::arg("tol") = 0.0,
-          py::arg("parameters").none() = py::none(),
+          py::arg("tol") = 0.0, py::arg("parameters").none() = py::none(),
           "Removes all terms from the sum for which the absolute value of the "
-           "coefficient is below "
-           "the given tolerance.")
+          "coefficient is below "
+          "the given tolerance.")
       .def(
           "trim",
           [](spin_op &self, double tol, py::kwargs kwargs) {
@@ -567,20 +564,21 @@ void bindSpinOperator(py::module_ &mod) {
       // new constructor with deprecation warning provided only for backwards
       // compatibility (matching the deprecated data constructor for the old
       // serialization format above)
-      .def("__init__",
-           [](spin_op *self, const std::string &fileName, bool legacy) {
-             binary_spin_op_reader reader;
-             PyErr_WarnEx(
-                 PyExc_DeprecationWarning,
-                 "overload provided for compatibility with the deprecated "
-                 "serialization format - please migrate to the new format and "
-                 "use the constructor without boolean argument",
-                 1);
-             new (self) spin_op(reader.read(fileName, legacy));
-           },
-           py::arg("filename"), py::arg("legacy"),
-           "Constructor available for loading deprecated data representations "
-           "from file - will be removed in future releases.")
+      .def(
+          "__init__",
+          [](spin_op *self, const std::string &fileName, bool legacy) {
+            binary_spin_op_reader reader;
+            PyErr_WarnEx(
+                PyExc_DeprecationWarning,
+                "overload provided for compatibility with the deprecated "
+                "serialization format - please migrate to the new format and "
+                "use the constructor without boolean argument",
+                1);
+            new (self) spin_op(reader.read(fileName, legacy));
+          },
+          py::arg("filename"), py::arg("legacy"),
+          "Constructor available for loading deprecated data representations "
+          "from file - will be removed in future releases.")
       .def_static(
           "empty_op",
           []() {
@@ -643,37 +641,35 @@ void bindSpinOperator(py::module_ &mod) {
 
       // properties
 
-      .def_prop_ro("parameters",
-                             &spin_op_term::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+      .def_prop_ro("parameters", &spin_op_term::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
       .def_prop_ro("degrees", &spin_op_term::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets. "
-                             "The order of degrees is from smallest to largest "
-                             "and reflects the ordering of "
-                             "the matrix returned by `to_matrix`. "
-                             "Specifically, the indices of a statevector "
-                             "with two qubits are {00, 01, 10, 11}. An "
-                             "ordering of degrees {0, 1} then indicates "
-                             "that a state where the qubit with index 0 equals "
-                             "1 with probability 1 is given by "
-                             "the vector {0., 1., 0., 0.}.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets. "
+                   "The order of degrees is from smallest to largest "
+                   "and reflects the ordering of "
+                   "the matrix returned by `to_matrix`. "
+                   "Specifically, the indices of a statevector "
+                   "with two qubits are {00, 01, 10, 11}. An "
+                   "ordering of degrees {0, 1} then indicates "
+                   "that a state where the qubit with index 0 equals "
+                   "1 with probability 1 is given by "
+                   "the vector {0., 1., 0., 0.}.")
       .def_prop_ro("min_degree", &spin_op_term::min_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("max_degree", &spin_op_term::max_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("ops_count", &spin_op_term::num_ops,
-                             "Returns the number of operators in the product.")
+                   "Returns the number of operators in the product.")
       .def_prop_ro(
           "term_count", [](const spin_op_term &) { return 1; },
           "Returns the number of terms in the operator. Always returns 1.")
       // only exists for spin operators
-      .def_prop_ro(
-          "qubit_count", &spin_op_term::num_qubits<spin_handler>,
-          "Return the number of qubits this operator acts on.")
+      .def_prop_ro("qubit_count", &spin_op_term::num_qubits<spin_handler>,
+                   "Return the number of qubits this operator acts on.")
       .def_prop_ro(
           "term_id", &spin_op_term::get_term_id,
           "The term id uniquely identifies the operators and targets (degrees) "
@@ -697,28 +693,30 @@ void bindSpinOperator(py::module_ &mod) {
            "all degrees of "
            "freedom in the range [first_degree, last_degree).")
       // NOTE: only supported on spin ops so far
-      .def("__init__",
-           [](spin_op_term *self, const std::vector<double> &data) {
-             spin_op op(data);
-             if (op.num_terms() != 1)
-               throw std::runtime_error(
-                   "invalid data representation for product operator");
-             new (self) spin_op_term(*op.begin());
-           },
-           py::arg("data"),
-           "Creates an operator based on a serialized data representation.")
+      .def(
+          "__init__",
+          [](spin_op_term *self, const std::vector<double> &data) {
+            spin_op op(data);
+            if (op.num_terms() != 1)
+              throw std::runtime_error(
+                  "invalid data representation for product operator");
+            new (self) spin_op_term(*op.begin());
+          },
+          py::arg("data"),
+          "Creates an operator based on a serialized data representation.")
       // NOTE: only supported on spin ops so far
-      .def("__init__",
-           [](spin_op_term *self, const std::string &fileName) {
-             binary_spin_op_reader reader;
-             spin_op op = reader.read(fileName);
-             if (op.num_terms() != 1)
-               throw std::runtime_error(
-                   "invalid data representation for product operator");
-             new (self) spin_op_term(*op.begin());
-           },
-           "Creates an operator based on a serialized data representation in "
-           "the given file.")
+      .def(
+          "__init__",
+          [](spin_op_term *self, const std::string &fileName) {
+            binary_spin_op_reader reader;
+            spin_op op = reader.read(fileName);
+            if (op.num_terms() != 1)
+              throw std::runtime_error(
+                  "invalid data representation for product operator");
+            new (self) spin_op_term(*op.begin());
+          },
+          "Creates an operator based on a serialized data representation in "
+          "the given file.")
       .def(py::init<double>(),
            "Creates a product operator with the given constant value. "
            "The returned operator does not target any degrees of freedom.")
@@ -726,11 +724,12 @@ void bindSpinOperator(py::module_ &mod) {
            "Creates a product operator with the given "
            "constant value. The returned operator does not target any degrees "
            "of freedom.")
-      .def("__init__",
-           [](spin_op_term *self, const scalar_operator &scalar) {
-             new (self) spin_op_term(spin_op_term() * scalar);
-           },
-           "Creates a product operator with non-constant scalar value.")
+      .def(
+          "__init__",
+          [](spin_op_term *self, const scalar_operator &scalar) {
+            new (self) spin_op_term(spin_op_term() * scalar);
+          },
+          "Creates a product operator with non-constant scalar value.")
       .def(py::init<spin_handler>(),
            "Creates a product operator with the given elementary operator.")
       .def(py::init<const spin_op_term &, std::size_t>(), py::arg("operator"),
@@ -763,8 +762,8 @@ void bindSpinOperator(py::module_ &mod) {
           },
           py::arg("parameters").none() = py::none(),
           "Returns the evaluated coefficient of the product operator. The "
-           "parameters is a map of parameter names to their concrete, complex "
-           "values.")
+          "parameters is a map of parameter names to their concrete, complex "
+          "values.")
       .def(
           "to_matrix",
           [](const spin_op_term &self, std::optional<dimension_map> dimensions,
@@ -803,8 +802,7 @@ void bindSpinOperator(py::module_ &mod) {
           [](const spin_op_term &self, py::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
-            auto cmat =
-                self.to_matrix(dimension_map(), pm, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "

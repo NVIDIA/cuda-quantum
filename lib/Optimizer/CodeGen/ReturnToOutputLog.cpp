@@ -26,7 +26,6 @@ namespace cudaq::opt {
 
 #define DEBUG_TYPE "return-to-output-log"
 
-
 using namespace mlir;
 
 namespace {
@@ -59,8 +58,8 @@ public:
           Value label = makeLabel(loc, rewriter, labelStr);
           if (intTy.getWidth() == 1) {
             func::CallOp::create(rewriter, loc, TypeRange{},
-                                          cudaq::opt::QIRBoolRecordOutput,
-                                          ArrayRef<Value>{val, label});
+                                 cudaq::opt::QIRBoolRecordOutput,
+                                 ArrayRef<Value>{val, label});
             return;
           }
           // Integer: convert to (signed) i64. The decoder *must* lop off any
@@ -68,14 +67,15 @@ public:
           // bits by examining the real integer type.
           Value castVal = val;
           if (intTy.getWidth() < 64)
-            castVal = cudaq::cc::CastOp::create(rewriter, 
-                loc, rewriter.getI64Type(), val, cudaq::cc::CastOpMode::Signed);
+            castVal =
+                cudaq::cc::CastOp::create(rewriter, loc, rewriter.getI64Type(),
+                                          val, cudaq::cc::CastOpMode::Signed);
           else if (intTy.getWidth() > 64)
-            castVal = cudaq::cc::CastOp::create(rewriter, 
-                loc, rewriter.getI64Type(), val);
+            castVal = cudaq::cc::CastOp::create(rewriter, loc,
+                                                rewriter.getI64Type(), val);
           func::CallOp::create(rewriter, loc, TypeRange{},
-                                        cudaq::opt::QIRIntegerRecordOutput,
-                                        ArrayRef<Value>{castVal, label});
+                               cudaq::opt::QIRIntegerRecordOutput,
+                               ArrayRef<Value>{castVal, label});
         })
         .Case([&](FloatType floatTy) {
           int width = floatTy.getWidth();
@@ -86,11 +86,11 @@ public:
           // Floating point: convert it to double, whatever it actually is.
           Value castVal = val;
           if (floatTy != rewriter.getF64Type())
-            castVal = cudaq::cc::CastOp::create(rewriter, 
-                loc, rewriter.getF64Type(), val);
+            castVal = cudaq::cc::CastOp::create(rewriter, loc,
+                                                rewriter.getF64Type(), val);
           func::CallOp::create(rewriter, loc, TypeRange{},
-                                        cudaq::opt::QIRDoubleRecordOutput,
-                                        ArrayRef<Value>{castVal, label});
+                               cudaq::opt::QIRDoubleRecordOutput,
+                               ArrayRef<Value>{castVal, label});
         })
         .Case([&](cudaq::cc::StructType structTy) {
           auto labelStr = translateType(structTy);
@@ -100,13 +100,13 @@ public:
           std::int32_t sz = structTy.getNumMembers();
           Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
           func::CallOp::create(rewriter, loc, TypeRange{},
-                                        cudaq::opt::QIRTupleRecordOutput,
-                                        ArrayRef<Value>{size, label});
+                               cudaq::opt::QIRTupleRecordOutput,
+                               ArrayRef<Value>{size, label});
           std::string preStr = prefix ? prefix->str() : std::string{};
           for (std::int32_t i = 0; i < sz; ++i) {
             std::string offset = preStr + std::string(".") + std::to_string(i);
-            Value w = cudaq::cc::ExtractValueOp::create(rewriter, 
-                loc, structTy.getMember(i), val,
+            Value w = cudaq::cc::ExtractValueOp::create(
+                rewriter, loc, structTy.getMember(i), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
             genOutputLog(loc, rewriter, w, offset);
           }
@@ -117,14 +117,14 @@ public:
           std::int32_t sz = arrTy.getSize();
           Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
           func::CallOp::create(rewriter, loc, TypeRange{},
-                                        cudaq::opt::QIRArrayRecordOutput,
-                                        ArrayRef<Value>{size, label});
+                               cudaq::opt::QIRArrayRecordOutput,
+                               ArrayRef<Value>{size, label});
           std::string preStr = prefix ? prefix->str() : std::string{};
           for (std::int32_t i = 0; i < sz; ++i) {
             std::string offset = preStr + std::string("[") + std::to_string(i) +
                                  std::string("]");
-            Value w = cudaq::cc::ExtractValueOp::create(rewriter, 
-                loc, arrTy.getElementType(), val,
+            Value w = cudaq::cc::ExtractValueOp::create(
+                rewriter, loc, arrTy.getElementType(), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
             genOutputLog(loc, rewriter, w, offset);
           }
@@ -142,8 +142,8 @@ public:
               Value label = makeLabel(loc, rewriter, labelStr);
               Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
               func::CallOp::create(rewriter, loc, TypeRange{},
-                                            cudaq::opt::QIRArrayRecordOutput,
-                                            ArrayRef<Value>{size, label});
+                                   cudaq::opt::QIRArrayRecordOutput,
+                                   ArrayRef<Value>{size, label});
               std::string preStr = prefix ? prefix->str() : std::string{};
               Value rawBuffer = vecInit.getBuffer();
               auto eleTy = vecTy.getElementType();
@@ -155,8 +155,9 @@ public:
               for (std::int32_t i = 0; i < sz; ++i) {
                 std::string offset = preStr + std::string("[") +
                                      std::to_string(i) + std::string("]");
-                auto v = cudaq::cc::ComputePtrOp::create(rewriter, 
-                    loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
+                auto v = cudaq::cc::ComputePtrOp::create(
+                    rewriter, loc, buffTy, buffer,
+                    ArrayRef<cudaq::cc::ComputePtrArg>{i});
                 Value w = cudaq::cc::LoadOp::create(rewriter, loc, v);
                 genOutputLog(loc, rewriter, w, offset);
               }
@@ -166,7 +167,7 @@ public:
           // If we reach here, we don't know how to handle this type.
           Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
           func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
-                                        ValueRange{one});
+                               ValueRange{one});
         });
   }
 
@@ -207,8 +208,8 @@ public:
                          StringRef label) {
     auto strLitTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
         rewriter.getContext(), rewriter.getI8Type(), label.size() + 1));
-    Value lit = cudaq::cc::CreateStringLiteralOp::create(rewriter, 
-        loc, strLitTy, rewriter.getStringAttr(label));
+    Value lit = cudaq::cc::CreateStringLiteralOp::create(
+        rewriter, loc, strLitTy, rewriter.getStringAttr(label));
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     return cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, lit);
   }

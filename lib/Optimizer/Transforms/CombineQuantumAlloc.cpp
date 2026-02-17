@@ -58,10 +58,11 @@ public:
           return success();
         }
         if (isa<quake::VeqType>(alloc.getType())) {
-          Value lo = arith::ConstantIntOp::create(rewriter, 
-              alloc.getLoc(), rewriter.getI64Type(), os.first);
-          Value hi = arith::ConstantIntOp::create(rewriter, 
-              alloc.getLoc(), rewriter.getI64Type(), os.first + os.second - 1);
+          Value lo = arith::ConstantIntOp::create(
+              rewriter, alloc.getLoc(), rewriter.getI64Type(), os.first);
+          Value hi = arith::ConstantIntOp::create(rewriter, alloc.getLoc(),
+                                                  rewriter.getI64Type(),
+                                                  os.first + os.second - 1);
           // trying to print alloc after the replace gives a segfault
           LLVM_DEBUG(llvm::dbgs() << "replace " << alloc);
           [[maybe_unused]] Value subveq =
@@ -77,15 +78,15 @@ public:
           for (auto m : sty.getMembers()) {
             auto v = [&]() -> Value {
               if (isa<quake::RefType>(m)) {
-                auto result = quake::ExtractRefOp::create(rewriter, 
-                    loc, analysis.newAlloc, inner);
+                auto result = quake::ExtractRefOp::create(
+                    rewriter, loc, analysis.newAlloc, inner);
                 inner++;
                 return result;
               }
               assert(cast<quake::VeqType>(m).hasSpecifiedSize());
               std::size_t dist = inner + cast<quake::VeqType>(m).getSize() - 1;
-              auto result = quake::SubVeqOp::create(rewriter, 
-                  loc, m, analysis.newAlloc, inner, dist);
+              auto result = quake::SubVeqOp::create(
+                  rewriter, loc, m, analysis.newAlloc, inner, dist);
               inner = dist + 1;
               return result;
             }();
@@ -154,7 +155,7 @@ public:
       patterns.insert<quake::canonical::ExtractRefFromSubVeqPattern,
                       quake::canonical::CombineSubVeqsPattern>(ctx);
       if (failed(applyPatternsGreedily(func.getOperation(),
-                                              std::move(patterns)))) {
+                                       std::move(patterns)))) {
         func.emitOpError("combining alloca, subveq, and extract ops failed");
         signalPassFailure();
       }
@@ -168,7 +169,7 @@ public:
         if (block.hasNoSuccessors()) {
           rewriter.setInsertionPoint(block.getTerminator());
           quake::DeallocOp::create(rewriter, analysis.newAlloc.getLoc(),
-                                            analysis.newAlloc);
+                                   analysis.newAlloc);
         }
       }
     }

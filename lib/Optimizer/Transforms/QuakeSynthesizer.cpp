@@ -98,7 +98,8 @@ Value makeIntegerElement(OpBuilder &builder, Location argLoc, T val,
 template <typename T>
 Value makeFloatElement(OpBuilder &builder, Location argLoc, T val,
                        FloatType eleTy) {
-  return arith::ConstantFloatOp::create(builder, argLoc, eleTy, llvm::APFloat{val});
+  return arith::ConstantFloatOp::create(builder, argLoc, eleTy,
+                                        llvm::APFloat{val});
 }
 
 template <typename T>
@@ -108,7 +109,7 @@ Value makeComplexElement(OpBuilder &builder, Location argLoc,
   auto realPart = builder.getFloatAttr(eleTy, llvm::APFloat{val.real()});
   auto imagPart = builder.getFloatAttr(eleTy, llvm::APFloat{val.imag()});
   auto complexVal = builder.getArrayAttr({realPart, imagPart});
-  return complex::ConstantOp::create(builder,argLoc, eleTy, complexVal);
+  return complex::ConstantOp::create(builder, argLoc, eleTy, complexVal);
 }
 
 /// returns true if and only if \p argument is used by a `quake.init_state`
@@ -135,7 +136,8 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
   auto conArray = cudaq::cc::ConstantArrayOp::create(
-      builder, argLoc, cudaq::cc::ArrayType::get(ctx, eleTy, vec.size()), arrayAttr);
+      builder, argLoc, cudaq::cc::ArrayType::get(ctx, eleTy, vec.size()),
+      arrayAttr);
   auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, vec.size());
   std::optional<Value> arrayInMemory;
   auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
@@ -188,8 +190,8 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     // Handle the StdvecSize use case.
     // Replace a `vec.size()` with the length, which is a synthesized constant.
     if (auto stdvecSizeOp = dyn_cast<cudaq::cc::StdvecSizeOp>(argUser)) {
-      Value length = arith::ConstantIntOp::create(builder, 
-          argLoc, stdvecSizeOp.getType(), vec.size());
+      Value length = arith::ConstantIntOp::create(
+          builder, argLoc, stdvecSizeOp.getType(), vec.size());
       stdvecSizeOp.replaceAllUsesWith(length);
       continue;
     }
@@ -227,7 +229,8 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
               Value memArr = getArrayInMemory();
               builder.setInsertionPoint(elePtrOp);
               Value newComputedPtr = cudaq::cc::ComputePtrOp::create(
-                  builder, argLoc, ptrEleTy, memArr, elePtrOp.getDynamicIndices()[0]);
+                  builder, argLoc, ptrEleTy, memArr,
+                  elePtrOp.getDynamicIndices()[0]);
               elePtrOp.replaceAllUsesWith(newComputedPtr);
             }
             continue;
@@ -492,21 +495,24 @@ public:
           synthesizeRuntimeArgument<std::int16_t>(
               builder, argument, args, offset, sizeof(std::int16_t),
               [=](OpBuilder &builder, std::int16_t *concrete) {
-                return arith::ConstantIntOp::create(builder, loc, *concrete, 16);
+                return arith::ConstantIntOp::create(builder, loc, *concrete,
+                                                    16);
               });
           break;
         case 32:
           synthesizeRuntimeArgument<std::int32_t>(
               builder, argument, args, offset, sizeof(std::int32_t),
               [=](OpBuilder &builder, std::int32_t *concrete) {
-                return arith::ConstantIntOp::create(builder, loc, *concrete, 32);
+                return arith::ConstantIntOp::create(builder, loc, *concrete,
+                                                    32);
               });
           break;
         case 64:
           synthesizeRuntimeArgument<std::int64_t>(
               builder, argument, args, offset, sizeof(std::int64_t),
               [=](OpBuilder &builder, std::int64_t *concrete) {
-                return arith::ConstantIntOp::create(builder, loc, *concrete, 64);
+                return arith::ConstantIntOp::create(builder, loc, *concrete,
+                                                    64);
               });
           break;
         default:
@@ -523,11 +529,11 @@ public:
             builder, argument, args, offset,
             cudaq::opt::convertBitsToBytes(type.getIntOrFloatBitWidth()),
             std::function<Value(OpBuilder &, float *)>(
-            [=](OpBuilder &builder, float *concrete) -> Value {
-              llvm::APFloat f(*concrete);
-              return arith::ConstantFloatOp::create(builder, 
-                  loc, builder.getF32Type(), f);
-            }));
+                [=](OpBuilder &builder, float *concrete) -> Value {
+                  llvm::APFloat f(*concrete);
+                  return arith::ConstantFloatOp::create(
+                      builder, loc, builder.getF32Type(), f);
+                }));
         continue;
       }
       if (type == builder.getF64Type()) {
@@ -535,11 +541,11 @@ public:
             builder, argument, args, offset,
             cudaq::opt::convertBitsToBytes(type.getIntOrFloatBitWidth()),
             std::function<Value(OpBuilder &, double *)>(
-            [=](OpBuilder &builder, double *concrete) -> Value {
-              llvm::APFloat f(*concrete);
-              return arith::ConstantFloatOp::create(builder, 
-                  loc, builder.getF64Type(), f);
-            }));
+                [=](OpBuilder &builder, double *concrete) -> Value {
+                  llvm::APFloat f(*concrete);
+                  return arith::ConstantFloatOp::create(
+                      builder, loc, builder.getF64Type(), f);
+                }));
         continue;
       }
 
@@ -552,12 +558,13 @@ public:
             synthesizeRuntimeArgument<cudaq::state *>(
                 builder, argument, args, offset, sizeof(void *),
                 [=](OpBuilder &builder, cudaq::state **concrete) {
-                  Value rawPtr = arith::ConstantIntOp::create(builder, 
-                      loc, reinterpret_cast<std::intptr_t>(*concrete),
+                  Value rawPtr = arith::ConstantIntOp::create(
+                      builder, loc, reinterpret_cast<std::intptr_t>(*concrete),
                       sizeof(void *) * 8);
                   auto stateTy = quake::StateType::get(builder.getContext());
                   return cudaq::cc::CastOp::create(
-                      builder, loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
+                      builder, loc, cudaq::cc::PointerType::get(stateTy),
+                      rawPtr);
                 });
             continue;
           } else {

@@ -105,10 +105,10 @@ cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
       //   template<typename A> T operator()(args...) { ... }
       // };
       // cudaq::get_class_kernel_name<C, As...>();
-      auto name = "instance_" +
-                  trimmedMangledTypeName(
-                      mangler->getASTContext().getCanonicalTagType(cxxCls),
-                      mangler);
+      auto name =
+          "instance_" +
+          trimmedMangledTypeName(
+              mangler->getASTContext().getCanonicalTagType(cxxCls), mangler);
       assert(cxxMethod->getTemplateSpecializationArgs());
       for (auto &templArg :
            cxxMethod->getTemplateSpecializationArgs()->asArray())
@@ -324,8 +324,8 @@ public:
 
   bool VisitVarDecl(clang::VarDecl *x) {
     if (isTupleReverseVar(x)) {
-      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
-          x->getASTContext());
+      auto opt =
+          x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
       if (opt) {
         LLVM_DEBUG(llvm::dbgs() << "tuples are reversed: " << *opt << '\n');
         tuplesAreReversed = !opt->isZero();
@@ -334,8 +334,8 @@ public:
     if (cudaq::isInNamespace(x, "cudaq") &&
         cudaq::isInNamespace(x, "details") && x->getName() == "_nvqpp_sizeof") {
       // This constexpr is the sizeof a pauli_word and a std::string.
-      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
-          x->getASTContext());
+      auto opt =
+          x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
       assert(opt && "must compute the sizeof a cudaq::pauli_word");
       auto sizeofString = opt->getZExtValue();
       auto sizeAttr = module->getAttr(cudaq::runtime::sizeofStringAttrName);

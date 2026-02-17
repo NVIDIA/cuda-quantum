@@ -245,7 +245,7 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     StringRef outputNamesStrRef;
     std::string resultQubitJSONStr;
     if (auto strAttr = dyn_cast_if_present<mlir::StringAttr>(
-                           op->getAttr(cudaq::opt::QIROutputNamesAttrName))) {
+            op->getAttr(cudaq::opt::QIROutputNamesAttrName))) {
       outputNamesStrRef = strAttr;
     } else {
       resultQubitJSONStr = resultQubitJSON.dump();
@@ -297,8 +297,9 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
           // module.
           auto globl =
               builder.genCStringLiteralAppendNul(loc, module, rec.second);
-          auto addrOf = LLVM::AddressOfOp::create(builder, 
-              loc, cudaq::opt::factory::getPointerType(globl.getType()),
+          auto addrOf = LLVM::AddressOfOp::create(
+              builder, loc,
+              cudaq::opt::factory::getPointerType(globl.getType()),
               globl.getName());
           return LLVM::BitcastOp::create(builder, loc, charPtrTy, addrOf);
         }
@@ -306,8 +307,8 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
         return LLVM::IntToPtrOp::create(builder, loc, charPtrTy, zero);
       }();
       LLVM::CallOp::create(builder, loc, TypeRange{},
-                                   cudaq::opt::QIRRecordOutput,
-                                   ValueRange{ptr, regName});
+                           cudaq::opt::QIRRecordOutput,
+                           ValueRange{ptr, regName});
     }
     rewriter.finalizeOpModification(op);
     return success();
@@ -348,7 +349,8 @@ struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
 /// calls are bijective with all distinct measurement calls in the original
 /// function, however the indices used may be renumbered and start at 0.
 struct QIRToQIRProfileFuncPass
-    : public cudaq::opt::impl::QIRToQIRProfileFuncBase<QIRToQIRProfileFuncPass> {
+    : public cudaq::opt::impl::QIRToQIRProfileFuncBase<
+          QIRToQIRProfileFuncPass> {
   using QIRToQIRProfileFuncBase::QIRToQIRProfileFuncBase;
 
   explicit QIRToQIRProfileFuncPass(llvm::StringRef convertTo_)
@@ -418,8 +420,8 @@ struct ArrayGetElementPtrConv : public OpRewritePattern<LLVM::LoadOp> {
       if (!alloc->hasAttr(cudaq::opt::StartingOffsetAttrName))
         return failure();
       Value disp = call.getOperand(1);
-      Value off = LLVM::ConstantOp::create(rewriter, 
-          loc, disp.getType(),
+      Value off = LLVM::ConstantOp::create(
+          rewriter, loc, disp.getType(),
           alloc->getAttr(cudaq::opt::StartingOffsetAttrName));
       Value qubit = LLVM::AddOp::create(rewriter, loc, off, disp);
       rewriter.replaceOpWithNewOp<LLVM::IntToPtrOp>(op, op.getType(), qubit);
@@ -439,8 +441,8 @@ struct CallAlloc : public OpRewritePattern<LLVM::CallOp> {
     if (!call->hasAttr(cudaq::opt::StartingOffsetAttrName))
       return failure();
     auto loc = call.getLoc();
-    Value qubit = LLVM::ConstantOp::create(rewriter, 
-        loc, rewriter.getI64Type(),
+    Value qubit = LLVM::ConstantOp::create(
+        rewriter, loc, rewriter.getI64Type(),
         call->getAttr(cudaq::opt::StartingOffsetAttrName));
     auto resTy = call.getResult().getType();
     rewriter.replaceOpWithNewOp<LLVM::IntToPtrOp>(call, resTy, qubit);
@@ -535,7 +537,8 @@ static constexpr std::array<const char *, 3> measurementFunctionNames{
     cudaq::opt::QIRMeasureToRegister};
 
 struct QIRProfilePreparationPass
-    : public cudaq::opt::impl::QIRToQIRProfilePrepBase<QIRProfilePreparationPass> {
+    : public cudaq::opt::impl::QIRToQIRProfilePrepBase<
+          QIRProfilePreparationPass> {
 
   void runOnOperation() override {
     ModuleOp module = getOperation();

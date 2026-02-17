@@ -22,7 +22,7 @@ inline mlir::Value createCast(mlir::PatternRewriter &rewriter,
   assert(inVal.getType() != rewriter.getIndexType() &&
          "use of index type is deprecated");
   return cudaq::cc::CastOp::create(rewriter, loc, i64Ty, inVal,
-                                    cudaq::cc::CastOpMode::Unsigned);
+                                   cudaq::cc::CastOpMode::Unsigned);
 }
 
 class ExtractRefFromSubVeqPattern
@@ -57,7 +57,8 @@ public:
     auto low = [&]() -> mlir::Value {
       if (subveq.hasConstantLowerBound())
         return mlir::arith::ConstantIntOp::create(
-            rewriter, loc, rewriter.getIntegerType(64), subveq.getConstantLowerBound());
+            rewriter, loc, rewriter.getIntegerType(64),
+            subveq.getConstantLowerBound());
       return subveq.getLower();
     }();
     if (extract.hasConstantIndex()) {
@@ -96,8 +97,9 @@ public:
     // Lambda to create a Value for the lower bound of `s`.
     auto lofunc = [&](SubVeqOp s) -> mlir::Value {
       if (s.hasConstantLowerBound())
-        return mlir::arith::ConstantIntOp::create(
-            rewriter, loc, rewriter.getIntegerType(64), s.getConstantLowerBound());
+        return mlir::arith::ConstantIntOp::create(rewriter, loc,
+                                                  rewriter.getIntegerType(64),
+                                                  s.getConstantLowerBound());
       return s.getLower();
     };
     auto priorlo = lofunc(prior);
@@ -107,7 +109,8 @@ public:
     auto svup = [&]() -> mlir::Value {
       if (subveq.hasConstantUpperBound())
         return mlir::arith::ConstantIntOp::create(
-            rewriter, loc, rewriter.getIntegerType(64), subveq.getConstantUpperBound());
+            rewriter, loc, rewriter.getIntegerType(64),
+            subveq.getConstantUpperBound());
       return subveq.getUpper();
     }();
     auto cast1 = createCast(rewriter, loc, priorlo);

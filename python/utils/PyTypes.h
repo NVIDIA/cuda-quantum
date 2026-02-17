@@ -9,8 +9,8 @@
 #pragma once
 
 #include <complex>
-#include <nanobind/stl/complex.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/complex.h>
 
 namespace py_ext {
 

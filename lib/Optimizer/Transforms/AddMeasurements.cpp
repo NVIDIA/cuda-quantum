@@ -89,7 +89,7 @@ addMeasurements(func::FuncOp funcOp, SmallVector<quake::AllocaOp> &allocations,
     if (isa<quake::VeqType>(alloca.getType())) {
       auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
       quake::MzOp::create(builder, loc, stdvecTy,
-                                  ValueRange{alloca.getResult()});
+                          ValueRange{alloca.getResult()});
     } else {
       quake::MzOp::create(builder, loc, measTy, alloca.getResult());
     }

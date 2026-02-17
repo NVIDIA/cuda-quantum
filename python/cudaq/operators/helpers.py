@@ -117,6 +117,6 @@ def _evaluate_generator(generator: Callable, param_dict: dict) -> Any:
     generator function. Used by the C++ ScalarOperator binding to properly
     dispatch kwargs to Python callables.
     """
-    generator_args, remaining_kwargs = _args_from_kwargs(generator,
-                                                         **param_dict)
+    generator_args, remaining_kwargs = _args_from_kwargs(
+        generator, **param_dict)
     return generator(*generator_args, **remaining_kwargs)

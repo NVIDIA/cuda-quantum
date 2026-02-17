@@ -43,14 +43,14 @@ static LogicalResult insertArrayRecordingCall(OpBuilder &builder,
   std::string labelStr = "array<i1 x " + std::to_string(resultCount) + ">";
   auto strLitTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
       builder.getContext(), builder.getI8Type(), labelStr.size() + 1));
-  Value lit = cudaq::cc::CreateStringLiteralOp::create(builder, 
-      loc, strLitTy, builder.getStringAttr(labelStr));
+  Value lit = cudaq::cc::CreateStringLiteralOp::create(
+      builder, loc, strLitTy, builder.getStringAttr(labelStr));
   auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
   Value label = cudaq::cc::CastOp::create(builder, loc, i8PtrTy, lit);
   Value size = arith::ConstantIntOp::create(builder, loc, resultCount, 64);
   func::CallOp::create(builder, loc, TypeRange{},
-                               cudaq::opt::QIRArrayRecordOutput,
-                               ArrayRef<Value>{size, label});
+                       cudaq::opt::QIRArrayRecordOutput,
+                       ArrayRef<Value>{size, label});
   return success();
 }
 

@@ -10,17 +10,17 @@
 #include <functional>
 #include <unordered_map>
 
-#include <nanobind/stl/complex.h>
-#include <nanobind/stl/function.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
 #include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -37,10 +37,9 @@ void bindScalarOperator(py::module_ &mod) {
 
       // properties
 
-      .def_prop_ro("parameters",
-                             &scalar_operator::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+      .def_prop_ro("parameters", &scalar_operator::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
 
       // constructors
 
@@ -58,8 +57,7 @@ void bindScalarOperator(py::module_ &mod) {
                 py::isinstance<scalar_operator>(func))
               throw py::next_overload();
 
-            auto helpers =
-                py::module_::import_("cudaq.operators.helpers");
+            auto helpers = py::module_::import_("cudaq.operators.helpers");
             auto eval_gen = helpers.attr("_evaluate_generator");
 
             std::unordered_map<std::string, std::string> param_desc;
@@ -69,14 +67,12 @@ void bindScalarOperator(py::module_ &mod) {
             }
 
             scalar_callback wrapper =
-                [func_ref = py::object(func),
-                 eval_fn = py::object(eval_gen)](
+                [func_ref = py::object(func), eval_fn = py::object(eval_gen)](
                     const parameter_map &params) -> std::complex<double> {
               py::dict pydict;
               for (const auto &[k, v] : params)
                 pydict[py::str(k.c_str())] = py::cast(v);
-              return py::cast<std::complex<double>>(
-                  eval_fn(func_ref, pydict));
+              return py::cast<std::complex<double>>(eval_fn(func_ref, pydict));
             };
 
             new (self)
@@ -89,14 +85,12 @@ void bindScalarOperator(py::module_ &mod) {
       // or: ScalarOperator(callback, x="doc for x")
       .def(
           "__init__",
-          [](scalar_operator *self, py::object func,
-             const py::kwargs &kwargs) {
+          [](scalar_operator *self, py::object func, const py::kwargs &kwargs) {
             if (!PyCallable_Check(func.ptr()) ||
                 py::isinstance<scalar_operator>(func))
               throw py::next_overload();
 
-            auto helpers =
-                py::module_::import_("cudaq.operators.helpers");
+            auto helpers = py::module_::import_("cudaq.operators.helpers");
             auto eval_gen = helpers.attr("_evaluate_generator");
 
             std::unordered_map<std::string, std::string> param_desc;
@@ -112,8 +106,7 @@ void bindScalarOperator(py::module_ &mod) {
                 throw py::value_error("the function defining a scalar "
                                       "operator must not take *args");
 
-              py::list args =
-                  py::cast<py::list>(arg_spec.attr("args"));
+              py::list args = py::cast<py::list>(arg_spec.attr("args"));
               py::list kwonlyargs =
                   py::cast<py::list>(arg_spec.attr("kwonlyargs"));
               py::object doc = func.attr("__doc__");
@@ -124,22 +117,19 @@ void bindScalarOperator(py::module_ &mod) {
                     py::cast<std::string>(param_docs_fn(name, doc));
               }
               for (size_t i = 0; i < kwonlyargs.size(); ++i) {
-                std::string name =
-                    py::cast<std::string>(kwonlyargs[i]);
+                std::string name = py::cast<std::string>(kwonlyargs[i]);
                 param_desc[name] =
                     py::cast<std::string>(param_docs_fn(name, doc));
               }
             }
 
             scalar_callback wrapper =
-                [func_ref = py::object(func),
-                 eval_fn = py::object(eval_gen)](
+                [func_ref = py::object(func), eval_fn = py::object(eval_gen)](
                     const parameter_map &params) -> std::complex<double> {
               py::dict pydict;
               for (const auto &[k, v] : params)
                 pydict[py::str(k.c_str())] = py::cast(v);
-              return py::cast<std::complex<double>>(
-                  eval_fn(func_ref, pydict));
+              return py::cast<std::complex<double>>(eval_fn(func_ref, pydict));
             };
 
             new (self)

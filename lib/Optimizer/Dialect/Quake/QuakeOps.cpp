@@ -127,16 +127,18 @@ Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
   auto newAlloca = [&]() {
     if (isa<quake::VeqType>(result.getType()) &&
         cast<quake::VeqType>(result.getType()).hasSpecifiedSize()) {
-      return quake::AllocaOp::create(builder, 
-          loc, cast<quake::VeqType>(result.getType()).getSize());
+      return quake::AllocaOp::create(
+          builder, loc, cast<quake::VeqType>(result.getType()).getSize());
     }
     auto constOp = cast<arith::ConstantOp>(args[0].getDefiningOp());
-    return quake::AllocaOp::create(builder, 
-        loc, static_cast<std::size_t>(
-                 cast<IntegerAttr>(constOp.getValue()).getInt()));
+    return quake::AllocaOp::create(
+        builder, loc,
+        static_cast<std::size_t>(
+            cast<IntegerAttr>(constOp.getValue()).getInt()));
   }();
-  return quake::RelaxSizeOp::create(builder, 
-      loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
+  return quake::RelaxSizeOp::create(
+      builder, loc, quake::VeqType::getUnsized(builder.getContext()),
+      newAlloca);
 }
 
 LogicalResult quake::AllocaOp::verify() {
@@ -997,7 +999,8 @@ using EffectsVectorImpl =
 /// reference or value form. A operation with modeless effects is not removed
 /// when its result(s) is (are) unused.
 [[maybe_unused]] inline static void
-getModelessEffectsImpl(EffectsVectorImpl &effects, MutableArrayRef<OpOperand> controls,
+getModelessEffectsImpl(EffectsVectorImpl &effects,
+                       MutableArrayRef<OpOperand> controls,
                        MutableArrayRef<OpOperand> targets) {
   for (OpOperand &v : controls)
     effects.emplace_back(MemoryEffects::Read::get(), &v,
@@ -1046,7 +1049,8 @@ void quake::getMeasurementEffectsImpl(EffectsVectorImpl &effects,
 
 /// Quake quantum operators have moded effects.
 void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
-                                   MutableArrayRef<OpOperand> controls, MutableArrayRef<OpOperand> targets) {
+                                   MutableArrayRef<OpOperand> controls,
+                                   MutableArrayRef<OpOperand> targets) {
   getModedEffectsImpl(effects, controls, targets);
 }
 

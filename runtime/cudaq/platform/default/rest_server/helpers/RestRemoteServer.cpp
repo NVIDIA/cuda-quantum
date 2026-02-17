@@ -496,8 +496,7 @@ protected:
         llvm::errs() << "Failed to emit LLVM IR\n";
         return nullptr;
       }
-      auto tmBuilderOrError =
-          llvm::orc::JITTargetMachineBuilder::detectHost();
+      auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
       if (tmBuilderOrError) {
         auto tmOrError = tmBuilderOrError->createTargetMachine();
         if (tmOrError)

@@ -243,10 +243,9 @@ public:
 #ifdef CUDAQ_PYTHON_EXTENSION
     bool hasExecutor = cudaq_has_executor(qpuName.c_str());
     CUDAQ_INFO("Is this executor registered? {}", hasExecutor);
-    executor = hasExecutor
-                   ? std::unique_ptr<cudaq::Executor>(
-                         cudaq_find_executor(qpuName.c_str()))
-                   : std::make_unique<cudaq::Executor>();
+    executor = hasExecutor ? std::unique_ptr<cudaq::Executor>(
+                                 cudaq_find_executor(qpuName.c_str()))
+                           : std::make_unique<cudaq::Executor>();
 #else
     CUDAQ_INFO("Is this executor registered? {}",
                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));

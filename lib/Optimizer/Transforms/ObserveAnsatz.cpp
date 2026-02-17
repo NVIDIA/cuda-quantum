@@ -29,18 +29,19 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
     // Value semantics
     auto wireTy = quake::WireType::get(builder.getContext());
     if (basis == MeasureBasis::X) {
-      auto newOp = quake::HOp::create(builder, 
-          loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{}, ValueRange{},
-          targets, DenseBoolArrayAttr{});
+      auto newOp = quake::HOp::create(
+          builder, loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{},
+          ValueRange{}, targets, DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
       qubit = newOp.getResult(0);
     } else if (basis == MeasureBasis::Y) {
       llvm::APFloat d(M_PI_2);
       Value rotation =
           arith::ConstantFloatOp::create(builder, loc, builder.getF64Type(), d);
-      auto newOp = quake::RxOp::create(builder, 
-          loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{rotation},
-          ValueRange{}, ValueRange{qubit}, DenseBoolArrayAttr{});
+      auto newOp =
+          quake::RxOp::create(builder, loc, TypeRange{wireTy}, /*is_adj=*/false,
+                              ValueRange{rotation}, ValueRange{},
+                              ValueRange{qubit}, DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
       qubit = newOp.getResult(0);
     }
@@ -327,13 +328,13 @@ public:
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
       if (quake::isLinearType(qubitToMeasure.getType())) {
-        auto newOp = quake::MzOp::create(builder, 
-            loc, TypeRange{measTy, wireTy}, ValueRange{qubitToMeasure},
+        auto newOp = quake::MzOp::create(
+            builder, loc, TypeRange{measTy, wireTy}, ValueRange{qubitToMeasure},
             builder.getStringAttr(regName));
         qubitToMeasure.replaceAllUsesExcept(newOp.getResult(1), newOp);
       } else {
         quake::MzOp::create(builder, loc, measTy, qubitToMeasure,
-                                    builder.getStringAttr(regName));
+                            builder.getStringAttr(regName));
       }
     }
 

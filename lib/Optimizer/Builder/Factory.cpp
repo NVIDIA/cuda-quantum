@@ -91,12 +91,9 @@ factory::buildInvokeStructType(FunctionType funcTy,
   return cudaq::cc::StructType::get(ctx, eleTys, /*packed=*/false);
 }
 
-Value factory::packIsArrayAndLengthArray(Location loc,
-                                         ConversionPatternRewriter &rewriter,
-                                         ModuleOp parentModule,
-                                         std::size_t numOperands,
-                                         ValueRange operands,
-                                         ValueRange originalControls) {
+Value factory::packIsArrayAndLengthArray(
+    Location loc, ConversionPatternRewriter &rewriter, ModuleOp parentModule,
+    std::size_t numOperands, ValueRange operands, ValueRange originalControls) {
   // Create an integer array where the kth element is N if the kth control
   // operand is a veq<N>, and 0 otherwise.
   auto i64Type = rewriter.getI64Type();
@@ -104,8 +101,8 @@ Value factory::packIsArrayAndLengthArray(Location loc,
   auto alignment = IntegerAttr::get(i64Type, 8);
   auto ptrTy = LLVM::LLVMPointerType::get(context);
   Value numOpnds = arith::ConstantIntOp::create(rewriter, loc, numOperands, 64);
-  Value isArrayAndLengthArr = LLVM::AllocaOp::create(rewriter,
-      loc, ptrTy, numOpnds, alignment, TypeAttr::get(i64Type));
+  Value isArrayAndLengthArr = LLVM::AllocaOp::create(
+      rewriter, loc, ptrTy, numOpnds, alignment, TypeAttr::get(i64Type));
   Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
   auto getSizeSymbolRef = opt::factory::createLLVMFunctionSymbol(
       opt::QIRArrayGetSize, i64Type, {opt::getArrayType(context)},
@@ -114,8 +111,8 @@ Value factory::packIsArrayAndLengthArray(Location loc,
     auto operand = iter.value();
     auto i = iter.index();
     Value idx = arith::ConstantIntOp::create(rewriter, loc, i, 64);
-    Value ptr = LLVM::GEPOp::create(rewriter,
-        loc, ptrTy, i64Type, isArrayAndLengthArr, ValueRange{idx});
+    Value ptr = LLVM::GEPOp::create(rewriter, loc, ptrTy, i64Type,
+                                    isArrayAndLengthArr, ValueRange{idx});
     Value element;
     // With opaque pointers, both qubit (RefType) and array (VeqType) convert
     // to the same !llvm.ptr type, so we must check the original quake types
@@ -208,7 +205,8 @@ void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   auto prioAttr = ArrayAttr::get(ctx, {IntegerAttr::get(i32Ty, prio)});
   llvm::SmallVector<mlir::Attribute> data;
   data.push_back(mlir::LLVM::ZeroAttr::get(mod.getContext()));
-  LLVM::GlobalCtorsOp::create(builder, loc, ctorAttr, prioAttr, ArrayAttr::get(ctx, data));
+  LLVM::GlobalCtorsOp::create(builder, loc, ctorAttr, prioAttr,
+                              ArrayAttr::get(ctx, data));
 }
 
 cc::LoopOp factory::createInvariantLoop(
@@ -220,14 +218,14 @@ cc::LoopOp factory::createInvariantLoop(
   Type i64Ty = builder.getI64Type();
   SmallVector<Value> inputs = {zero};
   SmallVector<Type> resultTys = {i64Ty};
-  auto loop = cc::LoopOp::create(builder, 
-      loc, resultTys, inputs, /*postCondition=*/false,
+  auto loop = cc::LoopOp::create(
+      builder, loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
         auto &block = *builder.getBlock();
-        Value cmpi = arith::CmpIOp::create(builder, 
-            loc, arith::CmpIPredicate::slt, block.getArgument(0),
-            totalIterations);
+        Value cmpi =
+            arith::CmpIOp::create(builder, loc, arith::CmpIPredicate::slt,
+                                  block.getArgument(0), totalIterations);
         cc::ConditionOp::create(builder, loc, cmpi, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
@@ -261,7 +259,9 @@ Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(entryBlock);
   Value len = genLlvmI64Constant(loc, builder, size);
-  return LLVM::AllocaOp::create(builder, loc, LLVM::LLVMPointerType::get(builder.getContext()), type, len);
+  return LLVM::AllocaOp::create(
+      builder, loc, LLVM::LLVMPointerType::get(builder.getContext()), type,
+      len);
 }
 
 Value factory::createTemporary(Location loc, OpBuilder &builder, Type type,
@@ -301,16 +301,17 @@ cc::LoopOp factory::createMonotonicLoop(
   Value zero = arith::ConstantIntOp::create(builder, loc, 0, 64);
   SmallVector<Value> inputs = {zero, begin};
   SmallVector<Type> resultTys = {i64Ty, i64Ty};
-  auto totalIters = func::CallOp::create(builder, 
-      loc, i64Ty, getCudaqSizeFromTriple, ValueRange{begin, end, stepBy});
-  auto loop = cc::LoopOp::create(builder, 
-      loc, resultTys, inputs, /*postCondition=*/false,
+  auto totalIters =
+      func::CallOp::create(builder, loc, i64Ty, getCudaqSizeFromTriple,
+                           ValueRange{begin, end, stepBy});
+  auto loop = cc::LoopOp::create(
+      builder, loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region,
                                      TypeRange{i64Ty, i64Ty});
         auto &block = *builder.getBlock();
-        Value cmpi = arith::CmpIOp::create(builder, 
-            loc, arith::CmpIPredicate::slt, block.getArgument(0),
+        Value cmpi = arith::CmpIOp::create(
+            builder, loc, arith::CmpIPredicate::slt, block.getArgument(0),
             totalIters.getResult(0));
         cc::ConditionOp::create(builder, loc, cmpi, block.getArguments());
       },
@@ -753,8 +754,8 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
   auto unit = UnitAttr::get(builder.getContext());
   UnitAttr none;
   return cudaq::cc::CastOp::create(builder, loc, toType, fromValue,
-                                           signExtend ? unit : none,
-                                           zeroExtend ? unit : none);
+                                   signExtend ? unit : none,
+                                   zeroExtend ? unit : none);
 }
 
 std::vector<std::complex<double>>

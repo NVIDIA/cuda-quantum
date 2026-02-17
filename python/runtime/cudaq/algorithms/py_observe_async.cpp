@@ -17,12 +17,12 @@
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 namespace py = nanobind;
 
@@ -173,7 +173,8 @@ observe_parallel_impl(const std::string &shortName, MlirModule module,
                       MlirType returnTy, py::object execution,
                       spin_op &spin_operator, int shots,
                       std::optional<noise_model> noise, py::args arguments) {
-  std::string applicatorKey = std::string(py::str(execution.attr("__name__")).c_str());
+  std::string applicatorKey =
+      std::string(py::str(execution.attr("__name__")).c_str());
   auto mod = unwrap(module);
   auto retTy = unwrap(returnTy);
   if (applicatorKey == "thread")

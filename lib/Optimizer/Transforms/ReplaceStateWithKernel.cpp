@@ -124,8 +124,7 @@ public:
     LLVM_DEBUG(llvm::dbgs()
                << "Before replace state with kernel: " << func << '\n');
 
-    if (failed(applyPatternsGreedily(func.getOperation(),
-                                            std::move(patterns))))
+    if (failed(applyPatternsGreedily(func.getOperation(), std::move(patterns))))
       signalPassFailure();
 
     LLVM_DEBUG(llvm::dbgs()

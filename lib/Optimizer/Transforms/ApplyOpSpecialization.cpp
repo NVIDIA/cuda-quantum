@@ -162,10 +162,10 @@ private:
               entry.push_front(c);
             module.push_back(newFunc);
             OpBuilder builder(apply);
-            auto newApply = quake::ApplyOp::create(builder, 
-                apply.getLoc(), apply.getResultTypes(),
-                SymbolRefAttr::get(ctx, calleeName),
-                apply.getIsAdj(), apply.getControls(), preservedArgs);
+            auto newApply = quake::ApplyOp::create(
+                builder, apply.getLoc(), apply.getResultTypes(),
+                SymbolRefAttr::get(ctx, calleeName), apply.getIsAdj(),
+                apply.getControls(), preservedArgs);
             apply->replaceAllUsesWith(newApply.getResults());
             apply->dropAllReferences();
             apply->erase();
@@ -312,7 +312,7 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
       auto consOp = quake::ConcatOp::create(rewriter, apply.getLoc(), consTy,
-                                                     apply.getControls());
+                                            apply.getControls());
       newArgs.push_back(consOp);
     }
     if (constProp) {
@@ -506,9 +506,10 @@ public:
         SmallVector<Value> newControls = {newCond};
         newControls.append(apply.getControls().begin(),
                            apply.getControls().end());
-        auto newApply = quake::ApplyOp::create(builder, 
-            apply.getLoc(), apply.getResultTypes(), apply.getCalleeAttr(),
-            apply.getIsAdjAttr(), newControls, apply.getArgs());
+        auto newApply = quake::ApplyOp::create(
+            builder, apply.getLoc(), apply.getResultTypes(),
+            apply.getCalleeAttr(), apply.getIsAdjAttr(), newControls,
+            apply.getArgs());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
       } else if (isQuantumKernelCall(op)) {
@@ -624,29 +625,30 @@ public:
       // Negate the step value when arith.subi.
       newStepVal = arith::SubIOp::create(builder, loc, zero, newStepVal);
     }
-    Value iters = arith::SubIOp::create(builder, 
-        loc, newTermVal, loop.getInitialArgs()[loopComponents->induction]);
+    Value iters =
+        arith::SubIOp::create(builder, loc, newTermVal,
+                              loop.getInitialArgs()[loopComponents->induction]);
     auto cmpOp = cast<arith::CmpIOp>(loopComponents->compareOp);
     auto pred = cmpOp.getPredicate();
     auto one = createIntConstant(builder, loc, iters.getType(), 1);
     if (cudaq::opt::isSemiOpenPredicate(pred)) {
-      Value negStepCond = arith::CmpIOp::create(builder, 
-          loc, arith::CmpIPredicate::slt, newStepVal, zero);
+      Value negStepCond = arith::CmpIOp::create(
+          builder, loc, arith::CmpIPredicate::slt, newStepVal, zero);
       auto negOne = createIntConstant(builder, loc, iters.getType(), -1);
       Value adj = arith::SelectOp::create(builder, loc, iters.getType(),
-                                                  negStepCond, one, negOne);
+                                          negStepCond, one, negOne);
       iters = arith::AddIOp::create(builder, loc, iters, adj);
     }
     iters = arith::AddIOp::create(builder, loc, iters, newStepVal);
     iters = arith::DivSIOp::create(builder, loc, iters, newStepVal);
-    Value noLoopCond = arith::CmpIOp::create(builder, 
-        loc, arith::CmpIPredicate::sgt, iters, zero);
+    Value noLoopCond = arith::CmpIOp::create(
+        builder, loc, arith::CmpIPredicate::sgt, iters, zero);
     iters = arith::SelectOp::create(builder, loc, iters.getType(), noLoopCond,
-                                            iters, zero);
+                                    iters, zero);
     Value lastIter = arith::SubIOp::create(builder, loc, iters, one);
     Value nStep = arith::MulIOp::create(builder, loc, lastIter, newStepVal);
-    Value newInitVal =
-        arith::AddIOp::create(builder, loc, loopComponents->initialValue, nStep);
+    Value newInitVal = arith::AddIOp::create(
+        builder, loc, loopComponents->initialValue, nStep);
 
     // Create the list of input arguments to loop. We're going to add an
     // argument to the end that is the number of iterations left to execute.
@@ -662,7 +664,8 @@ public:
     // by 1 and convert the original step expression to be a negative step.
     IRRewriter rewriter(builder);
     return cudaq::cc::LoopOp::create(
-        rewriter, loc, ValueRange{inputs}.getTypes(), inputs, /*postCondition=*/false,
+        rewriter, loc, ValueRange{inputs}.getTypes(), inputs,
+        /*postCondition=*/false,
         [&](OpBuilder &builder, Location loc, Region &region) {
           IRMapping dummyMap;
           loop.getWhileRegion().cloneInto(&region, dummyMap);
@@ -676,8 +679,8 @@ public:
           Value trip = block.getArguments().back();
           args.push_back(trip);
           auto zero = createIntConstant(builder, loc, trip.getType(), 0);
-          auto newCond = arith::CmpIOp::create(rewriter, 
-              loc, arith::CmpIPredicate::sgt, trip, zero);
+          auto newCond = arith::CmpIOp::create(
+              rewriter, loc, arith::CmpIPredicate::sgt, trip, zero);
           rewriter.replaceOpWithNewOp<cudaq::cc::ConditionOp>(condOp, newCond,
                                                               args);
         },
@@ -707,15 +710,15 @@ public:
           auto *stepOp = contOp.getOperand(0).getDefiningOp();
           auto newBump = [&]() -> Value {
             if (stepIsAnAddOp)
-              return arith::SubIOp::create(rewriter, 
-                  loc, stepOp->getOperand(commuteTheAddOp ? 1 : 0),
+              return arith::SubIOp::create(
+                  rewriter, loc, stepOp->getOperand(commuteTheAddOp ? 1 : 0),
                   stepOp->getOperand(commuteTheAddOp ? 0 : 1));
             return arith::AddIOp::create(rewriter, loc, stepOp->getOperands());
           }();
           args[loopComponents->induction] = newBump;
           auto one = createIntConstant(rewriter, loc, iters.getType(), 1);
-          args.push_back(arith::SubIOp::create(rewriter, 
-              loc, entry.getArguments().back(), one));
+          args.push_back(arith::SubIOp::create(
+              rewriter, loc, entry.getArguments().back(), one));
           rewriter.replaceOpWithNewOp<cudaq::cc::ContinueOp>(contOp, args);
         });
   }

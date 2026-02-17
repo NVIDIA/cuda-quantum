@@ -47,8 +47,8 @@ inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
     mlir::Value constOp = mlir::LLVM::ConstantOp::create(builder, loc, intAttr);
     auto cast = mlir::LLVM::IntToPtrOp::create(builder, loc, ptrTy, constOp);
     mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{},
-        cudaq::opt::QIRMeasureBody,
-        mlir::ArrayRef<mlir::Value>{args[0], cast});
+                               cudaq::opt::QIRMeasureBody,
+                               mlir::ArrayRef<mlir::Value>{args[0], cast});
     return cast;
   }
   op.emitError("mz op must have an associated result index.");

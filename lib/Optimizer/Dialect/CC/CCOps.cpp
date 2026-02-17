@@ -92,7 +92,7 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
         }
         if (useSizeOf)
           return cudaq::cc::SizeOfOp::create(builder, loc, builder.getI64Type(),
-                                                     strTy);
+                                             strTy);
         return {};
       })
       .Case([&](cudaq::cc::ArrayType arrTy) -> Value {
@@ -104,7 +104,7 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
           return {};
         auto scale = createInt(arrTy.getSize());
         return arith::MulIOp::create(builder, loc, builder.getI64Type(), v,
-                                             scale);
+                                     scale);
       })
       .Case([&](cudaq::cc::SpanLikeType) -> Value {
         // Uniformly on the device size: {ptr, i64}
@@ -865,8 +865,8 @@ struct FuseAddressArithmetic
           auto eleTy = cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
           auto subTy = eleTy.getElementType();
           auto simpleTy = cudaq::cc::PointerType::get(subTy);
-          auto simple = cudaq::cc::CastOp::create(rewriter, 
-              ptrOp.getLoc(), simpleTy, ptrOp.getBase());
+          auto simple = cudaq::cc::CastOp::create(rewriter, ptrOp.getLoc(),
+                                                  simpleTy, ptrOp.getBase());
 
           // Collect indices.
           auto iter = ptrOp.getDynamicIndices().begin();
@@ -2709,8 +2709,8 @@ struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
         if (sizeOpSz < vSz)
           v = cudaq::cc::CastOp::create(rewriter, loc, sizeOp.getType(), v);
         else
-          v = cudaq::cc::CastOp::create(rewriter, 
-              loc, sizeOp.getType(), v, cudaq::cc::CastOpMode::Unsigned);
+          v = cudaq::cc::CastOp::create(rewriter, loc, sizeOp.getType(), v,
+                                        cudaq::cc::CastOpMode::Unsigned);
       }
       rewriter.replaceOp(sizeOp, v);
       return success();

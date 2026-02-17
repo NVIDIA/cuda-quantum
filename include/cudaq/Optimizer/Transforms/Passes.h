@@ -50,9 +50,9 @@ void createTargetFinalizePipeline(mlir::OpPassManager &pm);
 /// Helper function for adding the `decompositon` pass as pass options of type
 /// ListOption may not always be initialized properly resulting in mystery
 /// crashes.
-void addDecompositionPass(
-    mlir::OpPassManager &pm, mlir::ArrayRef<std::string> enabledPats,
-    mlir::ArrayRef<std::string> disabledPats = {});
+void addDecompositionPass(mlir::OpPassManager &pm,
+                          mlir::ArrayRef<std::string> enabledPats,
+                          mlir::ArrayRef<std::string> disabledPats = {});
 
 void registerAOTPipelines();
 void registerJITPipelines();

@@ -9,7 +9,7 @@
 #include "cudaq/domains/chemistry/MoleculePackageDriver.h"
 #include "cudaq/target_control.h"
 #include <map>
-#include <pybind11/embed.h>  // nanobind has no embed equivalent; keep pybind11 for this
+#include <pybind11/embed.h> // nanobind has no embed equivalent; keep pybind11 for this
 
 namespace py = nanobind;
 using namespace cudaq;
@@ -94,9 +94,9 @@ public:
 
     // Run the openfermion-pyscf wrapper to create the hamiltonian + metadata
     auto hamiltonianGen = cudaqModule.attr(CreatorFunctionName);
-    auto resultTuple = hamiltonianGen(pyGeometry, basis, multiplicity, charge,
-                                      nElectrons, nActive)
-                           py::cast<py::tuple>();
+    auto resultTuple =
+        hamiltonianGen(pyGeometry, basis, multiplicity, charge, nElectrons,
+                       nActive) py::cast<py::tuple>();
 
     // Get the spin_op representation
     auto spinOp = fromOpenFermionQubitOperator(resultTuple[0]);
@@ -111,8 +111,8 @@ public:
         {py::cast<std::size_t>(shape[0]), py::cast<std::size_t>(shape[1])});
     for (std::size_t i = 0; i < oneBody.shape[0]; i++)
       for (std::size_t j = 0; j < oneBody.shape[1]; j++)
-        oneBody(i, j) =
-            pyOneBody.attr("__getitem__")(py::make_tuple(i, py::cast<double>(j)));
+        oneBody(i, j) = pyOneBody.attr("__getitem__")(
+            py::make_tuple(i, py::cast<double>(j)));
 
     // Extract the two-body integrals
     auto pyTwoBody = openFermionMolecule.attr("two_body_integrals");
@@ -124,9 +124,8 @@ public:
       for (std::size_t j = 0; j < twoBody.shape[1]; j++)
         for (std::size_t k = 0; k < twoBody.shape[2]; k++)
           for (std::size_t l = 0; l < twoBody.shape[3]; l++)
-            twoBody(i, j, k, l) =
-                pyTwoBody.attr("__getitem__")(py::make_tuple(i, j, k, l))
-                    py::cast<double>();
+            twoBody(i, j, k, l) = pyTwoBody.attr("__getitem__")(
+                py::make_tuple(i, j, k, l)) py::cast<double>();
 
     // return a new molecular_hamiltonian
     return molecular_hamiltonian{

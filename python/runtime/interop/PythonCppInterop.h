@@ -39,8 +39,7 @@ public:
   T getEntryPointFunction(As... as) {
     // Perform beta reduction on the kernel decorator.
     // Returns a tuple (pointer_as_int, cached_engine_handle).
-    py::object result =
-        kernel.attr("beta_reduction")(std::forward<As>(as)...);
+    py::object result = kernel.attr("beta_reduction")(std::forward<As>(as)...);
     // Cast to intptr_t to avoid nanobind's "cannot return pointer to temporary"
     void *p = reinterpret_cast<void *>(py::cast<intptr_t>(result[0]));
     auto cachedEngineHandle = py::cast<std::size_t>(result[1]);
@@ -164,8 +163,8 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
 
   sub.def(
       kernelName.c_str(), [](Signature...) {}, docstring.c_str());
-  cudaq::python::registerDeviceKernel(py::cast<std::string>(sub.attr("__name__")),
-                                      kernelName, mangledArgs);
+  cudaq::python::registerDeviceKernel(
+      py::cast<std::string>(sub.attr("__name__")), kernelName, mangledArgs);
   return;
 }
 } // namespace cudaq::python

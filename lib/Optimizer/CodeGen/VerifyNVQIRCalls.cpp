@@ -22,7 +22,6 @@ namespace cudaq::opt {
 
 #define DEBUG_TYPE "qir-remove-measurements"
 
-
 using namespace mlir;
 
 namespace {

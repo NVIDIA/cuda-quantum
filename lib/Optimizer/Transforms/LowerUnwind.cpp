@@ -371,11 +371,11 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       SmallVector<Location> locs(scope.getNumResults(), loc);
       Block *continueBlock =
           rewriter.createBlock(nextBlock, scope.getResultTypes(), locs);
-      cf::BranchOp::create(rewriter,loc, nextBlock);
+      cf::BranchOp::create(rewriter, loc, nextBlock);
       nextBlock = continueBlock;
     }
     rewriter.setInsertionPointToEnd(initBlock);
-    cf::BranchOp::create(rewriter,loc, scopeBlock, ValueRange{});
+    cf::BranchOp::create(rewriter, loc, scopeBlock, ValueRange{});
     // Normal scope exit with inline deallocations.
     for (auto &pr : termAllocMap) {
       auto *contOp = pr.first;
@@ -395,12 +395,13 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.continueBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(), adjustedDeallocArg(a));
+          quake::DeallocOp::create(rewriter, a->getLoc(),
+                                   adjustedDeallocArg(a));
         if (asPrimitive) {
           Block *landingPad = getLandingPad(infoMap, scope).continueBlock;
-          cf::BranchOp::create(rewriter,loc, landingPad, blk->getArguments());
+          cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
         } else {
-          cudaq::cc::ContinueOp::create(rewriter,loc, blk->getArguments());
+          cudaq::cc::ContinueOp::create(rewriter, loc, blk->getArguments());
         }
         scope.getInitRegion().push_back(blk);
       }
@@ -408,12 +409,13 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.breakBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(), adjustedDeallocArg(a));
+          quake::DeallocOp::create(rewriter, a->getLoc(),
+                                   adjustedDeallocArg(a));
         if (asPrimitive) {
           Block *landingPad = getLandingPad(infoMap, scope).breakBlock;
-          cf::BranchOp::create(rewriter,loc, landingPad, blk->getArguments());
+          cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
         } else {
-          cudaq::cc::BreakOp::create(rewriter,loc, blk->getArguments());
+          cudaq::cc::BreakOp::create(rewriter, loc, blk->getArguments());
         }
         scope.getInitRegion().push_back(blk);
       }
@@ -421,10 +423,11 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(), adjustedDeallocArg(a));
+          quake::DeallocOp::create(rewriter, a->getLoc(),
+                                   adjustedDeallocArg(a));
         assert(asPrimitive);
         Block *landingPad = getLandingPad(infoMap, scope).returnBlock;
-        cf::BranchOp::create(rewriter,loc, landingPad, blk->getArguments());
+        cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
         scope.getInitRegion().push_back(blk);
       }
     }
@@ -454,8 +457,7 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
     assert(iter != infoMap.opParentMap.end());
     if (!func->hasAttr("add_dealloc"))
       return success();
-    rewriter.modifyOpInPlace(func,
-                             [&]() { func->removeAttr("add_dealloc"); });
+    rewriter.modifyOpInPlace(func, [&]() { func->removeAttr("add_dealloc"); });
     if (!iter->second.asPrimitive) {
       LLVM_DEBUG(llvm::dbgs() << "func was not marked as primitive in map\n");
       return success();
@@ -492,8 +494,9 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
       if (Block *exitBlock = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(exitBlock);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(), adjustedDeallocArg(a));
-        TERM::create(rewriter,func.getLoc(), exitBlock->getArguments());
+          quake::DeallocOp::create(rewriter, a->getLoc(),
+                                   adjustedDeallocArg(a));
+        TERM::create(rewriter, func.getLoc(), exitBlock->getArguments());
         func.getBody().push_back(exitBlock);
       }
     }
@@ -531,7 +534,7 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
       Block *continueBlock = rewriter.createBlock(
           endBlock, ifOp.getResultTypes(),
           SmallVector<Location>(ifOp.getNumResults(), loc));
-      cf::BranchOp::create(rewriter,loc, endBlock);
+      cf::BranchOp::create(rewriter, loc, endBlock);
       endBlock = continueBlock;
     }
     auto *thenBlock = &ifOp.getThenRegion().front();
@@ -555,19 +558,19 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
         if (auto *blk = blockInfo.continueBlock) {
           rewriter.setInsertionPointToEnd(blk);
           auto *dest = getLandingPad(infoMap, ifOp).continueBlock;
-          cf::BranchOp::create(rewriter,loc, dest, blk->getArguments());
+          cf::BranchOp::create(rewriter, loc, dest, blk->getArguments());
           tailRegion.push_back(blk);
         }
         if (auto *blk = blockInfo.breakBlock) {
           rewriter.setInsertionPointToEnd(blk);
           auto *dest = getLandingPad(infoMap, ifOp).breakBlock;
-          cf::BranchOp::create(rewriter,loc, dest, blk->getArguments());
+          cf::BranchOp::create(rewriter, loc, dest, blk->getArguments());
           tailRegion.push_back(blk);
         }
         if (auto *blk = blockInfo.returnBlock) {
           rewriter.setInsertionPointToEnd(blk);
           auto *dest = getLandingPad(infoMap, ifOp).returnBlock;
-          cf::BranchOp::create(rewriter,loc, dest, blk->getArguments());
+          cf::BranchOp::create(rewriter, loc, dest, blk->getArguments());
           tailRegion.push_back(blk);
         }
       }
@@ -639,7 +642,7 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
       Block *continueBlock = rewriter.createBlock(
           endBlock, loopOp.getResultTypes(),
           SmallVector<Location>(loopOp.getNumResults(), loc));
-      cf::BranchOp::create(rewriter,loc, endBlock);
+      cf::BranchOp::create(rewriter, loc, endBlock);
       endBlock = continueBlock;
     }
     auto comparison = whileCond.getCondition();
@@ -662,19 +665,19 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
       assert(details.allocaDomMap.find(pr.first)->second.empty());
       if (auto *blk = blockInfo.continueBlock) {
         rewriter.setInsertionPointToEnd(blk);
-        cf::BranchOp::create(rewriter,loc, condBlock, blk->getArguments());
+        cf::BranchOp::create(rewriter, loc, condBlock, blk->getArguments());
         tailRegion.push_back(blk);
       }
       if (auto *blk = blockInfo.breakBlock) {
         rewriter.setInsertionPointToEnd(blk);
-        cf::BranchOp::create(rewriter,loc, endBlock, blk->getArguments());
+        cf::BranchOp::create(rewriter, loc, endBlock, blk->getArguments());
         tailRegion.push_back(blk);
       }
       if (auto *blk = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(blk);
         auto *retBlk = getLandingPad(infoMap, loopOp).returnBlock;
         assert(retBlk);
-        cf::BranchOp::create(rewriter,loc, retBlk, blk->getArguments());
+        cf::BranchOp::create(rewriter, loc, retBlk, blk->getArguments());
         tailRegion.push_back(blk);
       }
     }
@@ -684,27 +687,27 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
     if (loopOp.isPostConditional()) {
       // Branch from `initBlock` to getBodyRegion().front().
       rewriter.setInsertionPointToEnd(initBlock);
-      cf::BranchOp::create(rewriter,loc, bodyBlock, loopOperands);
+      cf::BranchOp::create(rewriter, loc, bodyBlock, loopOperands);
       // Move the body region blocks between initBlock and end block.
       rewriter.inlineRegionBefore(loopOp.getBodyRegion(), endBlock);
       // Replace the condition op with a `cf.cond_br`.
       rewriter.setInsertionPointToEnd(whileBlock);
-      cf::CondBranchOp::create(rewriter,loc, comparison, bodyBlock,
-                                        whileCond.getResults(), endBlock,
-                                        whileCond.getResults());
+      cf::CondBranchOp::create(rewriter, loc, comparison, bodyBlock,
+                               whileCond.getResults(), endBlock,
+                               whileCond.getResults());
       rewriter.eraseOp(whileCond);
       // Move the while region between the body and end block.
       rewriter.inlineRegionBefore(loopOp.getWhileRegion(), endBlock);
     } else {
       // Branch from `initBlock` to whileRegion().front().
       rewriter.setInsertionPointToEnd(initBlock);
-      cf::BranchOp::create(rewriter,loc, whileBlock, loopOperands);
+      cf::BranchOp::create(rewriter, loc, whileBlock, loopOperands);
       // Replace the condition op with a `cf.cond_br` op.
       rewriter.setInsertionPointToEnd(whileBlock);
-      cf::CondBranchOp::create(rewriter,
-          loc, comparison, bodyBlock, whileCond.getResults(),
-          loopOp.hasPythonElse() ? elseBlock : endBlock,
-          whileCond.getResults());
+      cf::CondBranchOp::create(rewriter, loc, comparison, bodyBlock,
+                               whileCond.getResults(),
+                               loopOp.hasPythonElse() ? elseBlock : endBlock,
+                               whileCond.getResults());
       rewriter.eraseOp(whileCond);
       // Move the while and body region blocks between initBlock and endBlock.
       rewriter.inlineRegionBefore(loopOp.getWhileRegion(), endBlock);
@@ -715,8 +718,8 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
         auto *stepBlock = &loopOp.getStepRegion().front();
         auto *terminator = stepBlock->getTerminator();
         rewriter.setInsertionPointToEnd(stepBlock);
-        cf::BranchOp::create(rewriter,loc, whileBlock,
-                                      terminator->getOperands());
+        cf::BranchOp::create(rewriter, loc, whileBlock,
+                             terminator->getOperands());
         rewriter.eraseOp(terminator);
         rewriter.inlineRegionBefore(loopOp.getStepRegion(), endBlock);
       }
@@ -726,7 +729,8 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
         auto *elseBlock = &loopOp.getElseRegion().front();
         auto *terminator = elseBlock->getTerminator();
         rewriter.setInsertionPointToEnd(elseBlock);
-        cf::BranchOp::create(rewriter,loc, endBlock, terminator->getOperands());
+        cf::BranchOp::create(rewriter, loc, endBlock,
+                             terminator->getOperands());
         rewriter.eraseOp(terminator);
         rewriter.inlineRegionBefore(loopOp.getElseRegion(), endBlock);
       }

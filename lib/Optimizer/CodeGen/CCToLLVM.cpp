@@ -55,8 +55,10 @@ public:
     Type type = getTypeConverter()->convertType(alloc.getElementType());
     Value size = adaptor.getSeqSize();
     if (!size)
-      size = cudaq::opt::factory::genLlvmI32Constant(alloc.getLoc(), rewriter, 1);
-    rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(alloc, getPtrType(), type, size);
+      size =
+          cudaq::opt::factory::genLlvmI32Constant(alloc.getLoc(), rewriter, 1);
+    rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(alloc, getPtrType(), type,
+                                                size);
     return success();
   }
 };
@@ -81,12 +83,10 @@ public:
     if (!structTy)
       return failure();
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    auto extract = LLVM::ExtractValueOp::create(rewriter, loc,
-        structTy.getBody()[1], operands[0], one);
-    auto tupleVal =
-        LLVM::BitcastOp::create(rewriter, loc, tuplePtrTy, extract);
-    auto loadOp =
-        LLVM::LoadOp::create(rewriter, loc, tupleTy, tupleVal);
+    auto extract = LLVM::ExtractValueOp::create(
+        rewriter, loc, structTy.getBody()[1], operands[0], one);
+    auto tupleVal = LLVM::BitcastOp::create(rewriter, loc, tuplePtrTy, extract);
+    auto loadOp = LLVM::LoadOp::create(rewriter, loc, tupleTy, tupleVal);
     // In LLVM 22, replaceOp strictly requires the same number of results.
     // The LoadOp returns a single struct value; extract each field to match
     // the multiple results of CallableClosureOp.
@@ -94,8 +94,8 @@ public:
     for (std::size_t i = 0, N = callable.getResults().size(); i < N; ++i) {
       auto idx = DenseI64ArrayAttr::get(
           ctx, ArrayRef<std::int64_t>{static_cast<int64_t>(i)});
-      results.push_back(LLVM::ExtractValueOp::create(
-          rewriter, loc, resTy[i], loadOp.getResult(), idx));
+      results.push_back(LLVM::ExtractValueOp::create(rewriter, loc, resTy[i],
+                                                     loadOp.getResult(), idx));
     }
     rewriter.replaceOp(callable, results);
     return success();
@@ -118,7 +118,8 @@ public:
       return failure();
     auto *ctx = rewriter.getContext();
     auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
-    auto extract = LLVM::ExtractValueOp::create(rewriter, loc, structTy.getBody()[0], operands[0], zero);
+    auto extract = LLVM::ExtractValueOp::create(
+        rewriter, loc, structTy.getBody()[0], operands[0], zero);
     rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(callable, resTy, extract);
     return success();
   }
@@ -202,7 +203,8 @@ public:
 
     // Then block: tuple is null, call function directly with remaining operands
     rewriter.setInsertionPointToEnd(thenBlock);
-    // For indirect calls, callee_operands contains: function_ptr followed by args
+    // For indirect calls, callee_operands contains: function_ptr followed by
+    // args
     SmallVector<Value> calleeOps1 = {rawFuncPtr};
     calleeOps1.append(operands.begin() + 1, operands.end());
     auto call1 = LLVM::CallOp::create(
@@ -210,9 +212,12 @@ public:
         /*var_callee_type=*/nullptr,
         /*callee=*/FlatSymbolRefAttr{},
         /*callee_operands=*/calleeOps1,
-        /*fastmathFlags=*/LLVM::FastmathFlagsAttr::get(ctx, LLVM::FastmathFlags::none),
+        /*fastmathFlags=*/
+        LLVM::FastmathFlagsAttr::get(ctx, LLVM::FastmathFlags::none),
         /*CConv=*/LLVM::CConvAttr::get(ctx, LLVM::cconv::CConv::C),
-        /*TailCallKind=*/LLVM::TailCallKindAttr::get(ctx, LLVM::tailcallkind::TailCallKind::None),
+        /*TailCallKind=*/
+        LLVM::TailCallKindAttr::get(ctx,
+                                    LLVM::tailcallkind::TailCallKind::None),
         /*memory_effects=*/nullptr,
         /*convergent=*/nullptr,
         /*no_unwind=*/nullptr,
@@ -240,9 +245,12 @@ public:
         /*var_callee_type=*/nullptr,
         /*callee=*/FlatSymbolRefAttr{},
         /*callee_operands=*/calleeOps2,
-        /*fastmathFlags=*/LLVM::FastmathFlagsAttr::get(ctx, LLVM::FastmathFlags::none),
+        /*fastmathFlags=*/
+        LLVM::FastmathFlagsAttr::get(ctx, LLVM::FastmathFlags::none),
         /*CConv=*/LLVM::CConvAttr::get(ctx, LLVM::cconv::CConv::C),
-        /*TailCallKind=*/LLVM::TailCallKindAttr::get(ctx, LLVM::tailcallkind::TailCallKind::None),
+        /*TailCallKind=*/
+        LLVM::TailCallKindAttr::get(ctx,
+                                    LLVM::tailcallkind::TailCallKind::None),
         /*memory_effects=*/nullptr,
         /*convergent=*/nullptr,
         /*no_unwind=*/nullptr,
@@ -309,7 +317,8 @@ public:
     // device-side functions are located in the same address space as well. None
     // of these functions should be expected to reside on remote hardware.
     // Therefore, this will likely only be useful in a simulation target.
-    auto lookee = LLVM::CallOp::create(rewriter, loc, ptrTy, funSymbol, ValueRange{adaptor.getCallee()});
+    auto lookee = LLVM::CallOp::create(rewriter, loc, ptrTy, funSymbol,
+                                       ValueRange{adaptor.getCallee()});
     auto lookup =
         LLVM::BitcastOp::create(rewriter, loc, funcPtrTy, lookee.getResult());
 
@@ -421,7 +430,8 @@ public:
       // Convert to LLVM type after extracting the element type
       Type eleTy = getTypeConverter()->convertType(ccEleTy);
       // Rewrite the ComputePtrOp as a LLVM::GEPOp.
-      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, getPtrType(), eleTy, adaptor.getBase(), newOpnds);
+      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, getPtrType(), eleTy,
+                                               adaptor.getBase(), newOpnds);
     } else {
       // If the `cc.compute_ptr` operation has a base argument that is not in
       // LLVM normal form, we implicitly assume that pointer's element type
@@ -433,11 +443,12 @@ public:
       SmallVector<std::int32_t> constIndices = {0};
       constIndices.append(cpOp.getRawConstantIndices().begin(),
                           cpOp.getRawConstantIndices().end());
-      auto newOpnds =
-          interleaveConstantsAndOperands(adaptor.getDynamicIndices(), constIndices);
+      auto newOpnds = interleaveConstantsAndOperands(
+          adaptor.getDynamicIndices(), constIndices);
       // Convert to LLVM type
       Type eleTy = getTypeConverter()->convertType(ccEleTy);
-      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, getPtrType(), eleTy, adaptor.getBase(), newOpnds);
+      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, getPtrType(), eleTy,
+                                               adaptor.getBase(), newOpnds);
     }
     return success();
   }
@@ -512,8 +523,8 @@ public:
     bool isReadOnly = global.getConstant();
     Attribute initializer = global.getValue().value_or(Attribute{});
     mlir::LLVM::GlobalOp::create(rewriter, loc, type, isReadOnly,
-                                          LLVM::Linkage::Private, name,
-                                          initializer, /*alignment=*/0);
+                                 LLVM::Linkage::Private, name, initializer,
+                                 /*alignment=*/0);
     rewriter.eraseOp(global);
     return success();
   }
@@ -553,8 +564,8 @@ public:
     auto tupleArgTy = cudaq::opt::lambdaAsPairOfPointers(ctx);
     if (callable.getNoCapture()) {
       Value zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
-      tmp =
-          LLVM::IntToPtrOp::create(rewriter, loc, tupleArgTy.getBody()[1], zero);
+      tmp = LLVM::IntToPtrOp::create(rewriter, loc, tupleArgTy.getBody()[1],
+                                     zero);
     } else {
       Value tupleVal = LLVM::UndefOp::create(rewriter, loc, tupleTy);
       std::int64_t offsetVal = 0;
@@ -562,7 +573,7 @@ public:
         auto offset =
             DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{offsetVal});
         tupleVal = LLVM::InsertValueOp::create(rewriter, loc, tupleTy, tupleVal,
-                                                        op, offset);
+                                               op, offset);
         offsetVal++;
       }
       tmp = cudaq::opt::factory::createLLVMTemporary(loc, rewriter, tupleTy);
@@ -570,12 +581,13 @@ public:
     }
     Value tupleArg = LLVM::UndefOp::create(rewriter, loc, tupleArgTy);
     auto sigTy = getPtrType();
-    auto tramp = LLVM::AddressOfOp::create(rewriter, loc, sigTy, cast<FlatSymbolRefAttr>(callable.getCallee()));
+    auto tramp = LLVM::AddressOfOp::create(
+        rewriter, loc, sigTy, cast<FlatSymbolRefAttr>(callable.getCallee()));
     auto trampoline =
         LLVM::BitcastOp::create(rewriter, loc, tupleArgTy.getBody()[0], tramp);
     auto zeroA = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
     tupleArg = LLVM::InsertValueOp::create(rewriter, loc, tupleArgTy, tupleArg,
-                                                    trampoline, zeroA);
+                                           trampoline, zeroA);
     auto castTmp =
         LLVM::BitcastOp::create(rewriter, loc, tupleArgTy.getBody()[1], tmp);
     rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(
@@ -611,7 +623,7 @@ public:
     auto resultTy = sizeOfOp.getType();
     if (quake::isQuakeType(inputTy) ||
         cudaq::cc::isDynamicallySizedType(inputTy)) {
-       // Types that cannot be reified produce the poison op.
+      // Types that cannot be reified produce the poison op.
       rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(sizeOfOp, resultTy);
       return success();
     }
@@ -646,7 +658,8 @@ public:
     auto zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
     auto ptrTy = cudaq::cc::PointerType::get(inputTy);
     auto nul = cudaq::cc::CastOp::create(rewriter, loc, ptrTy, zero);
-    Value nextPtr = cudaq::cc::ComputePtrOp::create(rewriter, loc, ptrTy, nul, args);
+    Value nextPtr =
+        cudaq::cc::ComputePtrOp::create(rewriter, loc, ptrTy, nul, args);
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(offsetOp, resultTy, nextPtr);
     return success();
   }
@@ -667,7 +680,8 @@ public:
     auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
     if (!structTy)
       return data.emitError("stdvec_data must have a struct as argument.");
-    auto extract = LLVM::ExtractValueOp::create(rewriter, data.getLoc(), structTy.getBody()[0], operands[0], zero);
+    auto extract = LLVM::ExtractValueOp::create(
+        rewriter, data.getLoc(), structTy.getBody()[0], operands[0], zero);
     rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(data, resTy, extract);
     return success();
   }
@@ -691,7 +705,7 @@ public:
     if (!structTy)
       return init.emitError("stdvec_init must have a struct as argument.");
     auto cast = LLVM::BitcastOp::create(rewriter, loc, structTy.getBody()[0],
-                                                 operands[0]);
+                                        operands[0]);
     val = LLVM::InsertValueOp::create(rewriter, loc, val, cast, zero);
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
     if (operands.size() == 2) {
@@ -704,8 +718,8 @@ public:
                   .getElementType())
               .getSize();
       auto i64Ty = rewriter.getI64Type();
-      Value len = LLVM::ConstantOp::create(rewriter,
-          loc, i64Ty, IntegerAttr::get(i64Ty, arrSize));
+      Value len = LLVM::ConstantOp::create(rewriter, loc, i64Ty,
+                                           IntegerAttr::get(i64Ty, arrSize));
       rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, len, one);
     }
     return success();
@@ -758,9 +772,7 @@ public:
 
     // Get the string address
     rewriter.replaceOpWithNewOp<LLVM::AddressOfOp>(
-        stringLiteralOp,
-        getPtrType(),
-        slGlobal.getSymName());
+        stringLiteralOp, getPtrType(), slGlobal.getSymName());
 
     return success();
   }

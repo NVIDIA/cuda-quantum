@@ -131,8 +131,8 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value vecPtr = cc::StdvecDataOp::create(opBuilder, arrPtrTy, vectorValue);
   std::int32_t idx32 = static_cast<std::int32_t>(idx);
   auto elePtrTy = cc::PointerType::get(eleTy);
-  Value eleAddr = cc::ComputePtrOp::create(
-      opBuilder, elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx32});
+  Value eleAddr = cc::ComputePtrOp::create(opBuilder, elePtrTy, vecPtr,
+                                           ArrayRef<cc::ComputePtrArg>{idx32});
   Value loaded = cc::LoadOp::create(opBuilder, eleAddr);
   return QuakeValue(opBuilder, loaded);
 }
@@ -208,8 +208,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
   if (count == 0)
     throw std::runtime_error("QuakeValue::slice requesting slice of size 0.");
 
-  Value startIdxValue =
-      arith::ConstantIntOp::create(opBuilder, startIdx, 64);
+  Value startIdxValue = arith::ConstantIntOp::create(opBuilder, startIdx, 64);
   Value countValue = arith::ConstantIntOp::create(opBuilder, count, 64);
   if (auto veqType = mlir::dyn_cast_if_present<quake::VeqType>(type)) {
     auto veqSize = veqType.getSize();
@@ -219,12 +218,11 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
                                std::to_string(veqSize) + ").");
 
     auto one = arith::ConstantIntOp::create(opBuilder, 1, 64);
-    Value offset =
-        arith::AddIOp::create(opBuilder, startIdxValue, countValue);
+    Value offset = arith::AddIOp::create(opBuilder, startIdxValue, countValue);
     offset = arith::SubIOp::create(opBuilder, offset, one);
     auto sizedVecTy = quake::VeqType::get(opBuilder.getContext(), count);
     Value subVeq = quake::SubVeqOp::create(opBuilder, sizedVecTy, vectorValue,
-                                            startIdxValue, offset);
+                                           startIdxValue, offset);
     return QuakeValue(opBuilder, subVeq);
   }
 
@@ -250,11 +248,11 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     vecPtr = cc::StdvecDataOp::create(opBuilder, ptrTy, vectorValue);
     offset = startIdxValue;
   }
-  auto ptr = cc::ComputePtrOp::create(
-      opBuilder, cudaq::cc::PointerType::get(eleTy), vecPtr,
-      ArrayRef<cc::ComputePtrArg>{offset});
+  auto ptr =
+      cc::ComputePtrOp::create(opBuilder, cudaq::cc::PointerType::get(eleTy),
+                               vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
   Value subVeqInit = cc::StdvecInitOp::create(opBuilder, vectorValue.getType(),
-                                               ptr, countValue);
+                                              ptr, countValue);
 
   // If this is a slice, then we know we have
   // unique extraction on the elements of the slice,

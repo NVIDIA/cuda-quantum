@@ -53,7 +53,7 @@ repos:
       - id: markdownlint
         name: Markdown linting
         files: '\.md$'
-        exclude: '^tpls/'
+        exclude: '^tpls/|^LLVM_MIGRATION_CHANGELOG\.md$'
         args: ['--config', '.github/pre-commit/md_lint_config.yml']
 
   # Standard quality checks

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <nanobind/ndarray.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 
 namespace cudaq {
 class LinkedLibraryHolder;

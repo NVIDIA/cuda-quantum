@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include <nanobind/stl/function.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 #include "common/JsonConvert.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
@@ -36,16 +36,15 @@ struct OptimizationResultPy {
   OptimizationResultPy(double v, std::vector<double> p)
       : opt_value(v), optimal_parameters(std::move(p)) {}
   explicit OptimizationResultPy(const optimization_result &r)
-      : opt_value(std::get<0>(r)),
-        optimal_parameters(std::get<1>(r)) {}
+      : opt_value(std::get<0>(r)), optimal_parameters(std::get<1>(r)) {}
 };
 
 void bindOptimizationResult(py::module_ &mod) {
   py::class_<OptimizationResultPy>(mod, "OptimizationResult",
-                                  "Result of an optimization: (opt_value, "
-                                  "optimal_parameters). optimize() returns a "
-                                  "tuple; this type is for type hints and "
-                                  "wrapping.")
+                                   "Result of an optimization: (opt_value, "
+                                   "optimal_parameters). optimize() returns a "
+                                   "tuple; this type is for type hints and "
+                                   "wrapping.")
       .def(py::init<double, std::vector<double>>(), py::arg("opt_value"),
            py::arg("optimal_parameters"))
       .def(py::init<const optimization_result &>(),
@@ -160,7 +159,8 @@ void bindGradientStrategies(py::module_ &mod) {
 /// Can now define its member functions on
 /// that submodule.
 template <typename OptimizerT>
-py::class_<OptimizerT, optimizer> addPyOptimizer(py::module_ &mod, std::string &&name) {
+py::class_<OptimizerT, optimizer> addPyOptimizer(py::module_ &mod,
+                                                 std::string &&name) {
   return py::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(py::init<>())
       .def(
@@ -501,7 +501,7 @@ iteration k is proportional to (A + k + 1)^(-gamma), where A is a stability
 constant. Common values are in the range [0.1, 0.6].
 )doc");
   py_spsa.def_rw("step_size", &cudaq::optimizers::spsa::eval_step_size,
-                        R"doc(
+                 R"doc(
 float: Evaluation step size for gradient approximation (default: 0.3).
 
 Controls the magnitude of perturbations used to approximate gradients.
@@ -548,7 +548,7 @@ Example:
         )
 )doc");
   py_adam.def_rw("batch_size", &cudaq::optimizers::adam::batch_size,
-                        R"doc(
+                 R"doc(
 int: Number of samples per batch (default: 1).
 
 For stochastic optimization, determines how many samples are used to 

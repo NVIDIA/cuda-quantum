@@ -115,11 +115,10 @@ cudaq::createWrappedKernel(std::string_view irString,
 
   // Create the object layer
   auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session) {
-    auto objectLayer =
-        std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
-            session, [](const llvm::MemoryBuffer &) {
-              return std::make_unique<llvm::SectionMemoryManager>();
-            });
+    auto objectLayer = std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
+        session, [](const llvm::MemoryBuffer &) {
+          return std::make_unique<llvm::SectionMemoryManager>();
+        });
     return objectLayer;
   };
 
