@@ -88,13 +88,20 @@ OPTIND=$__optind__
 # Without this, DYLD_LIBRARY_PATH from a prior build step can cause the
 # wheel to load libraries from _skbuild/ instead of its own bundled copies,
 # masking packaging bugs.
-unset DYLD_LIBRARY_PATH
-unset DYLD_FALLBACK_LIBRARY_PATH
-unset LD_LIBRARY_PATH
-unset CUDAQ_INSTALL_PREFIX
-unset CUDA_QUANTUM_PATH
-unset PYTHONPATH
-echo "Environment sanitized (unset DYLD_LIBRARY_PATH, LD_LIBRARY_PATH, CUDAQ_INSTALL_PREFIX, CUDA_QUANTUM_PATH, PYTHONPATH)"
+SANITIZE_VARS="
+DYLD_LIBRARY_PATH
+DYLD_FALLBACK_LIBRARY_PATH
+LD_LIBRARY_PATH
+CUDAQ_INSTALL_PREFIX
+CUDA_QUANTUM_PATH
+PYTHONPATH
+"
+
+for var in $SANITIZE_VARS; do
+    unset "$var"
+done
+
+echo "Environment sanitized (unset: $SANITIZE_VARS)"
 
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
