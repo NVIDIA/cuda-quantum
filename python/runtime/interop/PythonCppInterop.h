@@ -81,7 +81,7 @@ template <typename KT, typename ALGO, typename... As>
 auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
   cudaq::python::CppPyKernelDecorator decorator(qern);
   auto entryPoint =
-      decorator.getPureDeviceFunction<KT>(std::forward<As>(as)...);
+      decorator.getDirectKernelCall<KT>(std::forward<As>(as)...);
   return algo(std::move(entryPoint));
 }
 
