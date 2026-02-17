@@ -254,16 +254,14 @@ if $include_cuda_deps; then
   cp -a "${CUTENSOR_INSTALL_PREFIX}/include/"* cuda_quantum_assets/cudaq/include/ 2>/dev/null || true
 fi
 
-# Generate build_config.xml for the merged layout.
-# LLVM_INSTALL_PREFIX points to the CUDAQ prefix itself (all tools merged in).
-# cuQuantum/cuTensor fields are empty (libs already in $PREFIX/lib/).
-cat > cuda_quantum_assets/build_config.xml << BCONFIG
+# Generate an empty build_config.xml since all dependencies are already
+# merged into cudaq/.
+cat > cuda_quantum_assets/build_config.xml << 'BCONFIG'
 <build_config>
-<LLVM_INSTALL_PREFIX>${default_target}</LLVM_INSTALL_PREFIX>
-<CUQUANTUM_INSTALL_PREFIX></CUQUANTUM_INSTALL_PREFIX>
-<CUTENSOR_INSTALL_PREFIX></CUTENSOR_INSTALL_PREFIX>
 </build_config>
 BCONFIG
+# Use the same config inside the installed cudaq/ directory.
+cp cuda_quantum_assets/build_config.xml cuda_quantum_assets/cudaq/build_config.xml
 # [<CUDAQuantumAssets]
 
 popd >/dev/null
