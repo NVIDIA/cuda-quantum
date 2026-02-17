@@ -14,6 +14,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
+#include "common/JIT.h"
 #include "common/Resources.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
