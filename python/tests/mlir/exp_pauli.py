@@ -57,24 +57,18 @@ def test_exp_pauli():
     angles = [0.34, 1.2, 1.6]
 
     # create the initial state (using the initial state)
-    initial = np.array(
-        cudaq.StateMemoryView(cudaq.get_state(kernel_initial_state, angles)))
+    initial = np.array(cudaq.get_state(kernel_initial_state, angles))
 
     # create the initial state + ancilla, hadamard, then perform a
     # controlled rotation on the |1> subspace of the ancilla
-    full = np.array(
-        cudaq.StateMemoryView(cudaq.get_state(kernel_ancilla_rotation, angles)))
+    full = np.array(cudaq.get_state(kernel_ancilla_rotation, angles))
 
     # create the initial state and perform a rotation (for comparison with full)
-    rotation = np.array(
-        cudaq.StateMemoryView(cudaq.get_state(kernel_noancilla_rotation,
-                                              angles)))
+    rotation = np.array(cudaq.get_state(kernel_noancilla_rotation, angles))
 
     # create the initial state + ancilla, hadamard, then perform a
     # controlled exp_pauli on the |1> subspace of the ancilla
-    epauli = np.array(
-        cudaq.StateMemoryView(cudaq.get_state(kernel_ancilla_exp_pauli,
-                                              angles)))
+    epauli = np.array(cudaq.get_state(kernel_ancilla_exp_pauli, angles))
 
     print(cudaq.translate(kernel_ancilla_exp_pauli, angles, format='qir'))
 

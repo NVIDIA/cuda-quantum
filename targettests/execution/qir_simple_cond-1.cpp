@@ -8,8 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ --target stim --enable-mlir %s -o %t && %t | FileCheck %s
-/// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/3708
-// SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --enable-mlir %s -o %t
 // clang-format on
 
@@ -19,14 +18,15 @@
 
 struct kernel {
   std::vector<bool> operator()() __qpu__ {
+    std::vector<bool> results(2);
     cudaq::qubit q0;
     cudaq::qubit q1;
     h(q0);
-    auto q0result = mz(q0);
-    if (q0result)
+    results[0] = mz(q0);
+    if (results[0])
       x(q1);
-    auto q1result = mz(q1); // Every q1 measurement will be the same as q0
-    return {q0result, q1result};
+    results[1] = mz(q1); // Every q1 measurement will be the same as q0
+    return results;
   }
 };
 
