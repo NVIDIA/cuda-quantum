@@ -263,6 +263,8 @@ if $install; then
     fi
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then
         update_profile /etc/zprofile
+    elif [ -f $HOME/.zshrc ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+        update_profile $HOME/.zshrc
     fi
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then
         plugin_path="${CUDA_QUANTUM_PATH}/distributed_interfaces"
