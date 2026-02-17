@@ -20,3 +20,24 @@ The CUDA-Q installation in this image is licensed under [Apache License
 2.0](https://www.apache.org/licenses/LICENSE-2.0). More information about the
 license and third party libraries can be found in the LICENSE and NOTICE files
 of the CUDA-Q installation folder defined by `CUDA_QUANTUM_PATH`.
+
+## Source image (cuda-quantum-src)
+
+The ``cudaq-src.Dockerfile`` builds an image that extends the CUDA-Q base image
+with the source code of the third-party libraries (tpls) used by CUDA-Q, e.g.
+fmt, spdlog, qpp, Crow, Stim, LLVM, Eigen, etc. (see the repository ``NOTICE``
+file). Source is placed under ``/opt/nvidia/cudaq-tpls-src`` (environment
+variable ``CUDAQ_TPL_SRC_ROOT``). NOTICE and LICENSE are included there for
+attribution.
+
+Build from the repository root with submodules initialized::
+
+  git submodule update --init --recursive
+  docker build -t nvcr.io/nvidia/nightly/cuda-quantum-src:cu12-latest-base \\
+    -f docker/release/cudaq-src.Dockerfile .
+
+To use a different base image::
+
+  docker build -t nvcr.io/nvidia/nightly/cuda-quantum-src:cu12-latest-base \\
+    --build-arg base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base \\
+    -f docker/release/cudaq-src.Dockerfile .
