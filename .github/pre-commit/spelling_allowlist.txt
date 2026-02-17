@@ -50,6 +50,7 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+Hololink
 Homebrew
 IQM
 InfiniBand
@@ -290,6 +291,7 @@ namespaces
 natively
 normalization
 nullary
+nvcc
 observables
 optimizer
 optimizers

@@ -37,12 +37,20 @@ struct __attribute__((packed)) RPCResponse {
 //==============================================================================
 
 /// @brief Device RPC function signature.
-/// @param buffer Pointer to argument/result buffer
-/// @param arg_len Length of argument data
-/// @param max_result_len Maximum result buffer size
-/// @param result_len Output: actual result length
+///
+/// The handler reads arguments from the input buffer and writes results
+/// directly to the output buffer. The two buffers never overlap, which
+/// enables the dispatch kernel to point `output` straight into the TX
+/// ring-buffer slot, eliminating a post-handler copy.
+///
+/// @param input  Pointer to argument data (RX buffer, read-only)
+/// @param output Pointer to result buffer (TX buffer, write-only)
+/// @param arg_len Length of argument data in bytes
+/// @param max_result_len Maximum result buffer size in bytes
+/// @param result_len Output: actual result length written
 /// @return Status code (0 = success)
-using DeviceRPCFunction = int (*)(void *buffer, std::uint32_t arg_len,
+using DeviceRPCFunction = int (*)(const void *input, void *output,
+                                  std::uint32_t arg_len,
                                   std::uint32_t max_result_len,
                                   std::uint32_t *result_len);
 
@@ -65,6 +73,26 @@ constexpr std::uint32_t fnv1a_hash(const char *str) {
 // RPC framing magic values (ASCII: CUQ?).
 constexpr std::uint32_t RPC_MAGIC_REQUEST = 0x43555152;  // 'CUQR'
 constexpr std::uint32_t RPC_MAGIC_RESPONSE = 0x43555153; // 'CUQS'
+
+//==============================================================================
+// Graph IO Context (for CUDAQ_DISPATCH_GRAPH_LAUNCH)
+//==============================================================================
+
+/// @brief IO context passed to graph-launched RPC handlers via pointer
+/// indirection.
+///
+/// The dispatch kernel fills this context before each fire-and-forget graph
+/// launch so the graph kernel knows where to read input, where to write the
+/// response, and how to signal completion.  The graph kernel is responsible
+/// for writing the RPCResponse header to `tx_slot` and then setting
+/// `*tx_flag = tx_flag_value` after a `__threadfence_system()`.
+struct GraphIOContext {
+  void *rx_slot;                   ///< Input: RX slot (RPCHeader + `args`)
+  std::uint8_t *tx_slot;           ///< Output: TX slot for RPCResponse
+  volatile std::uint64_t *tx_flag; ///< Pointer to TX flag for this slot
+  std::uint64_t tx_flag_value;     ///< Value to write to tx_flag when done
+  std::size_t tx_stride_sz;        ///< TX slot size (for max_result_len)
+};
 
 //==============================================================================
 // Schema-Driven Type System
