@@ -41,5 +41,9 @@ runs:
         ccache --set-config=max_size=${{ inputs.max-size }}
         ccache --set-config=compression=${{ inputs.compression }}
         ccache --set-config=cache_dir="$HOME/.ccache"
+        # CI checkouts create files with fresh timestamps every run.
+        # Without these, ccache hashes include mtime/ctime causing misses
+        # on identical content.
+        ccache --set-config=sloppiness=include_file_mtime,include_file_ctime,time_macros,pch_defines
         echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
         ccache -z
