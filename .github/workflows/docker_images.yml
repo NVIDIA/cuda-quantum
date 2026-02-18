@@ -626,7 +626,7 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: true
 
-g      - name: Extract ccache from release build
+      - name: Extract ccache from release build
         run: |
           mkdir -p /tmp/ccache-export
           docker buildx build \
