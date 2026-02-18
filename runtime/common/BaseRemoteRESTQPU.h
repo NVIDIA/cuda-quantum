@@ -252,7 +252,7 @@ public:
     // Get the Quake code, lowered according to config file.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = compiler.lowerQuakeCode(kernelName, rawArgs);
+    auto codes = compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
   }
 
@@ -281,8 +281,10 @@ public:
     // but apparently it isn't. This works around that bug.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = rawArgs.empty() ? compiler.lowerQuakeCode(kernelName, args)
-                                 : compiler.lowerQuakeCode(kernelName, rawArgs);
+    auto codes =
+        rawArgs.empty()
+            ? compiler.lowerQuakeCode(executionContext, kernelName, args)
+            : compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
@@ -305,8 +307,9 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    completeLaunchKernel(kernelName,
-                         compiler.lowerQuakeCode(kernelName, module, rawArgs));
+    completeLaunchKernel(
+        kernelName,
+        compiler.lowerQuakeCode(executionContext, kernelName, module, rawArgs));
     return {};
   }
 
