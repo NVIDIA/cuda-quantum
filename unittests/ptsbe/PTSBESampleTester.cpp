@@ -59,6 +59,13 @@ auto separatedMeasureKernel = []() __qpu__ {
   mz(q[2]);
 };
 
+struct xOp {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    x(q);
+  }
+};
+
 } // namespace
 
 // ============================================================================
@@ -219,18 +226,6 @@ CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesTrace) {
 // ============================================================================
 // PTSBE SAMPLE API TESTS
 // ============================================================================
-
-// Test that sample() with an empty noise model throws
-CUDAQ_TEST(PTSBESampleTest, PTSBESampleRequiresNoiseModel) {
-  cudaq::noise_model emptyNoise;
-  // No channels added - noise model is empty
-
-  try {
-    sample(emptyNoise, 1000, bellKernel);
-    FAIL() << "Expected exception not thrown";
-  } catch (...) {
-  }
-}
 
 CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
   cudaq::noise_model noise;
@@ -536,6 +531,36 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastResultCountMatchesParams) {
   auto results = sample(options, rotationKernel, params);
 
   EXPECT_EQ(results.size(), angles.size());
+}
+
+CUDAQ_TEST(PTSBESampleTest, NoiseCheckSimple) {
+  cudaq::set_random_seed(13);
+  cudaq::kraus_channel depol({cudaq::complex{0.99498743710662, 0.0},
+                              {0.0, 0.0},
+                              {0.0, 0.0},
+                              {0.99498743710662, 0.0}},
+                             {cudaq::complex{0.0, 0.0},
+                              {0.05773502691896258, 0.0},
+                              {0.05773502691896258, 0.0},
+                              {0.0, 0.0}},
+                             {cudaq::complex{0.0, 0.0},
+                              {0.0, -0.05773502691896258},
+                              {0.0, 0.05773502691896258},
+                              {0.0, 0.0}},
+                             {cudaq::complex{0.05773502691896258, 0.0},
+                              {0.0, 0.0},
+                              {0.0, 0.0},
+                              {-0.05773502691896258, 0.0}});
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, depol);
+
+  auto result = sample(noise, 500, xOp{});
+  EXPECT_EQ(result.get_total_shots(), 500);
+  EXPECT_EQ(result.size(), 2);
+
+  cudaq::noise_model emptyNoise;
+  result = sample(emptyNoise, 500, xOp{});
+  EXPECT_EQ(result.size(), 0);
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET

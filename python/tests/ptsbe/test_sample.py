@@ -10,6 +10,7 @@ import cudaq
 
 from test_common import (
     bell,
+    kernel_with_apply_noise,
     make_depol_noise,
     ptsbe_target_setup,
     ptsbe_target_teardown,
@@ -107,16 +108,6 @@ def test_ptsbe_sample_custom_shots(depol_noise, bell_kernel):
     assert sum(result.count(bs) for bs in result) == 50
 
 
-def test_ptsbe_sample_raises_without_noise_model(bell_kernel):
-    with pytest.raises(RuntimeError, match="requires a noise_model"):
-        cudaq.ptsbe.sample(bell_kernel)
-
-
-def test_ptsbe_sample_raises_with_none_noise_model(bell_kernel):
-    with pytest.raises(RuntimeError, match="requires a noise_model"):
-        cudaq.ptsbe.sample(bell_kernel, noise_model=None)
-
-
 def test_ptsbe_sample_rejects_negative_shots(depol_noise, bell_kernel):
     with pytest.raises(RuntimeError, match="shots_count"):
         cudaq.ptsbe.sample(bell_kernel, noise_model=depol_noise, shots_count=-1)
@@ -144,3 +135,26 @@ def test_ptsbe_sample_rejects_negative_max_trajectories(depol_noise,
             noise_model=depol_noise,
             max_trajectories=-5,
         )
+
+
+def test_ptsbe_sample_with_apply_noise_in_kernel():
+    result = cudaq.ptsbe.sample(
+        kernel_with_apply_noise,
+        shots_count=100,
+    )
+    total = sum(result.count(bs) for bs in result)
+    assert total == 100
+    assert len(result) >= 1
+
+
+def test_ptsbe_sample_with_apply_noise_returns_execution_data():
+    result = cudaq.ptsbe.sample(
+        kernel_with_apply_noise,
+        shots_count=50,
+        return_execution_data=True,
+    )
+    assert result.has_execution_data()
+    data = result.ptsbe_execution_data
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    noises = [i for i in data.instructions if i.type == Noise]
+    assert len(noises) >= 1

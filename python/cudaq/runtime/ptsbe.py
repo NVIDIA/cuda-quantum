@@ -18,11 +18,6 @@ from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
 def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
                          max_trajectories):
     """Validate arguments common to `sample` and `sample_async`."""
-    if noise_model is None:
-        raise RuntimeError(
-            "PTSBE requires a noise_model. Pass noise_model=... to "
-            "cudaq.ptsbe.sample().")
-
     decorator = kernel
     if not isa_kernel_decorator(decorator):
         decorator = mk_decorator(decorator)
@@ -74,7 +69,9 @@ def sample(kernel,
     Args:
       kernel: The quantum kernel to execute.
       shots_count (int): Number of measurement shots. Defaults to 1000.
-      noise_model: The noise model to apply (required).
+      noise_model: Optional noise model for gate-based noise. Noise can also
+          be specified inside the kernel via ``cudaq.apply_noise()``; both
+          can be used together.
       max_trajectories (int or ``None``): Maximum unique trajectories to
           generate. ``None`` means use the number of shots. Note for large
           shot counts setting a maximum is recommended to get the benefits
@@ -94,10 +91,13 @@ def sample(kernel,
           in broadcast mode.
 
     Raises:
-      RuntimeError: If ``noise_model`` is not provided or kernel is invalid.
+      RuntimeError: If the kernel is invalid or arguments are invalid.
     """
     decorator = _validate_ptsbe_args(kernel, args, shots_count, noise_model,
                                      max_trajectories)
+
+    if noise_model is None:
+        noise_model = cudaq_runtime.NoiseModel()
 
     if __isBroadcast(decorator, *args):
         argSets = __createArgumentSet(*args)
@@ -138,7 +138,8 @@ def sample_async(kernel,
     Args:
       kernel: The quantum kernel to execute.
       shots_count (int): Number of measurement shots. Defaults to 1000.
-      noise_model: The noise model to apply (required).
+      noise_model: Optional noise model for gate-based noise; noise can also
+          be specified in the kernel via ``cudaq.apply_noise()``.
       max_trajectories (int or ``None``): Maximum unique trajectories.
       sampling_strategy (``PTSSamplingStrategy`` or ``None``): Strategy for
           trajectory generation.
@@ -151,10 +152,13 @@ def sample_async(kernel,
           ``SampleResult``.
 
     Raises:
-      RuntimeError: If ``noise_model`` is not provided or kernel is invalid.
+      RuntimeError: If the kernel is invalid or arguments are invalid.
     """
     decorator = _validate_ptsbe_args(kernel, args, shots_count, noise_model,
                                      max_trajectories)
+
+    if noise_model is None:
+        noise_model = cudaq_runtime.NoiseModel()
 
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     retTy = decorator.get_none_type()

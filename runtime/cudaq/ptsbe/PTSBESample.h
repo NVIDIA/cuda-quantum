@@ -186,8 +186,10 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
                                const PTSBEOptions &options = PTSBEOptions{}) {
   validatePTSBEPreconditions(platform);
 
-  // Get noise model from platform (validated non-null by preconditions)
-  const auto &noiseModel = *platform.get_noise();
+  // Use platform noise if set; otherwise empty model
+  static const cudaq::noise_model kEmptyNoiseModel;
+  const auto *noisePtr = platform.get_noise();
+  const auto &noiseModel = noisePtr ? *noisePtr : kEmptyNoiseModel;
 
   // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext traceCtx("tracer");

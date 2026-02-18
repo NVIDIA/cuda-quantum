@@ -57,6 +57,14 @@ def mcm_kernel():
     mz(q)
 
 
+@cudaq.kernel
+def kernel_with_apply_noise():
+    q = cudaq.qvector(1)
+    h(q[0])
+    cudaq.apply_noise(cudaq.DepolarizationChannel, 0.05, q[0])
+    mz(q)
+
+
 def ptsbe_target_setup():
     cudaq.set_target("density-matrix-cpu")
     cudaq.set_random_seed(42)
