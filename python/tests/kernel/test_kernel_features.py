@@ -2821,7 +2821,7 @@ def test_trap_fail():
     def simple():
         q = cudaq.qvector(2)
         ctrl = q.front()
-        x(ctrl, q[1])
+        x.ctrl(ctrl, q[1])
 
     counts = cudaq.sample(simple)
     print(counts)
