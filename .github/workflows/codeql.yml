@@ -114,21 +114,20 @@ jobs:
               attempt=0
               conclusion=""
               while [ $attempt -lt $max_attempts ]; do
-                response=$(gh api graphql -f query='
-                  query($owner: String!, $repo: String!, $pr_number: Int!) {
-                    repository(owner: $owner, name: $repo) {
-                      pullRequest(number: $pr_number) {
-                        commits(last: 1) {
-                          nodes {
-                            commit {
-                              checkSuites(first: 20) {
-                                nodes {
-                                  checkRuns(first: 20) {
-                                    nodes {
-                                      name
-                                      status
-                                      conclusion
-                                    }
+                # Inline pr_number in the query so we only pass string variables (gh -f sends all as strings otherwise).
+                response=$(gh api graphql -f query="query(\$owner: String!, \$repo: String!) {
+                  repository(owner: \$owner, name: \$repo) {
+                    pullRequest(number: $pr_number) {
+                      commits(last: 1) {
+                        nodes {
+                          commit {
+                            checkSuites(first: 20) {
+                              nodes {
+                                checkRuns(first: 20) {
+                                  nodes {
+                                    name
+                                    status
+                                    conclusion
                                   }
                                 }
                               }
@@ -138,7 +137,7 @@ jobs:
                       }
                     }
                   }
-                ' -f owner="$owner" -f repo="$repo" -f pr_number="$pr_number")
+                }" -f owner="$owner" -f repo="$repo")
                 # Find the check run whose name starts with "Analyze (" (the CodeQL matrix job)
                 conclusion=$(echo "$response" | jq -r '
                   .data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[]
