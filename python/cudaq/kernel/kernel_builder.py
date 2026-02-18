@@ -1141,13 +1141,8 @@ class PyKernel(object):
         ```
         """
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
             measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MzOp(measTy, [], [target.mlirValue],
@@ -1155,8 +1150,7 @@ class PyKernel(object):
                                                              context=self.ctx))
             else:
                 res = quake.MzOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            return self.__createQuakeValue(res.result)
 
     def mx(self, target, regName=None):
         """
@@ -1188,13 +1182,8 @@ class PyKernel(object):
         ```
         """
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
             measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MxOp(measTy, [], [target.mlirValue],
@@ -1202,8 +1191,7 @@ class PyKernel(object):
                                                              context=self.ctx))
             else:
                 res = quake.MxOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            return self.__createQuakeValue(res.result)
 
     def my(self, target, regName=None):
         """
@@ -1236,13 +1224,8 @@ class PyKernel(object):
         ```
         """
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
             measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MyOp(measTy, [], [target.mlirValue],
@@ -1250,8 +1233,7 @@ class PyKernel(object):
                                                              context=self.ctx))
             else:
                 res = quake.MyOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            return self.__createQuakeValue(res.result)
 
     def adjoint(self, otherKernel, *target_arguments):
         """

@@ -21,6 +21,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/qis/measure_result.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -107,6 +108,14 @@ std::size_t cudaq::byteSize(Type ty) {
   }
   if (ty.isIntOrFloat())
     return opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
+  if (isa<quake::MeasureType>(ty))
+    return sizeof(cudaq::measure_result);
+  if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+    std::size_t total = 0;
+    for (auto member : structTy.getMembers())
+      total += byteSize(member);
+    return total;
+  }
 
   ty.dump();
   throw std::runtime_error("Expected a complex, floating, or integral type");
@@ -671,6 +680,12 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
         runtimeArgs.emplace_back(
             ourAllocatedArg, [](void *ptr) { delete static_cast<vec *>(ptr); });
       })
+      .Case([&](quake::MeasureType) {
+        auto *ourAllocatedArg = new cudaq::measure_result();
+        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<cudaq::measure_result *>(ptr);
+        });
+      })
       .Case([&](cudaq::cc::StructType ty) {
         auto [size, offsets] = cudaq::getTargetLayout(module, ty);
         auto ourAllocatedArg = std::malloc(size);
@@ -787,7 +802,7 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           // Note: in the `cudaq::run` context the `std::vector<bool>` is
           // constructed in the host runtime by parsing the output log to
           // `std::vector<bool>`.
-          if (eleTy.getIntOrFloatBitWidth() == 1) {
+          if (eleTy.isIntOrFloat() && eleTy.getIntOrFloatBitWidth() == 1) {
             auto v = reinterpret_cast<std::vector<bool> *>(data);
             py::list list;
             for (auto const bit : *v)
@@ -830,8 +845,20 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           list.append(convertResult(module, eleTy, v->data + i));
         return list;
       })
+      .Case([&](quake::MeasureType) -> py::object {
+        auto result = *reinterpret_cast<std::int32_t *>(data);
+        auto uniqueId =
+            *reinterpret_cast<std::int32_t *>(data + sizeof(std::int32_t));
+        return py::cast(cudaq::measure_result(result, uniqueId));
+      })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
         auto name = ty.getName().str();
+        if (name == "measure_result") {
+          auto result = *reinterpret_cast<std::int32_t *>(data);
+          auto uniqueId =
+              *reinterpret_cast<std::int32_t *>(data + sizeof(std::int32_t));
+          return py::cast(cudaq::measure_result(result, uniqueId));
+        }
         // Handle tuples.
         if (name == "tuple") {
           auto [size, offsets] = getTargetLayout(module, ty);

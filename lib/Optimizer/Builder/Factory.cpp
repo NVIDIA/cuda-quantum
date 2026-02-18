@@ -438,7 +438,8 @@ Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
   }
   if (isa<quake::MeasureType>(ty)) {
     auto i32Ty = IntegerType::get(ty.getContext(), 32);
-    return cudaq::cc::StructType::get(ty.getContext(), {i32Ty, i32Ty});
+    return cudaq::cc::StructType::get(ty.getContext(), "measure_result",
+                                      {i32Ty, i32Ty});
   }
   if (auto ptrTy = dyn_cast<cc::PointerType>(ty))
     return cc::PointerType::get(

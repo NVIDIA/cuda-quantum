@@ -28,6 +28,7 @@ from cudaq.kernel_types import qubit, qvector, qview
 
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
+measure_result = cudaq_runtime.measure_result
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
@@ -357,6 +358,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                     return quake.RefType.get()
                 if annotation.attr == 'pauli_word':
                     return cc.CharspanType.get()
+                if annotation.attr == 'measure_result':
+                    return quake.MeasureType.get()
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
@@ -575,6 +578,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == measure_result:
+        return quake.MeasureType.get(ctx)
     if argType == State:
         return cc.PointerType.get(cc.StateType.get(ctx), ctx)
 
@@ -724,6 +729,9 @@ def mlirTypeToPyType(argType):
         if F64Type.isinstance(ComplexType(argType).element_type):
             return complex
         return np.complex64
+
+    if quake.MeasureType.isinstance(argType):
+        return measure_result
 
     if cc.CharspanType.isinstance(argType):
         return pauli_word

@@ -975,11 +975,20 @@ public:
               return isa<quake::MeasureType>(vecTy.getElementType());
             return false;
           };
-          for (auto rt : epKern.getFunctionType().getResults())
-            resultTys.emplace_back(TypeAttr::get(
-                containsMeasureTy(rt)
-                    ? cudaq::opt::factory::convertToHostSideType(rt, module)
-                    : rt));
+          for (auto rt : epKern.getFunctionType().getResults()) {
+            Type storedTy = rt;
+            if (containsMeasureTy(rt)) {
+              if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(rt)) {
+                auto hostEleTy = cudaq::opt::factory::convertToHostSideType(
+                    vecTy.getElementType(), module);
+                storedTy = cudaq::cc::StdvecType::get(ctx, hostEleTy);
+              } else {
+                storedTy =
+                    cudaq::opt::factory::convertToHostSideType(rt, module);
+              }
+            }
+            resultTys.emplace_back(TypeAttr::get(storedTy));
+          }
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);
