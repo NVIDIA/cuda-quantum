@@ -13,8 +13,10 @@ from multiprocessing import Process
 from network_utils import check_server_connection
 
 try:
-    from utils.mock_qpu.quantum_machines import start_server
-except:
+    from utils.mock_qpu import start_server, get_backend_port
+except Exception as e:
+    if os.environ.get("MOCK_NO_SKIP", "").lower() == "true":
+        raise e
     print("Mock qpu not available, skipping Quantum Machines tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
@@ -22,8 +24,8 @@ skipIfQuantumMachinesNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("quantum_machines")),
     reason='Could not find `quantum_machines` in installation')
 
-# Define the port for the mock server
-port = 62448
+TARGET_QPU = "quantum_machines"
+port = get_backend_port(TARGET_QPU)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -32,7 +34,7 @@ def startUpMockServer():
     cudaq.set_target("quantum_machines", url="http://localhost:{}".format(port))
 
     # Launch the Mock Server
-    p = Process(target=start_server, args=(port,))
+    p = Process(target=start_server, args=(TARGET_QPU,))
     p.start()
 
     if not check_server_connection(port):

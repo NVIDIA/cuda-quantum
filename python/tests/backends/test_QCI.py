@@ -16,13 +16,15 @@ from cudaq import spin
 from network_utils import check_server_connection
 
 try:
-    from utils.mock_qpu.qci import startServer
-except:
+    from utils.mock_qpu import start_server, get_backend_port
+except Exception as e:
+    if os.environ.get("MOCK_NO_SKIP", "").lower() == "true":
+        raise e
     print("Mock qpu not available, skipping QCI tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
-# Define the port for the mock server
-port = 62449
+TARGET_QPU = "qci"
+port = get_backend_port(TARGET_QPU)
 
 
 def assert_close(got) -> bool:
@@ -34,7 +36,7 @@ def startUpMockServer():
     cudaq.set_random_seed(42)
 
     # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
+    p = Process(target=start_server, args=(TARGET_QPU,))
     p.start()
 
     if not check_server_connection(port):
@@ -53,7 +55,7 @@ def configureTarget():
     os.environ["QCI_AUTH_TOKEN"] = "00000000000000000000000000000000"
     os.environ["QCI_API_URL"] = "http://localhost:{}".format(port)
     # Set the targeted QPU
-    cudaq.set_target("qci")
+    cudaq.set_target(TARGET_QPU)
     yield "Running the test."
     cudaq.reset_target()
 

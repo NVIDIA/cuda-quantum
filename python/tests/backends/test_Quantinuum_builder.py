@@ -13,13 +13,15 @@ from cudaq import spin
 from multiprocessing import Process
 from network_utils import check_server_connection
 try:
-    from utils.mock_qpu.quantinuum import startServer
-except:
+    from utils.mock_qpu import start_server, get_backend_port
+except Exception as e:
+    if os.environ.get("MOCK_NO_SKIP", "").lower() == "true":
+        raise e
     print("Mock qpu not available, skipping Quantinuum tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
-# Define the port for the mock server
-port = 62440
+TARGET_QPU = "quantinuum"
+port = get_backend_port(TARGET_QPU)
 
 
 def assert_close(got) -> bool:
@@ -38,7 +40,7 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
 
     # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
+    p = Process(target=start_server, args=(TARGET_QPU,))
     p.start()
 
     if not check_server_connection(port):
@@ -59,7 +61,7 @@ def startUpMockServer():
 @pytest.fixture(scope="function", autouse=True)
 def configureTarget(startUpMockServer):
     # Set the target
-    cudaq.set_target('quantinuum',
+    cudaq.set_target(TARGET_QPU,
                      url='http://localhost:{}'.format(port),
                      credentials=startUpMockServer,
                      project='mock_project_id')

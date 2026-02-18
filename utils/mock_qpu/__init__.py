@@ -28,3 +28,41 @@ def get_backend_port(backend: str) -> int:
 
 def all_backend_names() -> list[str]:
     return list(MOCK_QPU_PORTS.keys())
+
+
+def start_server(backend: str):
+    """Start the mock QPU backend server."""
+
+    import cudaq
+    import uvicorn
+
+    port = get_backend_port(backend)
+
+    match backend:
+        case "anyon":
+            from .anyon import app
+        case "braket":
+            from .braket import app
+        case "infleqtion":
+            from .infleqtion import app
+        case "ionq":
+            from .ionq import app
+        case "iqm":
+            from .iqm import app
+        case "oqc":
+            from .oqc import app
+        case "qci":
+            from .qci import app
+        case "quantinuum":
+            from .quantinuum import app
+        case "quantum_machines":
+            from .quantum_machines import app
+        case _:
+            # <backend> is in all_backend_names() but not handled!
+            raise ValueError(
+                f"case '{backend}' is not handled in start_mock_qpu.py")
+
+    cudaq.set_random_seed(13)
+
+    print(f"Starting {backend} server on port {port}")
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

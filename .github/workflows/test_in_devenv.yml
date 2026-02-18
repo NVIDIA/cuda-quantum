@@ -250,7 +250,7 @@ jobs:
               exit 1
             fi
             for backendTest in python/tests/backends/*.py; do
-              python -m pytest -v --durations=0  $backendTest
+              MOCK_NO_SKIP=true python -m pytest -v --durations=0  $backendTest
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,
