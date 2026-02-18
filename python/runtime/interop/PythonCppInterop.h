@@ -37,7 +37,7 @@ public:
   template <typename T, typename... As>
     requires QKernelType<T>
   T getEntryPointFunction(As... as) {
-    auto p = getKernelHelper(true, as...);
+    auto p = getKernelHelper(/*isEntryPoint=*/true, as...);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
     return T{fptr};
   }
@@ -49,7 +49,7 @@ public:
   template <typename T, typename... As>
     requires QKernelType<T>
   T getDirectKernelCall(As... as) {
-    auto p = getKernelHelper(false, as...);
+    auto p = getKernelHelper(/*isEntryPoint=*/false, as...);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
     return T{fptr};
   }
