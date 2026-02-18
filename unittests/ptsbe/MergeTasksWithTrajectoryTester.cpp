@@ -17,9 +17,9 @@ using namespace cudaq::ptsbe;
 /// Verify convertTrace handles multi-gate PTSBE trace correctly
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceMultiGate) {
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {TraceInstructionType::Gate, "x", {1}, {0}, {}},
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
   };
 
   auto tasks = convertTrace<double>(ptsbeTrace);
@@ -46,8 +46,8 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceMultiGate) {
 /// Verify convertTrace preserves gate parameters
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTracePreservesParameters) {
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "rx", {0}, {}, {M_PI / 2}},
-      {TraceInstructionType::Gate, "rz", {1}, {}, {M_PI / 4}},
+      {ptsbe::TraceInstructionType::Gate, "rx", {0}, {}, {M_PI / 2}},
+      {ptsbe::TraceInstructionType::Gate, "rz", {1}, {}, {M_PI / 4}},
   };
 
   auto tasks = convertTrace<double>(ptsbeTrace);
@@ -62,15 +62,15 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTracePreservesParameters) {
 /// Verify convertTrace skips Noise and Measurement entries
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceSkipsNoiseAndMeasurement) {
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {TraceInstructionType::Measurement, "mz", {0, 1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Measurement, "mz", {0, 1}, {}, {}},
   };
 
   auto tasks = convertTrace<double>(ptsbeTrace);
@@ -83,8 +83,8 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceSkipsNoiseAndMeasurement) {
 /// Verify mergeTasksWithTrajectory returns gate tasks unchanged when no noise
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoNoiseInsertions) {
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
   KrausTrajectory trajectory(0, {}, 1.0, 100);
@@ -100,14 +100,14 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoNoiseInsertions) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, SingleNoiseInsertion) {
   // Trace: [0] H on q0, [1] Noise(depol) on q0, [2] X on q1
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
   // Z error (index 3) at trace position 1 (the Noise entry)
@@ -129,14 +129,14 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, SingleNoiseInsertion) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, MultipleNoiseEntriesAfterGate) {
   // Trace: [0] H on q0, [1] Noise on q0, [2] Noise on q1
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
@@ -163,7 +163,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MultipleNoiseEntriesAfterGate) {
 /// Verify invalid circuit_location throws error
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
   };
 
   // circuit_location = 5 is beyond the trace
@@ -182,9 +182,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseAtLastPosition) {
   // Trace: [0] H on q0, [1] X on q1, [2] Noise on q1
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
@@ -210,14 +210,14 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseAtLastPosition) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, IdentityNoiseInsertion) {
   // Trace: [0] H on q0, [1] Noise on q0, [2] X on q1
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
   // IDENTITY noise (index 0) at trace position 1
@@ -243,21 +243,21 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, IdentityNoiseInsertion) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, MixedIdentityAndErrorNoise) {
   // Trace: [0] H q0, [1] Noise q0, [2] X q1, [3] Noise q1, [4] Z q0
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "z", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "z", {0}, {}, {}},
   };
 
   // IDENTITY at trace pos 1, Y error (index 2) at trace pos 3
@@ -294,15 +294,15 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, EmptyTrace) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseOnEveryGate) {
   // Trace: [0] H q0, [1] Noise q0, [2] X q1, [3] Noise q1
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
@@ -329,8 +329,8 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseOnEveryGate) {
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, MeasurementsSkipped) {
   // Trace: [0] H q0, [1] Measurement mz q0
   std::vector<TraceInstruction> ptsbeTrace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Measurement, "mz", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}},
   };
 
   KrausTrajectory trajectory(0, {}, 1.0, 100);

@@ -202,6 +202,17 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsResults) {
   EXPECT_EQ(result.get_total_shots(), 1000);
 }
 
+// Kernel with no explicit mz() should implicitly measure all qubits,
+// matching standard cudaq::sample() behavior.
+CUDAQ_TEST(PTSBESampleTest, SampleImplicitMeasureAllQubits) {
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, cudaq::bit_flip_channel(0.1));
+
+  auto result = sample(noise, 500, xOp{});
+  EXPECT_EQ(result.get_total_shots(), 500);
+  EXPECT_GT(result.size(), 0u);
+}
+
 // Test that a batch with valid trace but no trajectories returns empty results
 CUDAQ_TEST(PTSBESampleTest, ExecuteWithEmptyTrajectoriesReturnsEmpty) {
   // Capture a valid trace first

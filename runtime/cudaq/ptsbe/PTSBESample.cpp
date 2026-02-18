@@ -172,8 +172,38 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
 PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
                            const cudaq::noise_model &noise_model) {
   PTSBETrace result;
-  for (const auto &inst : trace)
+  bool hasMeasurement = false;
+  for (const auto &inst : trace) {
+    if (inst.type == cudaq::TraceInstructionType::Measurement)
+      hasMeasurement = true;
     convertTraceInstruction(inst, noise_model, result);
+  }
+
+  // Match standard cudaq::sample() behavior: when the kernel omits explicit
+  // mz() calls, measure all allocated qubits. Append Measurement and any
+  // "mz" noise entries directly to the PTSBE trace.
+  auto n = trace.getNumQudits();
+  if (!hasMeasurement && n > 0) {
+    std::vector<std::size_t> allIds(n);
+    std::iota(allIds.begin(), allIds.end(), 0);
+
+    result.push_back({TraceInstructionType::Measurement, "mz", allIds, {}, {}});
+
+    auto channels = noise_model.get_channels("mz", allIds, {}, {});
+    for (auto &channel : channels) {
+      if (channel.empty())
+        continue;
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
+      result.push_back({TraceInstructionType::Noise,
+                        channel.get_type_name(),
+                        allIds,
+                        {},
+                        {},
+                        std::move(channel)});
+    }
+  }
+
   return result;
 }
 

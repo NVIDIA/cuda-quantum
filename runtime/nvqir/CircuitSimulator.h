@@ -1250,6 +1250,17 @@ public:
     // Flush the Gate Queue
     flushGateQueue();
 
+    // In tracer mode there is no simulator state to apply noise to or
+    // measure. Record the measurement in the kernel trace and return.
+    if (cudaq::isInTracerMode()) {
+      auto regName = registerName.empty()
+                         ? std::nullopt
+                         : std::optional<std::string>(registerName);
+      cudaq::getExecutionContext()->kernelTrace.appendMeasurement(
+          "mz", {cudaq::QuditInfo(2, qubitIdx)}, std::move(regName));
+      return true;
+    }
+
     // Apply measurement noise (if any)
     // Note: gate noises are applied during flushGateQueue
     if (executionContext && executionContext->noiseModel)
@@ -1259,15 +1270,6 @@ public:
     // If sampling, just store the bit, do nothing else.
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
-
-    if (cudaq::isInTracerMode()) {
-      auto regName = registerName.empty()
-                         ? std::nullopt
-                         : std::optional<std::string>(registerName);
-      cudaq::getExecutionContext()->kernelTrace.appendMeasurement(
-          "mz", {cudaq::QuditInfo(2, qubitIdx)}, std::move(regName));
-      return true;
-    }
 
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);

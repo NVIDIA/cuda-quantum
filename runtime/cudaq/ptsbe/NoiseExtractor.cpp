@@ -37,9 +37,10 @@ extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
       continue;
 
     const auto &channel = inst.channel.value();
-    if (validate_unitary_mixture && !channel.is_unitary_mixture()) {
+    if (!channel.is_unitary_mixture()) {
       result.all_unitary_mixtures = false;
-      throwUnitaryMixtureError(inst.name, i);
+      if (validate_unitary_mixture)
+        throwUnitaryMixtureError(inst.name, i);
     }
 
     NoisePoint point;

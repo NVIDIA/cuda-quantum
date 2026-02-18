@@ -52,7 +52,7 @@ CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{TraceInstructionType::Gate, "h", {0}, {}, {}}};
+  batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 100);
@@ -70,7 +70,7 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{TraceInstructionType::Gate, "h", {0}, {}, {}}};
+  batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 1000);
@@ -93,7 +93,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{TraceInstructionType::Gate, "x", {0}, {}, {}}};
+  batch.trace = {{ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
   batch.measureQubits = {0};
 
   KrausTrajectory traj1(0, {}, 0.7, 700);
@@ -117,7 +117,7 @@ CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{TraceInstructionType::Gate, "y", {0}, {}, {}}};
+  batch.trace = {{ptsbe::TraceInstructionType::Gate, "y", {0}, {}, {}}};
   batch.measureQubits = {0};
 
   KrausTrajectory zeroShot(0, {}, 0.5, 0);
@@ -143,7 +143,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   // Test 1: Empty trajectories vector
   {
     PTSBatch batch;
-    batch.trace = {{TraceInstructionType::Gate, "h", {0}, {}, {}}};
+    batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
     batch.measureQubits = {0};
 
     auto results = runPTSBETest(sim, batch);
@@ -153,7 +153,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   // Test 2: Empty measureQubits
   {
     PTSBatch batch;
-    batch.trace = {{TraceInstructionType::Gate, "h", {0}, {}, {}}};
+    batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
     batch.measureQubits = {};
 
     KrausTrajectory traj(0, {}, 1.0, 100);
@@ -170,8 +170,8 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
 
   PTSBatch batch;
   batch.trace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Gate, "x", {1}, {0}, {}},
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
   };
   batch.measureQubits = {0, 1};
 
@@ -200,8 +200,8 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   // Trace: [0] id gate on q0, [1] Noise(depol) on q0
   PTSBatch batch;
   batch.trace = {
-      {TraceInstructionType::Gate, "id", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "id", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
@@ -230,14 +230,14 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   // Trace: [0] X q0, [1] Noise q0, [2] X q1
   PTSBatch batch;
   batch.trace = {
-      {TraceInstructionType::Gate, "x", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
        depolarization_channel(0.1)},
-      {TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
   batch.measureQubits = {0, 1};
 
@@ -268,8 +268,8 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   // Bell state
   PTSBatch batch;
   batch.trace = {
-      {TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {TraceInstructionType::Gate, "x", {1}, {0}, {}},
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
   };
   batch.measureQubits = {0};
 
@@ -294,8 +294,8 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
 
   // q0=1, q1=0
   std::vector<TraceInstruction> trace = {
-      {TraceInstructionType::Gate, "x", {0}, {}, {}},
-      {TraceInstructionType::Gate, "id", {1}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "id", {1}, {}, {}},
   };
 
   // First test: measure in order {0, 1}
@@ -334,8 +334,8 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   // Trace: [0] id gate q0, [1] Noise q0
   PTSBatch batch;
   batch.trace = {
-      {TraceInstructionType::Gate, "id", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "id", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
@@ -368,15 +368,15 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   EXPECT_EQ(result.count("0"), 100u);
 }
 
-/// Readout noise: BitFlip(1.0) applied after measurement flips X|0>=|1> to |0>
+/// Readout noise: bit flip applied after measurement flips X|0>=|1> to |0>
 CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
   QppSimulator sim;
 
   PTSBatch batch;
   batch.trace = {
-      {TraceInstructionType::Gate, "x", {0}, {}, {}},
-      {TraceInstructionType::Measurement, "mz", {0}, {}, {}},
-      {TraceInstructionType::Noise,
+      {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
        "bit_flip",
        {0},
        {},
@@ -417,7 +417,7 @@ CUDAQ_TEST(ExecutePTSBETest, ConceptDispatchAndGenericEquivalence) {
   QppSimulator generic;
 
   PTSBatch batch;
-  batch.trace = {{TraceInstructionType::Gate, "x", {0}, {}, {}}};
+  batch.trace = {{ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 100);

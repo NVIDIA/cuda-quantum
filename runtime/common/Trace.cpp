@@ -60,8 +60,8 @@ void cudaq::Trace::appendMeasurement(std::string_view name,
         ->id;
   };
   numQudits = std::max(numQudits, findMaxID(targets) + 1);
-  instructions.emplace_back(name, /*params=*/{}, /*controls=*/{},
-                            std::move(targets), /*noise_key=*/std::nullopt,
-                            TraceInstructionType::Measurement,
+  instructions.emplace_back(name, std::vector<double>{},
+                            std::vector<QuditInfo>{}, std::move(targets),
+                            std::nullopt, TraceInstructionType::Measurement,
                             std::move(register_name));
 }
