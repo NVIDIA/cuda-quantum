@@ -88,7 +88,7 @@ void validatePTSBEPreconditions(
 /// ordering.
 ///
 /// @param trace PTSBE trace containing Gate, Noise, and Measurement entries
-/// @return Ordered, deduplicated vector of measured qubit indices
+/// @return Ordered, de-duplicated vector of measured qubit indices
 std::vector<std::size_t>
 extractMeasureQubits(std::span<const TraceInstruction> trace);
 
