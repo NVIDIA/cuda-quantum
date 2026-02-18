@@ -130,7 +130,7 @@ jobs:
             cd /workspace/realtime
             source scripts/install_dev_prerequisites.sh
             # Build 
-            apt update && apt install -y --no-install-recommends cmake git
+            apt update && apt install -y --no-install-recommends cmake git ninja-build
             # TEMPORARY: Clone the hololink repository (to test the build of hololink)
             git clone -b nvqlink https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git /workspace/hololink
             source /workspace/realtime/unittests/utils/hololink_test.sh --build --no-run --no-verify --cuda-quantum-dir /workspace --hololink-dir /workspace/hololink
