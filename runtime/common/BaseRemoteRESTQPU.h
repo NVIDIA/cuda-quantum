@@ -14,6 +14,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
+#include "common/JIT.h"
 #include "common/Resources.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -85,11 +86,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   /// @return
   bool isSimulator() override { return emulate; }
-
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override {
-    return codegenTranslation == "qir-adaptive";
-  }
 
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
