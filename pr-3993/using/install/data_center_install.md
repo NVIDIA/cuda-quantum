@@ -2271,6 +2271,19 @@ command
       cp -a "${LLVM_INSTALL_PREFIX}/lib/clang" cuda_quantum_assets/cudaq/lib/
     fi
 
+    # Merge C++ stdlib headers so clang++ can find <cstddef>, <cmath>, etc.
+    if [ -d "${LLVM_INSTALL_PREFIX}/include/c++/v1" ]; then
+      mkdir -p cuda_quantum_assets/cudaq/include/c++
+      cp -a "${LLVM_INSTALL_PREFIX}/include/c++/v1" cuda_quantum_assets/cudaq/include/c++/
+    fi
+    # Per-target header layout: include/<triple>/c++/v1/
+    for d in "${LLVM_INSTALL_PREFIX}/include/"*/c++/v1; do
+      [ -d "$d" ] || continue
+      triple="$(basename "$(dirname "$(dirname "$d")")")"
+      mkdir -p "cuda_quantum_assets/cudaq/include/${triple}/c++"
+      cp -a "$d" "cuda_quantum_assets/cudaq/include/${triple}/c++/"
+    done
+
     # Merge cuQuantum/cuTensor libs and headers.
     # Try both lib64/ and lib/ since different distros use different conventions;
     # || true prevents set -e from aborting when a glob matches nothing.

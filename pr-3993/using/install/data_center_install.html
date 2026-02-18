@@ -1362,6 +1362,19 @@ cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</spa
 <span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/clang&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq/lib/
 <span class="k">fi</span>
 
+<span class="c1"># Merge C++ stdlib headers so clang++ can find &lt;cstddef&gt;, &lt;cmath&gt;, etc.</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/c++/v1&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">  </span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/cudaq/include/c++
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/c++/v1&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq/include/c++/
+<span class="k">fi</span>
+<span class="c1"># Per-target header layout: include/&lt;triple&gt;/c++/v1/</span>
+<span class="k">for</span><span class="w"> </span>d<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*/c++/v1<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$d</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">continue</span>
+<span class="w">  </span><span class="nv">triple</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>basename<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>dirname<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>dirname<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$d</span><span class="s2">&quot;</span><span class="k">)</span><span class="s2">&quot;</span><span class="k">)</span><span class="s2">&quot;</span><span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">  </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;cuda_quantum_assets/cudaq/include/</span><span class="si">${</span><span class="nv">triple</span><span class="si">}</span><span class="s2">/c++&quot;</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$d</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;cuda_quantum_assets/cudaq/include/</span><span class="si">${</span><span class="nv">triple</span><span class="si">}</span><span class="s2">/c++/&quot;</span>
+<span class="k">done</span>
+
 <span class="c1"># Merge cuQuantum/cuTensor libs and headers.</span>
 <span class="c1"># Try both lib64/ and lib/ since different distros use different conventions;</span>
 <span class="c1"># || true prevents set -e from aborting when a glob matches nothing.</span>
