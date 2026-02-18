@@ -65,8 +65,13 @@ public:
     if (executionContext->name == "observe")
       executionContext = &defaultContext;
 
-    auto codes = rawArgs.empty() ? lowerQuakeCode(kernelName, args, {})
-                                 : lowerQuakeCode(kernelName, nullptr, rawArgs);
+    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
+                      noiseModel, emulate);
+    auto codes =
+        rawArgs.empty()
+            ? compiler.lowerQuakeCode(executionContext, kernelName, args, {})
+            : compiler.lowerQuakeCode(executionContext, kernelName, nullptr,
+                                      rawArgs);
     if (codes.size() != 1) {
       throw std::runtime_error("Provider only allows 1 circuit at a time.");
     }
