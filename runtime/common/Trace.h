@@ -18,6 +18,13 @@ namespace cudaq {
 
 struct QuditInfo;
 
+/// @brief Instruction kind in the trace. Default is Gate for backwards
+/// compatibility.
+enum class TraceInstructionType {
+  Gate,
+  Noise,
+};
+
 /// @brief Name used in the trace for apply_noise (inline noise) instructions.
 constexpr std::string_view TRACE_APPLY_NOISE_NAME = "apply_noise";
 
@@ -27,12 +34,13 @@ constexpr std::string_view TRACE_APPLY_NOISE_NAME = "apply_noise";
 /// flow, the trace of a kernel with control flow represents a single execution
 /// path, and thus two calls to the same kernel might produce traces.
 ///
-/// Instructions may be gates or apply_noise (inline noise). When
-/// noise_channel_key is set, the instruction represents apply_noise and the
-/// channel is resolved later via noise_model::get_channel(key, `params`).
+/// Instructions are typed (Gate or Noise). Noise instructions represent
+/// apply_noise; the channel is resolved via noise_model::get_channel(
+/// noise_channel_key, `params`).
 class Trace {
 public:
   struct Instruction {
+    TraceInstructionType type = TraceInstructionType::Gate;
     std::string name;
     std::vector<double> params;
     std::vector<QuditInfo> controls;
@@ -41,9 +49,10 @@ public:
 
     Instruction(std::string_view name, std::vector<double> params,
                 std::vector<QuditInfo> controls, std::vector<QuditInfo> targets,
-                std::optional<std::intptr_t> noise_key = std::nullopt)
-        : name(name), params(params), controls(controls), targets(targets),
-          noise_channel_key(noise_key) {}
+                std::optional<std::intptr_t> noise_key = std::nullopt,
+                TraceInstructionType type = TraceInstructionType::Gate)
+        : type(type), name(name), params(params), controls(controls),
+          targets(targets), noise_channel_key(noise_key) {}
   };
 
   void appendInstruction(std::string_view name, std::vector<double> params,

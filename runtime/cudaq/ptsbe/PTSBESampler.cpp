@@ -47,7 +47,7 @@ std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
   tasks.reserve(trace.getNumInstructions());
   for (const auto &inst : trace) {
     // Skip apply_noise; they become noise insertions only, not gate tasks
-    if (inst.noise_channel_key.has_value())
+    if (inst.type == cudaq::TraceInstructionType::Noise)
       continue;
     tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
   }

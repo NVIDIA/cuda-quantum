@@ -91,7 +91,7 @@ buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
   // Interleave Gate and Noise instructions
   std::size_t gateIdx = 0;
   for (const auto &inst : kernelTrace) {
-    if (inst.noise_channel_key.has_value())
+    if (inst.type == cudaq::TraceInstructionType::Noise)
       continue;
 
     std::vector<std::size_t> targets;

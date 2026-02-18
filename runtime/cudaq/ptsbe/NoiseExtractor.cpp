@@ -58,10 +58,10 @@ NoiseExtractionResult extractNoiseSites(const cudaq::Trace &trace,
   std::size_t instruction_idx = 0;
 
   for (const auto &inst : trace) {
-    if (inst.noise_channel_key.has_value()) {
+    if (inst.type == cudaq::TraceInstructionType::Noise) {
       // Inline apply_noise: insert after the last gate (instruction_idx - 1)
       std::size_t loc = (instruction_idx > 0) ? instruction_idx - 1 : 0;
-      std::intptr_t key = *inst.noise_channel_key;
+      std::intptr_t key = inst.noise_channel_key.value();
       cudaq::kraus_channel channel = noise_model.get_channel(key, inst.params);
       if (channel.empty())
         continue;

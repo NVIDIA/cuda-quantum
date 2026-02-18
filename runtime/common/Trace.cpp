@@ -25,7 +25,8 @@ void cudaq::Trace::appendInstruction(std::string_view name,
   if (!controls.empty())
     maxID = std::max(maxID, findMaxID(controls));
   numQudits = std::max(numQudits, maxID + 1);
-  instructions.emplace_back(name, params, controls, targets, std::nullopt);
+  instructions.emplace_back(name, params, controls, targets, std::nullopt,
+                            TraceInstructionType::Gate);
 }
 
 void cudaq::Trace::appendNoiseInstruction(std::intptr_t noise_channel_key,
@@ -46,5 +47,5 @@ void cudaq::Trace::appendNoiseInstruction(std::intptr_t noise_channel_key,
   numQudits = std::max(numQudits, maxID + 1);
   instructions.emplace_back(std::string(TRACE_APPLY_NOISE_NAME), params,
                             std::move(controls), std::move(targets),
-                            noise_channel_key);
+                            noise_channel_key, TraceInstructionType::Noise);
 }
