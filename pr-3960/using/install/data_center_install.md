@@ -2230,7 +2230,8 @@ following command to build CUDA-Q:
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v && \
-    echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true)
+    echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 :::
 :::
 
