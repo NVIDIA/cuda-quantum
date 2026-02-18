@@ -23,7 +23,86 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_realtime:
+  # build_realtime:
+  #   name: Build 
+  #   strategy:
+  #     matrix:
+  #       platform: [amd64, arm64]
+  #       cuda_version: ['12.6', '13.0']
+  #     fail-fast: false
+  #   runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+  #   permissions:
+  #     contents: read
+  #     packages: read
+
+  #   steps:
+      
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Build CUDA Quantum Realtime
+  #       uses: ./.github/actions/run-in-docker
+  #       with:
+  #         # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
+  #         image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+  #         volume: ${{ github.workspace }}:/workspace
+  #         shell: bash
+  #         run: |
+  #           cd /workspace/realtime
+  #           # Build 
+  #           apt update && apt install -y --no-install-recommends cmake git
+  #           mkdir -p build && cd build
+  #           cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON 
+  #           make -j$(nproc)
+
+  #     - name: 'Tar files'
+  #       run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
+      
+  #     - name: Upload binary artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+  #         path: build_artifacts.tgz
+  #         retention-days: 1
+  #         if-no-files-found: error
+
+  # test_realtime:
+  #   name: Test 
+  #   needs: build_realtime
+  #   strategy:
+  #     matrix:
+  #       platform: [amd64, arm64]
+  #       cuda_version: ['12.6', '13.0']
+  #     fail-fast: false
+  #   runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+  #   permissions:
+  #     contents: read
+  #     packages: read
+
+  #   container:
+  #     # Use a base CUDA runtime image for testing
+  #     image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+
+  #   steps:
+
+  #     - name: Download binary artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+  #         path: ./realtime_build_artifacts
+      
+  #     - name: Extract files
+  #       run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
+      
+  #     - name: Test CUDA Quantum Realtime
+  #       shell: bash
+  #       run: |
+  #         # Install cmake for ctest
+  #         apt update && apt install -y --no-install-recommends cmake 
+  #         cd /workspace/realtime/build
+  #         ctest -V
+
+  build_hololink_test_app:
     name: Build 
     strategy:
       matrix:
@@ -49,57 +128,9 @@ jobs:
           shell: bash
           run: |
             cd /workspace/realtime
-            # Install dependencies
             source scripts/install_dev_prerequisites.sh
             # Build 
             apt update && apt install -y --no-install-recommends cmake git
-            mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON 
-            make -j$(nproc)
-
-      - name: 'Tar files'
-        run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
-      
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
-          path: build_artifacts.tgz
-          retention-days: 1
-          if-no-files-found: error
-
-  test_realtime:
-    name: Test 
-    needs: build_realtime
-    strategy:
-      matrix:
-        platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
-      fail-fast: false
-    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
-    permissions:
-      contents: read
-      packages: read
-
-    container:
-      # Use a base CUDA runtime image for testing
-      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
-
-    steps:
-
-      - name: Download binary artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
-          path: ./realtime_build_artifacts
-      
-      - name: Extract files
-        run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
-      
-      - name: Test CUDA Quantum Realtime
-        shell: bash
-        run: |
-          # Install cmake for ctest
-          apt update && apt install -y --no-install-recommends cmake 
-          cd /workspace/realtime/build
-          ctest -V
+            # TEMPORARY: Clone the hololink repository (to test the build of hololink)
+            git clone -b nvqlink https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git /workspace/hololink
+            source /workspace/realtime/unittests/utils/hololink_test.sh --build --no-run --no-verify --cuda-quantum-dir /workspace --hololink-dir /workspace/hololink
