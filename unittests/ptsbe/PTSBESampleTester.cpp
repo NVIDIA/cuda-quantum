@@ -566,5 +566,39 @@ CUDAQ_TEST(PTSBESampleTest, NoiseCheckSimple) {
   EXPECT_EQ(result.size(), 0);
 }
 
+// ============================================================================
+// READOUT NOISE TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SampleWithMzNoiseBitFlipFullFlip) {
+  cudaq::noise_model noise;
+  noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
+
+  auto result = sample(noise, 1000, xOp{});
+
+  // X|0>=|1>, BitFlip(1.0) on mz flips to "0"
+  EXPECT_GT(result.count("0"), 900u);
+  EXPECT_EQ(result.get_total_shots(), 1000u);
+}
+
+CUDAQ_TEST(PTSBESampleTest, ExecutionDataIncludesMzNoise) {
+  cudaq::noise_model noise;
+  noise.add_channel("mz", {0}, cudaq::bit_flip_channel(0.1));
+
+  sample_options options;
+  options.shots = 100;
+  options.noise = noise;
+  options.ptsbe.return_execution_data = true;
+
+  auto result = sample(options, xOp{});
+
+  ASSERT_TRUE(result.has_execution_data());
+  const auto &data = result.execution_data();
+
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Gate), 1);
+  EXPECT_GE(data.count_instructions(TraceInstructionType::Noise), 1);
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 1);
+}
+
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
        // && !CUDAQ_BACKEND_CUSTATEVEC_FP32

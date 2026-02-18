@@ -142,3 +142,21 @@ def test_depol_zero_no_noise_x_op(x_op_kernel):
     result = cudaq.ptsbe.sample(x_op_kernel, noise_model=noise, shots_count=500)
     assert sum(result.count(bs) for bs in result) == 500
     assert result.probability("1") >= 0.99
+
+
+def test_mz_bit_flip_full_flip(x_op_kernel):
+    cudaq.set_random_seed(42)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("mz", [0], cudaq.BitFlipChannel(1.0))
+    result = cudaq.ptsbe.sample(x_op_kernel, noise_model=noise, shots_count=500)
+    assert sum(result.count(bs) for bs in result) == 500
+    assert result.probability("0") >= 0.99
+
+
+def test_mz_bit_flip_zero_no_effect(x_op_kernel):
+    cudaq.set_random_seed(42)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("mz", [0], cudaq.BitFlipChannel(0.0))
+    result = cudaq.ptsbe.sample(x_op_kernel, noise_model=noise, shots_count=500)
+    assert sum(result.count(bs) for bs in result) == 500
+    assert result.probability("1") >= 0.99

@@ -368,6 +368,37 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   EXPECT_EQ(result.count("0"), 100u);
 }
 
+/// Readout noise: BitFlip(1.0) applied after measurement flips X|0>=|1> to |0>
+CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
+  QppSimulator sim;
+
+  PTSBatch batch;
+  batch.trace = {
+      {TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {TraceInstructionType::Measurement, "mz", {0}, {}, {}},
+      {TraceInstructionType::Noise,
+       "bit_flip",
+       {0},
+       {},
+       {},
+       bit_flip_channel(1.0)},
+  };
+  batch.trace[2].channel->generateUnitaryParameters();
+  batch.measureQubits = {0};
+
+  // X operator (index 1) at trace position 2 (the readout noise entry)
+  std::vector<KrausSelection> selections = {
+      KrausSelection(2, {0}, "mz", static_cast<KrausOperatorType>(1))};
+  KrausTrajectory traj(0, selections, 1.0, 200);
+  batch.trajectories.push_back(traj);
+
+  auto results = runPTSBETest(sim, batch);
+  auto result = aggregateResults(results);
+
+  EXPECT_EQ(result.count("0"), 200u);
+  EXPECT_EQ(result.count("1"), 0u);
+}
+
 /// Mock simulator that implements sampleWithPTSBE for testing concept dispatch.
 class MockPTSBESimulator : public QppSimulator {
 public:
