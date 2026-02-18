@@ -229,35 +229,22 @@ pushd "$assets_parent" >/dev/null
 mkdir -p cuda_quantum_assets
 cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
 
-# Merge LLVM tools into CUDAQ bin/
-cp -a "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/cudaq/bin/
-rm -f cuda_quantum_assets/cudaq/bin/clang-format*
-cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" cuda_quantum_assets/cudaq/bin/
-if [ -f "${LLVM_INSTALL_PREFIX}/bin/ld.lld" ]; then
-  cp -a "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/cudaq/bin/
-fi
+# Bundle the complete LLVM installation in its own subtree so clang's
+# internal path resolution (resource dir, C++ headers, runtime libs) works
+# without custom fallbacks. Preserving the full install also keeps LLVM
+# tools off the user's PATH (only cudaq/bin/ is added by set_env.sh).
+llvm_dest=cuda_quantum_assets/cudaq/lib/llvm
+cp -a "${LLVM_INSTALL_PREFIX}" "${llvm_dest}"
 
-# Merge LLVM libs into CUDAQ lib/ (libc++, libomp, clang resource dir).
-# Also search <triple>/ subdirs for per-target runtime builds.
-cp -a "${LLVM_INSTALL_PREFIX}/lib/libc++"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
-cp -a "${LLVM_INSTALL_PREFIX}/lib/"*/libc++* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
-cp -a "${LLVM_INSTALL_PREFIX}/lib/libomp"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
-cp -a "${LLVM_INSTALL_PREFIX}/lib/"*/libomp* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
-if [ -d "${LLVM_INSTALL_PREFIX}/lib/clang" ]; then
-  cp -a "${LLVM_INSTALL_PREFIX}/lib/clang" cuda_quantum_assets/cudaq/lib/
-fi
-
-# Merge C++ stdlib headers so clang++ can find <cstddef>, <cmath>, etc.
-if [ -d "${LLVM_INSTALL_PREFIX}/include/c++/v1" ]; then
-  mkdir -p cuda_quantum_assets/cudaq/include/c++
-  cp -a "${LLVM_INSTALL_PREFIX}/include/c++/v1" cuda_quantum_assets/cudaq/include/c++/
-fi
-# Per-target header layout: include/<triple>/c++/v1/
-for d in "${LLVM_INSTALL_PREFIX}/include/"*/c++/v1; do
-  [ -d "$d" ] || continue
-  triple="$(basename "$(dirname "$(dirname "$d")")")"
-  mkdir -p "cuda_quantum_assets/cudaq/include/${triple}/c++"
-  cp -a "$d" "cuda_quantum_assets/cudaq/include/${triple}/c++/"
+# Copy runtime libs also to cudaq/lib/ for RPATH compatibility -- CUDAQ
+# binaries in bin/ have RPATH $ORIGIN/../lib and need libc++ etc. there.
+for lib in libc++ libunwind libomp; do
+  cp -a "${llvm_dest}/lib/${lib}"*.dylib* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+  cp -a "${llvm_dest}/lib/${lib}"*.so* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+  for f in "${llvm_dest}/lib/"*/${lib}*; do
+    [ -e "$f" ] || continue
+    cp -a "$f" cuda_quantum_assets/cudaq/lib/
+  done
 done
 
 # Merge cuQuantum/cuTensor libs and headers.

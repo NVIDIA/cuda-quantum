@@ -282,9 +282,11 @@ install_dir="$(
 )"
 llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
-# The installer bundles clang/llc/lld into the same bin/ directory as nvq++.
-# If they're there, use them; otherwise fall back to the LLVM build directory.
-if [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
+# Locate the LLVM toolchain. The installer bundles LLVM under lib/llvm/;
+# fall back to a flat layout or the build-time LLVM directory.
+if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}/lib/llvm"
+elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}"
 else
 	llvm_install_dir="@LLVM_BINARY_DIR@"
