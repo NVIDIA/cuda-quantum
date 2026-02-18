@@ -61,12 +61,9 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
 
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     retTy = decorator.get_none_type()
-    ctx = cudaq_runtime.ExecutionContext("run", shots_count)
-    ctx.kernelName = decorator.uniqName
-    with ctx:
-        return cudaq_runtime.run_impl(decorator.uniqName + ".run", specMod, retTy,
-                                    shots_count, noise_model, qpu_id,
-                                    *processedArgs)
+    return cudaq_runtime.run_impl(decorator.uniqName + ".run", specMod, retTy,
+                                  shots_count, noise_model, qpu_id,
+                                  *processedArgs)
 
 
 def run_async(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):

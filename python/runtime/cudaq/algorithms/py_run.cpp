@@ -58,7 +58,8 @@ getFuncOpAndCheckResult(mlir::ModuleOp mod, const std::string &shortName) {
 static details::RunResultSpan
 pyRunTheKernel(const std::string &name, quantum_platform &platform,
                mlir::ModuleOp mod, mlir::Type retTy, std::size_t shots_count,
-               std::size_t qpu_id, OpaqueArguments &opaques) {
+               std::size_t qpu_id, OpaqueArguments &opaques,
+               bool allowCaching) {
   if (!name.ends_with(".run"))
     throw std::runtime_error("`cudaq.run` only supports runnable kernels.");
   // Set the `run` attribute on the module to indicate this is a run context
@@ -85,7 +86,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
         [[maybe_unused]] auto result =
             clean_launch_module(name, mod, retTy, opaques);
       },
-      platform, name, name, shots_count, layoutInfo, qpu_id);
+      platform, name, name, shots_count, layoutInfo, qpu_id, allowCaching);
 
   return results;
 }
@@ -119,23 +120,12 @@ run_impl(const std::string &shortName, MlirModule module, MlirType returnTy,
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
-  // Enable kernel caching over this launch.
-  if (auto *execCtx = cudaq::getExecutionContext())
-    execCtx->allowJitEngineCaching = true;
-
   auto span = pyRunTheKernel(shortName, platform, mod, retTy, shots_count,
-                             qpu_id, opaques);
+                             qpu_id, opaques, true);
   auto results = pyReadResults(span, mod, shots_count, shortName);
 
   if (noise_model.has_value())
     platform.reset_noise();
-
-  if (auto *execCtx = cudaq::getExecutionContext();
-      execCtx && execCtx->jitEng) {
-    // Cleanup the kernel caching.
-    execCtx->jitEng = std::nullopt;
-    execCtx->allowJitEngineCaching = false;
-  }
 
   return results;
 }
@@ -212,7 +202,7 @@ static async_run_result run_async_impl(const std::string &shortName,
             platform.set_noise(&noise_model.value());
           try {
             auto span = pyRunTheKernel(name, platform, mod, retTy, shots_count,
-                                       qpu_id, opaques);
+                                       qpu_id, opaques, false);
             sp.set_value(span);
             ep.set_value("");
           } catch (std::runtime_error &e) {
