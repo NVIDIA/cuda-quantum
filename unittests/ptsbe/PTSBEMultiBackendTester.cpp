@@ -35,6 +35,14 @@ struct xMzKernel {
   }
 };
 
+struct twoQubitNoMz {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    x(q[0]);
+    x(q[1]);
+  }
+};
+
 } // namespace
 
 CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
@@ -82,4 +90,15 @@ CUDAQ_TEST(PTSBEMultiBackendTest, MzBitFlipFullFlip) {
   EXPECT_GT(result.size(), 0u);
   auto count0 = result.count("0");
   EXPECT_GT(count0, 900u);
+}
+
+CUDAQ_TEST(PTSBEMultiBackendTest, ImplicitMzPerQubitNoise) {
+  cudaq::noise_model noise;
+  noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
+  noise.add_channel("mz", {1}, cudaq::bit_flip_channel(1.0));
+
+  auto result = cudaq::ptsbe::sample(noise, 1000, twoQubitNoMz{});
+
+  EXPECT_EQ(result.get_total_shots(), 1000u);
+  EXPECT_GT(result.count("00"), 900u);
 }

@@ -26,7 +26,7 @@ namespace cudaq::ptsbe {
 /// types are preserved. Gate and measurement entries pass through. Noise
 /// entries (from apply_noise) have their channels resolved via the noise model.
 /// The resulting vector defines the unified index space for circuit_location
-/// referenced byNoisePoint.
+/// referenced by NoisePoint.
 ///
 /// @param trace Raw circuit trace (may contain Gate, Noise, and Measurement)
 /// @param noise_model Noise model used to resolve inline apply_noise channels

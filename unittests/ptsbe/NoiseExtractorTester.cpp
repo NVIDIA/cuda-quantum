@@ -394,3 +394,30 @@ TEST(NoiseExtractorTest, Integration_ComplexCircuitStructure) {
   EXPECT_EQ(result.noise_sites[1].circuit_location, 4);
   EXPECT_EQ(result.noise_sites[2].circuit_location, 8);
 }
+
+TEST(NoiseExtractorTest, ImplicitMeasurementPerQubitNoise) {
+  cudaq::Trace trace;
+  trace.appendInstruction("x", {}, {}, {cudaq::QuditInfo(2, 0)});
+  trace.appendInstruction("x", {}, {}, {cudaq::QuditInfo(2, 1)});
+
+  cudaq::noise_model noise_model;
+  noise_model.add_channel("mz", {0}, cudaq::bit_flip_channel(0.1));
+  noise_model.add_channel("mz", {1}, cudaq::bit_flip_channel(0.2));
+
+  auto ptsbe = buildPTSBETrace(trace, noise_model);
+
+  std::size_t measCount = 0;
+  std::size_t noiseCount = 0;
+  for (const auto &inst : ptsbe) {
+    if (inst.type == TraceInstructionType::Measurement)
+      ++measCount;
+    if (inst.type == TraceInstructionType::Noise)
+      ++noiseCount;
+  }
+  EXPECT_EQ(measCount, 2);
+  EXPECT_EQ(noiseCount, 2);
+
+  auto result = extractNoiseSites(ptsbe);
+  EXPECT_EQ(result.noise_sites.size(), 2);
+  EXPECT_NE(result.noise_sites[0].qubits, result.noise_sites[1].qubits);
+}

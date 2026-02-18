@@ -81,19 +81,6 @@ void cleanupTracerQubits(const Trace &kernelTrace) {
   cudaq::get_simulator()->deallocateQubits(qubitIds);
 }
 
-static TraceInstructionType
-convertInstructionType(cudaq::TraceInstructionType type) {
-  switch (type) {
-  case cudaq::TraceInstructionType::Gate:
-    return TraceInstructionType::Gate;
-  case cudaq::TraceInstructionType::Noise:
-    return TraceInstructionType::Noise;
-  case cudaq::TraceInstructionType::Measurement:
-    return TraceInstructionType::Measurement;
-  }
-  throw std::logic_error("Unknown TraceInstructionType");
-}
-
 static std::vector<std::size_t>
 extractQubitIds(const std::vector<cudaq::QuditInfo> &qudits) {
   std::vector<std::size_t> ids;
@@ -180,27 +167,27 @@ PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
   }
 
   // Match standard cudaq::sample() behavior: when the kernel omits explicit
-  // mz() calls, measure all allocated qubits. Append Measurement and any
-  // "mz" noise entries directly to the PTSBE trace.
+  // mz() calls, measure all allocated qubits. Generate one Measurement + Noise
+  // pair per qubit so that per-qubit noise channels (registered via
+  // add_channel("mz", {q}, ...)) are matched correctly.
   auto n = trace.getNumQudits();
   if (!hasMeasurement && n > 0) {
-    std::vector<std::size_t> allIds(n);
-    std::iota(allIds.begin(), allIds.end(), 0);
+    for (std::size_t q = 0; q < n; ++q) {
+      result.push_back({TraceInstructionType::Measurement, "mz", {q}, {}, {}});
 
-    result.push_back({TraceInstructionType::Measurement, "mz", allIds, {}, {}});
-
-    auto channels = noise_model.get_channels("mz", allIds, {}, {});
-    for (auto &channel : channels) {
-      if (channel.empty())
-        continue;
-      if (!channel.is_unitary_mixture())
-        channel.generateUnitaryParameters();
-      result.push_back({TraceInstructionType::Noise,
-                        channel.get_type_name(),
-                        allIds,
-                        {},
-                        {},
-                        std::move(channel)});
+      auto channels = noise_model.get_channels("mz", {q}, {}, {});
+      for (auto &channel : channels) {
+        if (channel.empty())
+          continue;
+        if (!channel.is_unitary_mixture())
+          channel.generateUnitaryParameters();
+        result.push_back({TraceInstructionType::Noise,
+                          channel.get_type_name(),
+                          {q},
+                          {},
+                          {},
+                          std::move(channel)});
+      }
     }
   }
 
@@ -212,13 +199,7 @@ buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
                                const noise_model &noiseModel) {
   PTSBEExecutionData trace;
 
-  auto ptsbeTrace = buildPTSBETrace(kernelTrace, noiseModel);
-
-  // The PTSBE trace already has Gate, Noise, and Measurement interleaved.
-  // Validation (unitary mixture checks) happens in the batch execution path.
-  for (const auto &inst : ptsbeTrace)
-    trace.instructions.push_back(inst);
-
+  trace.instructions = buildPTSBETrace(kernelTrace, noiseModel);
   return trace;
 }
 

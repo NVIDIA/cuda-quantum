@@ -46,6 +46,11 @@ convertTrace(std::span<const TraceInstruction> ptsbeTrace) {
 template <typename ScalarType>
 GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
                                           const TraceInstruction &noiseInst) {
+  if (noiseInst.type != TraceInstructionType::Noise || !noiseInst.channel)
+    throw std::runtime_error(
+        "krausSelectionToTask: expected Noise instruction with a channel at "
+        "circuit_location " +
+        std::to_string(sel.circuit_location));
   const auto &channel = noiseInst.channel.value();
   auto k = static_cast<std::size_t>(sel.kraus_operator_index);
   const auto &unitaryDouble = channel.unitary_ops.at(k);
