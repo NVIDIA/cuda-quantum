@@ -10,19 +10,11 @@
 
 namespace cudaq {
 
-namespace internal {
-constexpr const char version[] = "@CUDA_QUANTUM_VERSION@";
-constexpr const char fullRepositoryVersion[] =
-    "https://github.com/NVIDIA/cuda-quantum @CUDA_QUANTUM_COMMIT_SHA@";
-} // namespace internal
-
 /// Get the CUDA-Q version.
-inline const char *getVersion() { return internal::version; }
+const char *getVersion();
 
 /// Get the CUDA-Q full repository revision info.
-inline const char *getFullRepositoryVersion() {
-  return internal::fullRepositoryVersion;
-}
+const char *getFullRepositoryVersion();
 
 /// A generic bug report message.
 constexpr const char *bugReportMsg =
