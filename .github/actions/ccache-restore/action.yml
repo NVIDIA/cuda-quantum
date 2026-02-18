@@ -89,3 +89,7 @@ runs:
           echo "No ccache found; starting fresh."
         fi
         echo "restored=$restored" >> $GITHUB_OUTPUT
+
+        # Zero stats after restore so ccache -s only reflects the current run
+        # (the restored tarball includes stale stats from the previous run).
+        ccache -z 2>/dev/null || true
