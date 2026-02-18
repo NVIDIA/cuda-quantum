@@ -145,9 +145,6 @@ jobs:
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v
 
-      - name: Run tests
-        run: bash scripts/run_tests.sh -v
-
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
         with:
@@ -155,6 +152,9 @@ jobs:
           cache-path: ${{ env.CCACHE_DIR }}
           registry-token: ${{ github.token }}
           upload-log: 'true'
+
+      - name: Run tests
+        run: bash scripts/run_tests.sh -v
 
   # ============================================================================
   # Build Python wheels for all supported Python versions
