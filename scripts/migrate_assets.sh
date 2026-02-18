@@ -288,7 +288,8 @@ if $install; then
 fi
 
 this_file="$(realpath "${BASH_SOURCE[0]}")"
-remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$build_config"`)
+install_script="$(dirname "$this_file")/install.sh"
+remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$install_script" -not -path "$build_config"`)
 if [ ! ${#remaining_files[@]} -eq 0 ]; then
     rel_paths=(${remaining_files[@]##$assets/})
     components=(`echo "${rel_paths[@]%%/*}" | tr ' ' '\n' | uniq`)

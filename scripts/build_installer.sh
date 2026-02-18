@@ -226,6 +226,7 @@ pushd "$assets_parent" >/dev/null
 # All dependencies are merged into the CUDAQ installation directory so that
 # existing relative RPATHs ($ORIGIN/../lib, @loader_path/../lib) cover
 # everything and no hardcoded absolute paths are needed.
+mkdir -p cuda_quantum_assets
 cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
 
 # Merge LLVM tools into CUDAQ bin/
