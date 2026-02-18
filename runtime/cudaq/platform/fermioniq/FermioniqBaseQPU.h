@@ -45,10 +45,10 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
-    launchImpl(kernelName, [&](Compiler &compiler) {
+    launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
       return rawArgs.empty()
-                 ? compiler.lowerQuakeCode(kernelName, args, {})
-                 : compiler.lowerQuakeCode(kernelName, nullptr, rawArgs);
+                 ? compiler.lowerQuakeCode(ctx, kernelName, args, {})
+                 : compiler.lowerQuakeCode(ctx, kernelName, nullptr, rawArgs);
     });
     return {};
   }
@@ -63,8 +63,8 @@ public:
                                      const std::vector<void *> &rawArgs,
                                      mlir::Type resTy) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})", kernelName);
-    launchImpl(kernelName, [&](Compiler &compiler) {
-      return compiler.lowerQuakeCode(kernelName, module, rawArgs);
+    launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+      return compiler.lowerQuakeCode(ctx, kernelName, module, rawArgs);
     });
     return {};
   }
@@ -72,7 +72,9 @@ public:
 private:
   void
   launchImpl(const std::string &kernelName,
-             std::function<std::vector<KernelExecution>(Compiler &)> lower) {
+             std::function<std::vector<KernelExecution>(Compiler &,
+                                                        ExecutionContext *)>
+                 lower) {
     auto *executionContext = getExecutionContext();
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -81,28 +83,24 @@ private:
           "cudaq::observe(), or cudaq::contrib::draw().");
 
     // When the user issues an observe call, we don't want to use the default
-    // cuda-quantum behaviour that splits up the circuit into several ansatz
-    // sub circuit.
-    // So before calling lowerQuakeCode, we create a temporary "sample"
-    // executionContext.
-    // Once the codes are generated, we reset it.
-    cudaq::ExecutionContext defaultContext("sample", 1);
-    cudaq::ExecutionContext *originalContext = nullptr;
-    if (executionContext->name == "observe") {
-      originalContext = executionContext;
-      cudaq::detail::setExecutionContext(&defaultContext);
-    }
+    // CUDA-Q behaviour that splits up the circuit into several ansatz
+    // sub circuit. Instead, we pass a "sample" context to the compiler to
+    // prevent circuit splitting. This target handles observable evaluation
+    // server-side.
+    cudaq::ExecutionContext sampleContext("sample", 1);
+    ExecutionContext *compileCtx = (executionContext->name == "observe")
+                                       ? &sampleContext
+                                       : executionContext;
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = lower(compiler);
+    auto codes = lower(compiler, compileCtx);
 
     if (codes.size() != 1)
       throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
-    if (originalContext && originalContext->name == "observe") {
-
-      auto spin = originalContext->spin.value();
+    if (executionContext->name == "observe") {
+      auto spin = executionContext->spin.value();
       auto user_data = nlohmann::json::object();
       auto obs = nlohmann::json::array();
       for (const auto &term : spin) {
@@ -120,11 +118,6 @@ private:
     }
 
     completeLaunchKernel(kernelName, std::move(codes));
-
-    if (originalContext) {
-      originalContext->result = defaultContext.result;
-      cudaq::detail::setExecutionContext(originalContext);
-    }
   }
 };
 } // namespace cudaq
