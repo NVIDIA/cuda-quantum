@@ -80,4 +80,3 @@ def test_ptsbe_sample_non_integer_shots_raises(depol_noise, bell_kernel):
 def test_mcm_kernel_rejected(depol_noise, mcm_kernel_fixture):
     with pytest.raises(RuntimeError, match="conditional feedback|measurement"):
         cudaq.ptsbe.sample(mcm_kernel_fixture, noise_model=depol_noise)
-
