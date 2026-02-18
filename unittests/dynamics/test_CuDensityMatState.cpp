@@ -278,3 +278,76 @@ TEST_F(CuDensityMatStateTest, SingleQubitDensityMatrixIndexing) {
   EXPECT_THROW(state(0, {2, 0}), std::runtime_error);
   EXPECT_THROW(state(0, {0, 2}), std::runtime_error);
 }
+
+TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
+  const std::vector<std::complex<double>> rhoRowMajor = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  cudaq::complex_matrix rhoRow(rhoRowMajor, {2, 2},
+                               cudaq::complex_matrix::order::row_major);
+
+  using RowMajorMatrix = Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
+                                       Eigen::Dynamic, Eigen::RowMajor>;
+
+  CuDensityMatState prototype;
+  auto stateRow = prototype.createFromData(cudaq::state_data(rhoRow));
+  auto *cudmRow = dynamic_cast<CuDensityMatState *>(stateRow.get());
+  ASSERT_NE(cudmRow, nullptr);
+  cudmRow->initialize_cudm(handle, {2}, /*batchSize=*/1);
+  EXPECT_TRUE(cudmRow->is_density_matrix());
+
+  RowMajorMatrix hostRow(2, 2);
+  cudmRow->toHost(hostRow.data(), 4);
+  EXPECT_NEAR(hostRow(0, 0).real(), 1.0, 1e-12);
+  EXPECT_NEAR(hostRow(0, 0).imag(), 0.0, 1e-12);
+  EXPECT_NEAR(hostRow(1, 0).real(), 0.0, 1e-12);
+  EXPECT_NEAR(hostRow(0, 1).real(), 0.0, 1e-12);
+  EXPECT_NEAR(hostRow(1, 1).real(), 0.0, 1e-12);
+
+  const std::vector<std::complex<double>> rhoColMajor = {
+      {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  cudaq::complex_matrix rhoCol(rhoColMajor, {2, 2},
+                               cudaq::complex_matrix::order::column_major);
+
+  auto stateCol = prototype.createFromData(cudaq::state_data(rhoCol));
+  auto *cudmCol = dynamic_cast<CuDensityMatState *>(stateCol.get());
+  ASSERT_NE(cudmCol, nullptr);
+  cudmCol->initialize_cudm(handle, {2}, /*batchSize=*/1);
+  EXPECT_TRUE(cudmCol->is_density_matrix());
+
+  RowMajorMatrix hostCol(2, 2);
+  cudmCol->toHost(hostCol.data(), 4);
+  EXPECT_NEAR(hostCol(0, 0).real(), 1.0, 1e-12);
+  EXPECT_NEAR(hostCol(1, 0).real(), 0.0, 1e-12);
+  EXPECT_NEAR(hostCol(0, 1).real(), 0.0, 1e-12);
+  EXPECT_NEAR(hostCol(1, 1).real(), 0.0, 1e-12);
+
+  const std::vector<std::complex<double>> matRowFlat = {
+      {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}};
+  cudaq::complex_matrix matRow(matRowFlat, {2, 2},
+                               cudaq::complex_matrix::order::row_major);
+  auto stateOffRow = prototype.createFromData(cudaq::state_data(matRow));
+  auto *cudmOffRow = dynamic_cast<CuDensityMatState *>(stateOffRow.get());
+  ASSERT_NE(cudmOffRow, nullptr);
+  cudmOffRow->initialize_cudm(handle, {2}, /*batchSize=*/1);
+  RowMajorMatrix hostOffRow(2, 2);
+  cudmOffRow->toHost(hostOffRow.data(), 4);
+  EXPECT_NEAR(hostOffRow(0, 0).real(), 1.0, 1e-12);
+  EXPECT_NEAR(hostOffRow(0, 1).real(), 2.0, 1e-12);
+  EXPECT_NEAR(hostOffRow(1, 0).real(), 3.0, 1e-12);
+  EXPECT_NEAR(hostOffRow(1, 1).real(), 4.0, 1e-12);
+
+  const std::vector<std::complex<double>> matColFlat = {
+      {1.0, 0.0}, {3.0, 0.0}, {2.0, 0.0}, {4.0, 0.0}};
+  cudaq::complex_matrix matCol(matColFlat, {2, 2},
+                               cudaq::complex_matrix::order::column_major);
+  auto stateOffCol = prototype.createFromData(cudaq::state_data(matCol));
+  auto *cudmOffCol = dynamic_cast<CuDensityMatState *>(stateOffCol.get());
+  ASSERT_NE(cudmOffCol, nullptr);
+  cudmOffCol->initialize_cudm(handle, {2}, /*batchSize=*/1);
+  RowMajorMatrix hostOffCol(2, 2);
+  cudmOffCol->toHost(hostOffCol.data(), 4);
+  EXPECT_NEAR(hostOffCol(0, 0).real(), 1.0, 1e-12);
+  EXPECT_NEAR(hostOffCol(0, 1).real(), 2.0, 1e-12);
+  EXPECT_NEAR(hostOffCol(1, 0).real(), 3.0, 1e-12);
+  EXPECT_NEAR(hostOffCol(1, 1).real(), 4.0, 1e-12);
+}
