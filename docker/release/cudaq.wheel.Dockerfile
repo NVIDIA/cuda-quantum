@@ -45,7 +45,7 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         echo "No ccache data injected using empty scratch stage."; \
     fi
 RUN echo "Building MLIR bindings for python${python_version}" && \
-    python${python_version} -m pip install --no-cache-dir numpy && \
+    CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy && \
     rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
     Python3_EXECUTABLE="$(which python${python_version})" \
     LLVM_PROJECTS='clang;mlir;python-bindings' \

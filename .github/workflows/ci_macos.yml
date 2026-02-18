@@ -130,7 +130,7 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Install Python dependencies
-        run: pip install -r requirements-dev.txt
+        run: CCACHE_DISABLE=1 pip install -r requirements-dev.txt
 
       - name: Build MLIR Python bindings
         run: |
@@ -208,7 +208,7 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Install Python dependencies
-        run: pip install -r requirements-dev.txt
+        run: CCACHE_DISABLE=1 pip install -r requirements-dev.txt
 
       - name: Build MLIR Python bindings
         run: |
@@ -341,7 +341,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
+          CCACHE_DISABLE=1 pip install -r requirements-dev.txt
           brew install makeself
 
       - name: Build MLIR Python bindings
