@@ -11,7 +11,9 @@
 #include "ShotAllocationStrategy.h"
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
+#include <algorithm>
 #include <numeric>
+#include <span>
 #include <unordered_map>
 
 namespace cudaq {
@@ -56,12 +58,16 @@ void validatePTSBEPreconditions(quantum_platform &platform,
   // from cudaq.apply_noise() in the kernel.
 }
 
-std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
+std::vector<std::size_t>
+extractMeasureQubits(std::span<const TraceInstruction> trace) {
   std::vector<std::size_t> qubits;
-  auto numQubits = trace.getNumQudits();
-  qubits.reserve(numQubits);
-  for (std::size_t i = 0; i < numQubits; ++i) {
-    qubits.push_back(i);
+  for (const auto &inst : trace) {
+    if (inst.type != TraceInstructionType::Measurement)
+      continue;
+    for (auto id : inst.targets) {
+      if (std::find(qubits.begin(), qubits.end(), id) == qubits.end())
+        qubits.push_back(id);
+    }
   }
   return qubits;
 }
@@ -106,10 +112,13 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
   if (inst.type == cudaq::TraceInstructionType::Noise) {
     std::intptr_t key = inst.noise_channel_key.value();
     cudaq::kraus_channel channel = noise_model.get_channel(key, inst.params);
-    if (!channel.empty())
+    if (!channel.empty()) {
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
       result.push_back({TraceInstructionType::Noise,
                         std::string(cudaq::TRACE_APPLY_NOISE_NAME), targets,
                         controls, inst.params, std::move(channel)});
+    }
     return;
   }
 
@@ -124,6 +133,8 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
     for (auto &channel : channels) {
       if (channel.empty())
         continue;
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
       result.push_back({TraceInstructionType::Noise,
                         channel.get_type_name(),
                         noiseQubits,
@@ -145,6 +156,8 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
     for (auto &channel : channels) {
       if (channel.empty())
         continue;
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
       result.push_back({TraceInstructionType::Noise,
                         channel.get_type_name(),
                         targets,
@@ -156,10 +169,9 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
   }
 }
 
-std::vector<TraceInstruction>
-buildPTSBETrace(const cudaq::Trace &trace,
-                const cudaq::noise_model &noise_model) {
-  std::vector<TraceInstruction> result;
+PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
+                           const cudaq::noise_model &noise_model) {
+  PTSBETrace result;
   for (const auto &inst : trace)
     convertTraceInstruction(inst, noise_model, result);
   return result;
@@ -217,11 +229,11 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
                                        const PTSBEOptions &options,
                                        std::size_t shots) {
   PTSBatch batch;
-  batch.measureQubits = extractMeasureQubits(kernelTrace);
 
-  // 1. Build PTSBE trace and extract noise sites
-  auto ptsbeTrace = buildPTSBETrace(kernelTrace, noiseModel);
-  auto noiseResult = extractNoiseSites(ptsbeTrace);
+  // 1. Build PTSBE trace, derive measure qubits, extract noise sites
+  batch.trace = buildPTSBETrace(kernelTrace, noiseModel);
+  batch.measureQubits = extractMeasureQubits(batch.trace);
+  auto noiseResult = extractNoiseSites(batch.trace);
 
   // 2. Generate trajectories via the configured strategy (or default)
   auto strategy = options.strategy
@@ -235,8 +247,6 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
   if (!batch.trajectories.empty() && shots > 0)
     allocateShots(batch.trajectories, shots, options.shot_allocation);
 
-  batch.noise_sites = std::move(noiseResult.noise_sites);
-  batch.kernelTrace = std::move(kernelTrace);
   return batch;
 }
 

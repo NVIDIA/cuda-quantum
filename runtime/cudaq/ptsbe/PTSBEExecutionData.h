@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -74,6 +75,18 @@ struct TraceInstruction {
         channel(std::move(channel)) {}
 };
 
+/// @brief Alias for the PTSBE instruction sequence.
+using PTSBETrace = std::vector<TraceInstruction>;
+
+/// @brief Number of qubits referenced in a trace (max qubit ID + 1).
+/// Returns 0 for an empty trace.
+std::size_t numQubits(std::span<const TraceInstruction> trace);
+
+/// @brief Count instructions matching the given type and optional name.
+std::size_t countInstructions(std::span<const TraceInstruction> trace,
+                              TraceInstructionType type,
+                              std::optional<std::string> name = std::nullopt);
+
 /// @brief Container for PTSBE execution data including circuit structure,
 /// trajectory specifications, and per-trajectory measurement outcomes.
 ///
@@ -86,7 +99,7 @@ struct TraceInstruction {
 /// the noise locations within the instructions.
 struct PTSBEExecutionData {
   /// @brief Ordered circuit operations (gates, noise channels, measurements)
-  std::vector<TraceInstruction> instructions;
+  PTSBETrace instructions;
 
   /// @brief The sampled trajectories
   std::vector<cudaq::KrausTrajectory> trajectories;

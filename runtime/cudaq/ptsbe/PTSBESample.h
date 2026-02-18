@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "NoiseExtractor.h"
 #include "PTSBEExecutionData.h"
 #include "PTSBEOptions.h"
 #include "PTSBESampleResult.h"
@@ -38,6 +39,7 @@
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include <future>
 #include <optional>
+#include <span>
 #include <stdexcept>
 
 namespace cudaq::ptsbe {
@@ -78,14 +80,17 @@ void validatePTSBEPreconditions(
     quantum_platform &platform,
     std::optional<std::size_t> qpu_id = std::nullopt);
 
-/// @brief Extract measurement qubits from kernel trace
+/// @brief Extract measured qubit IDs from the trace's Measurement entries.
 ///
-/// For PTSBE POC, assumes terminal measurements on all qubits in the circuit.
-/// Future work may extract explicit measurement operations from the trace.
+/// Scans the trace for Measurement instructions and collects their target
+/// qubit IDs in the order they first appear. Duplicates are suppressed so
+/// each qubit appears at most once while preserving the kernel's measurement
+/// ordering.
 ///
-/// @param trace Captured kernel trace
-/// @return Vector of qubit indices [0, 1, ..., numQubits-1]
-std::vector<std::size_t> extractMeasureQubits(const Trace &trace);
+/// @param trace PTSBE trace containing Gate, Noise, and Measurement entries
+/// @return Ordered, deduplicated vector of measured qubit indices
+std::vector<std::size_t>
+extractMeasureQubits(std::span<const TraceInstruction> trace);
 
 /// @brief Deallocate qubit IDs leaked by the tracer context on the simulator
 ///
@@ -230,13 +235,14 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 ///
 /// Helper function that captures trace and builds PTSBatch without dispatching.
 /// Used by tests to verify trace capture and batch construction independently
-/// of execution.
+/// of execution. Builds the PTSBE trace with an empty noise model (no Noise
+/// entries). To build with a noise model, use buildPTSBatchWithTrajectories.
 ///
 /// @tparam QuantumKernel Quantum kernel type
 /// @tparam Args Kernel argument types
 /// @param kernel Quantum kernel to trace
 /// @param args Kernel arguments
-/// @return PTSBatch with kernelTrace, empty trajectories, and measureQubits
+/// @return PTSBatch with trace, empty trajectories, and measureQubits
 /// @throws std::runtime_error if MCM detected
 template <typename QuantumKernel, typename... Args>
 PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
@@ -249,9 +255,10 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   auto kernelName = cudaq::getKernelName(kernel);
   validatePTSBEKernel(kernelName, traceCtx);
 
+  static const cudaq::noise_model kEmptyNoiseModel;
   PTSBatch batch;
-  batch.kernelTrace = std::move(traceCtx.kernelTrace);
-  batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
+  batch.trace = buildPTSBETrace(traceCtx.kernelTrace, kEmptyNoiseModel);
+  batch.measureQubits = extractMeasureQubits(batch.trace);
   return batch;
 }
 

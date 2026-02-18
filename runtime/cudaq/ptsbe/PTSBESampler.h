@@ -9,8 +9,7 @@
 #pragma once
 
 #include "KrausTrajectory.h"
-#include "PTSSamplingStrategy.h"
-#include "common/Trace.h"
+#include "PTSBEExecutionData.h"
 #include <concepts>
 #include <cstddef>
 #include <string>
@@ -20,13 +19,10 @@ namespace cudaq::ptsbe {
 
 /// @brief Batch specification for PTSBE execution
 struct PTSBatch {
-  /// @brief Captured kernel circuit
-  cudaq::Trace kernelTrace;
-
-  /// @brief Noise sites from extractNoiseSites(trace, noiseModel).
-  /// Each NoisePoint carries the kraus_channel used to resolve trajectory
-  /// selections to unitary matrices during execution.
-  std::vector<NoisePoint> noise_sites;
+  /// @brief PTSBE instruction sequence (Gate, Noise, Measurement interleaved
+  /// with resolved channels). Built by buildPTSBETrace from the raw kernel
+  /// trace and noise model. All downstream execution code works from this.
+  PTSBETrace trace;
 
   /// @brief Sampled noise trajectories
   std::vector<cudaq::KrausTrajectory> trajectories;
@@ -37,12 +33,7 @@ struct PTSBatch {
   std::vector<std::size_t> measureQubits;
 
   /// @brief Calculate total shots across all trajectories
-  std::size_t totalShots() const {
-    std::size_t total = 0;
-    for (const auto &traj : trajectories)
-      total += traj.num_shots;
-    return total;
-  }
+  std::size_t totalShots() const;
 };
 
 /// @brief Concept for simulators supporting a customized PTSBE implementation
@@ -72,7 +63,7 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 /// Caller must have set up ExecutionContext and allocated qubits
 /// on the simulator before calling this function.
 ///
-/// @param batch PTSBatch with kernelTrace, trajectories, and measureQubits
+/// @param batch PTSBatch with trace, trajectories, and measureQubits
 /// @return Per-trajectory sample results
 /// @throws std::runtime_error if simulator cast fails or contract violated
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);

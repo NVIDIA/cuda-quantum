@@ -30,10 +30,9 @@ namespace cudaq::ptsbe {
 ///
 /// @param trace Raw circuit trace (may contain Gate, Noise, and Measurement)
 /// @param noise_model Noise model used to resolve inline apply_noise channels
-/// @return Vector of all instructions with resolved channels for Noise entries
-[[nodiscard]] std::vector<TraceInstruction>
-buildPTSBETrace(const cudaq::Trace &trace,
-                const cudaq::noise_model &noise_model);
+/// @return PTSBETrace with resolved channels for Noise entries
+[[nodiscard]] PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
+                                         const cudaq::noise_model &noise_model);
 
 /// @brief Result of noise site extraction from a circuit
 struct NoiseExtractionResult {
@@ -56,12 +55,10 @@ struct NoiseExtractionResult {
 ///
 /// Scans the PTSBE trace (produced by buildPTSBETrace) for Noise-type entries
 /// and creates NoisePoints from them. All channels are already resolved in the
-/// trace; this function validates unitary mixture properties and collects
+/// trace. Validates unitary mixture properties and collects
 /// noise sites with their trace positions as circuit_location.
 ///
-/// @param ptsbeTrace PTSBE trace from buildPTSBETrace (Gate, Noise,
-/// Measurement)
-/// @param validate_unitary_mixture If true, throws if any channel is not a
+/// @param ptsbeTrace PTSBE trace from buildPTSBETrace
 ///                                 unitary mixture (default: true). PTSBE
 ///                                 requires all channels to be unitary
 ///                                 mixtures.

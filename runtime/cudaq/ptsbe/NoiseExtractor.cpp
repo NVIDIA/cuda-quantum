@@ -36,10 +36,8 @@ extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
     if (!inst.channel.has_value() || inst.channel->empty())
       continue;
 
-    auto channel = *inst.channel;
-    if (!channel.is_unitary_mixture())
-      channel.generateUnitaryParameters();
-    if (!channel.is_unitary_mixture()) {
+    const auto &channel = inst.channel.value();
+    if (validate_unitary_mixture && !channel.is_unitary_mixture()) {
       result.all_unitary_mixtures = false;
       throwUnitaryMixtureError(inst.name, i);
     }
@@ -48,7 +46,7 @@ extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
     point.circuit_location = i;
     point.op_name = inst.name;
     point.qubits = inst.targets;
-    point.channel = std::move(channel);
+    point.channel = channel;
     result.noise_sites.push_back(std::move(point));
     result.noisy_instructions++;
   }

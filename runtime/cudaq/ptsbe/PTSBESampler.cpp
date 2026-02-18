@@ -9,45 +9,34 @@
 #include "PTSBESamplerImpl.h"
 #include "cudaq/simulators.h"
 #include <numeric>
+#include <span>
 #include <stdexcept>
 
 namespace cudaq::ptsbe {
 
 template <typename ScalarType>
-GateTask<ScalarType>
-convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
-  // Convert parameters to ScalarType
+GateTask<ScalarType> convertToSimulatorTask(const TraceInstruction &inst) {
   std::vector<ScalarType> typedParams;
   typedParams.reserve(inst.params.size());
   for (auto p : inst.params)
     typedParams.push_back(static_cast<ScalarType>(p));
 
-  // Look up gate matrix from registry (throws for unknown gates)
   auto gateName = nvqir::getGateNameFromString(inst.name);
   auto matrix = nvqir::getGateByName<ScalarType>(gateName, typedParams);
 
-  // Extract qubit IDs from QuditInfo
-  std::vector<std::size_t> controls;
-  controls.reserve(inst.controls.size());
-  for (const auto &q : inst.controls)
-    controls.push_back(q.id);
-
-  std::vector<std::size_t> targets;
-  targets.reserve(inst.targets.size());
-  for (const auto &q : inst.targets)
-    targets.push_back(q.id);
-
-  return GateTask<ScalarType>(inst.name, matrix, controls, targets,
+  return GateTask<ScalarType>(inst.name, matrix, inst.controls, inst.targets,
                               typedParams);
 }
 
 template <typename ScalarType>
-std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
+std::vector<GateTask<ScalarType>>
+convertTrace(std::span<const TraceInstruction> ptsbeTrace) {
   std::vector<GateTask<ScalarType>> tasks;
-  tasks.reserve(trace.getNumInstructions());
-  for (const auto &inst : trace) {
-    // Skip apply_noise; they become noise insertions only, not gate tasks
-    if (inst.type == cudaq::TraceInstructionType::Noise)
+  tasks.reserve(ptsbeTrace.size());
+  for (const auto &inst : ptsbeTrace) {
+    if (inst.type == TraceInstructionType::Noise)
+      continue;
+    if (inst.type == TraceInstructionType::Measurement)
       continue;
     tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
   }
@@ -56,64 +45,55 @@ std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace) {
 
 template <typename ScalarType>
 GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
-                                          const NoisePoint &noiseSite) {
+                                          const TraceInstruction &noiseInst) {
+  const auto &channel = noiseInst.channel.value();
   auto k = static_cast<std::size_t>(sel.kraus_operator_index);
-  const auto &unitaryDouble = noiseSite.channel.unitary_ops.at(k);
+  const auto &unitaryDouble = channel.unitary_ops.at(k);
   std::vector<std::complex<ScalarType>> matrix;
   matrix.reserve(unitaryDouble.size());
   for (const auto &elem : unitaryDouble)
     matrix.emplace_back(static_cast<ScalarType>(elem.real()),
                         static_cast<ScalarType>(elem.imag()));
   std::string opName;
-  if (k < noiseSite.channel.op_names.size())
-    opName = noiseSite.channel.op_names[k];
+  if (k < channel.op_names.size())
+    opName = channel.op_names[k];
   else
-    opName = noiseSite.channel.get_type_name() + "[" + std::to_string(k) + "]";
+    opName = channel.get_type_name() + "[" + std::to_string(k) + "]";
   return GateTask<ScalarType>(opName, matrix, {}, sel.qubits, {});
 }
 
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
-mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
-                         const cudaq::KrausTrajectory &trajectory,
-                         const std::vector<NoisePoint> &noiseSites) {
+mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
+                         const cudaq::KrausTrajectory &trajectory) {
   const auto &selections = trajectory.kraus_selections;
 
   std::vector<GateTask<ScalarType>> merged;
-  merged.reserve(baseTasks.size() + selections.size());
+  merged.reserve(ptsbeTrace.size());
 
   std::size_t noiseIdx = 0;
-  for (std::size_t gateIdx = 0; gateIdx < baseTasks.size(); ++gateIdx) {
-    merged.push_back(baseTasks[gateIdx]);
+  for (std::size_t i = 0; i < ptsbeTrace.size(); ++i) {
+    const auto &inst = ptsbeTrace[i];
 
-    // Insert all noise for this gate location
+    if (inst.type == TraceInstructionType::Gate)
+      merged.push_back(convertToSimulatorTask<ScalarType>(inst));
+
     while (noiseIdx < selections.size() &&
-           selections[noiseIdx].circuit_location == gateIdx) {
-      merged.push_back(krausSelectionToTask<ScalarType>(selections[noiseIdx],
-                                                        noiseSites[noiseIdx]));
+           selections[noiseIdx].circuit_location == i) {
+      merged.push_back(
+          krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
       ++noiseIdx;
     }
   }
 
-  // Validate: any remaining noise has invalid circuit_location
   if (noiseIdx < selections.size()) {
     throw std::runtime_error(
         "Invalid circuit_location: " +
         std::to_string(selections[noiseIdx].circuit_location) +
-        " >= " + std::to_string(baseTasks.size()));
+        " >= " + std::to_string(ptsbeTrace.size()));
   }
 
   return merged;
-}
-
-template <typename ScalarType>
-std::vector<GateTask<ScalarType>>
-mergeAndConvert(const cudaq::Trace &kernelTrace,
-                const cudaq::KrausTrajectory &trajectory,
-                const std::vector<NoisePoint> &noiseSites) {
-  auto baseTasks = convertTrace<ScalarType>(kernelTrace);
-  return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory,
-                                              noiseSites);
 }
 
 // ---------------------------------------------------------------------------
@@ -121,38 +101,39 @@ mergeAndConvert(const cudaq::Trace &kernelTrace,
 // ---------------------------------------------------------------------------
 
 template GateTask<float>
-convertToSimulatorTask<float>(const cudaq::Trace::Instruction &);
+convertToSimulatorTask<float>(const TraceInstruction &);
 template GateTask<double>
-convertToSimulatorTask<double>(const cudaq::Trace::Instruction &);
+convertToSimulatorTask<double>(const TraceInstruction &);
 
-template std::vector<GateTask<float>> convertTrace<float>(const cudaq::Trace &);
+template std::vector<GateTask<float>>
+    convertTrace<float>(std::span<const TraceInstruction>);
 template std::vector<GateTask<double>>
-convertTrace<double>(const cudaq::Trace &);
+    convertTrace<double>(std::span<const TraceInstruction>);
 
 template GateTask<float>
-krausSelectionToTask<float>(const cudaq::KrausSelection &, const NoisePoint &);
+krausSelectionToTask<float>(const cudaq::KrausSelection &,
+                            const TraceInstruction &);
 template GateTask<double>
-krausSelectionToTask<double>(const cudaq::KrausSelection &, const NoisePoint &);
+krausSelectionToTask<double>(const cudaq::KrausSelection &,
+                             const TraceInstruction &);
 
 template std::vector<GateTask<float>>
-mergeTasksWithTrajectory<float>(const std::vector<GateTask<float>> &,
-                                const cudaq::KrausTrajectory &,
-                                const std::vector<NoisePoint> &);
+mergeTasksWithTrajectory<float>(std::span<const TraceInstruction>,
+                                const cudaq::KrausTrajectory &);
 template std::vector<GateTask<double>>
-mergeTasksWithTrajectory<double>(const std::vector<GateTask<double>> &,
-                                 const cudaq::KrausTrajectory &,
-                                 const std::vector<NoisePoint> &);
-
-template std::vector<GateTask<float>>
-mergeAndConvert<float>(const cudaq::Trace &, const cudaq::KrausTrajectory &,
-                       const std::vector<NoisePoint> &);
-template std::vector<GateTask<double>>
-mergeAndConvert<double>(const cudaq::Trace &, const cudaq::KrausTrajectory &,
-                        const std::vector<NoisePoint> &);
+mergeTasksWithTrajectory<double>(std::span<const TraceInstruction>,
+                                 const cudaq::KrausTrajectory &);
 
 // ---------------------------------------------------------------------------
 // Non-template implementations
 // ---------------------------------------------------------------------------
+
+std::size_t PTSBatch::totalShots() const {
+  std::size_t total = 0;
+  for (const auto &traj : trajectories)
+    total += traj.num_shots;
+  return total;
+}
 
 cudaq::sample_result
 aggregateResults(const std::vector<cudaq::sample_result> &results) {
@@ -186,14 +167,11 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
   if (batch.measureQubits.empty())
     return {};
 
-  auto baseTasks = convertTrace<ScalarType>(batch.kernelTrace);
-
   std::vector<cudaq::sample_result> results;
   results.reserve(batch.trajectories.size());
 
   for (const auto &traj : batch.trajectories) {
     if (traj.num_shots == 0) {
-      // Push empty result to maintain index correspondence with trajectories
       results.push_back(cudaq::sample_result{
           cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
       continue;
@@ -201,8 +179,7 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
     simulator.setToZeroState();
 
-    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(baseTasks, traj,
-                                                            batch.noise_sites);
+    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(batch.trace, traj);
 
     for (const auto &task : mergedTasks)
       simulator.applyGate(task);
@@ -264,7 +241,7 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
   cudaq::ExecutionContext ctx(contextType, batch.totalShots());
   cudaq::detail::setExecutionContext(&ctx);
   sim->configureExecutionContext(ctx);
-  sim->allocateQubits(batch.kernelTrace.getNumQudits());
+  sim->allocateQubits(numQubits(batch.trace));
 
   auto results = samplePTSBE(batch);
 
@@ -274,7 +251,7 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
   sim->finalizeExecutionContext(ctx);
   cudaq::detail::resetExecutionContext();
 
-  std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
+  std::vector<std::size_t> qubitIds(numQubits(batch.trace));
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   sim->deallocateQubits(qubitIds);
 
