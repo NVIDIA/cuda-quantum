@@ -10,6 +10,7 @@
 
 #include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
+#include "common/JIT.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
@@ -48,9 +49,6 @@ public:
   std::thread::id getExecutionThreadId() const {
     return execution_queue->getExecutionThreadId();
   }
-
-  // Conditional feedback is handled by the server side.
-  virtual bool supportsConditionalFeedback() override { return true; }
 
   // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
