@@ -23,6 +23,7 @@ struct QuditInfo;
 enum class TraceInstructionType {
   Gate,
   Noise,
+  Measurement,
 };
 
 /// @brief Name used in the trace for apply_noise (inline noise) instructions.
@@ -46,13 +47,16 @@ public:
     std::vector<QuditInfo> controls;
     std::vector<QuditInfo> targets;
     std::optional<std::intptr_t> noise_channel_key;
+    std::optional<std::string> register_name;
 
     Instruction(std::string_view name, std::vector<double> params,
                 std::vector<QuditInfo> controls, std::vector<QuditInfo> targets,
                 std::optional<std::intptr_t> noise_key = std::nullopt,
-                TraceInstructionType type = TraceInstructionType::Gate)
+                TraceInstructionType type = TraceInstructionType::Gate,
+                std::optional<std::string> register_name = std::nullopt)
         : type(type), name(name), params(params), controls(controls),
-          targets(targets), noise_channel_key(noise_key) {}
+          targets(targets), noise_channel_key(noise_key),
+          register_name(std::move(register_name)) {}
   };
 
   void appendInstruction(std::string_view name, std::vector<double> params,
@@ -64,6 +68,11 @@ public:
                               std::vector<double> params,
                               std::vector<QuditInfo> controls,
                               std::vector<QuditInfo> targets);
+
+  /// @brief Append a measurement instruction to the trace.
+  void
+  appendMeasurement(std::string_view name, std::vector<QuditInfo> targets,
+                    std::optional<std::string> register_name = std::nullopt);
 
   auto getNumQudits() const { return numQudits; }
 

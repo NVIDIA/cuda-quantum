@@ -1260,8 +1260,14 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
-    if (cudaq::isInTracerMode())
+    if (cudaq::isInTracerMode()) {
+      auto regName = registerName.empty()
+                         ? std::nullopt
+                         : std::optional<std::string>(registerName);
+      cudaq::getExecutionContext()->kernelTrace.appendMeasurement(
+          "mz", {cudaq::QuditInfo(2, qubitIdx)}, std::move(regName));
       return true;
+    }
 
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);
