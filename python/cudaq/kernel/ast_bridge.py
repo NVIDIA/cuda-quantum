@@ -356,9 +356,14 @@ def recover_kernel_decorator(name):
     from .kernel_decorator import isa_kernel_decorator
     for frameinfo in inspect.stack():
         frame = frameinfo.frame
+        if frame.f_code.co_name == '<listcomp>':
+            continue
         if name in frame.f_locals:
-            if isa_kernel_decorator(frame.f_locals[name]):
-                return frame.f_locals[name]
+            val = frame.f_locals[name]
+            if isinstance(val, ast.AST):
+                continue
+            if isa_kernel_decorator(val):
+                return val
             return None
         if name in frame.f_globals:
             if isa_kernel_decorator(frame.f_globals[name]):

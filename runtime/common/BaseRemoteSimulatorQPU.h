@@ -50,9 +50,6 @@ public:
     return execution_queue->getExecutionThreadId();
   }
 
-  // Conditional feedback is handled by the server side.
-  virtual bool supportsConditionalFeedback() override { return true; }
-
   // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
     return m_client->getRemoteCapabilities();
