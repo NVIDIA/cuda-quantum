@@ -93,3 +93,9 @@ runs:
         # Zero stats after restore so ccache -s only reflects the current run
         # (the restored tarball includes stale stats from the previous run).
         ccache -z 2>/dev/null || true
+
+        # Record baseline file count so ccache-push can compute the delta.
+        ccache_dir="${CCACHE_DIR:-$HOME/.ccache}"
+        if [ -d "$ccache_dir" ]; then
+          find "$ccache_dir" -type f | wc -l | tr -d ' ' > "$ccache_dir/_restore_file_count.txt"
+        fi
