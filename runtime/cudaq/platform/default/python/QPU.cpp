@@ -252,10 +252,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     return result;
   }
 
-  void *
-  specializeModule(const std::string &name, ModuleOp module,
-                   const std::vector<void *> &rawArgs, Type resultTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine) override {
+  void *specializeModule(const std::string &name, ModuleOp module,
+                         const std::vector<void *> &rawArgs, Type resultTy,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     // In this launch scenario, we have a ModuleOp that has the entry-point
     // kernel, but needs to be merged with anything else it may call. The
     // merging of modules mirrors the late binding and dynamic scoping of the
@@ -271,9 +271,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
     if (!funcOp)
       throw std::runtime_error("no kernel named " + name + " found in module");
-
-    auto isPureDevice = funcOp->hasAttr("cudaq_puredevice");
-    llvm::outs() << "Is pure device? " << isPureDevice << "\n";
 
     // 2. Merge other modules (e.g., if there are device kernel calls).
     cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
@@ -291,7 +288,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     if (enablePythonCodegenDump)
       module.dump();
     specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
-                     !isPureDevice);
+                     isEntryPoint);
 
     // 4. Execute the code right here, right now.
     auto jit = cudaq::createQIRJITEngine(module, "qir:");
@@ -300,7 +297,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cachedEngine = jit;
 
     std::string entryName =
-        (resultTy && !isPureDevice) ? name + ".thunk" : fullName;
+        (resultTy && isEntryPoint) ? name + ".thunk" : fullName;
     auto funcPtr = jit.lookupRawNameOrFail(entryName);
     return reinterpret_cast<void *>(funcPtr);
   }
