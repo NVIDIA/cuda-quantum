@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel.cuh"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_modes.h"
-#include "cudaq/nvqlink/daemon/dispatcher/kernel_types.h"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
+#include "cudaq/realtime/daemon/dispatcher/kernel_types.h"
 
 #include <cuda_runtime.h>
 #include <cuda_device_runtime_api.h>
 #include <cstdint>
 
-namespace cudaq::nvqlink {
+namespace cudaq::realtime {
 
 //==============================================================================
 // Dispatch Kernel Implementation (compiled into libcudaq-realtime.so)
@@ -370,7 +370,7 @@ __global__ void dispatch_kernel_with_graph(
   }
 }
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::realtime
 
 //==============================================================================
 // Host Launch Functions
@@ -383,7 +383,7 @@ extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
   int num_blocks = 0;
   cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &num_blocks,
-      cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>,
+      cudaq::realtime::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>,
       threads_per_block, 0);
   if (err != cudaSuccess) return err;
   if (out_blocks) *out_blocks = num_blocks;
@@ -395,7 +395,7 @@ extern "C" cudaError_t cudaq_dispatch_kernel_cooperative_query_occupancy(
   int num_blocks = 0;
   cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &num_blocks,
-      cudaq::nvqlink::dispatch_kernel_device_call_only<
+      cudaq::realtime::dispatch_kernel_device_call_only<
           cudaq::realtime::CooperativeKernel>,
       threads_per_block, 0);
   if (err != cudaSuccess) return err;
@@ -423,7 +423,7 @@ extern "C" void cudaq_launch_dispatch_kernel_regular(
   // not passed to the kernel since it reads RX addresses from rx_flags.
   (void)rx_data;
   (void)rx_stride_sz;
-  cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>
+  cudaq::realtime::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>
       <<<num_blocks, threads_per_block, 0, stream>>>(
           rx_flags, tx_flags, tx_data, tx_stride_sz,
           function_table, func_count,
@@ -461,7 +461,7 @@ extern "C" void cudaq_launch_dispatch_kernel_cooperative(
 
   cudaLaunchCooperativeKernel(
       reinterpret_cast<void*>(
-          cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::CooperativeKernel>),
+          cudaq::realtime::dispatch_kernel_device_call_only<cudaq::realtime::CooperativeKernel>),
       dim3(num_blocks), dim3(threads_per_block), kernel_args, 0, stream);
 }
 
@@ -490,7 +490,7 @@ struct cudaq_dispatch_graph_context {
   std::size_t tx_stride_sz;
   cudaq_function_entry_t* function_table;
   std::size_t func_count;
-  cudaq::nvqlink::GraphIOContext* graph_io_ctx;
+  cudaq::realtime::GraphIOContext* graph_io_ctx;
   volatile int* shutdown_flag;
   std::uint64_t* stats;
   std::size_t num_slots;
@@ -530,7 +530,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   ctx->function_table = function_table;
   ctx->func_count = func_count;
   ctx->graph_io_ctx =
-      static_cast<cudaq::nvqlink::GraphIOContext*>(graph_io_ctx_raw);
+      static_cast<cudaq::realtime::GraphIOContext*>(graph_io_ctx_raw);
   ctx->shutdown_flag = shutdown_flag;
   ctx->stats = stats;
   ctx->num_slots = num_slots;
@@ -558,7 +558,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   };
   
   kernel_params.func = reinterpret_cast<void*>(
-      cudaq::nvqlink::dispatch_kernel_with_graph<cudaq::realtime::RegularKernel>);
+      cudaq::realtime::dispatch_kernel_with_graph<cudaq::realtime::RegularKernel>);
   kernel_params.gridDim = dim3(num_blocks, 1, 1);
   kernel_params.blockDim = dim3(threads_per_block, 1, 1);
   kernel_params.sharedMemBytes = 0;

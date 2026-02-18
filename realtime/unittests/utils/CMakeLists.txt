@@ -143,7 +143,7 @@ add_executable(hololink_fpga_playback
   hololink_fpga_playback.cpp)
 
 target_include_directories(hololink_fpga_playback
-  PRIVATE ${CUDAQ_NVQLINK_INCLUDE_DIR})
+  PRIVATE ${CUDAQ_REALTIME_INCLUDE_DIR})
 
 target_link_libraries(hololink_fpga_playback
   PRIVATE Threads::Threads)
@@ -185,7 +185,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     CUDA_STANDARD 17)
 
   target_include_directories(rpc_increment_ft PRIVATE
-    ${CUDAQ_NVQLINK_INCLUDE_DIR}
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS})
 
   # Bridge executable (.cpp, linked with CUDA)
@@ -200,7 +200,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   target_include_directories(hololink_bridge
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
-      ${CUDAQ_NVQLINK_INCLUDE_DIR}
+      ${CUDAQ_REALTIME_INCLUDE_DIR}
       ${CUDAToolkit_INCLUDE_DIRS})
 
   # Link order: static archives first, then shared
