@@ -12375,16 +12375,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1ac9fdfb6b9fd22acc4207c48a0162c480 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[supportsConditionalFeedback]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU27supportsConditionalFeedbackEv "Permalink to this definition"){.headerlink}\
-
-    :   Return whether this [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} has
-        conditional feedback support.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1a7dbeada25331aff921bc06b047ed49b6 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[supportsExplicitMeasurements]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv "Permalink to this definition"){.headerlink}\
 
     :   Return whether this [[QPU]{.std
@@ -12651,16 +12641,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     []{#classcudaq_1_1quantum__platform_1ae2a1d0d5b1db7cf6816b2700f6f275e6 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_simulator]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform12is_simulatorENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return whether this platform is a simulator.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1aeac440481aa3ac34614d6aeef6aea0f0 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_conditional_feedback]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Return whether the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} has
-        conditional feedback support.
 
     ```{=html}
     <!-- -->
