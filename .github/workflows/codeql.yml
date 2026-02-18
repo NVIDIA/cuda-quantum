@@ -106,7 +106,7 @@ jobs:
           - name: Check CodeQL Status
             run: |
                 # Poll for CodeQL check to complete (API can lag after analyze job finishes)
-                max_attempts=6
+                max_attempts=24
                 attempt=0
                 conclusion=""
                 while [ $attempt -lt $max_attempts ]; do
