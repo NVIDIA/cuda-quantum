@@ -503,6 +503,7 @@ jobs:
           ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/nightly || echo ''`
           dev_image_name=${registry}/${{ vars.packages_prefix }}cuda-quantum-dev
           image_name=${ngc_registry:-$registry}/${{ vars.packages_prefix }}cuda-quantum
+          image_name_src="${image_name/cuda-quantum/cuda-quantum-src}"
           image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
@@ -521,6 +522,7 @@ jobs:
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_name_src=$image_name_src" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
@@ -648,7 +650,7 @@ jobs:
         if: success() && !cancelled() && inputs.environment != ''
         uses: docker/metadata-action@v5
         with:
-          images: ${{ replace(steps.prereqs.outputs.image_name, 'cuda-quantum', 'cuda-quantum-src') }}
+          images: ${{ steps.prereqs.outputs.image_name_src }}
           flavor: |
             latest=false
             suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
