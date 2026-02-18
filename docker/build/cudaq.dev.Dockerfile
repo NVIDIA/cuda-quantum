@@ -64,7 +64,8 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         ccache -z 2>/dev/null || true && \
         find /root/.ccache -type f | wc -l | tr -d ' ' > /root/.ccache/_restore_file_count.txt; \
     else \
-        echo "No ccache data injected using empty scratch stage."; \
+        echo "No ccache data injected using empty scratch stage." && \
+        mkdir -p /root/.ccache; \
     fi && \
     if [ -n "$install" ]; \
     then \
