@@ -80,8 +80,7 @@ template <typename KT, typename ALGO, typename... As>
   requires QKernelType<KT> && std::invocable<ALGO, KT>
 auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
   cudaq::python::CppPyKernelDecorator decorator(qern);
-  auto entryPoint =
-      decorator.getDirectKernelCall<KT>(std::forward<As>(as)...);
+  auto entryPoint = decorator.getDirectKernelCall<KT>(std::forward<As>(as)...);
   return algo(std::move(entryPoint));
 }
 

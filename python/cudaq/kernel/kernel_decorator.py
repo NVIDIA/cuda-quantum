@@ -526,6 +526,7 @@ class PyKernelDecorator(object):
         passed to algorithms written in C++ that call back to these Python
         kernels in a functional composition.
         """
+        # TODO: there's probably a nicer way to do this
         if isPureDevice:
             for operation in self.qkeModule.body.operations:
                 if operation.name.value.endswith(self.uniqName):
@@ -533,7 +534,6 @@ class PyKernelDecorator(object):
                         "cudaq_puredevice",
                         UnitAttr.get(context=operation.context))
                     break
-        #self.kernelFunction.attributes.__setitem__('cudaq_puredevice', UnitAttr.get())
         specialized_module, processedArgs = self.handle_call_arguments(
             *args, allow_no_args=True)
         mlirTy = self.handle_call_results()
