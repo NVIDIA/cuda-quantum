@@ -105,20 +105,26 @@ jobs:
                 gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
           - name: Check CodeQL Status
             run: |
-                response=$(gh api graphql -f query='
-                  {
-                    repository(owner: "${{ github.event.repository.owner.login }}", name: "${{ github.event.repository.name }}") {
-                      pullRequest(number: ${{ github.event.pull_request.number }}) {
-                        commits(last: 1) {
-                          nodes {
-                            commit {
-                              checkSuites(first: 1, filterBy: {checkName: "CodeQL"}) {
-                                nodes {
-                                  checkRuns(first: 1) {
-                                    nodes {
-                                      name
-                                      status
-                                      conclusion
+                # Poll for CodeQL check to complete (API can lag after analyze job finishes)
+                max_attempts=6
+                attempt=0
+                conclusion=""
+                while [ $attempt -lt $max_attempts ]; do
+                  response=$(gh api graphql -f query='
+                    {
+                      repository(owner: "${{ github.event.repository.owner.login }}", name: "${{ github.event.repository.name }}") {
+                        pullRequest(number: ${{ github.event.pull_request.number }}) {
+                          commits(last: 1) {
+                            nodes {
+                              commit {
+                                checkSuites(first: 1, filterBy: {checkName: "CodeQL"}) {
+                                  nodes {
+                                    checkRuns(first: 1) {
+                                      nodes {
+                                        name
+                                        status
+                                        conclusion
+                                      }
                                     }
                                   }
                                 }
@@ -128,11 +134,19 @@ jobs:
                         }
                       }
                     }
-                  }
-                ')
-                conclusion=$(echo $response | jq -r '.data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[0].checkRuns.nodes[0].conclusion')
-                  if [ "$conclusion" != "SUCCESS" ]; then
-                    echo "$response"
-                    echo "CodeQL check failed"
-                    exit 1
+                  ')
+                  conclusion=$(echo "$response" | jq -r '.data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[0].checkRuns.nodes[0].conclusion')
+                  status=$(echo "$response" | jq -r '.data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[0].checkRuns.nodes[0].status')
+                  if [ "$conclusion" != "null" ] && [ -n "$conclusion" ]; then
+                    break
                   fi
+                  attempt=$((attempt + 1))
+                  echo "CodeQL check status=$status conclusion=$conclusion (attempt $attempt/$max_attempts), waiting 10s..."
+                  sleep 10
+                done
+                if [ "$conclusion" != "SUCCESS" ]; then
+                  echo "$response"
+                  echo "CodeQL check failed (conclusion=$conclusion)"
+                  exit 1
+                fi
+                echo "CodeQL check passed."
