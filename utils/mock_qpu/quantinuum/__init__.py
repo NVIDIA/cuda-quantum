@@ -358,7 +358,7 @@ async def get_results(result_id: str):
 
 
 # NG device results retrieval endpoint (`qsys_results`)
-@app.get("/api/qsys_results/v1beta/{result_id}")
+@app.get("/api/qsys_results/v1beta2/partial/{result_id}")
 async def get_results(result_id: str, version: int):
     # Version can only be 3 (default)
     if version not in [3]:
