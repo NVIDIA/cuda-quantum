@@ -51,10 +51,38 @@ runs:
           exit 0
         fi
 
-        # Print full stats and check miss rate if ccache is available
-        if command -v ccache &>/dev/null; then
+        # Collect stats: prefer _build_stats.txt from Docker export,
+        # fall back to querying ccache on the host (native builds).
+        stats_file="$cache_path/_build_stats.txt"
+        if [ -f "$stats_file" ]; then
+          echo "=== ccache stats (from Docker build) ==="
+          cat "$stats_file"
+          stats=$(cat "$stats_file")
+        elif command -v ccache &>/dev/null; then
           echo "=== ccache stats ==="
           ccache -s 2>/dev/null || true
+          stats=$(ccache --print-stats 2>/dev/null || true)
+        else
+          stats=""
+        fi
+
+        # Parse miss/hit counts from --print-stats (tab-separated) or -s output
+        if [ -n "$stats" ]; then
+          cache_miss=$(echo "$stats" | awk -F'\t' '$1=="cache_miss"{print $2}')
+          if [ -n "$cache_miss" ]; then
+            direct_hit=$(echo "$stats" | awk -F'\t' '$1=="direct_cache_hit"{print $2}')
+            preproc_hit=$(echo "$stats" | awk -F'\t' '$1=="preprocessed_cache_hit"{print $2}')
+            cache_hit=$((${direct_hit:-0} + ${preproc_hit:-0}))
+          else
+            cache_miss=$(echo "$stats" | grep "cache miss" | grep -o '[0-9]*' | head -1)
+            cache_hit=$(echo "$stats" | grep "cache hit" | grep -o '[0-9]*' | head -1)
+          fi
+        fi
+
+        total=$((${cache_hit:-0} + ${cache_miss:-0}))
+        if [ "$total" -gt 0 ]; then
+          miss_pct=$((cache_miss * 100 / total))
+          echo "ccache miss rate: ${miss_pct}% ($cache_miss misses / $total total)"
         fi
 
         # Always push on the default branch to keep the baseline fresh
@@ -62,37 +90,27 @@ runs:
         default_branch="${default_branch:-main}"
         is_default_branch=$( [ "${{ github.ref_name }}" = "$default_branch" ] && echo true || echo false )
 
-        if [ "$miss_threshold" -gt 0 ] 2>/dev/null && ! $is_default_branch && command -v ccache &>/dev/null; then
-          # Use --print-stats for machine-readable output (ccache 4.4+).
-          # Format: tab-separated key\tvalue lines.
-          stats=$(ccache --print-stats 2>/dev/null || true)
-          if [ -n "$stats" ]; then
-            cache_miss=$(echo "$stats" | awk -F'\t' '$1=="cache_miss"{print $2}')
-            direct_hit=$(echo "$stats" | awk -F'\t' '$1=="direct_cache_hit"{print $2}')
-            preproc_hit=$(echo "$stats" | awk -F'\t' '$1=="preprocessed_cache_hit"{print $2}')
-            cache_hit=$((${direct_hit:-0} + ${preproc_hit:-0}))
-          else
-            # Fallback for ccache 3.x: parse human-readable output
-            cache_miss=$(ccache -s 2>/dev/null | grep "cache miss" | grep -o '[0-9]*' | head -1)
-            cache_hit=$(ccache -s 2>/dev/null | grep "cache hit" | grep -o '[0-9]*' | head -1)
-          fi
-          total=$((${cache_hit:-0} + ${cache_miss:-0}))
-          if [ "$total" -gt 0 ]; then
-            miss_pct=$((cache_miss * 100 / total))
-            echo "ccache miss rate: ${miss_pct}% ($cache_miss misses / $total total)"
-            if [ "$miss_pct" -lt "$miss_threshold" ]; then
-              echo "Miss rate below ${miss_threshold}%; skipping push."
-              echo "pushed=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          else
+        if $is_default_branch; then
+          echo "On default branch ($default_branch); always pushing to keep baseline fresh."
+        elif [ "$miss_threshold" -gt 0 ] 2>/dev/null; then
+          if [ "$total" -eq 0 ]; then
             echo "No compilations detected; skipping push."
             echo "pushed=false" >> $GITHUB_OUTPUT
             exit 0
+          elif [ "$miss_pct" -lt "$miss_threshold" ]; then
+            echo "Miss rate below ${miss_threshold}%; skipping push."
+            echo "pushed=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
-        elif $is_default_branch; then
-          echo "On default branch ($default_branch); always pushing to keep baseline fresh."
         fi
+
+        # Extract log and stats from cache dir before tarring so they
+        # don't bloat the GHCR artifact. The log is placed where the
+        # upload-artifact step expects it.
+        if [ -f "$cache_path/ccache.log" ]; then
+          mv "$cache_path/ccache.log" "${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
+        fi
+        rm -f "$stats_file"
 
         # Determine tag
         repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')

@@ -36,11 +36,13 @@ ARG python_version=3.10
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
         echo "Importing ccache data..." && \
         mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
-        ccache -s 2>/dev/null || true; \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true; \
     else \
         echo "No ccache data injected using empty scratch stage."; \
     fi
@@ -61,7 +63,8 @@ RUN cd /cuda-quantum && \
         -o wheelhouse \
         -a assets \
         -v && \
-    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true)
+    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 
 # Export ccache data so CI can extract it for persistence.
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-out

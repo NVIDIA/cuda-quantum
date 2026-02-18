@@ -74,11 +74,13 @@ RUN cd /cuda-quantum && git init && \
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
         echo "Importing ccache data..." && \
         mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
-        ccache -s 2>/dev/null || true; \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true; \
     else \
         echo "No ccache data injected using empty scratch stage."; \
     fi
@@ -152,7 +154,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v && \
-    echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true)
+    echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
     ## [<CUDAQuantumCppBuild]
 
 # Validate that the nvidia backend was built.
