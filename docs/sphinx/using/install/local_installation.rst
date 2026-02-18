@@ -283,7 +283,7 @@ source following the instructions in :doc:`data_center_install`.
 You can download the ``install_cuda_quantum`` file for your platform from
 the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
 
-- **Linux**: ``install_cuda_quantum_cu12.<arch>`` or ``install_cuda_quantum_cu13.<arch>`` (where ``<arch>`` is ``x86_64`` or ``aarch64``)
+- **Linux**: ``install_cuda_quantum_cu12.<arch>`` or ``install_cuda_quantum_cu13.<arch>`` (where `<arch>` is `x86_64` or `aarch64`)
 - **macOS**: ``install_cuda_quantum_darwin.arm64`` (CPU-only, Apple silicon)
 
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
