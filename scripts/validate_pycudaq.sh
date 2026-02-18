@@ -20,6 +20,7 @@
 #   -i <packages_dir>: Directory containing wheel files (--find-links)
 #   -p <python_version>: Python version (default: 3.11)
 #   -q: Quick test mode (only run core tests)
+#   -F: Force fresh venv (macOS only; delete and recreate instead of reusing)
 #
 # Examples:
 #   # From repo root with auto-detection:
@@ -35,18 +36,32 @@
 #   COPY python/README.md.in /tmp/README.md
 #
 # Note: To run target tests, set the necessary API keys (IONQ_API_KEY, etc.)
+#
+# TODO: Unify wheel validation around this script. Currently:
+#   - ci_macos.yml uses this script (auto-detects from repo, runs everything)
+#   - publishing.yml uses this script (selective dir copy to /tmp, no targets/)
+#   - python_wheels.yml does NOT use this script; it runs pytest, snippets,
+#     and examples directly with explicit `find` exclusions in Docker containers.
+# The goal is to have all wheel validation run through this script, replacing the
+# inline find/pytest commands in python_wheels.yml. Use -q for quick
+# (core pytest only, suitable for per-PR CI) and full mode for publishing.
+# This avoids duplicating skip logic between the script and workflow files.
 
 __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":c:f:i:p:qv:" opt; do
+fresh_venv=false
+while getopts ":c:f:Fi:p:qv:" opt; do
     case $opt in
     c)
         cuda_version_conda="$OPTARG"
         ;;
     f)
         root_folder="$OPTARG"
+        ;;
+    F)
+        fresh_venv=true
         ;;
     p)
         python_version="$OPTARG"
@@ -67,6 +82,26 @@ while getopts ":c:f:i:p:qv:" opt; do
     esac
 done
 OPTIND=$__optind__
+
+# Sanitize environment: unset variables that could leak build-tree or
+# system-installed CUDA-Q libraries into the validation environment.
+# Without this, DYLD_LIBRARY_PATH from a prior build step can cause the
+# wheel to load libraries from _skbuild/ instead of its own bundled copies,
+# masking packaging bugs.
+SANITIZE_VARS="
+DYLD_LIBRARY_PATH
+DYLD_FALLBACK_LIBRARY_PATH
+LD_LIBRARY_PATH
+CUDAQ_INSTALL_PREFIX
+CUDA_QUANTUM_PATH
+PYTHONPATH
+"
+
+for var in $SANITIZE_VARS; do
+    unset "$var"
+done
+
+echo "Environment sanitized (unset: $SANITIZE_VARS)"
 
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
@@ -89,13 +124,16 @@ if [ -z "$root_folder" ]; then
         rm -rf "${staging_dir:?}"
         mkdir -p "$staging_dir"
 
-        # Symlink test files to staging (mirrors CI copy structure)
-        ln -sf "$readme_src" "$staging_dir/README.md"
-        ln -sf "$repo_root/python/tests" "$staging_dir/tests"
-        ln -sf "$repo_root/docs/sphinx/examples/python" "$staging_dir/examples"
-        ln -sf "$repo_root/docs/sphinx/snippets/python" "$staging_dir/snippets"
+        # Copy test files to staging (mirrors CI copy structure).
+        # Use cp -r instead of symlinks for robustness: find(1) may not
+        # follow initial symlinks in all environments, and CI runners may
+        # have different filesystem semantics.
+        cp -f "$readme_src" "$staging_dir/README.md"
+        cp -r "$repo_root/python/tests" "$staging_dir/tests"
+        cp -r "$repo_root/docs/sphinx/examples/python" "$staging_dir/examples"
+        cp -r "$repo_root/docs/sphinx/snippets/python" "$staging_dir/snippets"
         if [ -d "$repo_root/docs/sphinx/targets/python" ]; then
-            ln -sf "$repo_root/docs/sphinx/targets/python" "$staging_dir/targets"
+            cp -r "$repo_root/docs/sphinx/targets/python" "$staging_dir/targets"
         fi
 
         root_folder="$staging_dir"
@@ -111,12 +149,40 @@ fi
 
 echo "Using test root folder: $root_folder"
 
-# Detect platform
+# Detect platform and GPU availability
 is_macos=false
+has_cuda=false
 if [ "$(uname)" = "Darwin" ]; then
     is_macos=true
     echo "macOS detected: running CPU-only validation"
+else
+    if [ -x "$(command -v nvidia-smi)" ] && nvidia-smi &>/dev/null; then
+        has_cuda=true
+    fi
 fi
+if ! $has_cuda; then
+    echo "No CUDA GPU detected: GPU-dependent tests will be skipped"
+fi
+
+# Check if a Python file requires a GPU target that is not available.
+# Returns 0 (true) if the file should be skipped, 1 (false) otherwise.
+requires_unavailable_gpu_target() {
+    local file="$1"
+    if $has_cuda; then
+        return 1
+    fi
+    local targets
+    targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
+    for t in $targets; do
+        case "$t" in
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
+                echo "Skipping $file (requires GPU target '$t')"
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
 
 # Check that the `cuda_version_conda` is a full version string like "12.8.0" (Linux only)
 if ! $is_macos && ! [[ $cuda_version_conda =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -142,8 +208,13 @@ if $is_macos; then
     # macOS: use venv (simpler, no conda ToS issues, no MPI needed for CPU-only)
     venv_dir="$HOME/.venv/cudaq-validation"
 
+    if $fresh_venv && [ -d "$venv_dir" ]; then
+        echo "Removing existing venv at $venv_dir"
+        rm -rf "$venv_dir"
+    fi
+
     if [ -d "$venv_dir" ]; then
-        echo "Reusing existing venv at $venv_dir (delete it to start fresh)"
+        echo "Reusing existing venv at $venv_dir (use -F to start fresh)"
     else
         echo "Creating venv at $venv_dir"
         python3 -m venv "$venv_dir"
@@ -204,6 +275,13 @@ if ! $is_macos; then
     done <<<"$ompi_script"
 fi
 status_sum=0
+
+# Run all tests from a temp directory so the repo tree (cwd, _skbuild/,
+# etc.) cannot accidentally be found via sys.path or dyld search paths
+# to ensure the wheel is installed in isolation.
+test_workdir=$(mktemp -d)
+echo "Running tests from isolated directory: $test_workdir"
+cd "$test_workdir"
 
 # Verify that the necessary GPU targets are installed and usable (Linux only)
 if $is_macos; then
@@ -284,6 +362,9 @@ fi
 
 # Run snippets in docs
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
+    if requires_unavailable_gpu_target "$ex"; then
+        continue
+    fi
     echo "Executing $ex"
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
@@ -294,13 +375,13 @@ done
 
 # Run examples
 for ex in $(find "$root_folder/examples" -name '*.py'); do
+    if requires_unavailable_gpu_target "$ex"; then
+        continue
+    fi
     skip_example=false
-    # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
         if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
-            # Skipped because GitHub does not have the necessary authentication token
-            # to submit a (paid) job to Amazon Braket (includes QuEra).
             echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
             skip_example=true
         elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
@@ -318,9 +399,19 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
     fi
 done
 
+snippet_count=$(find "$root_folder/snippets" -name '*.py' 2>/dev/null | wc -l)
+example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
+if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
+    echo -e "\e[01;31mNo snippets or examples found in $root_folder. Check staging setup.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
+
 # Run target tests if target folder exists.
 if [ -d "$root_folder/targets" ]; then
     for ex in $(find "$root_folder/targets" -name '*.py'); do
+        if requires_unavailable_gpu_target "$ex"; then
+            continue
+        fi
         skip_example=false
         # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
@@ -344,6 +435,13 @@ if [ -d "$root_folder/targets" ]; then
                 skip_example=true
             elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "quantum_machines" ] || [ "$t" == "quantinuum" ] || \
+                 [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
+                 [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
+                # These targets require remote backends that are not available
+                # in CI or local dev without explicit setup.
+                echo "Skipping $ex (remote target '$t' not available)"
                 skip_example=true
             fi
         done
