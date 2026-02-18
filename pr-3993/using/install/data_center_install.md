@@ -2261,9 +2261,12 @@ command
       cp -a "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/cudaq/bin/
     fi
 
-    # Merge LLVM libs into CUDAQ lib/ (libc++, libomp, clang resource dir)
+    # Merge LLVM libs into CUDAQ lib/ (libc++, libomp, clang resource dir).
+    # Also search <triple>/ subdirs for per-target runtime builds.
     cp -a "${LLVM_INSTALL_PREFIX}/lib/libc++"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+    cp -a "${LLVM_INSTALL_PREFIX}/lib/"*/libc++* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
     cp -a "${LLVM_INSTALL_PREFIX}/lib/libomp"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+    cp -a "${LLVM_INSTALL_PREFIX}/lib/"*/libomp* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
     if [ -d "${LLVM_INSTALL_PREFIX}/lib/clang" ]; then
       cp -a "${LLVM_INSTALL_PREFIX}/lib/clang" cuda_quantum_assets/cudaq/lib/
     fi
