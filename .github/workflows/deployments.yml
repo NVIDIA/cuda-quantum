@@ -531,6 +531,119 @@ jobs:
           echo "Received matrix outputs:"
           echo '${{ steps.read.outputs.result }}' | jq .
 
+  cuda_quantum_src:
+    name: Build cuda-quantum-src
+    needs: [metadata, digest_config]
+    if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    runs-on: ${{ matrix.platform == 'amd64' && 'linux-amd64-cpu8' || 'linux-arm64-cpu8' }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    environment: ghcr-deployment
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up build context
+        run: |
+          docker context create builder_context || echo "Context exists"
+          docker context use builder_context
+
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+          version: v0.19.0
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Log in to NGC
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: Prepare cuda-quantum-src build
+        id: src_prep
+        env:
+          DIGESTS_JSON: ${{ needs.digest_config.outputs.json }}
+        run: |
+          key="${{ matrix.platform }}-cu${{ matrix.cuda_version }}-image"
+          digest=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.digest[$k]')
+          image_name=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_name[$k]')
+          image_tag_ref=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]' | head -1)
+          base_image="${image_name}@${digest}"
+          image_name_src="${image_name/cuda-quantum/cuda-quantum-src}"
+          tag_part="${image_tag_ref##*:}"
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "image_name_src=$image_name_src" >> $GITHUB_OUTPUT
+          echo "image_tag=$tag_part" >> $GITHUB_OUTPUT
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+          push_to_ngc=$( ($is_versioned || $has_continuous_deployment) && echo true || echo false )
+          echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
+
+      - name: Extract cuda-quantum-src metadata
+        id: cudaq_src_metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.src_prep.outputs.image_name_src }}
+          flavor: |
+            latest=false
+            suffix=-base,onlatest=true
+          tags: type=raw,value=${{ steps.src_prep.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum-src
+            org.opencontainers.image.description=CUDA Quantum base image with third-party library (tpls) source
+
+      - name: Build and push cuda-quantum-src image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/release/cudaq-src.Dockerfile
+          build-args: |
+            base_image=${{ steps.src_prep.outputs.base_image }}
+          tags: ${{ steps.cudaq_src_metadata.outputs.tags }}
+          labels: ${{ steps.cudaq_src_metadata.outputs.labels }}
+          platforms: linux/${{ matrix.platform }}
+          provenance: false
+          push: true
+
+      - name: Install NGC CLI
+        if: steps.src_prep.outputs.push_to_ngc == 'true'
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.31.0
+          checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
+
+      - name: Sign cuda-quantum-src image with NGC CLI
+        if: steps.src_prep.outputs.push_to_ngc == 'true'
+        env:
+          TAGS: ${{ steps.cudaq_src_metadata.outputs.tags }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ github.repository_owner }}
+          NGC_CLI_TEAM: 'nightly'
+        run: |
+          echo "Signing cuda-quantum-src ${TAGS}"
+          ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
+
   stitch:
     name: Stitch CUDA-Q (CUDA ${{ matrix.cuda }}) images
     needs: digest_config

@@ -503,7 +503,6 @@ jobs:
           ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/nightly || echo ''`
           dev_image_name=${registry}/${{ vars.packages_prefix }}cuda-quantum-dev
           image_name=${ngc_registry:-$registry}/${{ vars.packages_prefix }}cuda-quantum
-          image_name_src="${image_name/cuda-quantum/cuda-quantum-src}"
           image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
@@ -522,7 +521,6 @@ jobs:
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "image_name_src=$image_name_src" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
@@ -645,35 +643,6 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
-      - name: Extract cuda-quantum-src metadata
-        id: cudaq_src_metadata
-        if: success() && !cancelled() && inputs.environment != ''
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.prereqs.outputs.image_name_src }}
-          flavor: |
-            latest=false
-            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
-          tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
-          labels: |
-            org.opencontainers.image.title=cuda-quantum-src
-            org.opencontainers.image.description=CUDA Quantum base image with third-party library (tpls) source
-
-      - name: Build cuda-quantum-src image
-        id: cudaq_src_build
-        if: success() && !cancelled() && inputs.environment != ''
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/release/cudaq-src.Dockerfile
-          build-args: |
-            base_image=${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}
-          tags: ${{ steps.cudaq_src_metadata.outputs.tags }}
-          labels: ${{ steps.cudaq_src_metadata.outputs.labels }}
-          platforms: ${{ inputs.platforms }}
-          provenance: false
-          push: true
-
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
@@ -682,6 +651,7 @@ jobs:
           outputs: |
             digest: ${{ steps.cudaq_build.outputs.digest }}
             image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
+            image_name: ${{ steps.prereqs.outputs.image_name }}
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
@@ -713,17 +683,6 @@ jobs:
           NGC_CLI_TEAM: 'nightly'
         run: |
           echo "Signing ${TAGS}"
-          ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
-
-      - name: Sign cuda-quantum-src image with NGC CLI
-        if: steps.cudaq_src_build.outcome == 'success' && needs.metadata.outputs.push_to_ngc == 'true'
-        env:
-          TAGS: ${{ steps.cudaq_src_metadata.outputs.tags }}
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
-          NGC_CLI_ORG: ${{ github.repository_owner }}
-          NGC_CLI_TEAM: 'nightly'
-        run: |
-          echo "Signing cuda-quantum-src ${TAGS}"
           ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
 
   documentation:
