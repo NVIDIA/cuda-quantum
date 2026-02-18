@@ -75,7 +75,7 @@ async def login(token: Union[str, None] = Header(alias="Authorization",
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
 # with entry_point tag
-@app.post("/v0.3/jobs")
+@app.post("/v0.4/jobs")
 async def postJob(job: Job,
                   token: Union[str, None] = Header(alias="Authorization",
                                                    default=None)):
@@ -125,7 +125,7 @@ async def postJob(job: Job,
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
-@app.get("/v0.3/jobs")
+@app.get("/v0.4/jobs")
 async def getJob(id: str):
     global countJobGetRequests, createdJobs, numQubitsRequired
 
@@ -139,13 +139,13 @@ async def getJob(id: str):
         "jobs": [{
             "status": "completed",
             "qubits": numQubitsRequired,
-            "results_url": "/v0.3/jobs/{}/results".format(id)
+            "results_url": "/v0.4/jobs/{}/results".format(id)
         }]
     }
     return res
 
 
-@app.get("/v0.3/jobs/{jobId}/results")
+@app.get("/v0.4/jobs/{jobId}/results")
 async def getResults(jobId: str):
     global countJobGetRequests, createdJobs
 

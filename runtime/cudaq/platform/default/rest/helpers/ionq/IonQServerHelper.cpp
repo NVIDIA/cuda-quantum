@@ -22,7 +22,7 @@ namespace cudaq {
 /// computation jobs.
 class IonQServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api.ionq.co";
-  static constexpr const char *DEFAULT_VERSION = "v0.3";
+  static constexpr const char *DEFAULT_VERSION = "v0.4";
 
 public:
   /// @brief Returns the name of the server helper.
@@ -120,8 +120,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   parseConfigForCommonParams(config);
 
   // Enable debiasing
-  if (config.find("debias") != config.end())
-    backendConfig["debias"] = config["debias"];
+  if (config.find("debiasing") != config.end())
+    backendConfig["debiasing"] = config["debiasing"];
   if (config.find("sharpen") != config.end())
     backendConfig["sharpen"] = config["sharpen"];
   if (config.find("format") != config.end())
@@ -204,14 +204,14 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["input"]["format"] = "qir";
     job["input"]["data"] = circuitCode.code;
     // Include error mitigation configuration if set in backendConfig
-    if (keyExists("debias")) {
+    if (keyExists("debiasing")) {
       try {
-        bool debiasValue =
-            nlohmann::json::parse(backendConfig["debias"]).get<bool>();
-        job["error_mitigation"]["debias"] = debiasValue;
+        bool debiasingValue =
+            nlohmann::json::parse(backendConfig["debiasing"]).get<bool>();
+        job["error_mitigation"]["debiasing"] = debiasingValue;
       } catch (const nlohmann::json::exception &e) {
         throw std::runtime_error(
-            "Invalid value for 'debias'. It should be a boolean (true/false).");
+            "Invalid value for 'debiasing'. It should be a boolean (true/false).");
       }
     }
 
