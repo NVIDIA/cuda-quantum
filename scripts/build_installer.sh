@@ -280,23 +280,23 @@ chmod a+x "$cuda_quantum_assets/migrate_assets.sh"
 
 # Create install.sh entry point that supports --installpath <dir>.
 # makeself passes user arguments (after --) to this script.
-cat > "$cuda_quantum_assets/install.sh" << 'WRAPPER'
+cat > "$cuda_quantum_assets/install.sh" << WRAPPER
 #!/bin/bash
-target="/opt/nvidia/cudaq"
-while [ $# -gt 0 ]; do
-    case "$1" in
+target="$default_target"
+while [ \$# -gt 0 ]; do
+    case "\$1" in
         --installpath)
-            target="$2"
+            target="\$2"
             shift 2
             ;;
         *)
-            echo "Unknown option: $1" >&2
+            echo "Unknown option: \$1" >&2
             echo "Usage: install_cuda_quantum... --accept [-- --installpath <dir>]" >&2
             exit 1
             ;;
     esac
 done
-bash migrate_assets.sh -t "$target"
+bash migrate_assets.sh -t "\$target"
 WRAPPER
 chmod +x "$cuda_quantum_assets/install.sh"
 
