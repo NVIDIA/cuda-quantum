@@ -258,6 +258,7 @@ initializer
 initializers
 inlined
 inlining
+installpath
 instantiation
 instantiations
 integrator
@@ -352,6 +353,7 @@ subtype
 subtyped
 subtypes
 subtyping
+sudo
 summarize
 superpositions
 symplectic
@@ -364,6 +366,7 @@ transmon
 transpile
 trotterization
 uccsd
+uname
 unary
 uncomputation
 uncompute

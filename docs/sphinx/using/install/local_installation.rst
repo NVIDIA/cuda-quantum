@@ -280,11 +280,11 @@ please double check that your operating system is listed as
 with an older GNU C library version, you will need to build the installer from 
 source following the instructions in :doc:`data_center_install`.
 
-You can download the `install_cuda_quantum` file for your platform from
+You can download the ``install_cuda_quantum`` file for your platform from
 the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
 
-- **Linux**: `install_cuda_quantum_cu12.<arch>` or `install_cuda_quantum_cu13.<arch>` (where `<arch>` is `x86_64` or `aarch64`)
-- **macOS**: `install_cuda_quantum_darwin.arm64` (CPU-only, Apple silicon)
+- **Linux**: ``install_cuda_quantum_cu12.<arch>`` or ``install_cuda_quantum_cu13.<arch>`` (where ``<arch>`` is ``x86_64`` or ``aarch64``)
+- **macOS**: ``install_cuda_quantum_darwin.arm64`` (CPU-only, Apple silicon)
 
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
 pre-built binaries as well as a script to move them to the correct locations. You will need
@@ -297,11 +297,11 @@ To install CUDA-Q to the default location (``/opt/nvidia/cudaq``), execute the c
     :start-after: [>CUDAQuantumInstall]
     :end-before: [<CUDAQuantumInstall]
 
-To install to a custom location (no sudo required), pass ``--installpath``:
+To install to a custom location (no ``sudo`` required), pass ``--installpath``:
 
 .. code-block:: bash
 
-   bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+    bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
 
 In both cases, the installer configures your shell profile so that CUDA-Q
 is available in new shells automatically. To use it in the current shell,

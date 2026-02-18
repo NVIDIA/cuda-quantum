@@ -60,7 +60,7 @@ Once you completed the installation, please follow the instructions
       sudo -E bash install_cuda_quantum*.$(uname -m) --accept 
       . /etc/profile
 
-   Alternatively, install to a custom location without sudo:
+   Alternatively, install to a custom location without ``sudo``:
 
    .. code-block:: bash
 
