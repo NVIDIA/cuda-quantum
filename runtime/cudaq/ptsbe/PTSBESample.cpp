@@ -75,60 +75,107 @@ void cleanupTracerQubits(const Trace &kernelTrace) {
   cudaq::get_simulator()->deallocateQubits(qubitIds);
 }
 
+static TraceInstructionType
+convertInstructionType(cudaq::TraceInstructionType type) {
+  switch (type) {
+  case cudaq::TraceInstructionType::Gate:
+    return TraceInstructionType::Gate;
+  case cudaq::TraceInstructionType::Noise:
+    return TraceInstructionType::Noise;
+  case cudaq::TraceInstructionType::Measurement:
+    return TraceInstructionType::Measurement;
+  }
+  throw std::logic_error("Unknown TraceInstructionType");
+}
+
+static std::vector<std::size_t>
+extractQubitIds(const std::vector<cudaq::QuditInfo> &qudits) {
+  std::vector<std::size_t> ids;
+  ids.reserve(qudits.size());
+  for (const auto &q : qudits)
+    ids.push_back(q.id);
+  return ids;
+}
+
+static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
+                                    const cudaq::noise_model &noise_model,
+                                    std::vector<TraceInstruction> &result) {
+  auto targets = extractQubitIds(inst.targets);
+  auto controls = extractQubitIds(inst.controls);
+
+  if (inst.type == cudaq::TraceInstructionType::Noise) {
+    std::intptr_t key = inst.noise_channel_key.value();
+    cudaq::kraus_channel channel = noise_model.get_channel(key, inst.params);
+    if (!channel.empty())
+      result.push_back({TraceInstructionType::Noise,
+                        std::string(cudaq::TRACE_APPLY_NOISE_NAME), targets,
+                        controls, inst.params, std::move(channel)});
+    return;
+  }
+
+  if (inst.type == cudaq::TraceInstructionType::Gate) {
+    auto channels =
+        noise_model.get_channels(inst.name, targets, controls, inst.params);
+    result.push_back({TraceInstructionType::Gate, inst.name, targets, controls,
+                      inst.params});
+
+    std::vector<std::size_t> noiseQubits = targets;
+    noiseQubits.insert(noiseQubits.end(), controls.begin(), controls.end());
+    for (auto &channel : channels) {
+      if (channel.empty())
+        continue;
+      result.push_back({TraceInstructionType::Noise,
+                        channel.get_type_name(),
+                        noiseQubits,
+                        {},
+                        {},
+                        std::move(channel)});
+    }
+    return;
+  }
+
+  if (inst.type == cudaq::TraceInstructionType::Measurement) {
+    auto channels = noise_model.get_channels("mz", targets, {}, {});
+    result.push_back({TraceInstructionType::Measurement,
+                      inst.name,
+                      targets,
+                      {},
+                      inst.params});
+
+    for (auto &channel : channels) {
+      if (channel.empty())
+        continue;
+      result.push_back({TraceInstructionType::Noise,
+                        channel.get_type_name(),
+                        targets,
+                        {},
+                        {},
+                        std::move(channel)});
+    }
+    return;
+  }
+}
+
+std::vector<TraceInstruction>
+buildPTSBETrace(const cudaq::Trace &trace,
+                const cudaq::noise_model &noise_model) {
+  std::vector<TraceInstruction> result;
+  for (const auto &inst : trace)
+    convertTraceInstruction(inst, noise_model, result);
+  return result;
+}
+
 PTSBEExecutionData
 buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
                                const noise_model &noiseModel) {
   PTSBEExecutionData trace;
 
-  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
+  auto ptsbeTrace = buildPTSBETrace(kernelTrace, noiseModel);
 
-  // Build lookup: gate index -> noise site indices (preserving extraction
-  // order)
-  std::unordered_map<std::size_t, std::vector<std::size_t>> gateToNoiseSites;
-  for (std::size_t i = 0; i < noiseResult.noise_sites.size(); ++i)
-    gateToNoiseSites[noiseResult.noise_sites[i].circuit_location].push_back(i);
-
-  // Interleave Gate and Noise instructions
-  std::size_t gateIdx = 0;
-  for (const auto &inst : kernelTrace) {
-    if (inst.type == cudaq::TraceInstructionType::Noise)
-      continue;
-
-    std::vector<std::size_t> targets;
-    targets.reserve(inst.targets.size());
-    for (const auto &q : inst.targets)
-      targets.push_back(q.id);
-
-    std::vector<std::size_t> controls;
-    controls.reserve(inst.controls.size());
-    for (const auto &q : inst.controls)
-      controls.push_back(q.id);
-
-    trace.instructions.push_back(
-        TraceInstruction{TraceInstructionType::Gate, inst.name,
-                         std::move(targets), std::move(controls), inst.params});
-
-    auto it = gateToNoiseSites.find(gateIdx);
-    if (it != gateToNoiseSites.end()) {
-      for (auto noiseSiteIdx : it->second) {
-        const auto &ns = noiseResult.noise_sites[noiseSiteIdx];
-        trace.instructions.push_back(
-            TraceInstruction{TraceInstructionType::Noise,
-                             ns.channel.get_type_name(),
-                             ns.qubits,
-                             {},
-                             {},
-                             ns.channel});
-      }
-    }
-
-    ++gateIdx;
-  }
-
-  auto measureQubits = extractMeasureQubits(kernelTrace);
-  for (auto qubit : measureQubits)
-    trace.instructions.push_back(TraceInstruction{
-        TraceInstructionType::Measurement, "mz", {qubit}, {}, {}});
+  // The PTSBE trace already has Gate, Noise, and Measurement interleaved.
+  // Validation (unitary mixture checks) happens in the batch execution path.
+  for (const auto &inst : ptsbeTrace)
+    trace.instructions.push_back(inst);
 
   return trace;
 }
@@ -172,8 +219,9 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
   PTSBatch batch;
   batch.measureQubits = extractMeasureQubits(kernelTrace);
 
-  // 1. Extract noise sites from the trace and noise model
-  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
+  // 1. Build PTSBE trace and extract noise sites
+  auto ptsbeTrace = buildPTSBETrace(kernelTrace, noiseModel);
+  auto noiseResult = extractNoiseSites(ptsbeTrace);
 
   // 2. Generate trajectories via the configured strategy (or default)
   auto strategy = options.strategy
