@@ -81,7 +81,8 @@ To select a specific Scaleway device, set the ``machine`` parameter:
    cudaq.set_target("scaleway", machine=machine)
 
 where ``EMU-CUDAQ-H100`` identifies an emulator or QPU offer available through Scaleway
-Quantum as a Service. See Scaleway QaaS webpage to see all available offers.
+Quantum as a Service. Available emulators and QPUs are listed in the
+`Scaleway Quantum Computing documentation <https://www.scaleway.com/en/docs/quantum-computing/additional-content/sdk-backend-compatibility/>`__
 
 The service will dynamically allocate a dedicated GPU server for your need.
 
