@@ -52,7 +52,7 @@ std::string getEnvVar(const std::string &key, const std::string &defaultVal,
 /// to handle interactions with the TII server for submitting and
 /// retrieving quantum computation jobs.
 class TiiServerHelper : public ServerHelper {
-  static constexpr const char *DEFAULT_URL = "https://tii.qibo.science";
+  static constexpr const char *DEFAULT_URL = "https://q-cloud.tii.ae";
   static constexpr const char *DEFAULT_VERSION = "0.2.2";
 
 public:
