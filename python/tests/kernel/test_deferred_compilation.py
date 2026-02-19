@@ -222,6 +222,157 @@ class TestKernelComposition:
 
 
 # ---------------------------------------------------------------------------
+# Captured arguments resolve in the correct scope
+# ---------------------------------------------------------------------------
+
+
+def _make_caller_callee_pair():
+    """Helper: define a caller/callee pair inside a nested scope and return them."""
+
+    @cudaq.kernel
+    def inner(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def outer():
+        q = cudaq.qubit()
+        inner(q)
+
+    return outer, inner
+
+
+def _make_doubly_nested_pair():
+    """Helper: two levels of function nesting."""
+
+    def deeper():
+
+        @cudaq.kernel
+        def inner(q: cudaq.qubit):
+            x(q)
+
+        @cudaq.kernel
+        def outer():
+            q = cudaq.qubit()
+            inner(q)
+
+        return outer, inner
+
+    return deeper()
+
+
+def _make_nested_captured_pair():
+    """Helper: two levels of function nesting."""
+
+    @cudaq.kernel
+    def inner(q: cudaq.qubit):
+        x(q)
+
+    def deeper():
+
+        @cudaq.kernel
+        def outer():
+            q = cudaq.qubit()
+            inner(q)
+
+        return outer
+
+    return deeper(), inner
+
+
+def _make_kernel_with_captured_int():
+    """Helper: kernel that captures a plain int from its definition scope."""
+    n_qubits = 3
+
+    @cudaq.kernel
+    def k():
+        q = cudaq.qvector(n_qubits)
+        h(q)
+
+    return k
+
+
+class TestDefinitionScopeResolution:
+    """
+    Kernels must resolve captured arguments (other kernels, variables) from
+    the scope where they were *defined*, not where they are *invoked*.
+    """
+
+    @pytest.mark.parametrize(
+        "factory", [
+            _make_caller_callee_pair,
+            _make_doubly_nested_pair,
+            _make_nested_captured_pair,
+        ],
+        ids=["single_nesting", "double_nesting", "nested_captured"])
+    def test_direct_call(self, factory):
+        """Invoke a kernel from outside its definition scope via direct call."""
+        outer, hidden = factory()
+        outer()
+
+        assert hidden.is_compiled()
+
+    @pytest.mark.parametrize(
+        "factory", [
+            _make_caller_callee_pair,
+            _make_doubly_nested_pair,
+            _make_nested_captured_pair,
+        ],
+        ids=["single_nesting", "double_nesting", "nested_captured"])
+    def test_sample(self, factory):
+        """Invoke a kernel from outside its definition scope via cudaq.sample."""
+        outer, hidden = factory()
+        counts = cudaq.sample(outer)
+        assert len(counts) > 0
+
+        assert hidden.is_compiled()
+
+    def test_returned_via_dict(self):
+        """Kernels returned through a dict are still resolvable."""
+
+        def make():
+
+            @cudaq.kernel
+            def inner(q: cudaq.qubit):
+                x(q)
+
+            @cudaq.kernel
+            def outer():
+                q = cudaq.qubit()
+                inner(q)
+
+            return {"run": outer}
+
+        make()["run"]()
+
+    def test_captured_int_from_definition_scope(self):
+        """A captured plain-int variable resolves from the definition scope."""
+        k = _make_kernel_with_captured_int()
+        cudaq.sample(k, shots_count=3)
+
+    def test_three_kernel_chain_across_scopes(self):
+        """A -> B -> C chain, all defined in a nested scope, invoked outside."""
+
+        def make():
+
+            @cudaq.kernel
+            def c(q: cudaq.qubit):
+                x(q)
+
+            @cudaq.kernel
+            def b(q: cudaq.qubit):
+                c(q)
+
+            @cudaq.kernel
+            def a():
+                q = cudaq.qubit()
+                b(q)
+
+            return a
+
+        make()()
+
+
+# ---------------------------------------------------------------------------
 # __str__ representation
 # ---------------------------------------------------------------------------
 

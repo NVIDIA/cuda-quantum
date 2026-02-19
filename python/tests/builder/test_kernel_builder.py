@@ -1276,6 +1276,38 @@ def test_call_kernel_deferred_compilation():
     assert "must be compiled to be used in the kernel builder" in str(e.value)
 
 
+def test_apply_call_captures_from_definition_scope():
+    """
+    A kernel builder calls (via apply_call) a decorator kernel that itself
+    captures another decorator kernel from its *definition* scope.  The
+    captured inner kernel is not in scope at the apply_call call-site.
+    """
+
+    def make():
+        n_qubits = 0
+
+        @cudaq.kernel()
+        def inner(q: cudaq.qubit):
+            x(q)
+
+        @cudaq.kernel(defer_compilation=False)
+        def wrapper():
+            # capture n_qubits, resolves to n_qubits=1
+            q = cudaq.qvector(n_qubits)
+            # capture inner
+            inner(q[0])
+
+        n_qubits = 1  # this is the value that matters
+
+        return wrapper
+
+    wrapper = make()
+    # `inner` and `n_qubits` are NOT reachable from this scope.
+    builder = cudaq.make_kernel()
+    builder.apply_call(wrapper)
+    cudaq.sample(builder, shots_count=3)
+
+
 def test_sample_with_no_qubits():
     kernel = cudaq.make_kernel()
     with pytest.raises(RuntimeError) as e:

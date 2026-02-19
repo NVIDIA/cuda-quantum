@@ -976,7 +976,7 @@ def test_list_of_dataclass_update_failures():
         return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
 
     with pytest.raises(RuntimeError) as e:
-        test7()
+        test7(True)
     assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in str(
         e.value)
     assert '(offending source -> old.l1)' in str(e.value)
@@ -1192,7 +1192,7 @@ def test_var_scopes():
                 ls = [1, 2, 3]
             return ls
 
-        test4()
+        test4(True)
 
     assert "variable of type !cc.stdvec<i64> is defined in a prior block and cannot be accessed" in str(
         e.value)
