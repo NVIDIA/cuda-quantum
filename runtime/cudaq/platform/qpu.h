@@ -210,7 +210,8 @@ public:
   [[nodiscard]] virtual void *
   specializeModule(const std::string &name, mlir::ModuleOp module,
                    const std::vector<void *> &rawArgs, mlir::Type resultTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine);
+                   std::optional<cudaq::JitEngine> &cachedEngine,
+                   bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -224,10 +225,11 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
                                              mlir::ModuleOp module,
                                              const std::vector<void *> &rawArgs,
                                              mlir::Type resultTy) = 0;
-  virtual void *
-  specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine) = 0;
+  virtual void *specializeModule(const std::string &name, mlir::ModuleOp module,
+                                 const std::vector<void *> &rawArgs,
+                                 mlir::Type resultTy,
+                                 std::optional<cudaq::JitEngine> &cachedEngine,
+                                 bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

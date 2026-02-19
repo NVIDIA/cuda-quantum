@@ -211,7 +211,7 @@ public:
   specializeModule(const std::string &kernelName, mlir::ModuleOp module,
                    const std::vector<void *> &rawArgs, mlir::Type resultTy,
                    std::optional<cudaq::JitEngine> &cachedEngine,
-                   std::size_t qpu_id);
+                   std::size_t qpu_id, bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

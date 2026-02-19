@@ -31,24 +31,45 @@ public:
 
   ~CppPyKernelDecorator();
 
+  /// Fully compiles this python kernel, returning a `qkernel` that can
+  /// be directly invoked by host code. Do not pass the returned `qkernel`
+  /// into other kernels, as this will lead to bad things.
   template <typename T, typename... As>
     requires QKernelType<T>
   T getEntryPointFunction(As... as) {
-    // Perform beta reduction on the kernel decorator.
-    auto [p, cachedEngineHandle] =
-        kernel.attr("beta_reduction")(std::forward<As>(as)...)
-            .template cast<std::pair<void *, std::size_t>>();
-    // Set lsb to 1 to denote this is NOT a C++ kernel.
-    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
+    auto p = getKernelHelper(/*isEntryPoint=*/true, as...);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
-    cachedEngineKey = cachedEngineHandle;
-    // Translate the pointer to the entry point code buffer to a `qkernel`.
+    return T{fptr};
+  }
+
+  /// Fully compiles this python kernel, returning a `qkernel` that can
+  /// be indirectly invoked by other kernels. Only pass the returned
+  /// `qkernel` into other kernels, calling it directly from host code
+  /// will lead to bad things.
+  template <typename T, typename... As>
+    requires QKernelType<T>
+  T getDirectKernelCall(As... as) {
+    auto p = getKernelHelper(/*isEntryPoint=*/false, as...);
+    auto *fptr = reinterpret_cast<typename T::function_type *>(p);
     return T{fptr};
   }
 
 private:
   py::object kernel;
   std::optional<std::size_t> cachedEngineKey;
+
+  template <typename... As>
+  void *getKernelHelper(bool isEntryPoint, As... as) {
+    // Perform beta reduction on the kernel decorator.
+    auto [p, cachedEngineHandle] =
+        kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...)
+            .template cast<std::pair<void *, std::size_t>>();
+    // Set lsb to 1 to denote this is NOT a C++ kernel.
+    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
+    cachedEngineKey = cachedEngineHandle;
+    // Translate the pointer to the entry point code buffer to a `qkernel`.
+    return p;
+  }
 };
 
 /// This template allows a single python decorator to be called from a C++
@@ -58,8 +79,7 @@ template <typename KT, typename ALGO, typename... As>
   requires QKernelType<KT> && std::invocable<ALGO, KT>
 auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
   cudaq::python::CppPyKernelDecorator decorator(qern);
-  auto entryPoint =
-      decorator.getEntryPointFunction<KT>(std::forward<As>(as)...);
+  auto entryPoint = decorator.getDirectKernelCall<KT>(std::forward<As>(as)...);
   return algo(std::move(entryPoint));
 }
 
