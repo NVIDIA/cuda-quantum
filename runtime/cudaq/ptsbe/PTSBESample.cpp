@@ -11,7 +11,9 @@
 #include "ShotAllocationStrategy.h"
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
+#include <algorithm>
 #include <numeric>
+#include <span>
 #include <unordered_map>
 
 namespace cudaq {
@@ -56,12 +58,16 @@ void validatePTSBEPreconditions(quantum_platform &platform,
   // from cudaq.apply_noise() in the kernel.
 }
 
-std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
+std::vector<std::size_t>
+extractMeasureQubits(std::span<const TraceInstruction> trace) {
   std::vector<std::size_t> qubits;
-  auto numQubits = trace.getNumQudits();
-  qubits.reserve(numQubits);
-  for (std::size_t i = 0; i < numQubits; ++i) {
-    qubits.push_back(i);
+  for (const auto &inst : trace) {
+    if (inst.type != TraceInstructionType::Measurement)
+      continue;
+    for (auto id : inst.targets) {
+      if (std::find(qubits.begin(), qubits.end(), id) == qubits.end())
+        qubits.push_back(id);
+    }
   }
   return qubits;
 }
@@ -75,61 +81,125 @@ void cleanupTracerQubits(const Trace &kernelTrace) {
   cudaq::get_simulator()->deallocateQubits(qubitIds);
 }
 
+static std::vector<std::size_t>
+extractQubitIds(const std::vector<cudaq::QuditInfo> &qudits) {
+  std::vector<std::size_t> ids;
+  ids.reserve(qudits.size());
+  for (const auto &q : qudits)
+    ids.push_back(q.id);
+  return ids;
+}
+
+static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
+                                    const cudaq::noise_model &noise_model,
+                                    std::vector<TraceInstruction> &result) {
+  auto targets = extractQubitIds(inst.targets);
+  auto controls = extractQubitIds(inst.controls);
+
+  if (inst.type == cudaq::TraceInstructionType::Noise) {
+    std::intptr_t key = inst.noise_channel_key.value();
+    cudaq::kraus_channel channel = noise_model.get_channel(key, inst.params);
+    if (!channel.empty()) {
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
+      result.push_back({TraceInstructionType::Noise,
+                        std::string(cudaq::TRACE_APPLY_NOISE_NAME), targets,
+                        controls, inst.params, std::move(channel)});
+    }
+    return;
+  }
+
+  if (inst.type == cudaq::TraceInstructionType::Gate) {
+    auto channels =
+        noise_model.get_channels(inst.name, targets, controls, inst.params);
+    result.push_back({TraceInstructionType::Gate, inst.name, targets, controls,
+                      inst.params});
+
+    std::vector<std::size_t> noiseQubits = targets;
+    noiseQubits.insert(noiseQubits.end(), controls.begin(), controls.end());
+    for (auto &channel : channels) {
+      if (channel.empty())
+        continue;
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
+      result.push_back({TraceInstructionType::Noise,
+                        channel.get_type_name(),
+                        noiseQubits,
+                        {},
+                        {},
+                        std::move(channel)});
+    }
+    return;
+  }
+
+  if (inst.type == cudaq::TraceInstructionType::Measurement) {
+    auto channels = noise_model.get_channels("mz", targets, {}, {});
+    result.push_back({TraceInstructionType::Measurement,
+                      inst.name,
+                      targets,
+                      {},
+                      inst.params});
+
+    for (auto &channel : channels) {
+      if (channel.empty())
+        continue;
+      if (!channel.is_unitary_mixture())
+        channel.generateUnitaryParameters();
+      result.push_back({TraceInstructionType::Noise,
+                        channel.get_type_name(),
+                        targets,
+                        {},
+                        {},
+                        std::move(channel)});
+    }
+    return;
+  }
+}
+
+PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
+                           const cudaq::noise_model &noise_model) {
+  PTSBETrace result;
+  bool hasMeasurement = false;
+  for (const auto &inst : trace) {
+    if (inst.type == cudaq::TraceInstructionType::Measurement)
+      hasMeasurement = true;
+    convertTraceInstruction(inst, noise_model, result);
+  }
+
+  // Match standard cudaq::sample() behavior: when the kernel omits explicit
+  // mz() calls, measure all allocated qubits. Generate one Measurement + Noise
+  // pair per qubit so that per-qubit noise channels (registered via
+  // add_channel("mz", {q}, ...)) are matched correctly.
+  auto n = trace.getNumQudits();
+  if (!hasMeasurement && n > 0) {
+    for (std::size_t q = 0; q < n; ++q) {
+      result.push_back({TraceInstructionType::Measurement, "mz", {q}, {}, {}});
+
+      auto channels = noise_model.get_channels("mz", {q}, {}, {});
+      for (auto &channel : channels) {
+        if (channel.empty())
+          continue;
+        if (!channel.is_unitary_mixture())
+          channel.generateUnitaryParameters();
+        result.push_back({TraceInstructionType::Noise,
+                          channel.get_type_name(),
+                          {q},
+                          {},
+                          {},
+                          std::move(channel)});
+      }
+    }
+  }
+
+  return result;
+}
+
 PTSBEExecutionData
 buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
                                const noise_model &noiseModel) {
   PTSBEExecutionData trace;
 
-  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
-
-  // Build lookup: gate index -> noise site indices (preserving extraction
-  // order)
-  std::unordered_map<std::size_t, std::vector<std::size_t>> gateToNoiseSites;
-  for (std::size_t i = 0; i < noiseResult.noise_sites.size(); ++i)
-    gateToNoiseSites[noiseResult.noise_sites[i].circuit_location].push_back(i);
-
-  // Interleave Gate and Noise instructions
-  std::size_t gateIdx = 0;
-  for (const auto &inst : kernelTrace) {
-    if (inst.type == cudaq::TraceInstructionType::Noise)
-      continue;
-
-    std::vector<std::size_t> targets;
-    targets.reserve(inst.targets.size());
-    for (const auto &q : inst.targets)
-      targets.push_back(q.id);
-
-    std::vector<std::size_t> controls;
-    controls.reserve(inst.controls.size());
-    for (const auto &q : inst.controls)
-      controls.push_back(q.id);
-
-    trace.instructions.push_back(
-        TraceInstruction{TraceInstructionType::Gate, inst.name,
-                         std::move(targets), std::move(controls), inst.params});
-
-    auto it = gateToNoiseSites.find(gateIdx);
-    if (it != gateToNoiseSites.end()) {
-      for (auto noiseSiteIdx : it->second) {
-        const auto &ns = noiseResult.noise_sites[noiseSiteIdx];
-        trace.instructions.push_back(
-            TraceInstruction{TraceInstructionType::Noise,
-                             ns.channel.get_type_name(),
-                             ns.qubits,
-                             {},
-                             {},
-                             ns.channel});
-      }
-    }
-
-    ++gateIdx;
-  }
-
-  auto measureQubits = extractMeasureQubits(kernelTrace);
-  for (auto qubit : measureQubits)
-    trace.instructions.push_back(TraceInstruction{
-        TraceInstructionType::Measurement, "mz", {qubit}, {}, {}});
-
+  trace.instructions = buildPTSBETrace(kernelTrace, noiseModel);
   return trace;
 }
 
@@ -170,10 +240,11 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
                                        const PTSBEOptions &options,
                                        std::size_t shots) {
   PTSBatch batch;
-  batch.measureQubits = extractMeasureQubits(kernelTrace);
 
-  // 1. Extract noise sites from the trace and noise model
-  auto noiseResult = extractNoiseSites(kernelTrace, noiseModel);
+  // 1. Build PTSBE trace, derive measure qubits, extract noise sites
+  batch.trace = buildPTSBETrace(kernelTrace, noiseModel);
+  batch.measureQubits = extractMeasureQubits(batch.trace);
+  auto noiseResult = extractNoiseSites(batch.trace);
 
   // 2. Generate trajectories via the configured strategy (or default)
   auto strategy = options.strategy
@@ -187,8 +258,6 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
   if (!batch.trajectories.empty() && shots > 0)
     allocateShots(batch.trajectories, shots, options.shot_allocation);
 
-  batch.noise_sites = std::move(noiseResult.noise_sites);
-  batch.kernelTrace = std::move(kernelTrace);
   return batch;
 }
 

@@ -21,6 +21,11 @@ using namespace cudaq::ptsbe;
 using QppSimulator =
     QppCircuitSimulatorTester<nvqir::QppCircuitSimulator<qpp::ket>>;
 
+const PTSBETrace kHadamardTrace = {
+    {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
+const PTSBETrace kXTrace = {
+    {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
+
 /// Test helper: execute PTSBE with lifecycle management on a direct simulator.
 /// This encapsulates the context setup, qubit allocation, execution, and
 /// cleanup that would otherwise need to be repeated in each test.
@@ -30,7 +35,7 @@ std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
   cudaq::ExecutionContext ctx("sample", batch.totalShots());
   cudaq::detail::setExecutionContext(&ctx);
   sim.configureExecutionContext(ctx);
-  sim.allocateQubits(batch.kernelTrace.getNumQudits());
+  sim.allocateQubits(numQubits(batch.trace));
 
   std::vector<cudaq::sample_result> results;
   if constexpr (PTSBECapable<SimulatorType>) {
@@ -39,7 +44,7 @@ std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
     results = samplePTSBEGeneric(sim, batch);
   }
 
-  std::vector<std::size_t> qubitIds(batch.kernelTrace.getNumQudits());
+  std::vector<std::size_t> qubitIds(numQubits(batch.trace));
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
   sim.deallocateQubits(qubitIds);
   sim.finalizeExecutionContext(ctx);
@@ -51,17 +56,13 @@ std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
 CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   QppSimulator sim;
 
-  Trace trace;
-  trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
-
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 100);
   batch.trajectories.push_back(traj);
 
-  // No setExecutionContext() - should throw
   try {
     samplePTSBEGeneric(sim, batch);
     FAIL() << "Expected an exception without ExecutionContext";
@@ -73,13 +74,8 @@ CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
 CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   QppSimulator sim;
 
-  // Create trace: H gate on qubit 0
-  Trace trace;
-  trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
-
-  // Create PTSBatch with single trajectory (no noise)
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 1000);
@@ -88,7 +84,6 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   auto results = runPTSBETest(sim, batch);
   auto result = aggregateResults(results);
 
-  // Hadamard creates superposition, expect ~50/50 with 10% tolerance
   std::size_t count0 = result.count("0");
   std::size_t count1 = result.count("1");
   EXPECT_GT(count0, 400u);
@@ -102,15 +97,10 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
 CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
   QppSimulator sim;
 
-  // Create trace: X gate (flips to |1>)
-  Trace trace;
-  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 0)});
-
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = kXTrace;
   batch.measureQubits = {0};
 
-  // Two trajectories with different shot counts
   KrausTrajectory traj1(0, {}, 0.7, 700);
   KrausTrajectory traj2(1, {}, 0.3, 300);
   batch.trajectories.push_back(traj1);
@@ -118,12 +108,10 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
 
   auto results = runPTSBETest(sim, batch);
 
-  // Verify per-trajectory results
   EXPECT_EQ(results.size(), 2u);
   EXPECT_EQ(results[0].count("1"), 700u);
   EXPECT_EQ(results[1].count("1"), 300u);
 
-  // Verify aggregation
   auto result = aggregateResults(results);
   EXPECT_EQ(result.count("1"), 1000u);
   EXPECT_EQ(result.count("0"), 0u);
@@ -133,15 +121,10 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
 CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
   QppSimulator sim;
 
-  // Create trace: Y gate
-  Trace trace;
-  trace.appendInstruction("y", {}, {}, {QuditInfo(2, 0)});
-
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = {{ptsbe::TraceInstructionType::Gate, "y", {0}, {}, {}}};
   batch.measureQubits = {0};
 
-  // One trajectory with 0 shots, one with 500
   KrausTrajectory zeroShot(0, {}, 0.5, 0);
   KrausTrajectory normalShot(1, {}, 0.5, 500);
   batch.trajectories.push_back(zeroShot);
@@ -149,12 +132,9 @@ CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
 
   auto results = runPTSBETest(sim, batch);
 
-  // Results maintain index correspondence with trajectories
   EXPECT_EQ(results.size(), 2u);
-  // results[0] is empty (zero shots) - count returns 0 for any bitstring
   EXPECT_EQ(results[0].count("0"), 0u);
   EXPECT_EQ(results[0].count("1"), 0u);
-  // results[1] has actual data: Y|0> = i|1>
   EXPECT_EQ(results[1].count("1"), 500u);
 
   auto result = aggregateResults(results);
@@ -165,15 +145,11 @@ CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
 CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   QppSimulator sim;
 
-  Trace trace;
-  trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
-
   // Test 1: Empty trajectories vector
   {
     PTSBatch batch;
-    batch.kernelTrace = trace;
+    batch.trace = kHadamardTrace;
     batch.measureQubits = {0};
-    // No trajectories added
 
     auto results = runPTSBETest(sim, batch);
     EXPECT_TRUE(results.empty());
@@ -182,7 +158,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   // Test 2: Empty measureQubits
   {
     PTSBatch batch;
-    batch.kernelTrace = trace;
+    batch.trace = kHadamardTrace;
     batch.measureQubits = {};
 
     KrausTrajectory traj(0, {}, 1.0, 100);
@@ -197,13 +173,11 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
 CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   QppSimulator sim;
 
-  // Create trace: H on q0, then CNOT (X with q0 as control, q1 as target)
-  Trace trace;
-  trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
-  trace.appendInstruction("x", {}, {QuditInfo(2, 0)}, {QuditInfo(2, 1)});
-
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = {
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
+  };
   batch.measureQubits = {0, 1};
 
   KrausTrajectory traj(0, {}, 1.0, 2000);
@@ -212,7 +186,6 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   auto results = runPTSBETest(sim, batch);
   auto result = aggregateResults(results);
 
-  // Bell state |00> + |11> should give ~50% each, with 10% tolerance
   std::size_t count00 = result.count("00");
   std::size_t count11 = result.count("11");
   EXPECT_GT(count00, 800u);
@@ -221,7 +194,6 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   EXPECT_LT(count11, 1200u);
   EXPECT_EQ(count00 + count11, 2000u);
 
-  // Should NOT see "01" or "10" (anti-correlated)
   EXPECT_EQ(result.count("01"), 0u);
   EXPECT_EQ(result.count("10"), 0u);
 }
@@ -230,21 +202,22 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
 CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   QppSimulator sim;
 
-  // Create trace: identity gate (start in |0>)
-  Trace trace;
-  trace.appendInstruction("id", {}, {}, {QuditInfo(2, 0)});
-
+  // Trace: [0] id gate on q0, [1] Noise(depol) on q0
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = {
+      {ptsbe::TraceInstructionType::Gate, "id", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
+       "depolarization",
+       {0},
+       {},
+       {},
+       depolarization_channel(0.1)},
+  };
   batch.measureQubits = {0};
 
-  // Noise site: depolarization on the id gate at circuit location 0
-  batch.noise_sites.push_back(
-      NoisePoint{0, {0}, "id", depolarization_channel(0.1)});
-
-  // Trajectory with X error (index 1 in depolarization) after gate 0
+  // Trajectory with X error (index 1) at trace position 1
   std::vector<KrausSelection> selections = {
-      KrausSelection(0, {0}, "id", static_cast<KrausOperatorType>(1))};
+      KrausSelection(1, {0}, "id", static_cast<KrausOperatorType>(1))};
   KrausTrajectory traj(0, selections, 1.0, 100);
   batch.trajectories.push_back(traj);
 
@@ -259,27 +232,28 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
 CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   QppSimulator sim;
 
-  // Create trace: X on both qubits
-  Trace trace;
-  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 0)});
-  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 1)});
-
+  // Trace: [0] X q0, [1] Noise q0, [2] X q1
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = {
+      {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
+       "depolarization",
+       {0},
+       {},
+       {},
+       depolarization_channel(0.1)},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+  };
   batch.measureQubits = {0, 1};
-
-  // Noise site: depolarization on the first x gate at circuit location 0
-  batch.noise_sites.push_back(
-      NoisePoint{0, {0}, "x", depolarization_channel(0.1)});
 
   // Trajectory 1: identity noise (no error), should give "11"
   std::vector<KrausSelection> selectionsId = {
-      KrausSelection(0, {0}, "x", KrausOperatorType::IDENTITY)};
+      KrausSelection(1, {0}, "x", KrausOperatorType::IDENTITY)};
   KrausTrajectory traj1(0, selectionsId, 0.5, 100);
 
-  // Trajectory 2: X error (index 1) on qubit 0 after first gate
+  // Trajectory 2: X error (index 1) on qubit 0 at trace position 1
   std::vector<KrausSelection> selectionsX = {
-      KrausSelection(0, {0}, "x", static_cast<KrausOperatorType>(1))};
+      KrausSelection(1, {0}, "x", static_cast<KrausOperatorType>(1))};
   KrausTrajectory traj2(1, selectionsX, 0.5, 100);
 
   batch.trajectories.push_back(traj1);
@@ -296,14 +270,12 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
 CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   QppSimulator sim;
 
-  // Create Bell state
-  Trace trace;
-  trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
-  trace.appendInstruction("x", {}, {QuditInfo(2, 0)}, {QuditInfo(2, 1)});
-
+  // Bell state
   PTSBatch batch;
-  batch.kernelTrace = trace;
-  // Only measure qubit 0
+  batch.trace = {
+      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
+  };
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 1000);
@@ -325,15 +297,16 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
 CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
   QppSimulator sim;
 
-  // Create state where q0=1, q1=0 (X on q0 only)
-  Trace trace;
-  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 0)});
-  trace.appendInstruction("id", {}, {}, {QuditInfo(2, 1)});
+  // q0=1, q1=0
+  std::vector<TraceInstruction> trace = {
+      {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Gate, "id", {1}, {}, {}},
+  };
 
   // First test: measure in order {0, 1}
   {
     PTSBatch batch;
-    batch.kernelTrace = trace;
+    batch.trace = trace;
     batch.measureQubits = {0, 1};
 
     KrausTrajectory traj(0, {}, 1.0, 100);
@@ -341,14 +314,13 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
 
     auto results = runPTSBETest(sim, batch);
     auto result = aggregateResults(results);
-    // q0=1, q1=0, order {0,1} -> bitstring "10"
     EXPECT_EQ(result.count("10"), 100u);
   }
 
   // Second test: measure in order {1, 0}
   {
     PTSBatch batch;
-    batch.kernelTrace = trace;
+    batch.trace = trace;
     batch.measureQubits = {1, 0};
 
     KrausTrajectory traj(0, {}, 1.0, 100);
@@ -356,36 +328,35 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
 
     auto results = runPTSBETest(sim, batch);
     auto result = aggregateResults(results);
-    // q0=1, q1=0, order {1,0} -> bitstring "01"
     EXPECT_EQ(result.count("01"), 100u);
   }
 }
 
 /// Verify state is properly reset between trajectories via setToZeroState()
-/// This ensures state doesn't leak from one trajectory to the next.
 CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   QppSimulator sim;
 
-  // Create trace: identity gate only (no state change from |0>)
-  Trace trace;
-  trace.appendInstruction("id", {}, {}, {QuditInfo(2, 0)});
-
+  // Trace: [0] id gate q0, [1] Noise q0
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = {
+      {ptsbe::TraceInstructionType::Gate, "id", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
+       "depolarization",
+       {0},
+       {},
+       {},
+       depolarization_channel(0.1)},
+  };
   batch.measureQubits = {0};
-
-  // Noise site: depolarization on the id gate at circuit location 0
-  batch.noise_sites.push_back(
-      NoisePoint{0, {0}, "id", depolarization_channel(0.1)});
 
   // Trajectory 1: X error (index 1) flips to |1>
   std::vector<KrausSelection> selectionsWithX = {
-      KrausSelection(0, {0}, "id", static_cast<KrausOperatorType>(1))};
+      KrausSelection(1, {0}, "id", static_cast<KrausOperatorType>(1))};
   KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 100);
 
   // Trajectory 2: identity noise (no error), stays |0>
   std::vector<KrausSelection> selectionsId = {
-      KrausSelection(0, {0}, "id", KrausOperatorType::IDENTITY)};
+      KrausSelection(1, {0}, "id", KrausOperatorType::IDENTITY)};
   KrausTrajectory trajNoError(1, selectionsId, 0.5, 100);
 
   batch.trajectories.push_back(trajWithError);
@@ -393,30 +364,53 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
 
   auto results = runPTSBETest(sim, batch);
 
-  // Verify per-trajectory results (confirms state reset between trajectories)
   EXPECT_EQ(results.size(), 2u);
-  EXPECT_EQ(results[0].count("1"), 100u); // Trajectory 1: I|0> + X = |1>
-  EXPECT_EQ(results[1].count("0"), 100u); // Trajectory 2: I|0> = |0>
+  EXPECT_EQ(results[0].count("1"), 100u);
+  EXPECT_EQ(results[1].count("0"), 100u);
 
-  // Verify aggregation
   auto result = aggregateResults(results);
   EXPECT_EQ(result.count("1"), 100u);
   EXPECT_EQ(result.count("0"), 100u);
 }
 
+/// Readout noise: bit flip applied after measurement flips X|0>=|1> to |0>
+CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
+  QppSimulator sim;
+
+  PTSBatch batch;
+  batch.trace = {
+      {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}},
+      {ptsbe::TraceInstructionType::Noise,
+       "bit_flip",
+       {0},
+       {},
+       {},
+       bit_flip_channel(1.0)},
+  };
+  batch.trace[2].channel->generateUnitaryParameters();
+  batch.measureQubits = {0};
+
+  // X operator (index 1) at trace position 2 (the readout noise entry)
+  std::vector<KrausSelection> selections = {
+      KrausSelection(2, {0}, "mz", static_cast<KrausOperatorType>(1))};
+  KrausTrajectory traj(0, selections, 1.0, 200);
+  batch.trajectories.push_back(traj);
+
+  auto results = runPTSBETest(sim, batch);
+  auto result = aggregateResults(results);
+
+  EXPECT_EQ(result.count("0"), 200u);
+  EXPECT_EQ(result.count("1"), 0u);
+}
+
 /// Mock simulator that implements sampleWithPTSBE for testing concept dispatch.
-/// Delegates to the generic samplePTSBEGeneric fallback via the base class.
 class MockPTSBESimulator : public QppSimulator {
 public:
-  // Counter to verify sampleWithPTSBE was called
   mutable std::size_t sampleWithPTSBECallCount = 0;
 
-  /// Custom PTSBE implementation that delegates to generic fallback.
-  /// In a real optimized simulator, this would do batched execution.
   std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
     ++sampleWithPTSBECallCount;
-
-    // Use generic implementation via base class
     return samplePTSBEGeneric(*this, batch);
   }
 };
@@ -425,28 +419,21 @@ public:
 /// produces equivalent results
 CUDAQ_TEST(ExecutePTSBETest, ConceptDispatchAndGenericEquivalence) {
   MockPTSBESimulator mock;
-  QppSimulator generic; // Does NOT satisfy PTSBECapable concept
-
-  // Create trace: X gate (deterministic |1>)
-  Trace trace;
-  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 0)});
+  QppSimulator generic;
 
   PTSBatch batch;
-  batch.kernelTrace = trace;
+  batch.trace = kXTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 100);
   batch.trajectories.push_back(traj);
 
-  // Test 1: Concept dispatch routes to mock.sampleWithPTSBE
   EXPECT_EQ(mock.sampleWithPTSBECallCount, 0u);
   auto mockResults = runPTSBETest(mock, batch);
   EXPECT_EQ(mock.sampleWithPTSBECallCount, 1u);
 
-  // Test 2: Generic fallback for non-capable simulator
   auto genericResults = runPTSBETest(generic, batch);
 
-  // Both should produce equivalent results (X|0> = |1>)
   EXPECT_EQ(mockResults.size(), genericResults.size());
   EXPECT_EQ(mockResults[0].count("1"), 100u);
   EXPECT_EQ(genericResults[0].count("1"), 100u);

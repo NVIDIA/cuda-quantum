@@ -18,12 +18,13 @@
 #pragma once
 
 #include "KrausTrajectory.h"
+#include "PTSBEExecutionData.h"
 #include "PTSBESampler.h"
-#include "PTSSamplingStrategy.h"
 #include "common/Trace.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
 #include <cstddef>
+#include <span>
 #include <vector>
 
 namespace cudaq::ptsbe {
@@ -42,40 +43,39 @@ template <typename ScalarType>
 using GateTask =
     typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
 
-/// @brief Convert Trace instruction to simulator task
+/// @brief Convert a PTSBE TraceInstruction (Gate type) to a simulator task.
+/// Looks up the gate matrix from the registry and maps plain qubit IDs.
 template <typename ScalarType>
-GateTask<ScalarType>
-convertToSimulatorTask(const cudaq::Trace::Instruction &inst);
+GateTask<ScalarType> convertToSimulatorTask(const TraceInstruction &inst);
 
-/// @brief Convert entire kernel trace to simulator task list
+/// @brief Convert a PTSBE trace to a simulator task list, keeping only Gate
+/// entries (Noise and Measurement entries are skipped).
 template <typename ScalarType>
-std::vector<GateTask<ScalarType>> convertTrace(const cudaq::Trace &trace);
+std::vector<GateTask<ScalarType>>
+convertTrace(std::span<const TraceInstruction> ptsbeTrace);
 
 /// @brief Convert a KrausSelection to a GateApplicationTask using the
-/// noise channel's unitary operators for the matrix
+/// noise channel's unitary operators from the trace instruction.
 template <typename ScalarType>
 GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
-                                          const NoisePoint &noiseSite);
+                                          const TraceInstruction &noiseInst);
 
-/// @brief Merge base tasks with trajectory noise insertions
+/// @brief Walk the PTSBE trace and build the merged task list for one
+/// trajectory. Gate entries become gate tasks, Noise entries are resolved
+/// via the trajectory selections (channel looked up from the trace), and
+/// Measurement entries are skipped (terminal measurements are handled
+/// separately by the simulator).
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
-mergeTasksWithTrajectory(const std::vector<GateTask<ScalarType>> &baseTasks,
-                         const cudaq::KrausTrajectory &trajectory,
-                         const std::vector<NoisePoint> &noiseSites);
-
-/// @brief Merge kernel trace with trajectory noise to produce task list
-template <typename ScalarType>
-std::vector<GateTask<ScalarType>>
-mergeAndConvert(const cudaq::Trace &kernelTrace,
-                const cudaq::KrausTrajectory &trajectory,
-                const std::vector<NoisePoint> &noiseSites);
+mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
+                         const cudaq::KrausTrajectory &trajectory);
 
 /// @brief Generic PTSBE execution implementation
 ///
-/// Converts base trace once, then for each trajectory:
+/// For each trajectory:
 /// - Resets simulator to computational zero state
-/// - Applies noise merged circuit
+/// - Merges PTSBE trace with trajectory noise selections
+/// - Applies merged gate tasks
 /// - Samples measurement qubits
 ///
 /// Returns per-trajectory results for flexibility. Use aggregateResults()

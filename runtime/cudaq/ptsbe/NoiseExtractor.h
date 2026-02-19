@@ -8,11 +8,9 @@
 
 #pragma once
 
+#include "PTSBEExecutionData.h"
 #include "PTSSamplingStrategy.h"
-#include "common/NoiseModel.h"
-#include "common/Trace.h"
-#include <optional>
-#include <stdexcept>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -35,24 +33,22 @@ struct NoiseExtractionResult {
   bool all_unitary_mixtures;
 };
 
-/// @brief Extract noise sites from a circuit trace given a noise model
+/// @brief Extract noise sites from a PTSBE trace.
 ///
-/// Iterates through the circuit instructions and queries the noise model for
-/// applicable noise channels. For each noisy instruction, creates a NoisePoint
-/// with the Kraus operators and probabilities.
+/// Scans the PTSBE trace (produced by buildPTSBETrace) for Noise-type entries
+/// and creates NoisePoints from them. All channels are already resolved in the
+/// trace. Validates unitary mixture properties and collects
+/// noise sites with their trace positions as circuit_location.
 ///
-/// @param trace Captured circuit trace containing instructions
-/// @param noise_model Noise model defining error channels
-/// @param validate_unitary_mixture If true, throws if any channel is not a
+/// @param ptsbeTrace PTSBE trace from buildPTSBETrace
 ///                                 unitary mixture (default: true). PTSBE
-///                                 always treats non-unitary channels as error.
+///                                 requires all channels to be unitary
+///                                 mixtures.
 /// @return NoiseExtractionResult containing ordered noise sites and statistics
-/// @throws std::invalid_argument if validation fails and
-/// validate_unitary_mixture
-///         is true
+/// @throws std::invalid_argument if a channel cannot be converted to a unitary
+///         mixture
 [[nodiscard]] NoiseExtractionResult
-extractNoiseSites(const cudaq::Trace &trace,
-                  const cudaq::noise_model &noise_model,
+extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
                   bool validate_unitary_mixture = true);
 
 } // namespace cudaq::ptsbe

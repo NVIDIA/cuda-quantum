@@ -16,7 +16,7 @@ using namespace cudaq::ptsbe;
 
 /// Verify basic conversion: gate name, matrix populated, qubit IDs extracted
 CUDAQ_TEST(TraceConversionTest, BasicConversion) {
-  Trace::Instruction inst("h", {}, {}, {QuditInfo(2, 5)});
+  TraceInstruction inst(ptsbe::TraceInstructionType::Gate, "h", {5}, {}, {});
   auto task = convertToSimulatorTask<double>(inst);
 
   EXPECT_EQ(task.operationName, "h");
@@ -30,7 +30,8 @@ CUDAQ_TEST(TraceConversionTest, BasicConversion) {
 /// Verify parameterized gate: parameters passed through and cast to ScalarType
 CUDAQ_TEST(TraceConversionTest, ParameterizedGate) {
   double angle = M_PI / 3;
-  Trace::Instruction inst("rx", {angle}, {}, {QuditInfo(2, 0)});
+  TraceInstruction inst(ptsbe::TraceInstructionType::Gate, "rx", {0}, {},
+                        {angle});
   auto task = convertToSimulatorTask<double>(inst);
 
   EXPECT_EQ(task.operationName, "rx");
@@ -40,8 +41,8 @@ CUDAQ_TEST(TraceConversionTest, ParameterizedGate) {
 
 /// Verify controlled gate: controls and targets extracted correctly
 CUDAQ_TEST(TraceConversionTest, ControlledGate) {
-  Trace::Instruction inst("x", {}, {QuditInfo(2, 0), QuditInfo(2, 1)},
-                          {QuditInfo(2, 2)});
+  TraceInstruction inst(ptsbe::TraceInstructionType::Gate, "x", {2}, {0, 1},
+                        {});
   auto task = convertToSimulatorTask<double>(inst);
 
   EXPECT_EQ(task.controls.size(), 2u);
@@ -53,7 +54,8 @@ CUDAQ_TEST(TraceConversionTest, ControlledGate) {
 
 /// Verify unknown gate throws with descriptive error
 CUDAQ_TEST(TraceConversionTest, UnknownGateThrows) {
-  Trace::Instruction inst("invalid_gate_xyz", {}, {}, {QuditInfo(2, 0)});
+  TraceInstruction inst(ptsbe::TraceInstructionType::Gate, "invalid_gate_xyz",
+                        {0}, {}, {});
   try {
     convertToSimulatorTask<double>(inst);
     FAIL() << "Expected an exception for unknown gate";
@@ -63,7 +65,8 @@ CUDAQ_TEST(TraceConversionTest, UnknownGateThrows) {
 
 /// Verify float precision: parameters cast to float
 CUDAQ_TEST(TraceConversionTest, FloatPrecision) {
-  Trace::Instruction inst("rx", {M_PI / 4}, {}, {QuditInfo(2, 0)});
+  TraceInstruction inst(ptsbe::TraceInstructionType::Gate, "rx", {0}, {},
+                        {M_PI / 4});
   auto task = convertToSimulatorTask<float>(inst);
 
   EXPECT_EQ(task.parameters.size(), 1u);
@@ -72,7 +75,8 @@ CUDAQ_TEST(TraceConversionTest, FloatPrecision) {
 
 /// Verify multi-target gate (swap)
 CUDAQ_TEST(TraceConversionTest, MultiTargetGate) {
-  Trace::Instruction inst("swap", {}, {}, {QuditInfo(2, 3), QuditInfo(2, 7)});
+  TraceInstruction inst(ptsbe::TraceInstructionType::Gate, "swap", {3, 7}, {},
+                        {});
   auto task = convertToSimulatorTask<double>(inst);
 
   EXPECT_EQ(task.targets.size(), 2u);

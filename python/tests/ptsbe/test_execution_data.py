@@ -191,3 +191,27 @@ def test_trajectory_measurement_counts_populated(bell_kernel):
             assert isinstance(counts, dict)
             assert len(counts) > 0
             assert sum(counts.values()) == trajectory.num_shots
+
+
+def test_execution_data_includes_mz_noise():
+
+    @cudaq.kernel
+    def x_kernel():
+        q = cudaq.qvector(1)
+        x(q[0])
+        mz(q)
+
+    noise = cudaq.NoiseModel()
+    noise.add_channel("mz", [0], cudaq.BitFlipChannel(0.1))
+    result = cudaq.ptsbe.sample(
+        x_kernel,
+        noise_model=noise,
+        shots_count=50,
+        return_execution_data=True,
+    )
+    assert result.has_execution_data()
+    data = result.ptsbe_execution_data
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
+    assert data.count_instructions(Noise) >= 1
+    assert data.count_instructions(Meas) >= 1

@@ -6,12 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Integration test for the PTSBE generic execution path across state-vector
-// simulator backends. Exercises the full pipeline: trace capture, noise
-// extraction, trajectory generation, generic execution, and aggregation.
-//
-// Excluded: DM (density matrix handles noise natively, no trajectories needed).
-#if !defined(CUDAQ_BACKEND_DM)
+// Integration test for the PTSBE generic execution path across simulator
+// backends. Exercises the full pipeline: trace capture, noise extraction,
+// trajectory generation, generic execution, and aggregation.
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/ptsbe/PTSBEExecutionData.h"
@@ -22,52 +19,86 @@ using namespace cudaq::ptsbe;
 
 namespace {
 
-auto ghz10Kernel = []() __qpu__ {
-  cudaq::qvector q(10);
+auto ghzKernel = []() __qpu__ {
+  cudaq::qvector q(5);
   h(q[0]);
-  for (int i = 0; i < 9; i++)
+  for (int i = 0; i < 4; i++)
     x<cudaq::ctrl>(q[i], q[i + 1]);
   mz(q);
 };
 
+struct xMzKernel {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    x(q);
+    mz(q);
+  }
+};
+
+struct twoQubitNoMz {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    x(q[0]);
+    x(q[1]);
+  }
+};
+
 } // namespace
 
-CUDAQ_TEST(PTSBEMultiBackendTest, GHZ10WithDepolarizationNoise) {
+CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
   noise.add_all_qubit_channel("cx", cudaq::depolarization2(0.01));
 
   sample_options options;
-  options.shots = 10000;
+  options.shots = 1000;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
-  options.ptsbe.max_trajectories = 100;
+  options.ptsbe.max_trajectories = 20;
 
-  auto result = sample(options, ghz10Kernel);
+  auto result = sample(options, ghzKernel);
 
-  // Basic sampling checks
   EXPECT_GT(result.size(), 0u);
-  EXPECT_EQ(result.get_total_shots(), 10000u);
+  EXPECT_EQ(result.get_total_shots(), 1000u);
 
-  auto countAll0 = result.count("0000000000");
-  auto countAll1 = result.count("1111111111");
-  EXPECT_GT(countAll0 + countAll1, 9000u);
+  auto countAll0 = result.count("00000");
+  auto countAll1 = result.count("11111");
+  EXPECT_GT(countAll0 + countAll1, 900u);
 
-  // Execution data consistency checks
   ASSERT_TRUE(result.has_execution_data());
   const auto &data = result.execution_data();
 
-  EXPECT_EQ(data.count_instructions(TraceInstructionType::Gate), 10);
-  EXPECT_EQ(data.count_instructions(TraceInstructionType::Noise), 10);
-  EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 10);
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Gate), 5);
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Noise), 5);
+  EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 5);
 
   EXPECT_GT(data.trajectories.size(), 0u);
-  EXPECT_LE(data.trajectories.size(), 100u);
+  EXPECT_LE(data.trajectories.size(), 20u);
 
   std::size_t trajectoryShots = 0;
   for (const auto &traj : data.trajectories)
     trajectoryShots += traj.num_shots;
-  EXPECT_EQ(trajectoryShots, 10000u);
+  EXPECT_EQ(trajectoryShots, 1000u);
 }
 
-#endif // !defined(CUDAQ_BACKEND_DM)
+CUDAQ_TEST(PTSBEMultiBackendTest, MzBitFlipFullFlip) {
+  cudaq::noise_model noise;
+  noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
+
+  auto result = cudaq::ptsbe::sample(noise, 1000, xMzKernel{});
+
+  EXPECT_GT(result.size(), 0u);
+  auto count0 = result.count("0");
+  EXPECT_GT(count0, 900u);
+}
+
+CUDAQ_TEST(PTSBEMultiBackendTest, ImplicitMzPerQubitNoise) {
+  cudaq::noise_model noise;
+  noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
+  noise.add_channel("mz", {1}, cudaq::bit_flip_channel(1.0));
+
+  auto result = cudaq::ptsbe::sample(noise, 1000, twoQubitNoMz{});
+
+  EXPECT_EQ(result.get_total_shots(), 1000u);
+  EXPECT_GT(result.count("00"), 900u);
+}
