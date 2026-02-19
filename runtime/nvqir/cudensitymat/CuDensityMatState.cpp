@@ -91,6 +91,29 @@ void CuDensityMatState::dump(std::ostream &os) const {
 }
 
 std::unique_ptr<SimulationState>
+CuDensityMatState::createFromData(const state_data &data) {
+  if (std::holds_alternative<cudaq::complex_matrix>(data)) {
+    auto &cMat = std::get<cudaq::complex_matrix>(data);
+    if (cMat.rows() != cMat.cols())
+      throw std::runtime_error(
+          "[CuDensityMatState] Density matrix input must be square.");
+    const std::size_t size = cMat.rows() * cMat.cols();
+    void *dataPtr = const_cast<cudaq::complex_matrix &>(cMat).get_data(
+        cudaq::complex_matrix::order::row_major);
+    std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
+        cudaq::dynamics::DeviceAllocator::allocate(
+            size * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
+                                 size * sizeof(std::complex<double>),
+                                 cudaMemcpyDefault));
+    auto result = std::make_unique<CuDensityMatState>(size, devicePtr);
+    result->isDensityMatrix = true;
+    return result;
+  }
+  return SimulationState::createFromData(data);
+}
+
+std::unique_ptr<SimulationState>
 CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                         std::size_t type) {
   bool isDm = false;

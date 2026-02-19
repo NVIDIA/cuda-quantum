@@ -9,19 +9,18 @@
 #pragma once
 
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include <functional>
 #include <memory>
+#include <optional>
+#include <string>
 
 namespace mlir {
 class MLIRContext;
-class ExecutionEngine;
 class ModuleOp;
 } // namespace mlir
 
-namespace llvm {
-class Module;
-}
-
 namespace cudaq {
+
 /// @brief Function to lower MLIR to target
 /// @param op MLIR operation
 /// @param output Output stream
@@ -46,19 +45,6 @@ mlir::MLIRContext *getMLIRContext();
 /// @brief Create a new context and transfer the ownership. To be used to avoid
 /// overcrowding the current MLIR context with temporary modules.
 std::unique_ptr<mlir::MLIRContext> getOwningMLIRContext();
-
-/// @brief Given an LLVM Module, set its target triple corresponding to the
-/// current host machine.
-bool setupTargetTriple(llvm::Module *);
-
-/// @brief Run the LLVM PassManager.
-void optimizeLLVM(llvm::Module *);
-
-/// @brief Lower ModuleOp to a full QIR LLVMIR representation
-/// and return an ExecutionEngine pointer for JIT function pointer
-/// execution. Clients are responsible for deleting this pointer.
-mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo);
 
 class Translation {
 public:

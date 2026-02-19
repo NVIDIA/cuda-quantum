@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from cudaq.kernel.ast_bridge import KernelSignature
 import os, sys, pytest
 import ast, inspect
 import cudaq
@@ -16,7 +17,8 @@ def test_unprocessed_ast():
     node_visitors = inspect.getmembers(
         sys.modules['ast'],
         lambda v: inspect.isclass(v) and issubclass(v, ast.NodeVisitor))
-    dummy_bridge = cudaq.PyASTBridge(None)
+    dummy_bridge = cudaq.PyASTBridge(
+        KernelSignature(arg_types=[], return_type=None))
 
     unsupported_nodes = set()
     for _, cls in node_visitors:
@@ -26,8 +28,14 @@ def test_unprocessed_ast():
         for fct_name, _ in fcts:
             node_name = fct_name[6:]
             try:
-                cls = getattr(ast, node_name)
-                node = cls.__new__(cls)
+                if node_name == 'Ellipsis':
+                    # ast.Ellipsis is deprecated in Python 3.14
+                    # https://docs.python.org/3/whatsnew/3.14.html#removed
+                    cls = ast.Constant
+                    node = ast.Constant(value=...)
+                else:
+                    cls = getattr(ast, node_name)
+                    node = cls.__new__(cls)
             except:
                 print(f"skipping test for {fct_name}")
                 continue

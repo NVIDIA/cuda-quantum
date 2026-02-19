@@ -12,6 +12,7 @@
 #include "NoiseModel.h"
 #include "SampleResult.h"
 #include "Trace.h"
+#include "common/JIT.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
 #include <optional>
@@ -156,16 +157,15 @@ public:
 
   bool allowJitEngineCaching = false;
 
-  /// For performance, a launcher may cache the JIT execution engine and use it
-  /// for multiple discrete calls. This is actually a pointer to a
-  /// `mlir::ExecutionEngine` object, but we hide that because of problems with
-  /// the structure and organization of the runtime libraries.
-  void *jitEng = nullptr;
-
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
   ExecutionManager *executionManager = nullptr;
+
+  /// @brief For performance, a launcher may cache the JIT execution engine and
+  /// use it for multiple discrete calls.
+  std::optional<JitEngine> jitEng = std::nullopt;
+
   /// @endcond
 };
 

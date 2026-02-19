@@ -10,6 +10,7 @@
 
 #include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
+#include "common/JIT.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
@@ -48,9 +49,6 @@ public:
   std::thread::id getExecutionThreadId() const {
     return execution_queue->getExecutionThreadId();
   }
-
-  // Conditional feedback is handled by the server side.
-  virtual bool supportsConditionalFeedback() override { return true; }
 
   // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
@@ -152,7 +150,8 @@ public:
 
   void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs, mlir::Type resTy,
-                         void *cachedEngine) override {
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(
@@ -194,14 +193,7 @@ public:
                                      0, rawArgs);
       }();
 
-      auto jit = std::unique_ptr<mlir::ExecutionEngine>(
-          createQIRJITEngine(moduleOp, "qir-adaptive"));
-
-      auto funcPtr =
-          jit->lookup(std::string(runtime::cudaqGenPrefixName) + name);
-      if (!funcPtr)
-        throw std::runtime_error(
-            "cudaq::builder failed to get kernelReg function.");
+      auto jit = createQIRJITEngine(moduleOp, "qir-adaptive");
 
       ExecutionContext ctx(executionContextPtr->name,
                            executionContextPtr->shots,
@@ -209,7 +201,7 @@ public:
       ctx.kernelName = executionContextPtr->kernelName;
       ctx.executionManager = cudaq::getDefaultExecutionManager();
       cudaq::get_platform().with_execution_context(
-          ctx, [&]() { reinterpret_cast<void (*)()>(*funcPtr)(); });
+          ctx, [jit, name]() { jit.run(name); });
       in_resource_estimation = false;
       return {};
     }
