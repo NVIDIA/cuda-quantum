@@ -138,4 +138,5 @@ jobs:
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
             # TEMPORARY: Clone the hololink repository (to test the build of hololink)
             git clone -b nvqlink https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git /workspace/hololink
+            export TARGET_ARCH=$(uname -m)
             source /workspace/realtime/unittests/utils/hololink_test.sh --build --no-run --no-verify --cuda-quantum-dir /workspace --hololink-dir /workspace/hololink
