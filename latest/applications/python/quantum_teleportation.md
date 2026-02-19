@@ -1804,7 +1804,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
 
 
     # Let us save the statevector of the circuit so far for later use.
-    psi_0 = cudaq.StateMemoryView(cudaq.get_state(teleportation))
+    psi_0 = cudaq.get_state(teleportation)
 :::
 :::
 :::
@@ -1854,7 +1854,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
             x(qubits[2])
 
 
-    psi_4 = cudaq.StateMemoryView(cudaq.get_state(teleportation))
+    psi_4 = cudaq.get_state(teleportation)
 :::
 :::
 :::

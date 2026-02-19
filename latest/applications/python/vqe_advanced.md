@@ -1784,7 +1784,7 @@ energy of the water molecule.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Install the relevant packages.
-    !pip install pyscf>=2.7 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.6.1 -q
+    !pip install pyscf>=2.7 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.7.1 -q
 :::
 :::
 :::
@@ -1792,7 +1792,7 @@ energy of the water molecule.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [2]:
 :::
 :::
 
@@ -1823,7 +1823,7 @@ molecular geometry, basis set, charge, and multiplicity.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [3]:
 :::
 :::
 
@@ -1845,7 +1845,7 @@ reference state and compute the integrals required for the Hamiltonian.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [4]:
 :::
 :::
 
@@ -1870,7 +1870,7 @@ quantum circuit.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [5]:
 :::
 :::
 
@@ -1933,7 +1933,7 @@ parameters.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [6]:
 :::
 :::
 
@@ -1980,7 +1980,7 @@ defined above.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [7]:
 :::
 :::
 
@@ -2014,7 +2014,7 @@ function and a selected optimizer, in this case COBYLA.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [8]:
 :::
 :::
 
@@ -2106,7 +2106,7 @@ evaluations across as many GPUs that are available. First, try it with
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [9]:
 :::
 :::
 
@@ -2175,7 +2175,7 @@ optimizer like L-BFGS-B to be used.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [11]:
+    [10]:
 :::
 :::
 
@@ -2208,7 +2208,7 @@ using only 10% of the steps as optimization above without a gradient.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [12]:
+    [11]:
 :::
 :::
 
@@ -2290,7 +2290,7 @@ space. The [`ncore`{.docutils .literal .notranslate}]{.pre}
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [12]:
 :::
 :::
 
@@ -2316,7 +2316,7 @@ the active space.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [13]:
 :::
 :::
 
@@ -2354,7 +2354,7 @@ parameters now.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [15]:
+    [14]:
 :::
 :::
 
@@ -2396,7 +2396,7 @@ parameters now.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [16]:
+    [15]:
 :::
 :::
 
@@ -2430,7 +2430,7 @@ inclusion of all orbitals and electrons.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [17]:
+    [16]:
 :::
 :::
 

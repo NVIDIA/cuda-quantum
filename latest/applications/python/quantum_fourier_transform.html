@@ -1128,7 +1128,7 @@ R_k = \begin{bmatrix}
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
 
 <span class="c1"># Print the statevector to the specified precision</span>
-<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">)))</span>
+<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -1228,7 +1228,7 @@ q2 : ┤ x ├──────────────────────
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
 
 <span class="c1"># Print the statevector to the specified precision</span>
-<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">)))</span>
+<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span>  <span class="c1"># The result should be the input state</span>
 </pre></div>
 </div>
@@ -1272,7 +1272,7 @@ q2 : ┤ x ├──────────────────────
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 300a7a704b2dedaedc04ae54a1c02210ae718c06)
+CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum dad1cf5a11b67e96875ca419c1291c91b85a70c7)
 </pre></div></div>
 </div>
 </section>

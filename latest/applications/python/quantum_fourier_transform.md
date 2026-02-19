@@ -1911,7 +1911,7 @@ circuit diagram above:
     print(cudaq.draw(quantum_fourier_transform, input_state))
 
     # Print the statevector to the specified precision
-    statevector = np.array(cudaq.StateMemoryView(cudaq.get_state(quantum_fourier_transform, input_state)))
+    statevector = np.array(cudaq.get_state(quantum_fourier_transform, input_state))
     print(np.round(statevector, precision))
 :::
 :::
@@ -2071,7 +2071,7 @@ above.
     print(cudaq.draw(verification_example, input_state))
 
     # Print the statevector to the specified precision
-    statevector = np.array(cudaq.StateMemoryView(cudaq.get_state(verification_example, input_state)))
+    statevector = np.array(cudaq.get_state(verification_example, input_state))
     print(np.round(statevector, precision))  # The result should be the input state
 :::
 :::
@@ -2126,7 +2126,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 300a7a704b2dedaedc04ae54a1c02210ae718c06)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum dad1cf5a11b67e96875ca419c1291c91b85a70c7)
 :::
 :::
 :::
