@@ -47,6 +47,7 @@ runs:
           echo "CCACHE_DIR=$HOME/.ccache"
           echo "CCACHE_BASEDIR=${GITHUB_WORKSPACE:-$(pwd)}"
           echo "CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines"
+          echo "CCACHE_COMPILERCHECK=content"
           echo "CCACHE_LOGFILE=${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
         } >> $GITHUB_ENV
         # Export for the ccache -z call below (GITHUB_ENV only applies to subsequent steps)
