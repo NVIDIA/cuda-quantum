@@ -178,6 +178,24 @@ def test_cpp_kernel_from_python_2():
         e.value)
 
 
+def test_cpp_kernel_from_python_3():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def call_c_twice():
+        q = cudaq.qvector(4)
+        cudaq_test_cpp_algo.qstd.uccsd(q, 2)
+        cudaq_test_cpp_algo.qstd.uccsd(q, 2)
+
+    @cudaq.kernel
+    def call_call_c_twice():
+        call_c_twice()
+
+    call_call_c_twice()
+
+
 def test_callbacks():
     pytest.importorskip('cudaq_test_cpp_algo')
 
