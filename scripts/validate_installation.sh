@@ -340,6 +340,58 @@ do
 done
 
 echo "============================="
+echo "== CMake Integration Test  =="
+echo "============================="
+
+if command -v cmake &>/dev/null && command -v make &>/dev/null; then
+    let "samples+=1"
+    cmake_test_dir=$(mktemp -d)
+    cat > "$cmake_test_dir/CMakeLists.txt" << 'EOF'
+cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+project(cudaq_cmake_test LANGUAGES CXX)
+find_package(CUDAQ REQUIRED)
+add_executable(ghz_test ghz_test.cpp)
+EOF
+    cat > "$cmake_test_dir/ghz_test.cpp" << 'EOF'
+#include <cudaq.h>
+struct ghz {
+  auto operator()() __qpu__ {
+    cudaq::qarray<3> q;
+    h(q[0]);
+    for (int i = 0; i < 2; i++)
+      x<cudaq::ctrl>(q[i], q[i + 1]);
+    mz(q);
+  }
+};
+int main() {
+  auto counts = cudaq::sample(ghz{});
+  counts.dump();
+  return 0;
+}
+EOF
+    cmake -S "$cmake_test_dir" -B "$cmake_test_dir/build" \
+        -DCUDAQ_DIR="$CUDA_QUANTUM_PATH/lib/cmake/cudaq" \
+        -G "Unix Makefiles" &>/tmp/cudaq_cmake_test.out \
+    && cmake --build "$cmake_test_dir/build" &>>/tmp/cudaq_cmake_test.out \
+    && "$cmake_test_dir/build/ghz_test" &>>/tmp/cudaq_cmake_test.out
+    status=$?
+    if [ "$status" -eq "0" ]; then
+        let "passed+=1"
+        echo "CMake find_package(CUDAQ) test passed."
+        echo ":white_check_mark: CMake find_package(CUDAQ) integration test." >> "${tmpFile}"
+    else
+        cat /tmp/cudaq_cmake_test.out
+        let "failed+=1"
+        echo ":x: CMake find_package(CUDAQ) integration test." >> "${tmpFile}"
+    fi
+    rm -rf "$cmake_test_dir" /tmp/cudaq_cmake_test.out
+else
+    let "skipped+=1"
+    echo "cmake or make not found; skipping CMake integration test."
+    echo ":white_flag: CMake integration test skipped (cmake/make not available)." >> "${tmpFile}"
+fi
+
+echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
