@@ -453,10 +453,8 @@ void AnyonServerHelper::updatePassPipeline(
   std::string qgate_type = "cgate";
   if (machine.starts_with("berkeley")) {
     qgate_type = "pgate";
-    printf("Compiling gates for berkeley\n");
   } else if (machine.starts_with("telegraph")) {
     qgate_type = "cgate";
-    printf("Compiling gates for telegraph\n");
   } else {
     printf("Unidentified machine type %s\n", machine.c_str());
   }

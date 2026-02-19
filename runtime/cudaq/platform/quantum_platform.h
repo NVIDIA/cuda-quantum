@@ -131,9 +131,6 @@ public:
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
 
-  /// @brief Return whether the QPU has conditional feedback support
-  bool supports_conditional_feedback(std::size_t qpu_id = 0) const;
-
   /// @brief Return whether the QPU supports explicit measurements.
   bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
 
@@ -214,7 +211,7 @@ public:
   specializeModule(const std::string &kernelName, mlir::ModuleOp module,
                    const std::vector<void *> &rawArgs, mlir::Type resultTy,
                    std::optional<cudaq::JitEngine> &cachedEngine,
-                   std::size_t qpu_id);
+                   std::size_t qpu_id, bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
