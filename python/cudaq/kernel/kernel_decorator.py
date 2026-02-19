@@ -17,10 +17,11 @@ from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
-                           IntegerType, NoneType, TypeAttr, UnitAttr, Module)
-from .analysis import HasReturnNodeVisitor
+                           IntegerType, NoneType, TypeAttr, UnitAttr, Module,
+                           Type)
+from .analysis import FunctionDefVisitor
+from .kernel_signature import CapturedLinkedKernel, CapturedVariable, KernelSignature
 from .ast_bridge import compile_to_mlir
-from .captured_data import CapturedDataStorage
 from .utils import (emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
@@ -78,33 +79,21 @@ class PyKernelDecorator(object):
                  verbose=False,
                  module=None,
                  kernelName=None,
-                 funcSrc=None,
                  signature=None,
                  location=None,
                  overrideGlobalScopedVars=None,
-                 decorator=None,
-                 fromBuilder=False):
-
-        if funcSrc is not None:
-            emitWarning(
-                "Passing 'funcSrc' to PyKernelDecorator is deprecated. Pass a string to `function` instead."
-            )
-            function = funcSrc
+                 decorator=None):
 
         self.location = location
         self.signature = signature
         self.kernelModuleName = None
         self.name = kernelName
         self.verbose = verbose
-        self.capturedDataStorage = None
         # The `qkeModule` will be the quake target independent ModuleOp
         self.qkeModule = None
         # The `nvqModule` will be (if present) the default simulation ModuleOp
         self.nvqModule = None
         self.defModule = _recover_module('cudaq.kernel.kernel_decorator')
-        # Once the kernel is compiled to MLIR, we want to know what capture
-        # variables, if any, were used in the kernel. We need to track these.
-        self.dependentCaptures = None
 
         if isinstance(function, str):
             self.kernelFunction = None
@@ -132,11 +121,10 @@ class PyKernelDecorator(object):
             else:
                 self.uniqueId = int(kernelName.split("..0x")[1], 16)
                 self.uniqName = kernelName
-                self.liftedArgs = []
-                self.firstLiftedPos = None
 
             self.qkeModule = module
-            self._parse_signature_from_mlir()
+            self.signature = KernelSignature.parse_from_mlir(
+                self.qkeModule, self.uniqName)
         else:
             # Get any global variables from parent scope. Note here we assume
             # that the parent scope is 2 stack frames up
@@ -149,8 +137,10 @@ class PyKernelDecorator(object):
             for name, var in parentVars.items():
                 self._add_global_scoped_var(name, var)
 
-            self._parse_ast()
-            self._parse_signature_from_python()
+            self.astModule = _parse_ast(self.funcSrc, self.verbose)
+            self.signature = KernelSignature.parse_from_ast(
+                self.astModule, self.name)
+
             self.pre_compile()
 
     def __del__(self):
@@ -165,21 +155,24 @@ class PyKernelDecorator(object):
         returns True if and only if the entry-point contains callable arguments
         and/or return values.
         """
-        name = nvqppPrefix + self.uniqName
-        funcOp = recover_func_op(self.qkeModule, name)
-        attr = TypeAttr(funcOp.attributes['function_type'])
-        funcTy = FunctionType(attr.value)
-        for ty in funcTy.inputs + funcTy.results:
+        for ty in self.signature.get_all_types():
             if cc.CallableType.isinstance(ty) or FunctionType.isinstance(ty):
                 return True
         return False
 
-    def getKernelType(self):
-        if self.returnType:
-            resTys = [self.returnType]
-        else:
-            resTys = []
-        return FunctionType.get(inputs=self.argTypes, results=resTys)
+    @property
+    def return_type(self):
+        return self.signature.return_type
+
+    def arg_types(self, include_captured: bool = False) -> list[Type]:
+        arg_types = self.signature.arg_types
+        if include_captured:
+            arg_types = arg_types + self.signature.captured_types()
+        return arg_types
+
+    def captured_variables(self):
+        """The list of variables captured by the kernel."""
+        return self.signature.captured_variables()
 
     def pre_compile(self):
         """
@@ -195,20 +188,17 @@ class PyKernelDecorator(object):
         # Otherwise, `precompile` the kernel to portable MLIR.
         if self.qkeModule:
             raise RuntimeError(self.name + " was already compiled")
-        self.capturedDataStorage = None
         self.uniqueId = id(self)
         self.uniqName = self.name + ".." + hex(self.uniqueId)
-        self.qkeModule, self.argTypes, extraMetadata, self.liftedArgs, self.firstLiftedPos = compile_to_mlir(
-            id(self),
-            self.astModule,
-            self.capturedDataStorage,
-            verbose=self.verbose,
-            returnType=self.returnType,
-            location=self.location,
-            parentVariables=self.globalScopedVars,
-            preCompile=True,
-            kernelName=self.name,
-            kernelModuleName=self.kernelModuleName)
+        self.qkeModule = compile_to_mlir(id(self),
+                                         self.astModule,
+                                         self.signature,
+                                         verbose=self.verbose,
+                                         location=self.location,
+                                         parentVariables=self.globalScopedVars,
+                                         preCompile=True,
+                                         kernelName=self.name,
+                                         kernelModuleName=self.kernelModuleName)
 
         if (cudaq_runtime.is_current_target_full_qir() and
                 not self.signatureWithCallables()):
@@ -220,16 +210,7 @@ class PyKernelDecorator(object):
         return
 
     def convert_to_full_qir(self, vals):
-        # Clean up the captured data if the module needs recompilation.
-        self.capturedDataStorage = self.createStorage()
-
-        resMod, inputs, extraMetadata = self.lower_quake_to_codegen(vals)
-
-        # Grab the dependent capture variables, if any
-        self.dependentCaptures = None
-        if extraMetadata and 'dependent_captures' in extraMetadata:
-            self.dependentCaptures = extraMetadata['dependent_captures']
-        return resMod
+        return self.lower_quake_to_codegen(vals)
 
     def lower_quake_to_codegen(self, argValues):
         """
@@ -237,29 +218,15 @@ class PyKernelDecorator(object):
         generation. If argument values are provided, we run argument synthesis
         and specialize this instance of the kernel.
         """
-        uniq_name = nvqppPrefix + self.uniqName
         if not self.qkeModule:
             emitFatalError(f"no module in kernel decorator {self.name}")
         result = cudaq_runtime.cloneModule(self.qkeModule)
 
-        func_op = recover_func_op(self.qkeModule, uniq_name)
         if argValues:
-            if len(self.argTypes) != len(argValues):
+            if len(self.arg_types(include_captured=True)) != len(argValues):
                 emitFatalError("wrong number of arguments provided")
-        outputs = FunctionType(
-            TypeAttr(func_op.attributes['function_type']).value).results
-        outTy = outputs[0] if outputs else self.get_none_type()
 
-        if argValues:
-            # Assume all arguments were synthesized.
-            inputs = []
-        else:
-            # No specialization, so just use the original arguments.
-            if not func_op:
-                emitFatalError(f"no entry point for {self.uniqName}")
-            inputs = FunctionType(
-                TypeAttr(func_op.attributes['function_type']).value).inputs
-        return result, inputs, {}
+        return result
 
     def merge_kernel(self, otherMod):
         """
@@ -330,7 +297,7 @@ class PyKernelDecorator(object):
         temporary directory is writable.  If any of these assumptions fail,
         returns None.
         """
-        if self.argTypes is None or len(self.argTypes) != 0:
+        if len(self.arg_types(include_captured=True)) != 0:
             return None
         from cudaq import getSVGstring
 
@@ -421,12 +388,6 @@ class PyKernelDecorator(object):
                         ]
         return value
 
-    def createStorage(self):
-        return CapturedDataStorage(ctx=self.qkeModule.context,
-                                   loc=self.location,
-                                   name=self.name,
-                                   module=self.qkeModule)
-
     @staticmethod
     def type_to_str(t):
         """
@@ -456,10 +417,6 @@ class PyKernelDecorator(object):
         obj['name'] = self.name
         obj['location'] = self.location
         obj['funcSrc'] = self.funcSrc
-        obj['signature'] = {
-            k: PyKernelDecorator.type_to_str(v)
-            for k, v in self.signature.items()
-        }
         return json.dumps(obj)
 
     @staticmethod
@@ -471,7 +428,6 @@ class PyKernelDecorator(object):
         return PyKernelDecorator(function=j['funcSrc'],
                                  verbose=False,
                                  kernelName=j['name'],
-                                 signature=j['signature'],
                                  location=j['location'],
                                  overrideGlobalScopedVars=overrideDict)
 
@@ -487,11 +443,9 @@ class PyKernelDecorator(object):
         return arg
 
     def formal_arity(self):
-        if self.liftedArgs:
-            return self.firstLiftedPos
-        return len(self.argTypes)
+        return len(self.arg_types())
 
-    def handle_call_arguments(self, *args, ignoreReturnType=False):
+    def handle_call_arguments(self, *args):
         """
         Resolve all the arguments at the call site for this decorator.
         """
@@ -501,24 +455,20 @@ class PyKernelDecorator(object):
         self.process_arguments_to_call(processedArgs, callingModule, args)
 
         # Process any lifted arguments
-        if self.liftedArgs:
-            for j, a in enumerate(self.liftedArgs):
-                i = self.firstLiftedPos + j
-                # get the value associated with the variable named "a" in the
-                # current context.
-                if isinstance(a, dict) and a.get('linkedKernel'):
-                    # Lifted argument is a registered C++ kernel, load and capture it
-                    [linkedKernel,
-                     maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                         self.qkeModule, a['linkedKernel'])
-                    qkeModule = Module.parse(maybeCode,
-                                             context=self.qkeModule.context)
-                    processedArgs.append(
-                        LinkedKernelCapture(linkedKernel, qkeModule))
-                else:
-                    a_value = recover_value_of(a, None)
-                    self.process_argument(processedArgs, i, a_value,
-                                          callingModule)
+        for arg in self.signature.captured_args:
+            if isinstance(arg, CapturedLinkedKernel):
+                # Lifted argument is a registered C++ kernel, load and capture it
+                [linkedKernel,
+                 maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                     self.qkeModule, arg.kernel_name)
+                qkeModule = Module.parse(maybeCode,
+                                         context=self.qkeModule.context)
+                processedArgs.append(
+                    LinkedKernelCapture(linkedKernel, qkeModule))
+            else:
+                arg_value = recover_value_of(arg.name, None)
+                self.process_argument(processedArgs, arg_value, arg.type,
+                                      callingModule)
 
         # Specialize quake code via argument synthesis, lower to full QIR.
         specialized_module = self.convert_to_full_qir(processedArgs)
@@ -528,9 +478,9 @@ class PyKernelDecorator(object):
         return NoneType.get(self.qkeModule.context)
 
     def handle_call_results(self):
-        if not self.returnType:
+        if not self.return_type:
             return self.get_none_type()
-        return mlirTypeFromPyType(self.returnType, self.qkeModule.context)
+        return self.return_type
 
     def launch_args_required(self):
         """
@@ -541,7 +491,7 @@ class PyKernelDecorator(object):
         This will analyze the designated entry-point kernel for the quake module
         and determine if any arguments are used and return the number used.
         """
-        if len(self.argTypes) == 0:
+        if len(self.arg_types(include_captured=True)) == 0:
             return 0
         shortName = self.uniqName
         return cudaq_runtime.get_launch_args_required(self.qkeModule, shortName)
@@ -564,7 +514,7 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
-    def beta_reduction(self, *args):
+    def beta_reduction(self, isEntryPoint, *args):
         """
         Perform beta reduction on this kernel decorator in the current calling
         context. We are primary concerned with resolving the lambda lifted
@@ -580,7 +530,8 @@ class PyKernelDecorator(object):
         mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName,
                                                        specialized_module,
-                                                       mlirTy, *processedArgs)
+                                                       mlirTy, isEntryPoint,
+                                                       *processedArgs)
 
     def delete_cache_execution_engine(self, key):
         """
@@ -591,26 +542,26 @@ class PyKernelDecorator(object):
     def resolve_decorator_at_callsite(self, callingMod):
         # Resolve all lifted arguments for `self`.
         processedArgs = []
-        for j, la in enumerate(self.liftedArgs):
-            i = self.firstLiftedPos + j
+        for arg in self.signature.captured_args:
             resMod = None
             if callingMod != self.defModule:
                 resMod = self.defModule
-            if isinstance(la, dict) and la.get('linkedKernel'):
+            if isinstance(arg, CapturedLinkedKernel):
                 # Lifted argument is a registered C++ kernel, load and capture it
                 [linkedKernel,
                  maybeCode] = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                     self.qkeModule, la['linkedKernel'])
+                     self.qkeModule, arg.kernel_name)
                 qkeModule = Module.parse(maybeCode,
                                          context=self.qkeModule.context)
                 processedArgs.append(
                     LinkedKernelCapture(linkedKernel, qkeModule))
             else:
-                la_value = recover_value_of(la, resMod)
-                self.process_argument(processedArgs, i, la_value, callingMod)
+                arg_value = recover_value_of(arg.name, resMod)
+                self.process_argument(processedArgs, arg_value, arg.type,
+                                      callingMod)
         return DecoratorCapture(self, processedArgs)
 
-    def process_argument(self, processedArgs, i, arg, callingMod):
+    def process_argument(self, processedArgs, arg, arg_type, callingMod):
         if isa_kernel_decorator(arg):
             rdr = arg.resolve_decorator_at_callsite(callingMod)
             processedArgs.append(rdr)
@@ -620,7 +571,7 @@ class PyKernelDecorator(object):
         mlirType = mlirTypeFromPyType(type(arg),
                                       getMLIRContext(),
                                       argInstance=arg,
-                                      argTypeToCompareTo=self.argTypes[i])
+                                      argTypeToCompareTo=arg_type)
 
         # Check error conditions before proceeding.
         if cc.CallableType.isinstance(mlirType):
@@ -628,32 +579,29 @@ class PyKernelDecorator(object):
                 f"Argument has callable type but the argument ({arg}) is not "
                 f"a kernel decorator.")
 
-        if self.isCastablePyType(mlirType, self.argTypes[i]):
-            processedArgs.append(
-                self.castPyType(mlirType, self.argTypes[i], arg))
-            mlirType = self.argTypes[i]
+        if self.isCastablePyType(mlirType, arg_type):
+            processedArgs.append(self.castPyType(mlirType, arg_type, arg))
+            mlirType = arg_type
             return
 
-        if mlirType != self.argTypes[i]:
-            emitFatalError(
-                f"Invalid runtime argument type. Argument of type "
-                f"{mlirTypeToPyType(mlirType)} was provided, but "
-                f"{mlirTypeToPyType(self.argTypes[i])} was expected.")
+        if mlirType != arg_type:
+            emitFatalError(f"Invalid runtime argument type. Argument of type "
+                           f"{mlirTypeToPyType(mlirType)} was provided, but "
+                           f"{mlirTypeToPyType(arg_type)} was expected.")
 
         # Convert `numpy` arrays to lists
         if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
             if arg.ndim != 1:
                 emitFatalError(
                     f"CUDA-Q kernels only support array arguments from NumPy "
-                    f"that are one dimensional (input argument {i} has shape ="
-                    f" {arg.shape}).")
+                    f"that are one dimensional (found shape = {arg.shape}).")
             processedArgs.append(arg.tolist())
         else:
             processedArgs.append(arg)
 
     def process_arguments_to_call(self, processedArgs, resMod, args):
-        for i, arg in enumerate(args):
-            self.process_argument(processedArgs, i, arg, resMod)
+        for arg, arg_type in zip(args, self.arg_types()):
+            self.process_argument(processedArgs, arg, arg_type, resMod)
 
     def _add_global_scoped_var(self, name, var):
         self.globalScopedVars[name] = var
@@ -663,39 +611,6 @@ class PyKernelDecorator(object):
         if isinstance(var, type) and hasattr(var, '__annotations__'):
             globalRegisteredTypes.registerClass(name, var)
 
-    def _parse_signature_from_python(self):
-        if not self.kernelFunction:
-            return
-
-        self.signature = inspect.getfullargspec(self.kernelFunction).annotations
-        self.arguments = [
-            (k, v) for k, v in self.signature.items() if k != 'return'
-        ]
-
-        # Validate that we have a return type annotation if necessary
-        hasRetNodeVis = HasReturnNodeVisitor()
-        hasRetNodeVis.visit(self.astModule)
-        if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
-            emitFatalError('CUDA-Q kernel has return statement '
-                           'but no return type annotation.')
-
-        self.returnType = self.signature.get('return', None)
-
-    def _parse_signature_from_mlir(self):
-        funcOp = recover_func_op(self.qkeModule, nvqppPrefix + self.uniqName)
-        fnTy = FunctionType(TypeAttr(funcOp.attributes['function_type']).value)
-        self.argTypes = fnTy.inputs
-        self.returnType = fnTy.results[0] if fnTy.results else None
-
-    def _parse_ast(self):
-        self.astModule = ast.parse(self.funcSrc)
-        if self.verbose:
-            try:
-                from astpretty import pprint
-                pprint(self.astModule.body[0])
-            except ImportError:
-                pass
-
 
 def mk_decorator(builder):
     """
@@ -703,7 +618,6 @@ def mk_decorator(builder):
     that handles both CUDA-Q kernel object classes more unified.
     """
     return PyKernelDecorator(None,
-                             fromBuilder=True,
                              module=builder.module,
                              kernelName=builder.uniqName)
 
@@ -786,3 +700,14 @@ def _recover_module(name):
         return sys.modules.get(frame.f_globals.get("__name__"))
     finally:
         del frame
+
+
+def _parse_ast(funcSrc: str, verbose: bool = False):
+    astModule = ast.parse(funcSrc)
+    if verbose:
+        try:
+            from astpretty import pprint
+            pprint(astModule.body[0])
+        except ImportError:
+            pass
+    return astModule

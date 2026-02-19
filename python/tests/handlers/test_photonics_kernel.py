@@ -35,7 +35,7 @@ def test_qudit():
     assert len(counts) == 1
     assert '3' in counts
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel))
+    state = cudaq.get_state(kernel)
     state.dump()
     assert 4 == state.__len__()
 
@@ -100,7 +100,7 @@ def test_kernel_with_args():
     result = cudaq.sample(kernel_1f, 0.5)
     result.dump()
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel_1f, 0.5))
+    state = cudaq.get_state(kernel_1f, 0.5)
     state.dump()
 
     @cudaq.kernel
@@ -114,7 +114,7 @@ def test_kernel_with_args():
     result = cudaq.sample(kernel_2f, 0.7854, 0.3927)
     result.dump()
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel_2f, 0.7854, 0.3927))
+    state = cudaq.get_state(kernel_2f, 0.7854, 0.3927)
     state.dump()
 
     @cudaq.kernel
@@ -128,8 +128,7 @@ def test_kernel_with_args():
     result = cudaq.sample(kernel_list, [0.5236, 1.0472])
     result.dump()
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel_list,
-                                                  [0.5236, 1.0472]))
+    state = cudaq.get_state(kernel_list, [0.5236, 1.0472])
     state.dump()
 
 

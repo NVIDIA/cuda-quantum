@@ -1,4 +1,7 @@
 on:
+  # Daily rebuild on main to ensure devdeps rebuilt as needed
+  schedule:
+    - cron: '0 4 * * *'  # aim to be ready by 9am CET/CEST
   workflow_dispatch:
     inputs:
       cache_base:
@@ -246,8 +249,13 @@ jobs:
 
       - name: Validate wheel
         run: |
-          # Full validation: core tests, examples, snippets, backends
-          # GPU/MPI tests are automatically skipped on macOS (CPU-only)
+          # Validates wheel: core tests, examples, snippets, backends.
+          # GPU/remote targets are skipped (no CUDA on macOS runners).
+          # TODO: When adding macOS to publishing.yml, align the validation
+          # approach with python_wheels.yml (which uses
+          # explicit find exclusions for platform/backends/dynamics paths,
+          # and does not use validate_pycudaq.sh for snippets/examples
+          # currently used in python_wheels.yml).
           bash scripts/validate_pycudaq.sh \
             -v ${{ needs.wheel.outputs.cudaq_version }} \
             -i dist \
