@@ -30,6 +30,9 @@ if [ -x "$(command -v apt-get)" ]; then
   DOCA_VERSION=3.2.1
   echo "Installing DOCA version $DOCA_VERSION..."
   arch=$(uname -m)
+  if [ "$arch" == "aarch64" ] || [ "$arch" == "arm64" ]; then
+    arch="arm64-sbsa"
+  fi
   distro=$(. /etc/os-release && echo ${ID}${VERSION_ID}) # e.g., ubuntu24.04
   export DOCA_URL="https://linux.mellanox.com/public/repo/doca/$DOCA_VERSION/$distro/$arch/"
   echo "Using DOCA_REPO_LINK=${DOCA_URL}" 
