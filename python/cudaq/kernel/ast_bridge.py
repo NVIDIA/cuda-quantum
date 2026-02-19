@@ -928,7 +928,16 @@ class PyASTBridge(ast.NodeVisitor):
             self.getIntegerType(1))
         return cc.StdvecInitOp(vecTy, alloca, length=arrSize).result
 
-    def __createStructWithKnownValues(self, mlirVals, name=None):
+    def __createStructWithKnownValues(self,
+                                      mlirVals,
+                                      name=None,
+                                      expectedTypes=None):
+        if expectedTypes:
+            assert len(expectedTypes) == len(mlirVals)
+            mlirVals = [
+                self.changeOperandToType(eTy, val) if val.type != eTy else val
+                for val, eTy in zip(mlirVals, expectedTypes)
+            ]
         structTy = mlirTryCreateStructType([item.type for item in mlirVals],
                                            name=name,
                                            context=self.ctx)
@@ -2590,7 +2599,8 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 for val in call.results:
                     self.__validate_container_entry(val, node)
-                result = self.__createStructWithKnownValues(call.results)
+                result = self.__createStructWithKnownValues(
+                    call.results, expectedTypes=list(functionTy.results))
 
             # The logic for calls that return values must match the logic in
             # `visit_Return`; anything copied to the heap during return must be
@@ -3110,8 +3120,8 @@ class PyASTBridge(ast.NodeVisitor):
                 ctorArgs = convertArguments(structTys, ctorArgs)
                 for idx, arg in enumerate(ctorArgs):
                     self.__validate_container_entry(arg, node.args[idx])
-                struct = self.__createStructWithKnownValues(ctorArgs,
-                                                            name=node.func.id)
+                struct = self.__createStructWithKnownValues(
+                    ctorArgs, name=node.func.id, expectedTypes=structTys)
                 self.pushValue(struct)
                 return
 
@@ -4969,7 +4979,14 @@ class PyASTBridge(ast.NodeVisitor):
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
-        struct = self.__createStructWithKnownValues(elementValues)
+        expectedTypes = None
+        if self.walkingReturnNode and cc.StructType.isinstance(
+                self.signature.return_type):
+            expectedTypes = cc.StructType.getTypes(self.signature.return_type)
+            if len(expectedTypes) != len(elementValues):
+                expectedTypes = None
+        struct = self.__createStructWithKnownValues(elementValues,
+                                                    expectedTypes=expectedTypes)
         self.pushValue(struct)
 
     def visit_UnaryOp(self, node):

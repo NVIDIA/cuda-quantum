@@ -111,12 +111,13 @@ std::size_t cudaq::byteSize(Type ty) {
   if (isa<quake::MeasureType>(ty))
     return sizeof(cudaq::measure_result);
   if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty)) {
-    std::size_t total = 0;
-    for (auto member : structTy.getMembers())
-      total += byteSize(member);
-    return total;
+    if (structTy.getName() && structTy.getName().str() == "measure_result") {
+      std::size_t total = 0;
+      for (auto member : structTy.getMembers())
+        total += byteSize(member);
+      return total;
+    }
   }
-
   ty.dump();
   throw std::runtime_error("Expected a complex, floating, or integral type");
 }

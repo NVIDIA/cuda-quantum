@@ -6,10 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import dataclasses
+import typing
+
+from cudaq.kernel.kernel_decorator import isa_kernel_decorator
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.ir import UnitAttr
-from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-import numpy as np
 
 # Maintain a dictionary of queued `async` run kernels. This dictionary is used
 # to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
@@ -45,7 +46,33 @@ class AsyncRunResult:
             del (cudaq_async_run_module_cache[self.counter])
 
 
+def _validate_run_return_type(decorator):
+    fn = decorator.kernelFunction
+    if fn is None:
+        return
+    try:
+        hints = typing.get_type_hints(fn)
+    except Exception:
+        return
+    ret = hints.get('return')
+    if ret is None:
+        return
+
+    mr = cudaq_runtime.measure_result
+
+    if typing.get_origin(ret) is tuple:
+        if mr in typing.get_args(ret):
+            raise RuntimeError("Unsupported data type: returning a tuple "
+                               "containing `measure_result` is not allowed")
+
+    if dataclasses.is_dataclass(ret) and isinstance(ret, type):
+        if mr in typing.get_type_hints(ret).values():
+            raise RuntimeError("Unsupported data type: returning a dataclass "
+                               "containing `measure_result` is not allowed")
+
+
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
+    _validate_run_return_type(decorator)
     if isa_kernel_decorator(decorator):
         if decorator.qkeModule is None:
             raise RuntimeError(
@@ -91,7 +118,7 @@ Returns:
   A handle, which can be waited on via a `get()` method, which returns an array
   of `kernel` return values. The length of the list is equal to `shots_count`.
   """
-
+    _validate_run_return_type(decorator)
     if isa_kernel_decorator(decorator):
         if decorator.qkeModule is None:
             raise RuntimeError(

@@ -9,6 +9,7 @@
 import cudaq
 import os
 import pytest
+import dataclasses
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +48,38 @@ def test_return_measure_result_list():
         assert isinstance(r, list)
         assert len(r) == 2
         assert r[0] == r[1]
+
+
+def test_return_measure_result_tuple():
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel() -> tuple[cudaq.measure_result, cudaq.measure_result]:
+            q = cudaq.qvector(2)
+            x(q[0])
+            return mz(q[0]), mz(q[1])
+
+        cudaq.run(kernel, shots_count=10)
+
+    assert "Unsupported data type" in str(e.value)
+
+    @dataclasses.dataclass(slots=True)
+    class Result:
+        r1: cudaq.measure_result
+        r2: int
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel() -> Result:
+            q = cudaq.qubit()
+            x(q)
+            return Result(mz(q), 42)
+
+        cudaq.run(kernel, shots_count=10)
+
+    assert "Unsupported data type" in str(e.value)
 
 
 # leave for gdb debugging
