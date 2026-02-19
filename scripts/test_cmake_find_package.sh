@@ -69,9 +69,20 @@ int main() {
 }
 EOF
 
+# If no system C++ compiler is available, use the clang bundled with CUDA-Q.
+cmake_extra_args=""
+if ! command -v c++ &>/dev/null && ! command -v g++ &>/dev/null && ! command -v clang++ &>/dev/null; then
+    bundled_clang="$cudaq_path/lib/llvm/bin/clang++"
+    if [ -x "$bundled_clang" ]; then
+        cmake_extra_args="-DCMAKE_CXX_COMPILER=$bundled_clang"
+        echo "No system C++ compiler found; using bundled clang: $bundled_clang"
+    fi
+fi
+
 echo "=== CMake configure ==="
 if ! cmake -S "$test_dir" -B "$test_dir/build" \
         -DCUDAQ_DIR="$cudaq_cmake_dir" \
+        $cmake_extra_args \
         -G "Unix Makefiles" 2>&1; then
     echo ""
     echo "FAIL: CMake configure failed." >&2
