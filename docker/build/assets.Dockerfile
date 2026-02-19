@@ -71,21 +71,6 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-ENV CCACHE_DIR=/root/.ccache
-ENV CCACHE_BASEDIR=/cuda-quantum
-ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
-ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
-RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
-    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
-        echo "Importing ccache data..." && \
-        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
-        ccache -s 2>/dev/null || true && \
-        ccache -z 2>/dev/null || true && \
-        find /root/.ccache -type f | wc -l | tr -d ' ' > /root/.ccache/_restore_file_count.txt; \
-    else \
-        echo "No ccache data injected using empty scratch stage." && \
-        mkdir -p /root/.ccache; \
-    fi
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm
@@ -140,6 +125,22 @@ ADD "NOTICE" /cuda-quantum/NOTICE
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
+
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true && \
+        find /root/.ccache -type f | wc -l | tr -d ' ' > /root/.ccache/_restore_file_count.txt; \
+    else \
+        echo "No ccache data injected using empty scratch stage." && \
+        mkdir -p /root/.ccache; \
+    fi
 
 # Note: We statically link libc++ here to make it easy to build shared CUDA-Q libraries with nvq++
 # that can then be linked to and called from other C++ code compiled with a different toolchain
