@@ -13,6 +13,7 @@
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <string>
 #include <unordered_map>
