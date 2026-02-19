@@ -2097,8 +2097,8 @@ and [`result.has_execution_data()`{.docutils .literal
         [4] type=TraceInstructionType.Measurement, name=mz, targets=[0]
       Example trajectory: id=0, probability=0.921500, num_shots=921501
       Selected trajectory (kraus_selections):
-        circuit_location=0, kraus_operator_index=0
         circuit_location=1, kraus_operator_index=0
+        circuit_location=3, kraus_operator_index=0
 :::
 :::
 :::
