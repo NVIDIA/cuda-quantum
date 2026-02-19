@@ -206,6 +206,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Only run once per day (at midnight UTC)
+          if [ "$(date -u +%H%M)" != "0000" ]; then
+            echo "Skipping stale PR cleanup."
+            exit 0
+          fi
+
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           git config pull.rebase true
@@ -220,11 +226,11 @@ jobs:
           stale_prs=$(gh pr list \
             --repo "${{ github.repository }}" \
             --state open \
-            -- limit 200 \
+            --limit 200 \
             --json number,createdAt \
             --jq ".[] | select((.createdAt | fromdate) < $cutoff) | .number")
 
-          if [ -z "stale_prs" ]; then
+          if [ -z "$stale_prs" ]; then
             echo "No stale PR previews to delete."
             exit 0
           fi
@@ -238,7 +244,7 @@ jobs:
           done
 
           # If nothing matches, skip commit/push
-          if git diff --quiet; then
+          if git diff --cached --quiet; then
             echo "No preview folders were removed (nothing to commit)."
             exit 0
           fi
