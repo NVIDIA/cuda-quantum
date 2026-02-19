@@ -445,10 +445,7 @@ class PyKernelDecorator(object):
     def formal_arity(self):
         return len(self.arg_types())
 
-    def handle_call_arguments(self,
-                              *args,
-                              ignoreReturnType=False,
-                              allow_no_args=False):
+    def handle_call_arguments(self, *args, allow_no_args=False):
         """
         Resolve all the arguments at the call site for this decorator.
         """
@@ -460,8 +457,7 @@ class PyKernelDecorator(object):
         # If we're compiling a kernel that's not an entry point, allowing compiling
         # without providing all arguments
         if allow_no_args:
-            expected = self.firstLiftedPos if self.liftedArgs else len(
-                self.argTypes)
+            expected = len(self.arg_types(include_captured=False))
             actual = len(processedArgs)
             if actual != 0 and actual != expected:
                 raise RuntimeError(

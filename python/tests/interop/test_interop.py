@@ -310,6 +310,7 @@ def test_callback_with_callable():
 
     cudaq_test_cpp_algo.run4(entry)
 
+
 def test_py_kernel_from_cpp_with_returns():
     pytest.importorskip('cudaq_test_cpp_algo')
 
