@@ -148,7 +148,7 @@ aggregateResults(const std::vector<cudaq::sample_result> &results) {
   cudaq::CountsDictionary aggregatedCounts;
   for (const auto &res : results) {
     // Skip empty results (e.g., trajectories with zero shots).
-    if (res.size() == 0)
+    if (res.get_total_shots() == 0)
       continue;
 
     for (const auto &[bitstring, count] : res.to_map())
