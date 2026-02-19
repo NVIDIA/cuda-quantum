@@ -129,8 +129,12 @@ jobs:
           run: |
             cd /workspace/realtime
             source scripts/install_dev_prerequisites.sh
+            # Note: hololink requires cmake 3.20+
+            wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+            apt update && apt install -y kitware-archive-keyring
             # Build 
-            apt update && apt install -y --no-install-recommends cmake git ninja-build
+            apt update && apt install -y --no-install-recommends cmake git ninja-build 
             # TEMPORARY: Clone the hololink repository (to test the build of hololink)
             git clone -b nvqlink https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git /workspace/hololink
             source /workspace/realtime/unittests/utils/hololink_test.sh --build --no-run --no-verify --cuda-quantum-dir /workspace --hololink-dir /workspace/hololink
