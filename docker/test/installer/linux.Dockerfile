@@ -76,6 +76,9 @@ RUN source /etc/environment && \
     ## [<CUDAQuantumInstall]
 RUN . /etc/profile && nvq++ --help
 
+## [Install cmake for find_package(CUDAQ) integration test]
+RUN sudo dnf install -y --nobest --setopt=install_weak_deps=False cmake make
+
 ## [ADD tools for validation]
 ADD scripts/validate_installation.sh /home/cudaq/validate.sh
 ADD scripts/test_cmake_find_package.sh /home/cudaq/test_cmake_find_package.sh

@@ -350,7 +350,15 @@ if [ ! -f "$cmake_test_script" ] && [ -n "${repo_root:-}" ]; then
     cmake_test_script="$repo_root/scripts/test_cmake_find_package.sh"
 fi
 
-if [ -f "$cmake_test_script" ]; then
+if [ ! -f "$cmake_test_script" ]; then
+    let "skipped+=1"
+    echo "test_cmake_find_package.sh not found; skipping CMake integration test."
+    echo ":white_flag: CMake integration test skipped (script not found)." >> "${tmpFile}"
+elif ! command -v cmake &>/dev/null || ! command -v make &>/dev/null; then
+    let "skipped+=1"
+    echo "cmake or make not found; skipping CMake integration test."
+    echo ":white_flag: CMake integration test skipped (cmake/make not available)." >> "${tmpFile}"
+else
     let "samples+=1"
     if bash "$cmake_test_script"; then
         let "passed+=1"
@@ -359,10 +367,6 @@ if [ -f "$cmake_test_script" ]; then
         let "failed+=1"
         echo ":x: CMake find_package(CUDAQ) integration test." >> "${tmpFile}"
     fi
-else
-    let "skipped+=1"
-    echo "test_cmake_find_package.sh not found; skipping CMake integration test."
-    echo ":white_flag: CMake integration test skipped (script not found)." >> "${tmpFile}"
 fi
 
 echo "============================="
