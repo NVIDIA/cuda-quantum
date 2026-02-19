@@ -55,6 +55,7 @@ ARG git_source_sha=xxxxxxxx
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
