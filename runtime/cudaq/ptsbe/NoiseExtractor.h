@@ -10,29 +10,11 @@
 
 #include "PTSBEExecutionData.h"
 #include "PTSSamplingStrategy.h"
-#include "common/NoiseModel.h"
-#include "common/Trace.h"
-#include <optional>
 #include <span>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace cudaq::ptsbe {
-
-/// @brief Build the PTSBE instruction sequence from a raw cudaq::Trace.
-///
-/// Converts QuditInfo targets/controls to plain qubit indices. All instruction
-/// types are preserved. Gate and measurement entries pass through. Noise
-/// entries (from apply_noise) have their channels resolved via the noise model.
-/// The resulting vector defines the unified index space for circuit_location
-/// referenced by NoisePoint.
-///
-/// @param trace Raw circuit trace (may contain Gate, Noise, and Measurement)
-/// @param noise_model Noise model used to resolve inline apply_noise channels
-/// @return PTSBETrace with resolved channels for Noise entries
-[[nodiscard]] PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
-                                         const cudaq::noise_model &noise_model);
 
 /// @brief Result of noise site extraction from a circuit
 struct NoiseExtractionResult {

@@ -80,6 +80,20 @@ void validatePTSBEPreconditions(
     quantum_platform &platform,
     std::optional<std::size_t> qpu_id = std::nullopt);
 
+/// @brief Build the PTSBE instruction sequence from a raw cudaq::Trace.
+///
+/// Converts QuditInfo targets/controls to plain qubit indices. All instruction
+/// types are preserved. Gate and measurement entries pass through. Noise
+/// entries (from apply_noise) have their channels resolved via the noise model.
+/// The resulting vector defines the unified index space for circuit_location
+/// referenced by NoisePoint.
+///
+/// @param trace Raw circuit trace (may contain Gate, Noise, and Measurement)
+/// @param noise_model Noise model used to resolve inline apply_noise channels
+/// @return PTSBETrace with resolved channels for Noise entries
+[[nodiscard]] PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
+                                         const cudaq::noise_model &noise_model);
+
 /// @brief Extract measured qubit IDs from the trace's Measurement entries.
 ///
 /// Scans the trace for Measurement instructions and collects their target

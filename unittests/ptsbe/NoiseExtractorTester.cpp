@@ -9,6 +9,7 @@
 #include "common/NoiseModel.h"
 #include "common/Trace.h"
 #include "cudaq/ptsbe/NoiseExtractor.h"
+#include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/qis/execution_manager.h"
 #include <gtest/gtest.h>
 

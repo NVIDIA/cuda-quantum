@@ -24,7 +24,7 @@ namespace cudaq::ptsbe {
 /// Stores the validated kraus_channel which contains the Kraus operators and
 /// their probabilities for that noise channel.
 struct NoisePoint {
-  /// @brief Index into a noise location in thePTSBE instruction sequence.
+  /// @brief Index into a noise location in the PTSBE instruction sequence.
   /// Valid for both gate and measurement noise.
   std::size_t circuit_location;
 

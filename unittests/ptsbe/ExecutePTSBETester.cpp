@@ -21,6 +21,11 @@ using namespace cudaq::ptsbe;
 using QppSimulator =
     QppCircuitSimulatorTester<nvqir::QppCircuitSimulator<qpp::ket>>;
 
+const PTSBETrace kHadamardTrace = {
+    {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
+const PTSBETrace kXTrace = {
+    {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
+
 /// Test helper: execute PTSBE with lifecycle management on a direct simulator.
 /// This encapsulates the context setup, qubit allocation, execution, and
 /// cleanup that would otherwise need to be repeated in each test.
@@ -52,7 +57,7 @@ CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
+  batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 100);
@@ -70,7 +75,7 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
+  batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 1000);
@@ -93,7 +98,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
   QppSimulator sim;
 
   PTSBatch batch;
-  batch.trace = {{ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
+  batch.trace = kXTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj1(0, {}, 0.7, 700);
@@ -143,7 +148,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   // Test 1: Empty trajectories vector
   {
     PTSBatch batch;
-    batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
+    batch.trace = kHadamardTrace;
     batch.measureQubits = {0};
 
     auto results = runPTSBETest(sim, batch);
@@ -153,7 +158,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   // Test 2: Empty measureQubits
   {
     PTSBatch batch;
-    batch.trace = {{ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}}};
+    batch.trace = kHadamardTrace;
     batch.measureQubits = {};
 
     KrausTrajectory traj(0, {}, 1.0, 100);
@@ -417,7 +422,7 @@ CUDAQ_TEST(ExecutePTSBETest, ConceptDispatchAndGenericEquivalence) {
   QppSimulator generic;
 
   PTSBatch batch;
-  batch.trace = {{ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
+  batch.trace = kXTrace;
   batch.measureQubits = {0};
 
   KrausTrajectory traj(0, {}, 1.0, 100);
