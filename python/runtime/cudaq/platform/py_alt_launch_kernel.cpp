@@ -511,7 +511,7 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
             py::list arguments = arg.attr("resolved");
             auto startLiftedArgs = [&]() -> std::optional<unsigned> {
               if (!arguments.empty())
-                return decorator.attr("firstLiftedPos").cast<unsigned>();
+                return decorator.attr("formal_arity")().cast<unsigned>();
               return std::nullopt;
             }();
             // build the recursive closure in a C++ object
@@ -951,7 +951,8 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
 // `delete_cache_execution_engine` with the cache key.
 static std::pair<void *, std::size_t>
 marshal_and_retain_module(const std::string &name, MlirModule module,
-                          MlirType returnType, py::args runtimeArgs) {
+                          MlirType returnType, bool isEntryPoint,
+                          py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
   std::optional<cudaq::JitEngine> cachedEngine;
 
@@ -965,8 +966,8 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
   auto clone = mod.clone();
   // Returns the pointer to the JITted LLVM code for the entry point function.
-  void *funcPtr = cudaq::streamlinedSpecializeModule(name, clone, rawArgs,
-                                                     resTy, cachedEngine);
+  void *funcPtr = cudaq::streamlinedSpecializeModule(
+      name, clone, rawArgs, resTy, cachedEngine, isEntryPoint);
   clone.erase();
   // `streamlinedSpecializeModule` should always set the cached engine pointer
   if (!cachedEngine)
