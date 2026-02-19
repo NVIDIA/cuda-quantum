@@ -78,6 +78,7 @@ RUN . /etc/profile && nvq++ --help
 
 ## [ADD tools for validation]
 ADD scripts/validate_installation.sh /home/cudaq/validate.sh
+ADD scripts/test_cmake_find_package.sh /home/cudaq/test_cmake_find_package.sh
 ADD scripts/configure_build.sh /home/cudaq/configure_build.sh
 ADD docker/test/installer/mpi_cuda_check.cpp /home/cudaq/mpi_cuda_check.cpp
 ADD docs/sphinx/examples/cpp /home/cudaq/examples

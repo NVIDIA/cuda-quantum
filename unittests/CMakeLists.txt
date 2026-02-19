@@ -530,7 +530,7 @@ target_link_libraries(test_exec_ctx_thread
   cudaq
   cudaq-platform-default
   gtest_main)
-gtest_discover_tests(test_exec_ctx_thread)
+gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)
