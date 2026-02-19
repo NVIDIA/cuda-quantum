@@ -21,8 +21,6 @@ for step-by-step instructions.
 Additional information can be found in the
 `Scaleway Quantum Computing documentation <https://www.scaleway.com/en/docs/quantum-computing/>`__.
 
-Available emulators and QPUs are listed in the Scaleway Quantum Computing documentation and may evolve over time.
-
 Setting Credentials
 ```````````````````
 
@@ -35,7 +33,7 @@ Submission from C++
 ```````````````````
 
 To target quantum kernel code for execution on Scaleway QaaS, pass the
---target scaleway flag to the nvq++ compiler.
+``--target scaleway`` flag to the ``nvq++`` compiler.
 
 By default, jobs are submitted to a Scaleway-managed quantum simulator.
 
@@ -44,14 +42,15 @@ By default, jobs are submitted to a Scaleway-managed quantum simulator.
     nvq++ --target scaleway src.cpp
 
 To execute kernels on a specific Scaleway quantum device, pass the
---scaleway-machine flag to nvq++ and specify the device identifier.
+``--machine`` flag to ``nvq++`` and specify the device identifier.
 
 .. code:: bash
 
     nvq++ --target scaleway --machine "<offer_name>" src.cpp
 
 where <offer_name> refers to a Scaleway simulator or QPU available in your
-project.
+project. Available emulators and QPUs are listed in the
+`Scaleway Quantum Computing documentation <https://www.scaleway.com/en/docs/quantum-computing/additional-content/sdk-backend-compatibility/>`__
 
 Submission from Python
 ``````````````````````
@@ -106,7 +105,7 @@ You can specify the maximal duration or the maximal idle duration to limit the b
    machine = "EMU-CUDAQ-H100"
    # The underlying QPU session will be killed after 30 minutes
    # or after 5 idle minutes without new jobs
-   cudaq.set_target("scaleway", machine=machine, max_duration="30m", max_idle_duration="5min")
+   cudaq.set_target("scaleway", machine=machine, max_duration="30m", max_idle_duration="5m")
 
 If you want to manually shutdown a QPU session, you can do it by calling the Scaleway's QaaS API:
 

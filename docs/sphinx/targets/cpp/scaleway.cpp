@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
- * All rights reserved.                                                        *
- *                                                                             *
- * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
-
 // Compile and run with:
 // ```
 // nvq++ --target scaleway scaleway.cpp -o out.x && ./out.x
@@ -50,4 +42,6 @@ int main() {
   // result to be returned before proceeding).
   auto counts = cudaq::sample(ghz{});
   counts.dump();
+
+  return 0;
 }
