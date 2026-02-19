@@ -81,16 +81,16 @@ CUDAQ_TEST(ExecutePTSBETest, AggregateResultsTester) {
   results[0] = cudaq::ExecutionResult{{{"00", 10}, {"01", 5}}};
   auto resultWithCounts = aggregateResults(results);
   EXPECT_EQ(resultWithCounts.get_total_shots(), 15);
-  resultWithCounts.count("00") == 10;
-  resultWithCounts.count("01") == 5;
+  EXPECT_EQ(resultWithCounts.count("00"), 10);
+  EXPECT_EQ(resultWithCounts.count("01"), 5);
 
   // Add more counts to other results
   results[1] = cudaq::ExecutionResult{{{"00", 20}, {"10", 15}}};
   auto resultWithMoreCounts = aggregateResults(results);
   EXPECT_EQ(resultWithMoreCounts.get_total_shots(), 50);
-  resultWithMoreCounts.count("00") == 30;
-  resultWithMoreCounts.count("01") == 5;
-  resultWithMoreCounts.count("10") == 15;
+  EXPECT_EQ(resultWithMoreCounts.count("00"), 30);
+  EXPECT_EQ(resultWithMoreCounts.count("01"), 5);
+  EXPECT_EQ(resultWithMoreCounts.count("10"), 15);
 }
 
 /// Single trajectory Hadamard circuit: execute H|0> and expect 50/50
