@@ -9,6 +9,7 @@
 #include "PTSBESample.h"
 #include "NoiseExtractor.h"
 #include "ShotAllocationStrategy.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
 #include <algorithm>
@@ -191,6 +192,19 @@ PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
     }
   }
 
+  std::size_t nGates = 0, nNoise = 0, nMeas = 0;
+  for (const auto &inst : result) {
+    if (inst.type == TraceInstructionType::Gate)
+      ++nGates;
+    else if (inst.type == TraceInstructionType::Noise)
+      ++nNoise;
+    else if (inst.type == TraceInstructionType::Measurement)
+      ++nMeas;
+  }
+  cudaq::info("[ptsbe] Built PTSBE trace: {} instructions ({} gates, {} noise "
+              "sites, {} measurements)",
+              result.size(), nGates, nNoise, nMeas);
+
   return result;
 }
 
@@ -245,12 +259,16 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
   batch.trace = buildPTSBETrace(kernelTrace, noiseModel);
   batch.measureQubits = extractMeasureQubits(batch.trace);
   auto noiseResult = extractNoiseSites(batch.trace);
+  cudaq::info("[ptsbe] Extracted {} noise sites from {} total instructions",
+              noiseResult.noise_sites.size(), noiseResult.total_instructions);
 
   // 2. Generate trajectories via the configured strategy (or default)
   auto strategy = options.strategy
                       ? options.strategy
                       : std::make_shared<ProbabilisticSamplingStrategy>();
   std::size_t maxTrajs = options.max_trajectories.value_or(shots);
+  cudaq::info("[ptsbe] Generating trajectories via {} strategy (max {})",
+              strategy->name(), maxTrajs);
   batch.trajectories =
       strategy->generateTrajectories(noiseResult.noise_sites, maxTrajs);
 

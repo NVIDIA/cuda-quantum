@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PTSBESamplerImpl.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include <numeric>
 #include <span>
@@ -179,7 +180,13 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
   std::vector<cudaq::sample_result> results;
   results.reserve(batch.trajectories.size());
 
-  for (const auto &traj : batch.trajectories) {
+  const std::size_t numTrajectories = batch.trajectories.size();
+  // Log progress at ~10% intervals (at least every 100 trajectories)
+  const std::size_t progressInterval = std::max<std::size_t>(
+      1, std::min<std::size_t>(numTrajectories / 10, 100));
+
+  for (std::size_t ti = 0; ti < numTrajectories; ++ti) {
+    const auto &traj = batch.trajectories[ti];
     if (traj.num_shots == 0) {
       results.push_back(cudaq::sample_result{
           cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
@@ -199,6 +206,10 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
     results.push_back(
         cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});
+
+    if ((ti + 1) % progressInterval == 0)
+      cudaq::info("[ptsbe] Trajectory progress: {}/{} ({} shots)", ti + 1,
+                  numTrajectories, traj.num_shots);
   }
 
   return results;
@@ -218,8 +229,10 @@ std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
   // Check if it is a BatchSimulator implementation
   auto *batchSim = dynamic_cast<BatchSimulator *>(&sim);
   if (batchSim) {
+    cudaq::info("[ptsbe] Dispatching to BatchSimulator custom implementation");
     return batchSim->sampleWithPTSBE(batch);
   } else {
+    cudaq::info("[ptsbe] Dispatching to generic per-trajectory sampler");
     return samplePTSBEGeneric(sim, batch);
   }
 }
