@@ -1907,7 +1907,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Convert a JSON string into a new PyKernelDecorator object.
 
-    [[handle_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[ignoreReturnType]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.handle_call_arguments "Permalink to this definition"){.headerlink}
+    [[handle_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.handle_call_arguments "Permalink to this definition"){.headerlink}
 
     :   Resolve all the arguments at the call site for this decorator.
 
@@ -3589,7 +3589,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3709469313]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[163863321]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
