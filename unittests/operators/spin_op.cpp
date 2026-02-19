@@ -15,6 +15,9 @@ TEST(OperatorExpressions, checkSpinOpsUnary) {
   utils::checkEqual((+op).to_matrix(), utils::PauliX_matrix());
   utils::checkEqual((-op).to_matrix(), -1.0 * utils::PauliX_matrix());
   utils::checkEqual(op.to_matrix(), utils::PauliX_matrix());
+  utils::checkEqual(op.adjoint().to_matrix(), utils::PauliX_matrix().adjoint());
+  // Spin ops are unitary
+  utils::checkEqual((op * op.adjoint()).to_matrix(), utils::id_matrix(2));
 }
 
 TEST(OperatorExpressions, checkSpinOpsConstruction) {
@@ -27,33 +30,39 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   prod *= std::complex<double>(0., -1.);
   expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   prod *= cudaq::spin_op::x(0);
   expected = cudaq::complex_matrix(2, 2);
   expected[{0, 1}] = std::complex<double>(0., -1.);
   expected[{1, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   auto sum = cudaq::spin_op::empty();
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum *= cudaq::spin_op::x(1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum += cudaq::spin_op::i(1);
   expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum *= cudaq::spin_op::x(1);
   expected = cudaq::complex_matrix(2, 2);
   expected[{0, 1}] = 1.;
   expected[{1, 0}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum = cudaq::spin_op::empty();
   sum -= cudaq::spin_op::i(0);
@@ -61,6 +70,7 @@ TEST(OperatorExpressions, checkSpinOpsConstruction) {
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 }
 
 TEST(OperatorExpressions, checkPreBuiltSpinOps) {
@@ -76,6 +86,9 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     auto want = utils::id_matrix(2);
     utils::checkEqual(want, got);
     utils::checkEqual(id, (op * op).to_matrix());
+    utils::checkEqual(op.adjoint().to_matrix(), want.adjoint());
+    // Spin ops are unitary matrices
+    utils::checkEqual(id, (op * op.adjoint()).to_matrix());
   }
 
   // Z operator.
@@ -85,6 +98,9 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     auto want = utils::PauliZ_matrix();
     utils::checkEqual(want, got);
     utils::checkEqual(id, (op * op).to_matrix());
+    utils::checkEqual(op.adjoint().to_matrix(), want.adjoint());
+    // Spin ops are unitary matrices
+    utils::checkEqual(id, (op * op.adjoint()).to_matrix());
   }
 
   // X operator.
@@ -94,6 +110,9 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     auto want = utils::PauliX_matrix();
     utils::checkEqual(want, got);
     utils::checkEqual(id, (op * op).to_matrix());
+    utils::checkEqual(op.adjoint().to_matrix(), want.adjoint());
+    // Spin ops are unitary matrices
+    utils::checkEqual(id, (op * op.adjoint()).to_matrix());
   }
 
   // Y operator.
@@ -103,6 +122,9 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     auto want = utils::PauliY_matrix();
     utils::checkEqual(want, got);
     utils::checkEqual(id, (op * op).to_matrix());
+    utils::checkEqual(op.adjoint().to_matrix(), want.adjoint());
+    // Spin ops are unitary matrices
+    utils::checkEqual(id, (op * op.adjoint()).to_matrix());
   }
 
   std::complex<double> onej(0., 1.);
@@ -119,6 +141,7 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     utils::checkEqual(want, got);
     utils::checkEqual(want, composite.to_matrix());
     utils::checkEqual(composite_mat, composite.to_matrix());
+    utils::checkEqual(op.adjoint().to_matrix(), want.adjoint());
   }
 
   // minus operator.
@@ -134,6 +157,7 @@ TEST(OperatorExpressions, checkPreBuiltSpinOps) {
     utils::checkEqual(want, got);
     utils::checkEqual(want, composite.to_matrix());
     utils::checkEqual(composite_mat, composite.to_matrix());
+    utils::checkEqual(op.adjoint().to_matrix(), want.adjoint());
   }
 }
 
@@ -156,6 +180,9 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   // `spin_handler` - `complex<double>`
@@ -174,6 +201,9 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(difference.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   // `spin_handler` * `complex<double>`
@@ -192,6 +222,9 @@ TEST(OperatorExpressions, checkSpinOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 }
 
@@ -227,6 +260,9 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity + utils::PauliX_matrix();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `spin_handler + scalar_operator`
@@ -248,6 +284,12 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity + utils::PauliY_matrix();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(
+        sum.adjoint().to_matrix({}, {{"value", const_scale_factor}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({}, {{"value", const_scale_factor}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `spin_handler - scalar_operator`
@@ -268,6 +310,9 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity - utils::id_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `spin_handler - scalar_operator`
@@ -289,6 +334,12 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity - utils::PauliZ_matrix();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(
+        sum.adjoint().to_matrix({}, {{"value", const_scale_factor}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({}, {{"value", const_scale_factor}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `spin_handler * scalar_operator`
@@ -310,6 +361,9 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity * utils::PauliY_matrix();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `spin_handler * scalar_operator`
@@ -332,6 +386,12 @@ TEST(OperatorExpressions, checkSpinOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity * utils::PauliZ_matrix();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(
+        product.adjoint().to_matrix({}, {{"value", const_scale_factor}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({}, {{"value", const_scale_factor}}),
+        want_reverse_matrix.adjoint());
   }
 }
 
@@ -348,6 +408,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = utils::PauliX_matrix() + utils::PauliY_matrix();
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Addition, different DOF's.
@@ -365,6 +426,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = matrix_self + matrix_other;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Subtraction, same DOF.
@@ -378,6 +440,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = utils::PauliZ_matrix() - utils::PauliX_matrix();
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Subtraction, different DOF's.
@@ -395,6 +458,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = annihilate_full - create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Multiplication, same DOF.
@@ -411,6 +475,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto got_matrix = product.to_matrix();
     auto want_matrix = utils::PauliY_matrix() * utils::PauliZ_matrix();
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Multiplication, different DOF's.
@@ -431,6 +496,7 @@ TEST(OperatorExpressions, checkSpinOpsSimpleArithmetics) {
     auto got_matrix = product.to_matrix();
     auto want_matrix = annihilate_full * create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
   }
 }
 
@@ -463,6 +529,9 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(got.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `spin_handler - sum_op`
@@ -488,6 +557,9 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(got.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `spin_handler * sum_op`
@@ -519,6 +591,9 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto want_reverse_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(got.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `sum_op += spin_handler`
@@ -538,6 +613,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix();
     auto want_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum_op.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op -= spin_handler`
@@ -557,6 +633,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix();
     auto want_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum_op.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op *= spin_handler`
@@ -580,6 +657,7 @@ TEST(OperatorExpressions, checkSpinOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix();
     auto want_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum_op.adjoint().to_matrix(), want_matrix.adjoint());
   }
 }
 

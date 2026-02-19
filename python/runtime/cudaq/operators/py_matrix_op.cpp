@@ -186,6 +186,12 @@ void bindMatrixOperator(py::module &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
 
+      // Adjoint
+      .def("adjoint", &matrix_op::adjoint,
+           "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &matrix_op::adjoint_in_place,
+           "In-place adjoint of the operator.")
+
       // comparisons
 
       .def("__eq__", &matrix_op::operator==, py::is_operator(),
@@ -460,6 +466,12 @@ void bindMatrixOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+
+      // Adjoint
+      .def("adjoint", &matrix_op_term::adjoint,
+           "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &matrix_op_term::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 

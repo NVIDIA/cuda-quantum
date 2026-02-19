@@ -21,21 +21,39 @@ def setup():
 def test_definitions():
     dims = {0: 2, 1: 3}
     assert np.allclose(operators.number(1).to_matrix(dims), number_matrix(3))
+    assert np.allclose(
+        operators.number(1).adjoint().to_matrix(dims), number_matrix(3))
     assert np.allclose(operators.parity(1).to_matrix(dims), parity_matrix(3))
+    assert np.allclose(
+        operators.parity(1).adjoint().to_matrix(dims), parity_matrix(3))
     assert np.allclose(
         operators.position(1).to_matrix(dims), position_matrix(3))
     assert np.allclose(
+        operators.position(1).adjoint().to_matrix(dims), position_matrix(3))
+    assert np.allclose(
         operators.momentum(1).to_matrix(dims), momentum_matrix(3))
+    assert np.allclose(
+        operators.momentum(1).adjoint().to_matrix(dims), momentum_matrix(3))
     assert np.allclose(
         operators.squeeze(1).to_matrix(dims,
                                        squeezing=0.5 + 1.2j,
                                        displacement=0.5 + 1.2j),
         squeeze_matrix(3, 0.5 + 1.2j))
     assert np.allclose(
+        operators.squeeze(1).adjoint().to_matrix(dims,
+                                                 squeezing=0.5 + 1.2j,
+                                                 displacement=0.5 + 1.2j),
+        squeeze_matrix(3, 0.5 + 1.2j).conj().T)
+    assert np.allclose(
         operators.displace(1).to_matrix(dims,
                                         squeezing=0.5 + 1.2j,
                                         displacement=0.5 + 1.2j),
         displace_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        operators.displace(1).adjoint().to_matrix(dims,
+                                                  squeezing=0.5 + 1.2j,
+                                                  displacement=0.5 + 1.2j),
+        displace_matrix(3, 0.5 + 1.2j).conj().T)
     params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
     assert np.allclose(
         operators.squeeze(1).to_matrix(dims, params),
@@ -49,24 +67,46 @@ def test_definitions():
         operators.displace(1).to_matrix(dims, squeeze=0.5 + 1.2j)
 
     assert np.allclose(number(1).to_matrix(dims), number_matrix(3))
+    assert np.allclose(number(1).adjoint().to_matrix(dims), number_matrix(3))
     assert np.allclose(parity(1).to_matrix(dims), parity_matrix(3))
+    assert np.allclose(parity(1).adjoint().to_matrix(dims), parity_matrix(3))
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))
+    assert np.allclose(
+        position(1).adjoint().to_matrix(dims), position_matrix(3))
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
+    assert np.allclose(
+        momentum(1).adjoint().to_matrix(dims), momentum_matrix(3))
     assert np.allclose(
         squeeze(1).to_matrix(dims,
                              squeezing=0.5 + 1.2j,
                              displacement=0.5 + 1.2j),
         squeeze_matrix(3, 0.5 + 1.2j))
     assert np.allclose(
+        squeeze(1).adjoint().to_matrix(dims,
+                                       squeezing=0.5 + 1.2j,
+                                       displacement=0.5 + 1.2j),
+        squeeze_matrix(3, 0.5 + 1.2j).conj().T)
+    assert np.allclose(
         displace(1).to_matrix(dims,
                               squeezing=0.5 + 1.2j,
                               displacement=0.5 + 1.2j),
         displace_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        displace(1).adjoint().to_matrix(dims,
+                                        squeezing=0.5 + 1.2j,
+                                        displacement=0.5 + 1.2j),
+        displace_matrix(3, 0.5 + 1.2j).conj().T)
     params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
     assert np.allclose(
         squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
     assert np.allclose(
+        squeeze(1).adjoint().to_matrix(dims, params),
+        squeeze_matrix(3, 0.5 + 1.2j).conj().T)
+    assert np.allclose(
         displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        displace(1).adjoint().to_matrix(dims, params),
+        displace_matrix(3, 0.5 + 1.2j).conj().T)
     with pytest.raises(Exception):
         squeeze(1).to_matrix(dims, displacement=0.5 + 1.2j)
     with pytest.raises(Exception):
@@ -86,30 +126,43 @@ def test_definitions():
 def test_construction():
     prod = identity()
     assert np.allclose(prod.to_matrix(), identity_matrix(1))
+    assert np.allclose(prod.adjoint().to_matrix(), identity_matrix(1))
     prod *= number(0)
     assert np.allclose(prod.to_matrix({0: 3}), number_matrix(3))
+    assert np.allclose(prod.adjoint().to_matrix({0: 3}), number_matrix(3))
     sum = empty()
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    assert np.allclose(sum.adjoint().to_matrix(), zero_matrix(1))
     sum *= number(0)
     assert sum.degrees == []
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    assert np.allclose(sum.adjoint().to_matrix(), zero_matrix(1))
     sum += identity(1)
     assert sum.degrees == [1]
     assert np.allclose(sum.to_matrix({1: 3}), identity_matrix(3))
+    assert np.allclose(sum.adjoint().to_matrix({1: 3}), identity_matrix(3))
     sum *= number(1)
     assert np.allclose(sum.to_matrix({1: 3}), number_matrix(3))
+    assert np.allclose(sum.adjoint().to_matrix({1: 3}), number_matrix(3))
     sum = empty()
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    assert np.allclose(sum.adjoint().to_matrix(), zero_matrix(1))
     sum -= identity(0)
     assert sum.degrees == [0]
     assert np.allclose(sum.to_matrix({0: 3}), -identity_matrix(3))
+    assert np.allclose(sum.adjoint().to_matrix({0: 3}), -identity_matrix(3))
     ids = identities(3, 5)
     assert ids.degrees == [3, 4]
     assert np.allclose(ids.to_matrix({3: 3, 4: 3}), identity_matrix(3 * 3))
+    assert np.allclose(ids.adjoint().to_matrix({
+        3: 3,
+        4: 3
+    }), identity_matrix(3 * 3))
     canon = ids.copy().canonicalize()
     assert ids.degrees == [3, 4]
     assert canon.degrees == []
     assert canon.to_matrix() == identity_matrix(1)
+    assert ids.canonicalize().adjoint().to_matrix() == identity_matrix(1)
 
 
 def test_iteration():
@@ -156,7 +209,10 @@ def test_properties():
                         np.kron(position_matrix(3), momentum_matrix(2)))
     prod2_mat = np.kron(parity_matrix(4),
                         np.kron(number_matrix(3), identity_matrix(2)))
-    assert np.allclose(sum.to_matrix(dims), prod1_mat + prod1_mat + prod2_mat)
+
+    sum_mat = prod1_mat + prod1_mat + prod2_mat
+    assert np.allclose(sum.to_matrix(dims), sum_mat)
+    assert np.allclose(sum.adjoint().to_matrix(dims), sum_mat.conj().T)
 
     prod1.dump()
     sum.dump()
@@ -313,7 +369,9 @@ def test_arithmetics():
     sum_matrix = np.kron(position_matrix(2), identity_matrix(3)) +\
                  np.kron(identity_matrix(2), momentum_matrix(3))
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(id.adjoint().to_matrix(dims), identity_matrix(3))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
+    assert np.allclose(sum.adjoint().to_matrix(dims), sum_matrix.conj().T)
     assert np.allclose(
         (squeeze(0) + displace(1)).to_matrix({
             0: 2,
@@ -323,45 +381,102 @@ def test_arithmetics():
                                              squeezing=0.5),
         [[1.87758256, 0, -0.47942554, 0], [0, 1.87758256, 0, -0.47942554],
          [0.47942554, 0, 1.87758256, 0], [0, 0.47942554, 0, 1.87758256]])
-
+    assert np.allclose(
+        (squeeze(0) + displace(1)).adjoint().to_matrix({
+            0: 2,
+            1: 2
+        },
+                                                       displacement=0.5,
+                                                       squeezing=0.5),
+        np.array([[1.87758256, 0, -0.47942554, 0],
+                  [0, 1.87758256, 0,
+                   -0.47942554], [0.47942554, 0, 1.87758256, 0],
+                  [0, 0.47942554, 0, 1.87758256]]).conj().T)
     # unary operators
     assert np.allclose((-id).to_matrix(dims), -1. * identity_matrix(3))
+    assert np.allclose((-id).adjoint().to_matrix(dims),
+                       -1. * identity_matrix(3))
     assert np.allclose((-sum).to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose((-sum).adjoint().to_matrix(dims),
+                       -1. * sum_matrix.conj().T)
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(id.adjoint().to_matrix(dims), identity_matrix(3))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
+    assert np.allclose(sum.adjoint().to_matrix(dims), sum_matrix.conj().T)
     assert np.allclose((+id).canonicalize().to_matrix(), identity_matrix(1))
+    assert np.allclose((+id).canonicalize().adjoint().to_matrix(),
+                       identity_matrix(1))
     assert np.allclose((+sum).canonicalize().to_matrix(dims), sum_matrix)
+    assert np.allclose((+sum).canonicalize().adjoint().to_matrix(dims),
+                       sum_matrix.conj().T)
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(id.adjoint().to_matrix(dims), identity_matrix(3))
 
     # right-hand arithmetics
     assert np.allclose((id * 2.).to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose((id * 2.).adjoint().to_matrix(dims),
+                       2. * identity_matrix(3))
     assert np.allclose((sum * 2.).to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose((sum * 2.).adjoint().to_matrix(dims),
+                       2. * sum_matrix.conj().T)
     assert np.allclose((id * 2.j).to_matrix(dims), 2.j * identity_matrix(3))
+    assert np.allclose((id * 2.j).adjoint().to_matrix(dims),
+                       -2.j * identity_matrix(3))
     assert np.allclose((sum * 2.j).to_matrix(dims), 2.j * sum_matrix)
+    assert np.allclose((sum * 2.j).adjoint().to_matrix(dims),
+                       -2.j * sum_matrix.conj().T)
     assert np.allclose((sum * id).to_matrix(dims), sum_matrix)
+    assert np.allclose((sum * id).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T)
     assert np.allclose((id * sum).to_matrix(dims), sum_matrix)
+    assert np.allclose((id * sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T)
     assert np.allclose((id + 2.).to_matrix(dims), 3. * identity_matrix(3))
+    assert np.allclose((id + 2.).adjoint().to_matrix(dims),
+                       3. * identity_matrix(3))
     assert np.allclose((sum + 2.).to_matrix(dims),
                        sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((sum + 2.).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + 2. * identity_matrix(2 * 3))
     assert np.allclose((id + 2.j).to_matrix(dims),
                        (1. + 2.j) * identity_matrix(3))
+    assert np.allclose((id + 2.j).adjoint().to_matrix(dims),
+                       (1. - 2.j) * identity_matrix(3))
     assert np.allclose((sum + 2.j).to_matrix(dims),
                        sum_matrix + 2.j * identity_matrix(2 * 3))
+    assert np.allclose((sum + 2.j).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - 2.j * identity_matrix(2 * 3))
     assert np.allclose((sum + id).to_matrix(dims),
                        sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((sum + id).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + identity_matrix(2 * 3))
     assert np.allclose((id + sum).to_matrix(dims),
                        sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((id + sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + identity_matrix(2 * 3))
     assert np.allclose((id - 2.).to_matrix(dims), -1. * identity_matrix(3))
+    assert np.allclose((id - 2.).adjoint().to_matrix(dims),
+                       -1. * identity_matrix(3))
     assert np.allclose((sum - 2.).to_matrix(dims),
                        sum_matrix - 2. * identity_matrix(2 * 3))
+    assert np.allclose((sum - 2.).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - 2. * identity_matrix(2 * 3))
     assert np.allclose((id - 2.j).to_matrix(dims),
                        (1. - 2.j) * identity_matrix(3))
+    assert np.allclose((id - 2.j).adjoint().to_matrix(dims),
+                       (1. + 2.j) * identity_matrix(3))
     assert np.allclose((sum - 2.j).to_matrix(dims),
                        sum_matrix - 2.j * identity_matrix(2 * 3))
+    assert np.allclose((sum - 2.j).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + 2.j * identity_matrix(2 * 3))
     assert np.allclose((sum - id).to_matrix(dims),
                        sum_matrix - identity_matrix(2 * 3))
+    assert np.allclose((sum - id).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - identity_matrix(2 * 3))
     assert np.allclose((id - sum).to_matrix(dims),
                        identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((id - sum).adjoint().to_matrix(dims),
+                       identity_matrix(2 * 3) - sum_matrix.conj().T)
 
     # in-place arithmetics
     term = id.copy()
@@ -369,45 +484,82 @@ def test_arithmetics():
     term *= 2.
     op *= 2.
     assert np.allclose(term.to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose(term.adjoint().to_matrix(dims), 2. * identity_matrix(3))
     assert np.allclose(op.to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), 2. * sum_matrix.conj().T)
     term *= 0.5j
     op *= 0.5j
     assert np.allclose(term.to_matrix(dims), 1.j * identity_matrix(3))
+    assert np.allclose(term.adjoint().to_matrix(dims),
+                       -1.j * identity_matrix(3))
     assert np.allclose(op.to_matrix(dims), 1.j * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), -1.j * sum_matrix.conj().T)
     op *= term
     assert np.allclose(op.to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), -1. * sum_matrix.conj().T)
 
     op += 2.
     assert np.allclose(op.to_matrix(dims),
                        -1. * sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose(op.adjoint().to_matrix(dims),
+                       -1. * sum_matrix.conj().T + 2. * identity_matrix(2 * 3))
     op += term
     assert np.allclose(op.to_matrix(dims),
                        -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 3))
+    assert np.allclose(
+        op.adjoint().to_matrix(dims),
+        -1. * sum_matrix.conj().T + (2. - 1.j) * identity_matrix(2 * 3))
     op -= 2.
     assert np.allclose(op.to_matrix(dims),
                        -1. * sum_matrix + 1.j * identity_matrix(2 * 3))
+    assert np.allclose(op.adjoint().to_matrix(dims),
+                       -1. * sum_matrix.conj().T - 1.j * identity_matrix(2 * 3))
     op -= term
     assert np.allclose(op.to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), -1. * sum_matrix.conj().T)
 
     # left-hand arithmetics
     assert np.allclose((2. * id).to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose((2. * id).adjoint().to_matrix(dims),
+                       2. * identity_matrix(3))
     assert np.allclose((2. * sum).to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose((2. * sum).adjoint().to_matrix(dims),
+                       2. * sum_matrix.conj().T)
     assert np.allclose((2.j * id).to_matrix(dims), 2.j * identity_matrix(3))
+    assert np.allclose((2.j * id).adjoint().to_matrix(dims),
+                       -2.j * identity_matrix(3))
     assert np.allclose((2.j * sum).to_matrix(dims), 2.j * sum_matrix)
+    assert np.allclose((2.j * sum).adjoint().to_matrix(dims),
+                       -2.j * sum_matrix.conj().T)
     assert np.allclose((2. + id).to_matrix(dims), 3. * identity_matrix(3))
+    assert np.allclose((2. + id).adjoint().to_matrix(dims),
+                       3. * identity_matrix(3))
     assert np.allclose((2. + sum).to_matrix(dims),
                        sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((2. + sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + 2. * identity_matrix(2 * 3))
     assert np.allclose((2.j + id).to_matrix(dims),
                        (1 + 2j) * identity_matrix(3))
+    assert np.allclose((2.j + id).adjoint().to_matrix(dims),
+                       (1 - 2j) * identity_matrix(3))
     assert np.allclose((2.j + sum).to_matrix(dims),
                        sum_matrix + 2.j * identity_matrix(2 * 3))
+    assert np.allclose((2.j + sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - 2.j * identity_matrix(2 * 3))
     assert np.allclose((2. - id).to_matrix(dims), identity_matrix(3))
+    assert np.allclose((2. - id).adjoint().to_matrix(dims), identity_matrix(3))
     assert np.allclose((2. - sum).to_matrix(dims),
                        2. * identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((2. - sum).adjoint().to_matrix(dims),
+                       2. * identity_matrix(2 * 3) - sum_matrix.conj().T)
     assert np.allclose((2.j - id).to_matrix(dims),
                        (-1 + 2.j) * identity_matrix(3))
+    assert np.allclose((2.j - id).adjoint().to_matrix(dims),
+                       (-1 - 2.j) * identity_matrix(3))
     assert np.allclose((2.j - sum).to_matrix(dims),
                        2.j * identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((2.j - sum).adjoint().to_matrix(dims),
+                       -2.j * identity_matrix(2 * 3) - sum_matrix.conj().T)
 
 
 def test_evaluation():
@@ -535,12 +687,16 @@ def test_custom_operators():
            override=True)
     custom1 = instantiate("custom", 2)
     assert np.allclose(custom1.to_matrix({2: 3}), identity_matrix(3))
+    assert np.allclose(custom1.adjoint().to_matrix({2: 3}), identity_matrix(3))
 
     define_ops()
     custom2 = instantiate("custom_parity1", 1)
     assert np.allclose(custom2.to_matrix({1: 5}), parity_matrix(5))
+    assert np.allclose(custom2.adjoint().to_matrix({1: 5}),
+                       parity_matrix(5))  # parity matrix is self-adjoint
     custom3 = instantiate("custom_parity2", [1])
     assert np.allclose(custom3.to_matrix({1: 5}), parity_matrix(5))
+    assert np.allclose(custom3.adjoint().to_matrix({1: 5}), parity_matrix(5))
 
     def phase(angle: float):
         return np.array([[1, 0], [0, cmath.exp(1j * angle)]],
@@ -551,6 +707,8 @@ def test_custom_operators():
     with pytest.raises(Exception):
         custom_op.to_matrix()  # missing parameter
     assert np.allclose(custom_op.to_matrix(angle=np.pi),
+                       np.array([[1, 0], [0, -1]]))
+    assert np.allclose(custom_op.adjoint().to_matrix(angle=np.pi),
                        np.array([[1, 0], [0, -1]]))
 
     # matrix evaluation for custom operators with multiple degrees
@@ -579,7 +737,9 @@ def test_custom_operators():
     expected2 = np.kron(expected2, position_matrix(3))
 
     assert np.allclose(prod1.to_matrix(dims), expected1)
+    assert np.allclose(prod1.adjoint().to_matrix(dims), expected1.conj().T)
     assert np.allclose(prod2.to_matrix(dims), expected2)
+    assert np.allclose(prod2.adjoint().to_matrix(dims), expected2.conj().T)
 
     op0 = instantiate("custom_op0", [2, 3])
     op1 = instantiate("custom_op1", [0, 2])
@@ -595,7 +755,9 @@ def test_custom_operators():
     expected2 = np.kron(expected2, number_matrix(3))
 
     assert np.allclose(prod1.to_matrix(dims), expected1)
+    assert np.allclose(prod1.adjoint().to_matrix(dims), expected1.conj().T)
     assert np.allclose(prod2.to_matrix(dims), expected2)
+    assert np.allclose(prod2.adjoint().to_matrix(dims), expected2.conj().T)
 
     def func0(dims):
         return np.kron(momentum_matrix(dims[1]), position_matrix(dims[0]))
@@ -619,9 +781,17 @@ def test_custom_operators():
     diff2 = op1 - op0
 
     assert np.allclose(sum1.to_matrix(dims), matrix0 + matrix1)
+    assert np.allclose(sum1.adjoint().to_matrix(dims),
+                       matrix0.conj().T + matrix1.conj().T)
     assert np.allclose(sum2.to_matrix(dims), matrix0 + matrix1)
+    assert np.allclose(sum2.adjoint().to_matrix(dims),
+                       matrix0.conj().T + matrix1.conj().T)
     assert np.allclose(diff1.to_matrix(dims), matrix0 - matrix1)
+    assert np.allclose(diff1.adjoint().to_matrix(dims),
+                       matrix0.conj().T - matrix1.conj().T)
     assert np.allclose(diff2.to_matrix(dims), matrix1 - matrix0)
+    assert np.allclose(diff2.adjoint().to_matrix(dims),
+                       matrix1.conj().T - matrix0.conj().T)
 
     op0 = instantiate("custom_op0", [2, 3])
     op1 = instantiate("custom_op1", [0, 2])
@@ -636,9 +806,17 @@ def test_custom_operators():
     diff2 = op1 - op0
 
     assert np.allclose(sum1.to_matrix(dims), matrix0 + matrix1)
+    assert np.allclose(sum1.adjoint().to_matrix(dims),
+                       matrix0.conj().T + matrix1.conj().T)
     assert np.allclose(sum2.to_matrix(dims), matrix0 + matrix1)
+    assert np.allclose(sum2.adjoint().to_matrix(dims),
+                       matrix0.conj().T + matrix1.conj().T)
     assert np.allclose(diff1.to_matrix(dims), matrix0 - matrix1)
+    assert np.allclose(diff1.adjoint().to_matrix(dims),
+                       matrix0.conj().T - matrix1.conj().T)
     assert np.allclose(diff2.to_matrix(dims), matrix1 - matrix0)
+    assert np.allclose(diff2.adjoint().to_matrix(dims),
+                       matrix1.conj().T - matrix0.conj().T)
 
 
 def test_parameter_docs():
@@ -758,4 +936,6 @@ def test_backwards_compatibility():
 
 # Run with: pytest -rP
 if __name__ == "__main__":
-    pytest.main(["-rP"])
+    import os
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

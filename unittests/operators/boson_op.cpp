@@ -16,6 +16,14 @@ TEST(OperatorExpressions, checkBosonOpsUnary) {
   utils::checkEqual((+op).to_matrix({{0, 3}}), utils::number_matrix(3));
   utils::checkEqual((-op).to_matrix({{0, 3}}), -1.0 * utils::number_matrix(3));
   utils::checkEqual(op.to_matrix({{0, 3}}), utils::number_matrix(3));
+  // Number operator is self-adjoint
+  auto adjoint = op.adjoint();
+  EXPECT_EQ(adjoint, op);
+  // Other self-adjoint boson ops:
+  auto position = cudaq::boson_op::position(0);
+  auto momentum = cudaq::boson_op::momentum(1);
+  EXPECT_EQ(position, position.adjoint());
+  EXPECT_EQ(momentum, momentum.adjoint());
 }
 
 TEST(OperatorExpressions, checkBosonOpsConstruction) {
@@ -81,6 +89,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
         utils::checkEqual(expected, got.to_matrix({{0, d}}));
       }
     }
+    EXPECT_EQ(nr_op.adjoint(), nr_op);
   }
 
   // creation operator
@@ -98,6 +107,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
         utils::checkEqual(expected, got.to_matrix({{0, d}}));
       }
     }
+    EXPECT_EQ(ad_op.adjoint(), cudaq::boson_op::annihilate(0));
   }
 
   // annihilation operator
@@ -115,6 +125,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
         utils::checkEqual(expected, got.to_matrix({{0, d}}));
       }
     }
+    EXPECT_EQ(a_op.adjoint(), cudaq::boson_op::create(0));
   }
 
   // basic in-place multiplication
@@ -163,6 +174,9 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               got *= a_op;
 
             utils::checkEqual(expected, got.to_matrix({{0, d}}));
+            // Adjoint
+            utils::checkEqual(got.adjoint().to_matrix({{0, d}}),
+                              expected.adjoint());
 
             // Check  Ads * As * Ns
 
@@ -192,6 +206,8 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               got *= nr_op;
 
             utils::checkEqual(expected, got.to_matrix({{0, d}}));
+            utils::checkEqual(got.adjoint().to_matrix({{0, d}}),
+                              expected.adjoint());
 
             // Check Ns * Ads * As
 
@@ -221,6 +237,9 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               got *= a_op;
 
             utils::checkEqual(expected, got.to_matrix({{0, d}}));
+            // Adjoint
+            utils::checkEqual(got.adjoint().to_matrix({{0, d}}),
+                              expected.adjoint());
 
             // check Ns * As * Ads
 
@@ -250,7 +269,9 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               got *= ad_op;
 
             utils::checkEqual(expected, got.to_matrix({{0, d}}));
-
+            // Adjoint
+            utils::checkEqual(got.adjoint().to_matrix({{0, d}}),
+                              expected.adjoint());
             // check As * Ns * Ads
 
             std::cout << "# As: " << as << ", ";
@@ -279,7 +300,9 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               got *= ad_op;
 
             utils::checkEqual(expected, got.to_matrix({{0, d}}));
-
+            // Adjoint
+            utils::checkEqual(got.adjoint().to_matrix({{0, d}}),
+                              expected.adjoint());
             // check As * Ads * Ns
 
             std::cout << "# As: " << as << ", ";
@@ -308,6 +331,9 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
               got *= nr_op;
 
             utils::checkEqual(expected, got.to_matrix({{0, d}}));
+            // Adjoint
+            utils::checkEqual(got.adjoint().to_matrix({{0, d}}),
+                              expected.adjoint());
           }
         }
       }
@@ -336,6 +362,11 @@ TEST(OperatorExpressions, checkBosonOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix_reverse.adjoint());
   }
 
   // `boson_handler` - `complex<double>`
@@ -355,6 +386,11 @@ TEST(OperatorExpressions, checkBosonOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix_reverse.adjoint());
   }
 
   // `boson_handler` * `complex<double>`
@@ -374,6 +410,11 @@ TEST(OperatorExpressions, checkBosonOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix_reverse.adjoint());
   }
 }
 
@@ -411,6 +452,11 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
         scaled_identity + utils::number_matrix(dimension);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, dimension}}),
+                      want_reverse_matrix.adjoint());
   }
 
   // `boson_handler + scalar_operator`
@@ -434,6 +480,13 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
         scaled_identity + utils::annihilate_matrix(dimension);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, dimension}},
+                                              {{"value", const_scale_factor}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(
+                          {{0, dimension}}, {{"value", const_scale_factor}}),
+                      want_reverse_matrix.adjoint());
   }
 
   // `boson_handler - scalar_operator`
@@ -454,6 +507,11 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
     auto want_reverse_matrix = scaled_identity - utils::id_matrix(dimension);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, dimension}}),
+                      want_reverse_matrix.adjoint());
   }
 
   // `boson_handler - scalar_operator`
@@ -477,6 +535,13 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
         scaled_identity - utils::create_matrix(dimension);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, dimension}},
+                                              {{"value", const_scale_factor}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(
+                          {{0, dimension}}, {{"value", const_scale_factor}}),
+                      want_reverse_matrix.adjoint());
   }
 
   // `boson_handler * scalar_operator`
@@ -499,6 +564,11 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
         scaled_identity * utils::number_matrix(dimension);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix({{0, dimension}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, dimension}}),
+                      want_reverse_matrix.adjoint());
   }
 
   // `boson_handler * scalar_operator`
@@ -523,6 +593,13 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
         scaled_identity * utils::annihilate_matrix(dimension);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(
+                          {{0, dimension}}, {{"value", const_scale_factor}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(
+                          {{0, dimension}}, {{"value", const_scale_factor}}),
+                      want_reverse_matrix.adjoint());
   }
 }
 
@@ -540,6 +617,9 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = utils::number_matrix(3) + utils::annihilate_matrix(3);
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Addition, different DOF's.
@@ -557,6 +637,9 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = matrix_self + matrix_other;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Subtraction, same DOF.
@@ -570,6 +653,9 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = utils::id_matrix(3) - utils::number_matrix(3);
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Subtraction, different DOF's.
@@ -587,6 +673,9 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = annihilate_full - create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Multiplication, same DOF.
@@ -603,6 +692,9 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto got_matrix = product.to_matrix(dimensions);
     auto want_matrix = utils::number_matrix(3);
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Multiplication, different DOF's.
@@ -624,6 +716,15 @@ TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
     auto got_matrix = result.to_matrix(dimensions);
     auto want_matrix = annihilate_full * create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(result.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+
+    // Position and momentum operator are self-adjoint but not commuting
+    // (uncertainty principle). Hence, the adjoint of the product is swapping
+    // the order.
+    auto reverse = other * self;
+    ASSERT_TRUE(result.adjoint() == reverse);
   }
 }
 
@@ -657,6 +758,14 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    utils::checkEqual(got.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(dimensions),
+                      want_reverse_matrix.adjoint());
+    // The input sum is self-adjoint
+    ASSERT_EQ(got.adjoint(), got);
+    ASSERT_EQ(reverse.adjoint(), reverse);
   }
 
   // `boson_handler - sum_op`
@@ -683,6 +792,21 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    auto adjoint_op = got.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+    // Analytical verification
+    auto expected_got_adjoint = cudaq::boson_op::create(0) -
+                                cudaq::boson_op::annihilate(0) -
+                                cudaq::boson_op::identity(1);
+    ASSERT_EQ(adjoint_op, expected_got_adjoint);
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint_op);
+
+    auto adjoint_reverse_op = reverse.adjoint();
+    utils::checkEqual(adjoint_reverse_op.to_matrix(dimensions),
+                      got_reverse_matrix.adjoint());
   }
 
   // `boson_handler * sum_op`
@@ -714,6 +838,24 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto want_reverse_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Adjoint
+    auto adjoint_op = got.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+    // Analytical verification
+    auto expected_got_adjoint =
+        (cudaq::boson_op::annihilate(0) + cudaq::boson_op::number(2)) *
+        cudaq::boson_op::number(0);
+    ASSERT_EQ(adjoint_op, expected_got_adjoint);
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint_op);
+
+    auto adjoint_reverse_op = reverse.adjoint();
+    utils::checkEqual(adjoint_reverse_op.to_matrix(dimensions),
+                      got_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    reverse.adjoint_in_place();
+    ASSERT_EQ(reverse, adjoint_reverse_op);
   }
 
   // `sum_op += boson_handler`
@@ -733,6 +875,17 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = term_0_full + term_1_full + added_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    auto adjoint_op = sum_op.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+    // Analytical verification
+    auto expected_got_adjoint = cudaq::boson_op::momentum(0) +
+                                cudaq::boson_op::create(2) +
+                                cudaq::boson_op::position(0);
+    ASSERT_EQ(adjoint_op, expected_got_adjoint);
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 
   // `sum_op -= boson_handler`
@@ -752,6 +905,17 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = term_0_full + term_1_full - subtr_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    auto adjoint_op = sum_op.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+    // Analytical verification
+    auto expected_adjoint_op = cudaq::boson_op::annihilate(0) +
+                               cudaq::boson_op::create(1) -
+                               cudaq::boson_op::momentum(0);
+    ASSERT_EQ(adjoint_op, expected_adjoint_op);
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 
   // `sum_op *= boson_handler`
@@ -783,6 +947,19 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = expected_term0 + expected_term1;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    auto adjoint_op = sum_op.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+    // Analytical check
+    auto expected_adjoint =
+        cudaq::boson_op::position(0) *
+        (cudaq::boson_op::momentum(0) +
+         cudaq::boson_op::momentum(
+             1)); // position and momentum on DOF 0 is non-commuting.
+    ASSERT_EQ(adjoint_op, expected_adjoint);
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 }
 

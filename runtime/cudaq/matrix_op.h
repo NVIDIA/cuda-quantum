@@ -60,11 +60,18 @@ private:
   canonical_form(std::unordered_map<std::size_t, std::int64_t> &dimensions,
                  std::vector<std::int64_t> &relevant_dims) const override;
 
+  // Internal helper to format the operator code depending on whether it is
+  // an adjoint or not.
+  std::string format_op_code() const;
+
 protected:
   std::string op_code;
   commutation_relations group;
   bool commutes;
   std::vector<std::size_t> targets;
+  // Flag to indicate if this is the adjoint of the matrix operator represented
+  // by `op_code`.
+  bool is_adjoint;
 
 public:
 #if !defined(NDEBUG)
@@ -306,6 +313,13 @@ public:
   /// information in the string.
   /// @return A string describing the operator.
   virtual std::string to_string(bool include_degrees) const override;
+
+  /// @brief Returns the adjoint of the operator.
+  matrix_handler adjoint() const;
+
+  /// @brief In-place" version of \c adjoint(): replaces \c *this by its own
+  /// adjoint.
+  matrix_handler &adjoint_in_place();
 
   // comparisons
 

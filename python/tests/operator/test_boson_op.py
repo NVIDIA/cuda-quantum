@@ -40,6 +40,18 @@ def test_definitions():
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
 
+    assert np.allclose(
+        boson.create(1).adjoint().to_matrix(dims), annihilate_matrix(3))
+    assert np.allclose(
+        boson.annihilate(1).adjoint().to_matrix(dims), create_matrix(3))
+
+    # Adjoint relationship
+    assert boson.create(1).adjoint() == boson.annihilate(1)
+    assert boson.annihilate(1).adjoint() == boson.create(1)
+    assert boson.number(1).adjoint() == boson.number(1)
+    assert boson.position(1).adjoint() == boson.position(1)
+    assert boson.momentum(1).adjoint() == boson.momentum(1)
+
 
 def test_commutation_relations():
 
@@ -96,26 +108,40 @@ def test_commutation_relations():
 def test_construction():
     prod = identity()
     assert np.allclose(prod.to_matrix(), identity_matrix(1))
+    assert np.allclose(prod.adjoint().to_matrix(), identity_matrix(1))
     prod *= number(0)
     assert np.allclose(prod.to_matrix({0: 3}), number_matrix(3))
+    assert np.allclose(prod.adjoint().to_matrix({0: 3}),
+                       number_matrix(3))  # self-adjoint
     sum = empty()
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    assert np.allclose(sum.adjoint().to_matrix(), zero_matrix(1))
     sum *= number(0)
     assert sum.degrees == []
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    assert np.allclose(sum.adjoint().to_matrix(), zero_matrix(1))
     sum += identity(1)
     assert sum.degrees == [1]
     assert np.allclose(sum.to_matrix({1: 3}), identity_matrix(3))
+    assert np.allclose(sum.adjoint().to_matrix({1: 3}), identity_matrix(3))
     sum *= number(1)
     assert np.allclose(sum.to_matrix({1: 3}), number_matrix(3))
+    assert np.allclose(sum.adjoint().to_matrix({1: 3}),
+                       number_matrix(3))  # self-adjoint
     sum = empty()
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    assert np.allclose(sum.adjoint().to_matrix(), zero_matrix(1))
     sum -= identity(0)
     assert sum.degrees == [0]
     assert np.allclose(sum.to_matrix({0: 3}), -identity_matrix(3))
+    assert np.allclose(sum.adjoint().to_matrix({0: 3}), -identity_matrix(3))
     ids = identities(3, 5)
     assert ids.degrees == [3, 4]
     assert np.allclose(ids.to_matrix({3: 3, 4: 3}), identity_matrix(3 * 3))
+    assert np.allclose(ids.adjoint().to_matrix({
+        3: 3,
+        4: 3
+    }), identity_matrix(3 * 3))
     canon = ids.copy().canonicalize()
     assert ids.degrees == [3, 4]
     assert canon.degrees == []
@@ -198,6 +224,8 @@ def test_matrix_construction():
                                            return_eigenvectors=False,
                                            sigma=ev[0] - 1e-2)
         assert np.allclose(ev[:10], sorted(scipyEv), rtol=1e-2)
+
+    assert np.allclose(hamiltonian.adjoint().to_matrix(dims), mat.conj().T)
 
 
 def test_canonicalization():
@@ -347,46 +375,95 @@ def test_arithmetics():
     sum_matrix = np.kron(position_matrix(2), identity_matrix(3)) +\
                  np.kron(identity_matrix(2), momentum_matrix(3))
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(id.adjoint().to_matrix(dims), identity_matrix(3))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
+    assert np.allclose(sum.adjoint().to_matrix(dims), sum_matrix.conj().T)
 
     # unary operators
     assert np.allclose((-id).to_matrix(dims), -1. * identity_matrix(3))
+    assert np.allclose((-id).adjoint().to_matrix(dims),
+                       -1. * identity_matrix(3))
     assert np.allclose((-sum).to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose((-sum).adjoint().to_matrix(dims),
+                       -1. * sum_matrix.conj().T)
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(id.adjoint().to_matrix(dims), identity_matrix(3))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
+    assert np.allclose(sum.adjoint().to_matrix(dims), sum_matrix.conj().T)
     assert np.allclose((+id).canonicalize().to_matrix(), identity_matrix(1))
+    assert np.allclose((+id).adjoint().canonicalize().to_matrix(),
+                       identity_matrix(1))
     assert np.allclose((+sum).canonicalize().to_matrix(dims), sum_matrix)
+    assert np.allclose((+sum).adjoint().canonicalize().to_matrix(dims),
+                       sum_matrix.conj().T)
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(id.adjoint().to_matrix(dims), identity_matrix(3))
 
     # right-hand arithmetics
     assert np.allclose((id * 2.).to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose((id * 2.).adjoint().to_matrix(dims),
+                       2. * identity_matrix(3))
     assert np.allclose((sum * 2.).to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose((sum * 2.).adjoint().to_matrix(dims),
+                       2. * sum_matrix.conj().T)
     assert np.allclose((id * 2.j).to_matrix(dims), 2.j * identity_matrix(3))
+    assert np.allclose((id * 2.j).adjoint().to_matrix(dims),
+                       -2.j * identity_matrix(3))
     assert np.allclose((sum * 2.j).to_matrix(dims), 2.j * sum_matrix)
+    assert np.allclose((sum * 2.j).adjoint().to_matrix(dims),
+                       -2.j * sum_matrix.conj().T)
     assert np.allclose((sum * id).to_matrix(dims), sum_matrix)
+    assert np.allclose((sum * id).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T)
     assert np.allclose((id * sum).to_matrix(dims), sum_matrix)
+    assert np.allclose((id * sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T)
     assert np.allclose((id + 2.).to_matrix(dims), 3. * identity_matrix(3))
+    assert np.allclose((id + 2.).adjoint().to_matrix(dims),
+                       3. * identity_matrix(3))
     assert np.allclose((sum + 2.).to_matrix(dims),
                        sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((sum + 2.).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + 2. * identity_matrix(2 * 3))
     assert np.allclose((id + 2.j).to_matrix(dims),
                        (1. + 2.j) * identity_matrix(3))
+    assert np.allclose((id + 2.j).adjoint().to_matrix(dims),
+                       (1. - 2.j) * identity_matrix(3))
     assert np.allclose((sum + 2.j).to_matrix(dims),
                        sum_matrix + 2.j * identity_matrix(2 * 3))
+    assert np.allclose((sum + 2.j).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - 2.j * identity_matrix(2 * 3))
     assert np.allclose((sum + id).to_matrix(dims),
                        sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((sum + id).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + identity_matrix(2 * 3))
     assert np.allclose((id + sum).to_matrix(dims),
                        sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((id + sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + identity_matrix(2 * 3))
     assert np.allclose((id - 2.).to_matrix(dims), -1. * identity_matrix(3))
+    assert np.allclose((id - 2.).adjoint().to_matrix(dims),
+                       -1. * identity_matrix(3))
     assert np.allclose((sum - 2.).to_matrix(dims),
                        sum_matrix - 2. * identity_matrix(2 * 3))
+    assert np.allclose((sum - 2.).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - 2. * identity_matrix(2 * 3))
     assert np.allclose((id - 2.j).to_matrix(dims),
                        (1. - 2.j) * identity_matrix(3))
+    assert np.allclose((id - 2.j).adjoint().to_matrix(dims),
+                       (1. + 2.j) * identity_matrix(3))
     assert np.allclose((sum - 2.j).to_matrix(dims),
                        sum_matrix - 2.j * identity_matrix(2 * 3))
+    assert np.allclose((sum - 2.j).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + 2.j * identity_matrix(2 * 3))
     assert np.allclose((sum - id).to_matrix(dims),
                        sum_matrix - identity_matrix(2 * 3))
+    assert np.allclose((sum - id).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - identity_matrix(2 * 3))
     assert np.allclose((id - sum).to_matrix(dims),
                        identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((id - sum).adjoint().to_matrix(dims),
+                       identity_matrix(2 * 3) - sum_matrix.conj().T)
 
     # in-place arithmetics
     term = id.copy()
@@ -394,45 +471,82 @@ def test_arithmetics():
     term *= 2.
     op *= 2.
     assert np.allclose(term.to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose(term.adjoint().to_matrix(dims), 2. * identity_matrix(3))
     assert np.allclose(op.to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), 2. * sum_matrix.conj().T)
     term *= 0.5j
     op *= 0.5j
     assert np.allclose(term.to_matrix(dims), 1.j * identity_matrix(3))
+    assert np.allclose(term.adjoint().to_matrix(dims),
+                       -1.j * identity_matrix(3))
     assert np.allclose(op.to_matrix(dims), 1.j * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), -1.j * sum_matrix.conj().T)
     op *= term
     assert np.allclose(op.to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), -1. * sum_matrix.conj().T)
 
     op += 2.
     assert np.allclose(op.to_matrix(dims),
                        -1. * sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose(op.adjoint().to_matrix(dims),
+                       -1. * sum_matrix.conj().T + 2. * identity_matrix(2 * 3))
     op += term
     assert np.allclose(op.to_matrix(dims),
                        -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 3))
+    assert np.allclose(
+        op.adjoint().to_matrix(dims),
+        -1. * sum_matrix.conj().T + (2. - 1.j) * identity_matrix(2 * 3))
     op -= 2.
     assert np.allclose(op.to_matrix(dims),
                        -1. * sum_matrix + 1.j * identity_matrix(2 * 3))
+    assert np.allclose(op.adjoint().to_matrix(dims),
+                       -1. * sum_matrix.conj().T - 1.j * identity_matrix(2 * 3))
     op -= term
     assert np.allclose(op.to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose(op.adjoint().to_matrix(dims), -1. * sum_matrix.conj().T)
 
     # left-hand arithmetics
     assert np.allclose((2. * id).to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose((2. * id).adjoint().to_matrix(dims),
+                       2. * identity_matrix(3))
     assert np.allclose((2. * sum).to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose((2. * sum).adjoint().to_matrix(dims),
+                       2. * sum_matrix.conj().T)
     assert np.allclose((2.j * id).to_matrix(dims), 2.j * identity_matrix(3))
+    assert np.allclose((2.j * id).adjoint().to_matrix(dims),
+                       -2.j * identity_matrix(3))
     assert np.allclose((2.j * sum).to_matrix(dims), 2.j * sum_matrix)
+    assert np.allclose((2.j * sum).adjoint().to_matrix(dims),
+                       -2.j * sum_matrix.conj().T)
     assert np.allclose((2. + id).to_matrix(dims), 3. * identity_matrix(3))
+    assert np.allclose((2. + id).adjoint().to_matrix(dims),
+                       3. * identity_matrix(3))
     assert np.allclose((2. + sum).to_matrix(dims),
                        sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((2. + sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T + 2. * identity_matrix(2 * 3))
     assert np.allclose((2.j + id).to_matrix(dims),
                        (1 + 2j) * identity_matrix(3))
+    assert np.allclose((2.j + id).adjoint().to_matrix(dims),
+                       (1 - 2j) * identity_matrix(3))
     assert np.allclose((2.j + sum).to_matrix(dims),
                        sum_matrix + 2.j * identity_matrix(2 * 3))
+    assert np.allclose((2.j + sum).adjoint().to_matrix(dims),
+                       sum_matrix.conj().T - 2.j * identity_matrix(2 * 3))
     assert np.allclose((2. - id).to_matrix(dims), identity_matrix(3))
+    assert np.allclose((2. - id).adjoint().to_matrix(dims), identity_matrix(3))
     assert np.allclose((2. - sum).to_matrix(dims),
                        2. * identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((2. - sum).adjoint().to_matrix(dims),
+                       2. * identity_matrix(2 * 3) - sum_matrix.conj().T)
     assert np.allclose((2.j - id).to_matrix(dims),
                        (-1 + 2.j) * identity_matrix(3))
+    assert np.allclose((2.j - id).adjoint().to_matrix(dims),
+                       (-1 - 2.j) * identity_matrix(3))
     assert np.allclose((2.j - sum).to_matrix(dims),
                        2.j * identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((2.j - sum).adjoint().to_matrix(dims),
+                       -2.j * identity_matrix(2 * 3) - sum_matrix.conj().T)
 
 
 def test_term_distribution():
@@ -453,4 +567,6 @@ def test_term_distribution():
 
 # Run with: pytest -rP
 if __name__ == "__main__":
-    pytest.main(["-rP"])
+    import os
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

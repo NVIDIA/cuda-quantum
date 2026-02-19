@@ -82,6 +82,10 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   ASSERT_EQ(spin_prod.min_degree(), 5);
   ASSERT_EQ(spin_prod.max_degree(), 5);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_prod.adjoint().to_matrix(), spin_matrix.adjoint());
+  // Basic spin op is unitary
+  ASSERT_EQ(spin_prod.adjoint() * spin_prod, cudaq::spin_op::i(5));
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::position(5);
@@ -98,6 +102,9 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto matrix1 = utils::momentum_matrix(level_count);
     auto want_matrix = matrix0 * matrix1;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(got.adjoint().to_matrix({{5, level_count}}),
+                      want_matrix.adjoint());
   }
 }
 
@@ -115,6 +122,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   ASSERT_EQ(spin_prod.min_degree(), 0);
   ASSERT_EQ(spin_prod.max_degree(), 1);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_prod.adjoint().to_matrix(), spin_matrix.adjoint());
+  // Basic spin op is unitary
+  ASSERT_EQ(spin_prod.adjoint() * spin_prod,
+            cudaq::spin_op::i(0) * cudaq::spin_op::i(1));
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::position(0);
@@ -143,6 +155,14 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(
+        got.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        got_reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 }
 
@@ -161,6 +181,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   ASSERT_EQ(spin_prod.min_degree(), 0);
   ASSERT_EQ(spin_prod.max_degree(), 2);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_prod.adjoint().to_matrix(), spin_matrix.adjoint());
+  // Basic spin op is unitary
+  ASSERT_EQ(spin_prod.adjoint() * spin_prod,
+            cudaq::spin_op::i(0) * cudaq::spin_op::i(2));
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::position(0);
@@ -189,6 +214,13 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        got.adjoint().to_matrix({{0, level_count}, {2, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        got_reverse.adjoint().to_matrix({{0, level_count}, {2, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 }
 
@@ -238,6 +270,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(got_matrix, want_matrix);
+    // Adjoint
+    utils::checkEqual(got.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(got_reverse.adjoint().to_matrix(dimensions),
+                      want_matrix_reverse.adjoint());
   }
 }
 }
@@ -266,6 +303,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     ASSERT_TRUE(reverse.degrees() == want_degrees);
     utils::checkEqual(value_0 * op_matrix, product.to_matrix({{0, 2}}));
     utils::checkEqual(value_0 * op_matrix, reverse.to_matrix({{0, 2}}));
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix({{0, 2}}),
+                      (value_0 * op_matrix).adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, 2}}),
+                      (value_0 * op_matrix).adjoint());
   }
 
   // spin operator against constant
@@ -282,6 +324,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     ASSERT_TRUE(reverse.degrees() == want_degrees);
     utils::checkEqual(value_0 * op_matrix, product.to_matrix());
     utils::checkEqual(value_0 * op_matrix, reverse.to_matrix());
+    // Adjoint
+    utils::checkEqual(std::conj(value_0) * op_matrix,
+                      product.adjoint().to_matrix());
+    utils::checkEqual(std::conj(value_0) * op_matrix,
+                      reverse.adjoint().to_matrix());
   }
 
   // matrix operator against constant from lambda
@@ -300,6 +347,13 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
                       product.to_matrix({{1, 2}}, {{"value", 0.3}}));
     utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
                       reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
+    // Adjoint
+    utils::checkEqual(scalar_op.adjoint().evaluate({{"value", 0.3}}) *
+                          op_matrix,
+                      product.adjoint().to_matrix({{1, 2}}, {{"value", 0.3}}));
+    utils::checkEqual(scalar_op.adjoint().evaluate({{"value", 0.3}}) *
+                          op_matrix,
+                      reverse.adjoint().to_matrix({{1, 2}}, {{"value", 0.3}}));
   }
 
   // spin operator against constant from lambda
@@ -318,6 +372,13 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
                       product.to_matrix({}, {{"value", 0.3}}));
     utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
                       reverse.to_matrix({}, {{"value", 0.3}}));
+    // Adjoint
+    utils::checkEqual(scalar_op.adjoint().evaluate({{"value", 0.3}}) *
+                          op_matrix,
+                      product.adjoint().to_matrix({}, {{"value", 0.3}}));
+    utils::checkEqual(scalar_op.adjoint().evaluate({{"value", 0.3}}) *
+                          op_matrix,
+                      reverse.adjoint().to_matrix({}, {{"value", 0.3}}));
   }
 }
 }
@@ -357,6 +418,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // The op here is self-adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix);
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse);
   }
 
   /// `product_op + complex<double>`
@@ -391,6 +459,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint (the op is self-adjoint)
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix);
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse);
   }
 
   /// `spin product + complex<double>`
@@ -420,6 +495,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix);
+    utils::checkEqual(reverse.adjoint().to_matrix(), want_matrix_reverse);
   }
 
   /// `product_op + scalar_operator`
@@ -455,6 +534,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op - double`
@@ -489,6 +575,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        difference.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `spin product - double`
@@ -518,6 +611,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   /// `product_op - complex<double>`
@@ -553,6 +650,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        difference.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op - scalar_operator`
@@ -589,6 +693,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        difference.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op * double`
@@ -625,6 +736,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op * complex<double>`
@@ -662,6 +780,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op * scalar_operator`
@@ -699,6 +824,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `spin product * scalar_operator`
@@ -731,6 +863,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   /// `product_op / double`
@@ -761,6 +897,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op / complex<double>`
@@ -791,6 +931,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `product_op / scalar_operator`
@@ -821,6 +965,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 
   /// `spin product / scalar_operator`
@@ -846,6 +994,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix_reverse = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   /// `product_op *= double`
@@ -872,6 +1023,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 
   /// `spin product *= double`
@@ -895,6 +1050,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   /// `product_op *= complex<double>`
@@ -921,6 +1078,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 
   /// `product_op *= scalar_operator`
@@ -949,6 +1110,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     auto want_matrix = product_matrix * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 
   /// `product_op /= double`
@@ -976,6 +1142,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 
   /// `spin product /= double`
@@ -1000,6 +1170,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   /// `product_op /= complex<double>`
@@ -1026,6 +1198,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto want_matrix = product_matrix * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 
   /// `product_op /= scalar_operator`
@@ -1054,6 +1230,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     auto want_matrix = product_matrix * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 }
 
@@ -1104,6 +1284,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     auto want_matrix = term_0_matrix + term_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // `spin product + spin product`
@@ -1143,6 +1326,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     auto want_matrix = term_0_matrix + term_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `product_op - product_op`
@@ -1183,6 +1368,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     auto want_matrix = term_0_matrix - term_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // `spin product - spin product`
@@ -1220,6 +1408,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
     auto want_reverse_matrix = term_1_matrix - term_0_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, reverse_matrix);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `product_op * product_op`
@@ -1260,6 +1452,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
     auto want_matrix = term_0_matrix * term_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // `spin product * spin product`
@@ -1303,6 +1498,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
     auto want_reverse_matrix = term_1_matrix * term_0_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
   }
 
   // `product_op *= product_op`
@@ -1347,6 +1547,12 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
                          utils::momentum_matrix(level_count));
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(term1_only_matrix, term_1.to_matrix(dimensions));
+
+    // Adjoint
+    utils::checkEqual(term_0.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(term_1.adjoint().to_matrix(dimensions),
+                      term1_only_matrix.adjoint());
   }
 
   // `spin product *= spin product`
@@ -1386,6 +1592,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
         cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(term1_only_matrix, term_1.to_matrix());
+
+    // Adjoint
+    utils::checkEqual(term_0.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(term_1.adjoint().to_matrix(),
+                      term1_only_matrix.adjoint());
   }
 }
 
@@ -1435,6 +1646,12 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(dimensions),
+                      want_matrix_reverse.adjoint());
   }
 
   // `spin product + spin sum`
@@ -1471,6 +1688,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   // `product_op - sum_op`
@@ -1513,6 +1735,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(dimensions),
+                      want_matrix_reverse.adjoint());
   }
 
   // `spin product - spin sum`
@@ -1549,6 +1776,10 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   // `product_op * sum_op`
@@ -1590,6 +1821,12 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(dimensions),
+                      want_matrix_reverse.adjoint());
   }
 
   // `spin product * spin sum`
@@ -1626,6 +1863,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 }
 
@@ -1675,6 +1917,11 @@ TEST(OperatorExpressions, checkCustomProductOps) {
 
   utils::checkEqual(product.to_matrix(dimensions), expected);
   utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
+  // Adjoint
+  utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                    expected.adjoint());
+  utils::checkEqual(reverse.adjoint().to_matrix(dimensions),
+                    expected_reverse.adjoint());
 
   op0 = cudaq::matrix_handler::instantiate("custom_op0", {2, 3});
   op1 = cudaq::matrix_handler::instantiate("custom_op1", {0, 2});
@@ -1696,4 +1943,9 @@ TEST(OperatorExpressions, checkCustomProductOps) {
 
   utils::checkEqual(product.to_matrix(dimensions), expected);
   utils::checkEqual(reverse.to_matrix(dimensions), expected_reverse);
+  // Adjoint
+  utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                    expected.adjoint());
+  utils::checkEqual(reverse.adjoint().to_matrix(dimensions),
+                    expected_reverse.adjoint());
 }

@@ -16,6 +16,8 @@ TEST(OperatorExpressions, checkFermionOpsUnary) {
   utils::checkEqual((+op).to_matrix(), utils::number_matrix(2));
   utils::checkEqual((-op).to_matrix(), -1.0 * utils::number_matrix(2));
   utils::checkEqual(op.to_matrix(), utils::number_matrix(2));
+  utils::checkEqual(op.adjoint().to_matrix(),
+                    utils::number_matrix(2).adjoint());
 }
 
 TEST(OperatorExpressions, checkFermionOpsConstruction) {
@@ -24,35 +26,42 @@ TEST(OperatorExpressions, checkFermionOpsConstruction) {
 
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   prod *= std::complex<double>(0., -1.);
   expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   prod *= cudaq::fermion_op::number(0);
   expected = cudaq::complex_matrix(2, 2);
   expected[{1, 1}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   auto sum = cudaq::fermion_op::empty();
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum *= cudaq::fermion_op::number(1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum += cudaq::fermion_op::identity(1);
   expected = cudaq::complex_matrix(2, 2);
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum *= cudaq::fermion_op::number(1);
   expected = cudaq::complex_matrix(2, 2);
   expected[{1, 1}] = 1.;
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum = cudaq::fermion_op::empty();
   sum -= cudaq::fermion_op::identity(0);
@@ -60,6 +69,7 @@ TEST(OperatorExpressions, checkFermionOpsConstruction) {
   for (size_t i = 0; i < 2; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 }
 
 TEST(OperatorExpressions, checkPreBuiltFermionOps) {
@@ -76,6 +86,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
         got *= nr_op;
       }
       utils::checkEqual(expected, got.to_matrix());
+      utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
     }
   }
 
@@ -91,6 +102,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
         got *= ad_op;
       }
       utils::checkEqual(expected, got.to_matrix());
+      utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
     }
   }
 
@@ -106,6 +118,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
         got *= a_op;
       }
       utils::checkEqual(expected, got.to_matrix());
+      utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
     }
   }
 
@@ -147,6 +160,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
             got *= a_op;
 
           utils::checkEqual(expected, got.to_matrix());
+          utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
 
           // Check  Ads * As * Ns
 
@@ -171,6 +185,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
             got *= nr_op;
 
           utils::checkEqual(expected, got.to_matrix());
+          utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
 
           // Check Ns * Ads * As
 
@@ -195,6 +210,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
             got *= a_op;
 
           utils::checkEqual(expected, got.to_matrix());
+          utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
 
           // check Ns * As * Ads
 
@@ -219,6 +235,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
             got *= ad_op;
 
           utils::checkEqual(expected, got.to_matrix());
+          utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
 
           // check As * Ns * Ads
 
@@ -243,6 +260,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
             got *= ad_op;
 
           utils::checkEqual(expected, got.to_matrix());
+          utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
 
           // check As * Ads * Ns
 
@@ -267,6 +285,7 @@ TEST(OperatorExpressions, checkPreBuiltFermionOps) {
             got *= nr_op;
 
           utils::checkEqual(expected, got.to_matrix());
+          utils::checkEqual(got.adjoint().to_matrix(), expected.adjoint());
         }
       }
     }
@@ -483,6 +502,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = utils::number_matrix(2) + utils::annihilate_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Addition, different DOF's.
@@ -500,6 +520,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = matrix_self + matrix_other;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Subtraction, same DOF.
@@ -513,6 +534,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = utils::id_matrix(2) - utils::number_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Subtraction, different DOF's.
@@ -530,6 +552,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix();
     auto want_matrix = annihilate_full - create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Multiplication, same DOF.
@@ -546,6 +569,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto got_matrix = product.to_matrix();
     auto want_matrix = utils::number_matrix(2);
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // Multiplication, different DOF's.
@@ -566,6 +590,7 @@ TEST(OperatorExpressions, checkFermionOpsSimpleArithmetics) {
     auto got_matrix = result.to_matrix();
     auto want_matrix = annihilate_full * create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(result.adjoint().to_matrix(), want_matrix.adjoint());
   }
 }
 
@@ -597,8 +622,15 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     auto got_reverse_matrix = reverse.to_matrix();
     auto want_matrix = self_full + term_0_full + term_1_full;
     auto want_reverse_matrix = term_0_full + term_1_full + self_full;
+    auto adjoint = got.adjoint();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(adjoint.to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint);
   }
 
   // `fermion_handler - sum_op`
@@ -623,8 +655,15 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     auto got_reverse_matrix = reverse.to_matrix();
     auto want_matrix = self_full - term_0_full - term_1_full;
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
+    auto adjoint = got.adjoint();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(adjoint.to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint);
   }
 
   // `fermion_handler * sum_op`
@@ -654,8 +693,15 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
     auto got_reverse_matrix = reverse.to_matrix();
     auto want_matrix = self_full * sum_full;
     auto want_reverse_matrix = sum_full * self_full;
+    auto adjoint = got.adjoint();
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    utils::checkEqual(adjoint.to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint);
   }
 
   // `sum_op += fermion_handler`
@@ -675,7 +721,12 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
     auto got_matrix = sum_op.to_matrix();
     auto want_matrix = term_0_full + term_1_full + added_full;
+    auto adjoint = sum_op.adjoint();
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(adjoint.to_matrix(), want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint);
   }
 
   // `sum_op -= fermion_handler`
@@ -695,7 +746,12 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
     auto got_matrix = sum_op.to_matrix();
     auto want_matrix = term_0_full + term_1_full - subtr_full;
+    auto adjoint = sum_op.adjoint();
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(adjoint.to_matrix(), want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint);
   }
 
   // `sum_op *= fermion_handler`
@@ -721,7 +777,12 @@ TEST(OperatorExpressions, checkFermionOpsAdvancedArithmetics) {
 
     auto got_matrix = sum_op.to_matrix();
     auto want_matrix = expected_term0 + expected_term1;
+    auto adjoint_op = sum_op.adjoint();
     utils::checkEqual(want_matrix, got_matrix);
+    utils::checkEqual(adjoint_op.to_matrix(), want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 }
 
