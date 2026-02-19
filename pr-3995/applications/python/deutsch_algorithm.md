@@ -1900,7 +1900,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![a5cf7304281b4dfea42aad42e78ad5bf](../../_images/oracle.png){.no-scaled-link
+![7455d2e989bf44bd8ff57bcffef06b7f](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2006,7 +2006,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![d594e92bf0b94dea9bc63a6e3cd913d9](../../_images/deutsch.png){.no-scaled-link
+![692a58df8f4f4c5890bbf6c1aa767fe7](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}
