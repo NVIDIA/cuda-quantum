@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "Trace.h"
 #include <ostream>
 #include <unordered_map>
 #include <vector>
@@ -47,10 +46,6 @@ public:
     /// @brief Return true if this Instruction is equal to the given one.
     bool operator==(const Instruction &other) const;
   };
-
-  Resources() = default;
-  Resources(Resources &) = default;
-  Resources(Resources &&) = default;
 
   /// @brief Return the number of times the given Instruction is
   /// used in the current kernel execution
