@@ -80,6 +80,34 @@ Type quake::StruqType::parse(AsmParser &parser) {
   return quake::StruqType::get(ctx, nameAttr, members);
 }
 
+bool quake::StruqType::hasSpecifiedSize() const {
+  for (auto ty : getMembers())
+    if (auto veqTy = llvm::dyn_cast<quake::VeqType>(ty))
+      if (!veqTy.hasSpecifiedSize())
+        return false;
+  return true;
+}
+
+std::optional<std::size_t> quake::StruqType::getArity() const {
+  if (getMembers().empty())
+    return std::nullopt;
+  std::size_t res = 0;
+  for (auto ty : getMembers()) {
+    if (ty == RefType::get(getContext())) {
+      res++;
+    } else if (auto veqTy = llvm::dyn_cast<VeqType>(ty)) {
+      if (veqTy.hasSpecifiedSize())
+        res += veqTy.getSize();
+      else
+        return std::nullopt;
+    } else {
+      // NB: This is a bug. Should not have anything but Ref and Veq types.
+      return std::nullopt;
+    }
+  }
+  return {res};
+}
+
 void quake::StruqType::print(AsmPrinter &printer) const {
   printer << '<';
   if (getName())
