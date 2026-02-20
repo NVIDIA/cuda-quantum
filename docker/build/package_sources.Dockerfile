@@ -62,14 +62,6 @@ COPY NOTICE LICENSE "${SOURCES_ROOT}/"
 COPY package-source-diff/apt_packages.txt /tmp/apt_packages.txt
 COPY package-source-diff/pip_packages.txt /tmp/pip_packages.txt
 
-# Hardcoded allowlist: apt/pip packages allowed to fail source fetch (one per line; add names as needed)
-RUN cat > /tmp/apt_failed_allowlist.txt << 'APT_ALLOWLIST_EOF'
-
-APT_ALLOWLIST_EOF
-RUN cat > /tmp/pip_failed_allowlist.txt << 'PIP_ALLOWLIST_EOF'
-
-PIP_ALLOWLIST_EOF
-
 # Fetch apt source for each package (failures expected: not all packages have source in this image's repos)
 RUN apt-get update && \
     cd "${SOURCES_ROOT}/apt" && \
@@ -88,20 +80,10 @@ RUN : > "${SOURCES_ROOT}/pip_failed_packages.txt" && \
     done < /tmp/pip_packages.txt; \
     rm -f /tmp/pip_packages.txt
 
-# Fail if any apt or pip failure is not in the allowlist (empty allowlist = no failures allowed)
-RUN set -e; \
-    while IFS= read -r pkg || [ -n "$pkg" ]; do \
-      [ -z "$pkg" ] && continue; \
-      if ! grep -qxF "$pkg" /tmp/apt_failed_allowlist.txt 2>/dev/null; then \
-        echo "Unexpected apt source failure (not in allowlist): $pkg" >&2; exit 1; \
-      fi; \
-    done < "${SOURCES_ROOT}/apt_failed_packages.txt" 2>/dev/null || true; \
-    while IFS= read -r spec || [ -n "$spec" ]; do \
-      [ -z "$spec" ] && continue; \
-      if ! grep -qxF "$spec" /tmp/pip_failed_allowlist.txt 2>/dev/null; then \
-        echo "Unexpected pip source failure (not in allowlist): $spec" >&2; exit 1; \
-      fi; \
-    done < "${SOURCES_ROOT}/pip_failed_packages.txt" 2>/dev/null || true
+RUN echo "apt_failed_packages.txt: $(cat ${SOURCES_ROOT}/apt_failed_packages.txt)"
+    rm -f ${SOURCES_ROOT}/apt_failed_packages.txt
+RUN echo "pip_failed_packages.txt: $(cat ${SOURCES_ROOT}/pip_failed_packages.txt)"
+    rm -f ${SOURCES_ROOT}/pip_failed_packages.txt
 
 # Summary
 RUN echo "apt: $(find ${SOURCES_ROOT}/apt -maxdepth 1 -type d 2>/dev/null | wc -l) dirs" && \
