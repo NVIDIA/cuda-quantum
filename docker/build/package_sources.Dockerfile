@@ -58,10 +58,7 @@ COPY package-source-diff/pip_packages.txt /tmp/pip_packages.txt
 # Copy attribution
 COPY NOTICE LICENSE "${SOURCES_ROOT}/"
 
-# TARGETARCH is set by Docker Buildx (e.g. amd64, arm64). Only clone tpls for amd64.
-ARG TARGETARCH
-
-# Fetch apt source, pip sdists, and clone tpls (amd64 only) in parallel (prefix lines so logs stay readable)
+# Fetch apt source, pip sdists, and clone tpls in parallel (prefix lines so logs stay readable)
 RUN apt-get update && set -o pipefail && \
     ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
       : > "${SOURCES_ROOT}/apt_failed_packages.txt" && \
@@ -75,8 +72,8 @@ RUN apt-get update && set -o pipefail && \
       xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: --no-deps -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
       cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip_failed_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
       rm -f /tmp/pip_packages.txt ) 2>&1 | sed 's/^/[pip] /' & \
-    ( [ "$TARGETARCH" != "amd64" ] || ( set -o pipefail && SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
-      bash /tmp/clone_tpls_from_lock.sh ) ) 2>&1 | sed 's/^/[tpls] /' & \
+    ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
+      bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
 RUN echo -e "apt_failed_packages.txt:\n$(cat ${SOURCES_ROOT}/apt_failed_packages.txt)" && \

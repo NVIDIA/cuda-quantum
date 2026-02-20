@@ -42,11 +42,8 @@ name: Package source diff
 
 jobs:
   diff-packages:
-    name: Diff apt/pip packages (${{ matrix.platform }})
-    strategy:
-      matrix:
-        platform: [amd64, arm64]
-    runs-on: linux-${{ matrix.platform }}-cpu8
+    name: Diff apt/pip packages
+    runs-on: linux-amd64-cpu8
     permissions:
       contents: read
 
@@ -77,17 +74,14 @@ jobs:
       - name: Upload package lists
         uses: actions/upload-artifact@v4
         with:
-          name: package-source-diff-${{ matrix.platform }}
+          name: package-source-diff
           path: package-source-diff/
           retention-days: 1
 
   build-source-image:
     name: Build source image for CUDA Quantum
     needs: diff-packages
-    strategy:
-      matrix:
-        platform: [amd64, arm64]
-    runs-on: linux-${{ matrix.platform }}-cpu32
+    runs-on: linux-amd64-cpu32
     permissions:
       contents: read
       packages: write
@@ -102,7 +96,7 @@ jobs:
       - name: Download package lists
         uses: actions/download-artifact@v4
         with:
-          name: package-source-diff-${{ matrix.platform }}
+          name: package-source-diff
 
       - name: Restore package-source-diff directory layout
         run: |
@@ -115,15 +109,10 @@ jobs:
           ls -la package-source-diff/
 
       - name: Generate tpls lock file
-        if: matrix.platform == 'amd64'
         run: |
           chmod +x scripts/generate_tpls_lock.sh
           ./scripts/generate_tpls_lock.sh tpls_commits.lock
           wc -l tpls_commits.lock || true
-
-      - name: Create empty tpls lock file (arm64 skips tpls)
-        if: matrix.platform != 'amd64'
-        run: touch tpls_commits.lock
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -154,7 +143,7 @@ jobs:
           target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
           tag_suffix="${target_image##*:}"
           owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          tag="ghcr.io/${owner_lower}/cuda-quantum-src:${{ matrix.platform }}-${tag_suffix}"
+          tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
           docker tag package-sources:latest "$tag"
           docker push "$tag"
           echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
