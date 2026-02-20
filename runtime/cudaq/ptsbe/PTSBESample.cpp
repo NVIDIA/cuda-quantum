@@ -221,10 +221,14 @@ void populateExecutionDataTrajectories(
     PTSBEExecutionData &executionData,
     std::vector<cudaq::KrausTrajectory> trajectories,
     std::vector<cudaq::sample_result> perTrajectoryResults) {
-  // Populate measurement_counts from parallel-indexed perTrajectoryResults
+  // Populate measurement_counts from parallel-indexed perTrajectoryResults.
+  // Skip results with no shots (default-constructed sample_result has no
+  // __global__ register, so to_map() would throw).
   for (std::size_t i = 0;
-       i < trajectories.size() && i < perTrajectoryResults.size(); ++i)
-    trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
+       i < trajectories.size() && i < perTrajectoryResults.size(); ++i) {
+    if (perTrajectoryResults[i].get_total_shots() > 0)
+      trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
+  }
 
   if (!trajectories.empty()) {
     executionData.trajectories = std::move(trajectories);
