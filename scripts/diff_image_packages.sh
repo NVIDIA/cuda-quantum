@@ -25,14 +25,15 @@ OUTPUT_DIR="${3:?Usage: $0 <base_image> <target_image> <output_dir>}"
 mkdir -p "$OUTPUT_DIR"
 
 # Get apt list: manually installed package names (works in minimal images)
+# Override ENTRYPOINT so the image runs exactly "sh -c '...'" (NVIDIA images set ENTRYPOINT).
 get_apt_list() {
-  docker run --rm "$1" sh -c \
+  docker run --rm --entrypoint sh "$1" -c \
     'apt-mark showmanual 2>/dev/null | sort -u' || true
 }
 
 # Get pip list: package==version (freeze format) for reproducible source download
 get_pip_list() {
-  docker run --rm "$1" sh -c \
+  docker run --rm --entrypoint sh "$1" -c \
     'pip list --format=freeze 2>/dev/null || python3 -m pip list --format=freeze 2>/dev/null || true' | \
     grep -v '^#' | sort -u || true
 }
