@@ -419,7 +419,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-          submodules: recursive
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -651,7 +650,6 @@ jobs:
           outputs: |
             digest: ${{ steps.cudaq_build.outputs.digest }}
             image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
-            image_name: ${{ steps.prereqs.outputs.image_name }}
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
