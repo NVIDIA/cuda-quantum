@@ -16,7 +16,7 @@
 # pip sdists under /sources/pip, and repo tpls/ under /sources/tpls).
 
 on:
-  workflow_dispatch:
+  push:
     inputs:
       base_image:
         required: true
