@@ -48,41 +48,38 @@ RUN apt-get update
 ENV SOURCES_ROOT=/sources
 RUN mkdir -p "${SOURCES_ROOT}/apt" "${SOURCES_ROOT}/pip" "${SOURCES_ROOT}/tpls"
 
-# Copy .gitmodules, tpls lock file, and clone script; then clone each tpl at pinned commit
+# Copy .gitmodules, tpls lock file, clone script, and package lists
 COPY .gitmodules /tmp/.gitmodules
 COPY tpls_commits.lock /tmp/tpls_commits.lock
 COPY scripts/clone_tpls_from_lock.sh /tmp/clone_tpls_from_lock.sh
-RUN SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
-    bash /tmp/clone_tpls_from_lock.sh
+COPY package-source-diff/apt_packages.txt /tmp/apt_packages.txt
+COPY package-source-diff/pip_packages.txt /tmp/pip_packages.txt
 
 # Copy attribution
 COPY NOTICE LICENSE "${SOURCES_ROOT}/"
 
-# Copy package lists (workflow writes these into package-source-diff/)
-COPY package-source-diff/apt_packages.txt /tmp/apt_packages.txt
-COPY package-source-diff/pip_packages.txt /tmp/pip_packages.txt
+# Fetch apt source, pip sdists, and clone tpls in parallel (prefix lines so logs stay readable)
+RUN apt-get update && set -o pipefail && \
+    ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
+      : > "${SOURCES_ROOT}/apt_failed_packages.txt" && \
+      while IFS= read -r pkg || [ -n "$pkg" ]; do \
+        [ -z "$pkg" ] && continue; \
+        apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt_failed_packages.txt"; \
+      done < /tmp/apt_packages.txt; \
+      rm -f /tmp/apt_packages.txt ) 2>&1 | sed 's/^/[apt] /' & \
+    ( set -o pipefail; : > "${SOURCES_ROOT}/pip_failed_packages.txt" && \
+      while IFS= read -r spec || [ -n "$spec" ]; do \
+        [ -z "$spec" ] && continue; \
+        python3 -m pip download --no-binary :all: -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_packages.txt"; \
+      done < /tmp/pip_packages.txt; \
+      rm -f /tmp/pip_packages.txt ) 2>&1 | sed 's/^/[pip] /' & \
+    ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
+      bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
+    wait
 
-# Fetch apt source for each package (failures expected: not all packages have source in this image's repos)
-RUN apt-get update && \
-    cd "${SOURCES_ROOT}/apt" && \
-    : > "${SOURCES_ROOT}/apt_failed_packages.txt" && \
-    while IFS= read -r pkg || [ -n "$pkg" ]; do \
-      [ -z "$pkg" ] && continue; \
-      apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt_failed_packages.txt"; \
-    done < /tmp/apt_packages.txt; \
-    rm -f /tmp/apt_packages.txt
-
-# Fetch pip sdists (allow failures for binary-only packages; use system pip, do not upgrade)
-RUN : > "${SOURCES_ROOT}/pip_failed_packages.txt" && \
-    while IFS= read -r spec || [ -n "$spec" ]; do \
-      [ -z "$spec" ] && continue; \
-      python3 -m pip download --no-binary :all: -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_packages.txt"; \
-    done < /tmp/pip_packages.txt; \
-    rm -f /tmp/pip_packages.txt
-
-RUN echo "apt_failed_packages.txt: $(cat ${SOURCES_ROOT}/apt_failed_packages.txt)"
+RUN echo "apt_failed_packages.txt: $(cat ${SOURCES_ROOT}/apt_failed_packages.txt)" && \
     rm -f ${SOURCES_ROOT}/apt_failed_packages.txt
-RUN echo "pip_failed_packages.txt: $(cat ${SOURCES_ROOT}/pip_failed_packages.txt)"
+RUN echo "pip_failed_packages.txt: $(cat ${SOURCES_ROOT}/pip_failed_packages.txt)" && \
     rm -f ${SOURCES_ROOT}/pip_failed_packages.txt
 
 # Summary
