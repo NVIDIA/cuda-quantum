@@ -104,66 +104,71 @@ jobs:
         with:
           name: package-source-diff-${{ matrix.platform }}
 
-      # - name: Restore package-source-diff directory layout
-      #   run: |
-      #     # Ensure package-source-diff/ exists with list files for Dockerfile COPY
-      #     if [ ! -f package-source-diff/apt_packages.txt ]; then
-      #       mkdir -p package-source-diff
-      #       mv apt_packages.txt pip_packages.txt package-source-diff/ 2>/dev/null || true
-      #     fi
-      #     touch package-source-diff/apt_packages.txt package-source-diff/pip_packages.txt
-      #     ls -la package-source-diff/
+      - name: Restore package-source-diff directory layout
+        run: |
+          # Ensure package-source-diff/ exists with list files for Dockerfile COPY
+          if [ ! -f package-source-diff/apt_packages.txt ]; then
+            mkdir -p package-source-diff
+            mv apt_packages.txt pip_packages.txt package-source-diff/ 2>/dev/null || true
+          fi
+          touch package-source-diff/apt_packages.txt package-source-diff/pip_packages.txt
+          ls -la package-source-diff/
 
-      # - name: Generate tpls lock file
-      #   run: |
-      #     chmod +x scripts/generate_tpls_lock.sh
-      #     ./scripts/generate_tpls_lock.sh tpls_commits.lock
-      #     wc -l tpls_commits.lock || true
+      - name: Generate tpls lock file
+        if: matrix.platform == 'amd64'
+        run: |
+          chmod +x scripts/generate_tpls_lock.sh
+          ./scripts/generate_tpls_lock.sh tpls_commits.lock
+          wc -l tpls_commits.lock || true
 
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v3
+      - name: Create empty tpls lock file (arm64 skips tpls)
+        if: matrix.platform != 'amd64'
+        run: touch tpls_commits.lock
 
-      # - name: Build source image
-      #   id: build
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: .
-      #     file: docker/build/package_sources.Dockerfile
-      #     load: true
-      #     tags: package-sources:latest
-      #     outputs: type=docker,dest=/tmp/package-sources.tar
-      #     push: false
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # - name: Log in to GitHub CR
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ github.token }}
+      - name: Build source image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/build/package_sources.Dockerfile
+          load: true
+          tags: package-sources:latest
+          outputs: type=docker,dest=/tmp/package-sources.tar
+          push: false
 
-      # - name: Tag and push to GHCR
-      #   if: github.event_name != 'workflow_dispatch' || inputs.push_image
-      #   id: push
-      #   run: |
-      #     docker load --input /tmp/package-sources.tar
-      #     target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
-      #     tag_suffix="${target_image##*:}"
-      #     owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-      #     tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
-      #     docker tag package-sources:latest "$tag"
-      #     docker push "$tag"
-      #     echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
-      # - name: Summary
-      #   run: |
-      #     echo "## Package source diff" >> $GITHUB_STEP_SUMMARY
-      #     echo "" >> $GITHUB_STEP_SUMMARY
-      #     echo "- **Base image:** \`${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}\`" >> $GITHUB_STEP_SUMMARY
-      #     echo "- **Target image:** \`${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}\`" >> $GITHUB_STEP_SUMMARY
-      #     echo "- **Apt packages added:** $(wc -l < package-source-diff/apt_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
-      #     echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
-      #     echo "" >> $GITHUB_STEP_SUMMARY
-      #     echo "Built image \`package-sources:latest\` (ubuntu:24.04 with sources under \`/sources/apt\`, \`/sources/pip\`, and \`/sources/tpls\`)." >> $GITHUB_STEP_SUMMARY
-      #     if [ -n "${{ steps.push.outputs.image_tag }}" ]; then
-      #       echo "- **Pushed:** \`${{ steps.push.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
-      #     fi
+      - name: Tag and push to GHCR
+        if: github.event_name != 'workflow_dispatch' || inputs.push_image
+        id: push
+        run: |
+          docker load --input /tmp/package-sources.tar
+          target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
+          tag_suffix="${target_image##*:}"
+          owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          tag="ghcr.io/${owner_lower}/cuda-quantum-src:${{ matrix.platform }}-${tag_suffix}"
+          docker tag package-sources:latest "$tag"
+          docker push "$tag"
+          echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Package source diff" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base image:** \`${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target image:** \`${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Apt packages added:** $(wc -l < package-source-diff/apt_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Built image \`package-sources:latest\` (ubuntu:24.04 with sources under \`/sources/apt\`, \`/sources/pip\`, and \`/sources/tpls\`)." >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.push.outputs.image_tag }}" ]; then
+            echo "- **Pushed:** \`${{ steps.push.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
