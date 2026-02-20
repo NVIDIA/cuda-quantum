@@ -69,8 +69,8 @@ RUN apt-get update && set -o pipefail && \
       rm -f /tmp/apt_packages.txt ) 2>&1 | sed 's/^/[apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/pip_failed_packages.txt" && \
       grep -v '^[[:space:]]*$' /tmp/pip_packages.txt | \
-      xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
-      cat "${SOURCES_ROOT}"/pip_failed_*.txt >> "${SOURCES_ROOT}/pip_failed_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_*.txt; \
+      xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: --no-deps -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
+      cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip_failed_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
       rm -f /tmp/pip_packages.txt ) 2>&1 | sed 's/^/[pip] /' & \
     ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
       bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \

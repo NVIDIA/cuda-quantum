@@ -134,7 +134,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Tag and push to GHCR
-        if: inputs.push_image
+        if: github.event_name != 'workflow_dispatch' || inputs.push_image
         id: push
         run: |
           docker load --input /tmp/package-sources.tar
@@ -143,7 +143,7 @@ jobs:
           tag="ghcr.io/${{ github.repository_owner }}/cuda-quantum-src:${tag_suffix}"
           docker tag package-sources:latest "$tag"
           docker push "$tag"
-          echo "image_tag=$tag" >> $GITHUB_OUTPUT
+          echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
 
       - name: Summary
         run: |
@@ -155,6 +155,6 @@ jobs:
           echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Built image \`package-sources:latest\` (ubuntu:24.04 with sources under \`/sources/apt\`, \`/sources/pip\`, and \`/sources/tpls\`)." >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.push_image }}" = "true" ] && [ -n "${{ steps.push.outputs.image_tag }}" ]; then
+          if [ -n "${{ steps.push.outputs.image_tag }}" ]; then
             echo "- **Pushed:** \`${{ steps.push.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
           fi
