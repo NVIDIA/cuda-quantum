@@ -16,25 +16,24 @@
 # pip sdists under /sources/pip, and repo tpls/ under /sources/tpls).
 
 on:
-  push
-  # workflow_dispatch:
-  #   inputs:
-  #     base_image:
-  #       required: true
-  #       type: string
-  #       description: 'Base image (target is built from this).'
-  #     target_image:
-  #       required: true
-  #       type: string
-  #       description: 'Target image (contains base + additional packages).'
-  #     push_image:
-  #       required: false
-  #       type: boolean
-  #       default: false
-  #       description: 'Push the built source image to GHCR (requires permissions).'
-  #     environment:
-  #       required: false
-  #       type: string
+  workflow_dispatch:
+    inputs:
+      base_image:
+        required: true
+        type: string
+        description: 'Base image (target is built from this).'
+      target_image:
+        required: true
+        type: string
+        description: 'Target image (contains base + additional packages).'
+      push_image:
+        required: false
+        type: boolean
+        default: false
+        description: 'Push the built source image to GHCR (requires permissions).'
+      environment:
+        required: false
+        type: string
 
 name: Package source diff
 
