@@ -1974,7 +1974,7 @@ with the kernel, noise model, and shot count. Optional arguments:
 ::: {.output_area .docutils .container}
 ::: highlight
     PTSBE sample result:
-    { 00:491828 01:7969 10:8029 11:492174 }
+    { 00:491823 01:7910 10:8034 11:492233 }
 
     Total shots: 1000000
 :::
@@ -2095,7 +2095,7 @@ and [`result.has_execution_data()`{.docutils .literal
         [2] type=TraceInstructionType.Gate, name=x, targets=[1]
         [3] type=TraceInstructionType.Noise, name=depolarization2, targets=[1, 0]
         [4] type=TraceInstructionType.Measurement, name=mz, targets=[0]
-      Example trajectory: id=0, probability=0.921500, num_shots=921501
+      Example trajectory: id=0, probability=0.921500, num_shots=921620
       Selected trajectory (kraus_selections):
         circuit_location=1, kraus_operator_index=0
         circuit_location=3, kraus_operator_index=0
