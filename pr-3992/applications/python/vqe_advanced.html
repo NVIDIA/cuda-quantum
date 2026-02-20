@@ -1030,14 +1030,23 @@
 </section>
 <section id="Installing/Loading-Relevant-Packages">
 <h2>Installing/Loading Relevant Packages<a class="headerlink" href="#Installing/Loading-Relevant-Packages" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>pyscf&gt;<span class="o">=</span><span class="m">2</span>.7<span class="w"> </span><span class="nv">openfermionpyscf</span><span class="o">==</span><span class="m">0</span>.5<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.7.1<span class="w"> </span>-q
+<span class="o">%</span><span class="k">pip</span> install pyscf&gt;=2.7 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.7.1 -q
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>Note: you may need to restart the kernel to use updated packages.
+</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -1104,7 +1113,7 @@
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/tmp/ipykernel_225414/3022299596.py:7: ComplexWarning: Casting complex values to real discards the imaginary part
+/tmp/ipykernel_36979/3022299596.py:7: ComplexWarning: Casting complex values to real discards the imaginary part
   spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
 </pre></div></div>
 </div>
@@ -1204,20 +1213,29 @@ operations are automatically added to the kernel with the <code class="docutils 
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/usr/local/lib/python3.12/dist-packages/scipy/_lib/pyprima/common/preproc.py:68: UserWarning: COBYLA: Invalid MAXFUN; it should be at least num_vars + 2; it is set to 142
+  warn(f&#39;{solver}: Invalid MAXFUN; it should be at least {min_maxfun_str}; it is set to {maxfun}&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-UCCSD-VQE energy =   -70.21329161891076
+UCCSD-VQE energy =   -71.05163606391227
 Total number of qubits =  14
 Total number of parameters =  140
 Total number of terms in the spin hamiltonian =  1086
-Total elapsed time (s) =  21.523745890706778
+Total elapsed time (s) =  147.76741600100104
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_vqe_advanced_21_1.png" src="../../_images/applications_python_vqe_advanced_21_1.png" />
+<img alt="../../_images/applications_python_vqe_advanced_21_2.png" src="../../_images/applications_python_vqe_advanced_21_2.png" />
 </div>
 </div>
 <p>The result of this procedure is an estimate of the ground state energy of water. However, the convergence behavior is not perfect, more iterations would greatly improve the result, but would take a few minutes to run.</p>
@@ -1228,12 +1246,31 @@ Total elapsed time (s) =  21.523745890706778
 <p>The parameter shift rule is a common technique to compute the gradient for parameterized circuits. It is obtained by computing two expectation values for each parameter corresponding to a small forward and backward shift in the ith parameter. These results are used to estimate finite difference contribution to the gradient.</p>
 <img alt="parametershift.png" src="../../_images/parametershift.png" />
 <p>This procedure can become cost prohibitive as the number of parameters becomes large.</p>
-<p>Each of the expectation values needed to evaluate a parameter shift gradient can be computed independently. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is designed for parallel computations across multiple simulated QPUs. The function below uses <code class="docutils literal notranslate"><span class="pre">cudaq.observe_asynch</span></code> to distribute all of the expectation values evaluations across as many GPUs that are available. First, try it with <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> set to 1.</p>
-<div class="nbinput nblast docutils container">
+<p>Each of the expectation values needed to evaluate a parameter shift gradient can be computed independently. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is designed for parallel computations across multiple simulated QPUs. The function below uses <code class="docutils literal notranslate"><span class="pre">cudaq.observe_async</span></code> to distribute all of the expectation value evaluations across as many GPUs as are available. For this demonstration, we use the active space approximation (4 electrons, 3 orbitals) for efficiency; on a multi-GPU system the full system
+could be used instead. First, try it with <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> set to 1.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># For this gradient demonstration, we use the active space approximation</span>
+<span class="c1"># (4 electrons, 3 orbitals, 6 qubits, 8 parameters) for efficiency.</span>
+<span class="c1"># The full 14-qubit system (140 parameters) requires multiple GPUs to</span>
+<span class="c1"># complete gradient evaluations in reasonable time.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="n">_ncore</span><span class="p">,</span> <span class="n">_nele_cas</span><span class="p">,</span> <span class="n">_norb_cas</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span>
+<span class="n">_mol_ham_as</span> <span class="o">=</span> <span class="n">molecule</span><span class="o">.</span><span class="n">get_molecular_hamiltonian</span><span class="p">(</span>
+    <span class="n">occupied_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">_ncore</span><span class="p">),</span>
+    <span class="n">active_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">_ncore</span><span class="p">,</span> <span class="n">_ncore</span> <span class="o">+</span> <span class="n">_norb_cas</span><span class="p">))</span>
+<span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span>
+        <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">get_fermion_operator</span><span class="p">(</span><span class="n">_mol_ham_as</span><span class="p">)))</span>
+<span class="n">electron_count</span> <span class="o">=</span> <span class="n">_nele_cas</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">_norb_cas</span>
+<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Gradient demo: </span><span class="si">{</span><span class="n">qubit_count</span><span class="si">}</span><span class="s1"> qubits, </span><span class="si">{</span><span class="n">electron_count</span><span class="si">}</span><span class="s1"> electrons, </span><span class="si">{</span><span class="n">parameter_count</span><span class="si">}</span><span class="s1"> parameters&#39;</span><span class="p">)</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
@@ -1287,6 +1324,14 @@ Total elapsed time (s) =  21.523745890706778
     <span class="k">return</span> <span class="n">gradients</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Gradient demo: 6 qubits, 4 electrons, 8 parameters
+</pre></div></div>
 </div>
 <p>The cost function needs to be slightly updated to make use of the gradient in the optimization procedure and allow for a gradient based optimizer like L-BFGS-B to be used.</p>
 <div class="nbinput nblast docutils container">
@@ -1346,8 +1391,8 @@ Total elapsed time (s) =  21.523745890706778
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-VQE-UCCSD energy=  -73.19436446992752
-Total elapsed time (s) =  72.83047100389376
+VQE-UCCSD energy=  -74.89472908646083
+Total elapsed time (s) =  34.985621543999514
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1404,7 +1449,7 @@ Total elapsed time (s) =  72.83047100389376
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/tmp/ipykernel_225414/1900341958.py:9: ComplexWarning: Casting complex values to real discards the imaginary part
+/tmp/ipykernel_36979/1900341958.py:9: ComplexWarning: Casting complex values to real discards the imaginary part
   spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
 </pre></div></div>
 </div>
@@ -1502,11 +1547,11 @@ Total elapsed time (s) =  72.83047100389376
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-UCCSD-VQE energy =   -74.96447648834257
+UCCSD-VQE energy =   -74.96450707178158
 Total number of qubits =  6
 Total number of parameters =  8
 Total number of terms in the spin hamiltonian =  62
-Total elapsed time (s) =  3.2149466909468174
+Total elapsed time (s) =  93.54685176699968
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
