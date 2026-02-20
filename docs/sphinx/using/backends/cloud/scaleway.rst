@@ -30,95 +30,95 @@ Setting Credentials
   export SCW_PROJECT_ID="<project_id>"
 
 Submitting
-`````````````````````````
+``````````
 
 .. tab:: Python
 
-The target backend for quantum kernel execution can be selected using the
-``cudaq.set_target()`` function.
+   The target backend for quantum kernel execution can be selected using the
+   ``cudaq.set_target()`` function.
 
-.. code:: python
+   .. code:: python
 
-   import cudaq
-   # Use credentials from environment variables
-   cudaq.set_target("scaleway")
+      import cudaq
+      # Use credentials from environment variables
+      cudaq.set_target("scaleway")
 
-   # You can specify manually your credentials
-   cudaq.set_target("scaleway", project_id="<project_id>", secret_key="<secret_key>")
+      # You can specify manually your credentials
+      cudaq.set_target("scaleway", project_id="<project_id>", secret_key="<secret_key>")
 
 
-By default, kernels are executed on a Scaleway quantum emulator ``EMU-CUDAQ-H100``.
+   By default, kernels are executed on a Scaleway quantum emulator ``EMU-CUDAQ-H100``.
 
-To select a specific Scaleway device, set the ``machine`` argument:
+   To select a specific Scaleway device, set the ``machine`` argument:
 
-.. code:: python
+   .. code:: python
 
-   machine = "EMU-CUDAQ-H100"
-   # machine = EMU-AER-H100 # Access to Aer emulator
-   # machine = QPU-EMERALD-54PQ # Access to IQM QPUs (Garnet, Sirius, Emerald)
-   # machine = QPU-IBEX-12PQ # Access to AQT IBEX-Q1 QPU
-   # machine = EMU-IBEX-12PQ-L4 # Access to AQT IBEX-Q1 emulator
-   cudaq.set_target("scaleway", machine=machine)
+      machine = "EMU-CUDAQ-H100"
+      # machine = EMU-AER-H100 # Access to Aer emulator
+      # machine = QPU-EMERALD-54PQ # Access to IQM QPUs (Garnet, Sirius, Emerald)
+      # machine = QPU-IBEX-12PQ # Access to AQT IBEX-Q1 QPU
+      # machine = EMU-IBEX-12PQ-L4 # Access to AQT IBEX-Q1 emulator
+      cudaq.set_target("scaleway", machine=machine)
 
-where ``EMU-CUDAQ-H100`` identifies an emulator or QPU offer available through Scaleway
-Quantum as a Service. Available emulators and QPUs are listed on the
-`Scaleway Quantum-as-a-Service webpage <https://www.scaleway.com/en/quantum-as-a-service/>`__
+   where ``EMU-CUDAQ-H100`` identifies an emulator or QPU offer available through Scaleway
+   Quantum as a Service. Available emulators and QPUs are listed on the
+   `Scaleway Quantum-as-a-Service webpage <https://www.scaleway.com/en/quantum-as-a-service/>`__
 
-The service will dynamically allocate a dedicated GPU server for your need.
+   The service will dynamically allocate a dedicated GPU server for your need.
 
-This allocation can take up to few minutes. To use the same session between different script execution
-or users, you can specify a ``deduplication_id``.
+   This allocation can take up to few minutes. To use the same session between different script execution
+   or users, you can specify a ``deduplication_id``.
 
-The session will be created if doesn't exist, else it will retrieve and use the matching one.
+   The session will be created if doesn't exist, else it will retrieve and use the matching one.
 
-.. code:: python
+   .. code:: python
 
-   machine = "EMU-CUDAQ-H100"
-   # The deduplication identifier is a convenient way to keep using the same resource
-   # between script calls or user
-   # Notes: The target ``machine`` must be the same as well as Scaleway project id
-   cudaq.set_target("scaleway", machine=machine, deduplication_id="my-workshop")
+      machine = "EMU-CUDAQ-H100"
+      # The deduplication identifier is a convenient way to keep using the same resource
+      # between script calls or user
+      # Notes: The target ``machine`` must be the same as well as Scaleway project id
+      cudaq.set_target("scaleway", machine=machine, deduplication_id="my-workshop")
 
-You can specify the maximal duration or the maximal idle duration to limit the billing.
+   You can specify the maximal duration or the maximal idle duration to limit the billing.
 
-.. code:: python
+   .. code:: python
 
-   machine = "EMU-CUDAQ-H100"
-   # The underlying QPU session will be killed after 30 minutes
-   # or after 5 idle minutes without new jobs
-   cudaq.set_target("scaleway", machine=machine, max_duration="30m", max_idle_duration="5m")
+      machine = "EMU-CUDAQ-H100"
+      # The underlying QPU session will be killed after 30 minutes
+      # or after 5 idle minutes without new jobs
+      cudaq.set_target("scaleway", machine=machine, max_duration="30m", max_idle_duration="5m")
 
-The number of shots for a kernel execution can be specified via the
-``shots_count`` argument to ``cudaq.sample``. The default value is 1000.
+   The number of shots for a kernel execution can be specified via the
+   ``shots_count`` argument to ``cudaq.sample``. The default value is 1000.
 
-.. code:: python
+   .. code:: python
 
-   result = cudaq.sample(kernel, shots_count=100)
+      result = cudaq.sample(kernel, shots_count=100)
 
-Refer to the Scaleway Quantum Computing documentation for details on device
-capabilities, execution limits, and pricing.
+   Refer to the Scaleway Quantum Computing documentation for details on device
+   capabilities, execution limits, and pricing.
 
 .. tab:: C++
 
-To target quantum kernel code for execution on Scaleway QaaS, pass the
-``--target scaleway`` flag to the ``nvq++`` compiler.
+   To target quantum kernel code for execution on Scaleway QaaS, pass the
+   ``--target scaleway`` flag to the ``nvq++`` compiler.
 
-By default, jobs are submitted to a Scaleway-managed quantum simulator.
+   By default, jobs are submitted to a Scaleway-managed quantum simulator.
 
-.. code:: bash
+   .. code:: bash
 
-    nvq++ --target scaleway src.cpp
+      nvq++ --target scaleway src.cpp
 
-To execute kernels on a specific Scaleway quantum device, pass the
-``--machine`` flag to ``nvq++`` and specify the device identifier.
+   To execute kernels on a specific Scaleway quantum device, pass the
+   ``--machine`` flag to ``nvq++`` and specify the device identifier.
 
-.. code:: bash
+   .. code:: bash
 
-    nvq++ --target scaleway --machine "<offer_name>" src.cpp
+      nvq++ --target scaleway --machine "<offer_name>" src.cpp
 
-where <offer_name> refers to a Scaleway simulator or QPU available in your
-project. Available emulators and QPUs are listed on the
-`Scaleway Quantum-as-a-Service webpage <https://www.scaleway.com/en/quantum-as-a-service/>`__
+   where <offer_name> refers to a Scaleway simulator or QPU available in your
+   project. Available emulators and QPUs are listed on the
+   `Scaleway Quantum-as-a-Service webpage <https://www.scaleway.com/en/quantum-as-a-service/>`__
 
 Manage your QPU session
 ```````````````````````
