@@ -23,6 +23,7 @@ CUDA
 Cartesian
 CentOS
 Conda
+ConnectX
 CuPy
 DCO
 DGX
@@ -77,6 +78,7 @@ Max-Cut
 Miniconda
 MyST
 NGC
+NIC
 NVIDIA
 NVLink
 NVQIR
@@ -118,7 +120,9 @@ QuEra
 QuTiP
 Quake
 Quantinuum
+RDMA
 RHEL
+RPC
 RSA
 RSH
 SDK
@@ -324,11 +328,13 @@ qumodes
 reStructuredText
 realtime
 reconfigurable
+reusability
 runtime
 runtimes
 rvalue
 scalability
 scalable
+schemas
 selectable
 sexualized
 shifter
@@ -362,6 +368,7 @@ superpositions
 symplectic
 tablegen
 templated
+testability
 toolchain
 toolchains
 toolset
