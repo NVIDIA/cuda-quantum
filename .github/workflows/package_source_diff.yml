@@ -14,6 +14,8 @@
 # the base, then produces a new image (based on ubuntu:24.04) that contains
 # the source code for those packages under /sources (apt under /sources/apt,
 # pip sdists under /sources/pip, and repo tpls/ under /sources/tpls).
+#
+# base_image and target_image are expected to be multi-arch manifest lists.
 
 on:
   push:
@@ -40,8 +42,10 @@ name: Package source diff
 
 jobs:
   diff-packages:
-    name: Diff apt/pip packages
-    runs-on: ubuntu-latest
+    name: Diff apt/pip packages (${{ matrix.platform }})
+    matrix:
+      platform: [amd64, arm64]
+    runs-on: linux-${{ matrix.platform }}-cpu8
     permissions:
       contents: read
 
@@ -72,14 +76,16 @@ jobs:
       - name: Upload package lists
         uses: actions/upload-artifact@v4
         with:
-          name: package-source-diff
+          name: package-source-diff-${{ matrix.platform }}
           path: package-source-diff/
           retention-days: 1
 
   build-source-image:
-    name: Build Ubuntu 24.04 source image
+    name: Build source image for CUDA Quantum
     needs: diff-packages
-    runs-on: linux-amd64-cpu32
+    matrix:
+      platform: [amd64, arm64]
+    runs-on: linux-${{ matrix.platform }}-cpu32
     permissions:
       contents: read
       packages: write
@@ -94,68 +100,68 @@ jobs:
       - name: Download package lists
         uses: actions/download-artifact@v4
         with:
-          name: package-source-diff
+          name: package-source-diff-${{ matrix.platform }}
 
-      - name: Restore package-source-diff directory layout
-        run: |
-          # Ensure package-source-diff/ exists with list files for Dockerfile COPY
-          if [ ! -f package-source-diff/apt_packages.txt ]; then
-            mkdir -p package-source-diff
-            mv apt_packages.txt pip_packages.txt package-source-diff/ 2>/dev/null || true
-          fi
-          touch package-source-diff/apt_packages.txt package-source-diff/pip_packages.txt
-          ls -la package-source-diff/
+      # - name: Restore package-source-diff directory layout
+      #   run: |
+      #     # Ensure package-source-diff/ exists with list files for Dockerfile COPY
+      #     if [ ! -f package-source-diff/apt_packages.txt ]; then
+      #       mkdir -p package-source-diff
+      #       mv apt_packages.txt pip_packages.txt package-source-diff/ 2>/dev/null || true
+      #     fi
+      #     touch package-source-diff/apt_packages.txt package-source-diff/pip_packages.txt
+      #     ls -la package-source-diff/
 
-      - name: Generate tpls lock file
-        run: |
-          chmod +x scripts/generate_tpls_lock.sh
-          ./scripts/generate_tpls_lock.sh tpls_commits.lock
-          wc -l tpls_commits.lock || true
+      # - name: Generate tpls lock file
+      #   run: |
+      #     chmod +x scripts/generate_tpls_lock.sh
+      #     ./scripts/generate_tpls_lock.sh tpls_commits.lock
+      #     wc -l tpls_commits.lock || true
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
 
-      - name: Build source image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/build/package_sources.Dockerfile
-          load: true
-          tags: package-sources:latest
-          outputs: type=docker,dest=/tmp/package-sources.tar
-          push: false
+      # - name: Build source image
+      #   id: build
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     file: docker/build/package_sources.Dockerfile
+      #     load: true
+      #     tags: package-sources:latest
+      #     outputs: type=docker,dest=/tmp/package-sources.tar
+      #     push: false
 
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      # - name: Log in to GitHub CR
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ github.token }}
 
-      - name: Tag and push to GHCR
-        if: github.event_name != 'workflow_dispatch' || inputs.push_image
-        id: push
-        run: |
-          docker load --input /tmp/package-sources.tar
-          target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
-          tag_suffix="${target_image##*:}"
-          owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
-          docker tag package-sources:latest "$tag"
-          docker push "$tag"
-          echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
+      # - name: Tag and push to GHCR
+      #   if: github.event_name != 'workflow_dispatch' || inputs.push_image
+      #   id: push
+      #   run: |
+      #     docker load --input /tmp/package-sources.tar
+      #     target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
+      #     tag_suffix="${target_image##*:}"
+      #     owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+      #     tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
+      #     docker tag package-sources:latest "$tag"
+      #     docker push "$tag"
+      #     echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
 
-      - name: Summary
-        run: |
-          echo "## Package source diff" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Base image:** \`${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target image:** \`${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Apt packages added:** $(wc -l < package-source-diff/apt_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Built image \`package-sources:latest\` (ubuntu:24.04 with sources under \`/sources/apt\`, \`/sources/pip\`, and \`/sources/tpls\`)." >> $GITHUB_STEP_SUMMARY
-          if [ -n "${{ steps.push.outputs.image_tag }}" ]; then
-            echo "- **Pushed:** \`${{ steps.push.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
-          fi
+      # - name: Summary
+      #   run: |
+      #     echo "## Package source diff" >> $GITHUB_STEP_SUMMARY
+      #     echo "" >> $GITHUB_STEP_SUMMARY
+      #     echo "- **Base image:** \`${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}\`" >> $GITHUB_STEP_SUMMARY
+      #     echo "- **Target image:** \`${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}\`" >> $GITHUB_STEP_SUMMARY
+      #     echo "- **Apt packages added:** $(wc -l < package-source-diff/apt_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
+      #     echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
+      #     echo "" >> $GITHUB_STEP_SUMMARY
+      #     echo "Built image \`package-sources:latest\` (ubuntu:24.04 with sources under \`/sources/apt\`, \`/sources/pip\`, and \`/sources/tpls\`)." >> $GITHUB_STEP_SUMMARY
+      #     if [ -n "${{ steps.push.outputs.image_tag }}" ]; then
+      #       echo "- **Pushed:** \`${{ steps.push.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
+      #     fi
