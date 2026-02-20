@@ -16,6 +16,13 @@
 # pip sdists under /sources/pip, and repo tpls/ under /sources/tpls).
 #
 # base_image and target_image are expected to be multi-arch manifest lists.
+#
+# This automatically pushes to a similar location as the target image. For example,
+# if target_image is: 
+# nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest
+# then the built
+# source image will be pushed to:
+# nvcr.io/nvidia/nightly/cuda-quantum-src:cu13-latest.
 
 on:
   push:
@@ -122,6 +129,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          base_image: ghcr.io/nvidia/ubuntu:24.04
           file: docker/build/package_sources.Dockerfile
           load: true
           tags: package-sources:latest

@@ -14,6 +14,8 @@
 # Build from repo root with package-source-diff/ and tpls_commits.lock (or generate with scripts/generate_tpls_lock.sh):
 #   docker build -t package-sources:latest -f docker/build/package_sources.Dockerfile .
 #
+# base_image is the base image to use for the build.
+#
 # Expects in build context:
 #   package-source-diff/apt_packages.txt   - one apt package name per line
 #   package-source-diff/pip_packages.txt   - one pip package==version per line
@@ -22,7 +24,8 @@
 #   scripts/clone_tpls_from_lock.sh        - clone script
 #   NOTICE, LICENSE                        - attribution
 
-FROM ubuntu:24.04
+ARG base_image=ubuntu:24.04
+FROM ${base_image}
 
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
