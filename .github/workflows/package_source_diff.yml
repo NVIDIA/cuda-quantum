@@ -43,7 +43,7 @@ name: Package source diff
 jobs:
   diff-packages:
     name: Diff apt/pip packages
-    runs-on: linux-amd64-cpu8
+    runs-on: ubuntu-latest
     permissions:
       contents: read
 
