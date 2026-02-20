@@ -29,7 +29,8 @@ using namespace mlir;
 static void specializeKernel(const std::string &name, ModuleOp module,
                              const std::vector<void *> &rawArgs,
                              Type resultTy = {},
-                             bool enablePythonCodegenDump = false) {
+                             bool enablePythonCodegenDump = false,
+                             bool isEntryPoint = true) {
   PassManager pm(module.getContext());
   cudaq::opt::ArgumentConverter argCon(name, module);
   argCon.gen(name, module, rawArgs);
@@ -62,13 +63,19 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  if (resultTy) {
+  if (resultTy && isEntryPoint) {
     // If we're expecting a result, then we want to call the .thunk function so
     // that the result is properly marshaled. Add the GKE pass to generate the
     // .thunk. At this point, the kernel should have been specialized so it has
     // an arity of 0.
+    auto nullary = true;
+    for (auto arg : rawArgs)
+      if (!arg) {
+        nullary = false;
+        break;
+      }
     pm.addPass(
-        cudaq::opt::createGenerateKernelExecution({.positNullary = true}));
+        cudaq::opt::createGenerateKernelExecution({.positNullary = nullary}));
   }
   pm.addPass(createSymbolDCEPass());
   if (enablePythonCodegenDump) {
@@ -245,10 +252,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     return result;
   }
 
-  void *
-  specializeModule(const std::string &name, ModuleOp module,
-                   const std::vector<void *> &rawArgs, Type resultTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine) override {
+  void *specializeModule(const std::string &name, ModuleOp module,
+                         const std::vector<void *> &rawArgs, Type resultTy,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     // In this launch scenario, we have a ModuleOp that has the entry-point
     // kernel, but needs to be merged with anything else it may call. The
     // merging of modules mirrors the late binding and dynamic scoping of the
@@ -280,7 +287,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     CUDAQ_INFO("Run Argument Synth.\n");
     if (enablePythonCodegenDump)
       module.dump();
-    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump);
+    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
+                     isEntryPoint);
 
     // 4. Execute the code right here, right now.
     auto jit = cudaq::createQIRJITEngine(module, "qir:");
@@ -288,7 +296,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       throw std::runtime_error("cache must not be populated");
     cachedEngine = jit;
 
-    std::string entryName = resultTy ? name + ".thunk" : fullName;
+    std::string entryName =
+        (resultTy && isEntryPoint) ? name + ".thunk" : fullName;
     auto funcPtr = jit.lookupRawNameOrFail(entryName);
     return reinterpret_cast<void *>(funcPtr);
   }

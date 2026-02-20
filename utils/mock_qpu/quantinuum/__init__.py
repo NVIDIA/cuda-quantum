@@ -427,3 +427,8 @@ async def create_decoder_config(job: dict):
             }
         }
     }
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
