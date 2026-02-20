@@ -176,7 +176,12 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
              "Bias toward low-weight error trajectories.")
       .value("HIGH_WEIGHT_BIAS",
              ptsbe::ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS,
-             "Bias toward high-weight error trajectories.");
+             "Bias toward high-weight error trajectories.")
+      .value(
+          "MULTIPLICITY_PROPORTIONAL",
+          ptsbe::ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL,
+          "Shots proportional to trajectory multiplicity (sampling "
+          "frequency). Eliminates renormalization bias when P_captured < 1.");
 
   py::class_<ptsbe::ShotAllocationStrategy>(
       ptsbe, "ShotAllocationStrategy",

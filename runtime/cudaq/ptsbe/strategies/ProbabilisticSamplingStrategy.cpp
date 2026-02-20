@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "ProbabilisticSamplingStrategy.h"
-#include <set>
+#include <map>
 
 namespace cudaq::ptsbe {
 
@@ -29,11 +29,11 @@ ProbabilisticSamplingStrategy::generateTrajectories(
     return results;
   }
 
-  std::set<std::vector<std::size_t>> seen_patterns;
+  // Map from Kraus-index pattern to position in results, used both for
+  // deduplication and for tracking how many times each pattern was drawn
+  // (multiplicity).
+  std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
 
-  // Total possible unique trajectories with overflow protection
-  // If we want more trajectories than exist, cap at total to avoid infinite
-  // sampling
   std::size_t total_possible = computeTotalTrajectories(noise_points);
   std::size_t actual_target = std::min(max_trajectories, total_possible);
 
@@ -71,18 +71,21 @@ ProbabilisticSamplingStrategy::generateTrajectories(
       probability *= noise_point.channel.probabilities[sampled_idx];
     }
 
-    if (seen_patterns.insert(pattern).second) {
+    auto [it, inserted] = pattern_to_index.emplace(pattern, results.size());
+    if (inserted) {
       auto trajectory = KrausTrajectory::builder()
                             .setId(trajectory_id++)
                             .setSelections(std::move(selections))
                             .setProbability(probability)
                             .build();
+      // multiplicity defaults to 1 from KrausTrajectory
       results.push_back(std::move(trajectory));
 
-      // If we've found all possible unique trajectories, stop
       if (results.size() >= total_possible) {
         break;
       }
+    } else {
+      results[it->second].multiplicity++;
     }
   }
 

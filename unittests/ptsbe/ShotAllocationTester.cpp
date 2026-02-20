@@ -335,7 +335,8 @@ CUDAQ_TEST(ShotAllocationTest, TotalShotsInvariant) {
       ShotAllocationStrategy::Type::PROPORTIONAL,
       ShotAllocationStrategy::Type::UNIFORM,
       ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
-      ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS};
+      ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS,
+      ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL};
 
   for (auto strat_type : strategies) {
     auto traj_copy = trajectories;
@@ -488,6 +489,65 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalNoTruncationZeroShots) {
       nonzero++;
   EXPECT_GT(nonzero, 0);
   EXPECT_LE(nonzero, 50);
+}
+
+CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalBasic) {
+  // Trajectories with equal probability but different multiplicities.
+  // MULTIPLICITY_PROPORTIONAL should weight by multiplicity, not probability.
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.33),
+                                               makeTrajectory(1, 0.33),
+                                               makeTrajectory(2, 0.34)};
+  trajectories[0].multiplicity = 5;
+  trajectories[1].multiplicity = 3;
+  trajectories[2].multiplicity = 2;
+
+  ShotAllocationStrategy strategy(
+      ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL, 2.0,
+      /*seed=*/42);
+  allocateShots(trajectories, 10000, strategy);
+
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
+                      trajectories[2].num_shots;
+  EXPECT_EQ(total, 10000);
+
+  // Weights are 5:3:2 so expected ~5000, ~3000, ~2000.
+  // sigma for p=0.5 is ~50, tolerance ~4*sigma.
+  EXPECT_NEAR(trajectories[0].num_shots, 5000, 200);
+  EXPECT_NEAR(trajectories[1].num_shots, 3000, 200);
+  EXPECT_NEAR(trajectories[2].num_shots, 2000, 200);
+
+  EXPECT_GT(trajectories[0].num_shots, trajectories[1].num_shots);
+  EXPECT_GT(trajectories[1].num_shots, trajectories[2].num_shots);
+}
+
+CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalVsProportional) {
+  // When multiplicity differs from probability ordering, the two strategies
+  // should produce opposite allocations.
+  std::vector<KrausTrajectory> traj_mult = {makeTrajectory(0, 0.9),
+                                            makeTrajectory(1, 0.1)};
+  traj_mult[0].multiplicity = 1; // high prob, low multiplicity
+  traj_mult[1].multiplicity = 9; // low prob, high multiplicity
+
+  std::vector<KrausTrajectory> traj_prop = {makeTrajectory(0, 0.9),
+                                            makeTrajectory(1, 0.1)};
+
+  ShotAllocationStrategy mult_strategy(
+      ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL, 2.0,
+      /*seed=*/42);
+  ShotAllocationStrategy prop_strategy(
+      ShotAllocationStrategy::Type::PROPORTIONAL, 2.0, /*seed=*/42);
+
+  allocateShots(traj_mult, 1000, mult_strategy);
+  allocateShots(traj_prop, 1000, prop_strategy);
+
+  // PROPORTIONAL: trajectory 0 (prob=0.9) gets most shots
+  EXPECT_GT(traj_prop[0].num_shots, traj_prop[1].num_shots);
+
+  // MULTIPLICITY_PROPORTIONAL: trajectory 1 (mult=9) gets most shots
+  EXPECT_LT(traj_mult[0].num_shots, traj_mult[1].num_shots);
+
+  EXPECT_EQ(traj_mult[0].num_shots + traj_mult[1].num_shots, 1000);
+  EXPECT_EQ(traj_prop[0].num_shots + traj_prop[1].num_shots, 1000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalExactTotal) {
