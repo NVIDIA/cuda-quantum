@@ -119,6 +119,7 @@ jobs:
         run: |
           chmod +x scripts/generate_tpls_lock.sh
           ./scripts/generate_tpls_lock.sh tpls_commits.lock
+          cat tpls_commits.lock
           wc -l tpls_commits.lock || true
 
       - name: Set up Docker Buildx
