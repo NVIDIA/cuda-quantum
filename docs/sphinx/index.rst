@@ -29,6 +29,7 @@ You are browsing the documentation for |version| version of CUDA-Q. You can find
       Extending <using/extending/extending.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
+      User Guide <using/user_guide.rst>
       Other Versions <versions.rst>
 
 .. |---|   unicode:: U+2014 .. EM DASH
