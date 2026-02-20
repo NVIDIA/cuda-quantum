@@ -140,7 +140,8 @@ jobs:
           docker load --input /tmp/package-sources.tar
           target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
           tag_suffix="${target_image##*:}"
-          tag="ghcr.io/${{ github.repository_owner }}/cuda-quantum-src:${tag_suffix}"
+          owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
           docker tag package-sources:latest "$tag"
           docker push "$tag"
           echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT

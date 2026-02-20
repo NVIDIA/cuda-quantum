@@ -76,9 +76,9 @@ RUN apt-get update && set -o pipefail && \
       bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
-RUN echo "apt_failed_packages.txt: $(cat ${SOURCES_ROOT}/apt_failed_packages.txt)" && \
+RUN echo -e "apt_failed_packages.txt:\n$(cat ${SOURCES_ROOT}/apt_failed_packages.txt)" && \
     rm -f ${SOURCES_ROOT}/apt_failed_packages.txt
-RUN echo "pip_failed_packages.txt: $(cat ${SOURCES_ROOT}/pip_failed_packages.txt)" && \
+RUN echo -e "pip_failed_packages.txt:\n$(cat ${SOURCES_ROOT}/pip_failed_packages.txt)" && \
     rm -f ${SOURCES_ROOT}/pip_failed_packages.txt
 
 # Summary
