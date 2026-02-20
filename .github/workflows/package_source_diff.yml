@@ -43,8 +43,9 @@ name: Package source diff
 jobs:
   diff-packages:
     name: Diff apt/pip packages (${{ matrix.platform }})
-    matrix:
-      platform: [amd64, arm64]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
     runs-on: linux-${{ matrix.platform }}-cpu8
     permissions:
       contents: read
@@ -83,8 +84,9 @@ jobs:
   build-source-image:
     name: Build source image for CUDA Quantum
     needs: diff-packages
-    matrix:
-      platform: [amd64, arm64]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
     runs-on: linux-${{ matrix.platform }}-cpu32
     permissions:
       contents: read
