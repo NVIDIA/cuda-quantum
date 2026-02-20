@@ -28,12 +28,13 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalBasic) {
   std::vector<KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.5), makeTrajectory(1, 0.3), makeTrajectory(2, 0.2)};
 
+  // Multinomial sampling. Tolerance is ~4*sigma (sigma = sqrt(n*p*(1-p))).
   ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
   allocateShots(trajectories, 1000, strategy);
 
-  EXPECT_EQ(trajectories[0].num_shots, 500);
-  EXPECT_EQ(trajectories[1].num_shots, 300);
-  EXPECT_EQ(trajectories[2].num_shots, 200);
+  EXPECT_NEAR(trajectories[0].num_shots, 500, 65);
+  EXPECT_NEAR(trajectories[1].num_shots, 300, 60);
+  EXPECT_NEAR(trajectories[2].num_shots, 200, 55);
 
   std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
                       trajectories[2].num_shots;
@@ -45,6 +46,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalWithRounding) {
                                                makeTrajectory(1, 0.333),
                                                makeTrajectory(2, 0.334)};
 
+  // Each trajectory gets ~333 shots; sigma ~14.9, tolerance is ~4*sigma.
   ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
   allocateShots(trajectories, 1000, strategy);
 
@@ -53,8 +55,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalWithRounding) {
   EXPECT_EQ(total, 1000);
 
   for (const auto &traj : trajectories) {
-    EXPECT_GE(traj.num_shots, 330);
-    EXPECT_LE(traj.num_shots, 337);
+    EXPECT_NEAR(traj.num_shots, 333, 60);
   }
 }
 
@@ -209,9 +210,11 @@ CUDAQ_TEST(ShotAllocationTest, CompareProportionalVsUniform) {
   allocateShots(traj_prop, 1000, proportional);
   allocateShots(traj_unif, 1000, uniform);
 
-  // Proportional: 900 / 100
-  EXPECT_EQ(traj_prop[0].num_shots, 900);
-  EXPECT_EQ(traj_prop[1].num_shots, 100);
+  // Proportional: high-prob trajectory gets significantly more shots.
+  // sigma for p=0.9 is ~9.5; the gap (~800) vastly exceeds sampling variance.
+  EXPECT_GT(traj_prop[0].num_shots, traj_prop[1].num_shots);
+  EXPECT_NEAR(traj_prop[0].num_shots, 900, 40);
+  EXPECT_NEAR(traj_prop[1].num_shots, 100, 40);
 
   // Uniform: 500 / 500
   EXPECT_EQ(traj_unif[0].num_shots, 500);
@@ -368,9 +371,12 @@ CUDAQ_TEST(ShotAllocationTest, SpanWithArray) {
   ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
   allocateShots(trajectories, 1000, strategy);
 
-  EXPECT_EQ(trajectories[0].num_shots, 500);
-  EXPECT_EQ(trajectories[1].num_shots, 300);
-  EXPECT_EQ(trajectories[2].num_shots, 200);
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
+                      trajectories[2].num_shots;
+  EXPECT_EQ(total, 1000);
+  EXPECT_NEAR(trajectories[0].num_shots, 500, 65);
+  EXPECT_NEAR(trajectories[1].num_shots, 300, 60);
+  EXPECT_NEAR(trajectories[2].num_shots, 200, 55);
 }
 
 CUDAQ_TEST(ShotAllocationTest, SpanWithSubrange) {
@@ -411,4 +417,91 @@ CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
   KrausTrajectory traj(0, no_errors, 1.0, 100);
 
   EXPECT_EQ(traj.countErrors(), 0);
+}
+
+CUDAQ_TEST(ShotAllocationTest, ProportionalReproducibility) {
+  std::vector<KrausTrajectory> t1 = {
+      makeTrajectory(0, 0.5), makeTrajectory(1, 0.3), makeTrajectory(2, 0.2)};
+  std::vector<KrausTrajectory> t2 = t1;
+
+  ShotAllocationStrategy s1(ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
+                            /*seed=*/42);
+  ShotAllocationStrategy s2(ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
+                            /*seed=*/42);
+  allocateShots(t1, 1000, s1);
+  allocateShots(t2, 1000, s2);
+
+  EXPECT_EQ(t1[0].num_shots, t2[0].num_shots);
+  EXPECT_EQ(t1[1].num_shots, t2[1].num_shots);
+  EXPECT_EQ(t1[2].num_shots, t2[2].num_shots);
+}
+
+CUDAQ_TEST(ShotAllocationTest, LowWeightBiasReproducibility) {
+  std::vector<KrausTrajectory> t1 = {makeTrajectory(0, 0.5, 0),
+                                     makeTrajectory(1, 0.5, 2)};
+  std::vector<KrausTrajectory> t2 = t1;
+
+  ShotAllocationStrategy s1(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0,
+                            /*seed=*/99);
+  ShotAllocationStrategy s2(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0,
+                            /*seed=*/99);
+  allocateShots(t1, 500, s1);
+  allocateShots(t2, 500, s2);
+
+  EXPECT_EQ(t1[0].num_shots, t2[0].num_shots);
+  EXPECT_EQ(t1[1].num_shots, t2[1].num_shots);
+}
+
+CUDAQ_TEST(ShotAllocationTest, HighWeightBiasReproducibility) {
+  std::vector<KrausTrajectory> t1 = {makeTrajectory(0, 0.5, 0),
+                                     makeTrajectory(1, 0.5, 2)};
+  std::vector<KrausTrajectory> t2 = t1;
+
+  ShotAllocationStrategy s1(ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0,
+                            /*seed=*/77);
+  ShotAllocationStrategy s2(ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0,
+                            /*seed=*/77);
+  allocateShots(t1, 500, s1);
+  allocateShots(t2, 500, s2);
+
+  EXPECT_EQ(t1[0].num_shots, t2[0].num_shots);
+  EXPECT_EQ(t1[1].num_shots, t2[1].num_shots);
+}
+
+CUDAQ_TEST(ShotAllocationTest, ProportionalNoTruncationZeroShots) {
+  std::vector<KrausTrajectory> trajectories;
+  for (std::size_t i = 0; i < 100; ++i)
+    trajectories.push_back(makeTrajectory(i, 0.01));
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL,
+                                  2.0, /*seed=*/1234);
+  allocateShots(trajectories, 50, strategy);
+
+  std::size_t total = 0;
+  for (const auto &traj : trajectories)
+    total += traj.num_shots;
+  EXPECT_EQ(total, 50);
+
+  std::size_t nonzero = 0;
+  for (const auto &traj : trajectories)
+    if (traj.num_shots > 0)
+      nonzero++;
+  EXPECT_GT(nonzero, 0);
+  EXPECT_LE(nonzero, 50);
+}
+
+CUDAQ_TEST(ShotAllocationTest, ProportionalExactTotal) {
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.7), makeTrajectory(1, 0.2), makeTrajectory(2, 0.1)};
+
+  for (std::size_t shots : {1, 3, 7, 100, 999, 10000}) {
+    auto traj_copy = trajectories;
+    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+    allocateShots(traj_copy, shots, strategy);
+
+    std::size_t total = 0;
+    for (const auto &t : traj_copy)
+      total += t.num_shots;
+    EXPECT_EQ(total, shots) << "Total mismatch for shots=" << shots;
+  }
 }
