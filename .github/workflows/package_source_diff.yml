@@ -21,10 +21,12 @@ on:
       base_image:
         required: true
         type: string
+        default: 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04'
         description: 'Base image (target is built from this).'
       target_image:
         required: true
         type: string
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest'
         description: 'Target image (contains base + additional packages).'
       push_image:
         required: false
