@@ -1,3 +1,4 @@
+.. |:spellcheck-disable:| replace:: \
 PTSBE API Reference
 ********************
 
@@ -783,3 +784,4 @@ Trajectory and Selection Types
 
    Values ≥ 1 correspond to actual error operators from the noise channel,
    indexed in the order they appear in the :cpp:class:`cudaq::kraus_channel`.
+.. |:spellcheck-enable:| replace:: \

@@ -1,3 +1,4 @@
+.. |:spellcheck-disable:| replace:: \
 Noisy Simulation with PTSBE
 ++++++++++++++++++++++++++++
 
@@ -500,3 +501,4 @@ References
    *Noisy Quantum Simulation Using Tracking, Uncomputation and Sampling*,
    arXiv:2508.04880 (2025).
    https://arxiv.org/abs/2508.04880
+.. |:spellcheck-enable:| replace:: \
