@@ -79,7 +79,7 @@ jobs:
   build-source-image:
     name: Build Ubuntu 24.04 source image
     needs: diff-packages
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64-cpu32
     permissions:
       contents: read
       packages: write
