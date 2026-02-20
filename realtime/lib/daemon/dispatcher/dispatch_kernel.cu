@@ -173,6 +173,9 @@ __global__ void dispatch_kernel_device_call_only(
         response->status = status;
         response->result_len = result_len;
 
+        while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
+          ;
+
         __threadfence_system();
         tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
 
@@ -237,6 +240,9 @@ __global__ void dispatch_kernel_device_call_only(
             response->magic = RPC_MAGIC_RESPONSE;
             response->status = status;
             response->result_len = result_len;
+
+            while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
+              ;
 
             __threadfence_system();
             // Signal TX with the TX slot address (symmetric with Hololink TX kernel)
@@ -323,6 +329,9 @@ __global__ void dispatch_kernel_with_graph(
             response->magic = RPC_MAGIC_RESPONSE;
             response->status = status;
             response->result_len = result_len;
+
+            while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
+              ;
 
             __threadfence_system();
             tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
