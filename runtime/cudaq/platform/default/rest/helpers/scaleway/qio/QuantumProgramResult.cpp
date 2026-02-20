@@ -1,7 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2026 Scaleway                                                     *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -136,6 +135,7 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
       // /!\ Strange behaviour: exp.header field no unserialized before
       // must be done manually
       qiskitResult.header = resultJson["results"][0]["header"].get<QiskitExperimentResultHeader>();
+      qiskitResult.header.name = "__global__";
 
       auto serialization = qiskitResultToCudaqSampleResult(qiskitResult);
 
