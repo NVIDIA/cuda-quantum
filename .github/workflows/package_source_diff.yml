@@ -74,7 +74,7 @@ jobs:
       - name: Upload package lists
         uses: actions/upload-artifact@v4
         with:
-          name: package-source-diff
+          name: package-source-diff.zip
           path: package-source-diff/
           retention-days: 1
 
@@ -96,7 +96,7 @@ jobs:
       - name: Download package lists
         uses: actions/download-artifact@v4
         with:
-          name: package-source-diff
+          name: package-source-diff.zip
 
       - name: Restore package-source-diff directory layout
         run: |

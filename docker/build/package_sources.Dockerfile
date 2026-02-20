@@ -61,6 +61,7 @@ COPY NOTICE LICENSE "${SOURCES_ROOT}/"
 # Fetch apt source, pip sdists, and clone tpls in parallel (prefix lines so logs stay readable)
 RUN apt-get update && set -o pipefail && \
     ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
+      chmod 777 . && \
       : > "${SOURCES_ROOT}/apt_failed_packages.txt" && \
       while IFS= read -r pkg || [ -n "$pkg" ]; do \
         [ -z "$pkg" ] && continue; \
