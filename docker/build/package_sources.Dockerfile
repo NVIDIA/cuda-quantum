@@ -64,7 +64,7 @@ RUN apt-get update && set -o pipefail && \
       : > "${SOURCES_ROOT}/apt_failed_packages.txt" && \
       while IFS= read -r pkg || [ -n "$pkg" ]; do \
         [ -z "$pkg" ] && continue; \
-        apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt_failed_packages.txt"; \
+        apt-get source -d -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt_failed_packages.txt"; \
       done < /tmp/apt_packages.txt; \
       rm -f /tmp/apt_packages.txt ) 2>&1 | sed 's/^/[apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/pip_failed_packages.txt" && \
