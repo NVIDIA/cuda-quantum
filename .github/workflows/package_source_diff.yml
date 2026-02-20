@@ -17,16 +17,15 @@
 
 on:
   push:
+  workflow_dispatch:
     inputs:
       base_image:
         required: true
         type: string
-        default: 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04'
         description: 'Base image (target is built from this).'
       target_image:
         required: true
         type: string
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest'
         description: 'Target image (contains base + additional packages).'
       push_image:
         required: false
@@ -59,15 +58,15 @@ jobs:
 
       - name: Pull images
         run: |
-          docker pull "${{ inputs.base_image }}"
-          docker pull "${{ inputs.target_image }}"
+          docker pull "${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}"
+          docker pull "${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
 
       - name: Diff package lists
         run: |
           chmod +x scripts/diff_image_packages.sh
           ./scripts/diff_image_packages.sh \
-            "${{ inputs.base_image }}" \
-            "${{ inputs.target_image }}" \
+            "${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}" \
+            "${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}" \
             package-source-diff
 
       - name: Upload package lists
@@ -127,8 +126,7 @@ jobs:
           outputs: type=docker,dest=/tmp/package-sources.tar
           push: false
 
-      - name: Log in to GHCR (optional push)
-        if: inputs.push_image
+      - name: Log in to GitHub CR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -149,8 +147,8 @@ jobs:
         run: |
           echo "## Package source diff" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Base image:** \`${{ inputs.base_image }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target image:** \`${{ inputs.target_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base image:** \`${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target image:** \`${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Apt packages added:** $(wc -l < package-source-diff/apt_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
           echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
