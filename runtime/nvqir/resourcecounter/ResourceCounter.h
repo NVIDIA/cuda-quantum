@@ -80,6 +80,9 @@ public:
   }
 
   cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }
+  void setResourceCounts(cudaq::Resources &&rc) {
+    this->resourceCounts = std::move(rc);
+  }
 
   void setChoiceFunction(std::function<bool()> choice) {
     assert(choice);

@@ -39,14 +39,13 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
 
   if (!isDensityMatrix) {
     Eigen::VectorXcd state(dimension);
-    const auto size = dimension;
     HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                 size * sizeof(std::complex<double>),
+                                 dimension * sizeof(std::complex<double>),
                                  cudaMemcpyDeviceToHost));
 
     Eigen::VectorXcd otherState(dimension);
     HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                                 size * sizeof(std::complex<double>),
+                                 dimension * sizeof(std::complex<double>),
                                  cudaMemcpyDeviceToHost));
     return std::abs(std::inner_product(
         state.begin(), state.end(), otherState.begin(),
@@ -55,15 +54,17 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   }
 
   // FIXME: implement this in GPU memory
-  Eigen::MatrixXcd state(dimension, dimension);
-  const auto size = dimension * dimension;
+  // For density matrices, `dimension` is the total number of elements (N^2).
+  // The matrix side length is sqrt(dimension).
+  const std::size_t matDim = static_cast<std::size_t>(std::sqrt(dimension));
+  Eigen::MatrixXcd state(matDim, matDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                               size * sizeof(std::complex<double>),
+                               dimension * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
-  Eigen::MatrixXcd otherState(dimension, dimension);
+  Eigen::MatrixXcd otherState(matDim, matDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                               size * sizeof(std::complex<double>),
+                               dimension * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
   return (state.adjoint() * otherState).trace();
@@ -87,6 +88,29 @@ void CuDensityMatState::dump(std::ostream &os) const {
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
   os << state << std::endl;
+}
+
+std::unique_ptr<SimulationState>
+CuDensityMatState::createFromData(const state_data &data) {
+  if (std::holds_alternative<cudaq::complex_matrix>(data)) {
+    auto &cMat = std::get<cudaq::complex_matrix>(data);
+    if (cMat.rows() != cMat.cols())
+      throw std::runtime_error(
+          "[CuDensityMatState] Density matrix input must be square.");
+    const std::size_t size = cMat.rows() * cMat.cols();
+    void *dataPtr = const_cast<cudaq::complex_matrix &>(cMat).get_data(
+        cudaq::complex_matrix::order::row_major);
+    std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
+        cudaq::dynamics::DeviceAllocator::allocate(
+            size * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
+                                 size * sizeof(std::complex<double>),
+                                 cudaMemcpyDefault));
+    auto result = std::make_unique<CuDensityMatState>(size, devicePtr);
+    result->isDensityMatrix = true;
+    return result;
+  }
+  return SimulationState::createFromData(data);
 }
 
 std::unique_ptr<SimulationState>
@@ -400,11 +424,14 @@ CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
     : isDensityMatrix(other.isDensityMatrix), dimension(other.dimension),
       devicePtr(other.devicePtr), cudmState(other.cudmState),
       cudmHandle(other.cudmHandle), hilbertSpaceDims(other.hilbertSpaceDims),
-      batchSize(other.batchSize), borrowedData(other.borrowedData) {
+      batchSize(other.batchSize),
+      singleStateDimension(other.singleStateDimension),
+      borrowedData(other.borrowedData) {
   other.isDensityMatrix = false;
   other.dimension = 0;
   other.devicePtr = nullptr;
   other.batchSize = 1;
+  other.singleStateDimension = 0;
   other.cudmState = nullptr;
   other.cudmHandle = nullptr;
   other.hilbertSpaceDims.clear();
@@ -430,14 +457,15 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     cudmHandle = other.cudmHandle;
     hilbertSpaceDims = std::move(other.hilbertSpaceDims);
     batchSize = other.batchSize;
+    singleStateDimension = other.singleStateDimension;
     borrowedData = other.borrowedData;
     // Nullify other
     other.isDensityMatrix = false;
     other.dimension = 0;
     other.devicePtr = nullptr;
-
     other.cudmState = nullptr;
     other.batchSize = 1;
+    other.singleStateDimension = 0;
     other.borrowedData = false;
   }
   return *this;
