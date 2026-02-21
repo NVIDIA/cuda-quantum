@@ -25,7 +25,9 @@ static cudaq::kraus_channel makeIYChannel(double pI, double pY) {
   std::vector<cudaq::kraus_op> ops;
   ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
   ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
-  return cudaq::kraus_channel(std::move(ops));
+  auto ch = cudaq::kraus_channel(std::move(ops));
+  ch.op_names = {"id", "y"};
+  return ch;
 }
 
 static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
@@ -37,7 +39,9 @@ static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
   ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
   ops.push_back(cudaq::kraus_op({0.0, sX, sX, 0.0}));
   ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
-  return cudaq::kraus_channel(std::move(ops));
+  auto ch = cudaq::kraus_channel(std::move(ops));
+  ch.op_names = {"id", "x", "y"};
+  return ch;
 }
 
 std::vector<NoisePoint> createSimpleNoisePoints() {
@@ -307,25 +311,17 @@ TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
 
   ASSERT_EQ(trajectories.size(), 4);
 
-  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index, 0u);
 
-  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
-  EXPECT_EQ(trajectories[1].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_EQ(trajectories[1].kraus_selections[1].kraus_operator_index, 0u);
 
-  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[2].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[2].kraus_selections[1].kraus_operator_index, 1u);
 
-  EXPECT_EQ(trajectories[3].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
-  EXPECT_EQ(trajectories[3].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[3].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_EQ(trajectories[3].kraus_selections[1].kraus_operator_index, 1u);
 }
 
 TEST(ExhaustiveSamplingStrategyTest, CapsAtMaxTrajectories) {
@@ -345,12 +341,9 @@ TEST(ExhaustiveSamplingStrategyTest, ThreeOperators) {
 
   EXPECT_EQ(trajectories.size(), 3);
 
-  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
-  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(2));
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index, 2u);
 }
 
 TEST(ExhaustiveSamplingStrategyTest, EmptyNoisePoints) {
@@ -397,10 +390,8 @@ TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
 
   ASSERT_EQ(trajectories.size(), 1);
 
-  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index, 0u);
   EXPECT_NEAR(trajectories[0].probability, 0.72, 1e-9);
 }
 

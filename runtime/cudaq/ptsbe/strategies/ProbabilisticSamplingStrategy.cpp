@@ -52,9 +52,10 @@ ProbabilisticSamplingStrategy::generateTrajectories(
       std::size_t sampled_idx = dist(rng_);
       pattern.push_back(sampled_idx);
 
-      selections.push_back(KrausSelection{
-          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
-          static_cast<KrausOperatorType>(sampled_idx)});
+      bool error = !noise_point.channel.is_identity_op(sampled_idx);
+      selections.push_back(
+          KrausSelection{noise_point.circuit_location, noise_point.qubits,
+                         noise_point.op_name, sampled_idx, error});
 
       probability *= noise_point.channel.probabilities[sampled_idx];
     }

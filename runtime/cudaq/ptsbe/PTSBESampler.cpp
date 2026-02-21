@@ -54,7 +54,7 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
         "circuit_location " +
         std::to_string(sel.circuit_location));
   const auto &channel = noiseInst.channel.value();
-  auto k = static_cast<std::size_t>(sel.kraus_operator_index);
+  auto k = sel.kraus_operator_index;
   const auto &unitaryDouble = channel.unitary_ops.at(k);
   std::vector<std::complex<ScalarType>> matrix;
   matrix.reserve(unitaryDouble.size());
@@ -87,8 +87,10 @@ mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
 
     while (noiseIdx < selections.size() &&
            selections[noiseIdx].circuit_location == i) {
-      merged.push_back(
-          krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
+      if (selections[noiseIdx].is_error) {
+        merged.push_back(
+            krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
+      }
       ++noiseIdx;
     }
   }

@@ -16,7 +16,7 @@ static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t errors = 0) {
   std::vector<KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
-    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorType{1}));
+    selections.push_back(KrausSelection(i, {0}, "h", 1, /*is_error=*/true));
   }
   return KrausTrajectory(id, selections, prob, 0);
 }
@@ -32,8 +32,7 @@ CUDAQ_TEST(KrausTrajectoryTest, DefaultConstruction) {
 
 CUDAQ_TEST(KrausTrajectoryTest, ParameterizedConstruction) {
   std::vector<KrausSelection> selections = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0})};
+      KrausSelection(0, {0}, "h", 1, true), KrausSelection(1, {0, 1}, "cx", 0)};
 
   KrausTrajectory traj(42,         // trajectory_id
                        selections, // kraus_selections
@@ -48,8 +47,7 @@ CUDAQ_TEST(KrausTrajectoryTest, ParameterizedConstruction) {
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, Equality) {
-  std::vector<KrausSelection> sels = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1})};
+  std::vector<KrausSelection> sels = {KrausSelection(0, {0}, "h", 1, true)};
 
   KrausTrajectory traj1(1, sels, 0.5, 100);
   KrausTrajectory traj2(1, sels, 0.5, 100);
@@ -81,10 +79,9 @@ CUDAQ_TEST(KrausTrajectoryTest, EmptyTrajectory) {
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, MultipleErrors) {
-  std::vector<KrausSelection> sels = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0}, "x", KrausOperatorType{1}),
-      KrausSelection(2, {0, 1}, "cx", KrausOperatorType{5})};
+  std::vector<KrausSelection> sels = {KrausSelection(0, {0}, "h", 1, true),
+                                      KrausSelection(1, {0}, "x", 1, true),
+                                      KrausSelection(2, {0, 1}, "cx", 5, true)};
 
   KrausTrajectory traj(1, sels, 0.001, 10);
 
@@ -93,8 +90,7 @@ CUDAQ_TEST(KrausTrajectoryTest, MultipleErrors) {
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, MoveSemantics) {
-  std::vector<KrausSelection> sels = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1})};
+  std::vector<KrausSelection> sels = {KrausSelection(0, {0}, "h", 1, true)};
   KrausTrajectory original(42, sels, 0.5, 100);
 
   KrausTrajectory moved = std::move(original);
@@ -107,16 +103,14 @@ CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
   // Simulate a 2-qubit circuit with 2 noise points
   // H(q0) + depolarization, CX(q0,q1) + depolarization2
 
-  // Trajectory 1: Identity errors (no errors)
-  std::vector<KrausSelection> sels1 = {
-      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
+  // Trajectory 1: Identity (no errors)
+  std::vector<KrausSelection> sels1 = {KrausSelection(0, {0}, "h", 0),
+                                       KrausSelection(1, {0, 1}, "cx", 0)};
   KrausTrajectory traj1(0, sels1, 0.85, 850);
 
   // Trajectory 2: X error on H, no error on CX
-  std::vector<KrausSelection> sels2 = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
+  std::vector<KrausSelection> sels2 = {KrausSelection(0, {0}, "h", 1, true),
+                                       KrausSelection(1, {0, 1}, "cx", 0)};
   KrausTrajectory traj2(1, sels2, 0.10, 100);
 
   EXPECT_EQ(traj1.kraus_selections.size(), 2);
@@ -127,7 +121,7 @@ CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, ConstexprEquality) {
-  KrausSelection sel(0, {0}, "h", KrausOperatorType{1});
+  KrausSelection sel(0, {0}, "h", 1, true);
   std::vector<KrausSelection> sels1 = {sel};
   std::vector<KrausSelection> sels2 = {sel};
 
@@ -139,18 +133,16 @@ CUDAQ_TEST(KrausTrajectoryTest, ConstexprEquality) {
 
 CUDAQ_TEST(KrausTrajectoryTest, OrderingValidation) {
   // Ordered trajectory
-  std::vector<KrausSelection> ordered = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0}),
-      KrausSelection(2, {1}, "x", KrausOperatorType{1})};
+  std::vector<KrausSelection> ordered = {KrausSelection(0, {0}, "h", 1, true),
+                                         KrausSelection(1, {0, 1}, "cx", 0),
+                                         KrausSelection(2, {1}, "x", 1, true)};
   KrausTrajectory traj_ordered(1, ordered, 0.5, 100);
   EXPECT_TRUE(traj_ordered.isOrdered());
 
   // Unordered trajectory (circuit_location out of order)
-  std::vector<KrausSelection> unordered = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(2, {1}, "x", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0})};
+  std::vector<KrausSelection> unordered = {KrausSelection(0, {0}, "h", 1, true),
+                                           KrausSelection(2, {1}, "x", 1, true),
+                                           KrausSelection(1, {0, 1}, "cx", 0)};
   KrausTrajectory traj_unordered(2, unordered, 0.5, 100);
   EXPECT_FALSE(traj_unordered.isOrdered());
 
@@ -159,16 +151,14 @@ CUDAQ_TEST(KrausTrajectoryTest, OrderingValidation) {
   EXPECT_TRUE(traj_empty.isOrdered());
 
   // Single element
-  std::vector<KrausSelection> single = {
-      KrausSelection(5, {0}, "h", KrausOperatorType{1})};
+  std::vector<KrausSelection> single = {KrausSelection(5, {0}, "h", 1, true)};
   KrausTrajectory traj_single(4, single, 0.5, 100);
   EXPECT_TRUE(traj_single.isOrdered());
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, BuilderPattern) {
   std::vector<KrausSelection> selections = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0})};
+      KrausSelection(0, {0}, "h", 1, true), KrausSelection(1, {0, 1}, "cx", 0)};
 
   auto traj = KrausTrajectory::builder()
                   .setId(42)
@@ -205,22 +195,20 @@ CUDAQ_TEST(KrausTrajectoryTest, BuilderPattern) {
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, CountErrors) {
-  std::vector<KrausSelection> no_errors = {
-      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
+  std::vector<KrausSelection> no_errors = {KrausSelection(0, {0}, "h", 0),
+                                           KrausSelection(1, {0, 1}, "cx", 0)};
   KrausTrajectory traj_no_errors(0, no_errors, 1.0, 0);
   EXPECT_EQ(traj_no_errors.countErrors(), 0);
 
   std::vector<KrausSelection> single_error = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
+      KrausSelection(0, {0}, "h", 1, true), KrausSelection(1, {0, 1}, "cx", 0)};
   KrausTrajectory traj_single_error(1, single_error, 0.1, 0);
   EXPECT_EQ(traj_single_error.countErrors(), 1);
 
   std::vector<KrausSelection> multiple_errors = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{2}),
-      KrausSelection(2, {1}, "x", KrausOperatorType{3})};
+      KrausSelection(0, {0}, "h", 1, true),
+      KrausSelection(1, {0, 1}, "cx", 2, true),
+      KrausSelection(2, {1}, "x", 3, true)};
   KrausTrajectory traj_multiple_errors(2, multiple_errors, 0.001, 0);
   EXPECT_EQ(traj_multiple_errors.countErrors(), 3);
 

@@ -47,9 +47,10 @@ ExhaustiveSamplingStrategy::generateTrajectories(
       const auto &noise_point = noise_points[i];
       std::size_t op_idx = indices[i];
 
-      selections.push_back(KrausSelection{
-          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
-          static_cast<KrausOperatorType>(op_idx)});
+      bool error = !noise_point.channel.is_identity_op(op_idx);
+      selections.push_back(KrausSelection{noise_point.circuit_location,
+                                          noise_point.qubits,
+                                          noise_point.op_name, op_idx, error});
 
       probability *= noise_point.channel.probabilities[op_idx];
     }

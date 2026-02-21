@@ -83,11 +83,10 @@ struct KrausTrajectory {
   }
 
   /// @brief Count non-identity errors in this trajectory (error weight)
-  /// @return Number of non-identity Kraus operators (error count)
+  /// @return Number of selections with is_error == true
   [[nodiscard]] constexpr std::size_t countErrors() const {
-    return std::ranges::count_if(kraus_selections, [](const auto &sel) {
-      return sel.kraus_operator_index != KrausOperatorType::IDENTITY;
-    });
+    return std::ranges::count_if(kraus_selections,
+                                 [](const auto &sel) { return sel.is_error; });
   }
 
   /// @brief Verify that kraus_selections are ordered by circuit_location

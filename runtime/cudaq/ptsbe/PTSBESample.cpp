@@ -247,7 +247,7 @@ void populateExecutionDataTrajectories(
     if (executionData.instructions[i].type == TraceInstructionType::Noise) {
       stub.kraus_selections.emplace_back(
           i, std::vector<std::size_t>(executionData.instructions[i].targets),
-          executionData.instructions[i].name, KrausOperatorType::IDENTITY);
+          executionData.instructions[i].name, 0, /*is_error=*/false);
     }
   }
   executionData.trajectories.push_back(std::move(stub));

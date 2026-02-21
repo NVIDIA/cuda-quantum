@@ -253,17 +253,15 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
       .def_property_readonly(
           "circuit_location",
           [](const KrausSelection &self) { return self.circuit_location; })
-      .def_property_readonly("kraus_operator_index",
-                             [](const KrausSelection &self) {
-                               return static_cast<std::size_t>(
-                                   self.kraus_operator_index);
-                             })
+      .def_property_readonly(
+          "kraus_operator_index",
+          [](const KrausSelection &self) { return self.kraus_operator_index; })
+      .def_property_readonly(
+          "is_error", [](const KrausSelection &self) { return self.is_error; })
       .def("__repr__", [](const KrausSelection &self) {
         return "KrausSelection(loc=" + std::to_string(self.circuit_location) +
-               ", idx=" +
-               std::to_string(
-                   static_cast<std::size_t>(self.kraus_operator_index)) +
-               ")";
+               ", idx=" + std::to_string(self.kraus_operator_index) +
+               ", error=" + (self.is_error ? "true" : "false") + ")";
       });
 
   // Kraus trajectory (cudaq:: namespace)

@@ -68,9 +68,10 @@ ConditionalSamplingStrategy::generateTrajectories(
       // Build KrausSelection: "at circuit_location, apply Kraus operator
       // #sampled_idx". Conversion to simulator task happens later in
       // krausSelectionToTask() in PTSBESampler.cpp.
-      selections.push_back(KrausSelection{
-          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
-          static_cast<KrausOperatorType>(sampled_idx)});
+      bool error = !noise_point.channel.is_identity_op(sampled_idx);
+      selections.push_back(
+          KrausSelection{noise_point.circuit_location, noise_point.qubits,
+                         noise_point.op_name, sampled_idx, error});
 
       probability *= noise_point.channel.probabilities[sampled_idx];
     }

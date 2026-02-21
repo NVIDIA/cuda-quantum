@@ -240,7 +240,7 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
 
   // Trajectory with X error (index 1) at trace position 1
   std::vector<KrausSelection> selections = {
-      KrausSelection(1, {0}, "id", static_cast<KrausOperatorType>(1))};
+      KrausSelection(1, {0}, "id", 1, true)};
   KrausTrajectory traj(0, selections, 1.0, 100);
   batch.trajectories.push_back(traj);
 
@@ -270,13 +270,12 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   batch.measureQubits = {0, 1};
 
   // Trajectory 1: identity noise (no error), should give "11"
-  std::vector<KrausSelection> selectionsId = {
-      KrausSelection(1, {0}, "x", KrausOperatorType::IDENTITY)};
+  std::vector<KrausSelection> selectionsId = {KrausSelection(1, {0}, "x", 0)};
   KrausTrajectory traj1(0, selectionsId, 0.5, 100);
 
   // Trajectory 2: X error (index 1) on qubit 0 at trace position 1
   std::vector<KrausSelection> selectionsX = {
-      KrausSelection(1, {0}, "x", static_cast<KrausOperatorType>(1))};
+      KrausSelection(1, {0}, "x", 1, true)};
   KrausTrajectory traj2(1, selectionsX, 0.5, 100);
 
   batch.trajectories.push_back(traj1);
@@ -374,12 +373,11 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
 
   // Trajectory 1: X error (index 1) flips to |1>
   std::vector<KrausSelection> selectionsWithX = {
-      KrausSelection(1, {0}, "id", static_cast<KrausOperatorType>(1))};
+      KrausSelection(1, {0}, "id", 1, true)};
   KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 100);
 
   // Trajectory 2: identity noise (no error), stays |0>
-  std::vector<KrausSelection> selectionsId = {
-      KrausSelection(1, {0}, "id", KrausOperatorType::IDENTITY)};
+  std::vector<KrausSelection> selectionsId = {KrausSelection(1, {0}, "id", 0)};
   KrausTrajectory trajNoError(1, selectionsId, 0.5, 100);
 
   batch.trajectories.push_back(trajWithError);
@@ -416,7 +414,7 @@ CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
 
   // X operator (index 1) at trace position 2 (the readout noise entry)
   std::vector<KrausSelection> selections = {
-      KrausSelection(2, {0}, "mz", static_cast<KrausOperatorType>(1))};
+      KrausSelection(2, {0}, "mz", 1, true)};
   KrausTrajectory traj(0, selections, 1.0, 200);
   batch.trajectories.push_back(traj);
 

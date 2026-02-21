@@ -19,7 +19,7 @@ static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t multiplicity = 1) {
   std::vector<KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
-    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorType{1}));
+    selections.push_back(KrausSelection(i, {0}, "h", 1, /*is_error=*/true));
   }
   KrausTrajectory traj(id, selections, prob, 0);
   traj.multiplicity = multiplicity;
@@ -269,10 +269,10 @@ CUDAQ_TEST(ShotAllocationTest, CountErrorsHelper) {
 
   // Some identity, some errors
   std::vector<KrausSelection> mixed = {
-      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),     // No error
-      KrausSelection(1, {0}, "x", KrausOperatorType{1}),            // Error
-      KrausSelection(2, {0, 1}, "cx", KrausOperatorType::IDENTITY), // No error
-      KrausSelection(3, {1}, "h", KrausOperatorType{2})             // Error
+      KrausSelection(0, {0}, "h", 0),       // No error
+      KrausSelection(1, {0}, "x", 1, true), // Error
+      KrausSelection(2, {0, 1}, "cx", 0),   // No error
+      KrausSelection(3, {1}, "h", 2, true)  // Error
   };
   KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
   EXPECT_EQ(traj_mixed.countErrors(), 2);
@@ -404,9 +404,8 @@ CUDAQ_TEST(ShotAllocationTest, SpanWithSubrange) {
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsMultiple) {
   std::vector<KrausSelection> with_errors = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0}, "x", KrausOperatorType::IDENTITY),
-      KrausSelection(2, {0}, "y", KrausOperatorType{2})};
+      KrausSelection(0, {0}, "h", 1, true), KrausSelection(1, {0}, "x", 0),
+      KrausSelection(2, {0}, "y", 2, true)};
   KrausTrajectory traj(1, with_errors, 0.5, 100);
 
   EXPECT_EQ(traj.countErrors(), 2);
@@ -418,10 +417,9 @@ CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsEmpty) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
-  std::vector<KrausSelection> no_errors = {
-      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),
-      KrausSelection(1, {0}, "x", KrausOperatorType::IDENTITY),
-      KrausSelection(2, {0}, "y", KrausOperatorType::IDENTITY)};
+  std::vector<KrausSelection> no_errors = {KrausSelection(0, {0}, "h", 0),
+                                           KrausSelection(1, {0}, "x", 0),
+                                           KrausSelection(2, {0}, "y", 0)};
   KrausTrajectory traj(0, no_errors, 1.0, 100);
 
   EXPECT_EQ(traj.countErrors(), 0);
