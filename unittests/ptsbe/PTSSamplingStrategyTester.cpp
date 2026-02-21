@@ -232,7 +232,8 @@ TEST(ProbabilisticSamplingStrategyTest, FewPossibleTrajectoriesDiscoversAll) {
   EXPECT_EQ(operator_indices.size(), 4);
 }
 
-TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
+TEST(ProbabilisticSamplingStrategyTest,
+     AccumulatesMultiplicityForAllTrajectories) {
   std::vector<NoisePoint> noise_points;
 
   NoisePoint np;
@@ -244,15 +245,17 @@ TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
 
   ProbabilisticSamplingStrategy strategy(42);
 
-  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+  auto trajectories = strategy.generateTrajectories(noise_points, 1000);
 
   EXPECT_EQ(trajectories.size(), 3);
 
   std::set<std::size_t> operator_indices;
+  std::size_t total_multiplicity = 0;
   for (const auto &traj : trajectories) {
     EXPECT_EQ(traj.kraus_selections.size(), 1);
     operator_indices.insert(static_cast<std::size_t>(
         traj.kraus_selections[0].kraus_operator_index));
+    total_multiplicity += traj.multiplicity;
   }
   EXPECT_EQ(operator_indices.size(), 3);
 }

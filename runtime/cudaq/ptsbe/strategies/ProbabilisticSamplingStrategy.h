@@ -30,11 +30,13 @@ public:
   /// @brief Destructor
   ~ProbabilisticSamplingStrategy() override;
 
-  /// @brief Generate unique trajectories using probability-weighted random
-  /// selection
+  /// @brief Generate trajectories via probability-weighted Monte Carlo sampling
   /// @param noise_points Noise information from circuit analysis
-  /// @param max_trajectories Maximum number of UNIQUE trajectories to generate
-  /// @return Vector of unique randomly sampled trajectories (no duplicates)
+  /// @param max_trajectories Total number of trajectory samples to draw. Each
+  /// sample either discovers a new unique trajectory or increments an existing
+  /// one's multiplicity, so that multiplicities converge to the true
+  /// probability distribution.
+  /// @return Vector of unique trajectories with accumulated multiplicities
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
   generateTrajectories(std::span<const NoisePoint> noise_points,
                        std::size_t max_trajectories) const override;

@@ -81,7 +81,7 @@ def sample(kernel,
           sampling strategy.
       shot_allocation (``ShotAllocationStrategy`` or ``None``): Strategy for
           allocating shots across trajectories. ``None`` uses the default
-          proportional allocation.
+          proportional (multiplicity-weighted) allocation.
       return_execution_data (bool): Include circuit structure, trajectory
           specifications, and per-trajectory measurement outcomes in the
           returned result. Defaults to ``False``.
