@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PTSBESamplerImpl.h"
+#include "common/Environment.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include <numeric>
@@ -226,15 +227,25 @@ template <typename SimulatorType>
 std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
                                                 const PTSBatch &batch) {
 
-  // Check if it is a BatchSimulator implementation
-  auto *batchSim = dynamic_cast<BatchSimulator *>(&sim);
-  if (batchSim) {
-    cudaq::info("[ptsbe] Dispatching to BatchSimulator custom implementation");
-    return batchSim->sampleWithPTSBE(batch);
+  // Check env var to force the generic (per-trajectory sampler) path,
+  // bypassing the batched batchMeasure path which has a per-shot GPU loop.
+  const bool forceGeneric =
+      cudaq::getEnvBool("CUDAQ_PTSBE_FORCE_GENERIC", false);
+
+  if (!forceGeneric) {
+    auto *batchSim = dynamic_cast<BatchSimulator *>(&sim);
+    if (batchSim) {
+      cudaq::info(
+          "[ptsbe] Dispatching to BatchSimulator custom implementation");
+      return batchSim->sampleWithPTSBE(batch);
+    }
   } else {
-    cudaq::info("[ptsbe] Dispatching to generic per-trajectory sampler");
-    return samplePTSBEGeneric(sim, batch);
+    cudaq::info("[ptsbe] BatchSimulator dispatch overridden by "
+                "CUDAQ_PTSBE_FORCE_GENERIC=1");
   }
+
+  cudaq::info("[ptsbe] Dispatching to generic per-trajectory sampler");
+  return samplePTSBEGeneric(sim, batch);
 }
 
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
