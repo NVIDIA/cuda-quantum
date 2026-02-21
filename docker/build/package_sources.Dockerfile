@@ -65,25 +65,23 @@ COPY NOTICE LICENSE "${SOURCES_ROOT}/"
 RUN apt-get update && set -o pipefail && \
     ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
       chmod 777 . && \
-      : > "${SOURCES_ROOT}/apt_failed_packages.txt" && \
+      : > "${SOURCES_ROOT}/apt/apt_omitted_packages.txt" && \
       while IFS= read -r pkg || [ -n "$pkg" ]; do \
         [ -z "$pkg" ] && continue; \
-        apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt_failed_packages.txt"; \
+        apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
       done < /tmp/apt_packages.txt; \
       rm -f /tmp/apt_packages.txt ) 2>&1 | sed 's/^/[apt] /' & \
-    ( set -o pipefail; : > "${SOURCES_ROOT}/pip_failed_packages.txt" && \
+    ( set -o pipefail; : > "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" && \
       grep -v '^[[:space:]]*$' /tmp/pip_packages.txt | \
       xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: --no-deps -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
-      cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip_failed_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
+      cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
       rm -f /tmp/pip_packages.txt ) 2>&1 | sed 's/^/[pip] /' & \
     ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
       bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
-RUN echo -e "apt_failed_packages.txt:\n$(cat ${SOURCES_ROOT}/apt_failed_packages.txt)" && \
-    rm -f ${SOURCES_ROOT}/apt_failed_packages.txt
-RUN echo -e "pip_failed_packages.txt:\n$(cat ${SOURCES_ROOT}/pip_failed_packages.txt)" && \
-    rm -f ${SOURCES_ROOT}/pip_failed_packages.txt
+RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/apt_omitted_packages.txt)"
+RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/pip_omitted_packages.txt)"
 
 # Summary
 RUN echo "apt: $(find ${SOURCES_ROOT}/apt -maxdepth 1 -type d 2>/dev/null | wc -l) dirs" && \
