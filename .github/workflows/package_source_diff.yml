@@ -28,14 +28,6 @@ on:
   push: #TODO: remove on push
   workflow_dispatch:
     inputs:
-      base_image:
-        required: true
-        type: string
-        description: 'Base image (target is built from this).'
-      target_image:
-        required: true
-        type: string
-        description: 'Target image (contains base + additional packages).'
       push_image:
         required: false
         type: boolean
@@ -49,8 +41,12 @@ name: Package source diff
 
 jobs:
   diff-packages:
-    name: Diff apt/pip packages
+    name: Diff apt/pip packages (CUDA ${{ matrix.cuda }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cuda: ['12.6', '13.0']
     permissions:
       contents: read
 
@@ -60,6 +56,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set image names
+        id: images
+        run: |
+          echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
+          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
+          echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" >> $GITHUB_OUTPUT
+
       - name: Log in to container registries
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin 2>/dev/null || true
@@ -67,28 +70,32 @@ jobs:
 
       - name: Pull images
         run: |
-          docker pull "${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}"
-          docker pull "${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
+          docker pull "${{ steps.images.outputs.base_image }}"
+          docker pull "${{ steps.images.outputs.target_image }}"
 
       - name: Diff package lists
         run: |
           chmod +x scripts/diff_image_packages.sh
           ./scripts/diff_image_packages.sh \
-            "${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}" \
-            "${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}" \
+            "${{ steps.images.outputs.base_image }}" \
+            "${{ steps.images.outputs.target_image }}" \
             package-source-diff
 
       - name: Upload package lists
         uses: actions/upload-artifact@v4
         with:
-          name: package-source-diff.zip
+          name: package-source-diff-cu${{ matrix.cuda }}.zip
           path: package-source-diff/
           retention-days: 1
 
   build-source-image:
-    name: Build source image for CUDA Quantum
+    name: Build source image (CUDA ${{ matrix.cuda }})
     needs: diff-packages
     runs-on: linux-amd64-cpu32
+    strategy:
+      fail-fast: false
+      matrix:
+        cuda: ['12.6', '13.0']
     permissions:
       contents: read
       packages: write
@@ -103,7 +110,7 @@ jobs:
       - name: Download package lists
         uses: actions/download-artifact@v4
         with:
-          name: package-source-diff.zip
+          name: package-source-diff-cu${{ matrix.cuda }}.zip
 
       - name: Restore package-source-diff directory layout
         run: |
@@ -145,11 +152,11 @@ jobs:
           password: ${{ github.token }}
 
       - name: Tag and push to GHCR
-        if: github.event_name != 'workflow_dispatch' || inputs.push_image
         id: push
         run: |
           docker load --input /tmp/package-sources.tar
-          target_image="${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}"
+          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
+          target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
           tag_suffix="${target_image##*:}"
           owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
@@ -159,10 +166,12 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## Package source diff" >> $GITHUB_STEP_SUMMARY
+          base_image="nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04"
+          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1); target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
+          echo "## Package source diff (CUDA ${{ matrix.cuda }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Base image:** \`${{ inputs.base_image || 'nvcr.io/nvidia/cuda:13.0.0-runtime-ubuntu24.04' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target image:** \`${{ inputs.target_image || 'nvcr.io/nvidia/nightly/cuda-quantum:cu13-latest' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base image:** \`${base_image}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target image:** \`${target_image}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Apt packages added:** $(wc -l < package-source-diff/apt_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
           echo "- **Pip packages added:** $(wc -l < package-source-diff/pip_packages.txt 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

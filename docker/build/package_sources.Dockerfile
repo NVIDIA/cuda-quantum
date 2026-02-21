@@ -80,8 +80,8 @@ RUN apt-get update && set -o pipefail && \
       bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
-RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/apt_omitted_packages.txt)"
-RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/pip_omitted_packages.txt)"
+RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/apt/apt_omitted_packages.txt)"
+RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/pip/pip_omitted_packages.txt)"
 
 # Summary
 RUN echo "apt: $(find ${SOURCES_ROOT}/apt -maxdepth 1 -type d 2>/dev/null | wc -l) dirs" && \
