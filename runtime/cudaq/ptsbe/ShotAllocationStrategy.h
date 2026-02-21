@@ -24,11 +24,11 @@ namespace cudaq::ptsbe {
 /// trajectory receives.
 struct ShotAllocationStrategy {
   enum class Type {
-    PROPORTIONAL,             // Shots proportional to trajectory probability
-    UNIFORM,                  // Equal shots per trajectory
-    LOW_WEIGHT_BIAS,          // Bias toward low-weight error trajectories
-    HIGH_WEIGHT_BIAS,         // Bias toward high-weight error trajectories
-    MULTIPLICITY_PROPORTIONAL // Shots proportional to trajectory multiplicity
+    PROPORTIONAL,         // Shots proportional to trajectory probability
+    UNIFORM,              // Equal shots per trajectory
+    LOW_WEIGHT_BIAS,      // Bias toward low-weight error trajectories
+    HIGH_WEIGHT_BIAS,     // Bias toward high-weight error trajectories
+    MULTIPLICITY_WEIGHTED // Shots weighted by trajectory multiplicity
   };
 
   Type type = Type::PROPORTIONAL;

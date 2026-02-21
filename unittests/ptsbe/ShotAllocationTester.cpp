@@ -336,7 +336,7 @@ CUDAQ_TEST(ShotAllocationTest, TotalShotsInvariant) {
       ShotAllocationStrategy::Type::UNIFORM,
       ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
       ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS,
-      ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL};
+      ShotAllocationStrategy::Type::MULTIPLICITY_WEIGHTED};
 
   for (auto strat_type : strategies) {
     auto traj_copy = trajectories;
@@ -491,9 +491,9 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalNoTruncationZeroShots) {
   EXPECT_LE(nonzero, 50);
 }
 
-CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalBasic) {
+CUDAQ_TEST(ShotAllocationTest, MultiplicityWeightedBasic) {
   // Trajectories with equal probability but different multiplicities.
-  // MULTIPLICITY_PROPORTIONAL should weight by multiplicity, not probability.
+  // MULTIPLICITY_WEIGHTED should weight by multiplicity, not probability.
   std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.33),
                                                makeTrajectory(1, 0.33),
                                                makeTrajectory(2, 0.34)};
@@ -502,7 +502,7 @@ CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalBasic) {
   trajectories[2].multiplicity = 2;
 
   ShotAllocationStrategy strategy(
-      ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL, 2.0,
+      ShotAllocationStrategy::Type::MULTIPLICITY_WEIGHTED, 2.0,
       /*seed=*/42);
   allocateShots(trajectories, 10000, strategy);
 
@@ -520,7 +520,7 @@ CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalBasic) {
   EXPECT_GT(trajectories[1].num_shots, trajectories[2].num_shots);
 }
 
-CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalVsProportional) {
+CUDAQ_TEST(ShotAllocationTest, MultiplicityWeightedVsProportional) {
   // When multiplicity differs from probability ordering, the two strategies
   // should produce opposite allocations.
   std::vector<KrausTrajectory> traj_mult = {makeTrajectory(0, 0.9),
@@ -532,7 +532,7 @@ CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalVsProportional) {
                                             makeTrajectory(1, 0.1)};
 
   ShotAllocationStrategy mult_strategy(
-      ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL, 2.0,
+      ShotAllocationStrategy::Type::MULTIPLICITY_WEIGHTED, 2.0,
       /*seed=*/42);
   ShotAllocationStrategy prop_strategy(
       ShotAllocationStrategy::Type::PROPORTIONAL, 2.0, /*seed=*/42);
@@ -543,7 +543,7 @@ CUDAQ_TEST(ShotAllocationTest, MultiplicityProportionalVsProportional) {
   // PROPORTIONAL: trajectory 0 (prob=0.9) gets most shots
   EXPECT_GT(traj_prop[0].num_shots, traj_prop[1].num_shots);
 
-  // MULTIPLICITY_PROPORTIONAL: trajectory 1 (mult=9) gets most shots
+  // MULTIPLICITY_WEIGHTED: trajectory 1 (mult=9) gets most shots
   EXPECT_LT(traj_mult[0].num_shots, traj_mult[1].num_shots);
 
   EXPECT_EQ(traj_mult[0].num_shots + traj_mult[1].num_shots, 1000);

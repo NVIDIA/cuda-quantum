@@ -117,7 +117,7 @@ void allocateHighWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
   multinomialAllocate(trajectories, weights, total_shots, seed);
 }
 
-void allocateMultiplicityProportional(
+void allocateMultiplicityWeighted(
     std::span<cudaq::KrausTrajectory> trajectories, std::size_t total_shots,
     std::uint64_t seed) {
   std::vector<double> weights;
@@ -161,8 +161,8 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
                            strategy.seed);
     return;
 
-  case ShotAllocationStrategy::Type::MULTIPLICITY_PROPORTIONAL:
-    allocateMultiplicityProportional(trajectories, total_shots, strategy.seed);
+  case ShotAllocationStrategy::Type::MULTIPLICITY_WEIGHTED:
+    allocateMultiplicityWeighted(trajectories, total_shots, strategy.seed);
     return;
   }
 }
