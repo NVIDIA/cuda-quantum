@@ -297,6 +297,7 @@ static std::vector<uint8_t> build_rpc_message(uint32_t shot_index,
   hdr->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
   hdr->function_id = FUNC_ID;
   hdr->arg_len = payload_size;
+  hdr->request_id = shot_index;
 
   uint8_t *payload = msg.data() + sizeof(RPCHeader);
   for (uint32_t i = 0; i < payload_size; i++) {

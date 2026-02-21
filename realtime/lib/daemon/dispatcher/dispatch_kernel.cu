@@ -77,6 +77,7 @@ __global__ void dispatch_kernel_device_call_only(
     __shared__ std::uint8_t*     s_output_buffer;
     __shared__ std::uint32_t     s_arg_len;
     __shared__ std::uint32_t     s_max_result_len;
+    __shared__ std::uint32_t     s_request_id;
     __shared__ bool              s_have_work;
 
     // Device-memory work descriptor visible to all blocks after grid.sync.
@@ -87,6 +88,7 @@ __global__ void dispatch_kernel_device_call_only(
     __device__ static std::uint8_t*     d_output_buffer;
     __device__ static std::uint32_t     d_arg_len;
     __device__ static std::uint32_t     d_max_result_len;
+    __device__ static std::uint32_t     d_request_id;
     __device__ static bool              d_have_work;
 
     while (!(*shutdown_flag)) {
@@ -110,6 +112,7 @@ __global__ void dispatch_kernel_device_call_only(
               s_output_buffer = tx_slot + sizeof(RPCResponse);
               s_arg_len       = header->arg_len;
               s_max_result_len = tx_stride_sz - sizeof(RPCResponse);
+              s_request_id    = header->request_id;
               s_have_work     = true;
 
               // Publish to device memory for other blocks
@@ -118,6 +121,7 @@ __global__ void dispatch_kernel_device_call_only(
               d_output_buffer  = s_output_buffer;
               d_arg_len        = s_arg_len;
               d_max_result_len = s_max_result_len;
+              d_request_id     = s_request_id;
               d_have_work      = true;
             }
           }
@@ -139,6 +143,7 @@ __global__ void dispatch_kernel_device_call_only(
       std::uint8_t* output_buffer;
       std::uint32_t arg_len;
       std::uint32_t max_result_len;
+      std::uint32_t request_id;
       if (blockIdx.x == 0) {
         have_work      = s_have_work;
         func           = s_func;
@@ -146,6 +151,7 @@ __global__ void dispatch_kernel_device_call_only(
         output_buffer  = s_output_buffer;
         arg_len        = s_arg_len;
         max_result_len = s_max_result_len;
+        request_id     = s_request_id;
       } else {
         have_work      = d_have_work;
         func           = d_func;
@@ -153,6 +159,7 @@ __global__ void dispatch_kernel_device_call_only(
         output_buffer  = d_output_buffer;
         arg_len        = d_arg_len;
         max_result_len = d_max_result_len;
+        request_id     = d_request_id;
       }
 
       // --- Phase 3: ALL threads call the handler ---
@@ -172,6 +179,7 @@ __global__ void dispatch_kernel_device_call_only(
         response->magic = RPC_MAGIC_RESPONSE;
         response->status = status;
         response->result_len = result_len;
+        response->request_id = request_id;
 
         while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
           ;
@@ -240,6 +248,7 @@ __global__ void dispatch_kernel_device_call_only(
             response->magic = RPC_MAGIC_RESPONSE;
             response->status = status;
             response->result_len = result_len;
+            response->request_id = header->request_id;
 
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
@@ -329,6 +338,7 @@ __global__ void dispatch_kernel_with_graph(
             response->magic = RPC_MAGIC_RESPONSE;
             response->status = status;
             response->result_len = result_len;
+            response->request_id = header->request_id;
 
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;

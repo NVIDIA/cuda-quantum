@@ -23,6 +23,7 @@ struct __attribute__((packed)) RPCHeader {
   std::uint32_t magic;       ///< Magic value to validate message framing
   std::uint32_t function_id; ///< Hash of function name (FNV-1a)
   std::uint32_t arg_len;     ///< Length of argument data in bytes
+  std::uint32_t request_id;  ///< Caller-assigned ID echoed in the response
 };
 
 /// @brief RPC response header - returned to caller.
@@ -30,6 +31,7 @@ struct __attribute__((packed)) RPCResponse {
   std::uint32_t magic;      ///< Magic value to validate message framing
   std::int32_t status;      ///< Return status (0 = success)
   std::uint32_t result_len; ///< Length of result data in bytes
+  std::uint32_t request_id; ///< Echoed from RPCHeader::request_id
 };
 
 //==============================================================================
