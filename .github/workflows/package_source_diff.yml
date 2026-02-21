@@ -25,7 +25,7 @@
 # nvcr.io/nvidia/nightly/cuda-quantum-src:cu13-latest.
 
 on:
-  push:
+  push: #TODO: remove on push
   workflow_dispatch:
     inputs:
       base_image:
@@ -39,7 +39,7 @@ on:
       push_image:
         required: false
         type: boolean
-        default: true
+        default: true # TODO: remove default true
         description: 'Push the built source image to GHCR (requires permissions).'
       environment:
         required: false
