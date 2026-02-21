@@ -24,7 +24,7 @@
 #   scripts/clone_tpls_from_lock.sh        - clone script
 #   NOTICE, LICENSE                        - attribution
 
-ARG base_image=ghcr.io/nvidia/ubuntu:24.04 # TODO: make this pull regualr ubuntu:24.04 image
+ARG base_image=ghcr.io/nvidia/ubuntu:24.04
 FROM ${base_image}
 
 SHELL ["/bin/bash", "-c"]
