@@ -192,19 +192,6 @@ PTSBETrace buildPTSBETrace(const cudaq::Trace &trace,
     }
   }
 
-  std::size_t nGates = 0, nNoise = 0, nMeas = 0;
-  for (const auto &inst : result) {
-    if (inst.type == TraceInstructionType::Gate)
-      ++nGates;
-    else if (inst.type == TraceInstructionType::Noise)
-      ++nNoise;
-    else if (inst.type == TraceInstructionType::Measurement)
-      ++nMeas;
-  }
-  cudaq::info("[ptsbe] Built PTSBE trace: {} instructions ({} gates, {} noise "
-              "sites, {} measurements)",
-              result.size(), nGates, nNoise, nMeas);
-
   return result;
 }
 
