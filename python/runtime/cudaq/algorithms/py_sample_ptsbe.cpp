@@ -198,13 +198,13 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
       "Sample trajectories randomly based on their occurrence probabilities.")
       .def(py::init<std::optional<std::uint64_t>, std::optional<std::size_t>>(),
            py::arg("seed") = py::none(),
-           py::arg("trajectory_samples") = py::none(),
+           py::arg("max_trajectory_samples") = py::none(),
            "Create a probabilistic strategy with optional random seed and "
-           "trajectory sample count. When seed is None (default), uses "
+           "max trajectory sample count. When seed is None (default), uses "
            "CUDA-Q's global random seed. "
-           "trajectory_samples controls the total number of Monte Carlo "
-           "samples drawn. When None (default), an exploration budget is "
-           "auto-calculated.");
+           "max_trajectory_samples sets a ceiling on Monte Carlo draws. "
+           "The loop stops early once max_trajectories unique patterns are "
+           "found. When None (default), a budget is auto-calculated.");
 
   py::class_<ptsbe::OrderedSamplingStrategy, ptsbe::PTSSamplingStrategy,
              std::shared_ptr<ptsbe::OrderedSamplingStrategy>>(

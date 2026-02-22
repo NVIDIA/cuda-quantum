@@ -276,8 +276,8 @@ TEST(ProbabilisticSamplingStrategyTest,
   np.channel = makeIXYChannel(0.34, 0.33, 0.33);
   noise_points.push_back(np);
 
-  // With a small explicit trajectory_samples, total multiplicity should equal
-  // that value (since max_trajectories < trajectory_samples here).
+  // With a small explicit max_trajectory_samples, total multiplicity should
+  // equal that value (since max_trajectories < max_trajectory_samples here).
   const std::size_t explicit_samples = 200;
   ProbabilisticSamplingStrategy strategy_explicit(42, explicit_samples);
 
@@ -289,7 +289,7 @@ TEST(ProbabilisticSamplingStrategyTest,
   for (const auto &traj : trajectories)
     total_multiplicity += traj.multiplicity;
 
-  // total_samples = max(max_trajectories=100, trajectory_samples=200) = 200
+  // total_samples = max(max_trajectories=100, max_trajectory_samples=200) = 200
   EXPECT_EQ(total_multiplicity, explicit_samples);
 
   // Without the parameter, auto-budget is max(max_trajectories,

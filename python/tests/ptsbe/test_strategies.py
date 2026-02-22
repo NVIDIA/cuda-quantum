@@ -184,12 +184,12 @@ def test_probabilistic_strategy_accepts_seed():
     assert s1.name() == s2.name()
 
 
-def test_probabilistic_strategy_trajectory_samples_affects_results(
+def test_probabilistic_strategy_max_trajectory_samples_affects_results(
         depol_noise, bell_kernel):
-    s_small = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=42,
-                                                        trajectory_samples=50)
+    s_small = cudaq.ptsbe.ProbabilisticSamplingStrategy(
+        seed=42, max_trajectory_samples=50)
     s_large = cudaq.ptsbe.ProbabilisticSamplingStrategy(
-        seed=42, trajectory_samples=10000)
+        seed=42, max_trajectory_samples=10000)
     r_small = cudaq.ptsbe.sample(
         bell_kernel,
         noise_model=depol_noise,
@@ -271,8 +271,8 @@ def test_exhaustive_strategy_weight_equals_probability(depol_noise,
 
 def test_probabilistic_strategy_weight_equals_multiplicity(
         depol_noise, bell_kernel):
-    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=42,
-                                                         trajectory_samples=500)
+    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(
+        seed=42, max_trajectory_samples=500)
     result = cudaq.ptsbe.sample(
         bell_kernel,
         noise_model=depol_noise,

@@ -22,7 +22,7 @@ public:
   /// @brief Construct with optional random seed and trajectory sample count
   /// @param seed Random seed for reproducibility. When nullopt (default), uses
   /// CUDAQ's global random seed if set, otherwise std::random_device.
-  /// @param trajectory_samples Maximum number of Monte Carlo draws before
+  /// @param max_trajectory_samples Maximum number of Monte Carlo draws before
   /// giving up on discovering new unique trajectories. The loop stops early
   /// once max_trajectories unique patterns are found, so the actual draw
   /// count may be less. Every draw contributes to exactly one trajectory's
@@ -31,11 +31,11 @@ public:
   /// multiplier of max_trajectories.
   explicit ProbabilisticSamplingStrategy(
       std::optional<std::uint64_t> seed = std::nullopt,
-      std::optional<std::size_t> trajectory_samples = std::nullopt)
+      std::optional<std::size_t> max_trajectory_samples = std::nullopt)
       : rng_(seed.value_or(cudaq::get_random_seed() != 0
                                ? cudaq::get_random_seed()
                                : std::random_device{}())),
-        trajectory_samples_(trajectory_samples) {}
+        max_trajectory_samples_(max_trajectory_samples) {}
 
   /// @brief Destructor
   ~ProbabilisticSamplingStrategy() override;
@@ -64,7 +64,7 @@ public:
 
 private:
   mutable std::mt19937_64 rng_;
-  std::optional<std::size_t> trajectory_samples_;
+  std::optional<std::size_t> max_trajectory_samples_;
 };
 
 } // namespace cudaq::ptsbe
