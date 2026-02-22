@@ -20,14 +20,14 @@ namespace cudaq::ptsbe {
 class ProbabilisticSamplingStrategy : public PTSSamplingStrategy {
 public:
   /// @brief Construct with optional random seed and trajectory sample count
-  /// @param seed Random seed for reproducibility. When nullopt (default), uses
-  /// CUDAQ's global random seed if set, otherwise std::random_device.
+  /// @param seed Random seed for reproducibility. When `nullopt` (default),
+  /// uses CUDAQ's global random seed if set, otherwise std::random_device.
   /// @param max_trajectory_samples Maximum number of Monte Carlo draws before
   /// giving up on discovering new unique trajectories. The loop stops early
   /// once max_trajectories unique patterns are found, so the actual draw
   /// count may be less. Every draw contributes to exactly one trajectory's
   /// multiplicity, preserving unbiased MC estimation.
-  /// When nullopt (default), a budget is auto-calculated as a small
+  /// When `nullopt` (default), a budget is auto-calculated as a small
   /// multiplier of max_trajectories.
   explicit ProbabilisticSamplingStrategy(
       std::optional<std::uint64_t> seed = std::nullopt,
