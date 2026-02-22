@@ -11,6 +11,8 @@
 
 namespace cudaq::ptsbe {
 
+static constexpr std::size_t ATTEMPT_MULTIPLIER = 10;
+
 ProbabilisticSamplingStrategy::~ProbabilisticSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
@@ -32,12 +34,21 @@ ProbabilisticSamplingStrategy::generateTrajectories(
   std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
   std::size_t trajectory_id = 0;
 
-  // Draw max_trajectories total Monte Carlo samples. Each sample either
-  // discovers a new unique trajectory or increments an existing trajectory's
-  // multiplicity. With enough samples the multiplicities converge to the true
-  // probability distribution, which is required for correct weighting during
-  // shot allocation and result aggregation.
-  for (std::size_t sample = 0; sample < max_trajectories; ++sample) {
+  // Total Monte Carlo samples. Either user-specified or auto-calculated.
+  // Auto budget uses a small multiplier of the target count, capped to avoid
+  // excessive runtime. For small spaces, ExhaustiveSamplingStrategy with exact
+  // probability weights is the better choice.
+  constexpr std::size_t MAX_SAMPLES_CAP = 500000;
+  std::size_t total_samples;
+  if (trajectory_samples_.has_value()) {
+    total_samples = std::max(max_trajectories, trajectory_samples_.value());
+  } else {
+    std::size_t target = std::min(max_trajectories, total_possible);
+    total_samples = std::min(target * ATTEMPT_MULTIPLIER, MAX_SAMPLES_CAP);
+    total_samples = std::max(max_trajectories, total_samples);
+  }
+
+  for (std::size_t sample = 0; sample < total_samples; ++sample) {
     std::vector<KrausSelection> selections;
     std::vector<std::size_t> pattern;
     double probability = 1.0;
@@ -60,18 +71,22 @@ ProbabilisticSamplingStrategy::generateTrajectories(
       probability *= noise_point.channel.probabilities[sampled_idx];
     }
 
-    auto [it, inserted] = pattern_to_index.emplace(pattern, results.size());
-    if (inserted) {
+    auto it = pattern_to_index.find(pattern);
+    if (it != pattern_to_index.end()) {
+      results[it->second].multiplicity++;
+    } else if (results.size() < max_trajectories) {
+      pattern_to_index.emplace(std::move(pattern), results.size());
       auto trajectory = KrausTrajectory::builder()
                             .setId(trajectory_id++)
                             .setSelections(std::move(selections))
                             .setProbability(probability)
                             .build();
       results.push_back(std::move(trajectory));
-    } else {
-      results[it->second].multiplicity++;
     }
   }
+
+  for (auto &traj : results)
+    traj.weight = static_cast<double>(traj.multiplicity);
 
   return results;
 }

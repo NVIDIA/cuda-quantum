@@ -63,6 +63,7 @@ OrderedSamplingStrategy::generateTrajectories(
                           .setSelections(std::move(selections))
                           .setProbability(probability)
                           .build();
+    trajectory.weight = probability;
     results.push_back(std::move(trajectory));
 
     for (std::size_t i = 0; i < indices.size(); ++i) {

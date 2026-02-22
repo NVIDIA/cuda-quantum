@@ -168,7 +168,7 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
       ptsbe, "ShotAllocationType",
       "Strategy type for allocating shots across trajectories.")
       .value("PROPORTIONAL", ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL,
-             "Shots proportional to sampled trajectory multiplicity.")
+             "Shots proportional to trajectory weight.")
       .value("UNIFORM", ptsbe::ShotAllocationStrategy::Type::UNIFORM,
              "Equal shots per trajectory.")
       .value("LOW_WEIGHT_BIAS",
@@ -196,8 +196,15 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
              std::shared_ptr<ptsbe::ProbabilisticSamplingStrategy>>(
       ptsbe, "ProbabilisticSamplingStrategy",
       "Sample trajectories randomly based on their occurrence probabilities.")
-      .def(py::init<std::uint64_t>(), py::arg("seed") = 0,
-           "Create a probabilistic strategy with optional random seed.");
+      .def(py::init<std::optional<std::uint64_t>, std::optional<std::size_t>>(),
+           py::arg("seed") = py::none(),
+           py::arg("trajectory_samples") = py::none(),
+           "Create a probabilistic strategy with optional random seed and "
+           "trajectory sample count. When seed is None (default), uses "
+           "CUDA-Q's global random seed. "
+           "trajectory_samples controls the total number of Monte Carlo "
+           "samples drawn. When None (default), an exploration budget is "
+           "auto-calculated.");
 
   py::class_<ptsbe::OrderedSamplingStrategy, ptsbe::PTSSamplingStrategy,
              std::shared_ptr<ptsbe::OrderedSamplingStrategy>>(
@@ -277,6 +284,10 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
       .def_property_readonly(
           "num_shots",
           [](const KrausTrajectory &self) { return self.num_shots; })
+      .def_readonly("multiplicity", &KrausTrajectory::multiplicity,
+                    "Number of times this trajectory was sampled.")
+      .def_readonly("weight", &KrausTrajectory::weight,
+                    "Allocation weight for shot distribution.")
       .def_property_readonly(
           "kraus_selections",
           [](const KrausTrajectory &self) { return self.kraus_selections; },

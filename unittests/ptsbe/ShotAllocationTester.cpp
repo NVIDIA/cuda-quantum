@@ -23,6 +23,7 @@ static KrausTrajectory makeTrajectory(std::size_t id, double prob,
   }
   KrausTrajectory traj(id, selections, prob, 0);
   traj.multiplicity = multiplicity;
+  traj.weight = static_cast<double>(multiplicity);
   return traj;
 }
 

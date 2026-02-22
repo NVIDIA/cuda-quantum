@@ -50,7 +50,7 @@ void allocateProportional(std::span<cudaq::KrausTrajectory> trajectories,
   std::vector<double> weights;
   weights.reserve(trajectories.size());
   for (const auto &traj : trajectories)
-    weights.push_back(static_cast<double>(traj.multiplicity));
+    weights.push_back(traj.weight);
 
   multinomialAllocate(trajectories, weights, total_shots, seed);
 }
@@ -76,11 +76,11 @@ void allocateLowWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
 
   for (const auto &traj : trajectories) {
     std::size_t error_count = traj.countErrors();
-    // weight = (1 + error_count)^(-bias_strength) * multiplicity
-    // Lower error_count -> higher weight
-    double weight = std::pow(1.0 + error_count, -bias_strength) *
-                    static_cast<double>(traj.multiplicity);
-    weights.push_back(weight);
+    // alloc_weight = (1 + error_count)^(-bias_strength) * trajectory weight
+    // Lower error_count -> higher alloc_weight
+    double alloc_weight =
+        std::pow(1.0 + error_count, -bias_strength) * traj.weight;
+    weights.push_back(alloc_weight);
   }
 
   double total_weight = std::accumulate(weights.begin(), weights.end(), 0.0);
@@ -101,11 +101,11 @@ void allocateHighWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
 
   for (const auto &traj : trajectories) {
     std::size_t error_count = traj.countErrors();
-    // weight = (1 + error_count)^(+bias_strength) * multiplicity
-    // Higher error_count -> higher weight
-    double weight = std::pow(1.0 + error_count, bias_strength) *
-                    static_cast<double>(traj.multiplicity);
-    weights.push_back(weight);
+    // alloc_weight = (1 + error_count)^(+bias_strength) * trajectory weight
+    // Higher error_count -> higher alloc_weight
+    double alloc_weight =
+        std::pow(1.0 + error_count, bias_strength) * traj.weight;
+    weights.push_back(alloc_weight);
   }
 
   double total_weight = std::accumulate(weights.begin(), weights.end(), 0.0);

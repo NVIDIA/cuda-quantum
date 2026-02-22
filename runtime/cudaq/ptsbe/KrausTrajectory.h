@@ -45,9 +45,16 @@ struct KrausTrajectory {
   /// @brief Number of measurement shots allocated to this trajectory
   std::size_t num_shots = 0;
 
-  /// @brief Number of times this trajectory appeared in the `pre-deduplication`
-  /// list.
+  /// @brief Number of times this trajectory was drawn in Monte Carlo sampling.
+  /// For exhaustive strategies, this is 1 as each trajectory is enumerated
+  /// once.
   std::size_t multiplicity = 1;
+
+  /// @brief Allocation weight for shot distribution. PROPORTIONAL and biased
+  /// allocation strategies distribute shots proportional to this value.
+  /// For Monte Carlo strategies this equals the multiplicity (sample count).
+  /// For exhaustive strategies this equals the trajectory probability.
+  double weight = 0.0;
 
   /// @brief The measurement results for this specific trajectory
   CountsDictionary measurement_counts;

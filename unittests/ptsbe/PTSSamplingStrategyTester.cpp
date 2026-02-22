@@ -260,8 +260,50 @@ TEST(ProbabilisticSamplingStrategyTest,
     operator_indices.insert(static_cast<std::size_t>(
         traj.kraus_selections[0].kraus_operator_index));
     total_multiplicity += traj.multiplicity;
+    EXPECT_DOUBLE_EQ(traj.weight, static_cast<double>(traj.multiplicity));
   }
   EXPECT_EQ(operator_indices.size(), 3);
+}
+
+TEST(ProbabilisticSamplingStrategyTest,
+     TrajectorySamplesParameterControlsTotalSamples) {
+  std::vector<NoisePoint> noise_points;
+
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+  np.channel = makeIXYChannel(0.34, 0.33, 0.33);
+  noise_points.push_back(np);
+
+  // With a small explicit trajectory_samples, total multiplicity should equal
+  // that value (since max_trajectories < trajectory_samples here).
+  const std::size_t explicit_samples = 200;
+  ProbabilisticSamplingStrategy strategy_explicit(42, explicit_samples);
+
+  auto trajectories = strategy_explicit.generateTrajectories(noise_points, 100);
+
+  EXPECT_EQ(trajectories.size(), 3);
+
+  std::size_t total_multiplicity = 0;
+  for (const auto &traj : trajectories)
+    total_multiplicity += traj.multiplicity;
+
+  // total_samples = max(max_trajectories=100, trajectory_samples=200) = 200
+  EXPECT_EQ(total_multiplicity, explicit_samples);
+
+  // Without the parameter, auto-budget is max(max_trajectories,
+  // min(target * ATTEMPT_MULTIPLIER, MAX_SAMPLES_CAP)). For this small
+  // space (total_possible=3), target=3 so auto=max(100, 30)=100.
+  ProbabilisticSamplingStrategy strategy_auto(42);
+  auto trajectories_auto =
+      strategy_auto.generateTrajectories(noise_points, 100);
+
+  std::size_t total_multiplicity_auto = 0;
+  for (const auto &traj : trajectories_auto)
+    total_multiplicity_auto += traj.multiplicity;
+
+  EXPECT_GE(total_multiplicity_auto, 100u);
 }
 
 TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
@@ -301,6 +343,11 @@ TEST(ExhaustiveSamplingStrategyTest, GeneratesAllTrajectories) {
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
   EXPECT_EQ(trajectories.size(), 4);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_DOUBLE_EQ(traj.weight, traj.probability);
+    EXPECT_EQ(traj.multiplicity, 1u);
+  }
 }
 
 TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
@@ -380,6 +427,11 @@ TEST(OrderedSamplingStrategyTest, SortsByProbability) {
     EXPECT_GE(trajectories[i].probability, trajectories[i + 1].probability)
         << "Probabilities not in descending order at index " << i;
   }
+
+  for (const auto &traj : trajectories) {
+    EXPECT_DOUBLE_EQ(traj.weight, traj.probability);
+    EXPECT_EQ(traj.multiplicity, 1u);
+  }
 }
 
 TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
@@ -454,6 +506,8 @@ TEST(ConditionalSamplingStrategyTest, FilterByErrorCount) {
 
   for (const auto &traj : trajectories) {
     EXPECT_EQ(traj.countErrors(), 1);
+    EXPECT_DOUBLE_EQ(traj.weight, static_cast<double>(traj.multiplicity));
+    EXPECT_GE(traj.multiplicity, 1u);
   }
 }
 
