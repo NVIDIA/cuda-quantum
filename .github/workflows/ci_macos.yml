@@ -1,4 +1,10 @@
 on:
+  workflow_call:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        default: main
   # Daily rebuild on main to ensure devdeps rebuilt as needed
   schedule:
     - cron: '0 4 * * *'  # aim to be ready by 9am CET/CEST
@@ -216,7 +222,7 @@ jobs:
           # Consistent with Linux: pycudaq-<python_version_dashed>-<platform_info>
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/cuda_quantum*.whl
-          retention-days: 1
+          retention-days: 3
           if-no-files-found: error
 
   # ============================================================================
@@ -332,7 +338,7 @@ jobs:
           # Consistent with Linux: cudaq-<platform>-<config>-installer-<run_id>
           name: cudaq-arm64-darwin-installer-${{ github.run_id }}
           path: out/install_cuda_quantum*
-          retention-days: 1
+          retention-days: 3
           if-no-files-found: error
 
   # ============================================================================
