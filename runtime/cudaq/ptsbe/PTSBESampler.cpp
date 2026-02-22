@@ -268,28 +268,42 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   }
 }
 
+/// Finalize and tear down the execution context and deallocate qubits.
+/// finalizeExecutionContext must precede deallocateQubits because
+/// CircuitSimulatorBase::deallocateQubits is a no-op while a context is set.
+static void teardown(nvqir::CircuitSimulator *sim, cudaq::ExecutionContext &ctx,
+                     std::size_t nQubits) {
+  sim->finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
+  std::vector<std::size_t> qubitIds(nQubits);
+  std::iota(qubitIds.begin(), qubitIds.end(), 0);
+  sim->deallocateQubits(qubitIds);
+}
+
 std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch,
                          const std::string &contextType) {
   auto *sim = nvqir::getCircuitSimulatorInternal();
+  const auto nQubits = numQubits(batch.trace);
 
   cudaq::ExecutionContext ctx(contextType, batch.totalShots());
   cudaq::detail::setExecutionContext(&ctx);
   sim->configureExecutionContext(ctx);
-  sim->allocateQubits(numQubits(batch.trace));
+  sim->allocateQubits(nQubits);
 
-  auto results = samplePTSBE(batch);
+  // Teardown must run on both normal exit and exception (e.g. std::bad_alloc
+  // from a BatchSimulator). Without it, a thrown exception leaves the
+  // execution context set, causing all subsequent simulator calls to fail
+  // with "Context already set".
+  std::vector<cudaq::sample_result> results;
+  try {
+    results = samplePTSBE(batch);
+  } catch (...) {
+    teardown(sim, ctx, nQubits);
+    throw;
+  }
 
-  // Finalize and reset execution context before deallocating qubits.
-  // CircuitSimulatorBase::deallocateQubits is a no-op while an execution
-  // context is set, so we must clear it first to avoid leaking qubits.
-  sim->finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
-
-  std::vector<std::size_t> qubitIds(numQubits(batch.trace));
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  sim->deallocateQubits(qubitIds);
-
+  teardown(sim, ctx, nQubits);
   return results;
 }
 
