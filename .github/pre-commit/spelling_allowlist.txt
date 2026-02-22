@@ -108,6 +108,7 @@ QPP
 QPU
 QPUs
 QPU’s
+QRMI
 QTX
 QX
 Qiskit
