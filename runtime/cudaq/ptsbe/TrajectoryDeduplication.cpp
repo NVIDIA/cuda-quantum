@@ -26,7 +26,9 @@ std::size_t hashKrausSelection(const cudaq::KrausSelection &sel) {
   std::size_t h = std::hash<std::size_t>{}(sel.circuit_location);
   for (std::size_t q : sel.qubits)
     hashCombine(h, std::hash<std::size_t>{}(q));
-  hashCombine(h, static_cast<std::size_t>(sel.kraus_operator_index));
+  hashCombine(h, std::hash<std::string>{}(sel.op_name));
+  hashCombine(h, sel.kraus_operator_index);
+  hashCombine(h, std::hash<bool>{}(sel.is_error));
   return h;
 }
 

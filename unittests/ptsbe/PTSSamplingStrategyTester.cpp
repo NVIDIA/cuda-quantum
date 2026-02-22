@@ -306,6 +306,40 @@ TEST(ProbabilisticSamplingStrategyTest,
   EXPECT_GE(total_multiplicity_auto, 100u);
 }
 
+TEST(ProbabilisticSamplingStrategyTest, EarlyStoppingReducesTotalDraws) {
+  // In a large trajectory space, early stopping should terminate well before
+  // the budget is exhausted once max_trajectories unique patterns are found.
+  auto channel = cudaq::depolarization_channel(0.75);
+  std::vector<NoisePoint> noise_points;
+  for (int i = 0; i < 10; ++i) {
+    NoisePoint np;
+    np.circuit_location = i;
+    np.qubits = {0};
+    np.op_name = "h";
+    np.channel = channel;
+    noise_points.push_back(np);
+  }
+
+  const std::size_t large_budget = 100000;
+  const std::size_t small_max_traj = 20;
+  ProbabilisticSamplingStrategy strategy(42, large_budget);
+
+  auto trajectories =
+      strategy.generateTrajectories(noise_points, small_max_traj);
+
+  EXPECT_EQ(trajectories.size(), small_max_traj);
+
+  std::size_t total_multiplicity = 0;
+  for (const auto &traj : trajectories)
+    total_multiplicity += traj.multiplicity;
+
+  // Early stopping: total draws should be much less than large_budget.
+  // 20 unique patterns found in a 4^10 space requires ~20 draws on average,
+  // so total_multiplicity should be far below 100000.
+  EXPECT_LT(total_multiplicity, large_budget);
+  EXPECT_GE(total_multiplicity, small_max_traj);
+}
+
 TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
   std::vector<NoisePoint> noise_points;
 

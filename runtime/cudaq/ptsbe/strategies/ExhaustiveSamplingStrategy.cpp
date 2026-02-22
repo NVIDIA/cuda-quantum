@@ -55,13 +55,11 @@ ExhaustiveSamplingStrategy::generateTrajectories(
       probability *= noise_point.channel.probabilities[op_idx];
     }
 
-    auto trajectory = KrausTrajectory::builder()
+    results.push_back(KrausTrajectory::builder()
                           .setId(trajectory_id)
                           .setSelections(std::move(selections))
                           .setProbability(probability)
-                          .build();
-    trajectory.weight = probability;
-    results.push_back(std::move(trajectory));
+                          .build());
 
     for (std::size_t i = 0; i < indices.size(); ++i) {
       indices[i]++;

@@ -40,6 +40,7 @@ ProbabilisticSamplingStrategy::generateTrajectories(
   // MC draw budget. Either user-specified or auto-calculated.
   // The loop stops once max_trajectories unique patterns are found,
   // so this is a ceiling on draws.
+  constexpr std::size_t MAX_BUDGET_CAP = 500000;
   std::size_t budget;
   if (max_trajectory_samples_.has_value()) {
     budget = std::max(max_trajectories, max_trajectory_samples_.value());

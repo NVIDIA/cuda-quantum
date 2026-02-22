@@ -72,7 +72,7 @@ struct KrausTrajectory {
   KrausTrajectory(std::size_t id, std::vector<KrausSelection> selections,
                   double prob, std::size_t shots = 0)
       : trajectory_id(id), kraus_selections(std::move(selections)),
-        probability(prob), num_shots(shots) {}
+        probability(prob), num_shots(shots), weight(prob) {}
 
   /// @brief Create a KrausTrajectoryBuilder
   /// @return KrausTrajectoryBuilder

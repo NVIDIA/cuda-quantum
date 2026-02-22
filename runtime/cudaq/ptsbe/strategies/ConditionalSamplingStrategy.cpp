@@ -30,8 +30,6 @@ ConditionalSamplingStrategy::generateTrajectories(
     return results;
   }
 
-  // Map from pattern to index in results for deduplication and multiplicity
-  // accumulation. Patterns that failed the predicate are tracked separately.
   std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
   std::set<std::vector<std::size_t>> rejected_patterns;
 
@@ -42,29 +40,22 @@ ConditionalSamplingStrategy::generateTrajectories(
   std::size_t max_attempts = actual_target * ATTEMPT_MULTIPLIER;
   std::size_t attempts = 0;
 
+  std::vector<std::discrete_distribution<std::size_t>> distributions;
+  distributions.reserve(noise_points.size());
+  for (const auto &np : noise_points)
+    distributions.emplace_back(np.channel.probabilities.begin(),
+                               np.channel.probabilities.end());
+
+  std::vector<std::size_t> pattern(noise_points.size());
+
   while (results.size() < max_trajectories && attempts < max_attempts) {
     attempts++;
 
-    std::vector<KrausSelection> selections;
-    std::vector<std::size_t> pattern;
     double probability = 1.0;
-
-    selections.reserve(noise_points.size());
-    pattern.reserve(noise_points.size());
-
-    for (const auto &noise_point : noise_points) {
-      std::discrete_distribution<std::size_t> dist(
-          noise_point.channel.probabilities.begin(),
-          noise_point.channel.probabilities.end());
-      std::size_t sampled_idx = dist(rng_);
-      pattern.push_back(sampled_idx);
-
-      bool error = !noise_point.channel.is_identity_op(sampled_idx);
-      selections.push_back(
-          KrausSelection{noise_point.circuit_location, noise_point.qubits,
-                         noise_point.op_name, sampled_idx, error});
-
-      probability *= noise_point.channel.probabilities[sampled_idx];
+    for (std::size_t i = 0; i < noise_points.size(); ++i) {
+      std::size_t idx = distributions[i](rng_);
+      pattern[i] = idx;
+      probability *= noise_points[i].channel.probabilities[idx];
     }
 
     auto it = pattern_to_index.find(pattern);
@@ -73,6 +64,15 @@ ConditionalSamplingStrategy::generateTrajectories(
     } else if (rejected_patterns.contains(pattern)) {
       // Already tested and failed predicate; skip.
     } else {
+      std::vector<KrausSelection> selections;
+      selections.reserve(noise_points.size());
+      for (std::size_t i = 0; i < noise_points.size(); ++i) {
+        const auto &np = noise_points[i];
+        bool error = !np.channel.is_identity_op(pattern[i]);
+        selections.push_back(KrausSelection{np.circuit_location, np.qubits,
+                                            np.op_name, pattern[i], error});
+      }
+
       auto trajectory = KrausTrajectory::builder()
                             .setId(trajectory_id)
                             .setSelections(std::move(selections))
@@ -80,11 +80,11 @@ ConditionalSamplingStrategy::generateTrajectories(
                             .build();
 
       if (predicate_(trajectory)) {
-        pattern_to_index.emplace(std::move(pattern), results.size());
+        pattern_to_index.emplace(pattern, results.size());
         results.push_back(std::move(trajectory));
         trajectory_id++;
       } else {
-        rejected_patterns.insert(std::move(pattern));
+        rejected_patterns.insert(pattern);
       }
     }
   }

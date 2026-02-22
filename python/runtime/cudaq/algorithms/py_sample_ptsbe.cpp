@@ -182,9 +182,15 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
       ptsbe, "ShotAllocationStrategy",
       "Strategy for allocating shots across selected trajectories.")
       .def(py::init<>(), "Create a default (PROPORTIONAL) strategy.")
-      .def(py::init<ptsbe::ShotAllocationStrategy::Type, double>(),
+      .def(py::init([](ptsbe::ShotAllocationStrategy::Type t, double bias,
+                       std::optional<std::uint64_t> seed) {
+             return ptsbe::ShotAllocationStrategy(t, bias, seed);
+           }),
            py::arg("type"), py::arg("bias_strength") = 2.0,
-           "Create a strategy with specified type and optional bias strength.")
+           py::arg("seed") = py::none(),
+           "Create a strategy with specified type, optional bias strength, "
+           "and optional random seed. When seed is None (default), uses "
+           "CUDA-Q's global random seed.")
       .def_readwrite("type", &ptsbe::ShotAllocationStrategy::type,
                      "The allocation strategy type.")
       .def_readwrite("bias_strength",

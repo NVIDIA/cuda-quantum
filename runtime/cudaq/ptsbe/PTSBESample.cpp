@@ -221,19 +221,20 @@ void populateExecutionDataTrajectories(
     PTSBEExecutionData &executionData,
     std::vector<cudaq::KrausTrajectory> trajectories,
     std::vector<cudaq::sample_result> perTrajectoryResults) {
-  // Populate measurement_counts from parallel-indexed perTrajectoryResults.
-  // Skip results with no shots (default-constructed sample_result has no
-  // __global__ register, so to_map() would throw).
+  // Populate measurement_counts from parallel-indexed perTrajectoryResults,
+  // keeping only trajectories that received at least one shot. Zero-shot
+  // trajectories were discovered by MC sampling but never simulated.
   for (std::size_t i = 0;
        i < trajectories.size() && i < perTrajectoryResults.size(); ++i) {
+    if (trajectories[i].num_shots == 0)
+      continue;
     if (perTrajectoryResults[i].get_total_shots() > 0)
       trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
+    executionData.trajectories.push_back(std::move(trajectories[i]));
   }
 
-  if (!trajectories.empty()) {
-    executionData.trajectories = std::move(trajectories);
+  if (!executionData.trajectories.empty())
     return;
-  }
 
   // Stub: generate a single identity trajectory so that the execution data
   // has at least one trajectory for downstream consumers (Python bindings,

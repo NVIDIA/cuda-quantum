@@ -171,6 +171,17 @@ CUDAQ_TEST(ShotAllocationTest, EmptyTrajectoryList) {
   EXPECT_ANY_THROW({ allocateShots(trajectories, 1000, strategy); });
 }
 
+CUDAQ_TEST(ShotAllocationTest, ProportionalThrowsOnZeroWeights) {
+  std::vector<KrausTrajectory> trajectories;
+  // Construct trajectories with default weight=probability.
+  // Probability 0 means weight 0 from constructor default.
+  trajectories.push_back(KrausTrajectory(0, {}, 0.0, 0));
+  trajectories.push_back(KrausTrajectory(1, {}, 0.0, 0));
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  EXPECT_ANY_THROW({ allocateShots(trajectories, 100, strategy); });
+}
+
 CUDAQ_TEST(ShotAllocationTest, SingleShotDistribution) {
   std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
                                                makeTrajectory(1, 0.5)};

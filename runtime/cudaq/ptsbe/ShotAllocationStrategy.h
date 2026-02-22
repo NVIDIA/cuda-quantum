@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <ranges>
 #include <span>
 
@@ -33,9 +34,9 @@ struct ShotAllocationStrategy {
   Type type = Type::PROPORTIONAL;
   // Bias factor for weighted strategies (default: 2.0)
   double bias_strength = 2.0;
-  // Random seed for PROPORTIONAL multinomial sampling.
-  // 0 means use cudaq global seed if set, otherwise std::random_device.
-  std::uint64_t seed = 0;
+  // Random seed for multinomial sampling (PROPORTIONAL, biased strategies).
+  // nullopt means use cudaq global seed if set, otherwise std::random_device.
+  std::optional<std::uint64_t> seed = std::nullopt;
 
   /// @brief Default constructor
   ShotAllocationStrategy() = default;
@@ -43,10 +44,10 @@ struct ShotAllocationStrategy {
   /// @brief Constructor with type
   /// @param t Allocation strategy type
   /// @param bias Bias strength for weighted strategies (default: 2.0)
-  /// @param seed Random seed for PROPORTIONAL sampling (default: 0)
+  /// @param s Random seed for multinomial sampling (default: nullopt = auto)
   explicit ShotAllocationStrategy(Type t, double bias = 2.0,
-                                  std::uint64_t seed = 0)
-      : type(t), bias_strength(bias), seed(seed) {}
+                                  std::optional<std::uint64_t> s = std::nullopt)
+      : type(t), bias_strength(bias), seed(s) {}
 };
 
 /// @brief Allocate shots across trajectories according to strategy
