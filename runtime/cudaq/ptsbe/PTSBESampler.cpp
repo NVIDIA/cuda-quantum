@@ -72,7 +72,8 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
-                         const cudaq::KrausTrajectory &trajectory) {
+                         const cudaq::KrausTrajectory &trajectory,
+                         bool includeIdentity) {
   const auto &selections = trajectory.kraus_selections;
 
   std::vector<GateTask<ScalarType>> merged;
@@ -87,7 +88,7 @@ mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
 
     while (noiseIdx < selections.size() &&
            selections[noiseIdx].circuit_location == i) {
-      if (selections[noiseIdx].is_error) {
+      if (includeIdentity || selections[noiseIdx].is_error) {
         merged.push_back(
             krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
       }
@@ -128,10 +129,10 @@ krausSelectionToTask<double>(const cudaq::KrausSelection &,
 
 template std::vector<GateTask<float>>
 mergeTasksWithTrajectory<float>(std::span<const TraceInstruction>,
-                                const cudaq::KrausTrajectory &);
+                                const cudaq::KrausTrajectory &, bool);
 template std::vector<GateTask<double>>
 mergeTasksWithTrajectory<double>(std::span<const TraceInstruction>,
-                                 const cudaq::KrausTrajectory &);
+                                 const cudaq::KrausTrajectory &, bool);
 
 // ---------------------------------------------------------------------------
 // Non-template implementations
