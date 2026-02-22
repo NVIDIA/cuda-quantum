@@ -22,12 +22,13 @@ public:
   /// @brief Construct with optional random seed and trajectory sample count
   /// @param seed Random seed for reproducibility. When nullopt (default), uses
   /// CUDAQ's global random seed if set, otherwise std::random_device.
-  /// @param trajectory_samples Total number of Monte Carlo trajectory samples
-  /// to draw. Controls the accuracy/cost tradeoff. More samples discover
-  /// rarer error trajectories and produce more accurate weights for shot
-  /// allocation. When nullopt (default) is provided, a budget is calculated
-  //  using a small multiplier of max_trajectories. For low-error-rate circuits,
-  /// increase this value to discover higher-order error trajectories.
+  /// @param trajectory_samples Maximum number of Monte Carlo draws before
+  /// giving up on discovering new unique trajectories. The loop stops early
+  /// once max_trajectories unique patterns are found, so the actual draw
+  /// count may be less. Every draw contributes to exactly one trajectory's
+  /// multiplicity, preserving unbiased MC estimation.
+  /// When nullopt (default), a budget is auto-calculated as a small
+  /// multiplier of max_trajectories.
   explicit ProbabilisticSamplingStrategy(
       std::optional<std::uint64_t> seed = std::nullopt,
       std::optional<std::size_t> trajectory_samples = std::nullopt)
@@ -41,10 +42,11 @@ public:
 
   /// @brief Generate trajectories via probability-weighted Monte Carlo sampling
   /// @param noise_points Noise information from circuit analysis
-  /// @param max_trajectories Maximum number of unique trajectories requested.
-  /// The actual number of Monte Carlo samples drawn is
-  /// max(max_trajectories, trajectory_samples), where trajectory_samples is
-  /// either the user-specified value or an auto-calculated exploration budget.
+  /// @param max_trajectories Maximum number of unique trajectories to return.
+  /// The loop draws MC samples until this many unique patterns are found or
+  /// the budget is exhausted. Every draw contributes to a trajectory's
+  /// multiplicity, so the resulting weights are unbiased MC frequency
+  /// estimates suitable for PROPORTIONAL shot allocation.
   /// @return Vector of unique trajectories with accumulated multiplicities
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
   generateTrajectories(std::span<const NoisePoint> noise_points,

@@ -34,21 +34,22 @@ ProbabilisticSamplingStrategy::generateTrajectories(
   std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
   std::size_t trajectory_id = 0;
 
-  // Total Monte Carlo samples. Either user-specified or auto-calculated.
-  // Auto budget uses a small multiplier of the target count, capped to avoid
-  // excessive runtime. For small spaces, ExhaustiveSamplingStrategy with exact
-  // probability weights is the better choice.
-  constexpr std::size_t MAX_SAMPLES_CAP = 500000;
-  std::size_t total_samples;
+  // MC draw budget. Either user-specified or auto-calculated.
+  // The loop stops once max_trajectories unique patterns are found,
+  // so this is a ceiling on draws. Every draw contributes to
+  // exactly one trajectory's multiplicity which provides an
+  // unbiased MC estimator: p_k ≈ weight_k / M_total.
+  constexpr std::size_t MAX_BUDGET_CAP = 500000;
+  std::size_t budget;
   if (trajectory_samples_.has_value()) {
-    total_samples = std::max(max_trajectories, trajectory_samples_.value());
+    budget = std::max(max_trajectories, trajectory_samples_.value());
   } else {
     std::size_t target = std::min(max_trajectories, total_possible);
-    total_samples = std::min(target * ATTEMPT_MULTIPLIER, MAX_SAMPLES_CAP);
-    total_samples = std::max(max_trajectories, total_samples);
+    budget = std::min(target * ATTEMPT_MULTIPLIER, MAX_BUDGET_CAP);
+    budget = std::max(max_trajectories, budget);
   }
 
-  for (std::size_t sample = 0; sample < total_samples; ++sample) {
+  for (std::size_t sample = 0; sample < budget; ++sample) {
     std::vector<KrausSelection> selections;
     std::vector<std::size_t> pattern;
     double probability = 1.0;
@@ -74,7 +75,7 @@ ProbabilisticSamplingStrategy::generateTrajectories(
     auto it = pattern_to_index.find(pattern);
     if (it != pattern_to_index.end()) {
       results[it->second].multiplicity++;
-    } else if (results.size() < max_trajectories) {
+    } else {
       pattern_to_index.emplace(std::move(pattern), results.size());
       auto trajectory = KrausTrajectory::builder()
                             .setId(trajectory_id++)
@@ -82,6 +83,8 @@ ProbabilisticSamplingStrategy::generateTrajectories(
                             .setProbability(probability)
                             .build();
       results.push_back(std::move(trajectory));
+      if (results.size() >= max_trajectories)
+        break;
     }
   }
 
