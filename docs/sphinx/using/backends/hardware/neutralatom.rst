@@ -164,8 +164,8 @@ For example from Python one can use the `pasqal-cloud package <https://github.co
     import os
 
     sdk = SDK(
-        username=os.environ.get['PASQAL_USERNAME'],
-        password=os.environ.get('PASQAL_PASSWORD', None)
+        username=os.environ.get('PASQAL_USERNAME'),
+        password=os.environ.get('PASQAL_PASSWORD', None) # Ensures you will be securely prompted
     )
 
     token = sdk.user_token()
@@ -179,6 +179,20 @@ Alternatively, users can set the following environment variables directly.
 
   export PASQAL_AUTH_TOKEN=<>
   export PASQAL_PROJECT_ID=<>
+
+Pasqal via QRMI
+```````````````
+
+CUDA-Q also provides a ``pasqal`` target for routing Pasqal
+jobs through the vendor agnostic Quantum Resource Management Interface (QRMI).
+This target enables integration with resource managers like Slurm for scheduling.
+Select Pasqal backend with the ``--qpu`` ``sbatch`` option let QRMI handle submission.
+
+
+For this route, credentials and project id are read by QRMI using either
+``~/.pasqal/config``or other methods supported by your clusters QRMI setup.
+
+The job submission process is the same as for the ``pasqal`` target, but with the ```pasqal`` target instead. For example:
 
 
 Submitting
