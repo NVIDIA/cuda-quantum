@@ -802,6 +802,80 @@ jobs:
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
+  macos_artifacts:
+    name: macOS artifacts
+    needs: assets
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+
+    outputs:
+      has_macos_wheels: ${{ steps.fetch.outputs.has_macos_wheels }}
+      has_macos_installer: ${{ steps.fetch.outputs.has_macos_installer }}
+
+    steps:
+      - name: Fetch macOS artifacts from Deployments run
+        id: fetch
+        run: |
+          artifacts_url="${{ needs.assets.outputs.artifacts_url }}"
+          if [ -z "$artifacts_url" ]; then
+            echo "No artifacts URL available."
+            echo "has_macos_wheels=false" >> $GITHUB_OUTPUT
+            echo "has_macos_installer=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          has_macos_wheels=false
+          has_macos_installer=false
+          mkdir -p wheels installer
+
+          while IFS= read -r artifact; do
+            name=$(echo "$artifact" | jq -r '.name')
+            url=$(echo "$artifact" | jq -r '.url')
+
+            if [[ "$name" == pycudaq-*-darwin-arm64 ]]; then
+              python_version=$(echo "$name" | sed 's/pycudaq-\(.*\)-darwin-arm64/\1/')
+              echo "Downloading macOS wheel: $name (Python $python_version)"
+              gh api "$url" > "${name}.zip"
+              unzip "${name}.zip" -d wheels/
+              rm "${name}.zip"
+              has_macos_wheels=true
+
+            elif [[ "$name" == cudaq-arm64-darwin-installer-* ]]; then
+              echo "Downloading macOS installer: $name"
+              gh api "$url" > "${name}.zip"
+              unzip "${name}.zip" -d installer/
+              rm "${name}.zip"
+              has_macos_installer=true
+            fi
+          done <<< "$(echo "$artifacts" | jq -c '.')"
+
+          echo "has_macos_wheels=$has_macos_wheels" >> $GITHUB_OUTPUT
+          echo "has_macos_installer=$has_macos_installer" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Upload macOS wheels
+        if: steps.fetch.outputs.has_macos_wheels == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-arm64-wheels
+          path: wheels/
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload macOS installer
+        if: steps.fetch.outputs.has_macos_installer == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-arm64-installer
+          path: installer/
+          retention-days: 1
+          if-no-files-found: error
+
   image_validation_config:
     name: Configure image validation
     needs: cudaq_images
@@ -1229,7 +1303,7 @@ jobs:
 
   create_release:
     name: CUDA-Q Release
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -1303,7 +1377,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, metapackage_validation_conda, wheel_validation_piponly, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, image_validation, installer_validation, metapackage_validation_conda, wheel_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
