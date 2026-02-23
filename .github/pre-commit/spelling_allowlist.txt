@@ -142,6 +142,7 @@ Toshiko
 UCCSD
 VQE
 Vazirani
+Verilog
 WSL
 Xcode
 Zener
