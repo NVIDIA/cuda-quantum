@@ -345,7 +345,7 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
   EXPECT_EQ(sum_shots, total_shots);
 
   // Execute PTSBE and aggregate
-  auto results = samplePTSBEWithLifecycle(batch, "sample");
+  auto results = samplePTSBEWithLifecycle(batch);
   EXPECT_EQ(results.size(), batch.trajectories.size());
 
   auto result = aggregateResults(results);
