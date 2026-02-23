@@ -309,6 +309,7 @@ parameterization
 performant
 photonic
 photonics
+pipelined
 precompute
 precomputed
 prepend

@@ -44,7 +44,7 @@ sending responses from TX ring buffer slots back to the FPGA.
 
 **Hololink (GPU-based with GPUDirect)**:
 
-- Uses ConnectX-7 NICs with RDMA for zero-copy data movement
+- Uses ConnectX-7 NIC's with RDMA for zero-copy data movement
 - RX and TX are persistent GPU kernels that directly access GPU memory
 - Requires GPUDirect support
 - Lowest latency option for GPU-based decoders
@@ -144,7 +144,7 @@ proprietary transport) places incoming RPC messages into RX slots and retrieves
 responses from TX slots.
 The dispatcher polls RX flags (see Message completion note), looks up a
 handler by `function_id`, executes it on the GPU, and writes a response into the
-same slot. Hololink’s RX/TX kernels handle device I/O; the dispatch kernel sits
+same slot. `Hololink`'s RX/TX kernels handle device I/O; the dispatch kernel sits
 in the middle and runs the decoder handler.
 
 ## Scope
@@ -911,7 +911,7 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
 
 ## Schema-Driven Argument Parsing
 
-The dispatcher uses the handler schema to interpret the typeless payload bytes.
+The dispatcher uses the handler schema to interpret the `typeless` payload bytes.
 This example shows conceptual parsing logic:
 
 ```cpp

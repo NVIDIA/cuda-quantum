@@ -208,8 +208,8 @@ Offset | Content
 
 Schema:
 
-- `arg0`: `TYPE_BIT_PACKED`, size_bytes=16, num_elements=128
-- `arg1`: `TYPE_UINT32`, size_bytes=4, num_elements=1
+- `arg0`: `TYPE_BIT_PACKED`, `size_bytes=16`, `num_elements=128`
+- `arg1`: `TYPE_UINT32`, `size_bytes=4`, `num_elements=1`
 
 Wire encoding:
 
@@ -230,7 +230,7 @@ For `TYPE_BIT_PACKED` arguments:
 - The schema specifies both `size_bytes` (storage)
 and `num_elements` (actual bit count)
 
-Example for 10 bits (size_bytes=2, num_elements=10):
+Example for 10 bits (`size_bytes=2`, `num_elements=10`):
 
 ```text
 bits:    b0 b1 b2 b3 b4 b5 b6 b7 b8 b9
