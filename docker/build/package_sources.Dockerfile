@@ -63,7 +63,6 @@ ENV SCRIPTS_DIR=${SOURCES_ROOT}/scripts
 COPY .gitmodules "${SCRIPTS_DIR}"/.gitmodules
 COPY tpls_commits.lock "${SCRIPTS_DIR}"/tpls_commits.lock
 COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
-COPY docker/build/scripts/fetch_pip_sdist.py "${SCRIPTS_DIR}"/fetch_pip_sdist.py
 COPY package-source-diff/apt_packages.txt "${SCRIPTS_DIR}"/apt_packages.txt
 COPY package-source-diff/pip_packages.txt "${SCRIPTS_DIR}"/pip_packages.txt
 
@@ -81,7 +80,7 @@ RUN apt-get update && set -o pipefail && \
       done < "${SCRIPTS_DIR}"/apt_packages.txt; \
       ) 2>&1 | sed 's/^/[apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" && \
-      grep -v '^[[:space:]]*$' /tmp/pip_packages.txt | \
+      grep -v '^[[:space:]]*$' "${SCRIPTS_DIR}"/pip_packages.txt | \
       xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: --no-deps -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
       cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
       ) 2>&1 | sed 's/^/[pip] /' & \
