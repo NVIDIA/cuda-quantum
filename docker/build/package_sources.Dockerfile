@@ -40,6 +40,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install necessary repository for librdmac1
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget \
+    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - \
+    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" \
+    && echo 'deb-src http://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/$(ARCH) ./' >> /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
+    && apt-get update -y
+
 # Enable source repositories (Ubuntu 24.04 DEB822 format)
 RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
       sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources; \
@@ -82,6 +89,24 @@ RUN apt-get update && set -o pipefail && \
 
 RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/apt/apt_omitted_packages.txt)"
 RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/pip/pip_omitted_packages.txt)"
+
+# For omitted apt packages (no source available), extract license/copyright/EULA from the .deb
+RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
+    mkdir -p "${SOURCES_ROOT}/apt/licenses" /tmp/deb_extract && \
+    while IFS= read -r pkg || [ -n "$pkg" ]; do \
+      [ -z "$pkg" ] && continue; \
+      ( cd /tmp/deb_extract && apt-get download "$pkg" 2>/dev/null ) || true; \
+      deb=$(ls /tmp/deb_extract/*.deb 2>/dev/null | head -1); \
+      if [ -n "$deb" ]; then \
+        dpkg-deb -R "$deb" "/tmp/deb_extract/${pkg}_pkg" 2>/dev/null || true; \
+        dest="${SOURCES_ROOT}/apt/licenses/${pkg}"; \
+        mkdir -p "$dest"; \
+        find "/tmp/deb_extract/${pkg}_pkg" \( -iname "*license*" -o -iname "*eula*" -o -iname "*copyright*" \) -exec cp -a {} "$dest/" \; 2>/dev/null || true; \
+        rm -rf "/tmp/deb_extract/${pkg}_pkg" /tmp/deb_extract/*.deb; \
+      fi; \
+    done < "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
+    rm -rf /tmp/deb_extract
+
 
 # Summary
 RUN echo "apt: $(find ${SOURCES_ROOT}/apt -maxdepth 1 -type d 2>/dev/null | wc -l) dirs" && \
