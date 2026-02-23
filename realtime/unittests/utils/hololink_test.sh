@@ -227,6 +227,49 @@ do_build() {
 # Network setup
 # ============================================================================
 
+setup_port() {
+    local iface="$1"
+    local ip="$2"
+    local mtu="$3"
+
+    echo "  Configuring $iface: ip=$ip mtu=$mtu"
+
+    sudo ip link set "$iface" up
+    sudo ip link set "$iface" mtu "$mtu"
+    sudo ip addr flush dev "$iface"
+    sudo ip addr add "${ip}/24" dev "$iface"
+
+    # Configure RoCEv2 mode
+    local ib_dev
+    if command -v ibdev2netdev &>/dev/null; then
+        ib_dev=$(ibdev2netdev | awk -v iface="$iface" '$5 == iface { print $1 }')
+    fi
+    if [[ -z "$ib_dev" ]]; then
+        ib_dev=$(basename "$(ls -d /sys/class/net/$iface/device/infiniband/* 2>/dev/null | head -1)" 2>/dev/null || true)
+    fi
+    if [[ -n "$ib_dev" ]] && command -v rdma &>/dev/null; then
+        local port_count
+        port_count=$(ls -d "/sys/class/infiniband/${ib_dev}/ports/"* 2>/dev/null | wc -l)
+        for p in $(seq 1 "$port_count"); do
+            sudo rdma link set "${ib_dev}/${p}" type eth || true
+        done
+        echo "    RoCEv2 mode configured for $ib_dev"
+    fi
+
+    # DSCP trust mode for lossless RoCE
+    if command -v mlnx_qos &>/dev/null; then
+        sudo mlnx_qos -i "$iface" --trust=dscp 2>/dev/null || true
+        echo "    DSCP trust mode set"
+    fi
+
+    # Disable adaptive RX coalescing for low latency
+    if command -v ethtool &>/dev/null; then
+        sudo ethtool -C "$iface" adaptive-rx off rx-usecs 0 2>/dev/null || true
+    fi
+
+    echo "    Done: $iface is up at $ip"
+}
+
 do_setup_network() {
     IB_DEVICE=$(detect_ib_device)
     local netdev
@@ -241,14 +284,16 @@ do_setup_network() {
         exit 1
     fi
 
-    sudo ip link set "$netdev" up mtu "$MTU" || true
-    sudo ip addr add "$BRIDGE_IP/24" dev "$netdev" 2>/dev/null || true
-
     if $EMULATE; then
+        setup_port "$netdev" "$BRIDGE_IP" "$MTU"
         sudo ip addr add "$EMULATOR_IP/24" dev "$netdev" 2>/dev/null || true
-        # Add static ARP entries
-        sudo ip neigh replace "$BRIDGE_IP" lladdr "$(cat /sys/class/net/$netdev/address)" dev "$netdev" nud permanent 2>/dev/null || true
-        sudo ip neigh replace "$EMULATOR_IP" lladdr "$(cat /sys/class/net/$netdev/address)" dev "$netdev" nud permanent 2>/dev/null || true
+        # Add static ARP entries for loopback
+        local mac
+        mac=$(cat /sys/class/net/$netdev/address)
+        sudo ip neigh replace "$BRIDGE_IP" lladdr "$mac" dev "$netdev" nud permanent 2>/dev/null || true
+        sudo ip neigh replace "$EMULATOR_IP" lladdr "$mac" dev "$netdev" nud permanent 2>/dev/null || true
+    else
+        setup_port "$netdev" "$BRIDGE_IP" "$MTU"
     fi
 
     echo "=== Network setup complete ==="
@@ -352,23 +397,25 @@ do_run() {
 
     # Start playback
     echo "--- Starting playback ---"
-    local verify_flag=""
+    local playback_args=(
+        --hololink="$FPGA_TARGET_IP"
+        --bridge-qp="0x$BRIDGE_QP"
+        --bridge-rkey="$BRIDGE_RKEY"
+        --bridge-buffer="0x$BRIDGE_BUFFER"
+        --page-size="$PAGE_SIZE"
+        --num-pages="$NUM_PAGES"
+        --num-shots="$NUM_SHOTS"
+        --payload-size="$PAYLOAD_SIZE"
+        --bridge-ip="$BRIDGE_IP"
+    )
+    if $EMULATE; then
+        playback_args+=(--emulator --control-port="$CONTROL_PORT")
+    fi
     if ! $VERIFY; then
-        verify_flag="--no-verify"
+        playback_args+=(--no-verify)
     fi
 
-    "$playback_bin" \
-        --control-ip="$FPGA_TARGET_IP" \
-        --control-port="$CONTROL_PORT" \
-        --bridge-qp="0x$BRIDGE_QP" \
-        --bridge-rkey="$BRIDGE_RKEY" \
-        --bridge-buffer="0x$BRIDGE_BUFFER" \
-        --page-size="$PAGE_SIZE" \
-        --num-pages="$NUM_PAGES" \
-        --num-shots="$NUM_SHOTS" \
-        --payload-size="$PAYLOAD_SIZE" \
-        --bridge-ip="$BRIDGE_IP" \
-        $verify_flag
+    "$playback_bin" "${playback_args[@]}"
     PLAYBACK_EXIT=$?
 
     # Wait for bridge to finish

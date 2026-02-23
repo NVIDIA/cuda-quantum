@@ -135,6 +135,9 @@ size_t hololink_get_page_size(hololink_transceiver_t handle);
 /** Get the number of pages (slots) configured for this transceiver. */
 unsigned hololink_get_num_pages(hololink_transceiver_t handle);
 
+/** Get the total number of packets sent by the TX kernel. */
+uint64_t hololink_get_tx_packet_count(hololink_transceiver_t handle);
+
 #ifdef __cplusplus
 }
 #endif

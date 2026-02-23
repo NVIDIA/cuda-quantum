@@ -214,3 +214,11 @@ unsigned hololink_get_num_pages(hololink_transceiver_t handle) {
   }
   return 0;
 }
+
+uint64_t hololink_get_tx_packet_count(hololink_transceiver_t handle) {
+  if (handle) {
+    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    return impl->transceiver->get_tx_packet_count();
+  }
+  return 0;
+}
