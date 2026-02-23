@@ -34,9 +34,13 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
+    curl \
     dpkg-dev \
     git \
+    jq \
     python3 \
+    python3-pip \
+    && python3 -m pip install --upgrade unearth --break-system-packages \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install necessary repository for librdmac1
@@ -80,9 +84,16 @@ RUN apt-get update && set -o pipefail && \
       done < "${SCRIPTS_DIR}"/apt_packages.txt; \
       ) 2>&1 | sed 's/^/[apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" && \
-      grep -v '^[[:space:]]*$' "${SCRIPTS_DIR}"/pip_packages.txt | \
-      xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: --no-deps -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
-      cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
+      cd "${SOURCES_ROOT}/pip" && \
+      while IFS= read -r package || [ -n "$package" ]; do \
+        [ -z "$package" ] && continue; \
+        url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
+        if [ -n "$url" ] && [ "$url" != "null" ]; then \
+          curl -fsSL -O "$url" || echo "$package" >> pip_omitted_packages.txt; \
+        else \
+          echo "$package" >> pip_omitted_packages.txt; \
+        fi; \
+      done < "${SCRIPTS_DIR}"/pip_packages.txt; \
       ) 2>&1 | sed 's/^/[pip] /' & \
     ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES="${SCRIPTS_DIR}"/.gitmodules lock_file="${SCRIPTS_DIR}"/tpls_commits.lock \
       bash "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
