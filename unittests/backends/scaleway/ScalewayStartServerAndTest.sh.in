@@ -8,6 +8,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Check and install qio package for mock server
 @Python_EXECUTABLE@ -c "import qio" 2> /dev/null
 if [ $? -ne 0 ]; then
     @Python_EXECUTABLE@ -m pip install qio~=0.1.31
