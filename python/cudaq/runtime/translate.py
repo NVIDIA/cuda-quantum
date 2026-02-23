@@ -88,4 +88,4 @@ def translate(kernel, *args, format="qir:0.1"):
     # Arguments are resolved. Specialize this kernel and translate to the
     # selected transport layer.
     return cudaq_runtime.translate_impl(decorator.uniqName, module, retTy,
-                                        format, *processedArgs)
+                                        format, processedArgs)

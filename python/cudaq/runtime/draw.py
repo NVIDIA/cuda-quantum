@@ -25,7 +25,7 @@ def _detail_draw(format, decorator, *args):
     # Arguments are resolved, so go ahead and do the draw functionality, which
     # performs a kernel launch.
     return cudaq_runtime.draw_impl(format, decorator.uniqName, module, retTy,
-                                   *processedArgs)
+                                   processedArgs)
 
 
 def draw(decoratorOrFormat, *args):

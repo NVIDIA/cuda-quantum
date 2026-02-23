@@ -40,4 +40,4 @@ def get_unitary(kernel, *args):
     returnTy = (decorator.return_type
                 if decorator.return_type else decorator.get_none_type())
     return cudaq_runtime.get_unitary_impl(decorator.uniqName, module, returnTy,
-                                          *processedArgs)
+                                          processedArgs)

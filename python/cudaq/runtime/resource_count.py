@@ -40,4 +40,4 @@ def estimate_resources(kernel, *args, **kwargs):
     choice = kwargs.get("choice", None)
     return cudaq_runtime.estimate_resources_impl(decorator.uniqName, module,
                                                  returnTy, choice,
-                                                 *processedArgs)
+                                                 processedArgs)

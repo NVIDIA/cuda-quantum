@@ -125,50 +125,6 @@ void cudaq::setDataLayout(MlirModule module) {
 // The section is the implementation of functions declared in OpaqueArguments.h
 //===----------------------------------------------------------------------===//
 
-py::args cudaq::simplifiedValidateInputArguments(py::args &args) {
-  py::args processed = py::tuple(args.size());
-  for (std::size_t i = 0; i < args.size(); ++i) {
-    auto arg = args[i];
-    // Check if it has tolist, so it might be a 1d buffer (array / numpy
-    // ndarray)
-    if (py::hasattr(args[i], "tolist")) {
-      // This is a valid ndarray if it has tolist and shape
-      if (!py::hasattr(args[i], "shape"))
-        throw std::runtime_error(
-            "Invalid input argument type, could not get shape of array.");
-
-      // This is an ndarray with tolist() and shape attributes
-      // get the shape and check its size
-      auto shape = args[i].attr("shape").cast<py::tuple>();
-      if (shape.size() != 1)
-        throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
-
-      arg = args[i].attr("tolist")();
-    } else if (py::isinstance<py::str>(arg)) {
-      arg = py::cast<std::string>(arg);
-    } else if (py::isinstance<py::list>(arg)) {
-      py::list arg_list = py::cast<py::list>(arg);
-      const bool all_strings = [&]() {
-        for (auto &item : arg_list)
-          if (!py::isinstance<py::str>(item))
-            return false;
-        return true;
-      }();
-      if (all_strings) {
-        std::vector<cudaq::pauli_word> pw_list;
-        pw_list.reserve(arg_list.size());
-        for (auto &item : arg_list)
-          pw_list.emplace_back(py::cast<std::string>(item));
-        arg = std::move(pw_list);
-      }
-    }
-
-    processed[i] = arg;
-  }
-
-  return processed;
-}
-
 std::pair<std::size_t, std::vector<std::size_t>>
 cudaq::getTargetLayout(mlir::ModuleOp mod, cudaq::cc::StructType structTy) {
   mlir::StringRef dataLayoutSpec = "";
@@ -358,263 +314,7 @@ std::string cudaq::mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
-void cudaq::packArgs(OpaqueArguments &argData, py::list args,
-                     mlir::ArrayRef<mlir::Type> mlirTys,
-                     const std::function<bool(OpaqueArguments &, py::object &,
-                                              unsigned)> &backupHandler,
-                     mlir::func::FuncOp kernelFuncOp) {
-  if (args.size() == 0)
-    return;
-
-  for (auto [i, zippy] : llvm::enumerate(llvm::zip(args, mlirTys))) {
-    py::object arg = py::reinterpret_borrow<py::object>(std::get<0>(zippy));
-    Type kernelArgTy = std::get<1>(zippy);
-    llvm::TypeSwitch<Type, void>(kernelArgTy)
-        .Case([&](ComplexType ty) {
-          checkArgumentType<py_ext::Complex>(arg, i);
-          if (isa<Float64Type>(ty.getElementType())) {
-            addArgument(argData, arg.cast<std::complex<double>>());
-          } else if (isa<Float32Type>(ty.getElementType())) {
-            addArgument(argData, arg.cast<std::complex<float>>());
-          } else {
-            throw std::runtime_error("Invalid complex type argument: " +
-                                     py::str(args).cast<std::string>() +
-                                     " Type: " + mlirTypeToString(ty));
-          }
-        })
-        .Case([&](Float64Type ty) {
-          checkArgumentType<py_ext::Float>(arg, i);
-          addArgument(argData, arg.cast<double>());
-        })
-        .Case([&](Float32Type ty) {
-          checkArgumentType<py_ext::Float>(arg, i);
-          addArgument(argData, arg.cast<float>());
-        })
-        .Case([&](IntegerType ty) {
-          if (ty.getIntOrFloatBitWidth() == 1) {
-            checkArgumentType<py::bool_>(arg, i);
-            addArgument(argData, static_cast<char>(arg.cast<bool>()));
-            return;
-          }
-
-          checkArgumentType<py_ext::Int>(arg, i);
-          addArgument(argData, arg.cast<std::int64_t>());
-        })
-        .Case([&](cc::CharspanType ty) {
-          addArgument(argData, arg.cast<pauli_word>().str());
-        })
-        .Case([&](cc::PointerType ty) {
-          if (isa<quake::StateType>(ty.getElementType())) {
-            auto *stateArg = arg.cast<state *>();
-
-            if (stateArg == nullptr)
-              throw std::runtime_error("Null cudaq::state* argument passed.");
-            auto simState = cudaq::state_helper::getSimulationState(
-                const_cast<cudaq::state *>(stateArg));
-            if (!simState)
-              throw std::runtime_error("Error: Unable to retrieve simulation "
-                                       "state from cudaq::state. The state "
-                                       "contains no simulation state.");
-            if (simState->getKernelInfo().has_value()) {
-              // For state arguments represented by a kernel, we need to make a
-              // copy of the state since this state is lazily evaluated. Note:
-              // the state that holds the kernel info also holds ownership of
-              // the packed arguments, hence the unravelling the correct
-              // arguments when evaluated.
-              state *copyState = new state(*stateArg);
-              argData.emplace_back(copyState, [](void *ptr) {
-                delete static_cast<state *>(ptr);
-              });
-            } else {
-              argData.emplace_back(
-                  stateArg,
-                  [](void *ptr) { /* do nothing, we don't own the state */ });
-            }
-          } else {
-            throw std::runtime_error("Invalid pointer type argument: " +
-                                     py::str(arg).cast<std::string>() +
-                                     " Type: " + mlirTypeToString(ty));
-          }
-        })
-        .Case([&](cc::StructType ty) {
-          auto mod = kernelFuncOp->getParentOfType<mlir::ModuleOp>();
-          auto [size, offsets] = getTargetLayout(mod, ty);
-          auto memberTys = ty.getMembers();
-          auto allocatedArg = std::malloc(size);
-          if (ty.getName() == "tuple") {
-            auto elements = arg.cast<py::tuple>();
-            for (std::size_t i = 0; i < offsets.size(); i++)
-              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                         elements[i]);
-          } else {
-            py::dict attributes = arg.attr("__annotations__").cast<py::dict>();
-            for (std::size_t i = 0;
-                 const auto &[attr_name, unused] : attributes) {
-              py::object attr_value =
-                  arg.attr(attr_name.cast<std::string>().c_str());
-              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                         attr_value);
-              i++;
-            }
-          }
-          argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
-        })
-        .Case([&](cc::StdvecType ty) {
-          auto appendVectorValue = [&argData]<typename T>(Type eleTy,
-                                                          py::list list) {
-            auto allocatedArg = handleVectorElements(eleTy, list);
-            argData.emplace_back(allocatedArg, [](void *ptr) {
-              delete static_cast<std::vector<T> *>(ptr);
-            });
-          };
-
-          checkArgumentType<py::list>(arg, i);
-          auto list = py::cast<py::list>(arg);
-          auto eleTy = ty.getElementType();
-          if (eleTy.isInteger(1)) {
-            // Special case for a `std::vector<bool>`.
-            appendVectorValue.template operator()<char>(eleTy, list);
-            return;
-          }
-          // All other `std::vector<T>` types, including nested vectors.
-          appendVectorValue.template operator()<std::int64_t>(eleTy, list);
-        })
-        .Case([&](cc::CallableType ty) {
-          // arg must be a DecoratorCapture object.
-          checkArgumentType<py::object>(arg, i);
-          if (py::hasattr(arg, "linkedKernel")) {
-            auto kernelName = arg.attr("linkedKernel").cast<std::string>();
-            // TODO: This is kinda yucky to have to remove because it's already
-            // present
-            kernelName.erase(0, strlen(cudaq::runtime::cudaqGenPrefixName));
-            auto kernelModule =
-                unwrap(arg.attr("qkeModule").cast<MlirModule>());
-            OpaqueArguments resolvedArgs;
-            argData.emplace_back(
-                new runtime::CallableClosureArgument(kernelName, kernelModule,
-                                                     std::nullopt,
-                                                     std::move(resolvedArgs)),
-                [](void *that) {
-                  delete static_cast<runtime::CallableClosureArgument *>(that);
-                });
-          } else {
-            py::object decorator = arg.attr("decorator");
-            auto kernelName = decorator.attr("uniqName").cast<std::string>();
-            auto kernelModule =
-                unwrap(decorator.attr("qkeModule").cast<MlirModule>());
-            auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
-                cudaq::runtime::cudaqGenPrefixName + kernelName);
-            py::list arguments = arg.attr("resolved");
-            auto startLiftedArgs = [&]() -> std::optional<unsigned> {
-              if (!arguments.empty())
-                return decorator.attr("formal_arity")().cast<unsigned>();
-              return std::nullopt;
-            }();
-            // build the recursive closure in a C++ object
-            auto *closure = [&]() {
-              OpaqueArguments resolvedArgs;
-              if (startLiftedArgs) {
-                auto fnTy = calledFuncOp.getFunctionType();
-                auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
-                packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
-                         calledFuncOp);
-              }
-              return new runtime::CallableClosureArgument(
-                  kernelName, kernelModule, std::move(startLiftedArgs),
-                  std::move(resolvedArgs));
-            }();
-            argData.emplace_back(closure, [](void *that) {
-              delete static_cast<runtime::CallableClosureArgument *>(that);
-            });
-          }
-        })
-        .Default([&](Type ty) {
-          // See if we have a backup type handler.
-          bool success = backupHandler(argData, arg, i);
-          if (!success)
-            throw std::runtime_error(
-                "Could not pack argument: " + py::str(arg).cast<std::string>() +
-                " Type: " + mlirTypeToString(ty));
-        });
-  }
-}
-
-void cudaq::packArgs(OpaqueArguments &argData, py::args args,
-                     mlir::func::FuncOp kernelFuncOp,
-                     const std::function<bool(OpaqueArguments &, py::object &,
-                                              unsigned)> &backupHandler,
-                     std::size_t startingArgIdx) {
-  if (args.size() == 0) {
-    // Nothing to pack. This may be a full QIR pre-compile, which is perfectly
-    // legit. At any rate, there is nothing to pack so return.
-    return;
-  }
-
-  if (kernelFuncOp.getNumArguments() != args.size())
-    throw std::runtime_error("Invalid runtime arguments - kernel expected " +
-                             std::to_string(kernelFuncOp.getNumArguments()) +
-                             " but was provided " +
-                             std::to_string(args.size()) + " arguments.");
-
-  // Move the args to a list, lopping off startingArgIdx args from the front.
-  py::list pyList;
-  for (auto [i, h] : llvm::enumerate(args)) {
-    if (i < startingArgIdx)
-      continue;
-    pyList.append(h);
-  }
-  return packArgs(
-      argData, pyList,
-      kernelFuncOp.getFunctionType().getInputs().drop_front(startingArgIdx),
-      backupHandler, kernelFuncOp);
-}
-
 //===----------------------------------------------------------------------===//
-
-/// Mechanical merge of a callable argument (captured in a python decorator)
-/// when the call site is executed.
-static bool linkResolvedCallable(ModuleOp currMod, func::FuncOp entryPoint,
-                                 unsigned argPos, py::object arg) {
-  if (!py::hasattr(arg, "qkeModule"))
-    return false;
-  auto uniqName = arg.attr("uniqName").cast<std::string>();
-  auto otherModule = arg.attr("qkeModule").cast<MlirModule>();
-  ModuleOp otherMod = unwrap(otherModule);
-  std::string calleeName = cudaq::runtime::cudaqGenPrefixName + uniqName;
-  auto callee = cudaq::getKernelFuncOp(otherModule, calleeName);
-  // TODO: Consider just merging the declaration of the symbol instead of the
-  // entire module here. Then leaning into the execution engine linking to the
-  // correct LLVM code. Beware though! That only makes sense when the kernel is
-  // already lowered to machine code and is available in-process (i.e., local
-  // simulation).
-  cudaq::opt::factory::mergeModules(currMod, otherMod);
-  // Replace the `argPos`-th argument of `entryPoint`, which must be a
-  // `cc.callable`, with the function constant with the symbol
-  // `cudaqGenPrefixName` + `uniqName`.
-  auto *ctx = currMod.getContext();
-  OpBuilder builder(ctx);
-  auto loc = entryPoint.getLoc();
-  Block &entry = entryPoint.front();
-  builder.setInsertionPoint(&entry.front());
-  auto resolved = builder.create<func::ConstantOp>(
-      loc, callee.getFunctionType(), calleeName);
-  entry.getArgument(argPos).replaceAllUsesWith(resolved);
-  return true;
-}
-
-/// @brief Create a new OpaqueArguments pointer and pack the python arguments
-/// in it. Clients must delete the memory.
-cudaq::OpaqueArguments *cudaq::toOpaqueArgs(py::args &args, MlirModule mod,
-                                            const std::string &name) {
-  auto kernelFunc = getKernelFuncOp(mod, name);
-  auto *argData = new cudaq::OpaqueArguments();
-  args = simplifiedValidateInputArguments(args);
-  setDataLayout(mod);
-  cudaq::packArgs(
-      *argData, args, kernelFunc,
-      [](OpaqueArguments &, py::object &, unsigned) { return false; });
-  return argData;
-}
 
 /// Append result buffer to \p runtimeArgs.
 /// The result buffer is a pointer to a preallocated heap location in which the
@@ -909,35 +609,21 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod, Type retTy,
   return pyLaunchModule(name, mod, rawArgs, resTy);
 }
 
-cudaq::OpaqueArguments
-cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
-                                           func::FuncOp kernelFunc) {
-  // Convert python arguments to opaque form.
-  cudaq::OpaqueArguments args;
-  cudaq::packArgs(
-      args, runtimeArgs, kernelFunc,
-      [&](cudaq::OpaqueArguments &args, py::object &pyArg, unsigned pos) {
-        return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
-      });
-  return args;
-}
-
 py::object cudaq::marshal_and_launch_module(const std::string &name,
                                             MlirModule module,
                                             MlirType returnType,
-                                            py::args runtimeArgs) {
+                                            OpaqueArguments runtimeArgs) {
   ScopedTraceWithContext("marshal_and_launch_module", name);
-  auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = unwrap(returnType);
-  auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
-  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, retTy, args);
+  [[maybe_unused]] auto resultPtr =
+      cudaq::clean_launch_module(name, mod, retTy, runtimeArgs);
   // FIXME: handle dynamic sized results!
 
   if (isa<NoneType>(retTy))
     return py::none();
-  return cudaq::convertResult(mod, retTy,
-                              reinterpret_cast<char *>(args.getArgs().back()));
+  return cudaq::convertResult(
+      mod, retTy, reinterpret_cast<char *>(runtimeArgs.getArgs().back()));
 }
 
 // Return the pointer to the JITted LLVM code for the entry point function, and
@@ -948,15 +634,11 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
 static std::pair<void *, std::size_t>
 marshal_and_retain_module(const std::string &name, MlirModule module,
                           MlirType returnType, bool isEntryPoint,
-                          py::args runtimeArgs) {
+                          cudaq::OpaqueArguments args) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
   std::optional<cudaq::JitEngine> cachedEngine;
-
-  auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = unwrap(returnType);
-  auto args =
-      cudaq::marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
@@ -981,7 +663,9 @@ static void delete_cache_execution_engine(std::size_t cacheKey) {
   cudaq::JITExecutionCache::getJITCache().deleteJITEngine(cacheKey);
 }
 
-static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
+/// Core synthesis implementation that works with pre-packed OpaqueArguments.
+static MlirModule synthesizeKernel(py::object kernel,
+                                   cudaq::OpaqueArguments &args) {
   auto module = kernel.attr("qkeModule").cast<MlirModule>();
   auto mod = unwrap(module);
   auto name = kernel.attr("uniqName").cast<std::string>();
@@ -990,12 +674,7 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
         cast<StringAttr>(mod->getAttr(cudaq::runtime::pythonUniqueAttrName));
     name = n.str();
   }
-  auto kernelFuncOp = cudaq::getKernelFuncOp(module, name);
-  cudaq::OpaqueArguments args;
   cudaq::setDataLayout(module);
-  cudaq::packArgs(
-      args, runtimeArgs, kernelFuncOp,
-      [](cudaq::OpaqueArguments &, py::object &, unsigned) { return false; });
 
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto rawArgs = appendResultToArgsVector(args, {}, mod, name);
@@ -1139,15 +818,9 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
 }
 
 static MlirModule lower_to_codegen(const std::string &kernelName,
-                                   MlirModule module, py::args runtimeArgs) {
-  auto kernelFunc = cudaq::getKernelFuncOp(module, kernelName);
-  cudaq::OpaqueArguments args;
+                                   MlirModule module,
+                                   cudaq::OpaqueArguments args) {
   auto mod = unwrap(module);
-  cudaq::packArgs(
-      args, runtimeArgs, kernelFunc,
-      [&](cudaq::OpaqueArguments &args, py::object &pyArg, unsigned pos) {
-        return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
-      });
   return wrap(cleanLowerToCodegenKernel(mod, args));
 }
 

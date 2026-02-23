@@ -19,9 +19,8 @@ using namespace cudaq;
 
 static Resources estimate_resources_impl(
     const std::string &kernelName, MlirModule kernelMod, MlirType returnTy,
-    std::optional<std::function<bool()>> choice, py::args args) {
+    std::optional<std::function<bool()>> choice, OpaqueArguments args) {
   auto &platform = cudaq::get_platform();
-  args = simplifiedValidateInputArguments(args);
 
   ExecutionContext ctx("resource-count", 1);
   ctx.kernelName = kernelName;
@@ -43,9 +42,10 @@ static Resources estimate_resources_impl(
   python::detail::setChoiceFunction(*choice);
 
   try {
-    platform.with_execution_context(ctx, [&]() {
+    platform.with_execution_context(ctx, [kernelName, kernelMod, returnTy,
+                                          args = std::move(args)]() mutable {
       [[maybe_unused]] auto result = cudaq::marshal_and_launch_module(
-          kernelName, kernelMod, returnTy, args);
+          kernelName, kernelMod, returnTy, std::move(args));
     });
   } catch (...) {
     python::detail::stopUsingResourceCounterSimulator();

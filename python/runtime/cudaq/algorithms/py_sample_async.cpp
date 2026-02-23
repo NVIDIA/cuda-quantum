@@ -21,12 +21,13 @@ namespace py = pybind11;
 
 using namespace cudaq;
 
-static async_sample_result sample_async_impl(
-    const std::string &shortName, MlirModule module, MlirType returnTy,
-    std::size_t shots_count, std::optional<noise_model> noise_model,
-    bool explicit_measurements, std::size_t qpu_id, py::args runtimeArgs) {
+static async_sample_result
+sample_async_impl(const std::string &shortName, MlirModule module,
+                  MlirType returnTy, std::size_t shots_count,
+                  std::optional<noise_model> noise_model,
+                  bool explicit_measurements, std::size_t qpu_id,
+                  OpaqueArguments runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
-  runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 
   std::string kernelName = shortName;
   auto retTy = unwrap(returnTy);
@@ -37,8 +38,6 @@ static async_sample_result sample_async_impl(
           "Noise model is not supported on remote platforms.");
     platform.set_noise(&noise_model.value());
   }
-  auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL
   py::gil_scoped_release release;
@@ -47,10 +46,10 @@ static async_sample_result sample_async_impl(
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
+      detail::make_copyable_function([args = std::move(runtimeArgs), kernelName,
                                       retTy, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, retTy, opaques);
+            clean_launch_module(kernelName, mod, retTy, args);
       }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id);
 }

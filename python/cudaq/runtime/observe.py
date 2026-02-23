@@ -267,7 +267,7 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     returnTy = decorator.get_none_type()
     return cudaq_runtime.observe_async_impl(shortName, module, returnTy,
                                             spin_operator, qpu_id, shots_count,
-                                            *processedArgs)
+                                            processedArgs)
 
 
 def observe_parallel(kernel,
@@ -333,4 +333,4 @@ def observe_parallel(kernel,
     return cudaq_runtime.observe_parallel_impl(shortName, module, returnTy,
                                                execution, spin_operator,
                                                shots_count, noise_model,
-                                               *processedArgs)
+                                               processedArgs)

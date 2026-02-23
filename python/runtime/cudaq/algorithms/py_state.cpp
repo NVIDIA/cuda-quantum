@@ -40,24 +40,26 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 }
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
-static state get_state_impl(const std::string &shortName, MlirModule mod,
-                            MlirType retTy, py::args args) {
-  auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, retTy, args);
+static state get_state_impl(const std::string &shortName, MlirModule module,
+                            MlirType retTy, OpaqueArguments runtimeArgs) {
+  auto closure = [args = std::move(runtimeArgs), shortName, module,
+                  retTy]() mutable -> py::object {
+    return cudaq::marshal_and_launch_module(shortName, module, retTy,
+                                            std::move(args));
   };
   return details::extractState(std::move(closure));
 }
 
-static std::future<state>
-get_state_async_impl(const std::string &shortName, MlirModule module,
-                     MlirType returnTy, std::size_t qpu_id, py::args args) {
+static std::future<state> get_state_async_impl(const std::string &shortName,
+                                               MlirModule module,
+                                               MlirType returnTy,
+                                               std::size_t qpu_id,
+                                               OpaqueArguments opaques) {
   // Launch the asynchronous execution.
   auto mod = unwrap(module);
   std::string kernelName = shortName;
   auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
-  auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
 
   py::gil_scoped_release release;
   return details::runGetStateAsync(
@@ -125,25 +127,6 @@ public:
   virtual ~PyRemoteSimulationState() override { delete argsData; }
 };
 
-/// @brief Run `cudaq::get_state` for remote execution targets on the provided
-/// kernel and args
-state pyGetStateRemote(py::object kernel, py::args args) {
-  if (py::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-
-  auto kernelName = kernel.attr("uniqName").cast<std::string>();
-  auto kernelMod = kernel.attr("qkeModule").cast<MlirModule>();
-  args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-#if 0
-  auto [argWrapper, size, returnOffset] =
-      pyCreateNativeKernel(kernelName, kernelMod, *argData);
-#endif
-  return state(new PyRemoteSimulationState(kernelName, /*argWrapper*/ {},
-                                           argData,
-                                           /*size*/ 0, /*returnOffset*/ 0));
-}
-
 /// @brief Python implementation of the `QPUState`.
 // Note: Python kernel arguments are wrapped hence need to be unwrapped
 // accordingly.
@@ -166,15 +149,15 @@ public:
 /// @brief Run `cudaq::get_state` for qpu targets on the provided
 /// kernel and args
 state pyGetStateQPU(const std::string &kernelName, MlirModule kernelMod,
-                    py::args args) {
+                    OpaqueArguments args) {
   auto moduleOp = unwrap(kernelMod);
+  setDataLayout(kernelMod);
   std::string mlirCode;
   llvm::raw_string_ostream outStr(mlirCode);
   mlir::OpPrintingFlags opf;
   opf.enableDebugInfo(/*enable=*/true, /*pretty=*/false);
   moduleOp.print(outStr, opf);
-  args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto *argData = new OpaqueArguments(std::move(args));
   return state(new PyQPUState(kernelName, mlirCode, argData));
 }
 
@@ -784,7 +767,7 @@ index pair.
   mod.def(
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module, MlirType retTy,
-          py::args args) {
+          OpaqueArguments args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "orca-photonics")
@@ -792,8 +775,8 @@ index pair.
               "get_state is not supported in this context.");
 
         if (is_remote_platform() || is_emulated_platform())
-          return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, retTy, args);
+          return pyGetStateQPU(shortName, module, std::move(args));
+        return get_state_impl(shortName, module, retTy, std::move(args));
       },
       "See the python documenation for get_state.");
 
@@ -814,7 +797,7 @@ for more information on this programming pattern.)#")
   mod.def(
       "get_state_async_impl",
       [&](const std::string &shortName, MlirModule module, MlirType retTy,
-          std::size_t qpu_id, py::args args) {
+          std::size_t qpu_id, OpaqueArguments args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc" ||
@@ -823,7 +806,8 @@ for more information on this programming pattern.)#")
           throw std::runtime_error(
               "get_state_async is not supported in this context.");
 
-        return get_state_async_impl(shortName, module, retTy, qpu_id, args);
+        return get_state_async_impl(shortName, module, retTy, qpu_id,
+                                    std::move(args));
       },
       "See the python documentation for get_state_async.");
 

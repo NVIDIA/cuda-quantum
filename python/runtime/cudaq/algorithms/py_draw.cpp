@@ -18,12 +18,13 @@ namespace py = pybind11;
 /// launch \p kernel.
 static std::string pyDraw(const std::string &format,
                           const std::string &shortName, MlirModule mod,
-                          MlirType retTy, py::args runtimeArgs) {
+                          MlirType retTy, cudaq::OpaqueArguments runtimeArgs) {
   if (format != "ascii" && format != "latex")
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
-  auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, mod, retTy, runtimeArgs);
+  auto f = [shortName, mod, retTy, args = std::move(runtimeArgs)]() mutable {
+    return cudaq::marshal_and_launch_module(shortName, mod, retTy,
+                                            std::move(args));
   };
   if (format == "ascii")
     return cudaq::contrib::extractTrace(std::move(f));
@@ -32,13 +33,8 @@ static std::string pyDraw(const std::string &format,
 
 /// @brief Bind the draw cudaq function
 void cudaq::bindPyDraw(py::module &mod) {
-  mod.def(
-      "draw_impl",
-      [](const std::string &format, const std::string &shortName,
-         MlirModule mod, MlirType retTy, py::args runtimeArgs) {
-        return pyDraw(format, shortName, mod, retTy, runtimeArgs);
-      },
-      R"#(
+  mod.def("draw_impl", pyDraw,
+          R"#(
 Return a string representing the drawing of the execution path, in the format
 specified as the first argument. If the format is 'ascii', the output will be a
 UTF-8 encoded string. If the format is 'latex', the output will be a LaTeX

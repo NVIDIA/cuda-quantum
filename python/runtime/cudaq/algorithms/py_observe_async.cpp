@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_observe_async.h"
+#include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -67,21 +68,18 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
                                            mlir::ModuleOp mod, mlir::Type retTy,
                                            const spin_op &spin_operator,
                                            std::size_t qpu_id, int shots,
-                                           py::args args) {
+                                           OpaqueArguments args) {
   auto &platform = get_platform();
-  args = simplifiedValidateInputArguments(args);
-  auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
 
   // Launch the asynchronous execution.
   py::gil_scoped_release release;
   return details::runObservationAsync(
-      detail::make_copyable_function([opaques = std::move(opaques), shortName,
+      detail::make_copyable_function([args = std::move(args), shortName,
                                       mod = mod.clone(), retTy]() mutable {
         if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
           mod.dump();
         [[maybe_unused]] auto result =
-            clean_launch_module(shortName, mod, retTy, opaques);
+            clean_launch_module(shortName, mod, retTy, args);
       }),
       spin_operator, platform, shots, shortName, qpu_id);
 }
@@ -89,7 +87,7 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
 static async_observe_result
 observe_async_impl(const std::string &shortName, MlirModule module,
                    MlirType returnTy, py::object &spin_operator_obj,
-                   std::size_t qpu_id, int shots, py::args args) {
+                   std::size_t qpu_id, int shots, OpaqueArguments args) {
   // FIXME(OperatorCpp): Remove this when the operator class is implemented in
   // C++
   spin_op spin_operator = [](py::object &obj) -> spin_op {
@@ -100,15 +98,19 @@ observe_async_impl(const std::string &shortName, MlirModule module,
   auto mod = unwrap(module);
   auto retTy = unwrap(returnTy);
   return pyObserveAsync(shortName, mod, retTy, spin_operator, qpu_id, shots,
-                        args);
+                        std::move(args));
 }
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
-static observe_result
-pyObservePar(const PyParType &type, const std::string &shortName,
-             mlir::ModuleOp module, mlir::Type returnTy, spin_op &spin_operator,
-             int shots, std::optional<noise_model> noise, py::args args) {
-  // Ensure the user input is correct.
+/// Defer the conversion of py::list args into OpaqueArguments so that fresh
+/// arguments can be created for each distributed sub-task (cannot clone
+/// opaques).
+static observe_result pyObservePar(const PyParType &type,
+                                   const std::string &shortName,
+                                   mlir::ModuleOp mod, mlir::Type returnTy,
+                                   spin_op &spin_operator, int shots,
+                                   std::optional<noise_model> noise,
+                                   py::list wrappedArgs) {
   auto &platform = get_platform();
   if (!platform.supports_task_distribution())
     throw std::runtime_error(
@@ -119,6 +121,13 @@ pyObservePar(const PyParType &type, const std::string &shortName,
   if (noise)
     TODO("Handle Noise Models with python parallel distribution.");
 
+  auto launchObserve = [&](std::size_t i, const spin_op &op) {
+    OpaqueArguments opaques;
+    packWrappedArgs(opaques, wrappedArgs);
+    return pyObserveAsync(shortName, mod, returnTy, op, i, shots,
+                          std::move(opaques));
+  };
+
   auto nQpus = platform.num_qpus();
   if (type == PyParType::thread) {
     // Does this platform expose more than 1 QPU
@@ -127,12 +136,7 @@ pyObservePar(const PyParType &type, const std::string &shortName,
       printf(
           "[cudaq::observe warning] distributed observe requested but only 1 "
           "QPU available. no speedup expected.\n");
-    return details::distributeComputations(
-        [&](std::size_t i, const spin_op &op) {
-          return pyObserveAsync(shortName, module, returnTy, op, i, shots,
-                                args);
-        },
-        spin_operator, nQpus);
+    return details::distributeComputations(launchObserve, spin_operator, nQpus);
   }
 
   if (!mpi::is_initialized())
@@ -150,12 +154,8 @@ pyObservePar(const PyParType &type, const std::string &shortName,
   // Get this rank's set of spins to compute
   auto localH = spins[rank];
 
-  // Distribute locally, i.e. to the local nodes QPUs
-  auto localRankResult = details::distributeComputations(
-      [&](std::size_t i, const spin_op &op) {
-        return pyObserveAsync(shortName, module, returnTy, op, i, shots, args);
-      },
-      localH, nQpus);
+  auto localRankResult =
+      details::distributeComputations(launchObserve, localH, nQpus);
 
   // combine all the data via an all_reduce
   auto exp_val = localRankResult.expectation();
@@ -169,16 +169,16 @@ static observe_result
 observe_parallel_impl(const std::string &shortName, MlirModule module,
                       MlirType returnTy, py::type execution,
                       spin_op &spin_operator, int shots,
-                      std::optional<noise_model> noise, py::args arguments) {
+                      std::optional<noise_model> noise, py::list wrappedArgs) {
   std::string applicatorKey = py::str(execution.attr("__name__"));
   auto mod = unwrap(module);
   auto retTy = unwrap(returnTy);
   if (applicatorKey == "thread")
     return pyObservePar(PyParType::thread, shortName, mod, retTy, spin_operator,
-                        shots, noise, arguments);
+                        shots, noise, wrappedArgs);
   if (applicatorKey == "mpi")
     return pyObservePar(PyParType::mpi, shortName, mod, retTy, spin_operator,
-                        shots, noise, arguments);
+                        shots, noise, wrappedArgs);
   throw std::runtime_error("invalid parallel execution context");
 }
 

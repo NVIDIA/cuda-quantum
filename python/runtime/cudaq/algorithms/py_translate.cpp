@@ -22,7 +22,7 @@ using namespace mlir;
 static std::string translate_impl(const std::string &shortName,
                                   MlirModule module, MlirType returnTy,
                                   const std::string &format,
-                                  py::args runtimeArguments) {
+                                  cudaq::OpaqueArguments runtimeArgs) {
   StringRef format_ = format;
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);
@@ -33,19 +33,12 @@ static std::string translate_impl(const std::string &shortName,
       mod->getAttr(cudaq::runtime::pythonUniqueAttrName));
   std::string shortName_ = shortNameAttr.getValue().str();
   assert(shortName == shortName_ && "kernel names must match");
-  std::string longName = cudaq::runtime::cudaqGenPrefixName + shortName;
-  auto fn = mod.lookupSymbol<func::FuncOp>(longName);
-  if (!fn)
-    throw std::runtime_error(
-        "Module is malformed for python. Unique entry point cannot be found.");
-  auto opaques =
-      cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
   return StringSwitch<std::function<std::string()>>(formatPair.first)
       .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
              [&]() {
-               return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
-                                                       format);
+               return cudaq::detail::lower_to_qir_llvm(shortName, mod,
+                                                       runtimeArgs, format);
              })
       .Case("openqasm2",
             [&]() {
@@ -53,10 +46,11 @@ static std::string translate_impl(const std::string &shortName,
               // synthesize the arguments \e before calling translate and (2)
               // provide no arguments in the translate call itself. Check the
               // latter condition now.
-              if (!opaques.empty())
+              if (!runtimeArgs.empty())
                 throw std::runtime_error("Translation to OpenQASM 2.0 requires "
                                          "kernel to have 0 arguments.");
-              return cudaq::detail::lower_to_openqasm(shortName, mod, opaques);
+              return cudaq::detail::lower_to_openqasm(shortName, mod,
+                                                      runtimeArgs);
             })
       .Default([&]() {
         throw std::runtime_error("Invalid format to translate to: " + format);

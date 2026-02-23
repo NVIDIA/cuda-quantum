@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/algorithms/run.h"
 #include "utils/OpaqueArguments.h"
+#include "utils/OpaqueArgumentsCaster.h"
 #include "utils/PyTypes.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include <pybind11/complex.h>
@@ -25,11 +26,6 @@ namespace cudaq {
 
 /// @brief Set current architecture's data layout attribute on a module.
 void setDataLayout(MlirModule module);
-
-/// @brief Create a new OpaqueArguments pointer and pack the
-/// python arguments in it. Clients must delete the memory.
-OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                              const std::string &name);
 
 // FIXME: Document!
 std::size_t byteSize(mlir::Type ty);
@@ -47,16 +43,12 @@ void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
 /// has a result, it has type \p returnType. \p module must be modifiable.
 py::object marshal_and_launch_module(const std::string &kernelName,
                                      MlirModule module, MlirType returnType,
-                                     py::args runtimeArgs);
+                                     OpaqueArguments runtimeArgs);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
 /// unmarshalling is \e not performed.
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod, mlir::Type retTy,
                                           OpaqueArguments &args);
-
-OpaqueArguments
-marshal_arguments_for_module_launch(mlir::ModuleOp mod, py::args runtimeArgs,
-                                    mlir::func::FuncOp kernelFunc);
 
 } // namespace cudaq

@@ -258,8 +258,10 @@ orca = cudaq_runtime.orca
 
 
 def synthesize(kernel, *args):
+    processed_args = kernel.process_call_arguments(*args)
     return PyKernelDecorator(None,
-                             module=cudaq_runtime.synthesize(kernel, *args),
+                             module=cudaq_runtime.synthesize(
+                                 kernel, processed_args),
                              kernelName=kernel.name,
                              decorator=kernel)
 

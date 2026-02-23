@@ -272,5 +272,5 @@ def sample_async(decorator,
                                                      retTy, shots_count,
                                                      noise_model,
                                                      explicit_measurements,
-                                                     qpu_id, *processedArgs)
+                                                     qpu_id, processedArgs)
     return AsyncSampleResult(sample_results, module)

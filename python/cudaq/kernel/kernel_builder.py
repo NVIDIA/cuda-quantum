@@ -27,6 +27,7 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
 from cudaq.kernel_types import qubit, qvector
+from .kernel_args import wrap_for_mlir_type
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
 from .kernel_decorator import isa_kernel_decorator
@@ -1729,17 +1730,20 @@ class PyKernel(object):
                         f"{len(self.arguments[i].knownUniqueExtractions)} "
                         f"known unique extractions.")
                 if hasattr(arg, "tolist"):
-                    processedArgs.append(arg.tolist())
-                else:
-                    processedArgs.append(arg)
-            else:
-                processedArgs.append(arg)
+                    arg = arg.tolist()
+
+            processedArgs.append(arg)
 
         retTy = NoneType.get(self.module.context)
         self.compile()
+
+        wrappedArgs = [
+            wrap_for_mlir_type(a, t, self.qkeModule)
+            for a, t in zip(processedArgs, self.mlirArgTypes)
+        ]
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
         cudaq_runtime.marshal_and_launch_module(self.name, specialized, retTy,
-                                                *processedArgs)
+                                                wrappedArgs)
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes

@@ -10,7 +10,6 @@
 #include "cudaq/algorithms/unitary.h"
 #include "runtime/cudaq/operators/py_helpers.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
 
 namespace py = pybind11;
 
@@ -19,10 +18,11 @@ using namespace cudaq;
 /// Compute the unitary of this kernel module.
 static py::array get_unitary_impl(const std::string &shortName,
                                   MlirModule module, MlirType returnTy,
-                                  py::args args) {
+                                  cudaq::OpaqueArguments args) {
   // Uses the same pattern as py_draw.
-  auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, returnTy, args);
+  auto f = [shortName, module, returnTy, args = std::move(args)]() mutable {
+    return cudaq::marshal_and_launch_module(shortName, module, returnTy,
+                                            std::move(args));
   };
 
   // Return as numpy array (dim, dim), complex128

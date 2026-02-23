@@ -21,6 +21,8 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
                            Type)
 from .analysis import FunctionDefVisitor
+from .kernel_args import (KernelArg, DecoratorCapture, LinkedKernelCapture,
+                          wrap_for_mlir_type)
 from .kernel_signature import CapturedLinkedKernel, CapturedVariable, KernelSignature
 from .ast_bridge import compile_to_mlir
 from .utils import (emitFatalError, emitErrorIfInvalidPauli, get_module_name,
@@ -68,36 +70,6 @@ def ensure_not_recursive(method):
         return ret
 
     return wrapper
-
-
-class DecoratorCapture:
-
-    def __init__(self, decorator, values):
-        self.decorator = decorator
-        self.resolved = values
-
-    def __str__(self):
-        self.decorator.name + " -> " + str(self.resolved)
-
-    def __repr__(self):
-        "name: " + self.decorator.name + ", resolved: " + str(self.resolved)
-
-
-class LinkedKernelCapture:
-    '''
-    Captures a linked C++ kernel. Includes the name of the
-    linked kernel and its quake code.
-    '''
-
-    def __init__(self, linkedKernel, qkeModule):
-        self.linkedKernel = linkedKernel
-        self.qkeModule = qkeModule
-
-    def __str__(self):
-        self.linkedKernel
-
-    def __repr__(self):
-        "name: " + self.linkedKernel
 
 
 class PyKernelDecorator(object):
@@ -597,7 +569,7 @@ class PyKernelDecorator(object):
 
         mlirTy = self.handle_call_results()
         result = cudaq_runtime.marshal_and_launch_module(
-            self.uniqName, module, mlirTy, *processed_args)
+            self.uniqName, module, mlirTy, processed_args)
         return result
 
     def beta_reduction(self, isEntryPoint, *args):
@@ -616,7 +588,7 @@ class PyKernelDecorator(object):
         mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName, module,
                                                        mlirTy, isEntryPoint,
-                                                       *processed_args)
+                                                       processed_args)
 
     def delete_cache_execution_engine(self, key):
         """
@@ -624,7 +596,7 @@ class PyKernelDecorator(object):
         """
         cudaq_runtime.delete_cache_execution_engine(key)
 
-    def process_argument(self, arg, arg_type):
+    def process_argument(self, arg, arg_type) -> KernelArg:
         if isa_kernel_decorator(arg):
             captured_args = arg.resolve_captured_arguments()
             return DecoratorCapture(arg, captured_args)
@@ -642,22 +614,21 @@ class PyKernelDecorator(object):
                 f"a kernel decorator.")
 
         if self.isCastablePyType(mlirType, arg_type):
-            return self.castPyType(mlirType, arg_type, arg)
-
-        if mlirType != arg_type:
+            arg = self.castPyType(mlirType, arg_type, arg)
+        elif mlirType != arg_type:
             emitFatalError(f"Invalid runtime argument type. Argument of type "
                            f"{mlirTypeToPyType(mlirType)} was provided, but "
                            f"{mlirTypeToPyType(arg_type)} was expected.")
 
         # Convert `numpy` arrays to lists
-        if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
+        if cc.StdvecType.isinstance(arg_type) and hasattr(arg, "tolist"):
             if arg.ndim != 1:
                 emitFatalError(
                     f"CUDA-Q kernels only support array arguments from NumPy "
                     f"that are one dimensional (found shape = {arg.shape}).")
-            return arg.tolist()
-        else:
-            return arg
+            arg = arg.tolist()
+
+        return wrap_for_mlir_type(arg, arg_type, self.qkeModule)
 
     def _add_global_scoped_var(self, name, var):
         self.globalScopedVars[name] = var

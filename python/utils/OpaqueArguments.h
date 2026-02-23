@@ -38,12 +38,6 @@ namespace cudaq {
 // runtime, so it can be used to launch kernels. See ArgumentWrapper.h.
 class OpaqueArguments;
 
-/// This function modifies input arguments to convert them into valid CUDA-Q
-/// argument types. Future work should make this function perform more checks,
-/// we probably want to take the kernel MLIR argument types as input and use
-/// that to validate that the passed arguments are good to go.
-py::args simplifiedValidateInputArguments(py::args &args);
-
 /// @brief Search the given Module for the function with provided name.
 template <bool noThrow = false>
 mlir::func::FuncOp getKernelFuncOp(mlir::ModuleOp mod,
@@ -123,23 +117,6 @@ void handleStructMemberVariable(void *data, std::size_t offset,
 /// For the current vector element type, insert the value into the dynamically
 /// constructed vector.
 void *handleVectorElements(mlir::Type eleTy, py::list list);
-
-/// Take a list of python objects (the arguments) and convert them to C++
-/// objects on the heap. The results are returned in \p argData and include
-/// special `deletors` so that the argument data is cleaned up correctly.
-void packArgs(OpaqueArguments &argData, py::list args,
-              mlir::ArrayRef<mlir::Type> mlirTys,
-              const std::function<bool(OpaqueArguments &, py::object &,
-                                       unsigned)> &backupHandler,
-              mlir::func::FuncOp kernelFuncOp);
-
-/// This overload handles dropping the front \p startingArgIdx arguments on the
-/// floor. They are not packed in \p argData and are simply ignored.
-void packArgs(OpaqueArguments &argData, py::args args,
-              mlir::func::FuncOp kernelFuncOp,
-              const std::function<bool(OpaqueArguments &, py::object &,
-                                       unsigned)> &backupHandler,
-              std::size_t startingArgIdx = 0);
 
 /// Return `true` if the given \p args represents a request for broadcasting
 /// sample or observe over all argument sets. \p args types can be `int`,
