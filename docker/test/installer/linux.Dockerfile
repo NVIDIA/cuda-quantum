@@ -47,6 +47,7 @@ ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN export LIBCDEV_PACKAGE=${libcdev_package} && \
     export CUDART_VERSION=${cudart_version} && \
     export CUDA_DISTRIBUTION=${cuda_distribution} && \
+    export VALIDATION_PACKAGES="cmake make" && \
     . /runtime_dependencies.sh ${base_image} && \
     # working around the fact that the installation of the dependencies includes
     # setting some environment variables that are expected to be persistent on
@@ -75,9 +76,6 @@ RUN source /etc/environment && \
     sudo -E bash install_cuda_quantum*.$(uname -m) --accept && . /etc/profile
     ## [<CUDAQuantumInstall]
 RUN . /etc/profile && nvq++ --help
-
-## [Install cmake for find_package(CUDAQ) integration test]
-RUN sudo dnf install -y --nobest --setopt=install_weak_deps=False cmake make
 
 ## [ADD tools for validation]
 ADD scripts/validate_installation.sh /home/cudaq/validate.sh
