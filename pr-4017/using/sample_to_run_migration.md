@@ -2145,7 +2145,8 @@ C++
 ::: {.highlight-cpp .notranslate}
 ::: highlight
       auto results1 = cudaq::run(100, simple_conditional{});
-      std::size_t nOnes = std::ranges::count(results1, true);
+      std::size_t nOnes = std::count_if(results1.begin(), results1.end(),
+                                        [](const auto &r) { return (bool)r; });
       printf("Measured |1> %zu out of %zu shots\n", nOnes, results1.size());
 :::
 :::
