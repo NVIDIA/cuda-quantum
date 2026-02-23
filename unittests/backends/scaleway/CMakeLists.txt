@@ -12,5 +12,5 @@ add_backend_unittest_executable(test_scaleway
   BACKEND_CONFIG "scaleway url=http://localhost:62450"
 )
 
-configure_file("ScalewayStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/scaleway/ScalewayStartServerAndTest.sh" @ONLY)
+configure_file(ScalewayStartServerAndTest.sh.in ScalewayStartServerAndTest.sh @ONLY)
 add_test(NAME scaleway-tests COMMAND bash ScalewayStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/scaleway/)
