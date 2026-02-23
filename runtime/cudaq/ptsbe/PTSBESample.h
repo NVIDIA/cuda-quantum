@@ -206,7 +206,6 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   const auto &noiseModel = noisePtr ? *noisePtr : kEmptyNoiseModel;
 
   // Stage 0: Capture trace via ExecutionContext("tracer")
-  cudaq::info("[ptsbe] Capturing circuit trace for kernel '{}'", kernelName);
   ExecutionContext traceCtx("tracer");
   platform.with_execution_context(traceCtx, [&]() { wrappedKernel(); });
   cleanupTracerQubits(traceCtx.kernelTrace);
@@ -230,7 +229,6 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
               batch.totalShots(), batch.trajectories.size());
 
   // Stage 4: Execute PTSBE with life-cycle management
-  cudaq::info("[ptsbe] Executing batched simulation");
   auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
 
   // Stage 5: Aggregate per-trajectory results

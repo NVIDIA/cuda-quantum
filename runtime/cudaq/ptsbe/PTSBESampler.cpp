@@ -166,6 +166,8 @@ template <typename ScalarType>
 std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
                    const PTSBatch &batch) {
+  ScopedTraceWithContext("ptsbe::samplePTSBEGeneric",
+                         batch.trajectories.size());
   if (!cudaq::getExecutionContext())
     throw std::runtime_error(
         "samplePTSBEGeneric requires ExecutionContext to be set. "
@@ -284,6 +286,7 @@ static void teardown(nvqir::CircuitSimulator *sim, cudaq::ExecutionContext &ctx,
 std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch,
                          const std::string &contextType) {
+  ScopedTraceWithContext("ptsbe::samplePTSBEWithLifecycle");
   auto *sim = nvqir::getCircuitSimulatorInternal();
   const auto nQubits = numQubits(batch.trace);
 
