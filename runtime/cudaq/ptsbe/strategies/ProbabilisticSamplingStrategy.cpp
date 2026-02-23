@@ -7,12 +7,10 @@
  ******************************************************************************/
 
 #include "ProbabilisticSamplingStrategy.h"
-#include <set>
+#include <map>
 
 namespace cudaq::ptsbe {
 
-/// @brief Multiplier for maximum sampling attempts relative to target
-/// trajectories.
 static constexpr std::size_t ATTEMPT_MULTIPLIER = 10;
 
 ProbabilisticSamplingStrategy::~ProbabilisticSamplingStrategy() = default;
@@ -23,68 +21,71 @@ ProbabilisticSamplingStrategy::generateTrajectories(
     std::size_t max_trajectories) const {
 
   std::vector<cudaq::KrausTrajectory> results;
-  results.reserve(max_trajectories);
 
-  if (noise_points.empty()) {
+  if (noise_points.empty() || max_trajectories == 0)
     return results;
+
+  std::size_t total_possible = computeTotalTrajectories(noise_points);
+  results.reserve(std::min(max_trajectories, total_possible));
+
+  std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
+  std::size_t trajectory_id = 0;
+
+  std::vector<std::discrete_distribution<std::size_t>> distributions;
+  distributions.reserve(noise_points.size());
+  for (const auto &np : noise_points)
+    distributions.emplace_back(np.channel.probabilities.begin(),
+                               np.channel.probabilities.end());
+
+  // MC draw budget. Either user-specified or auto-calculated.
+  // The loop stops once max_trajectories unique patterns are found,
+  // so this is a ceiling on draws.
+  constexpr std::size_t MAX_BUDGET_CAP = 500000;
+  std::size_t budget;
+  if (max_trajectory_samples_.has_value()) {
+    budget = std::max(max_trajectories, max_trajectory_samples_.value());
+  } else {
+    std::size_t target = std::min(max_trajectories, total_possible);
+    budget = std::min(target * ATTEMPT_MULTIPLIER, MAX_BUDGET_CAP);
+    budget = std::max(max_trajectories, budget);
   }
 
-  std::set<std::vector<std::size_t>> seen_patterns;
+  std::vector<std::size_t> pattern(noise_points.size());
 
-  // Total possible unique trajectories with overflow protection
-  // If we want more trajectories than exist, cap at total to avoid infinite
-  // sampling
-  std::size_t total_possible = computeTotalTrajectories(noise_points);
-  std::size_t actual_target = std::min(max_trajectories, total_possible);
-
-  std::size_t trajectory_id = 0;
-  const std::size_t base_attempts = actual_target * ATTEMPT_MULTIPLIER;
-  constexpr std::size_t MAX_ATTEMPTS_CAP = 500000;
-  std::size_t min_attempts_for_coverage =
-      (total_possible <= 10000)
-          ? std::min(total_possible * 5000, MAX_ATTEMPTS_CAP)
-          : base_attempts;
-  std::size_t max_attempts = std::max(base_attempts, min_attempts_for_coverage);
-  std::size_t attempts = 0;
-
-  while (results.size() < max_trajectories && attempts < max_attempts) {
-    attempts++;
-
-    std::vector<KrausSelection> selections;
-    std::vector<std::size_t> pattern;
+  for (std::size_t sample = 0; sample < budget; ++sample) {
     double probability = 1.0;
-
-    selections.reserve(noise_points.size());
-    pattern.reserve(noise_points.size());
-
-    for (const auto &noise_point : noise_points) {
-      std::discrete_distribution<std::size_t> dist(
-          noise_point.channel.probabilities.begin(),
-          noise_point.channel.probabilities.end());
-      std::size_t sampled_idx = dist(rng_);
-      pattern.push_back(sampled_idx);
-
-      selections.push_back(KrausSelection{
-          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
-          static_cast<KrausOperatorType>(sampled_idx)});
-
-      probability *= noise_point.channel.probabilities[sampled_idx];
+    for (std::size_t i = 0; i < noise_points.size(); ++i) {
+      std::size_t idx = distributions[i](rng_);
+      pattern[i] = idx;
+      probability *= noise_points[i].channel.probabilities[idx];
     }
 
-    if (seen_patterns.insert(pattern).second) {
-      auto trajectory = KrausTrajectory::builder()
+    auto it = pattern_to_index.find(pattern);
+    if (it != pattern_to_index.end()) {
+      results[it->second].multiplicity++;
+    } else {
+      std::vector<KrausSelection> selections;
+      selections.reserve(noise_points.size());
+      for (std::size_t i = 0; i < noise_points.size(); ++i) {
+        const auto &np = noise_points[i];
+        bool error = !np.channel.is_identity_op(pattern[i]);
+        selections.push_back(KrausSelection{np.circuit_location, np.qubits,
+                                            np.op_name, pattern[i], error});
+      }
+
+      pattern_to_index.emplace(pattern, results.size());
+      results.push_back(KrausTrajectory::builder()
                             .setId(trajectory_id++)
                             .setSelections(std::move(selections))
                             .setProbability(probability)
-                            .build();
-      results.push_back(std::move(trajectory));
-
-      // If we've found all possible unique trajectories, stop
-      if (results.size() >= total_possible) {
+                            .build());
+      if (results.size() >= max_trajectories)
         break;
-      }
     }
   }
+
+  for (auto &traj : results)
+    traj.weight = static_cast<double>(traj.multiplicity);
 
   return results;
 }

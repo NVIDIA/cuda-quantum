@@ -15,17 +15,6 @@
 
 namespace cudaq {
 
-/// @brief Type-safe index for Kraus operators in a noise channel
-/// IDENTITY (0) represents no error, indices 1+ represent actual error
-/// operators
-///
-/// TODO: Expand this enum to include named error types for standard noise
-/// channels.
-enum class KrausOperatorType : std::size_t {
-  IDENTITY = 0,
-  // Values 1+ represent actual error operators from the noise channel
-};
-
 /// @brief Represents the choice of a specific Kraus operator at one noise point
 struct KrausSelection {
   /// @brief Unique position in the circuit's total ordering of noise-capable
@@ -41,7 +30,11 @@ struct KrausSelection {
   std::string op_name;
 
   /// @brief Which Kraus operator from the noise channel was selected
-  KrausOperatorType kraus_operator_index = KrausOperatorType::IDENTITY;
+  std::size_t kraus_operator_index = 0;
+
+  /// @brief Whether this selection represents an actual error (non-identity).
+  /// Set at trajectory generation time where the noise channel is available.
+  bool is_error = false;
 
   /// @brief Default constructor
   KrausSelection() = default;
@@ -51,10 +44,11 @@ struct KrausSelection {
   /// @param qbits Qubits affected by this noise operation
   /// @param op Gate operation name (e.g., "h", "x", `"cx"`)
   /// @param idx Selected Kraus operator index from noise channel
+  /// @param error Whether this selection is a non-identity error
   KrausSelection(std::size_t location, std::vector<std::size_t> qbits,
-                 std::string op, KrausOperatorType idx)
+                 std::string op, std::size_t idx, bool error = false)
       : circuit_location(location), qubits(std::move(qbits)),
-        op_name(std::move(op)), kraus_operator_index(idx) {}
+        op_name(std::move(op)), kraus_operator_index(idx), is_error(error) {}
 
   /// @brief Equality comparison for testing
   /// @param other KrausSelection to compare with
@@ -62,7 +56,8 @@ struct KrausSelection {
   constexpr bool operator==(const KrausSelection &other) const {
     return circuit_location == other.circuit_location &&
            qubits == other.qubits && op_name == other.op_name &&
-           kraus_operator_index == other.kraus_operator_index;
+           kraus_operator_index == other.kraus_operator_index &&
+           is_error == other.is_error;
   }
 };
 

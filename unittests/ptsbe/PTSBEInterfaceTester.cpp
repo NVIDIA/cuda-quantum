@@ -84,12 +84,9 @@ CUDAQ_TEST(PTSBEInterfaceTest, TrajectoryWithNoise) {
   traj.num_shots = 1000;
 
   // Add noise selections
-  traj.kraus_selections.push_back(
-      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY));
-  traj.kraus_selections.push_back(
-      KrausSelection(1, {0, 1}, "cx", static_cast<KrausOperatorType>(2)));
-  traj.kraus_selections.push_back(
-      KrausSelection(2, {1}, "x", static_cast<KrausOperatorType>(1)));
+  traj.kraus_selections.push_back(KrausSelection(0, {0}, "h", 0));
+  traj.kraus_selections.push_back(KrausSelection(1, {0, 1}, "cx", 2, true));
+  traj.kraus_selections.push_back(KrausSelection(2, {1}, "x", 1, true));
 
   EXPECT_EQ(traj.kraus_selections.size(), 3);
   EXPECT_EQ(traj.kraus_selections[1].qubits.size(), 2);

@@ -26,7 +26,9 @@ std::size_t hashKrausSelection(const cudaq::KrausSelection &sel) {
   std::size_t h = std::hash<std::size_t>{}(sel.circuit_location);
   for (std::size_t q : sel.qubits)
     hashCombine(h, std::hash<std::size_t>{}(q));
-  hashCombine(h, static_cast<std::size_t>(sel.kraus_operator_index));
+  hashCombine(h, std::hash<std::string>{}(sel.op_name));
+  hashCombine(h, sel.kraus_operator_index);
+  hashCombine(h, std::hash<bool>{}(sel.is_error));
   return h;
 }
 
@@ -67,9 +69,11 @@ deduplicateTrajectories(std::span<const cudaq::KrausTrajectory> trajectories) {
     auto it = content_to_index.find(trajectory);
     if (it != content_to_index.end()) {
       result[it->second].multiplicity += trajectory.multiplicity;
+      result[it->second].weight += trajectory.weight;
     } else {
       cudaq::KrausTrajectory rep = trajectory;
       rep.multiplicity = trajectory.multiplicity;
+      rep.weight = trajectory.weight;
       content_to_index[rep] = result.size();
       result.push_back(std::move(rep));
     }

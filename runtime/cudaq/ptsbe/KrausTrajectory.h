@@ -45,9 +45,16 @@ struct KrausTrajectory {
   /// @brief Number of measurement shots allocated to this trajectory
   std::size_t num_shots = 0;
 
-  /// @brief Number of times this trajectory appeared in the `pre-deduplication`
-  /// list.
+  /// @brief Number of times this trajectory was drawn in Monte Carlo sampling.
+  /// For exhaustive strategies, this is 1 as each trajectory is enumerated
+  /// once.
   std::size_t multiplicity = 1;
+
+  /// @brief Allocation weight for shot distribution. PROPORTIONAL and biased
+  /// allocation strategies distribute shots proportional to this value.
+  /// For Monte Carlo strategies this equals the multiplicity (sample count).
+  /// For exhaustive strategies this equals the trajectory probability.
+  double weight = 0.0;
 
   /// @brief The measurement results for this specific trajectory
   CountsDictionary measurement_counts;
@@ -65,7 +72,7 @@ struct KrausTrajectory {
   KrausTrajectory(std::size_t id, std::vector<KrausSelection> selections,
                   double prob, std::size_t shots = 0)
       : trajectory_id(id), kraus_selections(std::move(selections)),
-        probability(prob), num_shots(shots) {}
+        probability(prob), num_shots(shots), weight(prob) {}
 
   /// @brief Create a KrausTrajectoryBuilder
   /// @return KrausTrajectoryBuilder
@@ -83,11 +90,10 @@ struct KrausTrajectory {
   }
 
   /// @brief Count non-identity errors in this trajectory (error weight)
-  /// @return Number of non-identity Kraus operators (error count)
+  /// @return Number of selections with is_error == true
   [[nodiscard]] constexpr std::size_t countErrors() const {
-    return std::ranges::count_if(kraus_selections, [](const auto &sel) {
-      return sel.kraus_operator_index != KrausOperatorType::IDENTITY;
-    });
+    return std::ranges::count_if(kraus_selections,
+                                 [](const auto &sel) { return sel.is_error; });
   }
 
   /// @brief Verify that kraus_selections are ordered by circuit_location

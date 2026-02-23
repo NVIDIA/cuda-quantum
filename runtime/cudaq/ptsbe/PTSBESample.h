@@ -37,6 +37,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <future>
 #include <optional>
 #include <span>
@@ -81,12 +82,6 @@ void validatePTSBEPreconditions(
     std::optional<std::size_t> qpu_id = std::nullopt);
 
 /// @brief Build the PTSBE instruction sequence from a raw cudaq::Trace.
-///
-/// Converts QuditInfo targets/controls to plain qubit indices. All instruction
-/// types are preserved. Gate and measurement entries pass through. Noise
-/// entries (from apply_noise) have their channels resolved via the noise model.
-/// The resulting vector defines the unified index space for circuit_location
-/// referenced by NoisePoint.
 ///
 /// @param trace Raw circuit trace (may contain Gate, Noise, and Measurement)
 /// @param noise_model Noise model used to resolve inline apply_noise channels
@@ -214,6 +209,9 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   ExecutionContext traceCtx("tracer");
   platform.with_execution_context(traceCtx, [&]() { wrappedKernel(); });
   cleanupTracerQubits(traceCtx.kernelTrace);
+  cudaq::info("[ptsbe] Trace captured: {} qubits, {} instructions",
+              traceCtx.kernelTrace.getNumQudits(),
+              traceCtx.kernelTrace.getNumInstructions());
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
@@ -227,6 +225,8 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   // Stage 3: Build PTSBatch with trajectory generation and shot allocation
   auto batch = buildPTSBatchWithTrajectories(std::move(traceCtx.kernelTrace),
                                              noiseModel, options, shots);
+  cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
+              batch.totalShots(), batch.trajectories.size());
 
   // Stage 4: Execute PTSBE with life-cycle management
   auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
@@ -242,6 +242,8 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
     result.set_execution_data(std::move(*executionData));
   }
 
+  cudaq::info("[ptsbe] Complete: {} unique bitstrings from {} shots",
+              result.size(), result.get_total_shots());
   return result;
 }
 

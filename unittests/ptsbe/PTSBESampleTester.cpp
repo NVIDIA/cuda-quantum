@@ -611,5 +611,62 @@ CUDAQ_TEST(PTSBESampleTest, ExecutionDataIncludesMzNoise) {
   EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 1);
 }
 
+// ============================================================================
+// POPULATE EXECUTION DATA TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, PopulateExecutionDataFiltersZeroShotTrajectories) {
+  PTSBEExecutionData executionData;
+  executionData.instructions.push_back(
+      {TraceInstructionType::Noise, "depolarization", {0}, {}, {}});
+
+  std::vector<cudaq::KrausTrajectory> trajectories;
+  auto t0 = cudaq::KrausTrajectory(0, {}, 0.7, 0);
+  t0.num_shots = 50;
+  auto t1 = cudaq::KrausTrajectory(1, {}, 0.2, 0);
+  t1.num_shots = 0;
+  auto t2 = cudaq::KrausTrajectory(2, {}, 0.1, 0);
+  t2.num_shots = 30;
+  trajectories.push_back(std::move(t0));
+  trajectories.push_back(std::move(t1));
+  trajectories.push_back(std::move(t2));
+
+  cudaq::CountsDictionary counts0{{"00", 30}, {"11", 20}};
+  cudaq::CountsDictionary counts2{{"00", 20}, {"11", 10}};
+  std::vector<cudaq::sample_result> results;
+  results.push_back(cudaq::sample_result{cudaq::ExecutionResult{counts0}});
+  results.push_back(
+      cudaq::sample_result{cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
+  results.push_back(cudaq::sample_result{cudaq::ExecutionResult{counts2}});
+
+  populateExecutionDataTrajectories(executionData, std::move(trajectories),
+                                    std::move(results));
+
+  EXPECT_EQ(executionData.trajectories.size(), 2u);
+  EXPECT_EQ(executionData.trajectories[0].trajectory_id, 0u);
+  EXPECT_EQ(executionData.trajectories[1].trajectory_id, 2u);
+}
+
+CUDAQ_TEST(PTSBESampleTest, ZeroShotTrajectoriesNotReturnedInE2E) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options options;
+  options.shots = 10;
+  options.noise = noise;
+  options.ptsbe.return_execution_data = true;
+  options.ptsbe.max_trajectories = 1000;
+
+  auto result = sample(options, bellKernel);
+
+  ASSERT_TRUE(result.has_execution_data());
+  const auto &data = result.execution_data();
+
+  for (const auto &traj : data.trajectories) {
+    EXPECT_GT(traj.num_shots, 0u)
+        << "Trajectory " << traj.trajectory_id << " has 0 shots in output";
+  }
+}
+
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
        // && !CUDAQ_BACKEND_CUSTATEVEC_FP32

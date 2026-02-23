@@ -47,19 +47,19 @@ ExhaustiveSamplingStrategy::generateTrajectories(
       const auto &noise_point = noise_points[i];
       std::size_t op_idx = indices[i];
 
-      selections.push_back(KrausSelection{
-          noise_point.circuit_location, noise_point.qubits, noise_point.op_name,
-          static_cast<KrausOperatorType>(op_idx)});
+      bool error = !noise_point.channel.is_identity_op(op_idx);
+      selections.push_back(KrausSelection{noise_point.circuit_location,
+                                          noise_point.qubits,
+                                          noise_point.op_name, op_idx, error});
 
       probability *= noise_point.channel.probabilities[op_idx];
     }
 
-    auto trajectory = KrausTrajectory::builder()
+    results.push_back(KrausTrajectory::builder()
                           .setId(trajectory_id)
                           .setSelections(std::move(selections))
                           .setProbability(probability)
-                          .build();
-    results.push_back(std::move(trajectory));
+                          .build());
 
     for (std::size_t i = 0; i < indices.size(); ++i) {
       indices[i]++;

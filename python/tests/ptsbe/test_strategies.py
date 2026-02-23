@@ -184,6 +184,33 @@ def test_probabilistic_strategy_accepts_seed():
     assert s1.name() == s2.name()
 
 
+def test_probabilistic_strategy_max_trajectory_samples_affects_results(
+        depol_noise, bell_kernel):
+    s_small = cudaq.ptsbe.ProbabilisticSamplingStrategy(
+        seed=42, max_trajectory_samples=50)
+    s_large = cudaq.ptsbe.ProbabilisticSamplingStrategy(
+        seed=42, max_trajectory_samples=10000)
+    r_small = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=depol_noise,
+        shots_count=100,
+        sampling_strategy=s_small,
+        return_execution_data=True,
+    )
+    r_large = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=depol_noise,
+        shots_count=100,
+        sampling_strategy=s_large,
+        return_execution_data=True,
+    )
+    data_small = r_small.ptsbe_execution_data
+    data_large = r_large.ptsbe_execution_data
+    mult_small = sum(t.multiplicity for t in data_small.trajectories)
+    mult_large = sum(t.multiplicity for t in data_large.trajectories)
+    assert mult_large > mult_small
+
+
 def test_shot_allocation_strategy_default():
     s = cudaq.ptsbe.ShotAllocationStrategy()
     assert s.type == cudaq.ptsbe.ShotAllocationType.PROPORTIONAL
@@ -223,3 +250,38 @@ def test_ptsbe_sample_with_shot_allocation(depol_noise, bell_kernel):
     )
     assert isinstance(result, cudaq.SampleResult)
     assert len(result) > 0
+
+
+def test_exhaustive_strategy_weight_equals_probability(depol_noise,
+                                                       bell_kernel):
+    strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=depol_noise,
+        shots_count=100,
+        sampling_strategy=strategy,
+        return_execution_data=True,
+    )
+    data = result.ptsbe_execution_data
+    for traj in data.trajectories:
+        assert abs(traj.weight - traj.probability) < 1e-12, (
+            f"Exhaustive weight {traj.weight} != probability {traj.probability}"
+        )
+
+
+def test_probabilistic_strategy_weight_equals_multiplicity(
+        depol_noise, bell_kernel):
+    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(
+        seed=42, max_trajectory_samples=500)
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=depol_noise,
+        shots_count=100,
+        sampling_strategy=strategy,
+        return_execution_data=True,
+    )
+    data = result.ptsbe_execution_data
+    for traj in data.trajectories:
+        assert traj.weight == float(traj.multiplicity), (
+            f"Probabilistic weight {traj.weight} != multiplicity "
+            f"{traj.multiplicity}")

@@ -9,6 +9,7 @@
 #include "PTSBESample.h"
 #include "NoiseExtractor.h"
 #include "ShotAllocationStrategy.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
 #include <algorithm>
@@ -207,15 +208,20 @@ void populateExecutionDataTrajectories(
     PTSBEExecutionData &executionData,
     std::vector<cudaq::KrausTrajectory> trajectories,
     std::vector<cudaq::sample_result> perTrajectoryResults) {
-  // Populate measurement_counts from parallel-indexed perTrajectoryResults
+  // Populate measurement_counts from parallel-indexed perTrajectoryResults,
+  // keeping only trajectories that received at least one shot. Zero-shot
+  // trajectories were discovered by MC sampling but never simulated.
   for (std::size_t i = 0;
-       i < trajectories.size() && i < perTrajectoryResults.size(); ++i)
-    trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
-
-  if (!trajectories.empty()) {
-    executionData.trajectories = std::move(trajectories);
-    return;
+       i < trajectories.size() && i < perTrajectoryResults.size(); ++i) {
+    if (trajectories[i].num_shots == 0)
+      continue;
+    if (perTrajectoryResults[i].get_total_shots() > 0)
+      trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
+    executionData.trajectories.push_back(std::move(trajectories[i]));
   }
+
+  if (!executionData.trajectories.empty())
+    return;
 
   // Stub: generate a single identity trajectory so that the execution data
   // has at least one trajectory for downstream consumers (Python bindings,
@@ -229,7 +235,7 @@ void populateExecutionDataTrajectories(
     if (executionData.instructions[i].type == TraceInstructionType::Noise) {
       stub.kraus_selections.emplace_back(
           i, std::vector<std::size_t>(executionData.instructions[i].targets),
-          executionData.instructions[i].name, KrausOperatorType::IDENTITY);
+          executionData.instructions[i].name, 0, /*is_error=*/false);
     }
   }
   executionData.trajectories.push_back(std::move(stub));
@@ -245,12 +251,16 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
   batch.trace = buildPTSBETrace(kernelTrace, noiseModel);
   batch.measureQubits = extractMeasureQubits(batch.trace);
   auto noiseResult = extractNoiseSites(batch.trace);
+  cudaq::info("[ptsbe] Extracted {} noise sites from {} total instructions",
+              noiseResult.noise_sites.size(), noiseResult.total_instructions);
 
   // 2. Generate trajectories via the configured strategy (or default)
   auto strategy = options.strategy
                       ? options.strategy
                       : std::make_shared<ProbabilisticSamplingStrategy>();
   std::size_t maxTrajs = options.max_trajectories.value_or(shots);
+  cudaq::info("[ptsbe] Generating trajectories via {} strategy (max {})",
+              strategy->name(), maxTrajs);
   batch.trajectories =
       strategy->generateTrajectories(noiseResult.noise_sites, maxTrajs);
 

@@ -19,7 +19,7 @@ static KrausTrajectory createTrajectory(std::size_t id, double prob,
                                         std::size_t errors = 0) {
   std::vector<KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
-    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorType{1}));
+    selections.push_back(KrausSelection(i, {0}, "h", 1, /*is_error=*/true));
   }
   return KrausTrajectory(id, selections, prob, 0);
 }
@@ -123,12 +123,10 @@ TEST(TrajectoryDeduplicationTest, MultiplicityAlwaysAtLeastOne) {
 }
 
 TEST(TrajectoryDeduplicationTest, DifferentOrderDifferentContent) {
-  std::vector<KrausSelection> sel1 = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{0}),
-      KrausSelection(1, {0}, "x", KrausOperatorType{1})};
-  std::vector<KrausSelection> sel2 = {
-      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
-      KrausSelection(1, {0}, "x", KrausOperatorType{0})};
+  std::vector<KrausSelection> sel1 = {KrausSelection(0, {0}, "h", 0),
+                                      KrausSelection(1, {0}, "x", 1, true)};
+  std::vector<KrausSelection> sel2 = {KrausSelection(0, {0}, "h", 1, true),
+                                      KrausSelection(1, {0}, "x", 0)};
   std::vector<KrausTrajectory> input = {
       createTrajectoryWithSelections(0, sel1, 0.25),
       createTrajectoryWithSelections(1, sel2, 0.25)};

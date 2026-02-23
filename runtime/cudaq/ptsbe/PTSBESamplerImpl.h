@@ -65,10 +65,15 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
 /// via the trajectory selections (channel looked up from the trace), and
 /// Measurement entries are skipped (terminal measurements are handled
 /// separately by the simulator).
+///
+/// @param includeIdentity When true, identity Kraus operators are
+///   included as gate tasks. Useful if you require all trajectories to have
+///   identical gate structure.
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
-                         const cudaq::KrausTrajectory &trajectory);
+                         const cudaq::KrausTrajectory &trajectory,
+                         bool includeIdentity = false);
 
 /// @brief Generic PTSBE execution implementation
 ///

@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "PTSBESamplerImpl.h"
+#include "common/Environment.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include <numeric>
 #include <span>
@@ -52,7 +54,7 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
         "circuit_location " +
         std::to_string(sel.circuit_location));
   const auto &channel = noiseInst.channel.value();
-  auto k = static_cast<std::size_t>(sel.kraus_operator_index);
+  auto k = sel.kraus_operator_index;
   const auto &unitaryDouble = channel.unitary_ops.at(k);
   std::vector<std::complex<ScalarType>> matrix;
   matrix.reserve(unitaryDouble.size());
@@ -70,7 +72,8 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
 template <typename ScalarType>
 std::vector<GateTask<ScalarType>>
 mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
-                         const cudaq::KrausTrajectory &trajectory) {
+                         const cudaq::KrausTrajectory &trajectory,
+                         bool includeIdentity) {
   const auto &selections = trajectory.kraus_selections;
 
   std::vector<GateTask<ScalarType>> merged;
@@ -85,8 +88,10 @@ mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
 
     while (noiseIdx < selections.size() &&
            selections[noiseIdx].circuit_location == i) {
-      merged.push_back(
-          krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
+      if (includeIdentity || selections[noiseIdx].is_error) {
+        merged.push_back(
+            krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
+      }
       ++noiseIdx;
     }
   }
@@ -124,10 +129,10 @@ krausSelectionToTask<double>(const cudaq::KrausSelection &,
 
 template std::vector<GateTask<float>>
 mergeTasksWithTrajectory<float>(std::span<const TraceInstruction>,
-                                const cudaq::KrausTrajectory &);
+                                const cudaq::KrausTrajectory &, bool);
 template std::vector<GateTask<double>>
 mergeTasksWithTrajectory<double>(std::span<const TraceInstruction>,
-                                 const cudaq::KrausTrajectory &);
+                                 const cudaq::KrausTrajectory &, bool);
 
 // ---------------------------------------------------------------------------
 // Non-template implementations
@@ -161,6 +166,8 @@ template <typename ScalarType>
 std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
                    const PTSBatch &batch) {
+  ScopedTraceWithContext("ptsbe::samplePTSBEGeneric",
+                         batch.trajectories.size());
   if (!cudaq::getExecutionContext())
     throw std::runtime_error(
         "samplePTSBEGeneric requires ExecutionContext to be set. "
@@ -179,7 +186,13 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
   std::vector<cudaq::sample_result> results;
   results.reserve(batch.trajectories.size());
 
-  for (const auto &traj : batch.trajectories) {
+  const std::size_t numTrajectories = batch.trajectories.size();
+  // Log progress at ~10% intervals (at least every 100 trajectories)
+  const std::size_t progressInterval = std::max<std::size_t>(
+      1, std::min<std::size_t>(numTrajectories / 10, 100));
+
+  for (std::size_t ti = 0; ti < numTrajectories; ++ti) {
+    const auto &traj = batch.trajectories[ti];
     if (traj.num_shots == 0) {
       results.push_back(cudaq::sample_result{
           cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
@@ -199,6 +212,10 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
     results.push_back(
         cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});
+
+    if ((ti + 1) % progressInterval == 0)
+      cudaq::info("[ptsbe] Trajectory progress: {}/{} ({} shots)", ti + 1,
+                  numTrajectories, traj.num_shots);
   }
 
   return results;
@@ -215,13 +232,25 @@ template <typename SimulatorType>
 std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
                                                 const PTSBatch &batch) {
 
-  // Check if it is a BatchSimulator implementation
-  auto *batchSim = dynamic_cast<BatchSimulator *>(&sim);
-  if (batchSim) {
-    return batchSim->sampleWithPTSBE(batch);
+  // Check env var to force the generic (per-trajectory sampler) path,
+  // bypassing the batched batchMeasure path which has a per-shot GPU loop.
+  const bool forceGeneric =
+      cudaq::getEnvBool("CUDAQ_PTSBE_FORCE_GENERIC", false);
+
+  if (!forceGeneric) {
+    auto *batchSim = dynamic_cast<BatchSimulator *>(&sim);
+    if (batchSim) {
+      cudaq::info(
+          "[ptsbe] Dispatching to BatchSimulator custom implementation");
+      return batchSim->sampleWithPTSBE(batch);
+    }
   } else {
-    return samplePTSBEGeneric(sim, batch);
+    cudaq::info("[ptsbe] BatchSimulator dispatch overridden by "
+                "CUDAQ_PTSBE_FORCE_GENERIC=1");
   }
+
+  cudaq::info("[ptsbe] Dispatching to generic per-trajectory sampler");
+  return samplePTSBEGeneric(sim, batch);
 }
 
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
@@ -242,28 +271,43 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   }
 }
 
+/// Finalize and tear down the execution context and deallocate qubits.
+/// finalizeExecutionContext must precede deallocateQubits because
+/// CircuitSimulatorBase::deallocateQubits is a no-op while a context is set.
+static void teardown(nvqir::CircuitSimulator *sim, cudaq::ExecutionContext &ctx,
+                     std::size_t nQubits) {
+  sim->finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
+  std::vector<std::size_t> qubitIds(nQubits);
+  std::iota(qubitIds.begin(), qubitIds.end(), 0);
+  sim->deallocateQubits(qubitIds);
+}
+
 std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch,
                          const std::string &contextType) {
+  ScopedTraceWithContext("ptsbe::samplePTSBEWithLifecycle");
   auto *sim = nvqir::getCircuitSimulatorInternal();
+  const auto nQubits = numQubits(batch.trace);
 
   cudaq::ExecutionContext ctx(contextType, batch.totalShots());
   cudaq::detail::setExecutionContext(&ctx);
   sim->configureExecutionContext(ctx);
-  sim->allocateQubits(numQubits(batch.trace));
+  sim->allocateQubits(nQubits);
 
-  auto results = samplePTSBE(batch);
+  // Teardown must run on both normal exit and exception (e.g. std::bad_alloc
+  // from a BatchSimulator). Without it, a thrown exception leaves the
+  // execution context set, causing all subsequent simulator calls to fail
+  // with "Context already set".
+  std::vector<cudaq::sample_result> results;
+  try {
+    results = samplePTSBE(batch);
+  } catch (...) {
+    teardown(sim, ctx, nQubits);
+    throw;
+  }
 
-  // Finalize and reset execution context before deallocating qubits.
-  // CircuitSimulatorBase::deallocateQubits is a no-op while an execution
-  // context is set, so we must clear it first to avoid leaking qubits.
-  sim->finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
-
-  std::vector<std::size_t> qubitIds(numQubits(batch.trace));
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  sim->deallocateQubits(qubitIds);
-
+  teardown(sim, ctx, nQubits);
   return results;
 }
 

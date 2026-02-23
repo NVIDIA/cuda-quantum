@@ -334,6 +334,13 @@ public:
     generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
   }
 
+  /// @brief Check whether the operator at the given index is an identity.
+  bool is_identity_op(std::size_t index) const {
+    if (index >= op_names.size())
+      return false;
+    return op_names[index] == "id" || op_names[index] == "ii";
+  }
+
   /// @brief Populate op_names with default names of the form type_name[index].
   /// Called by constructors that do not set explicit op_names.
   void populateDefaultOpNames() {

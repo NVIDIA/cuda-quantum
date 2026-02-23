@@ -25,7 +25,9 @@ static cudaq::kraus_channel makeIYChannel(double pI, double pY) {
   std::vector<cudaq::kraus_op> ops;
   ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
   ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
-  return cudaq::kraus_channel(std::move(ops));
+  auto ch = cudaq::kraus_channel(std::move(ops));
+  ch.op_names = {"id", "y"};
+  return ch;
 }
 
 static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
@@ -37,7 +39,9 @@ static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
   ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
   ops.push_back(cudaq::kraus_op({0.0, sX, sX, 0.0}));
   ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
-  return cudaq::kraus_channel(std::move(ops));
+  auto ch = cudaq::kraus_channel(std::move(ops));
+  ch.op_names = {"id", "x", "y"};
+  return ch;
 }
 
 std::vector<NoisePoint> createSimpleNoisePoints() {
@@ -232,7 +236,8 @@ TEST(ProbabilisticSamplingStrategyTest, FewPossibleTrajectoriesDiscoversAll) {
   EXPECT_EQ(operator_indices.size(), 4);
 }
 
-TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
+TEST(ProbabilisticSamplingStrategyTest,
+     AccumulatesMultiplicityForAllTrajectories) {
   std::vector<NoisePoint> noise_points;
 
   NoisePoint np;
@@ -244,17 +249,95 @@ TEST(ProbabilisticSamplingStrategyTest, EarlyExitOptimization) {
 
   ProbabilisticSamplingStrategy strategy(42);
 
-  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+  auto trajectories = strategy.generateTrajectories(noise_points, 1000);
 
   EXPECT_EQ(trajectories.size(), 3);
 
   std::set<std::size_t> operator_indices;
+  std::size_t total_multiplicity = 0;
   for (const auto &traj : trajectories) {
     EXPECT_EQ(traj.kraus_selections.size(), 1);
     operator_indices.insert(static_cast<std::size_t>(
         traj.kraus_selections[0].kraus_operator_index));
+    total_multiplicity += traj.multiplicity;
+    EXPECT_DOUBLE_EQ(traj.weight, static_cast<double>(traj.multiplicity));
   }
   EXPECT_EQ(operator_indices.size(), 3);
+}
+
+TEST(ProbabilisticSamplingStrategyTest,
+     TrajectorySamplesParameterControlsTotalSamples) {
+  std::vector<NoisePoint> noise_points;
+
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+  np.channel = makeIXYChannel(0.34, 0.33, 0.33);
+  noise_points.push_back(np);
+
+  // With a small explicit max_trajectory_samples, total multiplicity should
+  // equal that value (since max_trajectories < max_trajectory_samples here).
+  const std::size_t explicit_samples = 200;
+  ProbabilisticSamplingStrategy strategy_explicit(42, explicit_samples);
+
+  auto trajectories = strategy_explicit.generateTrajectories(noise_points, 100);
+
+  EXPECT_EQ(trajectories.size(), 3);
+
+  std::size_t total_multiplicity = 0;
+  for (const auto &traj : trajectories)
+    total_multiplicity += traj.multiplicity;
+
+  // total_samples = max(max_trajectories=100, max_trajectory_samples=200) = 200
+  EXPECT_EQ(total_multiplicity, explicit_samples);
+
+  // Without the parameter, auto-budget is max(max_trajectories,
+  // min(target * ATTEMPT_MULTIPLIER, MAX_SAMPLES_CAP)). For this small
+  // space (total_possible=3), target=3 so auto=max(100, 30)=100.
+  ProbabilisticSamplingStrategy strategy_auto(42);
+  auto trajectories_auto =
+      strategy_auto.generateTrajectories(noise_points, 100);
+
+  std::size_t total_multiplicity_auto = 0;
+  for (const auto &traj : trajectories_auto)
+    total_multiplicity_auto += traj.multiplicity;
+
+  EXPECT_GE(total_multiplicity_auto, 100u);
+}
+
+TEST(ProbabilisticSamplingStrategyTest, EarlyStoppingReducesTotalDraws) {
+  // In a large trajectory space, early stopping should terminate well before
+  // the budget is exhausted once max_trajectories unique patterns are found.
+  auto channel = cudaq::depolarization_channel(0.75);
+  std::vector<NoisePoint> noise_points;
+  for (int i = 0; i < 10; ++i) {
+    NoisePoint np;
+    np.circuit_location = i;
+    np.qubits = {0};
+    np.op_name = "h";
+    np.channel = channel;
+    noise_points.push_back(np);
+  }
+
+  const std::size_t large_budget = 100000;
+  const std::size_t small_max_traj = 20;
+  ProbabilisticSamplingStrategy strategy(42, large_budget);
+
+  auto trajectories =
+      strategy.generateTrajectories(noise_points, small_max_traj);
+
+  EXPECT_EQ(trajectories.size(), small_max_traj);
+
+  std::size_t total_multiplicity = 0;
+  for (const auto &traj : trajectories)
+    total_multiplicity += traj.multiplicity;
+
+  // Early stopping: total draws should be much less than large_budget.
+  // 20 unique patterns found in a 4^10 space requires ~20 draws on average,
+  // so total_multiplicity should be far below 100000.
+  EXPECT_LT(total_multiplicity, large_budget);
+  EXPECT_GE(total_multiplicity, small_max_traj);
 }
 
 TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
@@ -294,6 +377,11 @@ TEST(ExhaustiveSamplingStrategyTest, GeneratesAllTrajectories) {
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
   EXPECT_EQ(trajectories.size(), 4);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_DOUBLE_EQ(traj.weight, traj.probability);
+    EXPECT_EQ(traj.multiplicity, 1u);
+  }
 }
 
 TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
@@ -304,25 +392,17 @@ TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
 
   ASSERT_EQ(trajectories.size(), 4);
 
-  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index, 0u);
 
-  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
-  EXPECT_EQ(trajectories[1].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_EQ(trajectories[1].kraus_selections[1].kraus_operator_index, 0u);
 
-  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[2].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[2].kraus_selections[1].kraus_operator_index, 1u);
 
-  EXPECT_EQ(trajectories[3].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
-  EXPECT_EQ(trajectories[3].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[3].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_EQ(trajectories[3].kraus_selections[1].kraus_operator_index, 1u);
 }
 
 TEST(ExhaustiveSamplingStrategyTest, CapsAtMaxTrajectories) {
@@ -342,12 +422,9 @@ TEST(ExhaustiveSamplingStrategyTest, ThreeOperators) {
 
   EXPECT_EQ(trajectories.size(), 3);
 
-  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(1));
-  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(2));
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index, 2u);
 }
 
 TEST(ExhaustiveSamplingStrategyTest, EmptyNoisePoints) {
@@ -384,6 +461,11 @@ TEST(OrderedSamplingStrategyTest, SortsByProbability) {
     EXPECT_GE(trajectories[i].probability, trajectories[i + 1].probability)
         << "Probabilities not in descending order at index " << i;
   }
+
+  for (const auto &traj : trajectories) {
+    EXPECT_DOUBLE_EQ(traj.weight, traj.probability);
+    EXPECT_EQ(traj.multiplicity, 1u);
+  }
 }
 
 TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
@@ -394,10 +476,8 @@ TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
 
   ASSERT_EQ(trajectories.size(), 1);
 
-  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
-  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index,
-            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 0u);
+  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index, 0u);
   EXPECT_NEAR(trajectories[0].probability, 0.72, 1e-9);
 }
 
@@ -460,6 +540,8 @@ TEST(ConditionalSamplingStrategyTest, FilterByErrorCount) {
 
   for (const auto &traj : trajectories) {
     EXPECT_EQ(traj.countErrors(), 1);
+    EXPECT_DOUBLE_EQ(traj.weight, static_cast<double>(traj.multiplicity));
+    EXPECT_GE(traj.multiplicity, 1u);
   }
 }
 
