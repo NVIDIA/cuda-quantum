@@ -27,7 +27,7 @@ on:
         required: false
         type: string
 
-name: Package source diff
+name: Build package sources
 
 jobs:
   diff-packages:
