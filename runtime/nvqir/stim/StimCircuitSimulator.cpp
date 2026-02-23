@@ -157,7 +157,9 @@ protected:
     // Default to single shot
     std::size_t batch_size = 1;
     auto *executionContext = getExecutionContext();
-    if (executionContext && executionContext->name == "sample" &&
+    if (executionContext &&
+        (executionContext->name == "sample" ||
+         executionContext->name == "ptsbe_sample") &&
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "msm")
