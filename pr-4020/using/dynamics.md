@@ -1981,11 +1981,10 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
+        get_result = lambda idx, res: [
+            exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+        ]
 
-    try:
         import matplotlib.pyplot as plt
 
         plt.plot(steps, get_result(0, evolution_result))
@@ -1994,8 +1993,6 @@ Python
         plt.ylabel("Expectation value")
         plt.xlabel("Time")
         plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-    except ImportError:
-        pass
 :::
 :::
 
