@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     python3 \
     python3-pip \
+    unzip \
     && python3 -m pip install --upgrade unearth --break-system-packages \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -119,6 +120,31 @@ RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
     done < "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
     rm -rf /tmp/deb_extract
 
+# For omitted pip packages (no sdist), get EULA/license from the wheel: fetch wheel from PyPI, extract, copy license/EULA/copyright files
+RUN echo "Retrieving EULA/license for omitted pip packages..." && \
+    mkdir -p "${SOURCES_ROOT}/pip/licenses" /tmp/wheel_extract && \
+    while IFS= read -r package || [ -n "$package" ]; do \
+      [ -z "$package" ] && continue; \
+      name="${package%%==*}"; \
+      version="${package#*==}"; \
+      [ -z "$name" ] || [ -z "$version" ] || [ "$version" = "$package" ] && continue; \
+      url=$(curl -sS "https://pypi.org/pypi/${name}/${version}/json" 2>/dev/null | jq -r '.urls[] | select(.packagetype=="bdist_wheel") | select(.filename | test("manylinux.*x86_64|manylinux_2.*x86_64")) | .url' 2>/dev/null | head -1); \
+      if [ -n "$url" ] && [ "$url" != "null" ]; then \
+        if curl -fsSL -o /tmp/pip_wheel.whl "$url" 2>/dev/null; then \
+          (cd /tmp/wheel_extract && unzip -o -q /tmp/pip_wheel.whl 2>/dev/null) || true; \
+          dest="${SOURCES_ROOT}/pip/licenses/${name}"; \
+          mkdir -p "$dest"; \
+          find /tmp/wheel_extract -type f \( -iname "*license*" -o -iname "*eula*" -o -iname "*copyright*" \) -exec cp -an {} "$dest/" \; 2>/dev/null || true; \
+          if [ -z "$(ls -A "$dest" 2>/dev/null)" ]; then \
+            license_text=$(curl -sS "https://pypi.org/pypi/${name}/${version}/json" 2>/dev/null | jq -r '.info.license // .info.license_expression // empty'); \
+            [ -n "$license_text" ] && [ "$license_text" != "null" ] && echo "$license_text" > "$dest/LICENSE_from_PyPI.txt"; \
+          fi; \
+          find /tmp/wheel_extract -mindepth 1 -delete 2>/dev/null || rm -rf /tmp/wheel_extract/*; \
+        fi; \
+        rm -f /tmp/pip_wheel.whl; \
+      fi; \
+    done < "${SOURCES_ROOT}/pip/pip_omitted_packages.txt"; \
+    rm -rf /tmp/wheel_extract
 
 # Summary
 RUN echo "apt: $(find ${SOURCES_ROOT}/apt -maxdepth 1 -type d 2>/dev/null | wc -l) dirs" && \
