@@ -8,8 +8,8 @@ matrix:
 
 - name: markdown
   sources:
-  # Exclude third-party code (tpls/), build artifacts, and docker docs
-  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!docker/**/*.md'
+  # Exclude third-party code (tpls/) and build artifacts
+  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md'
   glob_flags: N|G|B
   expect_match: false
   aspell:
