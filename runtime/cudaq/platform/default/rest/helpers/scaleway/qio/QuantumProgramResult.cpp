@@ -10,6 +10,7 @@
 #include "Base64.h"
 #include <bitset>
 #include <string>
+#include <sstream>
 
 using json = nlohmann::json;
 using namespace cudaq::qio;
