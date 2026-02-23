@@ -1889,9 +1889,8 @@ class PyASTBridge(ast.NodeVisitor):
         the symbol table.
         """
 
-        if (len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
-                and isinstance(node.value, ast.List)
-                and all(
+        if (len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and
+                isinstance(node.value, ast.List) and all(
                     isinstance(e, ast.Constant) and isinstance(e.value, int)
                     for e in node.value.elts)):
             self.pyConstantVars[node.targets[0].id] = [
@@ -3807,11 +3806,12 @@ class PyASTBridge(ast.NodeVisitor):
                     isinstance(e, ast.Constant) and isinstance(e.value, int)
                     for e in iter_node.elts):
                 return [e.value for e in iter_node.elts]
-        if (isinstance(iter_node, ast.Call)
-                and isinstance(iter_node.func, ast.Name)
-                and iter_node.func.id == 'range'):
+        if (isinstance(iter_node, ast.Call) and
+                isinstance(iter_node.func, ast.Name) and
+                iter_node.func.id == 'range'):
             args = [
-                a.value for a in iter_node.args
+                a.value
+                for a in iter_node.args
                 if isinstance(a, ast.Constant) and isinstance(a.value, int)
             ]
             if len(args) == len(iter_node.args):
@@ -4068,8 +4068,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(iterable)
                 return
             if cc.StdvecType.isinstance(orig_iterable_type):
-                list_indices = self.__getListIndices(
-                    node.generators[0].iter)
+                list_indices = self.__getListIndices(node.generators[0].iter)
                 if list_indices is None:
                     self.emitFatalError(
                         "list comprehension producing qubit references requires "
@@ -4086,9 +4085,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.visit(node.elt)
                     refs.append(self.popValue())
                     self.symbolTable.endBlock()
-                self.pushValue(
-                    refs[0] if len(refs) == 1 else quake.ConcatOp(
-                        self.getVeqType(), refs).result)
+                self.pushValue(refs[0] if len(refs) == 1 else quake.
+                               ConcatOp(self.getVeqType(), refs).result)
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
