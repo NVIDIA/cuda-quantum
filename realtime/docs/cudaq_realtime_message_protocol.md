@@ -1,11 +1,11 @@
-# [CUDA-Q Realtime Messaging Protocol](#message-protocol)
+# CUDA-Q Realtime Messaging Protocol
 
 This document defines the RPC (Remote Procedure Call) payload encoding used by
 the realtime dispatch kernel for processing data and returning results. It complements
 [cudaq_realtime_host_api.md](cudaq_realtime_host_api.md),
 which focuses on wiring and API usage.
 
-## [Scope](#scope)
+## Scope
 
 - RPC header/response wire format
 - Payload encoding and type system
@@ -17,7 +17,7 @@ Note: This protocol is hardware-agnostic. While the companion document
 implementation details for both GPU and CPU-based dispatchers,
 the wire format and encoding rules specified here apply universally.
 
-## [RPC Header / Response](#rpc-header)
+## RPC Header / Response
 
 Each ring-buffer slot is interpreted as:
 
@@ -48,7 +48,7 @@ Magic values (little-endian 32-bit):
 - `RPC_MAGIC_REQUEST = 0x43555152` (`'CUQR'`)
 - `RPC_MAGIC_RESPONSE = 0x43555153` (`'CUQS'`)
 
-## [Request ID Semantics](#request-id)
+## Request ID Semantics
 
 `request_id` is a caller-assigned opaque 32-bit value included in every request.
 The dispatch kernel copies it verbatim into the corresponding `RPCResponse`.
@@ -66,7 +66,7 @@ Typical uses:
 The dispatcher echoes `request_id` in all dispatch paths (cooperative,
 regular, and graph-launch).
 
-## [Function ID Semantics](#function-id)
+## Function ID Semantics
 
 `function_id` selects which handler the dispatcher invokes for a given RPC
 message. The dispatcher performs a lookup in the function table (array of
@@ -75,7 +75,7 @@ function pointers + IDs) and calls the matching entry.
 See [cudaq_realtime_host_api.md](cudaq_realtime_host_api.md) for function ID hashing,
 handler naming, and function table registration details.
 
-## [Schema and Payload Interpretation](#schema-interpretation)
+## Schema and Payload Interpretation
 
 The RPC payload is **`typeless` on the wire**. The bytes following `RPCHeader`
 are an opaque blob from the protocol's perspective.
@@ -103,7 +103,7 @@ argument data in schema order:
 The dispatcher uses the schema to determine where each argument begins and ends within
 the payload.
 
-### [Type System](#type-system)
+### Type System
 
 Standardized payload type identifiers used in handler schemas:
 
@@ -150,7 +150,7 @@ Encoding rules:
 - Bit-packed data: LSB-first within each byte,
 `size_bytes = ceil(num_elements / 8)`
 
-## [Payload Encoding](#payload-encoding)
+## Payload Encoding
 
 The payload contains the argument data for the handler function. The encoding
 depends on the argument types specified in the handler schema.
@@ -348,7 +348,7 @@ Offset | Content
 - `status > 0`: Handler-specific error
 - `status < 0`: Protocol-level error
 
-## [QEC-Specific Usage Example](#qec-example)
+## QEC-Specific Usage Example
 
 This section shows how the realtime messaging protocol is used for quantum
 error correction (QEC) decoding. This is one application of the protocol;
