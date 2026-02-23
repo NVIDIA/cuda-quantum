@@ -45,7 +45,7 @@ test_dir=$(mktemp -d)
 trap 'rm -rf "$test_dir"' EXIT
 
 cat > "$test_dir/CMakeLists.txt" << 'EOF'
-cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(cudaq_cmake_test LANGUAGES CXX)
 find_package(CUDAQ REQUIRED)
 add_executable(ghz_test ghz_test.cpp)
