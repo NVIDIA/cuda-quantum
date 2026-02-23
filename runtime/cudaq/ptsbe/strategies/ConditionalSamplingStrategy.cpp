@@ -61,9 +61,7 @@ ConditionalSamplingStrategy::generateTrajectories(
     auto it = pattern_to_index.find(pattern);
     if (it != pattern_to_index.end()) {
       results[it->second].multiplicity++;
-    } else if (rejected_patterns.contains(pattern)) {
-      // Already tested and failed predicate; skip.
-    } else {
+    } else if (!rejected_patterns.contains(pattern)) {
       std::vector<KrausSelection> selections;
       selections.reserve(noise_points.size());
       for (std::size_t i = 0; i < noise_points.size(); ++i) {
