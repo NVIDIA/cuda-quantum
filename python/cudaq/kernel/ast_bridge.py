@@ -3799,6 +3799,25 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.emitFatalError(f"unknown function call", node)
 
+    def __getListIndices(self, iter_node):
+        if isinstance(iter_node, ast.Name):
+            return self.pyConstantVars.get(iter_node.id)
+        if isinstance(iter_node, ast.List):
+            if all(
+                    isinstance(e, ast.Constant) and isinstance(e.value, int)
+                    for e in iter_node.elts):
+                return [e.value for e in iter_node.elts]
+        if (isinstance(iter_node, ast.Call)
+                and isinstance(iter_node.func, ast.Name)
+                and iter_node.func.id == 'range'):
+            args = [
+                a.value for a in iter_node.args
+                if isinstance(a, ast.Constant) and isinstance(a.value, int)
+            ]
+            if len(args) == len(iter_node.args):
+                return list(range(*args))
+        return None
+
     def visit_ListComp(self, node):
         """
         This method currently supports lowering simple list comprehensions to
