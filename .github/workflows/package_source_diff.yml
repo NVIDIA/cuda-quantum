@@ -43,6 +43,8 @@ jobs:
   diff-packages:
     name: Diff apt/pip packages (CUDA ${{ matrix.cuda }})
     runs-on: ubuntu-latest
+    outputs:
+      base_image: ${{ steps.images.outputs.base_image }}
     strategy:
       fail-fast: false
       matrix:
@@ -137,8 +139,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          base_image: ghcr.io/nvidia/ubuntu:24.04
           file: docker/build/package_sources.Dockerfile
+          build-args: |
+            base_image=${{ needs.diff-packages.outputs.base_image }}
           load: true
           tags: package-sources:latest
           outputs: type=docker,dest=/tmp/package-sources.tar
@@ -166,7 +169,7 @@ jobs:
 
       - name: Summary
         run: |
-          base_image="nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04"
+          base_image="${{ needs.diff-packages.outputs.base_image }}"
           cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1); target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
           echo "## Package source diff (CUDA ${{ matrix.cuda }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
