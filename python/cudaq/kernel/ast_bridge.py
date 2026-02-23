@@ -4064,6 +4064,9 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
+            if quake.VeqType.isinstance(orig_iterable_type):
+                self.pushValue(iterable)
+                return
             if cc.StdvecType.isinstance(orig_iterable_type):
                 list_indices = self.__getListIndices(
                     node.generators[0].iter)
