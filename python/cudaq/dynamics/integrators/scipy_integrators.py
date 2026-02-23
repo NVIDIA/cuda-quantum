@@ -53,8 +53,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
         state = bindings.initializeState(state, list(self.dimensions),
                                          self.is_density_state, self.batch_size)
         result = self.stepper.compute(state, t)
-        as_array = numpy.ravel(
-            numpy.array(cudaq_runtime.StateMemoryView(result)))
+        as_array = numpy.ravel(numpy.array(result))
         return as_array
 
     def __post_init__(self):
@@ -119,8 +118,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
-        as_array = numpy.ravel(
-            numpy.array(cudaq_runtime.StateMemoryView(self.state)))
+        as_array = numpy.ravel(numpy.array(self.state))
         self.batch_size = bindings.getBatchSize(state)
         if self.dimensions is not None:
             self.is_density_state = (
