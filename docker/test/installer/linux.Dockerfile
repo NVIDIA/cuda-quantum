@@ -47,7 +47,7 @@ ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN export LIBCDEV_PACKAGE=${libcdev_package} && \
     export CUDART_VERSION=${cudart_version} && \
     export CUDA_DISTRIBUTION=${cuda_distribution} && \
-    export VALIDATION_PACKAGES="cmake make" && \
+    export VALIDATION_PACKAGES="cmake make git" && \
     . /runtime_dependencies.sh ${base_image} && \
     # working around the fact that the installation of the dependencies includes
     # setting some environment variables that are expected to be persistent on
