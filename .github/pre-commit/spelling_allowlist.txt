@@ -256,6 +256,7 @@ functors
 grovers
 hadamard
 hamiltonian
+handoff
 heisenberg
 homogenous
 iff

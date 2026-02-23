@@ -4,7 +4,7 @@ This document explains the C host API for realtime dispatch, the RPC wire
 protocol, and complete wiring examples. It is written for external partners
 integrating CUDA-QX decoders with their own transport mechanisms. The API and
 protocol are **transport-agnostic** and support multiple data transport options,
-including NVIDIA Hololink (RDMA via ConnectX NICs), libibverbs, and proprietary
+including NVIDIA Hololink (RDMA via ConnectX NIC's), `libibverbs`, and proprietary
 transport layers. Handlers can execute on GPU (via CUDA kernels) or CPU (via
 host threads). Examples in this document use Hololink's 3-kernel workflow (RX
 kernel/dispatch/TX kernel) for illustration, but the same principles apply to
@@ -14,11 +14,11 @@ other transport mechanisms.
 
 **Hololink** is NVIDIA's low-latency sensor bridge framework that enables
 direct GPU memory access from external devices (FPGAs, sensors) over Ethernet
-using RDMA (Remote Direct Memory Access) via ConnectX NICs. In the context of
+using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
 quantum error correction, Hololink is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.
 
-**Repository**: [nvidia-holoscan/holoscan-sensor-bridge (nvqlink branch)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink)
+**Repository**: [`nvidia-holoscan`/`holoscan-sensor-bridge` (`nvqlink` branch)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink)
 
 Hololink handles:
 
@@ -27,7 +27,7 @@ into GPU memory via RDMA
 - **TX (Transmit)**: TX kernel sends results back
 to the FPGA via RDMA
 - **RDMA transport**: Zero-copy data movement using
-ConnectX-7 NICs with GPUDirect support
+ConnectX-7 NIC's with GPUDirect support
 
 The CUDA-Q Realtime Host API provides the **middle component**
 (dispatch kernel or thread) that sits between
@@ -49,12 +49,12 @@ sending responses from TX ring buffer slots back to the FPGA.
 - Requires GPUDirect support
 - Lowest latency option for GPU-based decoders
 
-**libibverbs (CPU-based)**:
+**`libibverbs` (CPU-based)**:
 
 - Standard InfiniBand Verbs API for RDMA on the CPU
 - RX and TX are host threads that poll CPU-accessible memory
 - Works with CPU-based dispatchers
-- Ring buffers reside in host memory (cudaHostAlloc or regular malloc)
+- Ring buffers reside in host memory (`cudaHostAlloc` or regular `malloc`)
 
 **Proprietary Transport Mechanisms**:
 
@@ -134,12 +134,12 @@ Dispatch kernel can be tested without Hololink hardware
 4. **Flexibility**:
 RX/TX kernels can be replaced with different transport mechanisms
 5. **Transport independence**:
-The protocol works with Hololink, libibverbs, or proprietary transports
+The protocol works with Hololink, `libibverbs`, or proprietary transports
 
 ## [What This API Does (In One Paragraph)](#what-this-does)
 
 The host API wires a dispatcher (GPU kernel or CPU thread) to shared ring buffers.
-The transport mechanism (e.g., Hololink RX/TX kernels, libibverbs threads, or
+The transport mechanism (e.g., Hololink RX/TX kernels, `libibverbs` threads, or
 proprietary transport) places incoming RPC messages into RX slots and retrieves
 responses from TX slots.
 The dispatcher polls RX flags (see Message completion note), looks up a
@@ -177,21 +177,21 @@ its argument and result types.
 
 ```cpp
 // Standardized payload type identifiers
-enum PayloadTypeID : uint8_t {
-  TYPE_UINT8           = 0x10,
-  TYPE_INT32           = 0x11,
-  TYPE_INT64           = 0x12,
-  TYPE_FLOAT32         = 0x13,
-  TYPE_FLOAT64         = 0x14,
-  TYPE_ARRAY_UINT8     = 0x20,
-  TYPE_ARRAY_INT32     = 0x21,
-  TYPE_ARRAY_FLOAT32   = 0x22,
-  TYPE_ARRAY_FLOAT64   = 0x23,
-  TYPE_BIT_PACKED      = 0x30   // Bit-packed data (LSB-first)
-};
+typedef enum {
+  CUDAQ_TYPE_UINT8           = 0x10,
+  CUDAQ_TYPE_INT32           = 0x11,
+  CUDAQ_TYPE_INT64           = 0x12,
+  CUDAQ_TYPE_FLOAT32         = 0x13,
+  CUDAQ_TYPE_FLOAT64         = 0x14,
+  CUDAQ_TYPE_ARRAY_UINT8     = 0x20,
+  CUDAQ_TYPE_ARRAY_INT32     = 0x21,
+  CUDAQ_TYPE_ARRAY_FLOAT32   = 0x22,
+  CUDAQ_TYPE_ARRAY_FLOAT64   = 0x23,
+  CUDAQ_TYPE_BIT_PACKED      = 0x30   // Bit-packed data (LSB-first)
+} cudaq_payload_type_t;
 
 struct cudaq_type_desc_t {
-  uint8_t  type_id;       // PayloadTypeID value
+  uint8_t  type_id;       // cudaq_payload_type_t value
   uint8_t  reserved[3];
   uint32_t size_bytes;    // Total size in bytes
   uint32_t num_elements;  // Interpretation depends on type_id
@@ -200,9 +200,9 @@ struct cudaq_type_desc_t {
 
 The `num_elements` field interpretation:
 
-- **Scalar types** (TYPE_UINT8, TYPE_INT32, etc.): unused, set to 1
-- **Array types** (TYPE_ARRAY_*): number of array elements
-- **TYPE_BIT_PACKED**: number of bits (not bytes)
+- **Scalar types** (`CUDAQ_TYPE_UINT8`, `CUDAQ_TYPE_INT32`, etc.): unused, set to 1
+- **Array types** (`CUDAQ_TYPE_ARRAY_*`): number of array elements
+- **CUDAQ_TYPE_BIT_PACKED**: number of bits (not bytes)
 
 ### Handler Schema
 
@@ -242,19 +242,24 @@ Magic values (little-endian 32-bit):
 - `RPC_MAGIC_RESPONSE = 0x43555153` (`'CUQS'`)
 
 ```cpp
-// Wire format (byte layout must match dispatch_kernel.cuh)
+// Wire format (byte layout must match dispatch_kernel_launch.h)
 struct RPCHeader {
   uint32_t magic;        // RPC_MAGIC_REQUEST
   uint32_t function_id;  // fnv1a_hash("handler_name")
   uint32_t arg_len;      // payload bytes following this header
+  uint32_t request_id;   // caller-assigned ID, echoed in the response
 };
 
 struct RPCResponse {
   uint32_t magic;        // RPC_MAGIC_RESPONSE
   int32_t  status;       // 0 = success
   uint32_t result_len;   // bytes of response payload
+  uint32_t request_id;   // echoed from RPCHeader::request_id
 };
 ```
+
+Both structs are 16 bytes, packed with no padding. See `cudaq_realtime_message_protocol.bs`
+for `request_id` semantics.
 
 Payload conventions:
 
@@ -492,7 +497,7 @@ be passed to the dispatcher configuration and launch function.
 
 Call the occupancy function that matches the dispatcher's `kernel_type` once
 before `cudaq_dispatcher_start`; the result can be used to size the dispatch
-grid (e.g., to reserve SMs for transport kernels).
+grid (e.g., to reserve `SM`'s for transport kernels).
 
 Lifetime/ownership:
 
@@ -521,9 +526,13 @@ Parameters:
 
 - `rx_flags`: device-visible pointer to RX ring buffer flags
 - `tx_flags`: device-visible pointer to TX ring buffer flags
+- `rx_data`: device-visible pointer to RX slot data (request payloads)
+- `tx_data`: device-visible pointer to TX slot data (response payloads)
+- `rx_stride_sz`: size in bytes of each RX slot
+- `tx_stride_sz`: size in bytes of each TX slot
 - `function_table`: device pointer to function table entries
 - `func_count`: number of function table entries
-- `graph_buffer_ptr`: device pointer for graph buffer communication
+- `graph_io_ctx`: device pointer to a `GraphIOContext` struct for graph buffer communication
 - `shutdown_flag`: device-visible shutdown flag
 - `stats`: device-visible stats buffer
 - `num_slots`: number of ring buffer slots
@@ -575,6 +584,10 @@ Parameters:
 
 - `rx_flags`: device-visible pointer to RX ring buffer flags
 - `tx_flags`: device-visible pointer to TX ring buffer flags
+- `rx_data`: device-visible pointer to RX slot data (request payloads)
+- `tx_data`: device-visible pointer to TX slot data (response payloads)
+- `rx_stride_sz`: size in bytes of each RX slot
+- `tx_stride_sz`: size in bytes of each TX slot
 - `function_table`: device pointer to function table entries
 - `func_count`: number of function table entries
 - `shutdown_flag`: device-visible shutdown flag
@@ -664,7 +677,9 @@ ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table), CUDAQ_OK);
 ASSERT_EQ(cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_),
           CUDAQ_OK);
 
-ASSERT_EQ(cudaq_dispatcher_set_launch_fn(dispatcher_, &launch_dispatch_kernel_wrapper),
+ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
+              dispatcher_,
+              &cudaq::qec::realtime::mock_decode_launch_dispatch_kernel),
           CUDAQ_OK);
 
 ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
@@ -688,9 +703,9 @@ __global__ void init_function_table(cudaq_function_entry_t* entries) {
     
     // Schema: 1 arg (bit-packed detection events), 1 result (correction byte)
     entries[0].schema.num_args = 1;
-    entries[0].schema.args[0] = {TYPE_BIT_PACKED, {0}, 16, 128};  // 128 bits
+    entries[0].schema.args[0] = {CUDAQ_TYPE_BIT_PACKED, {0}, 16, 128};  // 128 bits
     entries[0].schema.num_results = 1;
-    entries[0].schema.results[0] = {TYPE_UINT8, {0}, 1, 1};
+    entries[0].schema.results[0] = {CUDAQ_TYPE_UINT8, {0}, 1, 1};
   }
 }
 ```
@@ -711,10 +726,10 @@ __global__ void init_advanced_handler(cudaq_function_entry_t* entries,
     
     // Schema: 2 args (detection events + calibration), 1 result
     entries[index].schema.num_args = 2;
-    entries[index].schema.args[0] = {TYPE_BIT_PACKED, {0}, 16, 128};
-    entries[index].schema.args[1] = {TYPE_ARRAY_FLOAT32, {0}, 64, 16};  // 16 floats
+    entries[index].schema.args[0] = {CUDAQ_TYPE_BIT_PACKED, {0}, 16, 128};
+    entries[index].schema.args[1] = {CUDAQ_TYPE_ARRAY_FLOAT32, {0}, 64, 16};  // 16 floats
     entries[index].schema.num_results = 1;
-    entries[index].schema.results[0] = {TYPE_UINT8, {0}, 1, 1};
+    entries[index].schema.results[0] = {CUDAQ_TYPE_UINT8, {0}, 1, 1};
   }
 }
 ```
@@ -744,8 +759,10 @@ typedef struct cudaq_dispatch_graph_context cudaq_dispatch_graph_context;
 // Create a graph-based dispatch context
 cudaError_t cudaq_create_dispatch_graph_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    uint8_t *rx_data, uint8_t *tx_data,
+    size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
-    void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
+    void *graph_io_ctx, volatile int *shutdown_flag, uint64_t *stats,
     size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
     cudaStream_t stream, cudaq_dispatch_graph_context **out_context);
 
@@ -826,7 +843,9 @@ calls from within handlers.
 
 ## [Building and Sending an RPC Message](#build-rpc)
 
-Real code from `test_realtime_decoding.cu`:
+Adapted from `test_realtime_decoding.cu` (the actual test uses a library helper,
+`setup_mock_decode_function_table`, that performs equivalent setup via
+`cudaMemcpy`):
 
 Note: this host-side snippet emulates what the external device/FPGA would do
 when populating RX slots in a Hololink deployment.
@@ -837,14 +856,15 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
   uint8_t* slot_data = const_cast<uint8_t*>(rx_data_host_) + slot * slot_size_;
   
   // Write RPCHeader
-  cudaq::realtime::RPCHeader* header =
-      reinterpret_cast<cudaq::realtime::RPCHeader*>(slot_data);
-  header->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
+  cudaq::nvqlink::RPCHeader* header =
+      reinterpret_cast<cudaq::nvqlink::RPCHeader*>(slot_data);
+  header->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
   header->function_id = MOCK_DECODE_FUNCTION_ID;
   header->arg_len = static_cast<std::uint32_t>(measurements.size());
+  header->request_id = static_cast<std::uint32_t>(slot);
   
   // Write measurement data after header
-  memcpy(slot_data + sizeof(cudaq::realtime::RPCHeader),
+  memcpy(slot_data + sizeof(cudaq::nvqlink::RPCHeader),
          measurements.data(), measurements.size());
 }
 ```
@@ -859,15 +879,16 @@ when consuming TX slots in a Hololink deployment.
 /// Responses are written by the dispatch kernel to the TX ring buffer; read from tx_data, not rx_data.
 bool read_rpc_response(std::size_t slot, uint8_t& correction,
                        std::int32_t* status_out = nullptr,
-                       std::uint32_t* result_len_out = nullptr) {
+                       std::uint32_t* result_len_out = nullptr,
+                       std::uint32_t* request_id_out = nullptr) {
   __sync_synchronize();
   const uint8_t* slot_data = const_cast<uint8_t*>(tx_data_host_) + slot * slot_size_;
   
   // Read RPCResponse
-  const cudaq::realtime::RPCResponse* response =
-      reinterpret_cast<const cudaq::realtime::RPCResponse*>(slot_data);
+  const cudaq::nvqlink::RPCResponse* response =
+      reinterpret_cast<const cudaq::nvqlink::RPCResponse*>(slot_data);
 
-  if (response->magic != cudaq::realtime::RPC_MAGIC_RESPONSE) {
+  if (response->magic != cudaq::nvqlink::RPC_MAGIC_RESPONSE) {
     return false;
   }
 
@@ -875,13 +896,15 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
     *status_out = response->status;
   if (result_len_out)
     *result_len_out = response->result_len;
+  if (request_id_out)
+    *request_id_out = response->request_id;
   
   if (response->status != 0) {
     return false;
   }
   
   // Read correction data after response header
-  correction = *(slot_data + sizeof(cudaq::realtime::RPCResponse));
+  correction = *(slot_data + sizeof(cudaq::nvqlink::RPCResponse));
   return true;
 }
 ```
@@ -973,5 +996,5 @@ Emulate RX/TX with mapped host memory:
 ## [Troubleshooting](#troubleshooting)
 
 - **Timeout waiting for TX**: ensure the RX flag points to device-mapped memory.
-- **Invalid arg**: check `slot_size`, `num_slots`, function table pointers.
+- **Invalid `arg`**: check `slot_size`, `num_slots`, function table pointers.
 - **CUDA errors**: verify `device_id`, and that CUDA is initialized.
