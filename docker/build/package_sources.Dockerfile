@@ -37,7 +37,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dpkg-dev \
     git \
     python3 \
-    python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install necessary repository for librdmac1
@@ -56,14 +55,17 @@ RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
 RUN apt-get update
 
 ENV SOURCES_ROOT=/sources
-RUN mkdir -p "${SOURCES_ROOT}/apt" "${SOURCES_ROOT}/pip" "${SOURCES_ROOT}/tpls"
+RUN mkdir -p "${SOURCES_ROOT}/apt" "${SOURCES_ROOT}/pip" "${SOURCES_ROOT}/tpls" "${SOURCES_ROOT}/scripts"
 
-# Copy .gitmodules, tpls lock file, clone script, and package lists
-COPY .gitmodules /tmp/.gitmodules
-COPY tpls_commits.lock /tmp/tpls_commits.lock
-COPY scripts/clone_tpls_from_lock.sh /tmp/clone_tpls_from_lock.sh
-COPY package-source-diff/apt_packages.txt /tmp/apt_packages.txt
-COPY package-source-diff/pip_packages.txt /tmp/pip_packages.txt
+ENV SCRIPTS_DIR=${SOURCES_ROOT}/scripts
+
+# Copy .gitmodules, tpls lock file, clone script, package lists, and pip sdist fetcher
+COPY .gitmodules "${SCRIPTS_DIR}"/.gitmodules
+COPY tpls_commits.lock "${SCRIPTS_DIR}"/tpls_commits.lock
+COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
+COPY docker/build/scripts/fetch_pip_sdist.py "${SCRIPTS_DIR}"/fetch_pip_sdist.py
+COPY package-source-diff/apt_packages.txt "${SCRIPTS_DIR}"/apt_packages.txt
+COPY package-source-diff/pip_packages.txt "${SCRIPTS_DIR}"/pip_packages.txt
 
 # Copy attribution
 COPY NOTICE LICENSE "${SOURCES_ROOT}/"
@@ -76,15 +78,15 @@ RUN apt-get update && set -o pipefail && \
       while IFS= read -r pkg || [ -n "$pkg" ]; do \
         [ -z "$pkg" ] && continue; \
         apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
-      done < /tmp/apt_packages.txt; \
-      rm -f /tmp/apt_packages.txt ) 2>&1 | sed 's/^/[apt] /' & \
+      done < "${SCRIPTS_DIR}"/apt_packages.txt; \
+      ) 2>&1 | sed 's/^/[apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" && \
       grep -v '^[[:space:]]*$' /tmp/pip_packages.txt | \
       xargs -d '\n' -P "$(nproc)" -I {} bash -c 'spec="{}"; python3 -m pip download --no-binary :all: --no-deps -d "${SOURCES_ROOT}/pip" "$spec" 2>/dev/null || echo "$spec" >> "${SOURCES_ROOT}/pip_failed_$$.txt"'; \
       cat "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt >> "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" 2>/dev/null; rm -f "${SOURCES_ROOT}"/pip_failed_[0-9]*.txt; \
-      rm -f /tmp/pip_packages.txt ) 2>&1 | sed 's/^/[pip] /' & \
-    ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES=/tmp/.gitmodules lock_file=/tmp/tpls_commits.lock \
-      bash /tmp/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
+      ) 2>&1 | sed 's/^/[pip] /' & \
+    ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES="${SCRIPTS_DIR}"/.gitmodules lock_file="${SCRIPTS_DIR}"/tpls_commits.lock \
+      bash "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
 RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/apt/apt_omitted_packages.txt)"

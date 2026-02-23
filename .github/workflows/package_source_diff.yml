@@ -154,6 +154,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # TODO: push to NGC if target image is from NGC
       - name: Tag and push to GHCR
         id: push
         run: |
