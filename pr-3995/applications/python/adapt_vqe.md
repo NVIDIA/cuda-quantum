@@ -218,9 +218,6 @@ pr-3995
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1819,7 +1816,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![041ff9556aa145ff84dd54b579bd66a1](../../_images/adapt-vqe.png){.no-scaled-link
+![809a7ef65a42410fba9e5aa97cdea5ca](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>

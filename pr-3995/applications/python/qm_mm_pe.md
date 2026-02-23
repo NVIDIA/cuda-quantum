@@ -218,9 +218,6 @@ pr-3995
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1810,7 +1807,7 @@ mutual polarization.
 
 <div>
 
-![d0a1f0bf2fb64843a389719fec24df2f](../../_images/qm-mm-pe.png){.no-scaled-link
+![3ebb2898746f49b5ad1d93b5e2340e64](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>

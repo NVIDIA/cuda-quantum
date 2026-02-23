@@ -213,9 +213,6 @@ pr-3995
         -   [6. Two API
             options:](ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1827,14 +1824,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![0abf4c385ed14dbdb866edbb7ebff90b](../../_images/gate-fuse1.png)
+![cc4d3a95125d4c1eb3c63423a79fc299](../../_images/gate-fuse1.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![de41a84a537542208f8f66bd08e243f6](../../_images/gatefusion.png)
+![cffef068d4c645389be3baec12de0b4c](../../_images/gatefusion.png)
 :::
 :::
 :::

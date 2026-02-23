@@ -218,9 +218,6 @@ pr-3995
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -10471,6 +10468,14 @@ with optional execution data (trace and per-trajectory info). See
     :   Checks if Kraus ops have unitary representations and saves them
         if they do. Users should only need to call this if they have
         modified the Kraus ops and want to recompute these values.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1kraus__channel_1a156cfa2b8e3da14ec9b864db5cb685fb .target}[[inline]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_identity_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[index]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Check whether the operator at the given index is an identity.
 
     ```{=html}
     <!-- -->

@@ -218,9 +218,6 @@ pr-3995
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1852,7 +1849,7 @@ each pixel with its position
 
 <div>
 
-![9780b423de594b679f8b062c1126bd29](../../_images/pixels-img.png){.no-scaled-link
+![d34fd5f587114008b06d2f6cab2fe59c](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

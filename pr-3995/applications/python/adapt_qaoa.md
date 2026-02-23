@@ -218,9 +218,6 @@ pr-3995
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1851,7 +1848,7 @@ explained above.
 
 <div>
 
-![b276567fc1914c07be583b3b9c47a80d](../../_images/adapt-qaoa.png){.no-scaled-link
+![1a1553f12f4441749ad5dfa15e24dce6](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

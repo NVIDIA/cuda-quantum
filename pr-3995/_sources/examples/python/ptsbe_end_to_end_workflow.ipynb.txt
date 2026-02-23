@@ -175,7 +175,7 @@
         "    print(f\"  Example trajectory: id={t0.trajectory_id}, probability={t0.probability:.6f}, num_shots={t0.num_shots}\")\n",
         "    print(\"  Selected trajectory (kraus_selections):\")\n",
         "    for sel in t0.kraus_selections:\n",
-        "        print(f\"    circuit_location={sel.circuit_location}, kraus_operator_index={sel.kraus_operator_index}\")"
+        "        print(f\"    circuit_location={sel.circuit_location}, kraus_operator_index={sel.kraus_operator_index}, is_error={sel.is_error}\")"
       ]
     },
     {
