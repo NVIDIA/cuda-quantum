@@ -20,7 +20,7 @@
 ///   ./hololink_fpga_playback \
 ///       --hololink 192.168.0.2 \
 ///       --bridge-qp=0x5 --bridge-rkey=12345 --bridge-buffer=0x7f... \
-///       --page-size=384 --num-pages=128 --num-shots=100
+///       --page-size=384 --num-pages=128 --num-messages=100
 
 #include <algorithm>
 #include <chrono>
@@ -103,7 +103,7 @@ struct PlaybackArgs {
   uint64_t bridge_buffer = 0;
   size_t page_size = 384;
   unsigned num_pages = 128;
-  uint32_t num_shots = 100;
+  uint32_t num_messages = 100;
   uint32_t payload_size = 8;
   uint32_t vp_address = 0x1000;
   uint32_t hif_address = 0x0800;
@@ -144,10 +144,10 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
       args.num_pages = std::stoul(val_of("--num-pages="));
     else if (a == "--num-pages")
       args.num_pages = std::stoul(next());
-    else if (a.find("--num-shots=") == 0)
-      args.num_shots = std::stoul(val_of("--num-shots="));
-    else if (a == "--num-shots")
-      args.num_shots = std::stoul(next());
+    else if (a.find("--num-messages=") == 0)
+      args.num_messages = std::stoul(val_of("--num-messages="));
+    else if (a == "--num-messages")
+      args.num_messages = std::stoul(next());
     else if (a.find("--payload-size=") == 0)
       args.payload_size = std::stoul(val_of("--payload-size="));
     else if (a.find("--vp-address=") == 0)
@@ -172,13 +172,13 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
           << "  --bridge-buffer=ADDR  Bridge buffer address\n"
           << "  --page-size=N         Ring buffer slot size (default: 384)\n"
           << "  --num-pages N         Ring buffer slots (default: 128)\n"
-          << "  --num-shots N         Number of RPC messages (default: 100)\n"
+          << "  --num-messages N      Number of RPC messages (default: 100)\n"
           << "  --payload-size=N      Bytes per RPC payload (default: 8)\n"
           << "  --vp-address=ADDR     VP register base (default: 0x1000)\n"
           << "  --hif-address=ADDR    HIF register base (default: 0x0800)\n"
           << "  --bridge-ip=ADDR      Bridge IP for FPGA (default: 10.0.0.1)\n"
           << "  --emulator            Using emulator (skip FPGA reset)\n"
-          << "  --no-verify           Skip ILA correction verification\n";
+          << "  --no-verify           Skip ILA response verification\n";
       exit(0);
     }
   }
@@ -202,7 +202,7 @@ std::uint32_t load_le_u32(const std::uint8_t *p) {
 }
 
 /// Build one RPC request for the increment handler.
-std::vector<std::uint8_t> build_rpc_message(uint32_t shot_index,
+std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
                                             uint32_t payload_size) {
   using cudaq::nvqlink::fnv1a_hash;
   using cudaq::nvqlink::RPCHeader;
@@ -214,11 +214,11 @@ std::vector<std::uint8_t> build_rpc_message(uint32_t shot_index,
   hdr->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
   hdr->function_id = FUNC_ID;
   hdr->arg_len = payload_size;
-  hdr->request_id = shot_index;
+  hdr->request_id = msg_index;
 
   uint8_t *payload = msg.data() + sizeof(RPCHeader);
   for (uint32_t i = 0; i < payload_size; i++)
-    payload[i] = static_cast<uint8_t>((shot_index + i) & 0xFF);
+    payload[i] = static_cast<uint8_t>((msg_index + i) & 0xFF);
 
   return msg;
 }
@@ -413,7 +413,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "=== Hololink Generic RPC Playback ===" << std::endl;
   std::cout << "Hololink: " << args.hololink_ip << std::endl;
-  std::cout << "Shots: " << args.num_shots << std::endl;
+  std::cout << "Messages: " << args.num_messages << std::endl;
   std::cout << "Payload size: " << args.payload_size << " bytes" << std::endl;
 
   // ------------------------------------------------------------------
@@ -491,7 +491,7 @@ int main(int argc, char *argv[]) {
   config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_WINDOW_SIZE_OFFSET,
                                   static_cast<std::uint32_t>(bytes_per_window));
   config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_WINDOW_NUMBER_OFFSET,
-                                  static_cast<std::uint32_t>(args.num_shots));
+                                  static_cast<std::uint32_t>(args.num_messages));
   config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_TIMER_OFFSET,
                                   RF_SOC_TIMER_SCALE *
                                       DEFAULT_TIMER_SPACING_US);
@@ -500,15 +500,15 @@ int main(int argc, char *argv[]) {
 
   // Build and load RPC messages
   std::vector<std::vector<std::uint8_t>> windows;
-  windows.reserve(args.num_shots);
-  for (uint32_t shot = 0; shot < args.num_shots; shot++) {
-    auto msg = build_rpc_message(shot, args.payload_size);
+  windows.reserve(args.num_messages);
+  for (uint32_t i = 0; i < args.num_messages; i++) {
+    auto msg = build_rpc_message(i, args.payload_size);
     msg.resize(bytes_per_window, 0); // pad to window boundary
     windows.push_back(std::move(msg));
   }
 
   write_bram(*hololink, windows, bytes_per_window);
-  std::cout << "  BRAM write completed (" << args.num_shots << " shots)"
+  std::cout << "  BRAM write completed (" << args.num_messages << " messages)"
             << std::endl;
 
   // Verify BRAM contents
@@ -541,7 +541,7 @@ int main(int argc, char *argv[]) {
                               PLAYER_ENABLE_SINGLEPASS))
     throw std::runtime_error("Failed to enable player");
 
-  std::cout << "  Playback triggered: " << args.num_shots << " shots"
+  std::cout << "  Playback triggered: " << args.num_messages << " messages"
             << std::endl;
 
   // ------------------------------------------------------------------
@@ -553,7 +553,7 @@ int main(int argc, char *argv[]) {
     constexpr int kStableChecks = 2;
     constexpr int kPollIntervalMs = 500;
     constexpr int kVerifyTimeoutMs = 30000;
-    std::cout << "  Waiting for ILA capture to stabilise (timeout "
+    std::cout << "  Waiting for ILA capture to stabilize (timeout "
               << kVerifyTimeoutMs << " ms)..." << std::endl;
 
     std::uint32_t prev_count = 0;
@@ -593,7 +593,7 @@ int main(int argc, char *argv[]) {
     // check increment logic.
     uint32_t matched = 0;
     uint32_t header_errors = 0;
-    uint32_t correction_errors = 0;
+    uint32_t payload_errors = 0;
     uint32_t tvalid_zero = 0;
     uint32_t rpc_responses = 0;
     uint32_t non_rpc_frames = 0;
@@ -635,7 +635,7 @@ int main(int argc, char *argv[]) {
       for (uint32_t j = 0; j < check_len && ok; j++) {
         uint8_t expected = static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
         if (result_data[j] != expected) {
-          if (correction_errors < 5) {
+          if (payload_errors < 5) {
             std::cerr << "  Shot " << rid << " byte " << j << ": expected "
                       << (int)expected << " got " << (int)result_data[j]
                       << std::endl;
@@ -647,7 +647,7 @@ int main(int argc, char *argv[]) {
       if (ok)
         ++matched;
       else
-        ++correction_errors;
+        ++payload_errors;
     }
 
     std::cout << "\n=== Verification Summary ===" << std::endl;
@@ -655,13 +655,13 @@ int main(int argc, char *argv[]) {
     std::cout << "  tvalid=0 (idle):        " << tvalid_zero << std::endl;
     std::cout << "  RPC responses:          " << rpc_responses << std::endl;
     std::cout << "  Non-RPC frames:         " << non_rpc_frames << std::endl;
-    std::cout << "  Unique shots verified:  " << seen_request_ids.size()
-              << " of " << args.num_shots << std::endl;
-    std::cout << "  Corrections matched:    " << matched << std::endl;
-    std::cout << "  Header errors:          " << header_errors << std::endl;
-    std::cout << "  Correction errors:      " << correction_errors << std::endl;
+    std::cout << "  Unique messages verified: " << seen_request_ids.size()
+              << " of " << args.num_messages << std::endl;
+    std::cout << "  Responses matched:    " << matched << std::endl;
+    std::cout << "  Header errors:        " << header_errors << std::endl;
+    std::cout << "  Payload errors:       " << payload_errors << std::endl;
 
-    if (correction_errors == 0 && header_errors == 0 &&
+    if (payload_errors == 0 && header_errors == 0 &&
         seen_request_ids.size() > 0) {
       std::cout << "  RESULT: PASS" << std::endl;
       return 0;

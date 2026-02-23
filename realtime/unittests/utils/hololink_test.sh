@@ -59,7 +59,7 @@ MTU=4096
 # Run defaults
 GPU_ID=0
 TIMEOUT=60
-NUM_SHOTS=100
+NUM_MESSAGES=100
 PAYLOAD_SIZE=8
 PAGE_SIZE=384
 NUM_PAGES=128
@@ -102,8 +102,8 @@ Network options:
 Run options:
   --gpu N                GPU device ID (default: 0)
   --timeout N            Timeout in seconds (default: 60)
-  --no-verify            Skip ILA correction verification
-  --num-shots N          Number of RPC messages (default: 100)
+  --no-verify            Skip ILA response verification
+  --num-messages N       Number of RPC messages (default: 100)
   --payload-size N       Bytes per RPC payload (default: 8)
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
@@ -130,7 +130,7 @@ while [[ $# -gt 0 ]]; do
         --mtu)              MTU="$2"; shift ;;
         --gpu)              GPU_ID="$2"; shift ;;
         --timeout)          TIMEOUT="$2"; shift ;;
-        --num-shots)        NUM_SHOTS="$2"; shift ;;
+        --num-messages)     NUM_MESSAGES="$2"; shift ;;
         --payload-size)     PAYLOAD_SIZE="$2"; shift ;;
         --page-size)        PAGE_SIZE="$2"; shift ;;
         --num-pages)        NUM_PAGES="$2"; shift ;;
@@ -247,13 +247,25 @@ setup_port() {
     if [[ -z "$ib_dev" ]]; then
         ib_dev=$(basename "$(ls -d /sys/class/net/$iface/device/infiniband/* 2>/dev/null | head -1)" 2>/dev/null || true)
     fi
-    if [[ -n "$ib_dev" ]] && command -v rdma &>/dev/null; then
-        local port_count
-        port_count=$(ls -d "/sys/class/infiniband/${ib_dev}/ports/"* 2>/dev/null | wc -l)
-        for p in $(seq 1 "$port_count"); do
-            sudo rdma link set "${ib_dev}/${p}" type eth || true
+    if [[ -n "$ib_dev" ]]; then
+        local has_rocev2=false
+        for f in /sys/class/infiniband/${ib_dev}/ports/*/gid_attrs/types/*; do
+            if [[ -f "$f" ]] && grep -q "RoCE v2" "$f" 2>/dev/null; then
+                has_rocev2=true; break
+            fi
         done
-        echo "    RoCEv2 mode configured for $ib_dev"
+        if $has_rocev2; then
+            echo "    RoCEv2 GID available for $ib_dev"
+        elif command -v rdma &>/dev/null && rdma link set --help &>/dev/null; then
+            local port_count
+            port_count=$(ls -d "/sys/class/infiniband/${ib_dev}/ports/"* 2>/dev/null | wc -l)
+            for p in $(seq 1 "$port_count"); do
+                sudo rdma link set "${ib_dev}/${p}" type eth || true
+            done
+            echo "    RoCEv2 mode configured for $ib_dev"
+        else
+            echo "    WARNING: Could not verify RoCEv2 mode for $ib_dev"
+        fi
     fi
 
     # DSCP trust mode for lossless RoCE
@@ -306,9 +318,18 @@ do_setup_network() {
 cleanup_pids() {
     for pid in "${PIDS[@]}"; do
         if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid" 2>/dev/null || true
-            wait "$pid" 2>/dev/null || true
+            kill -INT "$pid" 2>/dev/null || true
         fi
+    done
+    # Give processes a moment to shut down gracefully
+    sleep 1
+    for pid in "${PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+    done
+    for pid in "${PIDS[@]}"; do
+        wait "$pid" 2>/dev/null || true
     done
 }
 
@@ -340,12 +361,15 @@ do_run() {
 
         # Start emulator
         echo "--- Starting emulator ---"
+        > /tmp/emulator.log
         "$emulator_bin" \
             --device="$IB_DEVICE" \
             --port="$CONTROL_PORT" \
             --bridge-ip="$BRIDGE_IP" \
             --page-size="$PAGE_SIZE" \
-            2>&1 | tee /tmp/emulator.log &
+            > /tmp/emulator.log 2>&1 &
+        PIDS+=($!)
+        tail -f /tmp/emulator.log &
         PIDS+=($!)
 
         # Wait for emulator to print QP number
@@ -367,6 +391,7 @@ do_run() {
 
     # Start bridge
     echo "--- Starting bridge ---"
+    > /tmp/bridge.log
     "$bridge_bin" \
         --device="$IB_DEVICE" \
         --peer-ip="$FPGA_TARGET_IP" \
@@ -375,7 +400,10 @@ do_run() {
         --timeout="$TIMEOUT" \
         --page-size="$PAGE_SIZE" \
         --num-pages="$NUM_PAGES" \
-        2>&1 | tee /tmp/bridge.log &
+        > /tmp/bridge.log 2>&1 &
+    BRIDGE_PID=$!
+    PIDS+=($BRIDGE_PID)
+    tail -f /tmp/bridge.log &
     PIDS+=($!)
 
     # Wait for bridge to print QP info
@@ -404,7 +432,7 @@ do_run() {
         --bridge-buffer="0x$BRIDGE_BUFFER"
         --page-size="$PAGE_SIZE"
         --num-pages="$NUM_PAGES"
-        --num-shots="$NUM_SHOTS"
+        --num-messages="$NUM_MESSAGES"
         --payload-size="$PAYLOAD_SIZE"
         --bridge-ip="$BRIDGE_IP"
     )
