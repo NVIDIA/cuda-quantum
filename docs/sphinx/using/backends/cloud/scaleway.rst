@@ -10,7 +10,7 @@ through a unified API.
 
 Scaleway QaaS allows users to submit quantum workloads programmatically and
 integrate them into hybrid classical–quantum workflows. The service is designed
-to be used either directly through the Scaleway APIs or via higher-level SDKs
+to be used either directly through the Scaleway APIs or via higher-level SDK
 and frameworks such as CUDA-Q.
 
 To get started, users must have an active Scaleway account and a project with
@@ -129,7 +129,7 @@ If you want to manually shutdown a QPU session, you can do it by calling the Sca
    # List active sessions
    curl -X GET \
       -H "X-Auth-Token: $SCW_SECRET_KEY" \
-      "https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=XXXXX"
+      "https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=<project_id>"
 
    # Terminate the session
    curl -X POST \

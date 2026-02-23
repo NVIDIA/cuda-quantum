@@ -4,6 +4,7 @@ API
 APIs
 AST
 Aer
+Auth
 AlmaLinux
 Anyon
 AquSim
@@ -207,6 +208,7 @@ dendrogram
 dependence
 dependences
 deserialize
+deserialization
 destructor
 detuning
 deutsch
@@ -307,7 +309,7 @@ preprocessor
 probability
 programmatically
 pybind
-qaas
+QaaS
 qaoa
 qed
 qio
@@ -326,6 +328,7 @@ runtimes
 rvalue
 scalability
 scalable
+scw
 scaleway
 selectable
 sexualized
