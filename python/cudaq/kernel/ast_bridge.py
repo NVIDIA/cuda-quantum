@@ -3832,6 +3832,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.visit(node.generators[0].iter)
         iterable = self.popValue()
+        orig_iterable_type = iterable.type
         if cc.StdvecType.isinstance(iterable.type):
             iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
                                            iterable).result
@@ -4061,6 +4062,34 @@ class PyASTBridge(ast.NodeVisitor):
         listElemTy = get_item_type(node.elt)
         if listElemTy is None:
             return
+
+        if quake.RefType.isinstance(listElemTy):
+            if cc.StdvecType.isinstance(orig_iterable_type):
+                list_indices = self.__getListIndices(
+                    node.generators[0].iter)
+                if list_indices is None:
+                    self.emitFatalError(
+                        "list comprehension producing qubit references requires "
+                        "a compile-time constant index list; use a literal list "
+                        "or range() with constant arguments instead.", node)
+                if len(list_indices) == 0:
+                    self.emitFatalError(
+                        "empty list comprehension is not allowed", node)
+                refs = []
+                for idx in list_indices:
+                    self.symbolTable.beginBlock()
+                    self.__deconstructAssignment(node.generators[0].target,
+                                                 self.getConstantInt(idx))
+                    self.visit(node.elt)
+                    refs.append(self.popValue())
+                    self.symbolTable.endBlock()
+                self.pushValue(
+                    refs[0] if len(refs) == 1 else quake.ConcatOp(
+                        self.getVeqType(), refs).result)
+                return
+            self.emitFatalError(
+                "unsupported list comprehension producing qubit references",
+                node)
 
         resultVecTy = cc.StdvecType.get(listElemTy)
         if listElemTy == self.getIntegerType(1):
