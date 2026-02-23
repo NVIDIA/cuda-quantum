@@ -62,7 +62,7 @@ TIMEOUT=60
 NUM_SHOTS=100
 PAYLOAD_SIZE=8
 PAGE_SIZE=384
-NUM_PAGES=64
+NUM_PAGES=128
 CONTROL_PORT=8193
 
 # Build parallelism
@@ -106,7 +106,7 @@ Run options:
   --num-shots N          Number of RPC messages (default: 100)
   --payload-size N       Bytes per RPC payload (default: 8)
   --page-size N          Ring buffer slot size in bytes (default: 384)
-  --num-pages N          Number of ring buffer slots (default: 64)
+  --num-pages N          Number of ring buffer slots (default: 128)
   --control-port N       UDP control port for emulator (default: 8193)
 
   --help, -h             Show this help
