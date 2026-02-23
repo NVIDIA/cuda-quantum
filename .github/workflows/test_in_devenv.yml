@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore environment
         id: restore_devdeps
@@ -65,6 +65,11 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Build CUDA Quantum
         run: |
@@ -157,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore environment
         id: restore_devdeps
@@ -188,6 +193,11 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Set up dev environment
         id: dev_env
@@ -239,10 +249,15 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
+            mock_qpu_failures=""
             for backendTest in python/tests/backends/*.py; do
-              python -m pytest -v --durations=0  $backendTest
+              output=$(python -m pytest -v -s --durations=0 $backendTest 2>&1)
               pytest_status=$?
-
+              echo "$output"
+              if echo "$output" | grep -q "Mock qpu not available"; then
+                echo "::error file=test_in_devenv.yml::Mock QPU unavailable for $backendTest"
+                mock_qpu_failures="$mock_qpu_failures $backendTest"
+              fi
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
@@ -250,6 +265,10 @@ jobs:
                 exit 1
               fi
             done
+            if [ -n "$mock_qpu_failures" ]; then
+              echo "::error file=test_in_devenv.yml::Mock QPU tests skipped due to missing startServer:$mock_qpu_failures"
+              exit 1
+            fi
 
       - name: Save environment
         id: env_save

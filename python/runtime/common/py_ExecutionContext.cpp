@@ -49,10 +49,7 @@ void bindExecutionContext(py::module &mod) {
       .def("unset_jit_engine",
            [&](cudaq::ExecutionContext &execCtx) {
              if (execCtx.jitEng) {
-               auto *p =
-                   reinterpret_cast<mlir::ExecutionEngine *>(execCtx.jitEng);
-               delete p;
-               execCtx.jitEng = nullptr;
+               execCtx.jitEng = std::nullopt;
                execCtx.allowJitEngineCaching = false;
              }
            })
@@ -94,10 +91,6 @@ void bindExecutionContext(py::module &mod) {
         }
         return false;
       });
-  mod.def("supportsConditionalFeedback", []() {
-    auto &platform = cudaq::get_platform();
-    return platform.supports_conditional_feedback();
-  });
   mod.def("supportsExplicitMeasurements", []() {
     auto &platform = cudaq::get_platform();
     return platform.supports_explicit_measurements();

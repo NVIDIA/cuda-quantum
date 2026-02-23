@@ -136,9 +136,6 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this QPU has conditional feedback support
-  virtual bool supportsConditionalFeedback() { return false; }
-
   /// @brief Return whether this QPU supports explicit measurements
   virtual bool supportsExplicitMeasurements() { return true; }
 
@@ -213,7 +210,8 @@ public:
   [[nodiscard]] virtual void *
   specializeModule(const std::string &name, mlir::ModuleOp module,
                    const std::vector<void *> &rawArgs, mlir::Type resultTy,
-                   void *cachedEngine);
+                   std::optional<cudaq::JitEngine> &cachedEngine,
+                   bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -229,7 +227,9 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
                                              mlir::Type resultTy) = 0;
   virtual void *specializeModule(const std::string &name, mlir::ModuleOp module,
                                  const std::vector<void *> &rawArgs,
-                                 mlir::Type resultTy, void *cachedEngine) = 0;
+                                 mlir::Type resultTy,
+                                 std::optional<cudaq::JitEngine> &cachedEngine,
+                                 bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

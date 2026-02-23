@@ -10,6 +10,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
+#include "common/JIT.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -28,7 +29,8 @@ using namespace mlir;
 static void specializeKernel(const std::string &name, ModuleOp module,
                              const std::vector<void *> &rawArgs,
                              Type resultTy = {},
-                             bool enablePythonCodegenDump = false) {
+                             bool enablePythonCodegenDump = false,
+                             bool isEntryPoint = true) {
   PassManager pm(module.getContext());
   cudaq::opt::ArgumentConverter argCon(name, module);
   argCon.gen(name, module, rawArgs);
@@ -61,13 +63,19 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  if (resultTy) {
+  if (resultTy && isEntryPoint) {
     // If we're expecting a result, then we want to call the .thunk function so
     // that the result is properly marshaled. Add the GKE pass to generate the
     // .thunk. At this point, the kernel should have been specialized so it has
     // an arity of 0.
+    auto nullary = true;
+    for (auto arg : rawArgs)
+      if (!arg) {
+        nullary = false;
+        break;
+      }
     pm.addPass(
-        cudaq::opt::createGenerateKernelExecution({.positNullary = true}));
+        cudaq::opt::createGenerateKernelExecution({.positNullary = nullary}));
   }
   pm.addPass(createSymbolDCEPass());
   if (enablePythonCodegenDump) {
@@ -158,25 +166,23 @@ static void updateExecutionContext(ModuleOp module) {
   }
 }
 
-static ExecutionEngine *alreadyBuiltJITCode() {
+static std::optional<cudaq::JitEngine> alreadyBuiltJITCode() {
   auto *currentExecCtx = cudaq::getExecutionContext();
   if (!currentExecCtx || !currentExecCtx->allowJitEngineCaching)
-    return {};
-  return reinterpret_cast<ExecutionEngine *>(currentExecCtx->jitEng);
+    return std::nullopt;
+  return currentExecCtx->jitEng;
 }
 
 /// In a sample launch context, the (`JIT` compiled) execution engine may be
 /// cached so that it can be called many times in a loop without being
 /// recompiled. This exploits the fact that the arguments processed at the
 /// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-static bool cacheJITForPerformance(ExecutionEngine *jit) {
+static void cacheJITForPerformance(cudaq::JitEngine jit) {
   auto *currentExecCtx = cudaq::getExecutionContext();
   if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
     if (!currentExecCtx->jitEng)
-      currentExecCtx->jitEng = reinterpret_cast<void *>(jit);
-    return true;
+      currentExecCtx->jitEng = jit;
   }
-  return false;
 }
 
 namespace {
@@ -195,7 +201,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     cudaq::KernelThunkResultType result{nullptr, 0};
-    ExecutionEngine *jit = alreadyBuiltJITCode();
+    auto jit = alreadyBuiltJITCode();
     if (!jit) {
       // 1. Check that this call is sane.
       if (enablePythonCodegenDump)
@@ -234,29 +240,22 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       // FIXME: Python ought to set up the call stack so that a legit C++ entry
       // point can be called instead of winging it and duplicating what the core
       // compiler already does.
-      auto funcPtr = jit->lookup(name + ".thunk");
-      if (!funcPtr)
-        throw std::runtime_error(
-            "kernel disappeared underneath execution engine");
+      auto funcPtr = jit->lookupRawNameOrFail(name + ".thunk");
       void *buff = const_cast<void *>(rawArgs.back());
       result = reinterpret_cast<cudaq::KernelThunkResultType (*)(void *, bool)>(
           *funcPtr)(buff, /*client_server=*/false);
     } else {
-      auto funcPtr = jit->lookup(fullName);
-      if (!funcPtr)
-        throw std::runtime_error(
-            "kernel disappeared underneath execution engine");
-      reinterpret_cast<void (*)()>(*funcPtr)();
+      jit->run(name);
     }
-    if (!cacheJITForPerformance(jit))
-      delete jit;
+    cacheJITForPerformance(jit.value());
     // FIXME: actually handle results
     return result;
   }
 
   void *specializeModule(const std::string &name, ModuleOp module,
                          const std::vector<void *> &rawArgs, Type resultTy,
-                         void *cachedEngine) override {
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     // In this launch scenario, we have a ModuleOp that has the entry-point
     // kernel, but needs to be merged with anything else it may call. The
     // merging of modules mirrors the late binding and dynamic scoping of the
@@ -288,21 +287,19 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     CUDAQ_INFO("Run Argument Synth.\n");
     if (enablePythonCodegenDump)
       module.dump();
-    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump);
+    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
+                     isEntryPoint);
 
     // 4. Execute the code right here, right now.
-    auto *jit = cudaq::createQIRJITEngine(module, "qir:");
-    auto **cache = reinterpret_cast<ExecutionEngine **>(cachedEngine);
-    if (*cache)
+    auto jit = cudaq::createQIRJITEngine(module, "qir:");
+    if (cachedEngine)
       throw std::runtime_error("cache must not be populated");
-    *cache = jit;
+    cachedEngine = jit;
 
-    std::string entryName = resultTy ? name + ".thunk" : fullName;
-    auto funcPtr = jit->lookup(entryName);
-    if (!funcPtr)
-      throw std::runtime_error(
-          "kernel disappeared underneath execution engine");
-    return *funcPtr;
+    std::string entryName =
+        (resultTy && isEntryPoint) ? name + ".thunk" : fullName;
+    auto funcPtr = jit.lookupRawNameOrFail(entryName);
+    return reinterpret_cast<void *>(funcPtr);
   }
 };
 } // namespace

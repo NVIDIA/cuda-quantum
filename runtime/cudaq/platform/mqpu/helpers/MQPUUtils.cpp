@@ -13,8 +13,10 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Program.h"
 #include <arpa/inet.h>
+#include <cstdint>
 #include <execinfo.h>
 #include <filesystem>
+#include <netinet/in.h>
 #include <numeric>
 #include <random>
 #include <set>
@@ -36,12 +38,22 @@ bool portAvailable(int port) {
   ::bzero((char *)&servAddr, sizeof(servAddr));
   servAddr.sin_family = AF_INET;
   servAddr.sin_addr.s_addr = INADDR_ANY;
-  servAddr.sin_port = port;
+  servAddr.sin_port = htons(static_cast<uint16_t>(port));
   int sock = ::socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0)
     return false;
   bool available =
       (::bind(sock, (struct sockaddr *)&servAddr, sizeof(servAddr)) == 0);
+
+  if (available) {
+    // Use SO_LINGER with l_linger=0 so close() sends RST and the port is not
+    // left in TIME_WAIT. Otherwise the port can be "already in use" when the
+    // auto-launched server tries to bind immediately after.
+    struct linger so_linger;
+    so_linger.l_onoff = 1;
+    so_linger.l_linger = 0;
+    ::setsockopt(sock, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+  }
 
   // Close the socket to avoid leaks
   if (::close(sock) != 0) {
