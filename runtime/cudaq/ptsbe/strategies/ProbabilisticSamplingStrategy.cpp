@@ -43,7 +43,7 @@ ProbabilisticSamplingStrategy::generateTrajectories(
   constexpr std::size_t MAX_BUDGET_CAP = 500000;
   std::size_t budget;
   if (max_trajectory_samples_.has_value()) {
-    budget = std::max(max_trajectories, max_trajectory_samples_.value());
+    budget = max_trajectory_samples_.value();
   } else {
     std::size_t target = std::min(max_trajectories, total_possible);
     budget = std::min(target * ATTEMPT_MULTIPLIER, MAX_BUDGET_CAP);

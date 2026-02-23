@@ -25,9 +25,7 @@ static cudaq::kraus_channel makeIYChannel(double pI, double pY) {
   std::vector<cudaq::kraus_op> ops;
   ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
   ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
-  auto ch = cudaq::kraus_channel(std::move(ops));
-  ch.op_names = {"id", "y"};
-  return ch;
+  return cudaq::kraus_channel(std::move(ops));
 }
 
 static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
@@ -39,9 +37,7 @@ static cudaq::kraus_channel makeIXYChannel(double pI, double pX, double pY) {
   ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI}));
   ops.push_back(cudaq::kraus_op({0.0, sX, sX, 0.0}));
   ops.push_back(cudaq::kraus_op({0.0, -i * sY, i * sY, 0.0}));
-  auto ch = cudaq::kraus_channel(std::move(ops));
-  ch.op_names = {"id", "x", "y"};
-  return ch;
+  return cudaq::kraus_channel(std::move(ops));
 }
 
 std::vector<NoisePoint> createSimpleNoisePoints() {
@@ -276,8 +272,7 @@ TEST(ProbabilisticSamplingStrategyTest,
   np.channel = makeIXYChannel(0.34, 0.33, 0.33);
   noise_points.push_back(np);
 
-  // With a small explicit max_trajectory_samples, total multiplicity should
-  // equal that value (since max_trajectories < max_trajectory_samples here).
+  // When max_trajectory_samples is set, the budget equals that value directly.
   const std::size_t explicit_samples = 200;
   ProbabilisticSamplingStrategy strategy_explicit(42, explicit_samples);
 
@@ -289,7 +284,7 @@ TEST(ProbabilisticSamplingStrategyTest,
   for (const auto &traj : trajectories)
     total_multiplicity += traj.multiplicity;
 
-  // total_samples = max(max_trajectories=100, max_trajectory_samples=200) = 200
+  // budget = max_trajectory_samples = 200
   EXPECT_EQ(total_multiplicity, explicit_samples);
 
   // Without the parameter, auto-budget is max(max_trajectories,
@@ -304,6 +299,30 @@ TEST(ProbabilisticSamplingStrategyTest,
     total_multiplicity_auto += traj.multiplicity;
 
   EXPECT_GE(total_multiplicity_auto, 100u);
+}
+
+TEST(ProbabilisticSamplingStrategyTest,
+     TrajectorySamplesLessThanMaxTrajectoriesIsHonored) {
+  std::vector<NoisePoint> noise_points;
+
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+  np.channel = makeIXYChannel(0.34, 0.33, 0.33);
+  noise_points.push_back(np);
+
+  // max_trajectory_samples=30 < max_trajectories=100: budget should be 30.
+  const std::size_t explicit_samples = 30;
+  ProbabilisticSamplingStrategy strategy(42, explicit_samples);
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 100);
+
+  std::size_t total_multiplicity = 0;
+  for (const auto &traj : trajectories)
+    total_multiplicity += traj.multiplicity;
+
+  EXPECT_EQ(total_multiplicity, explicit_samples);
 }
 
 TEST(ProbabilisticSamplingStrategyTest, EarlyStoppingReducesTotalDraws) {
@@ -784,4 +803,49 @@ TEST(NoisePointTest, NonUnitaryKrausOperators) {
   np.channel = cudaq::amplitude_damping_channel(0.3);
   np.channel.generateUnitaryParameters();
   EXPECT_FALSE(np.channel.is_unitary_mixture());
+}
+
+TEST(IdentityDetectionTest, CustomChannelDetectsIdentityFromMatrix) {
+  auto ch = makeIYChannel(0.9, 0.1);
+  EXPECT_TRUE(ch.is_identity_op(0));
+  EXPECT_FALSE(ch.is_identity_op(1));
+}
+
+TEST(IdentityDetectionTest, CustomThreeOpChannelDetectsIdentityFromMatrix) {
+  auto ch = makeIXYChannel(0.7, 0.2, 0.1);
+  EXPECT_TRUE(ch.is_identity_op(0));
+  EXPECT_FALSE(ch.is_identity_op(1));
+  EXPECT_FALSE(ch.is_identity_op(2));
+}
+
+TEST(IdentityDetectionTest, StandardChannelIdentityFlags) {
+  auto ch = cudaq::depolarization_channel(0.3);
+  EXPECT_TRUE(ch.is_identity_op(0));
+  EXPECT_FALSE(ch.is_identity_op(1));
+  EXPECT_FALSE(ch.is_identity_op(2));
+  EXPECT_FALSE(ch.is_identity_op(3));
+}
+
+TEST(IdentityDetectionTest, BitFlipChannelIdentityFlags) {
+  auto ch = cudaq::bit_flip_channel(0.1);
+  EXPECT_TRUE(ch.is_identity_op(0));
+  EXPECT_FALSE(ch.is_identity_op(1));
+}
+
+TEST(IdentityDetectionTest, OutOfBoundsReturnsFalse) {
+  auto ch = cudaq::bit_flip_channel(0.1);
+  EXPECT_FALSE(ch.is_identity_op(99));
+}
+
+TEST(IdentityDetectionTest, NonUnitaryChannelReturnsFalse) {
+  auto ch = cudaq::amplitude_damping_channel(0.3);
+  EXPECT_FALSE(ch.is_identity_op(0));
+  EXPECT_FALSE(ch.is_identity_op(1));
+}
+
+TEST(IdentityDetectionTest, CopyPreservesFlags) {
+  auto ch = makeIYChannel(0.9, 0.1);
+  auto copy = ch;
+  EXPECT_TRUE(copy.is_identity_op(0));
+  EXPECT_FALSE(copy.is_identity_op(1));
 }

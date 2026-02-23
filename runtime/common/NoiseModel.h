@@ -200,10 +200,12 @@ void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);
 void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops);
 void generateUnitaryParameters_fp32(
     const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &,
+    std::vector<bool> &);
 void generateUnitaryParameters_fp64(
     const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &,
+    std::vector<bool> &);
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
@@ -254,6 +256,11 @@ public:
   /// probabilities of those ops. These values are always "double" regardless
   /// of whether cudaq::real is float or double.
   std::vector<double> probabilities;
+
+  /// @brief For unitary mixture channels, flags indicating which operators are
+  /// identity (or global-phase-times-identity). Populated during
+  /// generateUnitaryParameters(). Empty for non-unitary channels.
+  std::vector<bool> identity_flags;
 
   /// @brief Names for each Kraus operator, parallel to ops.
   /// For standard Pauli channels these are gate names (e.g., "id", "x").
@@ -326,19 +333,21 @@ public:
   void generateUnitaryParameters() {
     unitary_ops.clear();
     probabilities.clear();
+    identity_flags.clear();
     if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
       generateUnitaryParameters_fp32(ops, this->unitary_ops,
-                                     this->probabilities);
+                                     this->probabilities, this->identity_flags);
       return;
     }
-    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
+    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities,
+                                   this->identity_flags);
   }
 
   /// @brief Check whether the operator at the given index is an identity.
+  /// Determined from the unitary matrix data during channel construction,
+  /// recognizing both exact identity and global-phase-times-identity.
   bool is_identity_op(std::size_t index) const {
-    if (index >= op_names.size())
-      return false;
-    return op_names[index] == "id" || op_names[index] == "ii";
+    return index < identity_flags.size() && identity_flags[index];
   }
 
   /// @brief Populate op_names with default names of the form type_name[index].
