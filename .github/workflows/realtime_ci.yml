@@ -119,13 +119,11 @@ jobs:
 
     steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Download binary artifact
         uses: actions/download-artifact@v4
         with:
           name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ./realtime_build_artifacts
 
       - name: Extract files
         run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
