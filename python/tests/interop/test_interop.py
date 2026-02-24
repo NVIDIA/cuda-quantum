@@ -178,6 +178,24 @@ def test_cpp_kernel_from_python_2():
         e.value)
 
 
+def test_cpp_kernel_from_python_3():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def call_c_twice():
+        q = cudaq.qvector(4)
+        cudaq_test_cpp_algo.qstd.uccsd(q, 2)
+        cudaq_test_cpp_algo.qstd.uccsd(q, 2)
+
+    @cudaq.kernel
+    def call_call_c_twice():
+        call_c_twice()
+
+    call_call_c_twice()
+
+
 def test_callbacks():
     pytest.importorskip('cudaq_test_cpp_algo')
 
@@ -255,3 +273,61 @@ def test_callback_with_capture_quantum_and_classical():
         h(qs)
 
     cudaq_test_cpp_algo.run3(entry)
+
+
+def test_callback_with_return():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def entry(qs: cudaq.qview, i: int) -> int:
+        h(qs)
+        x(qs[i])
+        y(qs)
+        h(qs)
+        return i
+
+    cudaq_test_cpp_algo.run4(entry)
+
+
+def test_callback_with_callable():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def foo(qs: cudaq.qview):
+        x(qs)
+
+    @cudaq.kernel
+    def entry(qs: cudaq.qview, i: int) -> int:
+        h(qs)
+        x(qs[i])
+        foo(qs)
+        h(qs)
+        return i
+
+    cudaq_test_cpp_algo.run4(entry)
+
+
+def test_py_kernel_from_cpp_with_returns():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def foo() -> list[float]:
+        return [1.0, 2.0, 3.0]
+
+    cudaq_test_cpp_algo.run5(foo)
+
+    @cudaq.kernel
+    def foo(i: int) -> list[float]:
+        if i % 2 == 1:
+            f = 1.0
+        else:
+            f = 0.5
+        return [f, 2.0, 3.0]
+
+    cudaq_test_cpp_algo.run6(foo)

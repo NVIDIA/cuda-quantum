@@ -518,7 +518,7 @@ class PyKernelDecorator(object):
         return len(self.arg_types())
 
     @ensure_compiled
-    def handle_call_arguments(self, *args):
+    def handle_call_arguments(self, *args, allow_no_args=False):
         """
         Resolve all the arguments at the call site for this decorator.
         """
@@ -526,6 +526,17 @@ class PyKernelDecorator(object):
         processedArgs = []
         callingModule = recover_calling_module()
         self.process_arguments_to_call(processedArgs, callingModule, args)
+
+        # If we're compiling a kernel that's not an entry point, allowing compiling
+        # without providing all arguments
+        if allow_no_args:
+            expected = len(self.arg_types(include_captured=False))
+            actual = len(processedArgs)
+            if actual != 0 and actual != expected:
+                raise RuntimeError(
+                    "Cannot partially reduce a python kernel! Must either provide all arguments or no arguments."
+                )
+            [processedArgs.append(None) for k in range(actual, expected)]
 
         # Process any lifted arguments
         for arg in self.signature.captured_args:
@@ -604,7 +615,8 @@ class PyKernelDecorator(object):
         passed to algorithms written in C++ that call back to these Python
         kernels in a functional composition.
         """
-        specialized_module, processedArgs = self.handle_call_arguments(*args)
+        specialized_module, processedArgs = self.handle_call_arguments(
+            *args, allow_no_args=True)
         mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName,
                                                        specialized_module,

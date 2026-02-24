@@ -2673,6 +2673,9 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handle registered C++ kernels
                 elif cudaq_runtime.isRegisteredDeviceModule(devKey):
                     deviceModuleName = devKey + '.' + name
+                    if deviceModuleName in self.symbolTable:
+                        processDecoratorCall(deviceModuleName)
+                        return
                     maybeDeviceKernel = cudaq_runtime.checkRegisteredCppDeviceKernel(
                         self.module, deviceModuleName)
                     if maybeDeviceKernel != None:
