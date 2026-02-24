@@ -28,6 +28,12 @@ typedef enum {
   CUDAQ_ERR_CUDA = 3
 } cudaq_status_t;
 
+// Dispatcher backend: device persistent kernel vs host-side loop
+typedef enum {
+  CUDAQ_BACKEND_DEVICE_KERNEL = 0,
+  CUDAQ_BACKEND_HOST_LOOP = 1
+} cudaq_backend_t;
+
 // Kernel synchronization type
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
@@ -37,7 +43,8 @@ typedef enum {
 // Dispatch invocation mode
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
-  CUDAQ_DISPATCH_GRAPH_LAUNCH = 1
+  CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,
+  CUDAQ_DISPATCH_HOST_CALL = 2
 } cudaq_dispatch_mode_t;
 
 // Payload type identifiers (matching PayloadTypeID in dispatch_kernel_launch.h)
@@ -80,10 +87,13 @@ typedef struct {
   uint32_t slot_size;                  // bytes per slot
   uint32_t vp_id;                      // virtual port ID
   cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
-  cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
+  cudaq_dispatch_mode_t dispatch_mode;  // device call/graph launch
+  cudaq_backend_t backend;             // device kernel or host loop (default DEVICE_KERNEL)
 } cudaq_dispatcher_config_t;
 
-// GPU ring buffer pointers (device-visible mapped pointers)
+// GPU ring buffer pointers. For device backend use device pointers only.
+// For CUDAQ_BACKEND_HOST_LOOP, also set the _host pointers (same pinned
+// mapped allocation); the host loop polls rx_flags_host and uses host data.
 typedef struct {
   volatile uint64_t *rx_flags; // device pointer
   volatile uint64_t *tx_flags; // device pointer
@@ -91,13 +101,23 @@ typedef struct {
   uint8_t *tx_data;            // device pointer to TX data buffer
   size_t rx_stride_sz;         // size of each RX slot in bytes
   size_t tx_stride_sz;         // size of each TX slot in bytes
+  // Host-side view (required when backend == CUDAQ_BACKEND_HOST_LOOP; NULL otherwise)
+  volatile uint64_t *rx_flags_host;
+  volatile uint64_t *tx_flags_host;
+  uint8_t *rx_data_host;
+  uint8_t *tx_data_host;
 } cudaq_ringbuffer_t;
+
+// Host RPC callback: reads RPCHeader + args from slot, writes RPCResponse + result.
+// slot_host is the host pointer to the slot (same layout as device slot).
+typedef void (*cudaq_host_rpc_fn_t)(void *slot_host, size_t slot_size);
 
 // Unified function table entry with schema
 typedef struct {
   union {
-    void *device_fn_ptr;        // for CUDAQ_DISPATCH_DEVICE_CALL
-    cudaGraphExec_t graph_exec; // for CUDAQ_DISPATCH_GRAPH_LAUNCH
+    void *device_fn_ptr;               // for CUDAQ_DISPATCH_DEVICE_CALL
+    cudaGraphExec_t graph_exec;        // for CUDAQ_DISPATCH_GRAPH_LAUNCH
+    cudaq_host_rpc_fn_t host_fn;       // for CUDAQ_DISPATCH_HOST_CALL
   } handler;
   uint32_t function_id;          // hash of function name (FNV-1a)
   uint8_t dispatch_mode;         // cudaq_dispatch_mode_t value
@@ -222,6 +242,27 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 // Stats
 cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
+
+//==============================================================================
+// Host dispatcher backend (CUDAQ_BACKEND_HOST_LOOP)
+//==============================================================================
+// When config.backend == CUDAQ_BACKEND_HOST_LOOP, start() uses these instead
+// of launch_fn. The realtime lib calls them; implementation is in
+// libcudaq-realtime-host-dispatch.
+
+typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
+
+// Start the host dispatcher loop in a new thread. Call from cudaq_dispatcher_start
+// when backend is CUDAQ_BACKEND_HOST_LOOP. Returns a handle for stop, or NULL on error.
+cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
+    const cudaq_ringbuffer_t *ringbuffer,
+    const cudaq_function_table_t *table,
+    const cudaq_dispatcher_config_t *config,
+    volatile int *shutdown_flag,
+    uint64_t *stats);
+
+// Stop the host dispatcher thread and free resources.
+void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);
 
 // Force eager CUDA module loading for dispatch kernels (occupancy query).
 // Call before cudaq_dispatcher_start() to avoid lazy-loading deadlocks.

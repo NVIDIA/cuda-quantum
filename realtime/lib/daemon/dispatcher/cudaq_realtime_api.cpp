@@ -24,6 +24,7 @@ struct cudaq_dispatcher_t {
   uint64_t *stats = nullptr;
   cudaStream_t stream = nullptr;
   bool running = false;
+  cudaq_host_dispatcher_handle_t *host_handle = nullptr;
 };
 
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
@@ -40,6 +41,7 @@ static bool is_valid_dispatch_mode(cudaq_dispatch_mode_t dispatch_mode) {
   switch (dispatch_mode) {
   case CUDAQ_DISPATCH_DEVICE_CALL:
   case CUDAQ_DISPATCH_GRAPH_LAUNCH:
+  case CUDAQ_DISPATCH_HOST_CALL:
     return true;
   default:
     return false;
@@ -49,16 +51,26 @@ static bool is_valid_dispatch_mode(cudaq_dispatch_mode_t dispatch_mode) {
 static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
-  if (!dispatcher->launch_fn || !dispatcher->shutdown_flag ||
-      !dispatcher->stats)
+  if (!dispatcher->shutdown_flag || !dispatcher->stats)
     return CUDAQ_ERR_INVALID_ARG;
   if (!dispatcher->ringbuffer.rx_flags || !dispatcher->ringbuffer.tx_flags)
     return CUDAQ_ERR_INVALID_ARG;
   if (!dispatcher->table.entries || dispatcher->table.count == 0)
     return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.num_slots == 0 || dispatcher->config.slot_size == 0)
+    return CUDAQ_ERR_INVALID_ARG;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+    if (!dispatcher->ringbuffer.rx_flags_host || !dispatcher->ringbuffer.tx_flags_host ||
+        !dispatcher->ringbuffer.rx_data_host || !dispatcher->ringbuffer.tx_data_host)
+      return CUDAQ_ERR_INVALID_ARG;
+    return CUDAQ_OK;
+  }
+
+  if (!dispatcher->launch_fn)
+    return CUDAQ_ERR_INVALID_ARG;
   if (dispatcher->config.num_blocks == 0 ||
-      dispatcher->config.threads_per_block == 0 ||
-      dispatcher->config.num_slots == 0 || dispatcher->config.slot_size == 0)
+      dispatcher->config.threads_per_block == 0)
     return CUDAQ_ERR_INVALID_ARG;
   if (!is_valid_kernel_type(dispatcher->config.kernel_type) ||
       !is_valid_dispatch_mode(dispatcher->config.dispatch_mode))
@@ -99,6 +111,11 @@ cudaq_status_t cudaq_dispatcher_create(cudaq_dispatch_manager_t *,
 cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->running && dispatcher->host_handle) {
+    *dispatcher->shutdown_flag = 1;
+    cudaq_host_dispatcher_stop(dispatcher->host_handle);
+    dispatcher->host_handle = nullptr;
+  }
   delete dispatcher;
   return CUDAQ_OK;
 }
@@ -134,7 +151,11 @@ cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
 cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn) {
-  if (!dispatcher || !launch_fn)
+  if (!dispatcher)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP && launch_fn != nullptr)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP && !launch_fn)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->launch_fn = launch_fn;
   return CUDAQ_OK;
@@ -152,6 +173,17 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     device_id = 0;
   if (cudaSetDevice(device_id) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+    dispatcher->host_handle = cudaq_host_dispatcher_start_thread(
+        &dispatcher->ringbuffer, &dispatcher->table, &dispatcher->config,
+        dispatcher->shutdown_flag, dispatcher->stats);
+    if (!dispatcher->host_handle)
+      return CUDAQ_ERR_INTERNAL;
+    dispatcher->running = true;
+    return CUDAQ_OK;
+  }
+
   if (cudaStreamCreate(&dispatcher->stream) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
@@ -168,6 +200,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (err != cudaSuccess) {
     fprintf(stderr, "CUDA error in dispatcher launch: %s (%d)\n",
             cudaGetErrorString(err), err);
+    cudaStreamDestroy(dispatcher->stream);
+    dispatcher->stream = nullptr;
     return CUDAQ_ERR_CUDA;
   }
 
@@ -180,6 +214,15 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
   if (!dispatcher->running)
     return CUDAQ_OK;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP &&
+      dispatcher->host_handle) {
+    *dispatcher->shutdown_flag = 1;
+    cudaq_host_dispatcher_stop(dispatcher->host_handle);
+    dispatcher->host_handle = nullptr;
+    dispatcher->running = false;
+    return CUDAQ_OK;
+  }
 
   int shutdown = 1;
   if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
@@ -196,6 +239,11 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets) {
   if (!dispatcher || !out_packets || !dispatcher->stats)
     return CUDAQ_ERR_INVALID_ARG;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+    *out_packets = *dispatcher->stats;
+    return CUDAQ_OK;
+  }
 
   if (cudaMemcpy(out_packets, dispatcher->stats, sizeof(uint64_t),
                  cudaMemcpyDeviceToHost) != cudaSuccess)
