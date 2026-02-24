@@ -808,7 +808,8 @@ protected:
           gateQueue.pop();
         throw std::runtime_error("Unknown exception in applyGate");
       }
-      if (executionContext && executionContext->noiseModel) {
+      if (executionContext && executionContext->noiseModel &&
+          !executionContext->noiseModel->empty()) {
         std::vector<double> params(next.parameters.begin(),
                                    next.parameters.end());
         applyNoiseChannel(next.operationName, next.controls, next.targets,
@@ -1249,7 +1250,8 @@ public:
 
     // Apply measurement noise (if any)
     // Note: gate noises are applied during flushGateQueue
-    if (executionContext && executionContext->noiseModel)
+    if (executionContext && executionContext->noiseModel &&
+        !executionContext->noiseModel->empty())
       applyNoiseChannel(/*gateName=*/"mz", /*controls=*/{},
                         /*targets=*/{qubitIdx}, /*params=*/{});
 
