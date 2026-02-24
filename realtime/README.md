@@ -16,7 +16,8 @@ data round trips between FPGA and GPU.
 > This library is currently in early access / alpha stage
 > and will continue to rapidly evolve as we build interactively with collaborators.
 
-<!-- -->
+Please refer to the specifications for the [message protocol](docs/cudaq_realtime_message_protocol.md)
+and [realtime host API](docs/cudaq_realtime_host_api.md) for more information.
 
 > [!NOTE]
 > While the library is in early access, instructions to reproduce the FPGA-GPU latency
