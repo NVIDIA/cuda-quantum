@@ -4,7 +4,6 @@ API
 APIs
 AST
 Aer
-Auth
 AlmaLinux
 Anyon
 AquSim
@@ -98,6 +97,7 @@ Photonic
 Photonics
 PyPI
 Pygments
+QaaS
 QAOA
 QCI
 QCaaS
@@ -120,6 +120,7 @@ RHEL
 RSA
 RSH
 SDK
+Scaleway
 SLED
 SLES
 SLURM
@@ -309,7 +310,6 @@ preprocessor
 probability
 programmatically
 pybind
-QaaS
 qaoa
 qed
 qio
@@ -328,8 +328,6 @@ runtimes
 rvalue
 scalability
 scalable
-scw
-scaleway
 selectable
 sexualized
 shifter

@@ -390,6 +390,13 @@ jobs:
               chmod 600 ~/.quantinuum_config
               rm ~/.quantinuum_cookies.txt
               ;;
+            scaleway)
+              echo "### Setting up Scaleway account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.SCW_PROJECT_ID }}"
+              echo "::add-mask::${{ secrets.SCW_SECRET_KEY }}"
+              echo "SCW_PROJECT_ID=${{ secrets.SCW_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
+              ;;
           esac
         shell: bash
 

@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../anyon/test-int8_t_free_func.cpp"
+#include "../execution/test-int8_t_free_func.cpp"

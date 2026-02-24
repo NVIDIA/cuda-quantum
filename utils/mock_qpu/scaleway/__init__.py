@@ -250,3 +250,8 @@ async def listJobResults(jobId: str):
     ]
 
     return {"job_results": results, "total_count": len(results)}
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
