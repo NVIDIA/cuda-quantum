@@ -23,6 +23,7 @@ CUDA
 Cartesian
 CentOS
 Conda
+ConnectX
 CuPy
 DCO
 DGX
@@ -77,6 +78,7 @@ Max-Cut
 Miniconda
 MyST
 NGC
+NIC
 NVIDIA
 NVLink
 NVQIR
@@ -118,7 +120,9 @@ QuEra
 QuTiP
 Quake
 Quantinuum
+RDMA
 RHEL
+RPC
 RSA
 RSH
 SDK
@@ -138,6 +142,7 @@ Toshiko
 UCCSD
 VQE
 Vazirani
+Verilog
 WSL
 Xcode
 Zener
@@ -252,6 +257,7 @@ functors
 grovers
 hadamard
 hamiltonian
+handoff
 heisenberg
 homogenous
 iff
@@ -304,6 +310,7 @@ parameterization
 performant
 photonic
 photonics
+pipelined
 precompute
 precomputed
 prepend
@@ -324,11 +331,13 @@ qumodes
 reStructuredText
 realtime
 reconfigurable
+reusability
 runtime
 runtimes
 rvalue
 scalability
 scalable
+schemas
 selectable
 sexualized
 shifter
@@ -362,6 +371,7 @@ superpositions
 symplectic
 tablegen
 templated
+testability
 toolchain
 toolchains
 toolset
