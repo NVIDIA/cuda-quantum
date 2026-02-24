@@ -146,8 +146,8 @@ Compiler::Compiler(ServerHelper *serverHelper,
     // emulation and a noise model has been set, do not erase the noise
     // callbacks.
     if (emulate)
-      passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
-                            std::string{noiseModel ? "false" : "true"} +
+      // FIXME: Noise should eventually be enabled for emulated hardware targets
+      passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=true"
                             " allow-early-exit=" + allowEarlyExitSetting + "}";
     else
       passPipelineConfig +=
