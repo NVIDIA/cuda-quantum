@@ -16,7 +16,6 @@
 #     The environment to build the source image for.
 
 on:
-  push:
   workflow_dispatch:
     inputs:
       push_to_NGC:
