@@ -126,6 +126,7 @@ Manage your QPU session
 If you want to manually shutdown a QPU session, you can do it by calling the Scaleway's QaaS API:
 
 .. code:: bash
+
     # List active sessions
     curl -X GET -H "X-Auth-Token: $SCW_SECRET_KEY" "https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=<project_id>"
 
