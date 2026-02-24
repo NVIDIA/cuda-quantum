@@ -130,7 +130,7 @@ jobs:
 
       - name: Install tools for building installer
         run: |
-          apt update && apt install -y build-essential makeself
+          apt update && apt install -y cmake build-essential makeself
 
       - name: Install realtime binary
         run: cd /workspace/realtime/build && make install
