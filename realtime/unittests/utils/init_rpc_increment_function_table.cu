@@ -35,12 +35,17 @@ __device__ int rpc_increment_handler(const void *input, void *output,
                                      std::uint32_t arg_len,
                                      std::uint32_t max_result_len,
                                      std::uint32_t *result_len) {
+
   const std::uint8_t *in_data = static_cast<const std::uint8_t *>(input);
   std::uint8_t *out_data = static_cast<std::uint8_t *>(output);
   std::uint32_t len = (arg_len < max_result_len) ? arg_len : max_result_len;
-  for (std::uint32_t i = 0; i < len; ++i) {
+  // Echo first 8 bytes (FPGA PTP send timestamp) unchanged for latency
+  // measurement; increment remaining bytes.
+  std::uint32_t ts_len = (arg_len >= 8) ? 8 : arg_len;
+  for (std::uint32_t i = 0; i < ts_len && i < len; ++i)
+    out_data[i] = in_data[i];
+  for (std::uint32_t i = ts_len; i < len; ++i)
     out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
-  }
   *result_len = len;
   return 0;
 }

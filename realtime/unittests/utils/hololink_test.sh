@@ -60,7 +60,7 @@ MTU=4096
 GPU_ID=0
 TIMEOUT=60
 NUM_MESSAGES=100
-PAYLOAD_SIZE=8
+PAYLOAD_SIZE=16
 PAGE_SIZE=384
 NUM_PAGES=128
 CONTROL_PORT=8193
@@ -104,7 +104,7 @@ Run options:
   --timeout N            Timeout in seconds (default: 60)
   --no-verify            Skip ILA response verification
   --num-messages N       Number of RPC messages (default: 100)
-  --payload-size N       Bytes per RPC payload (default: 8)
+  --payload-size N       Bytes per RPC payload (default: 16)
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
   --control-port N       UDP control port for emulator (default: 8193)

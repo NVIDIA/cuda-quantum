@@ -26,8 +26,10 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <set>
 #include <sstream>
 #include <string>
@@ -57,31 +59,32 @@ constexpr std::uint32_t PLAYER_ENABLE_OFFSET = 0x0004;
 constexpr std::uint32_t RAM_NUM = 16;
 constexpr std::uint32_t RAM_DEPTH = 512;
 
-constexpr std::uint32_t PLAYER_ENABLE_SINGLEPASS = 0x0000'0005;
+constexpr std::uint32_t PLAYER_ENABLE_SINGLEPASS = 0x0000'000D;
 constexpr std::uint32_t PLAYER_DISABLE = 0x0000'0000;
 
 constexpr std::uint32_t SIF_TX_THRESHOLD_ADDR = 0x0120'0000;
 constexpr std::uint32_t SIF_TX_THRESHOLD_IMMEDIATE = 0x0000'0005;
 
-constexpr std::uint32_t DEFAULT_TIMER_SPACING_US = 10;
+constexpr std::uint32_t DEFAULT_TIMER_SPACING_US = 120;
 constexpr std::uint32_t RF_SOC_TIMER_SCALE = 322;
 
 // ============================================================================
 // ILA Capture Constants (SIF TX at 0x4000_0000)
 //
-// Each captured sample is 521 bits:
+// Each captured sample is 585 bits:
 //   [511:0]   sif_tx_axis_tdata_0
 //   [512]     sif_tx_axis_tvalid_0
 //   [513]     sif_tx_axis_tlast_0
 //   [520:514] sif_ila_wr_tcnt_0
+//   [584:521] current_ptp_timestamp {sec[31:0], nsec[31:0]}
 // ============================================================================
 constexpr std::uint32_t ILA_BASE_ADDR = 0x4000'0000;
 constexpr std::uint32_t ILA_CTRL_OFFSET = 0x0000;
 constexpr std::uint32_t ILA_SAMPLE_ADDR_OFFSET = 0x0084;
-constexpr std::uint32_t ILA_W_DATA = 521;
-constexpr std::uint32_t ILA_NUM_RAM = (ILA_W_DATA + 31) / 32; // 17
+constexpr std::uint32_t ILA_W_DATA = 585;
+constexpr std::uint32_t ILA_NUM_RAM = (ILA_W_DATA + 31) / 32; // 19
 constexpr std::uint32_t ILA_W_ADDR = 13;                      // log2(8192)
-constexpr std::uint32_t ILA_W_RAM = 5;                        // ceil(log2(17))
+constexpr std::uint32_t ILA_W_RAM = 5;                        // ceil(log2(19))
 
 constexpr std::uint32_t ILA_CTRL_ENABLE = 0x0000'0001;
 constexpr std::uint32_t ILA_CTRL_RESET = 0x0000'0002;
@@ -104,7 +107,7 @@ struct PlaybackArgs {
   size_t page_size = 384;
   unsigned num_pages = 128;
   uint32_t num_messages = 100;
-  uint32_t payload_size = 8;
+  uint32_t payload_size = 16;
   uint32_t vp_address = 0x1000;
   uint32_t hif_address = 0x0800;
   std::string bridge_ip = "10.0.0.1";
@@ -202,12 +205,16 @@ std::uint32_t load_le_u32(const std::uint8_t *p) {
 }
 
 /// Build one RPC request for the increment handler.
+/// Layout: [RPCHeader][8-byte PTP placeholder][data bytes...]
+/// The FPGA overwrites bytes 0-7 of the payload with the PTP send timestamp
+/// at transmit time.  The remaining bytes carry an incrementable test pattern.
 std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
                                             uint32_t payload_size) {
   using cudaq::nvqlink::fnv1a_hash;
   using cudaq::nvqlink::RPCHeader;
 
   constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
+  constexpr uint32_t PTP_TS_LEN = 8;
 
   std::vector<std::uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
   auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
@@ -217,7 +224,8 @@ std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
   hdr->request_id = msg_index;
 
   uint8_t *payload = msg.data() + sizeof(RPCHeader);
-  for (uint32_t i = 0; i < payload_size; i++)
+  // First 8 bytes left as zero -- FPGA injects PTP timestamp here.
+  for (uint32_t i = PTP_TS_LEN; i < payload_size; i++)
     payload[i] = static_cast<uint8_t>((msg_index + i) & 0xFF);
 
   return msg;
@@ -383,7 +391,7 @@ std::vector<std::vector<std::uint32_t>> ila_dump(hololink::Hololink &hl,
   return samples;
 }
 
-/// Extract a single bit from a 521-bit ILA sample stored as 17 uint32 words.
+/// Extract a single bit from a 585-bit ILA sample stored as 19 uint32 words.
 bool get_bit(const std::vector<std::uint32_t> &sample, uint32_t bit_pos) {
   uint32_t word = bit_pos / 32;
   uint32_t offset = bit_pos % 32;
@@ -400,6 +408,53 @@ extract_payload_bytes(const std::vector<std::uint32_t> &sample,
     bytes[i] = static_cast<std::uint8_t>((word >> ((i % 4) * 8)) & 0xFF);
   }
   return bytes;
+}
+
+/// Extract the 64-bit current_ptp_timestamp from ILA bits [584:521].
+/// Returns {sec[31:0], nsec[31:0]} packed as a uint64.
+std::uint64_t extract_ila_ptp_timestamp(
+    const std::vector<std::uint32_t> &sample) {
+  // Bits 521..584 span words 16 and 17 (and partially 18).
+  // bit 521 = word 16, offset 9
+  // We need 64 bits starting at bit 521.
+  uint64_t raw = 0;
+  for (int b = 0; b < 64; ++b) {
+    uint32_t bit_pos = 521 + b;
+    uint32_t w = bit_pos / 32;
+    uint32_t off = bit_pos % 32;
+    if ((sample[w] >> off) & 1)
+      raw |= (uint64_t(1) << b);
+  }
+  return raw;
+}
+
+/// Extract the echoed PTP send timestamp from the RPC response payload.
+/// The handler echoes the first 8 bytes of the request payload into the
+/// response payload.  These 8 bytes are {sec[31:0], nsec[31:0]} in
+/// big-endian (network byte order as placed by the FPGA).
+std::uint64_t extract_echoed_ptp_timestamp(const std::uint8_t *result_data) {
+  uint64_t raw = 0;
+  for (int i = 0; i < 8; ++i)
+    raw |= uint64_t(result_data[i]) << (i * 8);
+  return raw;
+}
+
+struct PtpTimestamp {
+  uint32_t sec;
+  uint32_t nsec;
+};
+
+PtpTimestamp decode_ptp(uint64_t raw) {
+  // {sec[31:0], nsec[31:0]} -- sec in upper 32 bits, nsec in lower 32
+  return {static_cast<uint32_t>(raw >> 32),
+          static_cast<uint32_t>(raw & 0xFFFF'FFFF)};
+}
+
+/// Compute signed nanosecond difference (recv - send).
+int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
+  int64_t d_sec = static_cast<int64_t>(recv.sec) - send.sec;
+  int64_t d_nsec = static_cast<int64_t>(recv.nsec) - send.nsec;
+  return d_sec * 1'000'000'000LL + d_nsec;
 }
 
 } // namespace
@@ -590,7 +645,8 @@ int main(int argc, char *argv[]) {
               << std::endl;
 
     // Verify: walk through ILA samples, find valid RPC responses,
-    // check increment logic.
+    // check increment logic, and compute PTP round-trip latency.
+    constexpr uint32_t PTP_TS_LEN = 8;
     uint32_t matched = 0;
     uint32_t header_errors = 0;
     uint32_t payload_errors = 0;
@@ -598,6 +654,19 @@ int main(int argc, char *argv[]) {
     uint32_t rpc_responses = 0;
     uint32_t non_rpc_frames = 0;
     std::set<uint32_t> seen_request_ids;
+
+    int64_t lat_min = std::numeric_limits<int64_t>::max();
+    int64_t lat_max = std::numeric_limits<int64_t>::min();
+    int64_t lat_sum = 0;
+    uint32_t lat_count = 0;
+
+    struct LatencySample {
+      uint32_t shot;
+      uint32_t send_sec, send_nsec;
+      uint32_t recv_sec, recv_nsec;
+      int64_t delta_ns;
+    };
+    std::vector<LatencySample> lat_samples;
 
     for (auto &sample : samples) {
       if (!get_bit(sample, ILA_TVALID_BIT)) {
@@ -627,13 +696,23 @@ int main(int argc, char *argv[]) {
       uint32_t rid = resp->request_id;
       seen_request_ids.insert(rid);
 
-      // Verify increment: each byte should be (rid + byte_index + 1) & 0xFF
       const uint8_t *result_data =
           payload.data() + sizeof(cudaq::nvqlink::RPCResponse);
       bool ok = true;
       uint32_t check_len = std::min(resp->result_len, args.payload_size);
+
+      // First PTP_TS_LEN bytes are the echoed PTP send timestamp (not
+      // incremented).  Remaining bytes are incremented.
       for (uint32_t j = 0; j < check_len && ok; j++) {
-        uint8_t expected = static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
+        uint8_t expected;
+        if (j < PTP_TS_LEN) {
+          // PTP bytes are opaque (set by FPGA at TX time); skip data
+          // verification for them -- they are used for latency measurement
+          // below.
+          continue;
+        } else {
+          expected = static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
+        }
         if (result_data[j] != expected) {
           if (payload_errors < 5) {
             std::cerr << "  Shot " << rid << " byte " << j << ": expected "
@@ -648,6 +727,38 @@ int main(int argc, char *argv[]) {
         ++matched;
       else
         ++payload_errors;
+
+      // PTP round-trip latency: send timestamp from echoed response payload
+      // bytes [0..7], receive timestamp from ILA bits [584:521].
+      if (resp->result_len >= PTP_TS_LEN) {
+        uint64_t send_raw = extract_echoed_ptp_timestamp(result_data);
+        uint64_t recv_raw = extract_ila_ptp_timestamp(sample);
+        if (send_raw != 0 && recv_raw != 0) {
+          auto send_ts = decode_ptp(send_raw);
+          auto recv_ts = decode_ptp(recv_raw);
+          int64_t delta = ptp_delta_ns(send_ts, recv_ts);
+          lat_sum += delta;
+          ++lat_count;
+          if (delta < lat_min)
+            lat_min = delta;
+          if (delta > lat_max)
+            lat_max = delta;
+
+          lat_samples.push_back(
+              {rid, send_ts.sec, send_ts.nsec,
+               recv_ts.sec, recv_ts.nsec, delta});
+
+          if (lat_count <= 5) {
+            std::cout << "  Msg " << std::setw(3) << rid
+                      << ": send={sec=" << send_ts.sec
+                      << ", nsec=" << send_ts.nsec
+                      << "} recv={sec=" << recv_ts.sec
+                      << ", nsec=" << recv_ts.nsec
+                      << "} delta=" << delta << " ns"
+                      << std::endl;
+          }
+        }
+      }
     }
 
     std::cout << "\n=== Verification Summary ===" << std::endl;
@@ -660,6 +771,29 @@ int main(int argc, char *argv[]) {
     std::cout << "  Responses matched:    " << matched << std::endl;
     std::cout << "  Header errors:        " << header_errors << std::endl;
     std::cout << "  Payload errors:       " << payload_errors << std::endl;
+
+    if (lat_count > 0) {
+      double lat_avg = static_cast<double>(lat_sum) / lat_count;
+      std::cout << "\n=== PTP Round-Trip Latency ===" << std::endl;
+      std::cout << "  Samples:  " << lat_count << std::endl;
+      std::cout << "  Min:      " << lat_min << " ns" << std::endl;
+      std::cout << "  Max:      " << lat_max << " ns" << std::endl;
+      std::cout << "  Avg:      " << std::fixed << std::setprecision(1)
+                << lat_avg << " ns" << std::endl;
+      const std::string csv_path = "ptp_latency.csv";
+      std::ofstream csv(csv_path);
+      if (csv.is_open()) {
+        csv << "shot,send_sec,send_nsec,recv_sec,recv_nsec,delta_ns\n";
+        for (auto &s : lat_samples)
+          csv << s.shot << "," << s.send_sec << "," << s.send_nsec << ","
+              << s.recv_sec << "," << s.recv_nsec << "," << s.delta_ns
+              << "\n";
+        csv.close();
+        std::cout << "  CSV written: " << csv_path << std::endl;
+      }
+    } else {
+      std::cout << "\n  PTP latency: no valid timestamps found" << std::endl;
+    }
 
     if (payload_errors == 0 && header_errors == 0 &&
         seen_request_ids.size() > 0) {
