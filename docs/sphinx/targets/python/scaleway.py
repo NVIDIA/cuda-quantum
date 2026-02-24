@@ -1,6 +1,6 @@
 import cudaq
 
-# NOTE: Scaleway credentials must be set before running this program.
+# NOTE: Scaleway credentials (SCW_PROJECT_ID and SCW_SECRET_KEY) must be set before running this program.
 # Scaleway costs apply.
 cudaq.set_target("scaleway", max_duration="10m")
 
