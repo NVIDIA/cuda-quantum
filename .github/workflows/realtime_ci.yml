@@ -128,12 +128,12 @@ jobs:
       - name: Extract files
         run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
 
+      - name: Install tools for building installer
+        run: |
+          apt update && apt install -y build-essential makeself
+
       - name: Install realtime binary
         run: cd /workspace/realtime/build && make install
-
-      - name: Install makeself
-        run: |
-          apt update && apt install -y makeself
 
       - name: Build installer
         shell: bash
