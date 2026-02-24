@@ -11,6 +11,7 @@ import pytest
 import os
 from cudaq import spin
 from multiprocessing import Process
+from network_utils import check_server_connection
 import numpy as np
 
 TEST_PORT = 62450
@@ -19,7 +20,6 @@ TEST_URL = f"http://localhost:{TEST_PORT}"
 
 # or uncomment this line to test on real hardware
 # TEST_PLATFORM = "EMU-CUDAQ-64C-512M"
-# TEST_URL = "http://51.15.230.119"
 # TEST_URL = "https://api.scaleway.com"
 
 TEST_PROJECT_ID = "b87c64d8-2923-447d-80e3-7e7f68511533"  # Fake project id
@@ -33,8 +33,17 @@ except:
     pytest.skip("Mock qpu not available, skipping Scaleway tests.",
                 allow_module_level=True)
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_scaleway():
+    p = Process(target=startServer, args=(TEST_PORT,))
+    p.start()
+
+    if not check_server_connection(TEST_PORT):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
+
     cudaq.set_target(
         "scaleway",
         machine=TEST_PLATFORM,
@@ -44,9 +53,6 @@ def setup_scaleway():
         url=TEST_URL,
         deduplication_id=DEFAULT_DEDUPLICATION_ID,
     )
-
-    p = Process(target=startServer, args=(TEST_PORT,))
-    p.start()
 
     yield "Running the tests."
 
