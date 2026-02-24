@@ -52,7 +52,7 @@ jobs:
             # Build 
             apt update && apt install -y --no-install-recommends cmake git
             mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/installer
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/workspace/installer
             make -j$(nproc) install
 
       - name: 'Tar files'
@@ -70,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
-          path: /installer
+          path: ${{ github.workspace }}/installer
           retention-days: 1
           if-no-files-found: error
 
