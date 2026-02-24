@@ -4054,20 +4054,29 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(iterable)
                 return
             if cc.StdvecType.isinstance(orig_iterable_type):
-                list_indices = self.__getListIndices(node.generators[0].iter)
-                if list_indices is None:
+                n = self.__getQubitRefUnrollCount(node.generators[0].iter)
+                if n is None:
                     self.emitFatalError(
                         "list comprehension producing qubit references requires "
-                        "a compile-time constant index list; use a literal list "
-                        "or range() with constant arguments instead.", node)
-                if len(list_indices) == 0:
+                        "a compile-time constant iterable size; use a literal "
+                        "list or range() with constant arguments.", node)
+                if n == 0:
                     self.emitFatalError(
                         "empty list comprehension is not allowed", node)
+                # Unroll: load each element from the compiled iterable at a
+                # compile-time index. The stored values may be runtime-computed
+                # MLIR ints, so this supports dynamic index expressions.
                 refs = []
-                for idx in list_indices:
+                for j in range(n):
                     self.symbolTable.beginBlock()
+                    j_val = self.getConstantInt(j)
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [j_val],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    idx_val = cc.LoadOp(elem_addr).result
                     self.__deconstructAssignment(node.generators[0].target,
-                                                 self.getConstantInt(idx))
+                                                 idx_val)
                     self.visit(node.elt)
                     refs.append(self.popValue())
                     self.symbolTable.endBlock()

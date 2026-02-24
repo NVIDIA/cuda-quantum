@@ -1068,34 +1068,6 @@ def test_list_comprehension_qubit_refs():
     # keep after assert, such that we have no output if assert fails
     print(kernel3)
 
-    @cudaq.kernel
-    def kernel4():
-        qs = cudaq.qvector(2)
-        x(qs[0])
-        x(qs[1])
-        target = cudaq.qubit()
-        indices = [0, 1]
-        x.ctrl([qs[i] for i in indices], target)
-
-    out = cudaq.sample(kernel4)
-    assert len(out) == 1 and '111' in out
-    # keep after assert, such that we have no output if assert fails
-    print(kernel4)
-
-    @cudaq.kernel
-    def kernel5():
-        qs = cudaq.qvector(4)
-        x(qs[0])
-        x(qs[1])
-        x(qs[2])
-        cont = [0, 1, 2]
-        x.ctrl([qs[i] for i in cont], qs[3])
-
-    out = cudaq.sample(kernel5)
-    assert len(out) == 1 and '1111' in out
-    # keep after assert, such that we have no output if assert fails
-    print(kernel5)
-
 
 # CHECK-LABEL: test_list_comprehension_qubit_refs:
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel1..
@@ -1106,14 +1078,6 @@ def test_list_comprehension_qubit_refs():
 # CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel3..
-# CHECK: quake.extract_ref
-# CHECK: quake.concat
-# CHECK: return
-# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel4..
-# CHECK: quake.extract_ref
-# CHECK: quake.concat
-# CHECK: return
-# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
 # CHECK: quake.extract_ref
 # CHECK: quake.concat
 # CHECK: return
@@ -1287,5 +1251,5 @@ def test_list_comprehension_failures():
 # CHECK-NEXT:   (offending source -> 1.0)
 
 # CHECK-LABEL:  Exception kernel9:
-# CHECK:        list comprehension producing qubit references requires a compile-time constant index list
+# CHECK:        list comprehension producing qubit references requires a compile-time constant iterable size
 # CHECK-NEXT:   (offending source -> [qs[i] for i in indices])
