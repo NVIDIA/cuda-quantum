@@ -148,7 +148,8 @@ Compiler::Compiler(ServerHelper *serverHelper,
     if (emulate)
       // FIXME: Noise should eventually be enabled for emulated hardware targets
       passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=true"
-                            " allow-early-exit=" + allowEarlyExitSetting + "}";
+                            " allow-early-exit=" +
+                            allowEarlyExitSetting + "}";
     else
       passPipelineConfig +=
           ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
