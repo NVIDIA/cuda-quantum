@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "ScalewayServerHelper.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "common/RestClient.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
 #include <iostream>
 #include <map>
@@ -29,8 +29,7 @@ std::string getEnv(const std::string &envKey) {
 }
 
 std::string getValueOrDefault(const BackendConfig &config,
-                              const std::string &key,
-                              const std::string &envKey,
+                              const std::string &key, const std::string &envKey,
                               const std::string &defaultValue) {
   auto it = config.find(key);
 
@@ -43,7 +42,8 @@ std::string getValueOrDefault(const BackendConfig &config,
   return !providedValue.empty() ? providedValue : defaultValue;
 }
 
-std::string serializeParametersToQio(size_t nb_shots, std::string output_names) {
+std::string serializeParametersToQio(size_t nb_shots,
+                                     std::string output_names) {
   json options;
   options["output_names"] = output_names;
   qio::QuantumComputationParameters parameters(nb_shots, options);
@@ -52,7 +52,8 @@ std::string serializeParametersToQio(size_t nb_shots, std::string output_names) 
 }
 
 std::string serializeKernelToQio(const std::string &code) {
-  qio::QuantumProgram program(code,qio::QuantumProgramSerializationFormat::QASM_V2,
+  qio::QuantumProgram program(code,
+                              qio::QuantumProgramSerializationFormat::QASM_V2,
                               qio::CompressionFormat::ZLIB_BASE64_V1);
 
   std::vector<qio::QuantumProgram> programs = {program};
@@ -68,15 +69,20 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
 
   m_qaasClient = std::make_unique<qaas::v1alpha1::V1Alpha1Client>(
-                      getValueOrDefault(config, "project_id", "SCW_PROJECT_ID", ""),
-                      getValueOrDefault(config, "secret_key", "SCW_SECRET_KEY", ""),
-                      getValueOrDefault(config, "url", "SCW_API_URL", ""));
+      getValueOrDefault(config, "project_id", "SCW_PROJECT_ID", ""),
+      getValueOrDefault(config, "secret_key", "SCW_SECRET_KEY", ""),
+      getValueOrDefault(config, "url", "SCW_API_URL", ""));
 
-  m_targetPlatformName = getValueOrDefault(config, "machine", "", DEFAULT_PLATFORM_NAME);
-  m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "", DEFAULT_MAX_DURATION);
-  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "", DEFAULT_MAX_IDLE_DURATION);
-  m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "", "");
-  m_sessionName = getValueOrDefault(config, "name", "", "qs-cudaq-" + std::to_string(std::rand()));
+  m_targetPlatformName =
+      getValueOrDefault(config, "machine", "", DEFAULT_PLATFORM_NAME);
+  m_sessionMaxDuration =
+      getValueOrDefault(config, "max_duration", "", DEFAULT_MAX_DURATION);
+  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "",
+                                               DEFAULT_MAX_IDLE_DURATION);
+  m_sessionDeduplicationId =
+      getValueOrDefault(config, "deduplication_id", "", "");
+  m_sessionName = getValueOrDefault(config, "name", "",
+                                    "qs-cudaq-" + std::to_string(std::rand()));
 
   setShots(std::stoul(getValueOrDefault(config, "shots", "", "1000")));
 }
@@ -85,8 +91,8 @@ RestHeaders ScalewayServerHelper::getHeaders() {
   return m_qaasClient->getHeaders();
 }
 
-ServerJobPayload ScalewayServerHelper::createJob(
-    std::vector<KernelExecution> &circuitCodes) {
+ServerJobPayload
+ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   ensureSessionIsActive();
 
   ServerJobPayload ret;
@@ -104,7 +110,8 @@ ServerJobPayload ScalewayServerHelper::createJob(
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
-    std::string qioParams = serializeParametersToQio(shots, circuitCode.output_names.dump());
+    std::string qioParams =
+        serializeParametersToQio(shots, circuitCode.output_names.dump());
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
     auto model = m_qaasClient->createModel(qioPayload);
@@ -121,8 +128,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
   return std::make_tuple(m_qaasClient->getJobsUrl(), headers, tasks);
 }
 
-std::string
-ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
+std::string ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
   if (postResponse.contains("id"))
     return postResponse["id"].get<std::string>();
   if (postResponse.contains("job_id"))
@@ -130,19 +136,18 @@ ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
   throw std::runtime_error("Job submission failed");
 }
 
-std::string
-ScalewayServerHelper::constructGetJobPath(std::string &jobId) {
+std::string ScalewayServerHelper::constructGetJobPath(std::string &jobId) {
   return m_qaasClient->getJobUrl(jobId);
 }
 
-std::string ScalewayServerHelper::constructGetJobPath(
-    ServerMessage &postResponse) {
+std::string
+ScalewayServerHelper::constructGetJobPath(ServerMessage &postResponse) {
   std::string jobId = extractJobId(postResponse);
   return m_qaasClient->getJobUrl(jobId);
 }
 
-std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
-    ServerMessage &postResponse) {
+std::chrono::microseconds
+ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
   return std::chrono::microseconds(100000);
 }
 
@@ -228,8 +233,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     auto sampleResult = qioResult.toCudaqSampleResult();
 
     // For each original counts entry in the full sample results, reduce it
-    // down to the user component and add to userGlobal. If qubitNumbers is empty,
-    // that means all qubits were measured.
+    // down to the user component and add to userGlobal. If qubitNumbers is
+    // empty, that means all qubits were measured.
     std::vector<ExecutionResult> execResults;
 
     if (qubitNumbers.empty()) {
@@ -253,8 +258,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     return ret;
   } catch (const std::exception &e) {
-    throw std::runtime_error(
-        "Error while parsing result: " + std::string(e.what()));
+    throw std::runtime_error("Error while parsing result: " +
+                             std::string(e.what()));
   }
 }
 
@@ -290,19 +295,18 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
     auto platform = platforms[0];
 
     if (platform.availability == "maintenance" ||
-      platform.availability == "shortage") {
-        throw std::runtime_error("Target platform not available: " + platform.availability);
+        platform.availability == "shortage") {
+      throw std::runtime_error("Target platform not available: " +
+                               platform.availability);
     }
 
-    CUDAQ_INFO("Creating session on platform {} (id={})",
-      platform.name, platform.id);
+    CUDAQ_INFO("Creating session on platform {} (id={})", platform.name,
+               platform.id);
 
     auto session = m_qaasClient->createSession(
-        platform.id, m_sessionName,
-        m_sessionDeduplicationId,
+        platform.id, m_sessionName, m_sessionDeduplicationId,
         "", // No model id
-        m_sessionMaxDuration,
-        m_sessionMaxIdleDuration,
+        m_sessionMaxDuration, m_sessionMaxIdleDuration,
         ""); // No parameters
 
     if (session.id.empty()) {

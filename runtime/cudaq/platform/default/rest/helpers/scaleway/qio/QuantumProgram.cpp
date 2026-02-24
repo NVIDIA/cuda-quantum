@@ -12,19 +12,19 @@
 using json = nlohmann::json;
 using namespace cudaq::qio;
 
-QuantumProgram::QuantumProgram(const std::string &serialization,
-                               QuantumProgramSerializationFormat serializationFormat,
-                               CompressionFormat compressionFormat)
+QuantumProgram::QuantumProgram(
+    const std::string &serialization,
+    QuantumProgramSerializationFormat serializationFormat,
+    CompressionFormat compressionFormat)
     : m_serializationFormat(serializationFormat),
       m_compressionFormat(compressionFormat) {
-        if (m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1) {
-          std::string compressedSerialization =
-              gzipCompress(serialization);
-          m_serialization = encodeBase64(compressedSerialization);
-        } else if (m_compressionFormat == CompressionFormat::NONE) {
-          m_serialization = serialization;
-        }
-    }
+  if (m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1) {
+    std::string compressedSerialization = gzipCompress(serialization);
+    m_serialization = encodeBase64(compressedSerialization);
+  } else if (m_compressionFormat == CompressionFormat::NONE) {
+    m_serialization = serialization;
+  }
+}
 
 json QuantumProgram::toJson() const {
   return {{"serialization", m_serialization},

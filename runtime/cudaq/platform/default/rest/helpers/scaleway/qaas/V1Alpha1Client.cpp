@@ -7,47 +7,49 @@
  ******************************************************************************/
 #include "V1Alpha1Client.h"
 #include "cudaq/runtime/logger/logger.h"
-#include <stdexcept>
+#include <iostream>
 #include <regex>
 #include <sstream>
-#include <iostream>
+#include <stdexcept>
 
 using json = nlohmann::json;
 using namespace cudaq::qaas::v1alpha1;
 
-long parseDurationToSeconds(const std::string& input) {
-    std::regex re(R"((\d+)([smhd]))");
-    std::smatch match;
+long parseDurationToSeconds(const std::string &input) {
+  std::regex re(R"((\d+)([smhd]))");
+  std::smatch match;
 
-    long total_seconds = 0;
-    std::string s = input;
+  long total_seconds = 0;
+  std::string s = input;
 
-    while (std::regex_search(s, match, re)) {
-        long value = std::stol(match[1]);
-        char unit = match[2].str()[0];
+  while (std::regex_search(s, match, re)) {
+    long value = std::stol(match[1]);
+    char unit = match[2].str()[0];
 
-        if (unit == 's') total_seconds += value;
-        else if (unit == 'm') total_seconds += value * 60;
-        else if (unit == 'h') total_seconds += value * 3600;
-        else if (unit == 'd') total_seconds += value * 86400;
+    if (unit == 's')
+      total_seconds += value;
+    else if (unit == 'm')
+      total_seconds += value * 60;
+    else if (unit == 'h')
+      total_seconds += value * 3600;
+    else if (unit == 'd')
+      total_seconds += value * 86400;
 
-        s = match.suffix().str();
-    }
+    s = match.suffix().str();
+  }
 
-    return total_seconds;
+  return total_seconds;
 }
 
 V1Alpha1Client::V1Alpha1Client(const std::string projectId,
-                                const std::string secretKey, std::string url,
-                                bool secure, bool logging) :
-                                m_projectId(projectId),
-                                m_secretKey(secretKey),
-                                m_secure(secure),
-                                m_logging(logging) {
-    auto built_url = url.empty() ? DEFAULT_URL : url;
-    m_baseUrl = built_url + "/" + DEFAULT_BASE_PATH;
+                               const std::string secretKey, std::string url,
+                               bool secure, bool logging)
+    : m_projectId(projectId), m_secretKey(secretKey), m_secure(secure),
+      m_logging(logging) {
+  auto built_url = url.empty() ? DEFAULT_URL : url;
+  m_baseUrl = built_url + "/" + DEFAULT_BASE_PATH;
 
-    CUDAQ_INFO("Initializing Scaleway QaaS Client with URL: {}", m_baseUrl);
+  CUDAQ_INFO("Initializing Scaleway QaaS Client with URL: {}", m_baseUrl);
 }
 
 std::map<std::string, std::string> V1Alpha1Client::getHeaders() {
@@ -121,8 +123,10 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
   if (!modelId.empty())
     payload["model_id"] = modelId;
 
-  payload["max_duration"] = std::to_string(parseDurationToSeconds(maxDuration)) + "s";
-  payload["max_idle_duration"] = std::to_string(parseDurationToSeconds(maxIdleDuration)) + "s";
+  payload["max_duration"] =
+      std::to_string(parseDurationToSeconds(maxDuration)) + "s";
+  payload["max_idle_duration"] =
+      std::to_string(parseDurationToSeconds(maxIdleDuration)) + "s";
 
   if (!parameters.empty()) {
     try {

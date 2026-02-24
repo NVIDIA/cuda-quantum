@@ -8,12 +8,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/algorithm.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <fstream>
+#include <gtest/gtest.h>
 #include <regex>
 
 CUDAQ_TEST(ScalewayTester, checkSampleSync) {

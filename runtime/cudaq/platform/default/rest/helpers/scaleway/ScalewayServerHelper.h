@@ -7,9 +7,9 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/ServerHelper.h"
 #include "qaas/Qaas.h"
 #include "qio/Qio.h"
-#include "common/ServerHelper.h"
 
 namespace cudaq {
 
@@ -20,8 +20,8 @@ class ScalewayServerHelper : public ServerHelper {
   inline static const std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";
   inline static const std::string DEFAULT_MAX_DURATION = "59m";
   inline static const std::string DEFAULT_MAX_IDLE_DURATION = "30m";
-public:
 
+public:
   /// @brief Returns the name of the server helper.
   const std::string name() const override { return "scaleway"; }
 
@@ -48,12 +48,14 @@ public:
   virtual std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
-  void setOutputNames(const std::string &taskId, const std::string &output_names);
+  void setOutputNames(const std::string &taskId,
+                      const std::string &output_names);
 
 protected:
   /// @brief Convenient function to ensure at least one QPU Session is alive
   /// before sending any jobs against.
-  /// Session is automatically killed by the QaaS after max_duration or max_idle_duration.
+  /// Session is automatically killed by the QaaS after max_duration or
+  /// max_idle_duration.
   std::string ensureSessionIsActive();
 
 private:

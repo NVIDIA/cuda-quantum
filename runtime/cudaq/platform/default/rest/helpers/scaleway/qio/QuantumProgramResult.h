@@ -14,9 +14,10 @@
 namespace cudaq::qio {
 class QuantumProgramResult {
 public:
-  QuantumProgramResult(std::string serialization,
-                      QuantumProgramResultSerializationFormat serializationFormat,
-                      CompressionFormat compressionFormat);
+  QuantumProgramResult(
+      std::string serialization,
+      QuantumProgramResultSerializationFormat serializationFormat,
+      CompressionFormat compressionFormat);
 
   static QuantumProgramResult fromJson(nlohmann::json json);
 

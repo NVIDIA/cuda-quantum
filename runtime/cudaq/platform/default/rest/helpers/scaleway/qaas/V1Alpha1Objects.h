@@ -12,17 +12,19 @@
 using json = nlohmann::json;
 
 /// @brief Common API objects used to interact with Scaleway QaaS.
-/// Custom serialization / deserialization methods are implemented because of 'null' field values.
-/// Objects such as Booking, Process and Application are not implemented because not handled by CUDA-Q. 
+/// Custom serialization / deserialization methods are implemented because of
+/// 'null' field values. Objects such as Booking, Process and Application are
+/// not implemented because not handled by CUDA-Q.
 namespace cudaq::qaas::v1alpha1 {
 
 template <typename T>
-void get_safe(const json& j, const char* key, T& target, const T& default_val = T{}) {
-    if (j.contains(key) && !j[key].is_null()) {
-        j.at(key).get_to(target);
-    } else {
-        target = default_val;
-    }
+void get_safe(const json &j, const char *key, T &target,
+              const T &default_val = T{}) {
+  if (j.contains(key) && !j[key].is_null()) {
+    j.at(key).get_to(target);
+  } else {
+    target = default_val;
+  }
 }
 
 struct Platform {
@@ -40,7 +42,7 @@ struct Platform {
   std::string metadata = "";
 };
 
-inline void from_json(const json& j, Platform& p) {
+inline void from_json(const json &j, Platform &p) {
   get_safe(j, "id", p.id);
   get_safe(j, "name", p.name);
   get_safe(j, "version", p.version);
@@ -55,8 +57,8 @@ inline void from_json(const json& j, Platform& p) {
   get_safe(j, "max_circuit_count", p.max_circuit_count);
 }
 
-inline void to_json(json& j, const Platform& p) {
-    j = json{
+inline void to_json(json &j, const Platform &p) {
+  j = json{
       {"id", p.id},
       {"name", p.name},
       {"version", p.version},
@@ -69,7 +71,7 @@ inline void to_json(json& j, const Platform& p) {
       {"max_qubit_count", p.max_qubit_count},
       {"max_shot_count", p.max_shot_count},
       {"max_circuit_count", p.max_circuit_count},
-    };
+  };
 }
 
 struct Session {
@@ -89,7 +91,7 @@ struct Session {
   std::string parameters = "";
 };
 
-inline void from_json(const json& j, Session& p) {
+inline void from_json(const json &j, Session &p) {
   get_safe(j, "id", p.id);
   get_safe(j, "name", p.name);
   get_safe(j, "platform_id", p.platform_id);
@@ -106,23 +108,21 @@ inline void from_json(const json& j, Session& p) {
   get_safe(j, "parameters", p.parameters);
 }
 
-inline void to_json(json& j, const Session& p) {
-    j = json{
-        {"id", p.id},
-        {"name", p.name},
-        {"platform_id", p.platform_id},
-        {"created_at", p.created_at},
-        {"started_at", p.started_at},
-        {"updated_at", p.updated_at},
-        {"terminated_at", p.terminated_at},
-        {"max_idle_duration", p.max_idle_duration},
-        {"max_duration", p.max_duration},
-        {"status", p.status},
-        {"project_id", p.project_id},
-        {"deduplication_id", p.deduplication_id},
-        {"progress_message", p.progress_message},
-        {"parameters", p.parameters}
-    };
+inline void to_json(json &j, const Session &p) {
+  j = json{{"id", p.id},
+           {"name", p.name},
+           {"platform_id", p.platform_id},
+           {"created_at", p.created_at},
+           {"started_at", p.started_at},
+           {"updated_at", p.updated_at},
+           {"terminated_at", p.terminated_at},
+           {"max_idle_duration", p.max_idle_duration},
+           {"max_duration", p.max_duration},
+           {"status", p.status},
+           {"project_id", p.project_id},
+           {"deduplication_id", p.deduplication_id},
+           {"progress_message", p.progress_message},
+           {"parameters", p.parameters}};
 }
 
 struct Model {
@@ -132,20 +132,18 @@ struct Model {
   std::string project_id = "";
 };
 
-inline void from_json(const json& j, Model& p) {
+inline void from_json(const json &j, Model &p) {
   get_safe(j, "id", p.id);
   get_safe(j, "project_id", p.project_id);
   get_safe(j, "url", p.url);
   get_safe(j, "created_at", p.created_at);
 }
 
-inline void to_json(json& j, const Model& p) {
-    j = json{
-        {"id", p.id},
-        {"created_at", p.created_at},
-        {"url", p.url},
-        {"project_id", p.project_id}
-    };
+inline void to_json(json &j, const Model &p) {
+  j = json{{"id", p.id},
+           {"created_at", p.created_at},
+           {"url", p.url},
+           {"project_id", p.project_id}};
 }
 
 struct Job {
@@ -165,7 +163,7 @@ struct Job {
   }
 };
 
-inline void from_json(const json& j, Job& p) {
+inline void from_json(const json &j, Job &p) {
   get_safe(j, "id", p.id);
   get_safe(j, "name", p.name);
   get_safe(j, "session_id", p.session_id);
@@ -178,19 +176,17 @@ inline void from_json(const json& j, Job& p) {
   get_safe(j, "parameters", p.parameters);
 }
 
-inline void to_json(json& j, const Job& p) {
-    j = json{
-        {"id", p.id},
-        {"name", p.name},
-        {"session_id", p.session_id},
-        {"created_at", p.created_at},
-        {"started_at", p.started_at},
-        {"updated_at", p.updated_at},
-        {"status", p.status},
-        {"progress_message", p.progress_message},
-        {"model_id", p.model_id},
-        {"parameters", p.parameters}
-    };
+inline void to_json(json &j, const Job &p) {
+  j = json{{"id", p.id},
+           {"name", p.name},
+           {"session_id", p.session_id},
+           {"created_at", p.created_at},
+           {"started_at", p.started_at},
+           {"updated_at", p.updated_at},
+           {"status", p.status},
+           {"progress_message", p.progress_message},
+           {"model_id", p.model_id},
+           {"parameters", p.parameters}};
 }
 
 struct JobResult {
@@ -199,29 +195,23 @@ struct JobResult {
   std::string url = "";
   std::string created_at = "";
 
-  inline bool has_inline_result() const {
-    return !result.empty();
-  }
+  inline bool has_inline_result() const { return !result.empty(); }
 
-  inline bool has_download_url() const {
-    return !url.empty();
-  }
+  inline bool has_download_url() const { return !url.empty(); }
 };
 
-inline void from_json(const json& j, JobResult& p) {
+inline void from_json(const json &j, JobResult &p) {
   get_safe(j, "job_id", p.job_id);
   get_safe(j, "result", p.result);
   get_safe(j, "url", p.url);
   get_safe(j, "created_at", p.created_at);
 }
 
-inline void to_json(json& j, const JobResult& p) {
-    j = json{
-        {"job_id", p.job_id},
-        {"result", p.result},
-        {"url", p.url},
-        {"created_at", p.created_at}
-    };
+inline void to_json(json &j, const JobResult &p) {
+  j = json{{"job_id", p.job_id},
+           {"result", p.result},
+           {"url", p.url},
+           {"created_at", p.created_at}};
 }
 
 } // namespace cudaq::qaas::v1alpha1

@@ -13,14 +13,17 @@
 
 /// @brief The V1Alpha1Client class handles direct interfaces and calls on
 /// Scaleway Quantum-as-a-Service product.
-/// Methods are defined on this documentation: https://www.scaleway.com/en/developers/api/qaas/
+/// Methods are defined on this documentation:
+/// https://www.scaleway.com/en/developers/api/qaas/
 namespace cudaq::qaas::v1alpha1 {
 class V1Alpha1Client {
   inline static const std::string DEFAULT_URL = "https://api.scaleway.com";
   inline static const std::string DEFAULT_BASE_PATH = "qaas/v1alpha1";
+
 public:
   V1Alpha1Client(const std::string projectId, const std::string secretKey,
-                  const std::string url, bool secure = true, bool logging = false);
+                 const std::string url, bool secure = true,
+                 bool logging = false);
 
   Platform getPlatform(const std::string &platformId);
   std::vector<Platform> listPlatforms(const std::string platformName = "");

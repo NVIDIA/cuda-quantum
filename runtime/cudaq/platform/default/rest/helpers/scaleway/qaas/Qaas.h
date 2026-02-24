@@ -6,5 +6,5 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-#include "V1Alpha1Objects.h"
 #include "V1Alpha1Client.h"
+#include "V1Alpha1Objects.h"

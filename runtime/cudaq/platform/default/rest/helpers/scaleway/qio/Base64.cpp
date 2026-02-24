@@ -17,7 +17,7 @@
 #include <type_traits>
 
 #if defined(__cpp_lib_bit_cast)
-#include <bit>  // For std::bit_cast.
+#include <bit> // For std::bit_cast.
 #endif
 
 using namespace cudaq::qio;
@@ -29,9 +29,10 @@ using std::bit_cast;
 #else
 template <class To, class From>
 std::enable_if_t<sizeof(To) == sizeof(From) &&
-std::is_trivially_copyable_v<From> &&
-std::is_trivially_copyable_v<To>,
-To> bit_cast(const From& src) noexcept {
+                     std::is_trivially_copyable_v<From> &&
+                     std::is_trivially_copyable_v<To>,
+                 To>
+bit_cast(const From &src) noexcept {
   static_assert(std::is_trivially_constructible_v<To>,
                 "This implementation additionally requires "
                 "destination type to be trivially constructible");
@@ -46,13 +47,13 @@ inline constexpr char padding_char{'='};
 inline constexpr uint32_t bad_char{0x01FFFFFF};
 
 #if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
-#if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||  \
-    (defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN) ||              \
-    (defined(_BYTE_ORDER) && _BYTE_ORDER == _BIG_ENDIAN) ||                 \
-    (defined(BYTE_ORDER) && BYTE_ORDER == BIG_ENDIAN) ||                    \
-    (defined(__sun) && defined(__SVR4) && defined(_BIG_ENDIAN)) ||          \
-    defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) || \
-    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__) ||         \
+#if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||     \
+    (defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN) ||                 \
+    (defined(_BYTE_ORDER) && _BYTE_ORDER == _BIG_ENDIAN) ||                    \
+    (defined(BYTE_ORDER) && BYTE_ORDER == BIG_ENDIAN) ||                       \
+    (defined(__sun) && defined(__SVR4) && defined(_BIG_ENDIAN)) ||             \
+    defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) ||    \
+    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__) ||            \
     defined(_M_PPC)
 #define __BIG_ENDIAN__
 #elif (defined(__BYTE_ORDER__) &&                                              \
@@ -121,8 +122,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_0 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 std::array<std::uint32_t, 256> constexpr decode_table_1 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -167,8 +167,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_1 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 std::array<std::uint32_t, 256> constexpr decode_table_2 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -213,8 +212,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_2 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 std::array<std::uint32_t, 256> constexpr decode_table_3 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -259,8 +257,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_3 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 // TODO fix decoding tables to avoid the need for different indices in big
 // endian?
@@ -313,8 +310,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_0 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 std::array<std::uint32_t, 256> constexpr decode_table_1 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -359,8 +355,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_1 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 std::array<std::uint32_t, 256> constexpr decode_table_2 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -405,8 +400,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_2 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 std::array<std::uint32_t, 256> constexpr decode_table_3 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -451,8 +445,7 @@ std::array<std::uint32_t, 256> constexpr decode_table_3 = {
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
     0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
-    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
-};
+    0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff};
 
 // TODO fix decoding tables to avoid the need for different indices in big
 // endian?
@@ -480,8 +473,7 @@ std::array<char, 256> constexpr encode_table_0 = {
     '0', '0', '1', '1', '1', '1', '2', '2', '2', '2', '3', '3', '3', '3', '4',
     '4', '4', '4', '5', '5', '5', '5', '6', '6', '6', '6', '7', '7', '7', '7',
     '8', '8', '8', '8', '9', '9', '9', '9', '+', '+', '+', '+', '/', '/', '/',
-    '/'
-};
+    '/'};
 
 std::array<char, 256> constexpr encode_table_1 = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
@@ -501,10 +493,9 @@ std::array<char, 256> constexpr encode_table_1 = {
     'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
     'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
     'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+',
-    '/'
-};
+    '/'};
 
-}  // namespace detail
+} // namespace detail
 
 template <class OutputBuffer, class InputIterator>
 inline OutputBuffer encode_into(InputIterator begin, InputIterator end) {
@@ -523,8 +514,8 @@ inline OutputBuffer encode_into(InputIterator begin, InputIterator end) {
                              << 2;
   OutputBuffer encoded(encodedsize, detail::padding_char);
 
-  const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&*begin);
-  char* currEncoding = reinterpret_cast<char*>(&encoded[0]);
+  const uint8_t *bytes = reinterpret_cast<const uint8_t *>(&*begin);
+  char *currEncoding = reinterpret_cast<char *>(&encoded[0]);
 
   for (size_t i = binarytextsize / 3; i; --i) {
     const uint8_t t1 = *bytes++;
@@ -539,27 +530,27 @@ inline OutputBuffer encode_into(InputIterator begin, InputIterator end) {
   }
 
   switch (binarytextsize % 3) {
-    case 0: {
-      break;
-    }
-    case 1: {
-      const uint8_t t1 = bytes[0];
-      *currEncoding++ = detail::encode_table_0[t1];
-      *currEncoding++ = detail::encode_table_1[(t1 & 0x03) << 4];
-      break;
-    }
-    case 2: {
-      const uint8_t t1 = bytes[0];
-      const uint8_t t2 = bytes[1];
-      *currEncoding++ = detail::encode_table_0[t1];
-      *currEncoding++ =
-          detail::encode_table_1[((t1 & 0x03) << 4) | ((t2 >> 4) & 0x0F)];
-      *currEncoding++ = detail::encode_table_1[(t2 & 0x0F) << 2];
-      break;
-    }
-    default: {
-      throw std::runtime_error{"Invalid base64 encoded data"};
-    }
+  case 0: {
+    break;
+  }
+  case 1: {
+    const uint8_t t1 = bytes[0];
+    *currEncoding++ = detail::encode_table_0[t1];
+    *currEncoding++ = detail::encode_table_1[(t1 & 0x03) << 4];
+    break;
+  }
+  case 2: {
+    const uint8_t t1 = bytes[0];
+    const uint8_t t2 = bytes[1];
+    *currEncoding++ = detail::encode_table_0[t1];
+    *currEncoding++ =
+        detail::encode_table_1[((t1 & 0x03) << 4) | ((t2 >> 4) & 0x0F)];
+    *currEncoding++ = detail::encode_table_1[(t2 & 0x0F) << 2];
+    break;
+  }
+  default: {
+    throw std::runtime_error{"Invalid base64 encoded data"};
+  }
   }
 
   return encoded;
@@ -600,8 +591,8 @@ inline OutputBuffer decode_into(std::string_view base64Text) {
   const size_t decodedsize = (base64Text.size() * 3 >> 2) - numPadding;
   OutputBuffer decoded(decodedsize, '.');
 
-  const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&base64Text[0]);
-  char* currDecoding = reinterpret_cast<char*>(&decoded[0]);
+  const uint8_t *bytes = reinterpret_cast<const uint8_t *>(&base64Text[0]);
+  char *currDecoding = reinterpret_cast<char *>(&decoded[0]);
 
   for (size_t i = (base64Text.size() >> 2) - (numPadding != 0); i; --i) {
     const uint8_t t1 = *bytes++;
@@ -633,57 +624,57 @@ inline OutputBuffer decode_into(std::string_view base64Text) {
   }
 
   switch (numPadding) {
-    case 0: {
-      break;
-    }
-    case 1: {
-      const uint8_t t1 = *bytes++;
-      const uint8_t t2 = *bytes++;
-      const uint8_t t3 = *bytes++;
+  case 0: {
+    break;
+  }
+  case 1: {
+    const uint8_t t1 = *bytes++;
+    const uint8_t t2 = *bytes++;
+    const uint8_t t3 = *bytes++;
 
-      const uint32_t d1 = detail::decode_table_0[t1];
-      const uint32_t d2 = detail::decode_table_1[t2];
-      const uint32_t d3 = detail::decode_table_2[t3];
+    const uint32_t d1 = detail::decode_table_0[t1];
+    const uint32_t d2 = detail::decode_table_1[t2];
+    const uint32_t d3 = detail::decode_table_2[t3];
 
-      const uint32_t temp = d1 | d2 | d3;
+    const uint32_t temp = d1 | d2 | d3;
 
-      if (temp >= detail::bad_char) {
-        throw std::runtime_error{
-            "Invalid base64 encoded data - Invalid character"};
-      }
-
-      // Use bit_cast instead of union and type punning to avoid
-      // undefined behaviour risk:
-      // https://en.wikipedia.org/wiki/Type_punning#Use_of_union
-      const std::array<char, 4> tempBytes =
-          detail::bit_cast<std::array<char, 4>, uint32_t>(temp);
-      *currDecoding++ = tempBytes[detail::decidx0];
-      *currDecoding++ = tempBytes[detail::decidx1];
-      break;
-    }
-    case 2: {
-      const uint8_t t1 = *bytes++;
-      const uint8_t t2 = *bytes++;
-
-      const uint32_t d1 = detail::decode_table_0[t1];
-      const uint32_t d2 = detail::decode_table_1[t2];
-
-      const uint32_t temp = d1 | d2;
-
-      if (temp >= detail::bad_char) {
-        throw std::runtime_error{
-            "Invalid base64 encoded data - Invalid character"};
-      }
-
-      const std::array<char, 4> tempBytes =
-          detail::bit_cast<std::array<char, 4>, uint32_t>(temp);
-      *currDecoding++ = tempBytes[detail::decidx0];
-      break;
-    }
-    default: {
+    if (temp >= detail::bad_char) {
       throw std::runtime_error{
-          "Invalid base64 encoded data - Invalid padding number"};
+          "Invalid base64 encoded data - Invalid character"};
     }
+
+    // Use bit_cast instead of union and type punning to avoid
+    // undefined behaviour risk:
+    // https://en.wikipedia.org/wiki/Type_punning#Use_of_union
+    const std::array<char, 4> tempBytes =
+        detail::bit_cast<std::array<char, 4>, uint32_t>(temp);
+    *currDecoding++ = tempBytes[detail::decidx0];
+    *currDecoding++ = tempBytes[detail::decidx1];
+    break;
+  }
+  case 2: {
+    const uint8_t t1 = *bytes++;
+    const uint8_t t2 = *bytes++;
+
+    const uint32_t d1 = detail::decode_table_0[t1];
+    const uint32_t d2 = detail::decode_table_1[t2];
+
+    const uint32_t temp = d1 | d2;
+
+    if (temp >= detail::bad_char) {
+      throw std::runtime_error{
+          "Invalid base64 encoded data - Invalid character"};
+    }
+
+    const std::array<char, 4> tempBytes =
+        detail::bit_cast<std::array<char, 4>, uint32_t>(temp);
+    *currDecoding++ = tempBytes[detail::decidx0];
+    break;
+  }
+  default: {
+    throw std::runtime_error{
+        "Invalid base64 encoded data - Invalid padding number"};
+  }
   }
 
   return decoded;
@@ -696,7 +687,7 @@ inline OutputBuffer decode_into(InputIterator begin, InputIterator end) {
                 std::is_same_v<input_value_type, signed char> ||
                 std::is_same_v<input_value_type, unsigned char> ||
                 std::is_same_v<input_value_type, std::byte>);
-  std::string_view data(reinterpret_cast<const char*>(&*begin), end - begin);
+  std::string_view data(reinterpret_cast<const char *>(&*begin), end - begin);
   return decode_into<OutputBuffer>(data);
 }
 

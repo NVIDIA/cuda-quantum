@@ -50,6 +50,7 @@ def assert_close(got) -> bool:
 
 
 def test_simple_kernel():
+
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
@@ -64,6 +65,7 @@ def test_simple_kernel():
 
 
 def test_multi_qubit_kernel():
+
     @cudaq.kernel
     def kernel():
         q0 = cudaq.qubit()
@@ -82,6 +84,7 @@ def test_multi_qubit_kernel():
 
 
 def test_qvector_kernel():
+
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -113,6 +116,7 @@ def test_builder_sample():
 
 
 def test_all_gates():
+
     @cudaq.kernel
     def single_qubit_gates():
         q = cudaq.qubit()
@@ -151,6 +155,7 @@ def test_all_gates():
 
 
 def test_multi_qvector():
+
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -167,6 +172,7 @@ def test_multi_qvector():
 
 
 def test_control_modifier():
+
     @cudaq.kernel
     def single_qubit_gates():
         qubits = cudaq.qvector(2)
@@ -236,6 +242,7 @@ def test_adjoint_modifier():
 
 
 def test_u3_decomposition():
+
     @cudaq.kernel
     def kernel():
         qubit = cudaq.qubit()
@@ -290,13 +297,9 @@ def test_observe():
         x.ctrl(qreg[1], qreg[0])
 
     # Define its spin Hamiltonian.
-    hamiltonian = (
-        5.907
-        - 2.1433 * spin.x(0) * spin.x(1)
-        - 2.1433 * spin.y(0) * spin.y(1)
-        + 0.21829 * spin.z(0)
-        - 6.125 * spin.z(1)
-    )
+    hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
+                   2.1433 * spin.y(0) * spin.y(1) + 0.21829 * spin.z(0) -
+                   6.125 * spin.z(1))
 
     res = cudaq.observe(ansatz, hamiltonian, 0.59, shots_count=2000)
     print(res.expectation())
@@ -310,6 +313,7 @@ def test_observe():
 
 
 def test_observe_async():
+
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -338,6 +342,7 @@ def test_custom_operations():
 
 
 def test_kernel_with_args():
+
     @cudaq.kernel
     def kernel(qubit_count: int):
         qreg = cudaq.qvector(qubit_count)
@@ -355,6 +360,7 @@ def test_kernel_with_args():
 
 
 def test_kernel_subveqs():
+
     @cudaq.kernel
     def kernel():
         qreg = cudaq.qvector(4)
@@ -371,6 +377,7 @@ def test_kernel_subveqs():
 
 
 def test_kernel_two_subveqs():
+
     @cudaq.kernel
     def kernel():
         qreg = cudaq.qvector(4)
@@ -389,6 +396,7 @@ def test_kernel_two_subveqs():
 
 
 def test_kernel_qubit_subveq():
+
     @cudaq.kernel
     def kernel():
         qreg = cudaq.qvector(4)
@@ -407,6 +415,7 @@ def test_kernel_qubit_subveq():
 
 
 def test_multiple_measurement():
+
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(2)
@@ -423,6 +432,7 @@ def test_multiple_measurement():
 
 
 def test_multiple_measurement_non_consecutive():
+
     @cudaq.kernel
     def kernel():
         qubits = cudaq.qvector(3)
@@ -439,6 +449,7 @@ def test_multiple_measurement_non_consecutive():
 
 
 def test_qvector_slicing():
+
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(4)
@@ -453,6 +464,7 @@ def test_qvector_slicing():
 
 
 def test_exp_pauli():
+
     @cudaq.kernel
     def test():
         q = cudaq.qvector(2)
@@ -481,7 +493,6 @@ def test_exp_pauli():
 #     counts.dump()
 #     assert "110" in counts
 #     assert len(counts) == 1
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -129,12 +129,12 @@ def _run_job(job: Job):
         sample_result = cudaq.sample(kernel, shots_count=shot_count)
 
         result = QuantumProgramResult.from_cudaq_sample_result(
-            sample_result
-        ).to_json_str()
+            sample_result).to_json_str()
 
-        job_result = JobResult(
-            id=str(uuid.uuid4()), job_id=job.id, result=result, url=""
-        )
+        job_result = JobResult(id=str(uuid.uuid4()),
+                               job_id=job.id,
+                               result=result,
+                               url="")
         database.job_results[job_result.id] = job_result
         job.status = "completed"
     except Exception as e:
@@ -146,11 +146,12 @@ def _run_job(job: Job):
 async def listPlatforms(name: str | None = None):
     if name:
         filtered_plts = list(
-            filter(lambda p: p.name == name, database.platforms.values())
-        )
+            filter(lambda p: p.name == name, database.platforms.values()))
         platforms = [platform.model_dump() for platform in filtered_plts]
     else:
-        platforms = [platform.model_dump() for platform in database.platforms.values()]
+        platforms = [
+            platform.model_dump() for platform in database.platforms.values()
+        ]
 
     return {"platforms": platforms, "total_count": len(platforms)}
 
@@ -243,10 +244,8 @@ async def listJobResults(jobId: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     results = [
-        result.model_dump()
-        for result in list(
-            filter(lambda r: r.job_id == jobId, database.job_results.values())
-        )
+        result.model_dump() for result in list(
+            filter(lambda r: r.job_id == jobId, database.job_results.values()))
     ]
 
     return {"job_results": results, "total_count": len(results)}

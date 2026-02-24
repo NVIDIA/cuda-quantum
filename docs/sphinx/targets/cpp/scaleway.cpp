@@ -2,9 +2,9 @@
 // ```
 // nvq++ --target scaleway scaleway.cpp -o out.x && ./out.x
 // ```
-// This will submit the job to the Scaleway QaaS state vector emulator powered by CUDA-Q
-// (default). Alternatively, users can choose any of the available devices by
-// specifying its name with the `--machine`, e.g.,
+// This will submit the job to the Scaleway QaaS state vector emulator powered
+// by CUDA-Q (default). Alternatively, users can choose any of the available
+// devices by specifying its name with the `--machine`, e.g.,
 // ```
 // nvq++ --target scaleway --machine \
 // "EMU-CUDAQ-H100" scaleway.cpp -o out.x

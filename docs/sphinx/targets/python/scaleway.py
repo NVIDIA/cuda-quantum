@@ -21,6 +21,7 @@ cudaq.set_target("scaleway")
 # cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", max_duration="30m", max_idle_duration="5m")
 # ```
 
+
 # Create the kernel we'd like to execute
 @cudaq.kernel
 def kernel():
