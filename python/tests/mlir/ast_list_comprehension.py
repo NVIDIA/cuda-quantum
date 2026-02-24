@@ -1110,32 +1110,26 @@ def test_list_comprehension_qubit_refs():
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel2..
 # CHECK: quake.extract_ref
-# CHECK: quake.concat
 # CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel3..
 # CHECK: quake.extract_ref
-# CHECK: quake.concat
 # CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel4..
 # CHECK: quake.extract_ref
-# CHECK: quake.concat
 # CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
 # CHECK: quake.extract_ref
-# CHECK: quake.concat
 # CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel6..
 # CHECK: cc.stdvec_size
-# CHECK: quake.extract_ref
-# CHECK: quake.concat
 # CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
