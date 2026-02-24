@@ -51,9 +51,22 @@ struct VerifyNVQIRCallOpsPass
           cudaq::createCudaqStateFromDataF32,
           cudaq::createCudaqStateFromDataF64,
           cudaq::deleteCudaqState};
+
+      // Allow LLVM memory intrinsics e.g. `llvm.memcpy.p0i8.p0i8.i64`
+      if (functionName.startswith("llvm.memcpy.") ||
+          functionName.startswith("llvm.memmove.") ||
+          functionName.startswith("llvm.memset."))
+        return true;
+
+      // Available in JIT host environment
+      static const std::vector<llvm::StringRef> HOST_RUNTIME_FUNCS = {
+          "malloc", "free", "memcpy", "memset"};
+
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
                  NVQIR_FUNCS.end() ||
+             std::find(HOST_RUNTIME_FUNCS.begin(), HOST_RUNTIME_FUNCS.end(),
+                       functionName) != HOST_RUNTIME_FUNCS.end() ||
              std::find(allowedFuncs.begin(), allowedFuncs.end(),
                        functionName) != allowedFuncs.end();
     };

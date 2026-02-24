@@ -88,7 +88,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   }
 #endif
 
-  // Indicate that this is an async exec
+  // Indicate that this is an asynchronous execution.
   ctx.asyncExec = futureResult != nullptr;
 
   auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
@@ -133,11 +133,21 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 /// arguments and invokes the quantum kernel) and invoke the sampling process
 /// asynchronously. Return an `async_sample_result`, clients can retrieve the
 /// results at a later time via the `get()` call.
+///
+/// @param wrappedKernel The kernel functor to execute.
+/// @param platform The quantum platform to use.
+/// @param kernelName The name of the kernel.
+/// @param shots The number of shots to run.
+/// @param explicitMeasurements Whether to use explicit measurements.
+/// @param qpu_id The QPU ID to use.
+/// @param noise The optional noise model to apply during execution. The noise
+///              model is copied into the asynchronous task to ensure proper
+///              lifetime.
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, int shots,
-                      bool explicitMeasurements = false,
-                      std::size_t qpu_id = 0) {
+                      bool explicitMeasurements = false, std::size_t qpu_id = 0,
+                      std::optional<noise_model> noise = std::nullopt) {
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
                                 " is invalid (must be < " +
@@ -145,9 +155,15 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                                 " i.e. platform.num_qpus())");
   }
 
+  // Treat an empty noise model as "no noise".
+  const bool hasNoise = noise.has_value() && !noise->empty();
+
   // If we are remote, then create the sampling executor with `cudaq::future`
-  // provided
+  // provided. Note: noise model is not supported on remote platforms.
   if (platform.is_remote(qpu_id)) {
+    if (hasNoise)
+      throw std::runtime_error(
+          "Noise model is not supported on remote platforms.");
     details::future futureResult;
     details::runSampling(std::forward<KernelFunctor>(wrappedKernel), platform,
                          kernelName, shots, explicitMeasurements, qpu_id,
@@ -155,13 +171,39 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     return async_sample_result(std::move(futureResult));
   }
 
-  // Otherwise we'll create our own future/promise and return it
+  // For local platforms, create an asynchronous task that properly handles the
+  // noise model lifecycle:
+  // 1. Capture noise model BY VALUE in the task (extends lifetime)
+  // 2. Set noise model at the START of the task (before
+  // configureExecutionContext)
+  // 3. Reset noise model at the END of the task (including on exception)
+  // This avoids dangling pointers and global state pollution.
   KernelExecutionTask task(
       [qpu_id, explicitMeasurements, shots, kernelName, &platform,
+       noise = std::move(noise),
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        return details::runSampling(kernel, platform, kernelName, shots,
-                                    explicitMeasurements, qpu_id)
-            .value();
+        const bool hasNoise = noise.has_value() && !noise->empty();
+
+        // Set noise model before execution if provided.
+        if (hasNoise)
+          platform.set_noise(&noise.value(), qpu_id);
+
+        std::optional<sample_result> result;
+        try {
+          result = details::runSampling(kernel, platform, kernelName, shots,
+                                        explicitMeasurements, qpu_id);
+        } catch (...) {
+          // Ensure noise model is reset even on exception.
+          if (hasNoise)
+            platform.reset_noise(qpu_id);
+          throw;
+        }
+
+        // Reset noise model after execution.
+        if (hasNoise)
+          platform.reset_noise(qpu_id);
+
+        return result.value();
       });
 
   return async_sample_result(
@@ -272,7 +314,8 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto &platform = cudaq::get_platform();
   auto shots = options.shots;
   auto kernelName = cudaq::getKernelName(kernel);
-  platform.set_noise(&options.noise);
+  if (!options.noise.empty())
+    platform.set_noise(&options.noise);
   auto ret = details::runSampling(
                  [&]() mutable { kernel(std::forward<Args>(args)...); },
                  platform, kernelName, shots, options.explicit_measurements)
@@ -379,16 +422,16 @@ async_sample_result sample_async(const sample_options &options,
   }
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  platform.set_noise(&options.noise);
 
-  auto ret = details::runSamplingAsync(
+  // Pass the noise model (copied by value) to runSamplingAsync, which will
+  // set/reset it within the asynchronous task to avoid dangling pointers and
+  // state pollution.
+  return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
       platform, kernelName, options.shots, options.explicit_measurements,
-      qpu_id);
-  platform.reset_noise();
-  return ret;
+      qpu_id, options.noise);
 }
 
 /// @brief Sample the given kernel expression asynchronously and return
@@ -502,7 +545,8 @@ std::vector<sample_result> sample(const sample_options &options,
   auto numQpus = platform.num_qpus();
   auto shots = options.shots;
 
-  platform.set_noise(&options.noise);
+  if (!options.noise.empty())
+    platform.set_noise(&options.noise);
 
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.
