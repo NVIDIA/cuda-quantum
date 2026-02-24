@@ -110,11 +110,11 @@ Submitting
       nvq++ --target scaleway src.cpp
 
    To execute kernels on a specific Scaleway quantum device, pass the
-   ``--machine`` flag to ``nvq++`` and specify the device identifier.
+   ``--scaleway-machine`` flag to ``nvq++`` and specify the device identifier.
 
    .. code:: bash
 
-      nvq++ --target scaleway --machine "<offer_name>" src.cpp
+      nvq++ --target scaleway --scaleway-machine "<offer_name>" src.cpp
 
    where <offer_name> refers to a Scaleway simulator or QPU available in your
    project. Available emulators and QPUs are listed on the

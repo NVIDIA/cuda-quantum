@@ -683,10 +683,24 @@ jobs:
                 ;;
 
                 scaleway)
-                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
-                  test_status=$?
-                  if [ $test_status -eq 0 ]; then
-                    ./a.out
+                  if [[ "$filename" == *.cpp ]]; then
+                    nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      ./a.out
+                      test_status=$?
+                      if [ $test_status -eq 0 ]; then
+                        echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                      else
+                        echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                        test_err_sum=$((test_err_sum+1))
+                      fi
+                    else
+                      echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  elif [[ "$filename" == *.py ]]; then
+                    python3 $filename 1> /dev/null
                     test_status=$?
                     if [ $test_status -eq 0 ]; then
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -695,8 +709,9 @@ jobs:
                       test_err_sum=$((test_err_sum+1))
                     fi
                   else
-                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    echo "::warning::Unsupported file type: $filename"
+                    echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_skip_sum=$((test_skip_sum+1))
                   fi
                 ;;
             esac

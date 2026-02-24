@@ -14,6 +14,8 @@ from multiprocessing import Process
 from network_utils import check_server_connection
 import numpy as np
 
+qio = pytest.importorskip("qio")
+
 TEST_PORT = 62450
 TEST_PLATFORM = "EMU-CUDAQ-FAKE"
 TEST_URL = f"http://localhost:{TEST_PORT}"
