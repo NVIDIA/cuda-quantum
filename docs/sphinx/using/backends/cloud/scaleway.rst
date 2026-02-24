@@ -26,8 +26,8 @@ Setting Credentials
 
 .. code:: bash
 
-  export SCW_SECRET_KEY="<secret_key>"
-  export SCW_PROJECT_ID="<project_id>"
+   export SCW_SECRET_KEY="<secret_key>"
+   export SCW_PROJECT_ID="<project_id>"
 
 Submitting
 ``````````
