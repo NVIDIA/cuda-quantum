@@ -1,27 +1,27 @@
 workflow:
   name: 'Staging'
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-dev@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-dev(-ci)?@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-dev"
         os: os/linux
         perflab: perflab
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps(-ci)?@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-devdeps"
         os: os/linux-arm
         perflab: perflab-arm
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-devdeps(-ci)?@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-devdeps"
         os: os/linux
         perflab: perflab
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets(-ci)?@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-assets"
         os: os/linux-arm
         perflab: perflab-arm
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /cuda-quantum-assets(-ci)?@sha256:\S+$/'
       variables:
         staged: "cuda-quantum-assets"
     - when: always
