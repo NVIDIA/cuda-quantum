@@ -208,8 +208,8 @@ decrementing
 dendrogram
 dependence
 dependences
-deserialize
 deserialization
+deserialize
 destructor
 detuning
 deutsch

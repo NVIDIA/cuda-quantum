@@ -26,8 +26,8 @@ Setting Credentials
 
 .. code:: bash
 
-   export SCW_SECRET_KEY="<secret_key>"
-   export SCW_PROJECT_ID="<project_id>"
+    export SCW_SECRET_KEY="<secret_key>"
+    export SCW_PROJECT_ID="<project_id>"
 
 Submitting
 ``````````
@@ -127,7 +127,7 @@ If you want to manually shutdown a QPU session, you can do it by calling the Sca
 
 .. code:: bash
       # List active sessions
-   curl -X GET -H "X-Auth-Token: $SCW_SECRET_KEY" "https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=<project_id>"
+    curl -X GET -H "X-Auth-Token: $SCW_SECRET_KEY" "https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=<project_id>"
 
    # Terminate the session
-   curl -X POST -H "X-Auth-Token: $SCW_SECRET_KEY" -H "Content-Type: application/json" "https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate"
+    curl -X POST -H "X-Auth-Token: $SCW_SECRET_KEY" -H "Content-Type: application/json" "https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate"
