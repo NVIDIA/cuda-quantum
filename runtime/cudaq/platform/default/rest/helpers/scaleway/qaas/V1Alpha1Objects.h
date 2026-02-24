@@ -108,19 +108,19 @@ inline void from_json(const nlohmann::json &j, Session &p) {
 
 inline void to_json(nlohmann::json &j, const Session &p) {
   j = nlohmann::json{{"id", p.id},
-           {"name", p.name},
-           {"platform_id", p.platform_id},
-           {"created_at", p.created_at},
-           {"started_at", p.started_at},
-           {"updated_at", p.updated_at},
-           {"terminated_at", p.terminated_at},
-           {"max_idle_duration", p.max_idle_duration},
-           {"max_duration", p.max_duration},
-           {"status", p.status},
-           {"project_id", p.project_id},
-           {"deduplication_id", p.deduplication_id},
-           {"progress_message", p.progress_message},
-           {"parameters", p.parameters}};
+                     {"name", p.name},
+                     {"platform_id", p.platform_id},
+                     {"created_at", p.created_at},
+                     {"started_at", p.started_at},
+                     {"updated_at", p.updated_at},
+                     {"terminated_at", p.terminated_at},
+                     {"max_idle_duration", p.max_idle_duration},
+                     {"max_duration", p.max_duration},
+                     {"status", p.status},
+                     {"project_id", p.project_id},
+                     {"deduplication_id", p.deduplication_id},
+                     {"progress_message", p.progress_message},
+                     {"parameters", p.parameters}};
 }
 
 struct Model {
@@ -139,9 +139,9 @@ inline void from_json(const nlohmann::json &j, Model &p) {
 
 inline void to_json(nlohmann::json &j, const Model &p) {
   j = nlohmann::json{{"id", p.id},
-           {"created_at", p.created_at},
-           {"url", p.url},
-           {"project_id", p.project_id}};
+                     {"created_at", p.created_at},
+                     {"url", p.url},
+                     {"project_id", p.project_id}};
 }
 
 struct Job {
@@ -176,15 +176,15 @@ inline void from_json(const nlohmann::json &j, Job &p) {
 
 inline void to_json(nlohmann::json &j, const Job &p) {
   j = nlohmann::json{{"id", p.id},
-           {"name", p.name},
-           {"session_id", p.session_id},
-           {"created_at", p.created_at},
-           {"started_at", p.started_at},
-           {"updated_at", p.updated_at},
-           {"status", p.status},
-           {"progress_message", p.progress_message},
-           {"model_id", p.model_id},
-           {"parameters", p.parameters}};
+                     {"name", p.name},
+                     {"session_id", p.session_id},
+                     {"created_at", p.created_at},
+                     {"started_at", p.started_at},
+                     {"updated_at", p.updated_at},
+                     {"status", p.status},
+                     {"progress_message", p.progress_message},
+                     {"model_id", p.model_id},
+                     {"parameters", p.parameters}};
 }
 
 struct JobResult {
@@ -207,9 +207,9 @@ inline void from_json(const nlohmann::json &j, JobResult &p) {
 
 inline void to_json(nlohmann::json &j, const JobResult &p) {
   j = nlohmann::json{{"job_id", p.job_id},
-           {"result", p.result},
-           {"url", p.url},
-           {"created_at", p.created_at}};
+                     {"result", p.result},
+                     {"url", p.url},
+                     {"created_at", p.created_at}};
 }
 
 } // namespace cudaq::qaas::v1alpha1

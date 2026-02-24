@@ -17,52 +17,52 @@ using json = nlohmann::json;
 using namespace cudaq;
 
 namespace {
-  std::string getEnv(const std::string &envKey) {
-    if (envKey.empty())
-      return "";
+std::string getEnv(const std::string &envKey) {
+  if (envKey.empty())
+    return "";
 
-    auto envVar = std::getenv(envKey.c_str());
+  auto envVar = std::getenv(envKey.c_str());
 
-    // Handles nullptr
-    std::string var(envVar ? envVar : "");
+  // Handles nullptr
+  std::string var(envVar ? envVar : "");
 
-    return var;
-  }
+  return var;
+}
 
-  std::string getValueOrDefault(const BackendConfig &config,
-                                const std::string &key, const std::string &envKey,
-                                const std::string &defaultValue) {
-    auto it = config.find(key);
+std::string getValueOrDefault(const BackendConfig &config,
+                              const std::string &key, const std::string &envKey,
+                              const std::string &defaultValue) {
+  auto it = config.find(key);
 
-    // If no provided value, look from env variables
-    auto envValue = getEnv(envKey);
+  // If no provided value, look from env variables
+  auto envValue = getEnv(envKey);
 
-    auto providedValue = (it != config.end()) ? it->second : envValue;
+  auto providedValue = (it != config.end()) ? it->second : envValue;
 
-    // If still no value, we apply the default SDK value
-    return !providedValue.empty() ? providedValue : defaultValue;
-  }
+  // If still no value, we apply the default SDK value
+  return !providedValue.empty() ? providedValue : defaultValue;
+}
 
-  std::string serializeParametersToQio(size_t nb_shots,
-                                      std::string output_names) {
-    json options;
-    options["output_names"] = output_names;
-    qio::QuantumComputationParameters parameters(nb_shots, options);
+std::string serializeParametersToQio(size_t nb_shots,
+                                     std::string output_names) {
+  json options;
+  options["output_names"] = output_names;
+  qio::QuantumComputationParameters parameters(nb_shots, options);
 
-    return parameters.toJson().dump();
-  }
+  return parameters.toJson().dump();
+}
 
-  std::string serializeKernelToQio(const std::string &code) {
-    qio::QuantumProgram program(code,
-                                qio::QuantumProgramSerializationFormat::QASM_V2,
-                                qio::CompressionFormat::ZLIB_BASE64_V1);
+std::string serializeKernelToQio(const std::string &code) {
+  qio::QuantumProgram program(code,
+                              qio::QuantumProgramSerializationFormat::QASM_V2,
+                              qio::CompressionFormat::ZLIB_BASE64_V1);
 
-    std::vector<qio::QuantumProgram> programs = {program};
+  std::vector<qio::QuantumProgram> programs = {program};
 
-    qio::QuantumComputationModel model(programs);
+  qio::QuantumComputationModel model(programs);
 
-    return model.toJson().dump();
-  }
+  return model.toJson().dump();
+}
 } // namespace
 
 void ScalewayServerHelper::initialize(BackendConfig config) {
