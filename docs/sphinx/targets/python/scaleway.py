@@ -2,7 +2,7 @@ import cudaq
 
 # NOTE: Scaleway credentials must be set before running this program.
 # Scaleway costs apply.
-cudaq.set_target("scaleway")
+cudaq.set_target("scaleway", max_duration="10m")
 
 # The default device is EMU-CUDAQ-H100, a state vector simulator running on an H100 GPU. Users may choose any of
 # the available devices by supplying its name with the `machine` parameter.
