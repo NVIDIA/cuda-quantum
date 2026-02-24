@@ -33,7 +33,7 @@ target_link_libraries(cudaq-serverhelper-scaleway
   PUBLIC
     cudaq-common
     cudaq-logger
-    llvm-15
+    llvm-16-dev
 )
 
 install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib)
