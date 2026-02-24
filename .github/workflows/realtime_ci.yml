@@ -49,8 +49,6 @@ jobs:
           shell: bash
           run: |
             cd /workspace/realtime
-            # Install dependencies
-            source scripts/install_dev_prerequisites.sh
             # Build 
             apt update && apt install -y --no-install-recommends cmake git
             mkdir -p build && cd build
@@ -103,3 +101,45 @@ jobs:
           apt update && apt install -y --no-install-recommends cmake 
           cd /workspace/realtime/build
           ctest -V
+
+  build_installer:
+    name: Build Installer
+    needs: build_realtime
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+
+      - name: Extract files
+        run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
+
+      - name: Install realtime binary
+        run: cd /workspace/realtime/build && make install
+
+      - name: Install makeself
+        run: |
+          apt update && apt install -y makeself
+
+      - name: Build installer
+        shell: bash
+        run: |
+          cd /workspace/realtime/scripts
+          # Set install prefix to match where build_installer.sh expects it
+          export CUDAQ_REALTIME_INSTALL_PREFIX=$HOME/.cudaq_realtime
+          # Run installer build script
+          bash build_installer.sh
