@@ -19,7 +19,6 @@ set(SCALEWAY_SOURCES
 
 target_sources(cudaq-rest-qpu
               PRIVATE
-              LLVMSupport
               ${SCALEWAY_SOURCES}
 )
 
@@ -34,6 +33,7 @@ target_link_libraries(cudaq-serverhelper-scaleway
   PUBLIC
     cudaq-common
     cudaq-logger
+    LLVMSupport
 )
 
 install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib)
