@@ -2232,7 +2232,7 @@ index error.
 
     # Sanity check
     print(np.dot(
-        np.array(cudaq.StateMemoryView(cudaq.get_state(qc))).conj().T, statevector
+        np.array(cudaq.get_state(qc)).conj().T, statevector
     ))
 :::
 :::
@@ -2266,7 +2266,7 @@ index error.
 
     # Sanity check
     print(np.dot(
-        np.array(cudaq.StateMemoryView(cudaq.get_state(qc))).conj().T, statevector
+        np.array(cudaq.get_state(qc)).conj().T, statevector
     ))
 :::
 :::

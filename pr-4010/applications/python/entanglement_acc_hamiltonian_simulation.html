@@ -1314,7 +1314,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 
     <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
         <span class="n">psi_ideal</span> <span class="o">=</span> <span class="n">ideal_next_state</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">psi_ideal</span><span class="p">)</span>
-        <span class="n">t_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">trotter_step_pf1</span><span class="p">,</span> <span class="n">t_state</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_b</span><span class="p">,</span> <span class="n">words_a</span><span class="p">,</span> <span class="n">words_b</span><span class="p">))</span>
+        <span class="n">t_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">trotter_step_pf1</span><span class="p">,</span> <span class="n">t_state</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_b</span><span class="p">,</span> <span class="n">words_a</span><span class="p">,</span> <span class="n">words_b</span><span class="p">)</span>
 
         <span class="n">psi_t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t_state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 
@@ -1348,7 +1348,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 <span class="n">r</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># number of PF1 Trotter steps</span>
 
 <span class="c1"># initial state</span>
-<span class="n">initial_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">get_initial_state</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+<span class="n">initial_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">get_initial_state</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
 
 <span class="c1"># field strength and coupling strength</span>
 <span class="n">h_x_val</span><span class="p">,</span> <span class="n">h_y_val</span><span class="p">,</span> <span class="n">J_val</span> <span class="o">=</span> <span class="mf">0.8090</span><span class="p">,</span> <span class="mf">0.9045</span><span class="p">,</span> <span class="mi">1</span>

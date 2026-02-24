@@ -1944,7 +1944,7 @@ bitstring sample probabilities.
         else:
             cudaq.set_target('qpp-cpu')
         clean_result = np.array(
-            cudaq.StateMemoryView(cudaq.get_state(qv, n, circuit_params, layer_permutations)))
+            cudaq.get_state(qv, n, circuit_params, layer_permutations))
 
         # Performs noisy sampling
         cudaq.set_target("density-matrix-cpu")
