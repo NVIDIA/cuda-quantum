@@ -426,7 +426,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
-        self.pyConstantVars = {}
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -1888,14 +1887,6 @@ class PyASTBridge(ast.NodeVisitor):
         allocated with a `cc.alloca` op, and the pointer will be stored in
         the symbol table.
         """
-
-        if (len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and
-                isinstance(node.value, ast.List) and all(
-                    isinstance(e, ast.Constant) and isinstance(e.value, int)
-                    for e in node.value.elts)):
-            self.pyConstantVars[node.targets[0].id] = [
-                e.value for e in node.value.elts
-            ]
 
         def storedAsValue(val):
             varTy = val.type
