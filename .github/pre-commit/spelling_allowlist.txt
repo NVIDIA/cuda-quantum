@@ -119,8 +119,8 @@ Quantinuum
 RHEL
 RSA
 RSH
-SDK
 Scaleway
+SDK
 SLED
 SLES
 SLURM
