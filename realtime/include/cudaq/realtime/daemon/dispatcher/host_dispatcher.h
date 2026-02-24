@@ -50,7 +50,7 @@ struct HostDispatcherConfig {
     size_t num_slots;
     size_t slot_size;
     std::vector<HostDispatchWorker> workers;
-    /// Host-visible function table for lookup by function_id (GRAPH_LAUNCH or HOST_CALL).
+    /// Host-visible function table for lookup by function_id (GRAPH_LAUNCH only; others dropped).
     cudaq_function_entry_t* function_table = nullptr;
     size_t function_table_count = 0;
     atomic_int_sys* shutdown_flag;
@@ -58,7 +58,7 @@ struct HostDispatcherConfig {
     /// Optional: atomic counter incremented on each dispatch (for progress diagnostics).
     atomic_uint64_sys* live_dispatched = nullptr;
 
-    /// Dynamic worker pool (graph workers only; host calls run inline)
+    /// Dynamic worker pool (graph workers only)
     atomic_uint64_sys* idle_mask;   ///< 1 = free, 0 = busy; bit index = worker_id
     int* inflight_slot_tags;        ///< worker_id -> origin FPGA slot for tx_flags routing
 };

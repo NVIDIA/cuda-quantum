@@ -72,17 +72,6 @@ static void finish_slot_and_advance(const HostDispatcherConfig& config,
   current_slot = (current_slot + 1) % num_slots;
 }
 
-/// Run host-callback handler and signal completion (in-place response).
-static void dispatch_host_call(const cudaq_function_entry_t* entry,
-                               void* slot_host,
-                               const HostDispatcherConfig& config,
-                               size_t current_slot) {
-  entry->handler.host_fn(slot_host, config.slot_size);
-  __sync_synchronize();
-  config.tx_flags[current_slot].store(reinterpret_cast<uint64_t>(slot_host),
-                                      cuda::std::memory_order_release);
-}
-
 /// Acquire a graph worker (by function_id if table in use, else any idle worker).
 static int acquire_graph_worker(const HostDispatcherConfig& config,
                                 bool use_function_table,
@@ -160,13 +149,8 @@ void host_dispatcher_loop(const HostDispatcherConfig& config) {
       entry = parsed.entry;
     }
 
-    if (entry && entry->dispatch_mode == CUDAQ_DISPATCH_HOST_CALL) {
-      dispatch_host_call(entry, slot_host, config, current_slot);
-      finish_slot_and_advance(config, current_slot, num_slots, packets_dispatched);
-      continue;
-    }
-
-    if (entry && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
+    // Only GRAPH_LAUNCH is dispatched; HOST_CALL and DEVICE_CALL are dropped.
+    if (entry && entry->dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH) {
       config.rx_flags[current_slot].store(0, cuda::std::memory_order_release);
       current_slot = (current_slot + 1) % num_slots;
       continue;

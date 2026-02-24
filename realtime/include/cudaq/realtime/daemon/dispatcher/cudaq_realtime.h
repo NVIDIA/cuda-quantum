@@ -40,7 +40,9 @@ typedef enum {
   CUDAQ_KERNEL_COOPERATIVE = 1
 } cudaq_kernel_type_t;
 
-// Dispatch invocation mode
+// Dispatch invocation mode.
+// For CUDAQ_BACKEND_HOST_LOOP only GRAPH_LAUNCH is dispatched; DEVICE_CALL and
+// HOST_CALL table entries are dropped (slot cleared and advanced).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
   CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,
