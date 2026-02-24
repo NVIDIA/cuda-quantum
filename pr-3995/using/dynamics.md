@@ -2002,18 +2002,18 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
+        get_result = lambda idx, res: [
+            exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+        ]
 
-    import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt
 
-    plt.plot(steps, get_result(0, evolution_result))
-    plt.plot(steps, get_result(1, evolution_result))
-    plt.plot(steps, get_result(2, evolution_result))
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
+        plt.plot(steps, get_result(0, evolution_result))
+        plt.plot(steps, get_result(1, evolution_result))
+        plt.plot(steps, get_result(2, evolution_result))
+        plt.ylabel("Expectation value")
+        plt.xlabel("Time")
+        plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
 :::
 :::
 
