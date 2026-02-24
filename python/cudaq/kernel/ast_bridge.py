@@ -4044,17 +4044,9 @@ class PyASTBridge(ast.NodeVisitor):
                 c0 = self.getConstantInt(0)
                 c1 = self.getConstantInt(1)
 
-                first_addr = cc.ComputePtrOp(
-                    cc.PointerType.get(iterTy), iterable, [c0],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                first_idx = cc.LoadOp(first_addr).result
-                self.symbolTable.beginBlock()
-                self.__deconstructAssignment(node.generators[0].target,
-                                             first_idx)
-                self.visit(node.elt)
-                first_ref = self.popValue()
-                self.symbolTable.endBlock()
-                init_veq = quake.ConcatOp(veqTy, [first_ref]).result
+                empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
+                init_veq = quake.RelaxSizeOp(
+                    veqTy, quake.AllocaOp(empty_veq_ty).result).result
 
                 def bodyBuilder(args):
                     i, curr_veq = args[0], args[1]
@@ -4073,7 +4065,7 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.ContinueOp([i, new_veq])
 
                 loop = self.createForLoop(
-                    [i64Ty, veqTy], bodyBuilder, [c1, init_veq],
+                    [i64Ty, veqTy], bodyBuilder, [c0, init_veq],
                     lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
                         0], iterableSize).result,
                     lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
