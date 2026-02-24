@@ -4046,7 +4046,8 @@ class PyASTBridge(ast.NodeVisitor):
 
                 empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
                 init_veq = quake.RelaxSizeOp(
-                    veqTy, quake.AllocaOp(empty_veq_ty).result).result
+                    veqTy,
+                    quake.AllocaOp(empty_veq_ty).result).result
 
                 def bodyBuilder(args):
                     i, curr_veq = args[0], args[1]
