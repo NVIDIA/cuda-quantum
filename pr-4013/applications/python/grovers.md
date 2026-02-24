@@ -218,9 +218,6 @@ pr-4013
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -2124,7 +2121,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![bd1a9c91ba89444ea547b3e507a354bc](../../_images/grovers-2D-plane.png)
+![5ae109698a6b4957a19db4d5b0c3795d](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2339,7 +2336,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![3096e90ff4394ef6a7d337ab3c0fc51c](../../_images/grovers-steps1-3.png)
+![6e75ef544b444bdc96063ff395978abd](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2351,7 +2348,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![10a454f3a9cc4a99aefd7e7dbfe18608](../../_images/grovers-full-rotation.png)
+![10d3df67cbc64c28929fcbdec9208fb6](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

@@ -209,9 +209,6 @@ pr-4013
             data](#5.-Return-execution-data){.reference .internal}
         -   [6. Two API options:](#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1867,7 +1864,7 @@ pr-4013
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](noisy_simulations.html "Noisy Simulation"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](ptsbe_accuracy_validation.html "PTSBE accuracy validation"){.btn
+aria-hidden="true"}](../../using/examples/operators.html "Operators"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2054,7 +2051,7 @@ with the kernel, noise model, and shot count. Optional arguments:
 ::: {.output_area .docutils .container}
 ::: highlight
     PTSBE sample result:
-    { 00:491828 01:7969 10:8029 11:492174 }
+    { 00:491822 01:7889 10:8035 11:492254 }
 
     Total shots: 1000000
 :::
@@ -2095,7 +2092,7 @@ Hellinger fidelity comparison).
 ::: {.output_area .docutils .container}
 ::: highlight
     Standard (density-matrix) sample result:
-    { 00:491855 01:7908 10:8011 11:492226 }
+    { 00:491849 01:8033 10:8003 11:492115 }
 
     Total shots: 1000000
 :::
@@ -2153,7 +2150,7 @@ and [`result.has_execution_data()`{.docutils .literal
         print(f"  Example trajectory: id={t0.trajectory_id}, probability={t0.probability:.6f}, num_shots={t0.num_shots}")
         print("  Selected trajectory (kraus_selections):")
         for sel in t0.kraus_selections:
-            print(f"    circuit_location={sel.circuit_location}, kraus_operator_index={sel.kraus_operator_index}")
+            print(f"    circuit_location={sel.circuit_location}, kraus_operator_index={sel.kraus_operator_index}, is_error={sel.is_error}")
 :::
 :::
 :::
@@ -2175,10 +2172,10 @@ and [`result.has_execution_data()`{.docutils .literal
         [2] type=TraceInstructionType.Gate, name=x, targets=[1]
         [3] type=TraceInstructionType.Noise, name=depolarization2, targets=[1, 0]
         [4] type=TraceInstructionType.Measurement, name=mz, targets=[0]
-      Example trajectory: id=0, probability=0.921500, num_shots=921501
+      Example trajectory: id=0, probability=0.921500, num_shots=921638
       Selected trajectory (kraus_selections):
-        circuit_location=1, kraus_operator_index=0
-        circuit_location=3, kraus_operator_index=0
+        circuit_location=1, kraus_operator_index=0, is_error=False
+        circuit_location=3, kraus_operator_index=0, is_error=False
 :::
 :::
 :::
@@ -2217,7 +2214,7 @@ Use **\`\`cudaq.ptsbe.sample\`\`** when you want the dedicated PTSBE API
 Previous](noisy_simulations.html "Noisy Simulation"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](ptsbe_accuracy_validation.html "PTSBE accuracy validation"){.btn
+aria-hidden="true"}](../../using/examples/operators.html "Operators"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

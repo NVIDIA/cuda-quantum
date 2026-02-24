@@ -212,9 +212,6 @@ pr-4013
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing Operators](../examples/operators.html){.reference
         .internal}
         -   [Constructing Spin

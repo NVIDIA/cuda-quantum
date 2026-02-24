@@ -213,7 +213,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_accuracy_validation.html">   PTSBE Accuracy Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -6859,6 +6858,12 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a156cfa2b8e3da14ec9b864db5cb685fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_identity_op</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Check whether the operator at the given index is an identity. Determined from the unitary matrix data during channel construction, recognizing both exact identity and global-phase-times-identity. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv">
 <span class="target" id="classcudaq_1_1kraus__channel_1a79d06d1d1a601d4f702d759b7612bbb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">populateDefaultOpNames</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Populate op_names with default names of the form type_name[index]. Called by constructors that do not set explicit op_names. </p>
@@ -6889,6 +6894,12 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel13probabilitiesE">
 <span class="target" id="classcudaq_1_1kraus__channel_1a9f9cfb565a7013493a72d67602442bca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel13probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>If all Kraus ops are - when scaled - unitary, this holds the probabilities of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel14identity_flagsE">
+<span class="target" id="classcudaq_1_1kraus__channel_1aa9c5cbb20fd0898112112277e28275aa"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">identity_flags</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel14identity_flagsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>For unitary mixture channels, flags indicating which operators are identity (or global-phase-times-identity). Populated during <a class="reference internal" href="#classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa"><span class="std std-ref">generateUnitaryParameters()</span></a>. Empty for non-unitary channels. </p>
 </dd></dl>
 
 <dl class="cpp var">

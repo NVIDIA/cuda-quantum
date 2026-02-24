@@ -218,9 +218,6 @@ pr-4013
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -2230,7 +2227,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 2ca60d558b2c5df284671fb58a870db69aca5537)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 602707df5e45f345742539fde749660d18d1c365)
 :::
 :::
 :::

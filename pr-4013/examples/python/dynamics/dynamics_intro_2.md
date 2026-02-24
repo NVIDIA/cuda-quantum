@@ -216,9 +216,6 @@ pr-4013
         -   [6. Two API
             options:](../ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../../using/examples/operators.html){.reference
         .internal}

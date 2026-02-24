@@ -203,9 +203,6 @@ pr-4013
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing Operators](#){.current .reference .internal}
         -   [Constructing Spin
             Operators](#constructing-spin-operators){.reference
@@ -1841,7 +1838,7 @@ pr-4013
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../examples/python/ptsbe_accuracy_validation.html "PTSBE accuracy validation"){.btn
+Previous](../../examples/python/ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn
@@ -1971,7 +1968,7 @@ C++
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../examples/python/ptsbe_accuracy_validation.html "PTSBE accuracy validation"){.btn
+Previous](../../examples/python/ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn

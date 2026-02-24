@@ -218,9 +218,6 @@ pr-4013
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -10551,6 +10548,17 @@ with optional execution data (trace and per-trajectory info). See
     <!-- -->
     ```
 
+    []{#classcudaq_1_1kraus__channel_1a156cfa2b8e3da14ec9b864db5cb685fb .target}[[inline]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_identity_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[index]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Check whether the operator at the given index is an identity.
+        Determined from the unitary matrix data during channel
+        construction, recognizing both exact identity and
+        global-phase-times-identity.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1kraus__channel_1a79d06d1d1a601d4f702d759b7612bbb9 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[populateDefaultOpNames]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv "Permalink to this definition"){.headerlink}\
 
     :   Populate op_names with default names of the form
@@ -10592,6 +10600,18 @@ with optional execution data (trace and per-trajectory info). See
     :   If all Kraus ops are - when scaled - unitary, this holds the
         probabilities of those ops. These values are always "double"
         regardless of whether cudaq::real is float or double.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1kraus__channel_1aa9c5cbb20fd0898112112277e28275aa .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[identity_flags]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13kraus_channel14identity_flagsE "Permalink to this definition"){.headerlink}\
+
+    :   For unitary mixture channels, flags indicating which operators
+        are identity (or global-phase-times-identity). Populated during
+        [[generateUnitaryParameters()]{.std
+        .std-ref}](#classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa){.reference
+        .internal}. Empty for non-unitary channels.
 
     ```{=html}
     <!-- -->

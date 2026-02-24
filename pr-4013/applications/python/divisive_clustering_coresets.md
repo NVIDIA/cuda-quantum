@@ -218,9 +218,6 @@ pr-4013
         -   [6. Two API
             options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
             .internal}
-    -   [PTSBE Accuracy
-        Validation](../../examples/python/ptsbe_accuracy_validation.html){.reference
-        .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1904,7 +1901,7 @@ understand similarities in the data points.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Install the relevant packages.
-    %pip install mpi4py==3.1.6 networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
+    %pip install networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
 :::
 :::
 :::
@@ -2502,11 +2499,11 @@ the source code.
 
 ::: {.output_area .stderr .docutils .container}
 ::: highlight
-    100%|██████████| 109/109 [00:00<00:00, 38665.35it/s]
-    100%|██████████| 1/1 [00:00<00:00, 27594.11it/s]
-    100%|██████████| 20/20 [00:00<00:00, 78914.47it/s]
-    100%|██████████| 1/1 [00:00<00:00, 24966.10it/s]
-    100%|██████████| 3/3 [00:00<00:00, 66576.25it/s]
+    100%|██████████| 100/100 [00:00<00:00, 42379.55it/s]
+    100%|██████████| 1/1 [00:00<00:00, 27776.85it/s]
+    100%|██████████| 21/21 [00:00<00:00, 78643.20it/s]
+    100%|██████████| 3/3 [00:00<00:00, 24385.49it/s]
+    100%|██████████| 4/4 [00:00<00:00, 78766.27it/s]
 :::
 :::
 :::
@@ -2870,11 +2867,11 @@ to be changed as is done below.
 
 ::: {.output_area .stderr .docutils .container}
 ::: highlight
-    100%|██████████| 478/478 [00:00<00:00, 46366.27it/s]
-    100%|██████████| 24/24 [00:00<00:00, 144010.44it/s]
-    100%|██████████| 24/24 [00:00<00:00, 88768.34it/s]
-    100%|██████████| 4/4 [00:00<00:00, 91678.78it/s]
-    100%|██████████| 4/4 [00:00<00:00, 79137.81it/s]
+    100%|██████████| 480/480 [00:00<00:00, 44895.88it/s]
+    100%|██████████| 48/48 [00:00<00:00, 111600.11it/s]
+    100%|██████████| 12/12 [00:00<00:00, 148910.20it/s]
+    100%|██████████| 4/4 [00:00<00:00, 98112.37it/s]
+    100%|██████████| 4/4 [00:00<00:00, 53261.00it/s]
 :::
 :::
 :::
@@ -2934,22 +2931,21 @@ Now try the N=18 example on the GPU backend ([`nvidia`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [1771526059.181549] [fb5fb776d150:31487:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-    [1771526059.313315] [fb5fb776d150:31487:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-    [1771526059.313315] [fb5fb776d150:31487:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+    [1771611064.714571] [fb5fb776d150:85711:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+    [1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+    [1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
     Using BFL2 method to generate coresets
-    100%|██████████████████████████████████| 14903/14903 [00:01<00:00, 14495.14it/s]
-    100%|██████████████████████████████████████| 128/128 [00:00<00:00, 73725.75it/s]
-    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 47015.36it/s]
-    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 146525.90it/s]
-    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 139230.01it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 140985.01it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 141281.82it/s]
+    100%|██████████████████████████████████| 14842/14842 [00:01<00:00, 14617.13it/s]
+    100%|██████████████████████████████████████| 128/128 [00:00<00:00, 73183.06it/s]
+    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 46867.32it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 147168.56it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 144010.44it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 142481.66it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 134756.76it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 122461.43it/s]
     100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 117323.19it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 119837.26it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 109655.01it/s]
-    Total time for the execution: 27.066289502999997
-    Total time spent on CUDA-Q: 25.436276404999997
+    Total time for the execution: 25.115535654
+    Total time spent on CUDA-Q: 22.706712142
 :::
 :::
 :::
@@ -2997,26 +2993,26 @@ N=25 can still easily be completed by a single GPU.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [1771526077.423654] [fb5fb776d150:31743:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-    [1771526077.509362] [fb5fb776d150:31743:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-    [1771526077.509362] [fb5fb776d150:31743:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+    [1771611081.663407] [fb5fb776d150:85963:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+    [1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+    [1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
     Using BFL2 method to generate coresets
-    100%|███████████████████████████████████| 19214/19214 [00:02<00:00, 7341.56it/s]
-    100%|████████████████████████████████████| 9753/9753 [00:00<00:00, 20943.64it/s]
-    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 46808.97it/s]
-    100%|██████████████████████████████████████| 128/128 [00:00<00:00, 72618.82it/s]
-    100%|████████████████████████████████████████| 64/64 [00:00<00:00, 90841.10it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 133417.22it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 138654.68it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 139230.01it/s]
+    100%|███████████████████████████████████| 19169/19169 [00:02<00:00, 7340.95it/s]
+    100%|████████████████████████████████████| 9699/9699 [00:00<00:00, 20903.20it/s]
+    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 46408.62it/s]
+    100%|██████████████████████████████████████| 250/250 [00:00<00:00, 57152.45it/s]
+    100%|███████████████████████████████████████| 32/32 [00:00<00:00, 111015.49it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 141579.88it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 143089.26it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 139810.13it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 127826.41it/s]
     100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 118987.35it/s]
-    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 145257.28it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 114912.44it/s]
     100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 114130.72it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 118987.35it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 120699.40it/s]
     100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 116508.44it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 119837.26it/s]
-    Total time for the execution: 50.173196366999996
-    Total time spent on CUDA-Q: 45.991908282
+    Total time for the execution: 52.755354396
+    Total time spent on CUDA-Q: 48.283614136999994
 :::
 :::
 :::
@@ -3046,9 +3042,9 @@ memory. Run the code below to see for yourself.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [1771526113.888898] [fb5fb776d150:32042:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-    [1771526113.975195] [fb5fb776d150:32042:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-    [1771526113.975195] [fb5fb776d150:32042:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+    [1771611118.898043] [fb5fb776d150:86265:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+    [1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+    [1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
     Using BFL2 method to generate coresets
     RuntimeError: NLOpt runtime error: nlopt failure
 :::
