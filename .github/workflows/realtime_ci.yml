@@ -114,6 +114,8 @@ jobs:
     permissions:
       contents: read
       packages: read
+    container:
+      image: ubuntu:24.04
 
     steps:
 
