@@ -1068,6 +1068,41 @@ def test_list_comprehension_qubit_refs():
     # keep after assert, such that we have no output if assert fails
     print(kernel3)
 
+    @cudaq.kernel
+    def kernel4():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        indices = [0, 1]
+        x.ctrl([qs[i] for i in indices], target)
+
+    out = cudaq.sample(kernel4)
+    assert len(out) == 1 and '111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel4)
+
+    @cudaq.kernel
+    def kernel5():
+        qs = cudaq.qvector(4)
+        x(qs[0])
+        x(qs[1])
+        x(qs[2])
+        cont = [0, 1, 2]
+        x.ctrl([qs[i] for i in cont], qs[3])
+
+    out = cudaq.sample(kernel5)
+    assert len(out) == 1 and '1111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel5)
+
+    @cudaq.kernel
+    def kernel6(qs: cudaq.qvector, indices: list[int]):
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in indices], target)
+
+    print(kernel6)
+
 
 # CHECK-LABEL: test_list_comprehension_qubit_refs:
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel1..
@@ -1076,9 +1111,32 @@ def test_list_comprehension_qubit_refs():
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel2..
 # CHECK: quake.extract_ref
 # CHECK: quake.concat
+# CHECK: cc.loop
+# CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel3..
 # CHECK: quake.extract_ref
+# CHECK: quake.concat
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel4..
+# CHECK: quake.extract_ref
+# CHECK: quake.concat
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
+# CHECK: quake.extract_ref
+# CHECK: quake.concat
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel6..
+# CHECK: cc.stdvec_size
+# CHECK: quake.extract_ref
+# CHECK: quake.concat
+# CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
 
@@ -1204,18 +1262,6 @@ def test_list_comprehension_failures():
         print("Exception kernel8:")
         print(e)
 
-    try:
-
-        @cudaq.kernel
-        def kernel9(qs: cudaq.qvector, indices: list[int]):
-            target = cudaq.qubit()
-            x.ctrl([qs[i] for i in indices], target)
-
-        print(kernel9)
-    except Exception as e:
-        print("Exception kernel9:")
-        print(e)
-
 
 # CHECK-LABEL: test_list_comprehension_failures:
 # CHECK-LABEL:  Exception kernel1:
@@ -1249,7 +1295,3 @@ def test_list_comprehension_failures():
 # CHECK-LABEL:  Exception kernel8:
 # CHECK:        non-integer value in range expression
 # CHECK-NEXT:   (offending source -> 1.0)
-
-# CHECK-LABEL:  Exception kernel9:
-# CHECK:        list comprehension producing qubit references requires a compile-time constant iterable size
-# CHECK-NEXT:   (offending source -> [qs[i] for i in indices])

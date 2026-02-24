@@ -3789,21 +3789,6 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.emitFatalError(f"unknown function call", node)
 
-    def __getQubitRefUnrollCount(self, iter_node):
-        if isinstance(iter_node, ast.List):
-            return len(iter_node.elts)
-        if (isinstance(iter_node, ast.Call) and
-                isinstance(iter_node.func, ast.Name) and
-                iter_node.func.id == 'range'):
-            args = [
-                a.value
-                for a in iter_node.args
-                if isinstance(a, ast.Constant) and isinstance(a.value, int)
-            ]
-            if len(args) == len(iter_node.args):
-                return len(range(*args))
-        return None
-
     def visit_ListComp(self, node):
         """
         This method currently supports lowering simple list comprehensions to
@@ -4054,34 +4039,45 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(iterable)
                 return
             if cc.StdvecType.isinstance(orig_iterable_type):
-                n = self.__getQubitRefUnrollCount(node.generators[0].iter)
-                if n is None:
-                    self.emitFatalError(
-                        "list comprehension producing qubit references requires "
-                        "a compile-time constant iterable size; use a literal "
-                        "list or range() with constant arguments.", node)
-                if n == 0:
-                    self.emitFatalError(
-                        "empty list comprehension is not allowed", node)
-                # Unroll: load each element from the compiled iterable at a
-                # compile-time index. The stored values may be runtime-computed
-                # MLIR ints, so this supports dynamic index expressions.
-                refs = []
-                for j in range(n):
-                    self.symbolTable.beginBlock()
-                    j_val = self.getConstantInt(j)
+                i64Ty = self.getIntegerType()
+                veqTy = self.getVeqType()
+                c0 = self.getConstantInt(0)
+                c1 = self.getConstantInt(1)
+
+                first_addr = cc.ComputePtrOp(
+                    cc.PointerType.get(iterTy), iterable, [c0],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+                first_idx = cc.LoadOp(first_addr).result
+                self.symbolTable.beginBlock()
+                self.__deconstructAssignment(node.generators[0].target,
+                                             first_idx)
+                self.visit(node.elt)
+                first_ref = self.popValue()
+                self.symbolTable.endBlock()
+                init_veq = quake.ConcatOp(veqTy, [first_ref]).result
+
+                def bodyBuilder(args):
+                    i, curr_veq = args[0], args[1]
                     elem_addr = cc.ComputePtrOp(
-                        cc.PointerType.get(iterTy), iterable, [j_val],
+                        cc.PointerType.get(iterTy), iterable, [i],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
                     idx_val = cc.LoadOp(elem_addr).result
+                    self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
                     self.visit(node.elt)
-                    refs.append(self.popValue())
+                    ref = self.popValue()
                     self.symbolTable.endBlock()
-                self.pushValue(refs[0] if len(refs) == 1 else quake.
-                               ConcatOp(self.getVeqType(), refs).result)
+                    new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                    cc.ContinueOp([i, new_veq])
+
+                loop = self.createForLoop(
+                    [i64Ty, veqTy], bodyBuilder, [c1, init_veq],
+                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
+                        0], iterableSize).result,
+                    lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+                self.pushValue(loop.results[1])
                 return
             self.emitFatalError(
                 "unsupported list comprehension producing qubit references",
