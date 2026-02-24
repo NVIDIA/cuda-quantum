@@ -15,7 +15,7 @@ import cudaq
 
 def test_while():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def trowe():
         q = cudaq.qvector(6)
         i = 5
@@ -53,7 +53,7 @@ def test_while():
 
 def test_complex_conditional():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def costco():
         q = cudaq.qvector(6)
         i = 5

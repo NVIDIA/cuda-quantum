@@ -13,7 +13,7 @@ import cudaq
 
 def test_banjo():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def bar():
         ancilla = cudaq.qubit()
         qubits = cudaq.qvector(4)

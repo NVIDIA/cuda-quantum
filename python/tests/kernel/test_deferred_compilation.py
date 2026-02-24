@@ -219,35 +219,3 @@ class TestKernelComposition:
         bar.compile()
         assert bar.is_compiled()
         assert hidden_foo.is_compiled()
-
-
-# ---------------------------------------------------------------------------
-# __str__ representation
-# ---------------------------------------------------------------------------
-
-
-class TestStringRepresentation:
-    """The `__str__` output should reflect compilation state."""
-
-    def test_str_before_compilation(self):
-
-        @cudaq.kernel
-        def k():
-            q = cudaq.qubit()
-            h(q)
-
-        s = str(k)
-        assert "Uncompiled" in s
-        assert "k" in s
-
-    def test_str_after_compilation(self):
-
-        @cudaq.kernel
-        def k():
-            q = cudaq.qubit()
-            h(q)
-
-        k.compile()
-        s = str(k)
-        assert "Compiled" in s
-        assert "k" in s

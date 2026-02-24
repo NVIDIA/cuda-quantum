@@ -13,7 +13,7 @@ import cudaq
 
 def test_bug_1777():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def test():
         qubits = cudaq.qvector(2)
 

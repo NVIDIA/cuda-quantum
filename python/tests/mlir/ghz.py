@@ -13,7 +13,7 @@ import cudaq
 
 def test_ghz():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def ghz(N: int):
         q = cudaq.qvector(N)
         h(q[0])
@@ -22,7 +22,7 @@ def test_ghz():
 
     print(ghz)
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def simple(numQubits: int):
         qubits = cudaq.qvector(numQubits)
         h(qubits.front())

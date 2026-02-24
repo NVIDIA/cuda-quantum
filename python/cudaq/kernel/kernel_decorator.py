@@ -338,17 +338,9 @@ class PyKernelDecorator(object):
 
     def __str__(self):
         """
-        Return a string representation for this kernel, either as MLIR if
-        available, or as the source code if not.
-
-        To ensure an MLIR representation is returned, call `compile` beforehand.
+        Return a string representation for this kernel as MLIR.
         """
-        if self._cached_qkeModule:
-            return f"Compiled kernel {self.name}\n: {self._cached_qkeModule}"
-        elif self.funcSrc:
-            return f"Uncompiled kernel {self.name}\n: " + self.funcSrc
-        else:
-            return f"Uncompiled kernel {self.name}"
+        return str(self.qkeModule)
 
     def enable_return_to_log(self):
         """

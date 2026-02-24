@@ -13,7 +13,7 @@ import cudaq
 
 def test_control_kernel():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def reflect(qubits: cudaq.qview):
         ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()

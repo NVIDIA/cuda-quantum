@@ -13,16 +13,16 @@ import cudaq
 
 def test_control_on_adjoint():
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def my_func(q: cudaq.qubit, theta: float):
         ry(theta, q)
         rz(theta, q)
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def adj_func(q: cudaq.qubit, theta: float):
         cudaq.adjoint(my_func, q, theta)
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel
     def kernel(theta: float):
         ancilla = cudaq.qubit()
         q = cudaq.qubit()
