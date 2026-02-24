@@ -551,7 +551,7 @@ class PyKernelDecorator(object):
         """
         # Make sure this hasn't already been cleaned up as we're winding down
         if (cudaq_runtime is not None and
-            cudaq_runtime.delete_cache_execution_engine is not None):
+                cudaq_runtime.delete_cache_execution_engine is not None):
             cudaq_runtime.delete_cache_execution_engine(key)
 
     def resolve_decorator_at_callsite(self, callingMod):
