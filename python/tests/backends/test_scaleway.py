@@ -10,6 +10,7 @@ import cudaq
 import pytest
 import os
 from cudaq import spin
+from multiprocessing import Process
 import numpy as np
 
 TEST_PORT = 62450
@@ -26,6 +27,11 @@ DEFAULT_DURATION = "10m"
 DEFAULT_SHOT_COUNT = 3000
 DEFAULT_DEDUPLICATION_ID = "cudaq-test-scaleway"
 
+try:
+    from utils.mock_qpu.scaleway import startServer
+except:
+    pytest.skip("Mock qpu not available, skipping Scaleway tests.",
+                allow_module_level=True)
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_scaleway():
@@ -39,8 +45,12 @@ def setup_scaleway():
         deduplication_id=DEFAULT_DEDUPLICATION_ID,
     )
 
+    p = Process(target=startServer, args=(TEST_PORT,))
+    p.start()
+
     yield "Running the tests."
 
+    p.terminate()
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 

@@ -190,7 +190,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "scaleway"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -268,7 +268,7 @@ jobs:
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
                 ;;
               scaleway)
-                filelist="targettests/scaleway/*.cpp"
+                filelist="targettests/scaleway/*.cpp docs/sphinx/targets/python/scaleway.py"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
@@ -683,7 +683,7 @@ jobs:
                 ;;
 
                 scaleway)
-                  nvq++ -v $filename --target scaleway
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     ./a.out

@@ -97,7 +97,6 @@ Photonic
 Photonics
 PyPI
 Pygments
-QaaS
 QAOA
 QCI
 QCaaS
@@ -111,6 +110,7 @@ QPUs
 QPU’s
 QTX
 QX
+QaaS
 Qiskit
 QuEra
 QuTiP
@@ -119,12 +119,12 @@ Quantinuum
 RHEL
 RSA
 RSH
-Scaleway
 SDK
 SLED
 SLES
 SLURM
 SVD
+Scaleway
 Sqale
 Stim
 Superpositions

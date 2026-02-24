@@ -26,10 +26,10 @@ config:
   library-mode: false
 
 target-arguments:
-  - key: api-url
+  - key: url
     required: false
     type: string
-    platform-arg: api_url
+    platform-arg: url
     help-string: "Scaleway API URL."
   - key: machine
     required: false

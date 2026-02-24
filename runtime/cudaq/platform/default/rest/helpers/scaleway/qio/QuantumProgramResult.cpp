@@ -97,7 +97,7 @@ QuantumProgramResult QuantumProgramResult::fromJson(json j) {
   return QuantumProgramResult(
       j.value("serialization", ""),
       j.value("serialization_format", QuantumProgramResultSerializationFormat::
-                                          UNKOWN_RESULT_SERIALIZATION_FORMAT),
+                                          UNKNOWN_RESULT_SERIALIZATION_FORMAT),
       j.value("compression_format", CompressionFormat::NONE));
 }
 

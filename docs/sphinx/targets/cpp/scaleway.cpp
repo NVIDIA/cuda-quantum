@@ -4,9 +4,9 @@
 // ```
 // This will submit the job to the Scaleway QaaS state vector emulator powered
 // by CUDA-Q (default). Alternatively, users can choose any of the available
-// devices by specifying its name with the `--machine`, e.g.,
+// devices by specifying its name with the `--scaleway-machine`, e.g.,
 // ```
-// nvq++ --target scaleway --machine \
+// nvq++ --target scaleway --scaleway-machine \
 // "EMU-CUDAQ-H100" scaleway.cpp -o out.x
 // ./out.x
 // ```
@@ -24,7 +24,7 @@ struct ghz {
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    auto result = mz(q);
+    mz(q);
   }
 };
 
