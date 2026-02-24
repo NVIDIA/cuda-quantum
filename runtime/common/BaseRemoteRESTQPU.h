@@ -14,6 +14,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
+#include "common/JIT.h"
 #include "common/Resources.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -31,7 +32,7 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-cudaq::Resources *getResourceCounts();
+void setResourceCounts(cudaq::Resources &&);
 bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
@@ -85,11 +86,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   /// @return
   bool isSimulator() override { return emulate; }
-
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override {
-    return codegenTranslation == "qir-adaptive";
-  }
 
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
@@ -256,7 +252,7 @@ public:
     // Get the Quake code, lowered according to config file.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = compiler.lowerQuakeCode(kernelName, rawArgs);
+    auto codes = compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
   }
 
@@ -285,8 +281,10 @@ public:
     // but apparently it isn't. This works around that bug.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = rawArgs.empty() ? compiler.lowerQuakeCode(kernelName, args)
-                                 : compiler.lowerQuakeCode(kernelName, rawArgs);
+    auto codes =
+        rawArgs.empty()
+            ? compiler.lowerQuakeCode(executionContext, kernelName, args)
+            : compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
@@ -309,15 +307,16 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    completeLaunchKernel(kernelName,
-                         compiler.lowerQuakeCode(kernelName, module, rawArgs));
+    completeLaunchKernel(
+        kernelName,
+        compiler.lowerQuakeCode(executionContext, kernelName, module, rawArgs));
     return {};
   }
 
-  void *
-  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine) override {
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     throw std::runtime_error(
         "NYI: Remote rest execution via Python/C++ interop.");
@@ -343,7 +342,8 @@ public:
     if (executionContext->name == "resource-count") {
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      assert(codes.size() == 1 && codes[0].jit);
+      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
+      nvqir::setResourceCounts(std::move(codes[0].resourceCounts.value()));
       cudaq::get_platform().with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       return;

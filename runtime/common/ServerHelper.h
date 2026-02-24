@@ -12,6 +12,7 @@
 #include "Future.h"
 #include "JIT.h"
 #include "Registry.h"
+#include "Resources.h"
 #include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include "common/RecordLogParser.h"
@@ -32,17 +33,20 @@ struct KernelExecution {
   std::string name;
   std::string code;
   std::optional<JitEngine> jit;
+  std::optional<Resources> resourceCounts;
   nlohmann::json output_names;
   std::vector<std::size_t> mapping_reorder_idx;
   nlohmann::json user_data;
   KernelExecution(std::string &n, std::string &c, std::optional<JitEngine> jit,
-                  nlohmann::json &o, std::vector<std::size_t> &m)
-      : name(n), code(c), jit(jit), output_names(o), mapping_reorder_idx(m) {}
+                  std::optional<Resources> rc, nlohmann::json &o,
+                  std::vector<std::size_t> &m)
+      : name(n), code(c), jit(jit), resourceCounts(rc), output_names(o),
+        mapping_reorder_idx(m) {}
   KernelExecution(std::string &n, std::string &c, std::optional<JitEngine> jit,
-                  nlohmann::json &o, std::vector<std::size_t> &m,
-                  nlohmann::json &ud)
-      : name(n), code(c), jit(jit), output_names(o), mapping_reorder_idx(m),
-        user_data(ud) {}
+                  std::optional<Resources> rc, nlohmann::json &o,
+                  std::vector<std::size_t> &m, nlohmann::json &ud)
+      : name(n), code(c), jit(jit), resourceCounts(rc), output_names(o),
+        mapping_reorder_idx(m), user_data(ud) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON

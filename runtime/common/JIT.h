@@ -13,13 +13,17 @@
 #include <memory>
 #include <string>
 
-namespace llvm::orc {
+namespace llvm {
+class StringRef;
+namespace orc {
 class LLJIT;
 }
+} // namespace llvm
 
 namespace mlir {
 class ExecutionEngine;
-}
+class ModuleOp;
+} // namespace mlir
 
 namespace cudaq {
 
@@ -47,4 +51,9 @@ private:
   class Impl;
   std::shared_ptr<Impl> impl;
 };
+
+/// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
+JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
+                             llvm::StringRef convertTo);
+
 } // namespace cudaq

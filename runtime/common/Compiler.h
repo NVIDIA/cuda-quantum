@@ -73,7 +73,8 @@ class Compiler {
   bool printIR = false;
 
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCodePart2(const std::string &kernelName, void *kernelArgs,
+  lowerQuakeCodePart2(ExecutionContext *executionContext,
+                      const std::string &kernelName, void *kernelArgs,
                       const std::vector<void *> &rawArgs,
                       mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr,
                       void *updatedArgs);
@@ -98,14 +99,17 @@ public:
   /// lowering process is controllable via the configuration file in the
   /// platform directory for the targeted backend.
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
+  lowerQuakeCode(ExecutionContext *executionContext,
+                 const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs);
 
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(const std::string &kernelName, void *kernelArgs);
+  lowerQuakeCode(ExecutionContext *executionContext,
+                 const std::string &kernelName, void *kernelArgs);
 
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(const std::string &kernelName,
+  lowerQuakeCode(ExecutionContext *executionContext,
+                 const std::string &kernelName,
                  const std::vector<void *> &rawArgs);
 
   // Here the quake code is passed to us (via a ModuleOp), so unlike the other
@@ -117,7 +121,8 @@ public:
   // of this launch instance) and disposable. It can be modified by this call in
   // any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(const std::string &kernelName, mlir::ModuleOp module,
+  lowerQuakeCode(ExecutionContext *executionContext,
+                 const std::string &kernelName, mlir::ModuleOp module,
                  const std::vector<void *> &rawArgs);
 };
 } // namespace cudaq
