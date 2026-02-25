@@ -7,6 +7,15 @@
 # ============================================================================ #
 
 import cudaq
+import pytest
+
+
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget():
+    # Set the targeted QPU
+    cudaq.set_target("quantinuum", emulate=True, machine="Helios-1Dummy")
+    yield "Running the test."
+    cudaq.reset_target()
 
 
 def test_pr_4039():
@@ -31,10 +40,6 @@ def test_pr_4039():
 
         # The remaining bits are allocated to the number of corrections.
         return ret
-
-    target_name = "quantinuum"
-    emulate = True
-    cudaq.set_target(target_name, emulate=emulate, machine="Helios-1Dummy")
 
     num_data = 9
     num_logical = 1
