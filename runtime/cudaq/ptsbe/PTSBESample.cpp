@@ -221,20 +221,16 @@ void populateExecutionDataTrajectories(
   }
 }
 
-PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
-                                       const noise_model &noiseModel,
-                                       const PTSBEOptions &options,
-                                       std::size_t shots) {
+PTSBatch buildPTSBatchFromTrace(PTSBETrace &&trace, const PTSBEOptions &options,
+                                std::size_t shots) {
   PTSBatch batch;
 
-  // 1. Build PTSBE trace, derive measure qubits, extract noise sites
-  batch.trace = buildPTSBETrace(kernelTrace, noiseModel);
+  batch.trace = std::move(trace);
   batch.measureQubits = extractMeasureQubits(batch.trace);
   auto noiseResult = extractNoiseSites(batch.trace);
   cudaq::info("[ptsbe] Extracted {} noise sites from {} total instructions",
               noiseResult.noise_sites.size(), noiseResult.total_instructions);
 
-  // 2. Generate trajectories via the configured strategy (or default)
   auto strategy = options.strategy
                       ? options.strategy
                       : std::make_shared<ProbabilisticSamplingStrategy>();
@@ -244,7 +240,6 @@ PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
   batch.trajectories =
       strategy->generateTrajectories(noiseResult.noise_sites, maxTrajs);
 
-  // 3. Allocate shots across trajectories
   if (!batch.trajectories.empty() && shots > 0)
     allocateShots(batch.trajectories, shots, options.shot_allocation);
 

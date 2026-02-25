@@ -158,21 +158,17 @@ void populateExecutionDataTrajectories(
     std::vector<cudaq::KrausTrajectory> trajectories,
     std::vector<cudaq::sample_result> perTrajectoryResults);
 
-/// @brief Build complete PTSBatch with noise extraction and trajectory
-/// generation
+/// @brief Build PTSBatch from a pre-built PTSBE trace
 ///
-/// Extracts noise sites from the kernel trace, generates trajectories via the
+/// Extracts noise sites from the trace, generates trajectories via the
 /// configured strategy (or default probabilistic), and allocates shots.
 ///
-/// @param kernelTrace Captured kernel trace (moved into the returned batch)
-/// @param noiseModel Noise model for extracting noise sites
+/// @param trace Pre-built PTSBE trace (moved into the batch)
 /// @param options PTSBE configuration options
 /// @param shots Total number of shots to allocate
 /// @return PTSBatch ready for execution
-PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
-                                       const noise_model &noiseModel,
-                                       const PTSBEOptions &options,
-                                       std::size_t shots);
+PTSBatch buildPTSBatchFromTrace(PTSBETrace &&trace, const PTSBEOptions &options,
+                                std::size_t shots);
 
 /// @brief Run PTSBE sampling (internal API matching runSampling pattern)
 ///
@@ -216,15 +212,17 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
 
-  // Stage 2: Build execution data if requested (skip overhead otherwise)
+  // Stage 2: Build PTSBE trace once, share between execution data and batch
+  auto ptsbeTrace = buildPTSBETrace(traceCtx.kernelTrace, noiseModel);
+
   std::optional<PTSBEExecutionData> executionData;
-  if (options.return_execution_data)
-    executionData =
-        buildExecutionDataInstructions(traceCtx.kernelTrace, noiseModel);
+  if (options.return_execution_data) {
+    executionData = PTSBEExecutionData{};
+    executionData->instructions = ptsbeTrace;
+  }
 
   // Stage 3: Build PTSBatch with trajectory generation and shot allocation
-  auto batch = buildPTSBatchWithTrajectories(std::move(traceCtx.kernelTrace),
-                                             noiseModel, options, shots);
+  auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), options, shots);
   cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
               batch.totalShots(), batch.trajectories.size());
 
@@ -252,7 +250,8 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 /// Helper function that captures trace and builds PTSBatch without dispatching.
 /// Used by tests to verify trace capture and batch construction independently
 /// of execution. Builds the PTSBE trace with an empty noise model (no Noise
-/// entries). To build with a noise model, use buildPTSBatchWithTrajectories.
+/// entries). To build with a noise model, use buildPTSBETrace and
+/// buildPTSBatchFromTrace.
 ///
 /// @tparam QuantumKernel Quantum kernel type
 /// @tparam Args Kernel argument types
