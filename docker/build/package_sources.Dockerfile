@@ -176,14 +176,14 @@ RUN echo -e "MACOS pip omitted packages:\n$(cat ${SOURCES_ROOT}/macos/pip/macos_
 
 # For omitted apt packages (no source available), extract license/copyright/EULA from the .deb
 RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
-    mkdir -p "${SOURCES_ROOT}/apt/licenses" /tmp/deb_extract && \
+    mkdir -p "${SOURCES_ROOT}/omitted_licenses/apt/" /tmp/deb_extract && \
     while IFS= read -r pkg || [ -n "$pkg" ]; do \
       [ -z "$pkg" ] && continue; \
       ( cd /tmp/deb_extract && apt-get download "$pkg" 2>/dev/null ) || true; \
       deb=$(ls /tmp/deb_extract/*.deb 2>/dev/null | head -1); \
       if [ -n "$deb" ]; then \
         dpkg-deb -R "$deb" "/tmp/deb_extract/${pkg}_pkg" 2>/dev/null || true; \
-        dest="${SOURCES_ROOT}/apt/licenses/${pkg}"; \
+        dest="${SOURCES_ROOT}/omitted_licenses/apt/${pkg}"; \
         mkdir -p "$dest"; \
         find "/tmp/deb_extract/${pkg}_pkg" \( -iname "*license*" -o -iname "*eula*" -o -iname "*copyright*" \) -exec cp -a {} "$dest/" \; 2>/dev/null || true; \
         rm -rf "/tmp/deb_extract/${pkg}_pkg" /tmp/deb_extract/*.deb; \
@@ -193,7 +193,7 @@ RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
 
 # For omitted pip packages (no sdist), get EULA/license from the wheel: fetch wheel from PyPI, extract, copy license/EULA/copyright files
 RUN echo "Retrieving EULA/license for omitted pip packages..." && \
-    mkdir -p "${SOURCES_ROOT}/pip/licenses" /tmp/wheel_extract && \
+    mkdir -p "${SOURCES_ROOT}/omitted_licenses/pip" /tmp/wheel_extract && \
     while IFS= read -r package || [ -n "$package" ]; do \
       [ -z "$package" ] && continue; \
       name="${package%%==*}"; \
@@ -203,7 +203,7 @@ RUN echo "Retrieving EULA/license for omitted pip packages..." && \
       if [ -n "$url" ] && [ "$url" != "null" ]; then \
         if curl -fsSL -o /tmp/pip_wheel.whl "$url" 2>/dev/null; then \
           (cd /tmp/wheel_extract && unzip -o -q /tmp/pip_wheel.whl 2>/dev/null) || true; \
-          dest="${SOURCES_ROOT}/pip/licenses/${name}"; \
+          dest="${SOURCES_ROOT}/omitted_licenses/pip/${name}"; \
           mkdir -p "$dest"; \
           find /tmp/wheel_extract -type f \( -iname "*license*" -o -iname "*eula*" -o -iname "*copyright*" \) -exec cp -an {} "$dest/" \; 2>/dev/null || true; \
           if [ -z "$(ls -A "$dest" 2>/dev/null)" ]; then \
