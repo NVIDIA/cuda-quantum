@@ -101,9 +101,15 @@ class KernelSignature:
                 f"CUDA-Q kernel {kernel_name} has return statement but no return type annotation"
             )
 
+        def assert_not_none(ty, name):
+            if ty is None:
+                raise KernelSignatureError(
+                    f"Argument '{name}' is missing a required type annotation")
+            return ty
+
         arg_types = [
-            _mlir_type_from_annotation(annotation)
-            for _name, annotation in visitor.arg_annotations
+            assert_not_none(_mlir_type_from_annotation(annotation), name)
+            for name, annotation in visitor.arg_annotations
         ]
         return_type = _mlir_type_from_annotation(visitor.return_annotation,
                                                  acceptNoneType=False)

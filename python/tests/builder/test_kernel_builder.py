@@ -1133,7 +1133,7 @@ def test_fermionic_swap_op():
 
 def test_call_kernel_expressions():
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesInt(qubits: cudaq.qview, val: int):
         x(qubits[val])
 
@@ -1147,7 +1147,7 @@ def test_call_kernel_expressions():
     assert len(counts) == 1
     assert '00100' in counts
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndFloat(qubits: cudaq.qview, qbit: int, val: float):
         ry(val, qubits[qbit])
 
@@ -1170,7 +1170,7 @@ def test_call_kernel_expressions_List():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: List[float]):
         ry(val[0], qubits[qbit])
@@ -1185,7 +1185,7 @@ def test_call_kernel_expressions_List():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: List[List[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1217,7 +1217,7 @@ def test_call_kernel_expressions_list():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: list[float]):
         ry(val[0], qubits[qbit])
@@ -1232,7 +1232,7 @@ def test_call_kernel_expressions_list():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: list[list[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1257,6 +1257,25 @@ def test_call_kernel_expressions_list():
     kernelAndArgs = cudaq.make_kernel(list[float])
     qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
+
+
+def test_call_kernel_deferred_compilation():
+    # We currently don't support calling a kernel that hasn't been compiled yet
+    # from a kernel builder. This is because both the kernel builder and the
+    # MLIR compilation require exclusive access to the global MLIR context.
+    # Launching compilation during the lifetime of the kernel builder would
+    # invalidate the references to MLIR objects that the kernel builder holds.
+    @cudaq.kernel(defer_compilation=True)
+    def notPrecompiledKernel():
+        pass
+
+    kernel = cudaq.make_kernel()
+    with pytest.raises(RuntimeError) as e:
+        kernel.apply_call(notPrecompiledKernel)
+
+    assert "must be compiled to be used in the kernel builder" in str(e.value)
+    assert "notPrecompiledKernel" in str(e.value)
+    assert "or deactivate deferred compilation" in str(e.value)
 
 
 def test_sample_with_no_qubits():

@@ -40,6 +40,23 @@ def test_qudit():
     assert 4 == state.__len__()
 
 
+def test_compilation_unsupported():
+
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=4)
+        create(q)
+
+    assert not kernel.supports_compilation()
+
+    with pytest.raises(RuntimeError) as e:
+        kernel.compile()
+
+    print(e.value)
+    assert "Cannot compile kernel 'kernel': target handler 'orca-photonics' does not support compilation" in str(
+        e.value)
+
+
 def test_qudit_list():
 
     @cudaq.kernel
@@ -234,15 +251,18 @@ def test_qudit_level():
 
 def test_run_unsupported():
 
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=2)
+        create(q)
+        mz(q)
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def kernel():
-            q = qudit(level=2)
-            create(q)
-            mz(q)
-
         cudaq.run(kernel, shots_count=10)
+    assert "Unsupported target" in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(kernel, None)
     assert "Unsupported target" in repr(e)
 
 
