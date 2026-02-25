@@ -155,6 +155,19 @@ RUN apt-get update && set -o pipefail && \
       bash "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
+# Extract pip sdists and remove tarballs
+RUN for dir in "${SOURCES_ROOT}/cudaq/pip" "${SOURCES_ROOT}/cudaqx/pip" "${SOURCES_ROOT}/macos/pip"; do \
+      cd "$dir" && \
+      for f in *.tar.gz *.tgz; do \
+        [ -f "$f" ] || continue; \
+        tar -xzf "$f" && rm -f "$f"; \
+      done; \
+      for f in *.zip; do \
+        [ -f "$f" ] || continue; \
+        unzip -q -o "$f" && rm -f "$f"; \
+      done; \
+    done
+
 RUN echo -e "CUDAQ apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt)"
 RUN echo -e "CUDAQX apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt)"
 RUN echo -e "CUDAQ pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt)"
