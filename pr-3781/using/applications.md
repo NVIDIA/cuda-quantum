@@ -1046,11 +1046,7 @@ pr-3781
             -   [Setting
                 Credentials](backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
             (scaleway)](backends/cloud/scaleway.html){.reference

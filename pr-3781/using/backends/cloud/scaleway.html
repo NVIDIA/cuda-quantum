@@ -650,8 +650,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../cloud.html">     Cloud</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">     Scaleway QaaS (scaleway)</a><ul>
@@ -1118,7 +1117,8 @@ project. Available emulators and QPUs are listed on the
 </section>
 <section id="manage-your-qpu-session">
 <h2>Manage your QPU session<a class="headerlink" href="#manage-your-qpu-session" title="Permalink to this heading">¶</a></h2>
-<p>If you want to manually shutdown a QPU session, you can do it by calling the Scaleway’s QaaS API:</p>
+<p>If you want to manually shutdown a QPU session, you can either go onto the <code class="code docutils literal notranslate"><span class="pre">Scaleway</span> <span class="pre">console</span> <span class="pre">&lt;https://console.scaleway.com/qaas/sessions&gt;</span></code>
+or do it by calling the Scaleway’s QaaS API:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># List active sessions</span>
 curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-Auth-Token: </span><span class="nv">$SCW_SECRET_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;https://api.scaleway.com/qaas/v1alpha1/sessions?project_id=&lt;project_id&gt;&quot;</span>
 

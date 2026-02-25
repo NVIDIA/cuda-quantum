@@ -1023,11 +1023,7 @@ pr-3781
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
             (scaleway)](../../using/backends/cloud/scaleway.html){.reference
@@ -1839,7 +1835,7 @@ each pixel with its position
 
 <div>
 
-![8950761dbec441eda62cb5328f1381ad](../../_images/pixels-img.png){.no-scaled-link
+![c830df3451e1492bade8f346043da390](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

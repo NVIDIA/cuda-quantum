@@ -123,7 +123,8 @@ Submitting
 Manage your QPU session
 ```````````````````````
 
-If you want to manually shutdown a QPU session, you can do it by calling the Scaleway's QaaS API:
+If you want to manually shutdown a QPU session, you can either go onto the `Scaleway console <https://console.scaleway.com/qaas/sessions>`
+or do it by calling the Scaleway's QaaS API:
 
 .. code:: bash
 

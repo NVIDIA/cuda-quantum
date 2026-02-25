@@ -1021,11 +1021,7 @@ pr-3781
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
             (scaleway)](../../using/backends/cloud/scaleway.html){.reference
@@ -1797,7 +1793,7 @@ mutual polarization.
 
 <div>
 
-![c109481c749349d2a76013ca9f3b9f9d](../../_images/qm-mm-pe.png){.no-scaled-link
+![103134d22fd84dd58dd50f567b24c868](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>

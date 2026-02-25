@@ -1023,11 +1023,7 @@ pr-3781
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
             (scaleway)](../../using/backends/cloud/scaleway.html){.reference
@@ -2031,7 +2027,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![59095ad8d46c44e99dd58214158387e7](../../_images/grovers-2D-plane.png)
+![dbbb4f0dc1764aea8852626a47f3ee12](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2246,7 +2242,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![ac2b2207b8c645a39e8c5f471fdd50d5](../../_images/grovers-steps1-3.png)
+![3bf41274864c49a88532cbcc1c9dcc0e](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2258,7 +2254,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![723a1281854442ebbad7fac0fa776b9b](../../_images/grovers-full-rotation.png)
+![ec5f92c0a9b74364bdb604d12ca19a31](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

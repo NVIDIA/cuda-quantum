@@ -1016,11 +1016,7 @@ pr-3781
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
             (scaleway)](../../using/backends/cloud/scaleway.html){.reference
@@ -1806,7 +1802,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![06642bca2b414a709559cdd1a9874742](../../_images/adapt-vqe.png){.no-scaled-link
+![a764035179be4e5b91eaaee76a480afd](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>

@@ -1049,11 +1049,7 @@ pr-3781
             -   [Setting
                 Credentials](braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](braket.html#submission-from-python){.reference
+            -   [Submitting](braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS (scaleway)](#){.current .reference .internal}
             -   [Setting Credentials](#setting-credentials){.reference
@@ -1931,8 +1927,13 @@ webpage](https://www.scaleway.com/en/quantum-as-a-service/){.reference
 ::: {#manage-your-qpu-session .section}
 ## Manage your QPU session[¶](#manage-your-qpu-session "Permalink to this heading"){.headerlink}
 
-If you want to manually shutdown a QPU session, you can do it by calling
-the Scaleway's QaaS API:
+If you want to manually shutdown a QPU session, you can either go onto
+the [`Scaleway`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+.docutils .literal .notranslate}[`console`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`<https://console.scaleway.com/qaas/sessions>`{.code
+.docutils .literal .notranslate}]{.pre} or do it by calling the
+Scaleway's QaaS API:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
