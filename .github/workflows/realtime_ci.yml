@@ -187,6 +187,7 @@ jobs:
         shell: bash
         run: |
           cd ./installers
+          ls -R
           # Find the installer file (assuming there's only one in the directory)
           installer_file=$(ls install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }})
           # Make the installer executable and run it
