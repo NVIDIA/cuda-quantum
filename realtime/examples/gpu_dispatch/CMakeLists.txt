@@ -18,8 +18,8 @@ if(NOT CUDAQ_REALTIME_ROOT)
 endif()
 
 if (NOT CUDAQ_REALTIME_ROOT)
-  # Default path to look for the library if the environment variable is not set
-    set(CUDAQ_REALTIME_ROOT "/opt/nvidia/cudaq/realtime" CACHE PATH "Default path to CUDA Quantum Realtime installation")
+   # Default path to look for the library if the environment variable is not set
+   set(CUDAQ_REALTIME_ROOT "/opt/nvidia/cudaq/realtime")
    message(STATUS "CUDAQ_REALTIME_ROOT environment variable is not set. Use the default path: ${CUDAQ_REALTIME_ROOT}")
 endif()
 
