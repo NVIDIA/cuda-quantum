@@ -34,9 +34,10 @@ std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &defaultValue) {
   auto it = config.find(key);
 
-  // If no provided value, look from env variables
+  // Get value from env variable
   auto envValue = getEnv(envKey);
 
+  // If no provided value, set from env variable
   auto providedValue = (it != config.end()) ? it->second : envValue;
 
   // If still no value, we apply the default SDK value
