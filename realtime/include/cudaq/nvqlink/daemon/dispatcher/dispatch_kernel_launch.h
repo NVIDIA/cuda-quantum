@@ -17,21 +17,23 @@ namespace cudaq::nvqlink {
 // RPC Protocol Structures (Wire Format)
 //==============================================================================
 
-/// @brief RPC request header - wire format for function dispatch.
+/// @brief RPC request header - wire format for function dispatch (24 bytes).
 /// Must be wire-compatible with cuda-quantum RPC protocol.
 struct __attribute__((packed)) RPCHeader {
-  std::uint32_t magic;       ///< Magic value to validate message framing
-  std::uint32_t function_id; ///< Hash of function name (FNV-1a)
-  std::uint32_t arg_len;     ///< Length of argument data in bytes
-  std::uint32_t request_id;  ///< Caller-assigned ID echoed in the response
+  std::uint32_t magic;         ///< Magic value to validate message framing
+  std::uint32_t function_id;   ///< Hash of function name (FNV-1a)
+  std::uint32_t arg_len;       ///< Length of argument data in bytes
+  std::uint32_t request_id;    ///< Caller-assigned ID echoed in the response
+  std::uint64_t ptp_timestamp; ///< PTP send timestamp (set by sender; 0 if unused)
 };
 
-/// @brief RPC response header - returned to caller.
+/// @brief RPC response header - returned to caller (24 bytes).
 struct __attribute__((packed)) RPCResponse {
-  std::uint32_t magic;      ///< Magic value to validate message framing
-  std::int32_t status;      ///< Return status (0 = success)
-  std::uint32_t result_len; ///< Length of result data in bytes
-  std::uint32_t request_id; ///< Echoed from RPCHeader::request_id
+  std::uint32_t magic;         ///< Magic value to validate message framing
+  std::int32_t status;         ///< Return status (0 = success)
+  std::uint32_t result_len;    ///< Length of result data in bytes
+  std::uint32_t request_id;    ///< Echoed from RPCHeader::request_id
+  std::uint64_t ptp_timestamp; ///< Echoed from RPCHeader::ptp_timestamp
 };
 
 //==============================================================================

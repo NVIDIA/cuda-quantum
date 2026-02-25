@@ -78,6 +78,7 @@ __global__ void dispatch_kernel_device_call_only(
     __shared__ std::uint32_t     s_arg_len;
     __shared__ std::uint32_t     s_max_result_len;
     __shared__ std::uint32_t     s_request_id;
+    __shared__ std::uint64_t     s_ptp_timestamp;
     __shared__ bool              s_have_work;
 
     // Device-memory work descriptor visible to all blocks after grid.sync.
@@ -89,6 +90,7 @@ __global__ void dispatch_kernel_device_call_only(
     __device__ static std::uint32_t     d_arg_len;
     __device__ static std::uint32_t     d_max_result_len;
     __device__ static std::uint32_t     d_request_id;
+    __device__ static std::uint64_t     d_ptp_timestamp;
     __device__ static bool              d_have_work;
 
     while (!(*shutdown_flag)) {
@@ -113,6 +115,7 @@ __global__ void dispatch_kernel_device_call_only(
               s_arg_len       = header->arg_len;
               s_max_result_len = tx_stride_sz - sizeof(RPCResponse);
               s_request_id    = header->request_id;
+              s_ptp_timestamp = header->ptp_timestamp;
               s_have_work     = true;
 
               // Publish to device memory for other blocks
@@ -122,6 +125,7 @@ __global__ void dispatch_kernel_device_call_only(
               d_arg_len        = s_arg_len;
               d_max_result_len = s_max_result_len;
               d_request_id     = s_request_id;
+              d_ptp_timestamp  = s_ptp_timestamp;
               d_have_work      = true;
             }
           }
@@ -144,6 +148,7 @@ __global__ void dispatch_kernel_device_call_only(
       std::uint32_t arg_len;
       std::uint32_t max_result_len;
       std::uint32_t request_id;
+      std::uint64_t ptp_timestamp;
       if (blockIdx.x == 0) {
         have_work      = s_have_work;
         func           = s_func;
@@ -152,6 +157,7 @@ __global__ void dispatch_kernel_device_call_only(
         arg_len        = s_arg_len;
         max_result_len = s_max_result_len;
         request_id     = s_request_id;
+        ptp_timestamp  = s_ptp_timestamp;
       } else {
         have_work      = d_have_work;
         func           = d_func;
@@ -160,6 +166,7 @@ __global__ void dispatch_kernel_device_call_only(
         arg_len        = d_arg_len;
         max_result_len = d_max_result_len;
         request_id     = d_request_id;
+        ptp_timestamp  = d_ptp_timestamp;
       }
 
       // --- Phase 3: ALL threads call the handler ---
@@ -180,6 +187,7 @@ __global__ void dispatch_kernel_device_call_only(
         response->status = status;
         response->result_len = result_len;
         response->request_id = request_id;
+        response->ptp_timestamp = ptp_timestamp;
 
         while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
           ;
@@ -249,6 +257,7 @@ __global__ void dispatch_kernel_device_call_only(
             response->status = status;
             response->result_len = result_len;
             response->request_id = header->request_id;
+            response->ptp_timestamp = header->ptp_timestamp;
 
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
@@ -339,6 +348,7 @@ __global__ void dispatch_kernel_with_graph(
             response->status = status;
             response->result_len = result_len;
             response->request_id = header->request_id;
+            response->ptp_timestamp = header->ptp_timestamp;
 
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
@@ -397,17 +407,17 @@ __global__ void dispatch_kernel_with_graph(
 
 // Force eager CUDA module loading for the dispatch kernel.
 // Call before launching persistent kernels to avoid lazy-loading deadlocks.
-extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
-    int* out_blocks, uint32_t threads_per_block) {
-  int num_blocks = 0;
-  cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &num_blocks,
-      cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>,
-      threads_per_block, 0);
-  if (err != cudaSuccess) return err;
-  if (out_blocks) *out_blocks = num_blocks;
-  return cudaSuccess;
-}
+  extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
+      int* out_blocks, uint32_t threads_per_block) {
+    int num_blocks = 0;
+    cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+        &num_blocks,
+        cudaq::nvqlink::dispatch_kernel_device_call_only<cudaq::realtime::RegularKernel>,
+        threads_per_block, 0);
+    if (err != cudaSuccess) return err;
+    if (out_blocks) *out_blocks = num_blocks;
+    return cudaSuccess;
+  }
 
 extern "C" cudaError_t cudaq_dispatch_kernel_cooperative_query_occupancy(
     int* out_blocks, uint32_t threads_per_block) {

@@ -107,7 +107,7 @@ struct PlaybackArgs {
   size_t page_size = 384;
   unsigned num_pages = 128;
   uint32_t num_messages = 100;
-  uint32_t payload_size = 16;
+  uint32_t payload_size = 8;
   uint32_t vp_address = 0x1000;
   uint32_t hif_address = 0x0800;
   std::string bridge_ip = "10.0.0.1";
@@ -205,16 +205,15 @@ std::uint32_t load_le_u32(const std::uint8_t *p) {
 }
 
 /// Build one RPC request for the increment handler.
-/// Layout: [RPCHeader][8-byte PTP placeholder][data bytes...]
-/// The FPGA overwrites bytes 0-7 of the payload with the PTP send timestamp
-/// at transmit time.  The remaining bytes carry an incrementable test pattern.
+/// Layout: [RPCHeader (24 bytes, ptp_timestamp zeroed)][data bytes...]
+/// The FPGA overwrites header bytes 16-23 (ptp_timestamp field) with the PTP
+/// send timestamp at transmit time.
 std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
                                             uint32_t payload_size) {
   using cudaq::nvqlink::fnv1a_hash;
   using cudaq::nvqlink::RPCHeader;
 
   constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
-  constexpr uint32_t PTP_TS_LEN = 8;
 
   std::vector<std::uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
   auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
@@ -222,10 +221,10 @@ std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
   hdr->function_id = FUNC_ID;
   hdr->arg_len = payload_size;
   hdr->request_id = msg_index;
+  hdr->ptp_timestamp = 0;
 
   uint8_t *payload = msg.data() + sizeof(RPCHeader);
-  // First 8 bytes left as zero -- FPGA injects PTP timestamp here.
-  for (uint32_t i = PTP_TS_LEN; i < payload_size; i++)
+  for (uint32_t i = 0; i < payload_size; i++)
     payload[i] = static_cast<uint8_t>((msg_index + i) & 0xFF);
 
   return msg;
@@ -428,15 +427,11 @@ std::uint64_t extract_ila_ptp_timestamp(
   return raw;
 }
 
-/// Extract the echoed PTP send timestamp from the RPC response payload.
-/// The handler echoes the first 8 bytes of the request payload into the
-/// response payload.  These 8 bytes are {sec[31:0], nsec[31:0]} in
-/// big-endian (network byte order as placed by the FPGA).
-std::uint64_t extract_echoed_ptp_timestamp(const std::uint8_t *result_data) {
-  uint64_t raw = 0;
-  for (int i = 0; i < 8; ++i)
-    raw |= uint64_t(result_data[i]) << (i * 8);
-  return raw;
+/// Extract the echoed PTP send timestamp from RPCResponse.ptp_timestamp.
+/// The dispatch kernel echoes this field from RPCHeader.ptp_timestamp.
+std::uint64_t extract_echoed_ptp_timestamp(
+    const cudaq::nvqlink::RPCResponse *resp) {
+  return resp->ptp_timestamp;
 }
 
 struct PtpTimestamp {
@@ -644,9 +639,6 @@ int main(int argc, char *argv[]) {
     std::cout << "  Read " << samples.size() << " samples from ILA"
               << std::endl;
 
-    // Verify: walk through ILA samples, find valid RPC responses,
-    // check increment logic, and compute PTP round-trip latency.
-    constexpr uint32_t PTP_TS_LEN = 8;
     uint32_t matched = 0;
     uint32_t header_errors = 0;
     uint32_t payload_errors = 0;
@@ -701,18 +693,9 @@ int main(int argc, char *argv[]) {
       bool ok = true;
       uint32_t check_len = std::min(resp->result_len, args.payload_size);
 
-      // First PTP_TS_LEN bytes are the echoed PTP send timestamp (not
-      // incremented).  Remaining bytes are incremented.
       for (uint32_t j = 0; j < check_len && ok; j++) {
-        uint8_t expected;
-        if (j < PTP_TS_LEN) {
-          // PTP bytes are opaque (set by FPGA at TX time); skip data
-          // verification for them -- they are used for latency measurement
-          // below.
-          continue;
-        } else {
-          expected = static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
-        }
+        uint8_t expected =
+            static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
         if (result_data[j] != expected) {
           if (payload_errors < 5) {
             std::cerr << "  Shot " << rid << " byte " << j << ": expected "
@@ -728,10 +711,10 @@ int main(int argc, char *argv[]) {
       else
         ++payload_errors;
 
-      // PTP round-trip latency: send timestamp from echoed response payload
-      // bytes [0..7], receive timestamp from ILA bits [584:521].
-      if (resp->result_len >= PTP_TS_LEN) {
-        uint64_t send_raw = extract_echoed_ptp_timestamp(result_data);
+      // PTP round-trip latency: send timestamp from response header,
+      // receive timestamp from ILA bits [584:521].
+      {
+        uint64_t send_raw = extract_echoed_ptp_timestamp(resp);
         uint64_t recv_raw = extract_ila_ptp_timestamp(sample);
         if (send_raw != 0 && recv_raw != 0) {
           auto send_ts = decode_ptp(send_raw);
