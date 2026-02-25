@@ -545,6 +545,31 @@ TEST(OrderedSamplingStrategyTest, Clone) {
   EXPECT_STREQ(cloned->name(), "Ordered");
 }
 
+// Identity operator is at index 1 (not 0). The all-identity trajectory
+// must still appear in the top-k result set.
+TEST(OrderedSamplingStrategyTest, TopKWithNonZeroIdentityIndex) {
+  const double sX = std::sqrt(0.05);
+  const double sI = std::sqrt(0.95);
+  std::vector<cudaq::kraus_op> ops;
+  ops.push_back(cudaq::kraus_op({0.0, sX, sX, 0.0})); // X at index 0 (p=0.05)
+  ops.push_back(cudaq::kraus_op({sI, 0.0, 0.0, sI})); // I at index 1 (p=0.95)
+  cudaq::kraus_channel ch(std::move(ops));
+
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "x";
+  np.channel = ch;
+  std::vector<NoisePoint> noise_points = {np};
+
+  OrderedSamplingStrategy strategy;
+  auto trajectories = strategy.generateTrajectories(noise_points, 1);
+
+  ASSERT_EQ(trajectories.size(), 1u);
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index, 1u);
+  EXPECT_NEAR(trajectories[0].probability, 0.95, 1e-9);
+}
+
 TEST(ConditionalSamplingStrategyTest, FilterByErrorCount) {
   auto noise_points = createSimpleNoisePoints();
 
@@ -765,6 +790,23 @@ TEST(PTSSamplingStrategyTest, ClonePolymorphism) {
 
   auto trajectories = cloned->generateTrajectories(noise_points, 5);
   EXPECT_GT(trajectories.size(), 0);
+}
+
+TEST(PTSSamplingStrategyTest, ComputeTotalTrajectoriesSkipsEmptyChannel) {
+  NoisePoint np_empty;
+  np_empty.circuit_location = 0;
+  np_empty.qubits = {0};
+  np_empty.op_name = "h";
+  // Default-constructed channel has size 0
+
+  NoisePoint np_real;
+  np_real.circuit_location = 1;
+  np_real.qubits = {0};
+  np_real.op_name = "x";
+  np_real.channel = cudaq::bit_flip_channel(0.1);
+
+  std::vector<NoisePoint> noise_points = {np_empty, np_real};
+  EXPECT_EQ(computeTotalTrajectories(noise_points), 2u);
 }
 
 TEST(NoisePointTest, IsUnitaryMixture) {

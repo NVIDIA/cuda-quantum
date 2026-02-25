@@ -191,6 +191,11 @@ def test_trajectory_measurement_counts_populated(bell_kernel):
             assert isinstance(counts, dict)
             assert len(counts) > 0
             assert sum(counts.values()) == trajectory.num_shots
+        for sel in trajectory.kraus_selections:
+            assert isinstance(sel.qubits, list)
+            assert len(sel.qubits) > 0
+            assert isinstance(sel.op_name, str)
+            assert len(sel.op_name) > 0
 
 
 def test_execution_data_includes_mz_noise():

@@ -148,6 +148,9 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
       },
       platform, kernelName, shots_count, ptsbe_options);
 
+  // Safe to reset now: runSamplingAsyncPTSBE copied the noise model into the
+  // async lambda.
+  platform.reset_noise();
   return AsyncPTSBESampleResultImpl(std::move(future));
 }
 
@@ -271,6 +274,10 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
           [](const KrausSelection &self) { return self.kraus_operator_index; })
       .def_property_readonly(
           "is_error", [](const KrausSelection &self) { return self.is_error; })
+      .def_property_readonly(
+          "qubits", [](const KrausSelection &self) { return self.qubits; })
+      .def_property_readonly(
+          "op_name", [](const KrausSelection &self) { return self.op_name; })
       .def("__repr__", [](const KrausSelection &self) {
         return "KrausSelection(loc=" + std::to_string(self.circuit_location) +
                ", idx=" + std::to_string(self.kraus_operator_index) +

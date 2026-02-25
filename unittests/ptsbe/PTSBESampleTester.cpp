@@ -512,6 +512,46 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncWithOptions) {
   EXPECT_GT(result.execution_data().instructions.size(), 0);
 }
 
+// Noise model goes out of scope before .get() -- must not crash because
+// runSamplingAsyncPTSBE copies the noise model into the async lambda.
+CUDAQ_TEST(PTSBESampleTest, SampleAsyncNoiseModelDestroyed) {
+  async_sample_result future;
+  {
+    cudaq::noise_model noise;
+    noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+    future = sample_async(noise, 200, bellKernel);
+  }
+  auto result = future.get();
+  EXPECT_EQ(result.get_total_shots(), 200);
+  EXPECT_GT(result.size(), 0u);
+}
+
+// Exceptions thrown inside the async lambda must propagate to .get(),
+// not cause std::terminate or std::future_error.
+CUDAQ_TEST(PTSBESampleTest, SampleAsyncPropagatesException) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  auto &platform = cudaq::get_platform();
+  platform.set_noise(&noise);
+
+  auto future = runSamplingAsyncPTSBE(
+      []() { throw std::runtime_error("injected async failure"); }, platform,
+      "test_kernel", 100);
+
+  platform.reset_noise();
+
+  try {
+    future.get();
+    FAIL() << "Expected exception from async PTSBE sampling";
+  } catch (const std::runtime_error &e) {
+    EXPECT_NE(std::string(e.what()).find("injected async failure"),
+              std::string::npos);
+  } catch (const std::exception &e) {
+    FAIL() << "Expected std::runtime_error, got: " << e.what();
+  }
+}
+
 CUDAQ_TEST(PTSBESampleTest, BroadcastReturnsMultipleResults) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));

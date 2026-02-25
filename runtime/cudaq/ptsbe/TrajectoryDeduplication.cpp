@@ -70,6 +70,7 @@ deduplicateTrajectories(std::span<const cudaq::KrausTrajectory> trajectories) {
     if (it != content_to_index.end()) {
       result[it->second].multiplicity += trajectory.multiplicity;
       result[it->second].weight += trajectory.weight;
+      result[it->second].num_shots += trajectory.num_shots;
     } else {
       cudaq::KrausTrajectory rep = trajectory;
       rep.multiplicity = trajectory.multiplicity;

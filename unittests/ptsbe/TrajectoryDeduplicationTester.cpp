@@ -144,5 +144,5 @@ TEST(TrajectoryDeduplicationTest, SameContentDifferentIdAndShots) {
   ASSERT_EQ(result.size(), 1);
   EXPECT_EQ(result[0].multiplicity, 2);
   EXPECT_EQ(result[0].trajectory_id, 0);
-  EXPECT_EQ(result[0].num_shots, 100);
+  EXPECT_EQ(result[0].num_shots, 300);
 }

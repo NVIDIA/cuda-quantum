@@ -158,21 +158,17 @@ void populateExecutionDataTrajectories(
     std::vector<cudaq::KrausTrajectory> trajectories,
     std::vector<cudaq::sample_result> perTrajectoryResults);
 
-/// @brief Build complete PTSBatch with noise extraction and trajectory
-/// generation
+/// @brief Build PTSBatch from a pre-built PTSBE trace
 ///
-/// Extracts noise sites from the kernel trace, generates trajectories via the
+/// Extracts noise sites from the trace, generates trajectories via the
 /// configured strategy (or default probabilistic), and allocates shots.
 ///
-/// @param kernelTrace Captured kernel trace (moved into the returned batch)
-/// @param noiseModel Noise model for extracting noise sites
+/// @param trace Pre-built PTSBE trace (moved into the batch)
 /// @param options PTSBE configuration options
 /// @param shots Total number of shots to allocate
 /// @return PTSBatch ready for execution
-PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
-                                       const noise_model &noiseModel,
-                                       const PTSBEOptions &options,
-                                       std::size_t shots);
+PTSBatch buildPTSBatchFromTrace(PTSBETrace &&trace, const PTSBEOptions &options,
+                                std::size_t shots);
 
 /// @brief Run PTSBE sampling (internal API matching runSampling pattern)
 ///
@@ -216,15 +212,17 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
 
-  // Stage 2: Build execution data if requested (skip overhead otherwise)
+  // Stage 2: Build PTSBE trace once, share between execution data and batch
+  auto ptsbeTrace = buildPTSBETrace(traceCtx.kernelTrace, noiseModel);
+
   std::optional<PTSBEExecutionData> executionData;
-  if (options.return_execution_data)
-    executionData =
-        buildExecutionDataInstructions(traceCtx.kernelTrace, noiseModel);
+  if (options.return_execution_data) {
+    executionData = PTSBEExecutionData{};
+    executionData->instructions = ptsbeTrace;
+  }
 
   // Stage 3: Build PTSBatch with trajectory generation and shot allocation
-  auto batch = buildPTSBatchWithTrajectories(std::move(traceCtx.kernelTrace),
-                                             noiseModel, options, shots);
+  auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), options, shots);
   cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
               batch.totalShots(), batch.trajectories.size());
 
@@ -252,7 +250,8 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 /// Helper function that captures trace and builds PTSBatch without dispatching.
 /// Used by tests to verify trace capture and batch construction independently
 /// of execution. Builds the PTSBE trace with an empty noise model (no Noise
-/// entries). To build with a noise model, use buildPTSBatchWithTrajectories.
+/// entries). To build with a noise model, use buildPTSBETrace and
+/// buildPTSBatchFromTrace.
 ///
 /// @tparam QuantumKernel Quantum kernel type
 /// @tparam Args Kernel argument types
@@ -306,14 +305,32 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Validate upfront so exceptions are thrown in calling thread
   validatePTSBEPreconditions(platform, qpu_id);
 
+  // Copy the noise model into the lambda so it outlives the caller's scope.
+  // The caller's pointer may dangle once sample_async returns.
+  const auto *noisePtr = platform.get_noise();
+  cudaq::noise_model noiseCopy = noisePtr ? *noisePtr : cudaq::noise_model{};
+
   std::promise<sample_result> promise;
   auto future = promise.get_future();
 
   QuantumTask task = detail::make_copyable_function(
       [p = std::move(promise), shots, kernelName, &platform, options,
-       kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        p.set_value(
-            runSamplingPTSBE(kernel, platform, kernelName, shots, options));
+       kernel = std::forward<KernelFunctor>(wrappedKernel),
+       noiseCopy = std::move(noiseCopy)]() mutable {
+        // set_noise/reset_noise bracket execution so the platform pointer
+        // refers to our owned copy, not the caller's (possibly dead) original.
+        // try/catch ensures exceptions reach the future instead of
+        // std::terminate.
+        try {
+          platform.set_noise(&noiseCopy);
+          auto result =
+              runSamplingPTSBE(kernel, platform, kernelName, shots, options);
+          platform.reset_noise();
+          p.set_value(std::move(result));
+        } catch (...) {
+          platform.reset_noise();
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, task);
@@ -390,9 +407,12 @@ async_sample_result sample_async(const cudaq::noise_model &noise,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&noise);
 
-  return runSamplingAsyncPTSBE(
+  auto future = runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, shots);
+
+  platform.reset_noise();
+  return future;
 }
 
 /// @brief Asynchronously sample with PTSBE using sample_options
@@ -408,9 +428,12 @@ async_sample_result sample_async(const sample_options &options,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
 
-  return runSamplingAsyncPTSBE(
+  auto future = runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, options.shots, options.ptsbe);
+
+  platform.reset_noise();
+  return future;
 }
 
 /// @brief Sample with PTSBE over a set of argument packs (broadcast)

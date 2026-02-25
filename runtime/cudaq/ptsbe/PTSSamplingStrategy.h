@@ -55,9 +55,10 @@ computeTotalTrajectories(std::span<const NoisePoint> noise_points) {
 
   for (const auto &np : noise_points) {
     std::size_t count = np.channel.size();
-    if (total > MAX_SAFE / count) {
+    if (count == 0)
+      continue;
+    if (total > MAX_SAFE / count)
       return MAX_SAFE;
-    }
     total *= count;
   }
 
