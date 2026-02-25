@@ -27,4 +27,10 @@ cudaq::Resources *getResourceCounts() {
   getResourceCounterSimulator()->flushGateQueue();
   return getResourceCounterSimulator()->getResourceCounts();
 }
+
+void setResourceCounts(cudaq::Resources &&rc) {
+  getResourceCounterSimulator()->flushGateQueue();
+  getResourceCounterSimulator()->setResourceCounts(std::move(rc));
+}
+
 } // namespace nvqir

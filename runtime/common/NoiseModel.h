@@ -415,7 +415,7 @@ public:
   /// @return
   bool empty() const {
     return noiseModel.empty() && defaultNoiseModel.empty() &&
-           gatePredicates.empty();
+           gatePredicates.empty() && registeredChannels.empty();
   }
 
   /// @brief Add the Kraus channel to the specified one-qubit quantum

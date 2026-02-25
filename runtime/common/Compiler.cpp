@@ -44,13 +44,6 @@
 
 using namespace mlir;
 
-namespace nvqir {
-// QIR helper to retrieve the output log.
-std::string_view getQirOutputLog();
-cudaq::Resources *getResourceCounts();
-bool isUsingResourceCounterSimulator();
-} // namespace nvqir
-
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
 nlohmann::json formOutputNames(const std::string &codegenTranslation,
@@ -224,11 +217,9 @@ Compiler::Compiler(ServerHelper *serverHelper,
 Compiler::~Compiler() = default;
 
 std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
-    const std::string &kernelName, void *kernelArgs,
-    const std::vector<void *> &rawArgs, mlir::ModuleOp m_module,
-    mlir::MLIRContext *contextPtr, void *updatedArgs) {
-  auto executionContext = cudaq::getExecutionContext();
-
+    ExecutionContext *executionContext, const std::string &kernelName,
+    void *kernelArgs, const std::vector<void *> &rawArgs,
+    mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr, void *updatedArgs) {
   // Extract the kernel name
   auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
       std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
@@ -361,14 +352,15 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
+  std::unique_ptr<Resources> resourceCounts;
   if (executionContext && executionContext->name == "resource-count") {
+    resourceCounts = std::make_unique<Resources>();
     // Each pass may run in a separate thread, so we have to make sure to
     // grab this reference in this thread
-    auto resource_counts = nvqir::getResourceCounts();
     std::function<void(std::string, size_t, size_t)> f =
-        [&](std::string gate, size_t nControls, size_t count) {
+        [&resourceCounts](std::string gate, size_t nControls, size_t count) {
           CUDAQ_INFO("Appending: {}", gate);
-          resource_counts->appendInstruction(gate, nControls, count);
+          resourceCounts->appendInstruction(gate, nControls, count);
         };
     cudaq::opt::ResourceCountPreprocessOptions opt{f};
     mlir::PassManager pm(moduleOp.getContext());
@@ -522,7 +514,11 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     auto optionalJit = jitEngines.size() > iter.index()
                            ? std::optional(jitEngines[iter.index()])
                            : std::nullopt;
-    codes.emplace_back(name, codeStr, optionalJit, j, mapping_reorder_idx);
+    auto optionalResourceCounts = resourceCounts
+                                      ? std::optional(*resourceCounts.release())
+                                      : std::nullopt;
+    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
+                       mapping_reorder_idx);
   }
 
   return codes;
@@ -533,31 +529,35 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
 /// lowering process is controllable via the configuration file in the
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
+Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+                         const std::string &kernelName, void *kernelArgs,
                          const std::vector<void *> &rawArgs) {
 
   auto [m_module, contextPtr, updatedArgs] =
       extractQuakeCodeAndContext(kernelName, kernelArgs);
-  return lowerQuakeCodePart2(kernelName, kernelArgs, rawArgs, m_module,
-                             contextPtr.get(), updatedArgs);
+  return lowerQuakeCodePart2(executionContext, kernelName, kernelArgs, rawArgs,
+                             m_module, contextPtr.get(), updatedArgs);
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(const std::string &kernelName, void *kernelArgs) {
-  return lowerQuakeCode(kernelName, kernelArgs, {});
+Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+                         const std::string &kernelName, void *kernelArgs) {
+  return lowerQuakeCode(executionContext, kernelName, kernelArgs, {});
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(const std::string &kernelName,
+Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+                         const std::string &kernelName,
                          const std::vector<void *> &rawArgs) {
-  return lowerQuakeCode(kernelName, nullptr, rawArgs);
+  return lowerQuakeCode(executionContext, kernelName, nullptr, rawArgs);
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(const std::string &kernelName, mlir::ModuleOp module,
+Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+                         const std::string &kernelName, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs) {
-  return lowerQuakeCodePart2(kernelName, nullptr, rawArgs, module,
-                             module.getContext(), nullptr);
+  return lowerQuakeCodePart2(executionContext, kernelName, nullptr, rawArgs,
+                             module, module.getContext(), nullptr);
 }
 
 mlir::ModuleOp Compiler::lowerQuakeCodeBuildModule(
