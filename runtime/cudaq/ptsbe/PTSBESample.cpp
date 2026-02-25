@@ -219,26 +219,6 @@ void populateExecutionDataTrajectories(
       trajectories[i].measurement_counts = perTrajectoryResults[i].to_map();
     executionData.trajectories.push_back(std::move(trajectories[i]));
   }
-
-  if (!executionData.trajectories.empty())
-    return;
-
-  // Stub: generate a single identity trajectory so that the execution data
-  // has at least one trajectory for downstream consumers (Python bindings,
-  // tests). This will be replaced once the trajectory generation pipeline is
-  // wired up.
-  KrausTrajectory stub;
-  stub.trajectory_id = 0;
-  stub.probability = 1.0;
-  stub.num_shots = 1;
-  for (std::size_t i = 0; i < executionData.instructions.size(); ++i) {
-    if (executionData.instructions[i].type == TraceInstructionType::Noise) {
-      stub.kraus_selections.emplace_back(
-          i, std::vector<std::size_t>(executionData.instructions[i].targets),
-          executionData.instructions[i].name, 0, /*is_error=*/false);
-    }
-  }
-  executionData.trajectories.push_back(std::move(stub));
 }
 
 PTSBatch buildPTSBatchWithTrajectories(cudaq::Trace &&kernelTrace,
