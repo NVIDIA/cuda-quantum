@@ -31,6 +31,9 @@ if(CUDA_FOUND)
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
+  target_link_options(cudaq-realtime PRIVATE
+    "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/cudaq-realtime.map")
+  set_target_properties(cudaq-realtime PROPERTIES LINK_FLAGS_RELEASE "-s")
 
   set_target_properties(cudaq-realtime PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -44,6 +47,10 @@ if(CUDA_FOUND)
   )
 
   add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
+  set_target_properties(cudaq-realtime-dispatch
+    PROPERTIES
+    LINK_FLAGS_RELEASE "-Wl,--exclude-libs=ALL")
+  set_target_properties(cudaq-realtime-dispatch PROPERTIES CXX_VISIBILITY_PRESET "hidden" CUDA_VISIBILITY_PRESET "hidden")
 
   target_include_directories(cudaq-realtime-dispatch
     PUBLIC

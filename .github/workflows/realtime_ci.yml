@@ -45,13 +45,13 @@ jobs:
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
           # TODO: use alma-limux8 image to make sure we use the same glibc version as the CUDA-Q installer.
-          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubi8
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
             cd /workspace/realtime
             # Build 
-            apt update && apt install -y --no-install-recommends cmake git
+            dnf install -y cmake git
             mkdir -p build && cd build
             cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/workspace/installer
             make -j$(nproc) install
