@@ -188,9 +188,9 @@ jobs:
         shell: bash
         run: |
           cd ./installers
-          ls -R
           # Find the installer file (assuming there's only one in the directory)
-          installer_file=$(ls install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }})
+          installer_file=$(ls install_cuda_quantum_realtime_*)
+          echo "Found installer: $installer_file"
           # Make the installer executable and run it
           chmod +x "$installer_file"
           ./"$installer_file" --accept
@@ -198,13 +198,14 @@ jobs:
       - name: Test CUDA Quantum Realtime installation
         shell: bash
         run: |
-          # Install cmake for ctest
+          # Install cmake for building a test example that uses the installed CUDA Quantum Realtime
           # Install cmake depending on distro
           if [[ "${{ matrix.distro }}" == "ubi9" ]]; then
             dnf install -y cmake
           else
             apt update && apt install -y --no-install-recommends cmake 
           fi
+          # Build the test example that uses the installed CUDA Quantum Realtime
           cd realtime/examples/gpu_dispatch
           mkdir -p build && cd build
           cmake .. 
