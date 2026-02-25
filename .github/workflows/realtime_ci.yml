@@ -138,7 +138,7 @@ jobs:
 
       - name: Install tools for building installer
         run: |
-          apt update && apt install -y makeself
+          apt update && apt install -y makeself git
 
       - name: Build installer
         shell: bash
