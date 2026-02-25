@@ -1023,11 +1023,7 @@ pr-4017
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1828,7 +1824,7 @@ each pixel with its position
 
 <div>
 
-![7a5ed139373548548d578121a3b46b29](../../_images/pixels-img.png){.no-scaled-link
+![e699d6618a2345d681a9d3a533a5635f](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>
