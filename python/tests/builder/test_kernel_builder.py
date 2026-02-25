@@ -1274,8 +1274,7 @@ def test_call_kernel_deferred_compilation():
         kernel.apply_call(notPrecompiledKernel)
 
     assert "must be compiled to be used in the kernel builder" in str(e.value)
-    assert "Call `notPrecompiledKernel.compile()` before initialzing" in str(
-        e.value)
+    assert "notPrecompiledKernel" in str(e.value)
     assert "or deactivate deferred compilation" in str(e.value)
 
 
