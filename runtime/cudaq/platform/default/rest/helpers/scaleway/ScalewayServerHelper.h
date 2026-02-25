@@ -63,7 +63,6 @@ private:
   std::string m_sessionName = "";
   std::string m_sessionMaxDuration = "";
   std::string m_sessionMaxIdleDuration = "";
-  std::map<std::string, std::string> m_outputNames = {};
 };
 
 } // namespace cudaq
