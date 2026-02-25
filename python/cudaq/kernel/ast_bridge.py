@@ -3795,6 +3795,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.visit(node.generators[0].iter)
         iterable = self.popValue()
+        orig_iterable_type = iterable.type
         if cc.StdvecType.isinstance(iterable.type):
             iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
                                            iterable).result
@@ -4024,6 +4025,48 @@ class PyASTBridge(ast.NodeVisitor):
         listElemTy = get_item_type(node.elt)
         if listElemTy is None:
             return
+
+        if quake.RefType.isinstance(listElemTy):
+            if quake.VeqType.isinstance(orig_iterable_type):
+                self.pushValue(iterable)
+                return
+            if cc.StdvecType.isinstance(orig_iterable_type):
+                i64Ty = self.getIntegerType()
+                veqTy = self.getVeqType()
+                c0 = self.getConstantInt(0)
+                c1 = self.getConstantInt(1)
+
+                empty_veq_ty = quake.VeqType.get(0, context=self.ctx)
+                init_veq = quake.RelaxSizeOp(
+                    veqTy,
+                    quake.AllocaOp(empty_veq_ty).result).result
+
+                def bodyBuilder(args):
+                    i, curr_veq = args[0], args[1]
+                    elem_addr = cc.ComputePtrOp(
+                        cc.PointerType.get(iterTy), iterable, [i],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    idx_val = cc.LoadOp(elem_addr).result
+                    self.symbolTable.beginBlock()
+                    self.__deconstructAssignment(node.generators[0].target,
+                                                 idx_val)
+                    self.visit(node.elt)
+                    ref = self.popValue()
+                    self.symbolTable.endBlock()
+                    new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
+                    cc.ContinueOp([i, new_veq])
+
+                loop = self.createForLoop(
+                    [i64Ty, veqTy], bodyBuilder, [c0, init_veq],
+                    lambda args: arith.CmpIOp(IntegerAttr.get(i64Ty, 2), args[
+                        0], iterableSize).result,
+                    lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+                self.pushValue(loop.results[1])
+                return
+            self.emitFatalError(
+                "unsupported list comprehension producing qubit references",
+                node)
 
         resultVecTy = cc.StdvecType.get(listElemTy)
         if listElemTy == self.getIntegerType(1):
