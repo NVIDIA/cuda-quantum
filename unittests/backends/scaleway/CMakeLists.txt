@@ -9,7 +9,7 @@
 add_backend_unittest_executable(test_scaleway
   SOURCES ScalewayTester.cpp
   BACKEND scaleway
-  BACKEND_CONFIG "scaleway url=http://localhost:62450"
+  BACKEND_CONFIG "scaleway url=http://localhost:62450 machine=EMU-CUDAQ-FAKE"
 )
 
 configure_file(ScalewayStartServerAndTest.sh.in ScalewayStartServerAndTest.sh @ONLY)
