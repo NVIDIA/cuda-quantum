@@ -7,5 +7,5 @@ User Guide
   :caption: User Guide
   :maxdepth: 1
 
-  PTSBE <ptsbe.rst>
+  Pre-Trajectory Sampling with Batch Execution (PTSBE) <ptsbe.rst>
 .. |:spellcheck-enable:| replace:: \
