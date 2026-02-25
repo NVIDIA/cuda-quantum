@@ -14,3 +14,4 @@ add_backend_unittest_executable(test_scaleway
 
 configure_file(ScalewayStartServerAndTest.sh.in ScalewayStartServerAndTest.sh @ONLY)
 add_test(NAME scaleway-tests COMMAND bash ScalewayStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/scaleway/)
+set_property(TEST scaleway-tests PROPERTY SKIP_RETURN_CODE 77)
