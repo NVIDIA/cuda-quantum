@@ -185,43 +185,98 @@ using HandlerFunc = int (*)(const void *, void *, std::uint32_t, std::uint32_t,
 
 __device__ HandlerFunc d_increment_handler = increment_handler;
 
-/// @brief Test kernel that dispatches to a handler using DeviceCallMode.
-template <typename KernelType>
-__global__ void test_dispatch_kernel(HandlerFunc handler, const void *input,
-                                     void *output, std::uint32_t arg_len,
-                                     std::uint32_t max_result_len,
-                                     std::uint32_t *result_len, int *status) {
-
-  if (threadIdx.x == 0 && blockIdx.x == 0) {
-    *status = handler(input, output, arg_len, max_result_len, result_len);
-  }
-
-  KernelType::sync();
-}
-
 //==============================================================================
 // Main
 //==============================================================================
 int main() {
-  volatile uint64_t *rx_flags_host;
-  volatile uint64_t *rx_flags_device;
-  std::uint8_t *rx_data_host;
-  std::uint8_t *rx_data_device;
-  volatile uint64_t *tx_flags_host;
-  volatile uint64_t *tx_flags_device;
-  std::uint8_t *tx_data_host;
-  std::uint8_t *tx_data_device;
-  cudaq_function_entry_t *d_function_entries_ = nullptr;
-  uint64_t *d_stats_ = nullptr;
-  cudaq_dispatch_manager_t *manager_ = nullptr;
-  cudaq_dispatcher_t *dispatcher_ = nullptr;
   constexpr std::size_t num_slots_ = 2;
   constexpr std::size_t slot_size_ = 256;
+  volatile uint64_t *rx_flags_host = nullptr;
+  volatile uint64_t *tx_flags_host = nullptr;
+  volatile uint64_t *rx_flags_device = nullptr;
+  volatile uint64_t *tx_flags_device = nullptr;
+  std::uint8_t *rx_data_host = nullptr;
+  std::uint8_t *tx_data_host = nullptr;
+  std::uint8_t *rx_data_device = nullptr;
+  std::uint8_t *tx_data_device = nullptr;
 
-  allocate_ring_buffer(num_slots_, slot_size_, &rx_flags_host, &rx_flags_device,
-                       &rx_data_host, &rx_data_device);
-  allocate_ring_buffer(num_slots_, slot_size_, &tx_flags_host, &tx_flags_device,
-                       &tx_data_host, &tx_data_device);
+  volatile int *shutdown_flag_ = nullptr;
+  volatile int *d_shutdown_flag_ = nullptr;
+  uint64_t *d_stats_ = nullptr;
+
+  cudaq_function_entry_t *d_function_entries_ = nullptr;
+  std::size_t func_count_ = 0;
+
+  cudaq_dispatch_manager_t *manager_ = nullptr;
+  cudaq_dispatcher_t *dispatcher_ = nullptr;
+
+  const bool allocated_rx =
+      allocate_ring_buffer(num_slots_, slot_size_, &rx_flags_host,
+                           &rx_flags_device, &rx_data_host, &rx_data_device);
+
+  if (!allocated_rx) {
+    std::cerr << "Failed to allocate RX ring buffer" << std::endl;
+    return 1;
+  }
+  const bool allocated_tx =
+      allocate_ring_buffer(num_slots_, slot_size_, &tx_flags_host,
+                           &tx_flags_device, &tx_data_host, &tx_data_device);
+
+  if (!allocated_tx) {
+    std::cerr << "Failed to allocate TX ring buffer" << std::endl;
+    return 1;
+  }
+
+  void *tmp_shutdown = nullptr;
+  CUDA_CHECK(cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
+  shutdown_flag_ = static_cast<volatile int *>(tmp_shutdown);
+  void *tmp_d_shutdown = nullptr;
+  CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
+  d_shutdown_flag_ = static_cast<volatile int *>(tmp_d_shutdown);
+  *shutdown_flag_ = 0;
+  int zero = 0;
+  CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag_), &zero, sizeof(int),
+                        cudaMemcpyHostToDevice));
+
+  CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
+
+  CUDA_CHECK(cudaMalloc(&d_function_entries_, sizeof(cudaq_function_entry_t)));
+  init_rpc_function_table<<<1, 1>>>(d_function_entries_);
+  CUDA_CHECK(cudaDeviceSynchronize());
+  func_count_ = 1;
+
+  CUDAQ_CHECK(cudaq_dispatch_manager_create(&manager_));
+  cudaq_dispatcher_config_t config{};
+  config.device_id = 0;
+  config.num_blocks = 1;
+  config.threads_per_block = 64;
+  config.num_slots = static_cast<uint32_t>(num_slots_);
+  config.slot_size = static_cast<uint32_t>(slot_size_);
+  config.vp_id = 0;
+  config.kernel_type = CUDAQ_KERNEL_REGULAR;
+  config.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+  CUDAQ_CHECK(cudaq_dispatcher_create(manager_, &config, &dispatcher_));
+
+  cudaq_ringbuffer_t ringbuffer{};
+  ringbuffer.rx_flags = rx_flags_device;
+  ringbuffer.tx_flags = tx_flags_device;
+  ringbuffer.rx_data = rx_data_device;
+  ringbuffer.tx_data = tx_data_device;
+  ringbuffer.rx_stride_sz = slot_size_;
+  ringbuffer.tx_stride_sz = slot_size_;
+  CUDAQ_CHECK(cudaq_dispatcher_set_ringbuffer(dispatcher_, &ringbuffer));
+
+  cudaq_function_table_t table{};
+  table.entries = d_function_entries_;
+  table.count = func_count_;
+  CUDAQ_CHECK(cudaq_dispatcher_set_function_table(dispatcher_, &table));
+
+  CUDAQ_CHECK(
+      cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_));
+  CUDAQ_CHECK(cudaq_dispatcher_set_launch_fn(dispatcher_,
+                                             &launch_dispatch_kernel_wrapper));
+  CUDAQ_CHECK(cudaq_dispatcher_start(dispatcher_));
 
   const auto write_rpc_request = [&](std::size_t slot,
                                      const std::vector<std::uint8_t> &payload) {
@@ -261,60 +316,11 @@ int main() {
     return true;
   };
 
-  void *tmp_shutdown = nullptr;
-  CUDA_CHECK(cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-  volatile int *shutdown_flag_ = static_cast<volatile int *>(tmp_shutdown);
-  void *tmp_d_shutdown = nullptr;
-  CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-  volatile int *d_shutdown_flag_ = static_cast<volatile int *>(tmp_d_shutdown);
-  *shutdown_flag_ = 0;
-  int zero = 0;
-  CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag_), &zero, sizeof(int),
-                        cudaMemcpyHostToDevice));
-
-  CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
-  CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
-
-  CUDA_CHECK(cudaMalloc(&d_function_entries_, sizeof(cudaq_function_entry_t)));
-  init_rpc_function_table<<<1, 1>>>(d_function_entries_);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  std::size_t func_count_ = 1;
-
-  CUDAQ_CHECK(cudaq_dispatch_manager_create(&manager_));
-  cudaq_dispatcher_config_t config{};
-  config.device_id = 0;
-  config.num_blocks = 1;
-  config.threads_per_block = 64;
-  config.num_slots = static_cast<uint32_t>(num_slots_);
-  config.slot_size = static_cast<uint32_t>(slot_size_);
-  config.vp_id = 0;
-  config.kernel_type = CUDAQ_KERNEL_REGULAR;
-  config.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-  CUDAQ_CHECK(cudaq_dispatcher_create(manager_, &config, &dispatcher_));
-
-  cudaq_ringbuffer_t ringbuffer{};
-  ringbuffer.rx_flags = rx_flags_device;
-  ringbuffer.tx_flags = tx_flags_device;
-  ringbuffer.rx_data = rx_data_device;
-  ringbuffer.tx_data = tx_data_device;
-  ringbuffer.rx_stride_sz = slot_size_;
-  ringbuffer.tx_stride_sz = slot_size_;
-  CUDAQ_CHECK(cudaq_dispatcher_set_ringbuffer(dispatcher_, &ringbuffer));
-
-  cudaq_function_table_t table{};
-  table.entries = d_function_entries_;
-  table.count = func_count_;
-  CUDAQ_CHECK(cudaq_dispatcher_set_function_table(dispatcher_, &table));
-
-  CUDAQ_CHECK(
-      cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_));
-  CUDAQ_CHECK(cudaq_dispatcher_set_launch_fn(dispatcher_,
-                                             &launch_dispatch_kernel_wrapper));
-  CUDAQ_CHECK(cudaq_dispatcher_start(dispatcher_));
-
+  // Sample payload: array of bytes
   std::vector<std::uint8_t> payload = {0, 1, 2, 3};
   write_rpc_request(0, payload);
 
+  std::cout << "RPC request sent, waiting for response..." << std::endl;
   __sync_synchronize();
   const_cast<volatile uint64_t *>(rx_flags_host)[0] =
       reinterpret_cast<std::uint64_t>(rx_data_device);
@@ -333,11 +339,47 @@ int main() {
   std::int32_t status = -1;
   std::uint32_t result_len = 0;
   read_rpc_response(0, response, &status, &result_len);
+  std::cout << "RPC response received with status " << status
+            << " and result length " << result_len << std::endl;
 
+  // Stop the dispatcher and clean up resources:
+  if (shutdown_flag_) {
+    *shutdown_flag_ = 1;
+    __sync_synchronize();
+  }
+  if (dispatcher_) {
+    cudaq_dispatcher_stop(dispatcher_);
+    cudaq_dispatcher_destroy(dispatcher_);
+    dispatcher_ = nullptr;
+  }
+  if (manager_) {
+    cudaq_dispatch_manager_destroy(manager_);
+    manager_ = nullptr;
+  }
+  free_ring_buffer(rx_flags_host, rx_data_host);
+  free_ring_buffer(tx_flags_host, tx_data_host);
+
+  if (shutdown_flag_)
+    cudaFreeHost(const_cast<int *>(shutdown_flag_));
+  if (d_stats_)
+    cudaFree(d_stats_);
+  if (d_function_entries_)
+    cudaFree(d_function_entries_);
+
+  bool valid = true;
   for (std::size_t i = 0; i < result_len; ++i) {
     std::cout << "Response byte " << i << ": " << static_cast<int>(response[i])
+              << "; expected: " << static_cast<int>(payload[i] + 1)
               << std::endl;
+    if (response[i] != static_cast<std::uint8_t>(payload[i] + 1))
+      valid = false;
   }
 
+  if (valid) {
+    std::cout << "Response is valid!" << std::endl;
+  } else {
+    std::cerr << "Response is invalid!" << std::endl;
+    return 1;
+  }
   return 0;
 }

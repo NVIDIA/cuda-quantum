@@ -148,3 +148,59 @@ jobs:
           export CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
           # Run installer build script
           bash build_installer.sh
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: out/install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
+          path: ${{ github.workspace }}/installer
+          retention-days: 1
+          if-no-files-found: error
+
+  test_installer:
+    name: Test Installer  
+    needs: build_installer
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      # Use a base CUDA runtime image for testing
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download installer 
+        uses: actions/download-artifact@v4
+        with:
+          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ./installers
+      
+      - name: Install CUDA Quantum Realtime using installer
+        shell: bash
+        run: |
+          cd ./installers
+          # Find the installer file (assuming there's only one in the directory)
+          installer_file=$(ls install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }})
+          # Make the installer executable and run it
+          chmod +x "$installer_file"
+          ./"$installer_file" --accept
+
+      - name: Test CUDA Quantum Realtime installation
+        shell: bash
+        run: |
+          # Install cmake for ctest
+          apt update && apt install -y --no-install-recommends cmake 
+          cd realtime/examples/gpu_dispatch
+          mkdir -p build && cd build
+          cmake .. 
+          make -j$(nproc)
+          ./dispatch_kernel
