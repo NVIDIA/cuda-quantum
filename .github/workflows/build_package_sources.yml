@@ -100,7 +100,7 @@ jobs:
 
       - name: Package diff step summary
         run: |
-          echo "## Diffed packages (target vs base)" >> $GITHUB_STEP_SUMMARY
+          echo "## Diffed packages (${{ steps.images.outputs.base_image }} vs ${{ steps.images.outputs.target_image }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Apt packages added" >> $GITHUB_STEP_SUMMARY
           if [ -s package-source-diff/apt_packages.txt ]; then
@@ -287,6 +287,41 @@ jobs:
       - name: Apply macOS pip diff to package list
         if: github.event.inputs.artifact_url != ''
         run: cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
+
+      - name: Generate trimmed package lists (cudaqx minus cudaq, macos minus cudaq/cudaqx)
+        run: |
+          d=package-source-diff
+          # apt: cudaqx trimmed = packages in cudaqx not in cudaq
+          if [ -f "$d/apt_packages_cudaqx.txt" ]; then
+            if [ -f "$d/apt_packages_cudaq.txt" ]; then
+              comm -23 <(sort -u "$d/apt_packages_cudaqx.txt") <(sort -u "$d/apt_packages_cudaq.txt") | grep -v '^$' > "$d/apt_packages_cudaqx_trimmed.txt" || true
+            else
+              cp "$d/apt_packages_cudaqx.txt" "$d/apt_packages_cudaqx_trimmed.txt"
+            fi
+          else
+            : > "$d/apt_packages_cudaqx_trimmed.txt"
+          fi
+          # pip: cudaqx trimmed = packages in cudaqx (by name) not in cudaq
+          awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null | sort -u > /tmp/pip_cudaq_names.txt || true
+          : > "$d/pip_packages_cudaqx_trimmed.txt"
+          if [ -f "$d/pip_packages_cudaqx.txt" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              pkg="${line%%==*}"
+              grep -qxF "$pkg" /tmp/pip_cudaq_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_cudaqx_trimmed.txt"
+            done < "$d/pip_packages_cudaqx.txt"
+          fi
+          # macOS pip: trimmed = packages in macos not in cudaq and not in cudaqx
+          { awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null; awk -F'==' '{print $1}' "$d/pip_packages_cudaqx.txt" 2>/dev/null; } | sort -u > /tmp/pip_union_names.txt
+          : > "$d/pip_packages_macos_trimmed.txt"
+          if [ -f "$d/pip_packages_macos.txt" ] && [ -s "$d/pip_packages_macos.txt" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              pkg="${line%%==*}"
+              grep -qxF "$pkg" /tmp/pip_union_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_macos_trimmed.txt"
+            done < "$d/pip_packages_macos.txt"
+          fi
+          ls -la "$d"/*trimmed* 2>/dev/null || true
 
       - name: Generate tpls lock file
         run: |
