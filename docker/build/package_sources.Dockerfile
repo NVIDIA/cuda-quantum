@@ -21,6 +21,7 @@
 #   package-source-diff/pip_packages_cudaq.txt   - one pip package==version per line (cudaq)
 #   package-source-diff/apt_packages_cudaqx.txt - one apt package name per line (cudaqx)
 #   package-source-diff/pip_packages_cudaqx.txt - one pip package==version per line (cudaqx)
+#   package-source-diff/pip_packages_macos.txt - one pip package==version per line (macos)
 #   tpls_commits.lock                      - "<commit> <path>" per submodule (same as install_prerequisites.sh -l)
 #   .gitmodules                            - submodule paths and URLs
 #   scripts/clone_tpls_from_lock.sh        - clone script
@@ -62,7 +63,13 @@ RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
 RUN apt-get update
 
 ENV SOURCES_ROOT=/sources
-RUN mkdir -p "${SOURCES_ROOT}/apt" "${SOURCES_ROOT}/pip" "${SOURCES_ROOT}/tpls" "${SOURCES_ROOT}/scripts"
+RUN mkdir -p "${SOURCES_ROOT}/cudaq/apt" \
+              "${SOURCES_ROOT}/cudaq/pip" \
+              "${SOURCES_ROOT}/cudaqx/apt" \
+              "${SOURCES_ROOT}/cudaqx/pip" \
+              "${SOURCES_ROOT}/tpls" \
+              "${SOURCES_ROOT}/scripts" \
+              "${SOURCES_ROOT}/macos/pip"
 
 ENV SCRIPTS_DIR=${SOURCES_ROOT}/scripts
 
@@ -71,7 +78,7 @@ COPY .gitmodules "${SCRIPTS_DIR}"/.gitmodules
 COPY tpls_commits.lock "${SCRIPTS_DIR}"/tpls_commits.lock
 COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
 COPY package-source-diff/apt_packages_cudaq.txt package-source-diff/apt_packages_cudaqx.txt "${SCRIPTS_DIR}"/
-COPY package-source-diff/pip_packages_cudaq.txt package-source-diff/pip_packages_cudaqx.txt "${SCRIPTS_DIR}"/
+COPY package-source-diff/pip_packages_cudaq.txt package-source-diff/pip_packages_cudaqx.txt package-source-diff/pip_packages_macos.txt "${SCRIPTS_DIR}"/
 
 # Copy attribution
 COPY NOTICE LICENSE "${SOURCES_ROOT}/"
@@ -81,16 +88,26 @@ RUN apt-get update && set -o pipefail && \
     ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
       chmod 777 . && \
       : > "${SOURCES_ROOT}/apt/apt_omitted_packages.txt" && \
-      for list in "${SCRIPTS_DIR}"/apt_packages_cudaq.txt "${SCRIPTS_DIR}"/apt_packages_cudaqx.txt; do \
+      for list in "${SCRIPTS_DIR}"/apt_packages_cudaq.txt; do \
         [ -f "$list" ] && while IFS= read -r pkg || [ -n "$pkg" ]; do \
           [ -z "$pkg" ] && continue; \
-          apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
+          apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt"; \
         done < "$list"; \
       done; \
-      ) 2>&1 | sed 's/^/[apt] /' & \
-    ( set -o pipefail; : > "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" && \
-      cd "${SOURCES_ROOT}/pip" && \
-      for list in "${SCRIPTS_DIR}"/pip_packages_cudaq.txt "${SCRIPTS_DIR}"/pip_packages_cudaqx.txt; do \
+      ) 2>&1 | sed 's/^/[cudaq-apt] /' & \
+      ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
+      chmod 777 . && \
+      : > "${SOURCES_ROOT}/apt/apt_omitted_packages.txt" && \
+      for list in "${SCRIPTS_DIR}"/apt_packages_cudaqx.txt; do \
+        [ -f "$list" ] && while IFS= read -r pkg || [ -n "$pkg" ]; do \
+          [ -z "$pkg" ] && continue; \
+          apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt"; \
+        done < "$list"; \
+      done; \
+      ) 2>&1 | sed 's/^/[cudaqx-apt] /' & \
+    ( set -o pipefail; : > "${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt" && \
+      cd "${SOURCES_ROOT}/cudaq/pip" && \
+      for list in "${SCRIPTS_DIR}"/pip_packages_cudaq.txt; do \
         [ -f "$list" ] && while IFS= read -r package || [ -n "$package" ]; do \
           [ -z "$package" ] && continue; \
           url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
@@ -101,13 +118,44 @@ RUN apt-get update && set -o pipefail && \
           fi; \
         done < "$list"; \
       done; \
-      ) 2>&1 | sed 's/^/[pip] /' & \
+      ) 2>&1 | sed 's/^/[cudaq-pip] /' & \
+      ( set -o pipefail; : > "${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt" && \
+      cd "${SOURCES_ROOT}/cudaqx/pip" && \
+      for list in "${SCRIPTS_DIR}"/pip_packages_cudaqx.txt; do \
+        [ -f "$list" ] && while IFS= read -r package || [ -n "$package" ]; do \
+          [ -z "$package" ] && continue; \
+          url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
+          if [ -n "$url" ] && [ "$url" != "null" ]; then \
+            curl -fsSL -O "$url" || echo "$package" >> pip_omitted_packages.txt; \
+          else \
+            echo "$package" >> pip_omitted_packages.txt; \
+          fi; \
+        done < "$list"; \
+      done; \
+      ) 2>&1 | sed 's/^/[cudaqx-pip] /' & \
+    ( set -o pipefail; : > "${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt" && \
+      cd "${SOURCES_ROOT}/macos/pip" && \
+      for list in "${SCRIPTS_DIR}"/pip_packages_macos.txt; do \
+        [ -f "$list" ] && while IFS= read -r package || [ -n "$package" ]; do \
+          [ -z "$package" ] && continue; \
+          url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
+          if [ -n "$url" ] && [ "$url" != "null" ]; then \
+            curl -fsSL -O "$url" || echo "$package" >> macos_pip_omitted_packages.txt; \
+          else \
+            echo "$package" >> macos_pip_omitted_packages.txt; \
+          fi; \
+        done < "$list"; \
+      done; \
+      ) 2>&1 | sed 's/^/[macos-pip] /' & \
     ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES="${SCRIPTS_DIR}"/.gitmodules lock_file="${SCRIPTS_DIR}"/tpls_commits.lock \
       bash "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
-RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/apt/apt_omitted_packages.txt)"
-RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/pip/pip_omitted_packages.txt)"
+RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt)"
+RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt)"
+RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt)"
+RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt)"
+RUN echo -e "macos_pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt)"
 
 # For omitted apt packages (no source available), extract license/copyright/EULA from the .deb
 RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \

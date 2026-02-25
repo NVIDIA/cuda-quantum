@@ -35,6 +35,7 @@ on:
       artifact_url:
         required: false
         type: string
+        default: 'https://github.com/NVIDIA/cuda-quantum/actions/runs/22404497052/artifacts/5657281727'
         description: 'Optional: URL of macOS wheel artifact to diff pip packages (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID)'
       python_version:
         required: false
@@ -196,7 +197,8 @@ jobs:
 
   build-source-image:
     name: Build source image CUDA ${{ matrix.cuda }}
-    needs: diff-packages-cudaq
+    needs: [diff-packages-cudaq, diff-macos-package]
+    if: always() && needs.diff-packages-cudaq.result == 'success' && (needs.diff-macos-package.result == 'success' || needs.diff-macos-package.result == 'skipped')
     runs-on: linux-amd64-cpu32
     strategy:
       fail-fast: false
@@ -238,7 +240,19 @@ jobs:
             [ -f "$apt_src" ] && cp "$apt_src" "package-source-diff/apt_packages_${variant}.txt" || touch "package-source-diff/apt_packages_${variant}.txt"
             [ -f "$pip_src" ] && cp "$pip_src" "package-source-diff/pip_packages_${variant}.txt" || touch "package-source-diff/pip_packages_${variant}.txt"
           done
+          touch package-source-diff/pip_packages_macos.txt
           ls -la package-source-diff/
+
+      - name: Download macOS pip diff
+        if: github.event.inputs.artifact_url != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-pip-diff.zip
+          path: macos-pip-diff
+
+      - name: Apply macOS pip diff to package list
+        if: github.event.inputs.artifact_url != ''
+        run: cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
 
       - name: Generate tpls lock file
         run: |
