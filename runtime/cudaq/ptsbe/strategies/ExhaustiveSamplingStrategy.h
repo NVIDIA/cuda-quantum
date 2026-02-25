@@ -42,4 +42,14 @@ public:
   }
 };
 
+/// @brief Enumerate trajectories in lexicographic order over operator indices.
+///
+/// When index_mapping is non-empty, index_mapping[i] remaps enumeration
+/// positions to actual operator indices for noise point i (e.g. sorted by
+/// descending probability). When empty, raw indices 0..N are used.
+std::vector<cudaq::KrausTrajectory>
+enumerateLexicographic(std::span<const NoisePoint> noise_points,
+                       std::size_t limit,
+                       std::span<const std::vector<std::size_t>> index_mapping);
+
 } // namespace cudaq::ptsbe
