@@ -29,9 +29,34 @@ set -euo pipefail
 
 # Run from repo root
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-cuda_variant="13"
+cuda_variant=""
 arch=$(uname -m)
+
+# Parse command line arguments
+__optind__=$OPTIND
+OPTIND=1
+while getopts ":c:" opt; do
+  case $opt in
+    c) cuda_variant="$OPTARG" ;;
+    \?)
+      echo "Invalid command line option -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+OPTIND=$__optind__
+
+# require explicit -c option
+if [ -z "$cuda_variant" ]; then
+  echo "Error: CUDA variant required. Use -c 12 or -c 13" >&2
+  exit 1
+fi
+if [ "$cuda_variant" != "12" ] && [ "$cuda_variant" != "13" ]; then
+  echo "Error: CUDA variant must be 12 or 13, got: $cuda_variant" >&2
+  exit 1
+fi
+
+
 installer_name=install_cuda_quantum_realtime_cu${cuda_variant}.${arch}
 
 echo "Building installer $installer_name for CUDA $cuda_variant on $arch..."

@@ -44,6 +44,7 @@ jobs:
         uses: ./.github/actions/run-in-docker
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
+          # TODO: use alma-limux8 image to make sure we use the same glibc version as the CUDA-Q installer.
           image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
           volume: ${{ github.workspace }}:/workspace
           shell: bash
@@ -146,7 +147,7 @@ jobs:
           # Set install prefix to match where build_installer.sh expects it
           export CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
           # Run installer build script
-          bash realtime/scripts/build_installer.sh
+          bash realtime/scripts/build_installer.sh -c $(echo ${{ matrix.cuda_version }} | cut -d . -f1)
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
@@ -171,8 +172,8 @@ jobs:
       packages: read
 
     container:
-      # Use a base CUDA runtime image for testing
-      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-${{ matrix.distro }}
+      # Note: in this test, we need to build a CUDA kernel (to use with CUDAQ Realtime), hence we need the CUDA toolkit, not just the runtime.
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-${{ matrix.distro }}
 
     steps:
       - name: Checkout repository

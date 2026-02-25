@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-cmake_minimum_required(VERSION 3.28 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
 # A simple example demonstrating how to use the CUDA Quantum Realtime library.
 project(dispatch_kernel)
