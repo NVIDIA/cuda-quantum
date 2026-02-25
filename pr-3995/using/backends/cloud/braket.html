@@ -659,8 +659,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../cloud.html">     Cloud</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1052,28 +1051,10 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 </pre></div>
 </div>
 </section>
-<section id="submission-from-c">
-<h2>Submission from C++<a class="headerlink" href="#submission-from-c" title="Permalink to this heading">¶</a></h2>
-<p>To target quantum kernel code for execution in Amazon Braket,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">braket</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.
-By default jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To execute your kernels on different device, pass the <code class="docutils literal notranslate"><span class="pre">--braket-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span><span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
-<p>To emulate the device locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-</section>
-<section id="submission-from-python">
-<h2>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h2>
+<section id="submitting">
+<h2>Submitting<a class="headerlink" href="#submitting" title="Permalink to this heading">¶</a></h2>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">)</span>
@@ -1095,6 +1076,27 @@ you can also set the <code class="docutils literal notranslate"><span class="pre
 argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<p>To target quantum kernel code for execution in Amazon Braket,
+pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">braket</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.
+By default jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>To execute your kernels on different device, pass the <code class="docutils literal notranslate"><span class="pre">--braket-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
+to specify which machine to submit quantum kernels to:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span><span class="w"> </span>src.cpp<span class="w"> </span>...
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
+<p>To emulate the device locally, without submitting through the cloud,
+you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+</div>
 </div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket-examples"><span class="std std-ref">Amazon Braket examples</span></a>.</p>
 </section>

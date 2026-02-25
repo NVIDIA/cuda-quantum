@@ -1037,11 +1037,7 @@ pr-3995
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1816,7 +1812,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![2a26ce14bb134deda701d8676fd572b3](../../_images/adapt-vqe.png){.no-scaled-link
+![a7745bfe8ef74b0ca357154eb5cace79](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>
