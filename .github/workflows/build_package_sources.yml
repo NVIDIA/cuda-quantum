@@ -8,12 +8,18 @@
 #
 # Workflow: diff apt and pip packages between a base and target image, then
 # build a source image containing source code for all added packages.
+# Optionally diff pip packages added by the macOS wheel (provide artifact_url).
 #
 # Inputs:
 #   push_to_NGC: boolean, default false
 #     Push the built source image to NGC, otherwise push to GHCR.
 #   environment: string, no default
 #     The environment to build the source image for.
+#   artifact_url: string, no default
+#     If set, diff pip packages added by the macOS wheel from this artifact URL
+#     (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID for pycudaq-3.13-darwin-arm64).
+#   python_version: string, default 3.13
+#     Python version for the macOS diff (must match the wheel).
 
 on:
   workflow_dispatch:
@@ -26,6 +32,15 @@ on:
       environment:
         required: false
         type: string
+      artifact_url:
+        required: false
+        type: string
+        description: 'Optional: URL of macOS wheel artifact to diff pip packages (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID)'
+      python_version:
+        required: false
+        type: string
+        default: '3.13'
+        description: 'Python version for macOS diff (must match the wheel)'
 
 name: Build package sources
 
@@ -88,6 +103,96 @@ jobs:
           name: package-source-diff-cu${{ matrix.cuda }}-${{ matrix.release }}.zip
           path: package-source-diff/
           retention-days: 1
+
+  diff-macos-package:
+    name: Diff pip packages (macOS arm64)
+    if: inputs.artifact_url != ''
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Parse artifact URL
+        id: parse
+        run: |
+          url="${{ inputs.artifact_url }}"
+          run_id=$(echo "$url" | sed -n 's|.*/runs/\([0-9]*\)/.*|\1|p')
+          artifact_id=$(echo "$url" | sed -n 's|.*/artifacts/\([0-9]*\)$|\1|p')
+          if [ -z "$run_id" ] || [ -z "$artifact_id" ]; then
+            echo "Could not parse run_id and artifact_id from: $url"
+            exit 1
+          fi
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Capture pip packages (before)
+        run: |
+          pip list --format=freeze | grep -v '^#' | sort -u > pip_before.txt
+          echo "Packages before: $(wc -l < pip_before.txt)"
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.parse.outputs.run_id }}
+          artifact-ids: ${{ steps.parse.outputs.artifact_id }}
+          path: wheel/
+          github-token: ${{ github.token }}
+
+      - name: Install wheel
+        run: |
+          whl=$(find wheel -name '*.whl' 2>/dev/null | head -1)
+          if [ -z "$whl" ]; then
+            echo "No .whl file found under wheel/"
+            find wheel -type f
+            exit 1
+          fi
+          echo "Installing $whl"
+          pip install "$whl"
+
+      - name: Capture pip packages (after)
+        run: |
+          pip list --format=freeze | grep -v '^#' | sort -u > pip_after.txt
+          echo "Packages after: $(wc -l < pip_after.txt)"
+
+      - name: Diff added pip packages
+        id: diff
+        run: |
+          awk -F'==' '{print $1}' pip_before.txt | sort -u > pip_before_names.txt
+          while IFS= read -r line; do
+            pkg="${line%%==*}"
+            if ! grep -qxF "$pkg" pip_before_names.txt 2>/dev/null; then
+              echo "$line"
+            fi
+          done < pip_after.txt > pip_added.txt || true
+          count=$(wc -l < pip_added.txt | tr -d ' ')
+          echo "count=$count" >> $GITHUB_OUTPUT
+          echo "## Pip packages added by macOS wheel" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Count: **$count**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat pip_added.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload macOS pip diff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-pip-diff.zip
+          path: |
+            pip_added.txt
+            pip_before.txt
+            pip_after.txt
+          retention-days: 7
 
   build-source-image:
     name: Build source image (CUDA ${{ matrix.cuda }})
