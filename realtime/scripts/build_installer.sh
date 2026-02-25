@@ -29,7 +29,6 @@ set -euo pipefail
 
 # Run from repo root
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 
 cuda_variant="13"
 arch=$(uname -m)
@@ -65,8 +64,8 @@ echo "Creating self-extracting archive..."
 
 makeself_args="--gzip --sha256"
 # Add license if available
-if [ -f "$repo_root/LICENSE" ]; then
-  makeself_args="$makeself_args --license $repo_root/LICENSE"
+if [ -f "$this_file_dir/../LICENSE" ]; then
+  makeself_args="$makeself_args --license $this_file_dir/../LICENSE"
 fi
 
 # Copy install script
