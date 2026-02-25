@@ -130,7 +130,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download installer artifact
+      - name: Download installer artifacts
         uses: actions/download-artifact@v4
         with:
           name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
@@ -163,6 +163,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ['12.6', '13.0']
+        distro: ['ubuntu24.04', 'ubi9']
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
     permissions:
@@ -171,7 +172,7 @@ jobs:
 
     container:
       # Use a base CUDA runtime image for testing
-      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-${{ matrix.distro }}
 
     steps:
       - name: Checkout repository
@@ -180,7 +181,7 @@ jobs:
       - name: Download installer 
         uses: actions/download-artifact@v4
         with:
-          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
           path: ./installers
       
       - name: Install CUDA Quantum Realtime using installer
@@ -198,7 +199,12 @@ jobs:
         shell: bash
         run: |
           # Install cmake for ctest
-          apt update && apt install -y --no-install-recommends cmake 
+          # Install cmake depending on distro
+          if [[ "${{ matrix.distro }}" == "ubi9" ]]; then
+            dnf install -y cmake
+          else
+            apt update && apt install -y --no-install-recommends cmake 
+          fi
           cd realtime/examples/gpu_dispatch
           mkdir -p build && cd build
           cmake .. 
