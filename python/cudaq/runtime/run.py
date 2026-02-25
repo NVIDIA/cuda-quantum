@@ -47,9 +47,9 @@ class AsyncRunResult:
 
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     if isa_kernel_decorator(decorator):
-        if decorator.qkeModule is None:
+        if not decorator.supports_compilation():
             raise RuntimeError(
-                "Unsupported target / Invalid kernel for `run`: missing module")
+                "Unsupported target / Invalid kernel for `run`: cannot compile")
 
     if decorator.formal_arity() != len(args):
         raise RuntimeError("Invalid number of arguments passed to run. " +

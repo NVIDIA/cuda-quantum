@@ -1220,28 +1220,22 @@ def test_var_scopes():
 
 def test_var_capture():
 
-    # We need to know the types or all captured values,
-    # so anything captured must be defined at kernel
-    # declaration time.
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test1() -> list[bool]:
-            q = cudaq.qvector(3)
-            if captured_bool:
-                x(q)
-            return mz(q)
-
-    assert "Invalid variable name requested" in str(e.value)
-
-    captured_bool = False
-
     @cudaq.kernel
     def test1() -> list[bool]:
         q = cudaq.qvector(3)
         if captured_bool:
             x(q)
         return mz(q)
+
+    # `captured_bool` is not defined yet, so compilation will fail
+    with pytest.raises(RuntimeError) as e:
+        test1.compile()
+    assert "Invalid variable name requested" in str(e.value)
+
+    captured_bool = False
+
+    # now succeeds
+    test1.compile()
 
     out = cudaq.run(test1, shots_count=10)
     assert all(res == [False, False, False] for res in out)
@@ -1297,7 +1291,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel3() -> int:
             if True:
                 # causes the variable to be added to the symbol table
@@ -1314,7 +1308,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel4() -> list[int]:
             vals = ls
             vals[0] = 5
@@ -1333,7 +1327,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel5() -> list[int]:
             # `ls` is treated like any other function argument
             ls[0] = 5
@@ -1367,7 +1361,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel7():
             mtp.first = 2
 
@@ -1455,7 +1449,7 @@ def test_inner_functions():
     # see also test_var_capture.
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test4b():
 
             def apply_ry():
@@ -1494,7 +1488,7 @@ def test_inner_functions():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test7() -> int:
             i = 0
 
@@ -1509,7 +1503,7 @@ def test_inner_functions():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test8() -> list[int]:
             ls = [0]
 
