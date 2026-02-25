@@ -203,9 +203,10 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     // auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
 
-    auto model_id = postJobResponse["model_id"].get<std::string>()
+    auto model_id = postJobResponse["model_id"].get<std::string>();
 
     auto outputNamesStr = m_outputNames[model_id];
+    m_outputNames.erase(model_id);
 
     // auto options = params.options();
 
