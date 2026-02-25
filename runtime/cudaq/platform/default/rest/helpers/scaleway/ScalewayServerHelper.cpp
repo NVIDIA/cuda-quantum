@@ -43,11 +43,10 @@ std::string getValueOrDefault(const BackendConfig &config,
   return !providedValue.empty() ? providedValue : defaultValue;
 }
 
-std::string serializeParametersToQio(size_t nb_shots,
-                                     std::string output_names) {
-  json options;
-  options["output_names"] = output_names;
-  qio::QuantumComputationParameters parameters(nb_shots, options);
+std::string serializeParametersToQio(size_t nb_shots) {
+  // json options;
+  // options["output_names"] = output_names;
+  qio::QuantumComputationParameters parameters(nb_shots);
 
   return parameters.toJson().dump();
 }
@@ -113,7 +112,7 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
     std::string qioParams =
-        serializeParametersToQio(shots, "");
+        serializeParametersToQio(shots);
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
     auto model = m_qaasClient->createModel(qioPayload);
