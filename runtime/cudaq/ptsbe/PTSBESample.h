@@ -306,14 +306,32 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Validate upfront so exceptions are thrown in calling thread
   validatePTSBEPreconditions(platform, qpu_id);
 
+  // Copy the noise model into the lambda so it outlives the caller's scope.
+  // The caller's pointer may dangle once sample_async returns.
+  const auto *noisePtr = platform.get_noise();
+  cudaq::noise_model noiseCopy = noisePtr ? *noisePtr : cudaq::noise_model{};
+
   std::promise<sample_result> promise;
   auto future = promise.get_future();
 
   QuantumTask task = detail::make_copyable_function(
       [p = std::move(promise), shots, kernelName, &platform, options,
-       kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        p.set_value(
-            runSamplingPTSBE(kernel, platform, kernelName, shots, options));
+       kernel = std::forward<KernelFunctor>(wrappedKernel),
+       noiseCopy = std::move(noiseCopy)]() mutable {
+        // set_noise/reset_noise bracket execution so the platform pointer
+        // refers to our owned copy, not the caller's (possibly dead) original.
+        // try/catch ensures exceptions reach the future instead of
+        // std::terminate.
+        try {
+          platform.set_noise(&noiseCopy);
+          auto result =
+              runSamplingPTSBE(kernel, platform, kernelName, shots, options);
+          platform.reset_noise();
+          p.set_value(std::move(result));
+        } catch (...) {
+          platform.reset_noise();
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, task);
@@ -390,9 +408,12 @@ async_sample_result sample_async(const cudaq::noise_model &noise,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&noise);
 
-  return runSamplingAsyncPTSBE(
+  auto future = runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, shots);
+
+  platform.reset_noise();
+  return future;
 }
 
 /// @brief Asynchronously sample with PTSBE using sample_options
@@ -408,9 +429,12 @@ async_sample_result sample_async(const sample_options &options,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
 
-  return runSamplingAsyncPTSBE(
+  auto future = runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, options.shots, options.ptsbe);
+
+  platform.reset_noise();
+  return future;
 }
 
 /// @brief Sample with PTSBE over a set of argument packs (broadcast)

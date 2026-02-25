@@ -148,6 +148,9 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
       },
       platform, kernelName, shots_count, ptsbe_options);
 
+  // Safe to reset now: runSamplingAsyncPTSBE copied the noise model into the
+  // async lambda.
+  platform.reset_noise();
   return AsyncPTSBESampleResultImpl(std::move(future));
 }
 
