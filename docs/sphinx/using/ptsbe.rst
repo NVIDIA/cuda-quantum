@@ -6,12 +6,25 @@ Noisy Simulation with PTSBE
 .. _ptsbe:
 
 Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method
-for sampling noisy quantum circuits. Instead of propagating a full density
-matrix and measuring once per shot, PTSBE *pre-samples* a set of noise
+for sampling noisy quantum circuits [Patti2025]_. It is a powerful generalization of the
+trajectories methods for noisy quantum systems, that stochastically sample
+noise operators from a noisy quantum circuit and then subsequently build
+and sample from the corresponding pseudo-coherent quantum states rather than sampling from
+the full density matrix of a system, as this is quadratically larger than
+each pseudo-coherent quantum statevector [Carmichael2007]_. While these trajectory methods
+can be much more efficient than constructing and sampling from full density
+matrices, they traditionally sampled only once shot per constructed state.
+In contrast, PTSBE *pre-samples* a set of noise
 realizations (trajectories) from the circuit's noise model and then *batches*
-circuit executions by unique trajectory. Each trajectory executes as a pure
-state simulation, so PTSBE achieves density-matrix accuracy at a fraction of
-the cost when the number of unique trajectories is much smaller than the total
+circuit executions by unique trajectory [Patti2025]_. As the noise pre-sampling and state post-sampling
+are tasks with only low-degree polynomial complexity, while the state construction
+is, in general, of exponential complexity, PTSBE allows us to gather noisy quantum data
+orders of magnitude quicker than traditional trajectory sampling methods by allowing finely-tuned
+batched sampling. PTSBE can be used to capture millions of times more noisy shot data, which can
+then be used as e.g., training data in ML tasks such as AI decoders, or it can be deployed proportionally
+capturing the exact statistics of the problem while stiff offering a considerable speedup. In particular,
+PTSBE achieves traditional trajectory formalism accuracy at a fraction of
+the computational cost when the number of unique trajectories (errors) is much smaller than the total
 shot count [Patti2025]_.
 
 Conceptual Overview
@@ -60,10 +73,8 @@ PTSBE is most beneficial when:
   manageable.
 - A **large shot count** is required (1 000 – 1 000 000+) so the reuse of
   trajectories provides a significant speed-up.
-- The noise channels are **unitary mixtures** (Pauli-type, depolarizing, etc.),
-  where each Kraus operator fires with a fixed probability *pᵢ* independent of
-  the quantum state. General state-dependent Kraus channels are supported, but
-  the trajectory-reuse benefit is greatest for unitary mixtures.
+- The shots are intended for a data-hungry downstream task that is not necessarily
+  inhibited by correlated sampling, such as training AI models
 
 Benchmarks from the original paper [Patti2025]_ illustrate the potential
 speed-ups:
@@ -490,12 +501,16 @@ benchmarks [Dangwal2025]_.
 References
 ^^^^^^^^^^^
 
+.. [Carmichael2007] Carmichael, H. J. *Quantum jumps revisited: An overview of quantum trajectory theory.* Quantum Future From Volta and
+   Como to the Present and Beyond: Proceedings of the Xth Max Born Symposium Held in Przesieka, Poland, 24–27 September 1997. Berlin,
+   Heidelberg: Springer Berlin Heidelberg, 2007.
+   https://link.springer.com/chapter/10.1007/bfb0105336
+
 .. [Patti2025] Taylor L. Patti, Thien Nguyen, Justin G. Lietz,
    Alexander J. McCaskey, Brucek Khailany,
-   *Augmenting Simulated Noisy Quantum Data Collection by Orders of Magnitude
-   Using Pre-Trajectory Sampling with Batched Execution*,
-   arXiv:2504.16297 (2025).
-   https://arxiv.org/abs/2504.16297
+   *Augmenting Simulated Noisy Quantum Data Collection by Orders of Magnitude Using Pre-Trajectory Sampling with Batched Execution.*
+   Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis. 2025.
+   https://dl.acm.org/doi/full/10.1145/3712285.3759871
 
 .. [Dangwal2025] Siddharth Dangwal, Tina Oberoi, Ajay Sailopal,
    Dhirpal Shah, Frederic T. Chong,
