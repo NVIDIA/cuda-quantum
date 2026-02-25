@@ -1,0 +1,12 @@
+source-sha: 7084024e74d7ce06847cb1db07947b7cc57dcfbd
+cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@sha256:a8fce2de52bd6bcd28f63884197157fac608e320d53369efdcb7f20d5caa1d63
+cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@sha256:fc25bff2ca2ff9b6cce4e82812713cfc69c9a9ca8f88789fc714de56cef8d84d
+cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devcontainer-ci@sha256:b255d91c4be7a5df102560317155b3bd5fa4c86e426f6435f15787525b1340b6
+platforms: linux/amd64,linux/arm64
+cuda-version: 13.0
+nvidia-mgpu-repo: cuda-quantum/cuquantum-mgpu.git
+nvidia-mgpu-commit: e41bb18a5e5ff5be44090dfc4cb6c59fb511e9c7
+
+asset-name: image_cu13_publishing.txt
+release-id: 22408250035_image_cu13_publishing
+artifacts-url: https://api.github.com/repos/NVIDIA/cuda-quantum/actions/runs/22322808356/artifacts
