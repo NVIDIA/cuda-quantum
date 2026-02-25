@@ -148,12 +148,13 @@ jobs:
           export CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
           # Run installer build script
           bash build_installer.sh
+          ls -R
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: out/install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
-          path: ${{ github.workspace }}/installer
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
+          path: ${{ github.workspace }}/out
           retention-days: 1
           if-no-files-found: error
 
