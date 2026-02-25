@@ -194,25 +194,11 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
 
   try {
-    // auto job = m_qaasClient->getJob(jobId);
-
-    // auto jsonParameters = json::parse(job.parameters);
-
-    // auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
-
     auto model_id = postJobResponse["model_id"].get<std::string>();
 
-    CUDAQ_INFO("model id {}", model_id);
-
-    auto outputNamesStr = backendConfig["output_names."+ model_id];
-
-    CUDAQ_INFO("outpput name {}", outputNamesStr);
-
-    // m_outputNames.erase(model_id);
-
-    // auto options = params.options();
-
-    // auto outputNamesStr = options["output_names"].get<std::string>();
+    auto key = "output_names."+ model_id;
+    auto outputNamesStr = backendConfig[key];
+    backendConfig.erase(key);
 
     auto outputNamesJson = json::parse(outputNamesStr);
 
