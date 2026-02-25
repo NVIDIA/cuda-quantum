@@ -46,6 +46,55 @@ def test_ctrl_x():
     assert counts["0011111"] == 1000
 
 
+def test_ctrl_x_list_comprehension():
+    """Tests x.ctrl with list comprehension."""
+
+    @cudaq.kernel
+    def kernel1():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        x.ctrl([qs[i] for i in [0, 1]], qs[2])
+
+    counts = cudaq.sample(kernel1)
+    assert counts["111"] == 1000
+
+    @cudaq.kernel
+    def kernel2():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        x.ctrl([qs[i] for i in range(2)], qs[2])
+
+    counts = cudaq.sample(kernel2)
+    assert counts["111"] == 1000
+
+    @cudaq.kernel
+    def kernel3():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        cont = [0, 1]
+        x.ctrl([qs[i] for i in cont], qs[2])
+
+    counts = cudaq.sample(kernel3)
+    assert counts["111"] == 1000
+
+    @cudaq.kernel
+    def ctrl_with_param(qs: cudaq.qvector, indices: list[int]):
+        x.ctrl([qs[i] for i in indices], qs[2])
+
+    @cudaq.kernel
+    def kernel4():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        ctrl_with_param(qs, [0, 1])
+
+    counts = cudaq.sample(kernel4)
+    assert counts["111"] == 1000
+
+
 def test_ctrl_y():
     """Tests the accuracy of the overloads for the controlled-Y gate."""
 
