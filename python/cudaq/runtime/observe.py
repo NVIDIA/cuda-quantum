@@ -17,6 +17,11 @@ def isValidObserveKernel(kernel):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
+    if not decorator.supports_compilation():
+        return [
+            False,
+            "Unsupported target / Invalid kernel for `observe`: cannot compile"
+        ]
     return cudaq_runtime.isValidObserveKernel_impl(decorator.uniqName,
                                                    decorator.qkeModule)
 
