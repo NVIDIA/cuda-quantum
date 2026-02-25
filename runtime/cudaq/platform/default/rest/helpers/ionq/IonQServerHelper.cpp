@@ -22,7 +22,7 @@ namespace cudaq {
 /// computation jobs.
 class IonQServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api.ionq.co";
-  static constexpr const char *DEFAULT_VERSION = "v0.3";
+  static constexpr const char *DEFAULT_VERSION = "v0.4";
 
 public:
   /// @brief Returns the name of the server helper.
