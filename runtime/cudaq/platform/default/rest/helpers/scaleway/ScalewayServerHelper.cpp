@@ -109,8 +109,7 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
-    std::string qioParams =
-        serializeParametersToQio(shots);
+    std::string qioParams = serializeParametersToQio(shots);
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
     auto model = m_qaasClient->createModel(qioPayload);
@@ -121,7 +120,7 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     taskRequest["name"] = circuitCode.name;
     taskRequest["parameters"] = qioParams;
 
-    backendConfig["output_names."+ model.id] = circuitCode.output_names.dump();
+    backendConfig["output_names." + model.id] = circuitCode.output_names.dump();
 
     tasks.push_back(taskRequest);
   }
@@ -196,7 +195,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   try {
     auto model_id = postJobResponse["model_id"].get<std::string>();
 
-    auto key = "output_names."+ model_id;
+    auto key = "output_names." + model_id;
     auto outputNamesStr = backendConfig[key];
     backendConfig.erase(key);
 
