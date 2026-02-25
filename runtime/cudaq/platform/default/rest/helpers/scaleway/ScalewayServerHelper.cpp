@@ -44,9 +44,9 @@ std::string getValueOrDefault(const BackendConfig &config,
 }
 
 std::string serializeParametersToQio(size_t nb_shots) {
-  // json options;
+  json options;
   // options["output_names"] = output_names;
-  qio::QuantumComputationParameters parameters(nb_shots);
+  qio::QuantumComputationParameters parameters(nb_shots, options);
 
   return parameters.toJson().dump();
 }
