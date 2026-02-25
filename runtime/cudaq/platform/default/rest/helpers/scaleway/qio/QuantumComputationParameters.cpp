@@ -19,7 +19,7 @@ json QuantumComputationParameters::toJson() const {
 }
 
 QuantumComputationParameters QuantumComputationParameters::fromJson(json j) {
-  return QuantumComputationParameters(j.value("shots", 0), j.value("options", json));
+  return QuantumComputationParameters(j.value("shots", 0), j.value("options", {}));
 }
 
 nlohmann::json QuantumComputationParameters::options() { return m_options; }
