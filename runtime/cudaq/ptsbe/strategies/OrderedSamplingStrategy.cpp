@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "OrderedSamplingStrategy.h"
+#include <algorithm>
+#include <numeric>
 
 namespace cudaq::ptsbe {
 
@@ -34,6 +36,19 @@ OrderedSamplingStrategy::generateTrajectories(
     operator_counts.push_back(noise_point.channel.size());
   }
 
+  // Sort operator indices by descending probability so the lexicographic
+  // prefix contains the highest-probability trajectories first.
+  std::vector<std::vector<std::size_t>> sorted_indices(noise_points.size());
+  for (std::size_t i = 0; i < noise_points.size(); ++i) {
+    auto &si = sorted_indices[i];
+    si.resize(noise_points[i].channel.size());
+    std::iota(si.begin(), si.end(), 0);
+    std::ranges::sort(si, [&](auto a, auto b) {
+      return noise_points[i].channel.probabilities[a] >
+             noise_points[i].channel.probabilities[b];
+    });
+  }
+
   std::size_t generation_limit =
       std::min(total_trajectories, max_trajectories * GENERATION_MULTIPLIER);
   results.reserve(generation_limit);
@@ -48,7 +63,7 @@ OrderedSamplingStrategy::generateTrajectories(
 
     for (std::size_t i = 0; i < noise_points.size(); ++i) {
       const auto &noise_point = noise_points[i];
-      std::size_t op_idx = indices[i];
+      std::size_t op_idx = sorted_indices[i][indices[i]];
 
       bool error = !noise_point.channel.is_identity_op(op_idx);
       selections.push_back(KrausSelection{noise_point.circuit_location,
