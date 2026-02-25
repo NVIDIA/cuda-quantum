@@ -102,6 +102,9 @@ Sampling Functions
        :class:`~cudaq.ptsbe.PTSBESampleResult`.
    :rtype: :class:`~cudaq.AsyncSampleResult`
 
+   :raises: Any exception raised during kernel execution is captured and
+       re-raised when ``.get()`` is called on the returned future.
+
    .. code-block:: python
 
       future = ptsbe.sample_async(bell, shots_count=10_000, noise_model=noise)
@@ -410,6 +413,12 @@ Execution Data
 
       Index of the selected Kraus operator. ``0`` is the identity
       (no error); values ≥ 1 represent actual error operators.
+
+   .. py:attribute:: is_error
+      :type: bool
+
+      ``True`` if the selected Kraus operator is not the identity
+      (i.e. an actual error occurred at this noise site).
 
 ----
 
