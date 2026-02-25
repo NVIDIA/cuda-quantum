@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
@@ -128,7 +129,7 @@ bool setupTargetTriple(llvm::Module *llvmModule) {
 }
 
 void optimizeLLVM(llvm::Module *module) {
-  auto optPipeline = mlir::makeOptimizingTransformer(
+  auto optPipeline = cudaq::makeOptimizingTransformer(
       /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(module))

@@ -91,8 +91,8 @@ def _detail_check_conditionals_on_measure(kernel):
                 f"(void). Kernel '{kernel.name}' has return type "
                 f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
                 f"that return values.")
-        # Only check for kernels that are compiled, not library-mode kernels (e.g., photonics)
-        if kernel.qkeModule is not None:
+        # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
+        if kernel.supports_compilation():
             for operation in kernel.qkeModule.body.operations:
                 if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
                         == operation.name.value and
