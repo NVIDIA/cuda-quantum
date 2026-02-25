@@ -21,6 +21,7 @@ struct cudaq_host_dispatcher_handle {
   cudaq::realtime::atomic_uint64_sys* idle_mask = nullptr;
   int* inflight_slot_tags = nullptr;
   void** h_mailbox_bank = nullptr;
+  bool owns_mailbox = false;
   size_t num_workers = 0;
 };
 
@@ -38,7 +39,8 @@ extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
     const cudaq_function_table_t* table,
     const cudaq_dispatcher_config_t* config,
     volatile int* shutdown_flag,
-    uint64_t* stats) {
+    uint64_t* stats,
+    void** external_mailbox) {
   if (!ringbuffer || !table || !config || !shutdown_flag || !stats)
     return nullptr;
   if (!ringbuffer->rx_flags_host || !ringbuffer->tx_flags_host ||
@@ -59,11 +61,18 @@ extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
 
   handle->idle_mask = new (std::nothrow) cudaq::realtime::atomic_uint64_sys(0);
   handle->inflight_slot_tags = new (std::nothrow) int[num_workers];
-  handle->h_mailbox_bank = new (std::nothrow) void*[num_workers];
+  if (external_mailbox) {
+    handle->h_mailbox_bank = external_mailbox;
+    handle->owns_mailbox = false;
+  } else {
+    handle->h_mailbox_bank = new (std::nothrow) void*[num_workers];
+    handle->owns_mailbox = true;
+  }
   if (!handle->idle_mask || !handle->inflight_slot_tags || !handle->h_mailbox_bank) {
     delete handle->idle_mask;
     delete[] handle->inflight_slot_tags;
-    delete[] handle->h_mailbox_bank;
+    if (handle->owns_mailbox)
+      delete[] handle->h_mailbox_bank;
     delete handle;
     return nullptr;
   }
@@ -131,6 +140,7 @@ extern "C" void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t* handl
     cudaStreamDestroy(w.stream);
   delete handle->idle_mask;
   delete[] handle->inflight_slot_tags;
-  delete[] handle->h_mailbox_bank;
+  if (handle->owns_mailbox)
+    delete[] handle->h_mailbox_bank;
   delete handle;
 }

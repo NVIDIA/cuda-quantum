@@ -237,6 +237,14 @@ cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn);
 
+// Optional: provide a caller-managed pinned mailbox for GRAPH_LAUNCH workers.
+// h_mailbox_bank must be allocated with cudaHostAlloc(..., cudaHostAllocMapped)
+// and sized to at least (num_graph_launch_entries * sizeof(void*)).
+// If set, the dispatcher uses this mailbox instead of allocating its own.
+// The caller retains ownership and must free it after cudaq_dispatcher_destroy.
+cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
+                                            void **h_mailbox_bank);
+
 // Start/stop
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
@@ -256,12 +264,14 @@ typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
 
 // Start the host dispatcher loop in a new thread. Call from cudaq_dispatcher_start
 // when backend is CUDAQ_BACKEND_HOST_LOOP. Returns a handle for stop, or NULL on error.
+// If external_mailbox is non-NULL, uses it instead of allocating internally.
 cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
     const cudaq_ringbuffer_t *ringbuffer,
     const cudaq_function_table_t *table,
     const cudaq_dispatcher_config_t *config,
     volatile int *shutdown_flag,
-    uint64_t *stats);
+    uint64_t *stats,
+    void **external_mailbox);
 
 // Stop the host dispatcher thread and free resources.
 void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);

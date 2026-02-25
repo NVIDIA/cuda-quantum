@@ -25,6 +25,7 @@ struct cudaq_dispatcher_t {
   cudaStream_t stream = nullptr;
   bool running = false;
   cudaq_host_dispatcher_handle_t *host_handle = nullptr;
+  void **h_mailbox_bank = nullptr;
 };
 
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
@@ -161,6 +162,14 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
   return CUDAQ_OK;
 }
 
+cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
+                                            void **h_mailbox_bank) {
+  if (!dispatcher)
+    return CUDAQ_ERR_INVALID_ARG;
+  dispatcher->h_mailbox_bank = h_mailbox_bank;
+  return CUDAQ_OK;
+}
+
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   auto status = validate_dispatcher(dispatcher);
   if (status != CUDAQ_OK)
@@ -177,7 +186,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
     dispatcher->host_handle = cudaq_host_dispatcher_start_thread(
         &dispatcher->ringbuffer, &dispatcher->table, &dispatcher->config,
-        dispatcher->shutdown_flag, dispatcher->stats);
+        dispatcher->shutdown_flag, dispatcher->stats,
+        dispatcher->h_mailbox_bank);
     if (!dispatcher->host_handle)
       return CUDAQ_ERR_INTERNAL;
     dispatcher->running = true;
