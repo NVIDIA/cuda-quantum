@@ -143,12 +143,10 @@ jobs:
       - name: Build installer
         shell: bash
         run: |
-          cd realtime/scripts
           # Set install prefix to match where build_installer.sh expects it
           export CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
           # Run installer build script
-          bash build_installer.sh
-          ls -R
+          bash realtime/scripts/build_installer.sh
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
