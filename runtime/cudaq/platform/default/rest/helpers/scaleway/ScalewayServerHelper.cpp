@@ -121,7 +121,7 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     taskRequest["name"] = circuitCode.name;
     taskRequest["parameters"] = qioParams;
 
-    m_outputNames[model.id] = circuitCode.output_names.dump();
+    backendConfig["output_names."+ model.id] = circuitCode.output_names.dump();
 
     tasks.push_back(taskRequest);
   }
@@ -202,8 +202,13 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     auto model_id = postJobResponse["model_id"].get<std::string>();
 
-    auto outputNamesStr = m_outputNames[model_id];
-    m_outputNames.erase(model_id);
+    CUDAQ_INFO("model id {}", model_id);
+
+    auto outputNamesStr = backendConfig["output_names."+ model_id];
+
+    CUDAQ_INFO("outpput name {}", outputNamesStr);
+
+    // m_outputNames.erase(model_id);
 
     // auto options = params.options();
 
