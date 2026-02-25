@@ -47,4 +47,5 @@ def test_pr_4039():
         num_logical,
         shots_count=num_shots,
         noise_model=None)
-    
+
+
