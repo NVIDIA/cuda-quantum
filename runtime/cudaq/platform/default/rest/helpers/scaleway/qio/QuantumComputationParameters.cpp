@@ -14,7 +14,7 @@ QuantumComputationParameters::QuantumComputationParameters(std::size_t shots)
     : m_shots(shots) {}
 
 json QuantumComputationParameters::toJson() const {
-  return {{"shots", m_shots}, {"options", m_options}};
+  return {{"shots", m_shots}};
 }
 
 QuantumComputationParameters QuantumComputationParameters::fromJson(json j) {
