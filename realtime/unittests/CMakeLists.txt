@@ -86,6 +86,7 @@ if(CMAKE_CUDA_COMPILER)
     GTest::gtest_main
     CUDA::cudart
     cudaq-realtime
+    cudaq-realtime-host-dispatch
   )
   add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
   gtest_discover_tests(test_host_dispatcher

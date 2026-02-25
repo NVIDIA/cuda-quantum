@@ -9,6 +9,7 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
 #include <cstdio>
+#include <cstring>
 #include <new>
 
 struct cudaq_dispatch_manager_t {
@@ -260,4 +261,73 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
     return CUDAQ_ERR_CUDA;
 
   return CUDAQ_OK;
+}
+
+//==============================================================================
+// Ring buffer slot helpers
+//==============================================================================
+
+cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
+    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
+    const void *payload, uint32_t payload_len) {
+  if (!rb || !rb->rx_data_host)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (CUDAQ_RPC_HEADER_SIZE + payload_len > rb->rx_stride_sz)
+    return CUDAQ_ERR_INVALID_ARG;
+
+  uint8_t *slot = rb->rx_data_host + slot_idx * rb->rx_stride_sz;
+  uint32_t *hdr = reinterpret_cast<uint32_t *>(slot);
+  hdr[0] = CUDAQ_RPC_MAGIC_REQUEST;
+  hdr[1] = function_id;
+  hdr[2] = payload_len;
+
+  if (payload && payload_len > 0)
+    std::memcpy(slot + CUDAQ_RPC_HEADER_SIZE, payload, payload_len);
+
+  return CUDAQ_OK;
+}
+
+void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
+                                       uint32_t slot_idx) {
+  __sync_synchronize();
+  const_cast<volatile uint64_t *>(
+      rb->rx_flags_host)[slot_idx] = reinterpret_cast<uint64_t>(
+      rb->rx_data_host + slot_idx * rb->rx_stride_sz);
+}
+
+cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
+    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, int *out_cuda_error) {
+  uint64_t v = rb->tx_flags_host[slot_idx];
+  if (v == 0)
+    return CUDAQ_TX_EMPTY;
+  if (v == 0xEEEEEEEEEEEEEEEEULL)
+    return CUDAQ_TX_IN_FLIGHT;
+  if ((v >> 48) == 0xDEAD) {
+    if (out_cuda_error)
+      *out_cuda_error = static_cast<int>(v & 0xFFFF);
+    return CUDAQ_TX_ERROR;
+  }
+  return CUDAQ_TX_READY;
+}
+
+int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
+                                         uint32_t slot_idx) {
+  return rb->rx_flags_host[slot_idx] == 0 && rb->tx_flags_host[slot_idx] == 0;
+}
+
+void cudaq_host_ringbuffer_clear_slot(const cudaq_ringbuffer_t *rb,
+                                      uint32_t slot_idx) {
+  const_cast<volatile uint64_t *>(rb->tx_flags_host)[slot_idx] = 0;
+  __sync_synchronize();
+}
+
+cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
+                                         int worker_id) {
+  if (!dispatcher)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP ||
+      !dispatcher->host_handle)
+    return CUDAQ_ERR_INVALID_ARG;
+  return cudaq_host_dispatcher_release_worker(dispatcher->host_handle,
+                                              worker_id);
 }

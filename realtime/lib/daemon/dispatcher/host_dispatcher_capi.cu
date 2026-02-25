@@ -131,6 +131,17 @@ extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
   return handle;
 }
 
+extern "C" cudaq_status_t cudaq_host_dispatcher_release_worker(
+    cudaq_host_dispatcher_handle_t* handle, int worker_id) {
+  if (!handle || !handle->idle_mask)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (worker_id < 0 || static_cast<size_t>(worker_id) >= handle->num_workers)
+    return CUDAQ_ERR_INVALID_ARG;
+  handle->idle_mask->fetch_or(1ULL << worker_id,
+                              cuda::std::memory_order_release);
+  return CUDAQ_OK;
+}
+
 extern "C" void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t* handle) {
   if (!handle)
     return;
