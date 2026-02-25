@@ -68,10 +68,10 @@ RUN mkdir -p "${SOURCES_ROOT}/cudaq/apt" \
               "${SOURCES_ROOT}/cudaqx/apt" \
               "${SOURCES_ROOT}/cudaqx/pip" \
               "${SOURCES_ROOT}/tpls" \
-              "${SOURCES_ROOT}/scripts" \
+              "${SOURCES_ROOT}/.scripts" \
               "${SOURCES_ROOT}/macos/pip"
 
-ENV SCRIPTS_DIR=${SOURCES_ROOT}/scripts
+ENV SCRIPTS_DIR=${SOURCES_ROOT}/.scripts
 
 # Copy .gitmodules, tpls lock file, clone script, package lists, and pip sdist fetcher
 COPY .gitmodules "${SCRIPTS_DIR}"/.gitmodules
@@ -85,9 +85,9 @@ COPY NOTICE LICENSE "${SOURCES_ROOT}/"
 
 # Fetch apt source, pip sdists, and clone tpls in parallel (prefix lines so logs stay readable)
 RUN apt-get update && set -o pipefail && \
-    ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
+    ( set -o pipefail; cd "${SOURCES_ROOT}/cudaq/apt" && \
       chmod 777 . && \
-      : > "${SOURCES_ROOT}/apt/apt_omitted_packages.txt" && \
+      : > "${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt" && \
       for list in "${SCRIPTS_DIR}"/apt_packages_cudaq.txt; do \
         [ -f "$list" ] && while IFS= read -r pkg || [ -n "$pkg" ]; do \
           [ -z "$pkg" ] && continue; \
@@ -95,9 +95,9 @@ RUN apt-get update && set -o pipefail && \
         done < "$list"; \
       done; \
       ) 2>&1 | sed 's/^/[cudaq-apt] /' & \
-      ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
+      ( set -o pipefail; cd "${SOURCES_ROOT}/cudaqx/apt" && \
       chmod 777 . && \
-      : > "${SOURCES_ROOT}/apt/apt_omitted_packages.txt" && \
+      : > "${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt" && \
       for list in "${SCRIPTS_DIR}"/apt_packages_cudaqx.txt; do \
         [ -f "$list" ] && while IFS= read -r pkg || [ -n "$pkg" ]; do \
           [ -z "$pkg" ] && continue; \
@@ -151,11 +151,11 @@ RUN apt-get update && set -o pipefail && \
       bash "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
     wait
 
-RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt)"
-RUN echo -e "apt_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt)"
-RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt)"
-RUN echo -e "pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt)"
-RUN echo -e "macos_pip_omitted_packages.txt:\n$(cat ${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt)"
+RUN echo -e "CUDAQ apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt)"
+RUN echo -e "CUDAQX apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt)"
+RUN echo -e "CUDAQ pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt)"
+RUN echo -e "CUDAQX pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt)"
+RUN echo -e "MACOS pip omitted packages:\n$(cat ${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt)"
 
 # For omitted apt packages (no source available), extract license/copyright/EULA from the .deb
 RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
@@ -171,7 +171,7 @@ RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
         find "/tmp/deb_extract/${pkg}_pkg" \( -iname "*license*" -o -iname "*eula*" -o -iname "*copyright*" \) -exec cp -a {} "$dest/" \; 2>/dev/null || true; \
         rm -rf "/tmp/deb_extract/${pkg}_pkg" /tmp/deb_extract/*.deb; \
       fi; \
-    done < "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
+    done < <(for f in "${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt" "${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt"; do [ -f "$f" ] && cat "$f"; done); \
     rm -rf /tmp/deb_extract
 
 # For omitted pip packages (no sdist), get EULA/license from the wheel: fetch wheel from PyPI, extract, copy license/EULA/copyright files
@@ -197,7 +197,7 @@ RUN echo "Retrieving EULA/license for omitted pip packages..." && \
         fi; \
         rm -f /tmp/pip_wheel.whl; \
       fi; \
-    done < "${SOURCES_ROOT}/pip/pip_omitted_packages.txt"; \
+    done < <(for f in "${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt"; do [ -f "$f" ] && cat "$f"; done); \
     rm -rf /tmp/wheel_extract
 
 # Summary
