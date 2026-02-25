@@ -17,8 +17,10 @@
 # base_image is the base image to use for the build.
 #
 # Expects in build context:
-#   package-source-diff/apt_packages.txt   - one apt package name per line
-#   package-source-diff/pip_packages.txt   - one pip package==version per line
+#   package-source-diff/apt_packages_cudaq.txt   - one apt package name per line (cudaq)
+#   package-source-diff/pip_packages_cudaq.txt   - one pip package==version per line (cudaq)
+#   package-source-diff/apt_packages_cudaqx.txt - one apt package name per line (cudaqx)
+#   package-source-diff/pip_packages_cudaqx.txt - one pip package==version per line (cudaqx)
 #   tpls_commits.lock                      - "<commit> <path>" per submodule (same as install_prerequisites.sh -l)
 #   .gitmodules                            - submodule paths and URLs
 #   scripts/clone_tpls_from_lock.sh        - clone script
@@ -68,8 +70,8 @@ ENV SCRIPTS_DIR=${SOURCES_ROOT}/scripts
 COPY .gitmodules "${SCRIPTS_DIR}"/.gitmodules
 COPY tpls_commits.lock "${SCRIPTS_DIR}"/tpls_commits.lock
 COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
-COPY package-source-diff/apt_packages.txt "${SCRIPTS_DIR}"/apt_packages.txt
-COPY package-source-diff/pip_packages.txt "${SCRIPTS_DIR}"/pip_packages.txt
+COPY package-source-diff/apt_packages_cudaq.txt package-source-diff/apt_packages_cudaqx.txt "${SCRIPTS_DIR}"/
+COPY package-source-diff/pip_packages_cudaq.txt package-source-diff/pip_packages_cudaqx.txt "${SCRIPTS_DIR}"/
 
 # Copy attribution
 COPY NOTICE LICENSE "${SOURCES_ROOT}/"
@@ -79,22 +81,26 @@ RUN apt-get update && set -o pipefail && \
     ( set -o pipefail; cd "${SOURCES_ROOT}/apt" && \
       chmod 777 . && \
       : > "${SOURCES_ROOT}/apt/apt_omitted_packages.txt" && \
-      while IFS= read -r pkg || [ -n "$pkg" ]; do \
-        [ -z "$pkg" ] && continue; \
-        apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
-      done < "${SCRIPTS_DIR}"/apt_packages.txt; \
+      for list in "${SCRIPTS_DIR}"/apt_packages_cudaq.txt "${SCRIPTS_DIR}"/apt_packages_cudaqx.txt; do \
+        [ -f "$list" ] && while IFS= read -r pkg || [ -n "$pkg" ]; do \
+          [ -z "$pkg" ] && continue; \
+          apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/apt/apt_omitted_packages.txt"; \
+        done < "$list"; \
+      done; \
       ) 2>&1 | sed 's/^/[apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/pip/pip_omitted_packages.txt" && \
       cd "${SOURCES_ROOT}/pip" && \
-      while IFS= read -r package || [ -n "$package" ]; do \
-        [ -z "$package" ] && continue; \
-        url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
-        if [ -n "$url" ] && [ "$url" != "null" ]; then \
-          curl -fsSL -O "$url" || echo "$package" >> pip_omitted_packages.txt; \
-        else \
-          echo "$package" >> pip_omitted_packages.txt; \
-        fi; \
-      done < "${SCRIPTS_DIR}"/pip_packages.txt; \
+      for list in "${SCRIPTS_DIR}"/pip_packages_cudaq.txt "${SCRIPTS_DIR}"/pip_packages_cudaqx.txt; do \
+        [ -f "$list" ] && while IFS= read -r package || [ -n "$package" ]; do \
+          [ -z "$package" ] && continue; \
+          url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
+          if [ -n "$url" ] && [ "$url" != "null" ]; then \
+            curl -fsSL -O "$url" || echo "$package" >> pip_omitted_packages.txt; \
+          else \
+            echo "$package" >> pip_omitted_packages.txt; \
+          fi; \
+        done < "$list"; \
+      done; \
       ) 2>&1 | sed 's/^/[pip] /' & \
     ( set -o pipefail; SOURCES_ROOT="${SOURCES_ROOT}" GITMODULES="${SCRIPTS_DIR}"/.gitmodules lock_file="${SCRIPTS_DIR}"/tpls_commits.lock \
       bash "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh ) 2>&1 | sed 's/^/[tpls] /' & \
