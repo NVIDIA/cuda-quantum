@@ -1080,11 +1080,7 @@ pr-4013
             -   [Setting
                 Credentials](using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](using/dynamics.html){.reference .internal}
     -   [Quick Start](using/dynamics.html#quick-start){.reference
@@ -1792,7 +1788,8 @@ pr-4013
                 Types](api/ptsbe_api.html#trajectory-and-selection-types){.reference
                 .internal}
 -   [User Guide](using/user_guide.html){.reference .internal}
-    -   [PTSBE](using/ptsbe.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](using/ptsbe.html){.reference .internal}
         -   [Conceptual
             Overview](using/ptsbe.html#conceptual-overview){.reference
             .internal}
@@ -2015,7 +2012,8 @@ and Python.
     -   [Quantum Operations](api/default_ops.html){.reference .internal}
     -   [PTSBE API](api/ptsbe_api.html){.reference .internal}
 -   [User Guide](using/user_guide.html){.reference .internal}
-    -   [PTSBE](using/ptsbe.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](using/ptsbe.html){.reference .internal}
 -   [Other Versions](versions.html){.reference .internal}
 :::
 :::

@@ -1067,11 +1067,7 @@ pr-4013
             -   [Setting
                 Credentials](backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](dynamics.html){.reference .internal}
     -   [Quick Start](dynamics.html#quick-start){.reference .internal}
@@ -1776,7 +1772,8 @@ pr-4013
                 Types](../api/ptsbe_api.html#trajectory-and-selection-types){.reference
                 .internal}
 -   [User Guide](user_guide.html){.reference .internal}
-    -   [PTSBE](#){.current .reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](#){.current .reference .internal}
         -   [Conceptual Overview](#conceptual-overview){.reference
             .internal}
         -   [When to Use PTSBE](#when-to-use-ptsbe){.reference
@@ -1837,14 +1834,34 @@ aria-hidden="true"}](../versions.html "CUDA-Q Versions"){.btn
 # Noisy Simulation with PTSBE[¶](#noisy-simulation-with-ptsbe "Permalink to this heading"){.headerlink}
 
 Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient
-method for sampling noisy quantum circuits. Instead of propagating a
-full density matrix and measuring once per shot, PTSBE *pre-samples* a
-set of noise realizations (trajectories) from the circuit's noise model
-and then *batches* circuit executions by unique trajectory. Each
-trajectory executes as a pure state simulation, so PTSBE achieves
-density-matrix accuracy at a fraction of the cost when the number of
-unique trajectories is much smaller than the total shot count
-[\[Patti2025\]](#patti2025){#id1 .reference .internal}.
+method for sampling noisy quantum circuits
+[\[Patti2025\]](#patti2025){#id1 .reference .internal}. It is a powerful
+generalization of the trajectories methods for noisy quantum systems
+that stochastically samples noise operators from a noisy quantum circuit
+and then subsequently builds and samples from the corresponding
+pseudo-coherent quantum states rather than sampling from the full
+density matrix of a system, as this is quadratically larger than each
+pseudo-coherent quantum statevector
+[\[Carmichael2007\]](#carmichael2007){#id2 .reference .internal}. While
+these trajectory methods can be much more efficient than constructing
+and sampling from full density matrices, they traditionally sampled only
+one shot per constructed state. In contrast, PTSBE *pre-samples* a set
+of noise realizations (trajectories) from the circuit's noise model and
+then *batches* circuit executions by unique trajectory
+[\[Patti2025\]](#patti2025){#id3 .reference .internal}. As the noise
+pre-sampling and state post-sampling are tasks with only low-degree
+polynomial complexity, while the state construction is, in general, of
+exponential complexity, PTSBE allows us to gather noisy quantum data
+orders of magnitude quicker than traditional trajectory sampling methods
+by allowing finely-tuned batched sampling. PTSBE can be used to capture
+millions of times more noisy shot data, which can then be used as e.g.,
+training data in ML tasks such as AI decoders, or it can be deployed
+proportionally, capturing the exact statistics of the problem while
+still offering a considerable speedup. In particular, PTSBE achieves
+traditional trajectory formalism accuracy at a fraction of the
+computational cost when the number of unique trajectories (errors) is
+much smaller than the total shot count [\[Patti2025\]](#patti2025){#id4
+.reference .internal}.
 
 ::: {#conceptual-overview .section}
 ## Conceptual Overview[¶](#conceptual-overview "Permalink to this heading"){.headerlink}
@@ -1900,13 +1917,11 @@ PTSBE is most beneficial when:
 -   A **large shot count** is required (1 000 -- 1 000 000+) so the
     reuse of trajectories provides a significant speed-up.
 
--   The noise channels are **unitary mixtures** (Pauli-type,
-    depolarizing, etc.), where each Kraus operator fires with a fixed
-    probability *pᵢ* independent of the quantum state. General
-    state-dependent Kraus channels are supported, but the
-    trajectory-reuse benefit is greatest for unitary mixtures.
+-   The shots are intended for a data-hungry downstream task that is not
+    necessarily inhibited by correlated sampling, such as training AI
+    models
 
-Benchmarks from the original paper [\[Patti2025\]](#patti2025){#id2
+Benchmarks from the original paper [\[Patti2025\]](#patti2025){#id5
 .reference .internal} illustrate the potential speed-ups:
 
 -   **35-qubit** statevector simulation (magic state distillation): up
@@ -1919,7 +1934,7 @@ Benchmarks from the original paper [\[Patti2025\]](#patti2025){#id2
 PTSBE is particularly well-suited for generating large synthetic
 datasets of noisy measurement outcomes, such as training data for
 machine-learning--based quantum error correction (QEC) decoders
-[\[Patti2025\]](#patti2025){#id3 .reference .internal}.
+[\[Patti2025\]](#patti2025){#id6 .reference .internal}.
 
 PTSBE requires:
 
@@ -2442,7 +2457,7 @@ count limits.
 ::: {#related-approaches .section}
 ## Related Approaches[¶](#related-approaches "Permalink to this heading"){.headerlink}
 
-TUSQ [\[Dangwal2025\]](#dangwal2025){#id4 .reference .internal} is an
+TUSQ [\[Dangwal2025\]](#dangwal2025){#id7 .reference .internal} is an
 alternative noisy-simulation framework addressing the same problem with
 a complementary set of techniques:
 
@@ -2463,7 +2478,7 @@ a complementary set of techniques:
 
 TUSQ reports an average speedup of 52.5× over Qiskit and 12.53× over
 CUDA-Q (up to 30 qubits), with peak gains of 7878× and 439× respectively
-on larger benchmarks [\[Dangwal2025\]](#dangwal2025){#id5 .reference
+on larger benchmarks [\[Dangwal2025\]](#dangwal2025){#id8 .reference
 .internal}.
 :::
 
@@ -2471,19 +2486,34 @@ on larger benchmarks [\[Dangwal2025\]](#dangwal2025){#id5 .reference
 ## References[¶](#references "Permalink to this heading"){.headerlink}
 
 ::: {.citation-list role="list"}
+::: {#carmichael2007 .citation role="doc-biblioentry"}
+[[\[]{.fn-bracket}[Carmichael2007](#id2){role="doc-backlink"}[\]]{.fn-bracket}]{.label}
+
+Carmichael, H. J. *Quantum jumps revisited: An overview of quantum
+trajectory theory.* Quantum Future From Volta and Como to the Present
+and Beyond: Proceedings of the Xth Max Born Symposium Held in Przesieka,
+Poland, 24--27 September 1997. Berlin, Heidelberg: Springer Berlin
+Heidelberg, 2007.
+[https://link.springer.com/chapter/10.1007/bfb0105336](https://link.springer.com/chapter/10.1007/bfb0105336){.reference
+.external}
+:::
+
 ::: {#patti2025 .citation role="doc-biblioentry"}
 [[\[]{.fn-bracket}Patti2025[\]]{.fn-bracket}]{.label}
-[([1](#id1){role="doc-backlink"},[2](#id2){role="doc-backlink"},[3](#id3){role="doc-backlink"})]{.backrefs}
+[([1](#id1){role="doc-backlink"},[2](#id3){role="doc-backlink"},[3](#id4){role="doc-backlink"},[4](#id5){role="doc-backlink"},[5](#id6){role="doc-backlink"})]{.backrefs}
 
 Taylor L. Patti, Thien Nguyen, Justin G. Lietz, Alexander J. McCaskey,
 Brucek Khailany, *Augmenting Simulated Noisy Quantum Data Collection by
 Orders of Magnitude Using Pre-Trajectory Sampling with Batched
-Execution*, arXiv:2504.16297 (2025). https://arxiv.org/abs/2504.16297
+Execution.* Proceedings of the International Conference for High
+Performance Computing, Networking, Storage and Analysis. 2025.
+[https://dl.acm.org/doi/full/10.1145/3712285.3759871](https://dl.acm.org/doi/full/10.1145/3712285.3759871){.reference
+.external}
 :::
 
 ::: {#dangwal2025 .citation role="doc-biblioentry"}
 [[\[]{.fn-bracket}Dangwal2025[\]]{.fn-bracket}]{.label}
-[([1](#id4){role="doc-backlink"},[2](#id5){role="doc-backlink"})]{.backrefs}
+[([1](#id7){role="doc-backlink"},[2](#id8){role="doc-backlink"})]{.backrefs}
 
 Siddharth Dangwal, Tina Oberoi, Ajay Sailopal, Dhirpal Shah, Frederic T.
 Chong, *Noisy Quantum Simulation Using Tracking, Uncomputation and

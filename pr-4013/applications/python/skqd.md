@@ -1044,11 +1044,7 @@ pr-4013
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1774,7 +1770,8 @@ pr-4013
                 Types](../../api/ptsbe_api.html#trajectory-and-selection-types){.reference
                 .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
-    -   [PTSBE](../../using/ptsbe.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](../../using/ptsbe.html){.reference .internal}
         -   [Conceptual
             Overview](../../using/ptsbe.html#conceptual-overview){.reference
             .internal}
@@ -2383,7 +2380,7 @@ and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
 
-![83a84d7e358b48fb9103bd2194a097bb](../../_images/speedup.png){.no-scaled-link
+![23c898b343ca4bb2a481b3e94a70c52f](../../_images/speedup.png){.no-scaled-link
 style="width: 600px;"}
 
 ::: {.nbinput .docutils .container}

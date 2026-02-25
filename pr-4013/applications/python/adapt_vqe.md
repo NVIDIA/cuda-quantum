@@ -1037,11 +1037,7 @@ pr-4013
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1767,7 +1763,8 @@ pr-4013
                 Types](../../api/ptsbe_api.html#trajectory-and-selection-types){.reference
                 .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
-    -   [PTSBE](../../using/ptsbe.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](../../using/ptsbe.html){.reference .internal}
         -   [Conceptual
             Overview](../../using/ptsbe.html#conceptual-overview){.reference
             .internal}
@@ -1896,7 +1893,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![19521f5c47e9464bafcf619ccbd1fa10](../../_images/adapt-vqe.png){.no-scaled-link
+![3600180964314e4c99915792a7498c4f](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>

@@ -1053,11 +1053,7 @@ pr-4013
             -   [Setting
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1772,7 +1768,8 @@ pr-4013
                 Types](../../api/ptsbe_api.html#trajectory-and-selection-types){.reference
                 .internal}
 -   [User Guide](../user_guide.html){.reference .internal}
-    -   [PTSBE](../ptsbe.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](../ptsbe.html){.reference .internal}
         -   [Conceptual
             Overview](../ptsbe.html#conceptual-overview){.reference
             .internal}

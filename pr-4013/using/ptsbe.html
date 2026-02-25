@@ -659,8 +659,7 @@
 <li class="toctree-l2"><a class="reference internal" href="backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1016,7 +1015,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="user_guide.html">   User Guide</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">PTSBE</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#conceptual-overview">Conceptual Overview</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#when-to-use-ptsbe">When to Use PTSBE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quick-start">Quick Start</a></li>
@@ -1069,13 +1068,26 @@
   <section id="noisy-simulation-with-ptsbe">
 <h1>Noisy Simulation with PTSBE<a class="headerlink" href="#noisy-simulation-with-ptsbe" title="Permalink to this heading">¶</a></h1>
 <p id="ptsbe">Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method
-for sampling noisy quantum circuits. Instead of propagating a full density
-matrix and measuring once per shot, PTSBE <em>pre-samples</em> a set of noise
+for sampling noisy quantum circuits <a class="reference internal" href="#patti2025" id="id1"><span>[Patti2025]</span></a>. It is a powerful generalization of the
+trajectories methods for noisy quantum systems that stochastically samples
+noise operators from a noisy quantum circuit and then subsequently builds
+and samples from the corresponding pseudo-coherent quantum states rather than sampling from
+the full density matrix of a system, as this is quadratically larger than
+each pseudo-coherent quantum statevector <a class="reference internal" href="#carmichael2007" id="id2"><span>[Carmichael2007]</span></a>. While these trajectory methods
+can be much more efficient than constructing and sampling from full density
+matrices, they traditionally sampled only one shot per constructed state.
+In contrast, PTSBE <em>pre-samples</em> a set of noise
 realizations (trajectories) from the circuit’s noise model and then <em>batches</em>
-circuit executions by unique trajectory. Each trajectory executes as a pure
-state simulation, so PTSBE achieves density-matrix accuracy at a fraction of
-the cost when the number of unique trajectories is much smaller than the total
-shot count <a class="reference internal" href="#patti2025" id="id1"><span>[Patti2025]</span></a>.</p>
+circuit executions by unique trajectory <a class="reference internal" href="#patti2025" id="id3"><span>[Patti2025]</span></a>. As the noise pre-sampling and state post-sampling
+are tasks with only low-degree polynomial complexity, while the state construction
+is, in general, of exponential complexity, PTSBE allows us to gather noisy quantum data
+orders of magnitude quicker than traditional trajectory sampling methods by allowing finely-tuned
+batched sampling. PTSBE can be used to capture millions of times more noisy shot data, which can
+then be used as e.g., training data in ML tasks such as AI decoders, or it can be deployed proportionally,
+capturing the exact statistics of the problem while still offering a considerable speedup. In particular,
+PTSBE achieves traditional trajectory formalism accuracy at a fraction of
+the computational cost when the number of unique trajectories (errors) is much smaller than the total
+shot count <a class="reference internal" href="#patti2025" id="id4"><span>[Patti2025]</span></a>.</p>
 <section id="conceptual-overview">
 <h2>Conceptual Overview<a class="headerlink" href="#conceptual-overview" title="Permalink to this heading">¶</a></h2>
 <p>A quantum circuit subject to noise can be described by a set of Kraus operators
@@ -1128,12 +1140,10 @@ count <em>N</em>.</p>
 manageable.</p></li>
 <li><p>A <strong>large shot count</strong> is required (1 000 – 1 000 000+) so the reuse of
 trajectories provides a significant speed-up.</p></li>
-<li><p>The noise channels are <strong>unitary mixtures</strong> (Pauli-type, depolarizing, etc.),
-where each Kraus operator fires with a fixed probability <em>pᵢ</em> independent of
-the quantum state. General state-dependent Kraus channels are supported, but
-the trajectory-reuse benefit is greatest for unitary mixtures.</p></li>
+<li><p>The shots are intended for a data-hungry downstream task that is not necessarily
+inhibited by correlated sampling, such as training AI models</p></li>
 </ul>
-<p>Benchmarks from the original paper <a class="reference internal" href="#patti2025" id="id2"><span>[Patti2025]</span></a> illustrate the potential
+<p>Benchmarks from the original paper <a class="reference internal" href="#patti2025" id="id5"><span>[Patti2025]</span></a> illustrate the potential
 speed-ups:</p>
 <ul class="simple">
 <li><p><strong>35-qubit</strong> statevector simulation (magic state distillation): up to
@@ -1144,7 +1154,7 @@ speedup, producing one million shots.</p></li>
 </ul>
 <p>PTSBE is particularly well-suited for generating large synthetic datasets of
 noisy measurement outcomes, such as training data for machine-learning–based
-quantum error correction (QEC) decoders <a class="reference internal" href="#patti2025" id="id3"><span>[Patti2025]</span></a>.</p>
+quantum error correction (QEC) decoders <a class="reference internal" href="#patti2025" id="id6"><span>[Patti2025]</span></a>.</p>
 <p>PTSBE requires:</p>
 <ul class="simple">
 <li><p>A <strong>static circuit</strong> — no mid-circuit measurements or
@@ -1568,7 +1578,7 @@ qubit count limits.</p>
 </section>
 <section id="related-approaches">
 <h2>Related Approaches<a class="headerlink" href="#related-approaches" title="Permalink to this heading">¶</a></h2>
-<p>TUSQ <a class="reference internal" href="#dangwal2025" id="id4"><span>[Dangwal2025]</span></a> is an alternative noisy-simulation framework addressing
+<p>TUSQ <a class="reference internal" href="#dangwal2025" id="id7"><span>[Dangwal2025]</span></a> is an alternative noisy-simulation framework addressing
 the same problem with a complementary set of techniques:</p>
 <ul class="simple">
 <li><p><strong>Error Realization (ER) Tallying</strong>: Samples noise channels once to identify
@@ -1585,24 +1595,30 @@ circuit — achieving computation reuse with zero extra memory overhead.</p></li
 </ul>
 <p>TUSQ reports an average speedup of 52.5× over Qiskit and 12.53× over CUDA-Q
 (up to 30 qubits), with peak gains of 7878× and 439× respectively on larger
-benchmarks <a class="reference internal" href="#dangwal2025" id="id5"><span>[Dangwal2025]</span></a>.</p>
+benchmarks <a class="reference internal" href="#dangwal2025" id="id8"><span>[Dangwal2025]</span></a>.</p>
 </section>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Permalink to this heading">¶</a></h2>
 <div role="list" class="citation-list">
+<div class="citation" id="carmichael2007" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">Carmichael2007</a><span class="fn-bracket">]</span></span>
+<p>Carmichael, H. J. <em>Quantum jumps revisited: An overview of quantum trajectory theory.</em> Quantum Future From Volta and
+Como to the Present and Beyond: Proceedings of the Xth Max Born Symposium Held in Przesieka, Poland, 24–27 September 1997. Berlin,
+Heidelberg: Springer Berlin Heidelberg, 2007.
+<a class="reference external" href="https://link.springer.com/chapter/10.1007/bfb0105336">https://link.springer.com/chapter/10.1007/bfb0105336</a></p>
+</div>
 <div class="citation" id="patti2025" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>Patti2025<span class="fn-bracket">]</span></span>
-<span class="backrefs">(<a role="doc-backlink" href="#id1">1</a>,<a role="doc-backlink" href="#id2">2</a>,<a role="doc-backlink" href="#id3">3</a>)</span>
+<span class="backrefs">(<a role="doc-backlink" href="#id1">1</a>,<a role="doc-backlink" href="#id3">2</a>,<a role="doc-backlink" href="#id4">3</a>,<a role="doc-backlink" href="#id5">4</a>,<a role="doc-backlink" href="#id6">5</a>)</span>
 <p>Taylor L. Patti, Thien Nguyen, Justin G. Lietz,
 Alexander J. McCaskey, Brucek Khailany,
-<em>Augmenting Simulated Noisy Quantum Data Collection by Orders of Magnitude
-Using Pre-Trajectory Sampling with Batched Execution</em>,
-arXiv:2504.16297 (2025).
-https://arxiv.org/abs/2504.16297</p>
+<em>Augmenting Simulated Noisy Quantum Data Collection by Orders of Magnitude Using Pre-Trajectory Sampling with Batched Execution.</em>
+Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis. 2025.
+<a class="reference external" href="https://dl.acm.org/doi/full/10.1145/3712285.3759871">https://dl.acm.org/doi/full/10.1145/3712285.3759871</a></p>
 </div>
 <div class="citation" id="dangwal2025" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>Dangwal2025<span class="fn-bracket">]</span></span>
-<span class="backrefs">(<a role="doc-backlink" href="#id4">1</a>,<a role="doc-backlink" href="#id5">2</a>)</span>
+<span class="backrefs">(<a role="doc-backlink" href="#id7">1</a>,<a role="doc-backlink" href="#id8">2</a>)</span>
 <p>Siddharth Dangwal, Tina Oberoi, Ajay Sailopal,
 Dhirpal Shah, Frederic T. Chong,
 <em>Noisy Quantum Simulation Using Tracking, Uncomputation and Sampling</em>,

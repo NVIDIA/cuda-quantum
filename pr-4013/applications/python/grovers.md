@@ -1044,11 +1044,7 @@ pr-4013
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1774,7 +1770,8 @@ pr-4013
                 Types](../../api/ptsbe_api.html#trajectory-and-selection-types){.reference
                 .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
-    -   [PTSBE](../../using/ptsbe.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](../../using/ptsbe.html){.reference .internal}
         -   [Conceptual
             Overview](../../using/ptsbe.html#conceptual-overview){.reference
             .internal}
@@ -2121,7 +2118,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![5ae109698a6b4957a19db4d5b0c3795d](../../_images/grovers-2D-plane.png)
+![9ab2f6fa120b4e3292404c638fe29df9](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2336,7 +2333,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![6e75ef544b444bdc96063ff395978abd](../../_images/grovers-steps1-3.png)
+![d526150211fc423ea100ed38da660e00](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2348,7 +2345,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![10d3df67cbc64c28929fcbdec9208fb6](../../_images/grovers-full-rotation.png)
+![3feb1e538a7341b78f406844cd49e055](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's
