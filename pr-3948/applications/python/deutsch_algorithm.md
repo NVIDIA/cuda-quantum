@@ -1872,7 +1872,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![a18922b587944980b073cf1793a69392](../../_images/oracle.png){.no-scaled-link
+![d9f11a876b3c4ecea0fa895a880f8a26](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -1978,7 +1978,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![9064a4a9798542269b2fc25e576efe4f](../../_images/deutsch.png){.no-scaled-link
+![d5c3630afe234c81ae0affc1a1ed36c1](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}
