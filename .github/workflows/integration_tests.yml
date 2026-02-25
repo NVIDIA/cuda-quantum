@@ -381,8 +381,19 @@ jobs:
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
               echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"
-              response=$(curl -sS -w "%{http_code}" -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' -o /dev/null)
-              if [ "$response" != "200" ]; then
+              response=$(
+                curl -sS -w "%{http_code}" \
+                  -c ~/.quantinuum_cookies.txt \
+                  -X POST https://nexus.quantinuum.com/auth/login \
+                  -H "Content-Type: application/json" \
+                  -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' \
+                  -o /dev/null
+              ) || {
+                echo "::error::Quantinuum login request failed (curl error)"
+                exit 1
+              }
+
+              if [ "$response" -ne 200 ]; then
                 echo "::error::Quantinuum login failed with HTTP $response"
                 exit 1
               fi
