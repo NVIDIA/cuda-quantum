@@ -525,3 +525,18 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalExactTotal) {
     EXPECT_EQ(total, shots) << "Total mismatch for shots=" << shots;
   }
 }
+
+// Calling allocateShots twice on the same trajectories should not accumulate
+CUDAQ_TEST(ShotAllocationTest, DoubleAllocationDoesNotAccumulate) {
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.7, 0, 7),
+                                               makeTrajectory(1, 0.3, 0, 3)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 100, strategy);
+  allocateShots(trajectories, 100, strategy);
+
+  std::size_t total = 0;
+  for (const auto &t : trajectories)
+    total += t.num_shots;
+  EXPECT_EQ(total, 100u);
+}

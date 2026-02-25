@@ -134,6 +134,9 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
                    std::size_t total_shots,
                    const ShotAllocationStrategy &strategy) {
 
+  for (auto &traj : trajectories)
+    traj.num_shots = 0;
+
   if (trajectories.empty()) {
     throw std::invalid_argument(
         "Cannot allocate shots to empty trajectory list");
