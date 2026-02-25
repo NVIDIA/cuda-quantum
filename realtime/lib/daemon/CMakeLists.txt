@@ -13,6 +13,7 @@
 # and includes the GPU dispatch kernel device code.
 
 if(CUDA_FOUND)
+  set(CMAKE_INSTALL_LIBDIR lib)
   set(CUDAQ_REALTIME_SOURCES
     dispatcher/cudaq_realtime_api.cpp
   )

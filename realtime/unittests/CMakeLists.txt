@@ -18,6 +18,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF)
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
