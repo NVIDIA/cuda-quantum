@@ -697,10 +697,7 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 // kernel, which calls this function. The trap should explain the issue to the
 // user and about the kernel when executed.
 void __quantum__qis__trap(std::int64_t code) {
-  nvqir::getCircuitSimulatorInternal()->endExecution();
-  if (auto *ctx = cudaq::getExecutionContext())
-    if (auto *manager = ctx->executionManager)
-      manager->endExecution();
+  cudaq::get_platform().endExecution();
 
   if (code == 0) {
     CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
