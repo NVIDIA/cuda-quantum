@@ -113,7 +113,7 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     CUDAQ_INFO("Attached payload {}", qioPayload);
 
     std::string qioParams =
-        serializeParametersToQio(shots, circuitCode.output_names.dump());
+        serializeParametersToQio(shots, "");
     CUDAQ_INFO("Attached parameters {}", qioParams);
 
     auto model = m_qaasClient->createModel(qioPayload);
@@ -123,6 +123,8 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     taskRequest["session_id"] = m_sessionId;
     taskRequest["name"] = circuitCode.name;
     taskRequest["parameters"] = qioParams;
+
+    m_outputNames[model.id] = circuitCode.output_names.dump();
 
     tasks.push_back(taskRequest);
   }
@@ -195,15 +197,19 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
 
   try {
-    auto job = m_qaasClient->getJob(jobId);
+    // auto job = m_qaasClient->getJob(jobId);
 
-    auto jsonParameters = json::parse(job.parameters);
+    // auto jsonParameters = json::parse(job.parameters);
 
-    auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
+    // auto params = qio::QuantumComputationParameters::fromJson(jsonParameters);
 
-    auto options = params.options();
+    auto model_id = postJobResponse["model_id"].get<std::string>()
 
-    auto outputNamesStr = options["output_names"].get<std::string>();
+    auto outputNamesStr = m_outputNames[model_id];
+
+    // auto options = params.options();
+
+    // auto outputNamesStr = options["output_names"].get<std::string>();
 
     auto outputNamesJson = json::parse(outputNamesStr);
 

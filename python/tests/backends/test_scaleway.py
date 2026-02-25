@@ -497,21 +497,6 @@ def test_exp_pauli():
     assert not "01" in counts
     assert not "10" in counts
 
-
-# TODO: Not yet supported
-# def test_toffoli():
-#     @cudaq.kernel
-#     def kernel():
-#         q = cudaq.qvector(3)
-#         x(q)
-#         x.ctrl([q[0], q[1]], q[2])
-#         mz(q)
-
-#     counts = cudaq.sample(kernel)
-#     counts.dump()
-#     assert "110" in counts
-#     assert len(counts) == 1
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

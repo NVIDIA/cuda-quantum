@@ -48,9 +48,6 @@ public:
   virtual std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
-  void setOutputNames(const std::string &taskId,
-                      const std::string &output_names);
-
 protected:
   /// @brief Convenient function to ensure at least one QPU Session is alive
   /// before sending any jobs against.
@@ -66,6 +63,7 @@ private:
   std::string m_sessionName = "";
   std::string m_sessionMaxDuration = "";
   std::string m_sessionMaxIdleDuration = "";
+  std::map<std::string, std::string> m_outputNames = {};
 };
 
 } // namespace cudaq
