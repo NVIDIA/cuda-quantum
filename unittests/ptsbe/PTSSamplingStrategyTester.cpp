@@ -792,6 +792,23 @@ TEST(PTSSamplingStrategyTest, ClonePolymorphism) {
   EXPECT_GT(trajectories.size(), 0);
 }
 
+TEST(PTSSamplingStrategyTest, ComputeTotalTrajectoriesSkipsEmptyChannel) {
+  NoisePoint np_empty;
+  np_empty.circuit_location = 0;
+  np_empty.qubits = {0};
+  np_empty.op_name = "h";
+  // Default-constructed channel has size 0
+
+  NoisePoint np_real;
+  np_real.circuit_location = 1;
+  np_real.qubits = {0};
+  np_real.op_name = "x";
+  np_real.channel = cudaq::bit_flip_channel(0.1);
+
+  std::vector<NoisePoint> noise_points = {np_empty, np_real};
+  EXPECT_EQ(computeTotalTrajectories(noise_points), 2u);
+}
+
 TEST(NoisePointTest, IsUnitaryMixture) {
   NoisePoint np;
   np.channel = makeIXYChannel(0.7, 0.2, 0.1);
