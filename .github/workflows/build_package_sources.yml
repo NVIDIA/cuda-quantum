@@ -70,13 +70,13 @@ jobs:
         run: |
           cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
           if [ "${{ matrix.release }}" = "cudaq" ]; then
-            echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
-            echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" >> $GITHUB_OUTPUT
+            echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" | tee -a $GITHUB_OUTPUT
+            echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
           else
             # cudaqx: devcontainer base, cudaqx target
             cu_tag=$(echo "${{ matrix.cuda }}" | tr -d .)
-            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-gcc11-main" >> $GITHUB_OUTPUT
-            echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" >> $GITHUB_OUTPUT
+            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-gcc11-main" | tee -a $GITHUB_OUTPUT
+            echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Log in to container registries
@@ -195,14 +195,13 @@ jobs:
           retention-days: 7
 
   build-source-image:
-    name: Build source image (CUDA ${{ matrix.cuda }})
+    name: Build source image CUDA ${{ matrix.cuda }}
     needs: diff-packages-cudaq
     runs-on: linux-amd64-cpu32
     strategy:
       fail-fast: false
       matrix:
-        cuda: ['12.6']
-        release: ['cudaq']
+        cuda: ['12.6', '13.0']
     permissions:
       contents: read
       packages: write
@@ -258,7 +257,7 @@ jobs:
           context: .
           file: docker/build/package_sources.Dockerfile
           build-args: |
-            base_image=${{ needs.diff-packages-cudaq.outputs.base_image }}
+            base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04
           load: true
           tags: package-sources:latest
           outputs: type=docker,dest=/tmp/package-sources.tar
