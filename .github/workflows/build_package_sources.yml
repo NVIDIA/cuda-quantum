@@ -98,6 +98,28 @@ jobs:
             "${{ steps.images.outputs.target_image }}" \
             package-source-diff
 
+      - name: Package diff step summary
+        run: |
+          echo "## Diffed packages (target vs base)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Apt packages added" >> $GITHUB_STEP_SUMMARY
+          if [ -s package-source-diff/apt_packages.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat package-source-diff/apt_packages.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "_None_" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pip packages added" >> $GITHUB_STEP_SUMMARY
+          if [ -s package-source-diff/pip_packages.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat package-source-diff/pip_packages.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "_None_" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Upload package lists
         uses: actions/upload-artifact@v4
         with:
@@ -159,6 +181,9 @@ jobs:
           fi
           echo "Installing $whl"
           pip install "$whl"
+          # Capture package name (PEP 427: name-version-...); normalize to pip form (dashes)
+          installed_pkg=$(basename "$whl" .whl | sed -E 's/-[0-9]+\.[0-9]+(\.[0-9]+)?.*//' | tr '_' '-')
+          echo "$installed_pkg" > installed_wheel_package.txt
 
       - name: Capture pip packages (after)
         run: |
@@ -168,9 +193,14 @@ jobs:
       - name: Diff added pip packages
         id: diff
         run: |
+          exclude_pkg=''
+          [ -f installed_wheel_package.txt ] && exclude_pkg=$(cat installed_wheel_package.txt)
           awk -F'==' '{print $1}' pip_before.txt | sort -u > pip_before_names.txt
           while IFS= read -r line; do
             pkg="${line%%==*}"
+            if [ -n "$exclude_pkg" ] && [ "$pkg" = "$exclude_pkg" ]; then
+              continue
+            fi
             if ! grep -qxF "$pkg" pip_before_names.txt 2>/dev/null; then
               echo "$line"
             fi
