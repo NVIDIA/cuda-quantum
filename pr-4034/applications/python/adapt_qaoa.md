@@ -1827,7 +1827,7 @@ explained above.
 
 <div>
 
-![a33e59ef679746f68db509a352b49106](../../_images/adapt-qaoa.png){.no-scaled-link
+![0c251c3373d744c7ade523a7e044837a](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
