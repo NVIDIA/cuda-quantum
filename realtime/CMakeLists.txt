@@ -76,8 +76,13 @@ endfunction()
 
 if(CMAKE_CUDA_COMPILER)
   if (NOT CUDA_TARGET_ARCHS)
-    # Ampere, Hopper
-    set(CUDA_TARGET_ARCHS  "80;90")
+    if (CUDAToolkit_VERSION VERSION_LESS 13.0)
+      # Ampere, Hopper
+      set(CUDA_TARGET_ARCHS  "80;90")
+    else()
+      # Ampere, Hopper, Blackwell
+      set(CUDA_TARGET_ARCHS  "80;90;100")
+    endif()
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")
@@ -94,6 +99,9 @@ endif()
 # ==============================================================================
 
 find_package(Threads REQUIRED)
+
+# Enable static linking of the C++ standard library to avoid dependency issues when distributing the library.
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 add_subdirectory(lib)
 

@@ -109,3 +109,5 @@ makeself $makeself_args \
 echo ""
 echo "Done! Installer created: $output_dir/$installer_name"
 echo "To install: bash $output_dir/$installer_name --accept"
+
+# TODO: add uninstall script
