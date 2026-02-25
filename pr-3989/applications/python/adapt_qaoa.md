@@ -1024,11 +1024,7 @@ pr-3989
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1827,7 +1823,7 @@ explained above.
 
 <div>
 
-![61b9cdfd29954dd3b3a898044e1e8ab4](../../_images/adapt-qaoa.png){.no-scaled-link
+![8e1045eafe044eb9b737daf243c1fe51](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

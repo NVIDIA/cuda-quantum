@@ -1065,11 +1065,7 @@ pr-3989
             -   [Setting
                 Credentials](../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../using/dynamics.html){.reference .internal}
     -   [Quick Start](../using/dynamics.html#quick-start){.reference

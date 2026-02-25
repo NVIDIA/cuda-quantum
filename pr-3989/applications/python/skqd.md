@@ -1023,11 +1023,7 @@ pr-3989
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -2282,7 +2278,7 @@ and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
 
-![cdc0c07b066b43b98bb41dd018c10125](../../_images/speedup.png){.no-scaled-link
+![2d5745e91748422a87a92c15cf3c346c](../../_images/speedup.png){.no-scaled-link
 style="width: 600px;"}
 
 ::: {.nbinput .docutils .container}
