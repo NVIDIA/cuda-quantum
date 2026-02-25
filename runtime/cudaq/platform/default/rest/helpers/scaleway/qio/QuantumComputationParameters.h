@@ -13,17 +13,13 @@
 namespace cudaq::qio {
 class QuantumComputationParameters {
 public:
-  explicit QuantumComputationParameters(std::size_t shots,
-                                        nlohmann::json options);
+  explicit QuantumComputationParameters(std::size_t shots);
 
   nlohmann::json toJson() const;
 
   static QuantumComputationParameters fromJson(nlohmann::json json);
 
-  nlohmann::json options();
-
 private:
   std::size_t m_shots;
-  nlohmann::json m_options;
 };
 } // namespace cudaq::qio
