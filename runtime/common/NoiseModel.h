@@ -1063,7 +1063,7 @@ public:
   constexpr static std::size_t num_parameters = 1;
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
-  depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
+  depolarization2(const std::vector<cudaq::real> &p) : kraus_channel() {
     auto probability = p[0];
     if (probability < 0.0 || probability > 1.0)
       throw std::runtime_error(
