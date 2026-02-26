@@ -236,8 +236,16 @@ protected:
 
   void applyNoise(const kraus_channel &channel,
                   const std::vector<QuditInfo> &targets) override {
-    if (isInTracerMode())
+    if (isInTracerMode()) {
+      auto *ctx = cudaq::getExecutionContext();
+      if (ctx) {
+        std::intptr_t key = static_cast<std::intptr_t>(
+            std::hash<std::string>{}(channel.get_type_name()));
+        ctx->kernelTrace.appendNoiseInstruction(key, channel.parameters, {},
+                                                targets);
+      }
       return;
+    }
 
     flushGateQueue();
 
