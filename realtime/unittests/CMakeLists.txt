@@ -73,6 +73,9 @@ if(CMAKE_CUDA_COMPILER)
   )
   
   message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
+
+  # Test local GPU dispatch kernel (implementing the bridge interface)
+  add_subdirectory(bridge_interface/external)
 endif()
 
 # ==============================================================================
@@ -81,4 +84,5 @@ endif()
 
 if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
   add_subdirectory(utils)
+  add_subdirectory(bridge_interface/hololink)
 endif()
