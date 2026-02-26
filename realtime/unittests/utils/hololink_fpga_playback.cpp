@@ -369,16 +369,25 @@ std::uint32_t ila_sample_count(hololink::Hololink &hl) {
 std::vector<std::vector<std::uint32_t>> ila_dump(hololink::Hololink &hl,
                                                  std::uint32_t num_samples) {
   constexpr std::uint32_t ctrl_switch = 1u << (ILA_W_ADDR + 2 + ILA_W_RAM);
+  // Max entries per block read: (1472 - 6 byte header) / 8 bytes per entry.
+  // Use 128 for comfortable margin on both request and reply packets.
+  constexpr std::uint32_t kChunkSize = 128;
   auto timeout = hololink::Timeout::default_timeout();
 
   std::vector<std::vector<std::uint32_t>> bank_data(ILA_NUM_RAM);
   for (std::uint32_t y = 0; y < ILA_NUM_RAM; ++y) {
     std::uint32_t bank_base =
         ILA_BASE_ADDR + ctrl_switch + (y << (ILA_W_ADDR + 2));
-    auto [ok, data] = hl.read_uint32(bank_base, num_samples, timeout);
-    if (!ok)
-      throw std::runtime_error("Failed to read ILA bank " + std::to_string(y));
-    bank_data[y] = std::move(data);
+    bank_data[y].reserve(num_samples);
+    for (std::uint32_t off = 0; off < num_samples; off += kChunkSize) {
+      std::uint32_t n = std::min(kChunkSize, num_samples - off);
+      auto [ok, data] =
+          hl.read_uint32(bank_base + off * 4, n, timeout);
+      if (!ok)
+        throw std::runtime_error("Failed to read ILA bank " +
+                                 std::to_string(y));
+      bank_data[y].insert(bank_data[y].end(), data.begin(), data.end());
+    }
   }
 
   std::vector<std::vector<std::uint32_t>> samples(
@@ -500,8 +509,6 @@ int main(int argc, char *argv[]) {
   if (!args.emulator) {
     hololink->reset();
   }
-
-  hololink->set_block_enable(false);
 
   // ------------------------------------------------------------------
   // Configure FPGA SIF for RDMA target

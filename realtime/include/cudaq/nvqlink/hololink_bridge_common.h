@@ -466,9 +466,6 @@ inline int bridge_run(BridgeConfig &config) {
   if (hololink_thread.joinable())
     hololink_thread.join();
 
-  uint64_t tx_sent = hololink_get_tx_packet_count(transceiver);
-  std::cout << "  Total packets sent (hololink TX): " << tx_sent << std::endl;
-
   cudaq_dispatcher_destroy(dispatcher);
   cudaq_dispatch_manager_destroy(manager);
   hololink_destroy_transceiver(transceiver);

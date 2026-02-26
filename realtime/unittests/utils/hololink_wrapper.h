@@ -118,12 +118,6 @@ void *hololink_get_tx_ring_data_addr(hololink_transceiver_t handle);
 /** Get device pointer to TX ring flag array. */
 uint64_t *hololink_get_tx_ring_flag_addr(hololink_transceiver_t handle);
 
-/** Get host-accessible pointer to TX ring flag array. */
-uint64_t *hololink_get_tx_ring_flag_host_addr(hololink_transceiver_t handle);
-
-/** Get host-accessible pointer to RX ring flag array. */
-uint64_t *hololink_get_rx_ring_flag_host_addr(hololink_transceiver_t handle);
-
 /** Force eager CUDA module loading by querying kernel occupancy.
  *  Call before launching any persistent kernels.
  *  Returns true on success (all kernels valid). */
@@ -134,9 +128,6 @@ size_t hololink_get_page_size(hololink_transceiver_t handle);
 
 /** Get the number of pages (slots) configured for this transceiver. */
 unsigned hololink_get_num_pages(hololink_transceiver_t handle);
-
-/** Get the total number of packets sent by the TX kernel. */
-uint64_t hololink_get_tx_packet_count(hololink_transceiver_t handle);
 
 #ifdef __cplusplus
 }

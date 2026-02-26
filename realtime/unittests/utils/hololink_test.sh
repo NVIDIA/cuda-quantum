@@ -45,7 +45,7 @@ DO_RUN=true
 VERIFY=true
 
 # Directory defaults
-HOLOLINK_DIR="/workspaces/cuda-qx/hololink"
+HOLOLINK_DIR="/workspaces/hololink"
 CUDA_QUANTUM_DIR="/workspaces/cuda-quantum"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -200,7 +200,7 @@ do_build() {
     echo "--- Building hololink ($target_arch) ---"
     cmake -G Ninja -S "$HOLOLINK_DIR" -B "$hololink_build" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DTARGETARCH="$target_arch" \
+        -DTARGET_ARCH="$target_arch" \
         -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
         -DHOLOLINK_BUILD_PYTHON=OFF \
         -DHOLOLINK_BUILD_TESTS=OFF \
