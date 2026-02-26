@@ -52,6 +52,23 @@ kDynamicPtrIndex: int = -2147483648
 ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, qview]
 
 
+def _get_qualified_name(node) -> str | None:
+    """Return the dotted name of a decorator AST node (e.g. "cudaq.kernel"),
+    stripping through any `ast.Call` wrapper.  Returns `None` for unrecognized
+    forms."""
+    parts = []
+    while isinstance(node, (ast.Call, ast.Attribute)):
+        if isinstance(node, ast.Call):
+            node = node.func
+        else:
+            parts.append(node.attr)
+            node = node.value
+    if isinstance(node, ast.Name):
+        parts.append(node.id)
+        return '.'.join(reversed(parts))
+    return None
+
+
 class PyScopedSymbolTable(object):
 
     class Scope(object):
@@ -1697,6 +1714,12 @@ class PyASTBridge(ast.NodeVisitor):
         """
 
         if self.buildingFunctionBody:
+            for decorator in getattr(node, 'decorator_list', []):
+                if _get_qualified_name(decorator) in ('cudaq.kernel', 'kernel'):
+                    self.emitFatalError(
+                        "nested @cudaq.kernel definitions are not allowed",
+                        node)
+
             # This is an inner function def, we will treat it as a cc.callable
             # (cc.create_lambda)
             self.debug_msg(lambda: f'Visiting inner FunctionDef {node.name}')

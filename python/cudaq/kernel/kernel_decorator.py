@@ -525,7 +525,7 @@ class PyKernelDecorator(object):
         """
         Resolve the arguments passed to the decorator at call site.
         """
-        args= [
+        args = [
             self.process_argument(arg, arg_type)
             for arg, arg_type in zip(args, self.arg_types())
         ]
@@ -540,15 +540,23 @@ class PyKernelDecorator(object):
                     "Cannot partially reduce a python kernel! Must either provide all arguments or no arguments."
                 )
             [args.append(None) for k in range(actual, expected)]
-        
+
         return args
 
     def prepare_call(self, *args, allow_no_args=False):
         """
         Process call site arguments, capture lifted arguments and retrieve
         compiled module for kernel execution.
+
+        # Returns:
+
+        `processed_args` : list
+            The list of processed runtime arguments, including captured arguments, 
+        `module` : Module
+            A clone of the MLIR module to be used for kernel execution.
         """
-        processed_args = self.process_call_arguments(*args, allow_no_args=allow_no_args)
+        processed_args = self.process_call_arguments(
+            *args, allow_no_args=allow_no_args)
         # append captured arguments
         processed_args.extend(self.resolve_captured_arguments())
 
