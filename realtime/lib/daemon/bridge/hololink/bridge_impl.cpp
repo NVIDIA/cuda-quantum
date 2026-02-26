@@ -6,6 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/// @file bridge_impl.cpp
+/// @brief Hololink bridge interface implementation for libcudaq-realtime
+/// dispatch.
+
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 #include "cudaq/realtime/hololink_bridge_common.h"
@@ -31,31 +35,20 @@ struct HololinkBridgeContext {
     //============================================================================
     // [1] Initialize CUDA
     //============================================================================
-    std::cout << "\n[1/5] Initializing CUDA..." << std::endl;
     HANDLE_CUDA_ERROR(cudaSetDevice(config.gpu_id));
-
     cudaDeviceProp prop;
     HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, config.gpu_id));
-    std::cout << "  GPU: " << prop.name << std::endl;
 
     //============================================================================
     // [2] Create Hololink transceiver
     //============================================================================
-    std::cout << "\n[2/5] Creating Hololink transceiver..." << std::endl;
-
     // Ensure page_size >= frame_size
     if (config.page_size < config.frame_size) {
-      std::cout << "  Adjusting page_size from " << config.page_size << " to "
-                << config.frame_size << " to fit frame" << std::endl;
       config.page_size = config.frame_size;
     }
 
-    std::cout << "  Frame size: " << config.frame_size << " bytes" << std::endl;
-    std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
-    std::cout << "  Num pages: " << config.num_pages << std::endl;
-
     transceiver = hololink_create_transceiver(
-        config.device.c_str(), 1, // ib_port
+        config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
         config.frame_size, config.page_size, config.num_pages,
         "0.0.0.0", // deferred connection
         0,         // forward = false
@@ -80,17 +73,14 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
   // Frame size: RPCHeader + 256 bytes payload
   config.frame_size = sizeof(cudaq::realtime::RPCHeader) + 256;
 
-  std::cout << "Device: " << config.device << std::endl;
-  std::cout << "Peer IP: " << config.peer_ip << std::endl;
-  std::cout << "Remote QP: 0x" << std::hex << config.remote_qp << std::dec
-            << std::endl;
-  std::cout << "GPU: " << config.gpu_id << std::endl;
-
+  // Create and initialize the bridge context (including the Hololink
+  // transceiver)
   HololinkBridgeContext *ctx = new HololinkBridgeContext(config);
   if (!ctx) {
     std::cerr << "ERROR: Failed to create HololinkBridgeContext" << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
+  // Set the output handle to the created context (opaque to the caller)
   *handle = ctx;
 
   if (!ctx->transceiver) {
@@ -181,35 +171,25 @@ hololink_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
     remote_gid[11] = 0xff;
     inet_pton(AF_INET, ctx->config.peer_ip.c_str(), &remote_gid[12]);
 
-    std::cout << "  Connecting QP to remote QP 0x" << std::hex
-              << ctx->config.remote_qp << std::dec << " at "
-              << ctx->config.peer_ip << "..." << std::endl;
-
     if (!hololink_reconnect_qp(transceiver, remote_gid,
                                ctx->config.remote_qp)) {
       std::cerr << "ERROR: Failed to connect QP to remote peer" << std::endl;
       return CUDAQ_ERR_INTERNAL;
     }
-    std::cout << "  QP connected to remote peer" << std::endl;
   }
 
   uint32_t our_qp = hololink_get_qp_number(transceiver);
   uint32_t our_rkey = hololink_get_rkey(transceiver);
   uint64_t our_buffer = hololink_get_buffer_addr(transceiver);
 
-  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
-  std::cout << "  RKey: " << our_rkey << std::endl;
-  std::cout << "  Buffer Addr: 0x" << std::hex << our_buffer << std::dec
-            << std::endl;
-
   if (!hololink_query_kernel_occupancy()) {
     std::cerr << "ERROR: Hololink kernel occupancy query failed" << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
 
-  
-
-  // Print QP info for FPGA stimulus tool
+  // FIXME: Figure out a better way to share this info with the caller (e.g. via
+  // output params or context struct) rather than printing to stdout. Print QP
+  // info for FPGA stimulus tool
   std::cout << "\n=== Bridge Ready ===" << std::endl;
   std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
@@ -231,14 +211,10 @@ hololink_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
   //============================================================================
   // Launch Hololink kernels and run
   //============================================================================
-  std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
-
   ctx->hololink_thread = std::make_unique<std::thread>(
       [transceiver]() { hololink_blocking_monitor(transceiver); });
 
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  std::cout << "  Hololink RX+TX kernels started" << std::endl;
-
   return CUDAQ_OK;
 }
 

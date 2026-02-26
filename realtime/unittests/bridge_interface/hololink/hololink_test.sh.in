@@ -120,8 +120,8 @@ do_run() {
     IB_DEVICE=$(detect_ib_device)
   
     local bridge_bin="@CMAKE_CURRENT_BINARY_DIR@/hololink_app"
-    local emulator_bin="@CMAKE_CURRENT_BINARY_DIR@/hololink_fpga_emulator_app"
-    local playback_bin="@CMAKE_CURRENT_BINARY_DIR@/hololink_fpga_playback_app"
+    local emulator_bin="@HOLOLINK_EMULATOR_BIN@"
+    local playback_bin="@HOLOLINK_PLAYBACK_BIN@"
     
 
     PIDS=()
@@ -155,6 +155,7 @@ do_run() {
 
     # Start bridge
     echo "--- Starting bridge ---"
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+LD_LIBRARY_PATH:}@CMAKE_BINARY_DIR@/lib"
     "$bridge_bin" \
         --device="$IB_DEVICE" \
         --peer-ip="$FPGA_TARGET_IP" \

@@ -73,7 +73,6 @@ if(CMAKE_CUDA_COMPILER)
   )
   
   message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
-
 endif()
 
 # ==============================================================================

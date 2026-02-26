@@ -184,7 +184,9 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
     BUILD_RPATH "${DOCA_LIB_DIR}"
     INSTALL_RPATH "${DOCA_LIB_DIR}")
-
+  # Build output directory (/lib)
+  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
   install(TARGETS cudaq-realtime-bridge-hololink DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
   if (NOT GPU_ROCE_TRANSCEIVER_LIB)

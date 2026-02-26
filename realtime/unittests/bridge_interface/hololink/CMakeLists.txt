@@ -15,12 +15,12 @@
 # =========================================================================== #
 
 message(STATUS "Building hololink_bridge (generic increment)")
-find_library(IBVERBS_LIB NAMES ibverbs REQUIRED)
 
-
-  # Bridge executable (.cpp, linked with CUDA)
+# Demo application that uses the hololink bridge interface to implement a simple "increment" RPC function.
+# This is the same as the one in cuda-quantum/realtime/unittests/utils 
+# (which is implemented end-to-end without using the bridge pluggable interface).
 add_executable(hololink_app
-  hololink_bridge.cpp init_rpc_increment_function_table.cu)
+  hololink_bridge.cpp)
 
 set_target_properties(hololink_app PROPERTIES
   LINKER_LANGUAGE CUDA
@@ -33,38 +33,34 @@ target_include_directories(hololink_app
     ${CUDAQ_REALTIME_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS})
 
-# Link order: static archives first, then shared
 # Note: no direct dependency on hololink needed.
 target_link_libraries(hololink_app
   PRIVATE
     cudaq-realtime-dispatch
     cudaq-realtime)
 
-# =========================================================================== #
-# hololink_fpga_playback  (no GPU / DOCA dependency)
-# =========================================================================== #
+# Find the rpc_increment_ft target built (device code for the increment function table) and link it to the app.
+if (TARGET rpc_increment_ft)
+  add_dependencies(hololink_app rpc_increment_ft)
+  message(STATUS "  - rpc_increment_ft target found, linking to app")
+  target_link_libraries(hololink_app PRIVATE rpc_increment_ft)
+endif()
 
-add_executable(hololink_fpga_playback_app
-  hololink_fpga_playback.cpp)
+# Find the `hololink_fpga_emulator` and `hololink_fpga_playback` targets built by the utils/ CMakeLists.txt, and link them to the app for easy invocation.
+if (TARGET hololink_fpga_emulator)
+  add_dependencies(hololink_app hololink_fpga_emulator)
+  set(HOLOLINK_EMULATOR_BIN ${CMAKE_BINARY_DIR}/unittests/utils/hololink_fpga_emulator)
+else()
+  message(WARNING "hololink_fpga_emulator target not found. "
+                  "FPGA emulation will not be available for hololink_app.")
+endif()
+if (TARGET hololink_fpga_playback)
+  add_dependencies(hololink_app hololink_fpga_playback)
+  set(HOLOLINK_PLAYBACK_BIN ${CMAKE_BINARY_DIR}/unittests/utils/hololink_fpga_playback)
+else()
+  message(WARNING "hololink_fpga_playback target not found. "
+                  "FPGA playback will not be available for hololink_app.")
+endif()
 
-target_include_directories(hololink_fpga_playback_app
-  PRIVATE ${CUDAQ_REALTIME_INCLUDE_DIR})
-
-target_link_libraries(hololink_fpga_playback_app
-  PRIVATE Threads::Threads)
-
-# =========================================================================== #
-# hololink_fpga_emulator  (software FPGA, libibverbs only)
-# =========================================================================== #
-
-message(STATUS "Building hololink_fpga_emulator")
-
-add_executable(hololink_fpga_emulator_app
-  hololink_fpga_emulator.cpp)
-
-target_link_libraries(hololink_fpga_emulator_app
-  PRIVATE
-    ${IBVERBS_LIB}
-    Threads::Threads)
 
 configure_file(hololink_test.sh.in hololink_test.sh @ONLY)
