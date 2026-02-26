@@ -427,8 +427,6 @@ The ``cudaq.ptsbe`` submodule implements Pre-Trajectory Sampling with Batch
 Execution (PTSBE). For a conceptual overview and usage tutorial see
 :doc:`../../using/ptsbe`.
 
-.. |:spellcheck-disable:| replace:: \
-
 Sampling Functions
 -------------------
 
@@ -447,7 +445,7 @@ Sampling Functions
    :param kernel: The quantum kernel to execute. Must be a static circuit
        with no mid-circuit measurements or measurement-dependent conditional
        logic.
-   :param args: Positional arguments forwarded to the kernel.
+   :param `args`: Positional arguments forwarded to the kernel.
    :param int shots_count: Total number of measurement shots to distribute
        across all trajectories. Default: ``1000``.
    :param noise_model: Noise model describing gate-level error channels.
@@ -477,7 +475,7 @@ Sampling Functions
        results is returned.
    :rtype: :class:`cudaq.ptsbe.PTSBESampleResult`
 
-   :raises RuntimeError: If the kernel contains mid-circuit measurements,
+   :raises `RuntimeError`: If the kernel contains mid-circuit measurements,
        conditional feedback, unsupported noise channels, or invalid arguments.
 
    .. code-block:: python
@@ -830,5 +828,3 @@ Execution Data
 
       ``True`` if the selected Kraus operator is not the identity
       (i.e. an actual error occurred at this noise site).
-
-.. |:spellcheck-enable:| replace:: \

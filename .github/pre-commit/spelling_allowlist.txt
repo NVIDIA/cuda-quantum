@@ -1,5 +1,6 @@
 ABI
 AFQMC
+PTSBE
 API
 APIs
 AST
@@ -7,6 +8,8 @@ Aer
 AlmaLinux
 Anyon
 AquSim
+param
+tparam
 Asynchronous
 BFGS
 Bloch
