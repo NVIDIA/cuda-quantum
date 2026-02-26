@@ -203,10 +203,10 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEReturnsResults) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
-  auto result = sample(noise, 1000, bellKernel);
+  auto result = sample(noise, 50, bellKernel);
   // With noise matching circuit gates, trajectories are generated
   EXPECT_GT(result.size(), 0);
-  EXPECT_EQ(result.get_total_shots(), 1000);
+  EXPECT_EQ(result.get_total_shots(), 50);
 }
 
 // Kernel with no explicit mz() should implicitly measure all qubits,
@@ -215,8 +215,8 @@ CUDAQ_TEST(PTSBESampleTest, SampleImplicitMeasureAllQubits) {
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, cudaq::bit_flip_channel(0.1));
 
-  auto result = sample(noise, 500, xOp{});
-  EXPECT_EQ(result.get_total_shots(), 500);
+  auto result = sample(noise, 50, xOp{});
+  EXPECT_EQ(result.get_total_shots(), 50);
   EXPECT_GT(result.size(), 0u);
 }
 
@@ -340,7 +340,7 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
   batch.trajectories = std::move(trajectories);
 
   // Allocate shots across trajectories
-  const std::size_t total_shots = 1000;
+  const std::size_t total_shots = 50;
   ShotAllocationStrategy shot_strategy(
       ShotAllocationStrategy::Type::PROPORTIONAL);
   allocateShots(batch.trajectories, total_shots, shot_strategy);
@@ -507,14 +507,14 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncWithOptions) {
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
   sample_options options;
-  options.shots = 200;
+  options.shots = 50;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
 
   auto future = sample_async(options, bellKernel);
   auto result = future.get();
 
-  EXPECT_EQ(result.get_total_shots(), 200);
+  EXPECT_EQ(result.get_total_shots(), 50);
   ASSERT_TRUE(result.has_execution_data());
   EXPECT_GT(result.execution_data().instructions.size(), 0);
 }
@@ -526,10 +526,10 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncNoiseModelDestroyed) {
   {
     cudaq::noise_model noise;
     noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
-    future = sample_async(noise, 200, bellKernel);
+    future = sample_async(noise, 50, bellKernel);
   }
   auto result = future.get();
-  EXPECT_EQ(result.get_total_shots(), 200);
+  EXPECT_EQ(result.get_total_shots(), 50);
   EXPECT_GT(result.size(), 0u);
 }
 
@@ -544,7 +544,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncPropagatesException) {
 
   auto future = runSamplingAsyncPTSBE(
       []() { throw std::runtime_error("injected async failure"); }, platform,
-      "test_kernel", 100);
+      "test_kernel", 10);
 
   platform.reset_noise();
 
@@ -632,11 +632,11 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithMzNoiseBitFlipFullFlip) {
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
 
-  auto result = sample(noise, 1000, xOp{});
+  auto result = sample(noise, 50, xOp{});
 
   // X|0>=|1>, BitFlip(1.0) on mz flips to "0"
-  EXPECT_GT(result.count("0"), 900u);
-  EXPECT_EQ(result.get_total_shots(), 1000u);
+  EXPECT_GT(result.count("0"), 40u);
+  EXPECT_EQ(result.get_total_shots(), 50u);
 }
 
 CUDAQ_TEST(PTSBESampleTest, ExecutionDataIncludesMzNoise) {

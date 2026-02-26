@@ -159,7 +159,7 @@ protected:
     auto *executionContext = getExecutionContext();
     if (executionContext &&
         (executionContext->name == "sample" ||
-         executionContext->name == "ptsbe_sample") &&
+         executionContext->name == "ptsbe-sample") &&
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "msm")

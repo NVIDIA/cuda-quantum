@@ -78,11 +78,11 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 /// 5. Deallocates qubits and resets context
 ///
 /// @param batch PTSBE specification
-/// @param contextType ExecutionContext type (default: "ptsbe_sample").
+/// @param contextType ExecutionContext type (default: "ptsbe-sample").
 /// @return Per-trajectory sample results
 /// @throws std::runtime_error if simulator cast fails or gate conversion fails
 std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch,
-                         const std::string &contextType = "ptsbe_sample");
+                         const std::string &contextType = "ptsbe-sample");
 
 } // namespace cudaq::ptsbe

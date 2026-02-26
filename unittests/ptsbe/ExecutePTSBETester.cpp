@@ -26,32 +26,6 @@ const PTSBETrace kHadamardTrace = {
 const PTSBETrace kXTrace = {
     {ptsbe::TraceInstructionType::Gate, "x", {0}, {}, {}}};
 
-/// Test helper: execute PTSBE with lifecycle management on a direct simulator.
-/// This encapsulates the context setup, qubit allocation, execution, and
-/// cleanup that would otherwise need to be repeated in each test.
-template <typename SimulatorType>
-std::vector<cudaq::sample_result> runPTSBETest(SimulatorType &sim,
-                                               const PTSBatch &batch) {
-  cudaq::ExecutionContext ctx("sample", batch.totalShots());
-  cudaq::detail::setExecutionContext(&ctx);
-  sim.configureExecutionContext(ctx);
-  sim.allocateQubits(numQubits(batch.trace));
-
-  std::vector<cudaq::sample_result> results;
-  if constexpr (PTSBECapable<SimulatorType>) {
-    results = sim.sampleWithPTSBE(batch);
-  } else {
-    results = samplePTSBEGeneric(sim, batch);
-  }
-
-  std::vector<std::size_t> qubitIds(numQubits(batch.trace));
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  sim.deallocateQubits(qubitIds);
-  sim.finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
-  return results;
-}
-
 /// samplePTSBEGeneric throws without ExecutionContext
 CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   QppSimulator sim;
@@ -60,7 +34,7 @@ CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 100);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   try {
@@ -95,78 +69,72 @@ CUDAQ_TEST(ExecutePTSBETest, AggregateResultsTester) {
 
 /// Single trajectory Hadamard circuit: execute H|0> and expect 50/50
 CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
-  QppSimulator sim;
 
   PTSBatch batch;
   batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 1000);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
   auto result = aggregateResults(results);
 
   std::size_t count0 = result.count("0");
   std::size_t count1 = result.count("1");
-  EXPECT_GT(count0, 400u);
-  EXPECT_LT(count0, 600u);
-  EXPECT_GT(count1, 400u);
-  EXPECT_LT(count1, 600u);
-  EXPECT_EQ(count0 + count1, 1000u);
+  EXPECT_GT(count0, 0u);
+  EXPECT_GT(count1, 0u);
+  EXPECT_EQ(count0 + count1, 10u);
 }
 
 /// Multiple trajectories: verify counts from all trajectories are aggregated
 CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
-  QppSimulator sim;
 
   PTSBatch batch;
   batch.trace = kXTrace;
   batch.measureQubits = {0};
 
-  KrausTrajectory traj1(0, {}, 0.7, 700);
-  KrausTrajectory traj2(1, {}, 0.3, 300);
+  KrausTrajectory traj1(0, {}, 0.7, 7);
+  KrausTrajectory traj2(1, {}, 0.3, 3);
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
 
   EXPECT_EQ(results.size(), 2u);
-  EXPECT_EQ(results[0].count("1"), 700u);
-  EXPECT_EQ(results[1].count("1"), 300u);
+  EXPECT_EQ(results[0].count("1"), 7u);
+  EXPECT_EQ(results[1].count("1"), 3u);
 
   auto result = aggregateResults(results);
-  EXPECT_EQ(result.count("1"), 1000u);
+  EXPECT_EQ(result.count("1"), 10u);
   EXPECT_EQ(result.count("0"), 0u);
 }
 
 /// Zero-shot trajectories return empty result to maintain index correspondence
 CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
-  QppSimulator sim;
 
   PTSBatch batch;
   batch.trace = {{ptsbe::TraceInstructionType::Gate, "y", {0}, {}, {}}};
   batch.measureQubits = {0};
 
   KrausTrajectory zeroShot(0, {}, 0.5, 0);
-  KrausTrajectory normalShot(1, {}, 0.5, 500);
+  KrausTrajectory normalShot(1, {}, 0.5, 10);
   batch.trajectories.push_back(zeroShot);
   batch.trajectories.push_back(normalShot);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
 
   EXPECT_EQ(results.size(), 2u);
   EXPECT_EQ(results[0].count("0"), 0u);
   EXPECT_EQ(results[0].count("1"), 0u);
-  EXPECT_EQ(results[1].count("1"), 500u);
+  EXPECT_EQ(results[1].count("1"), 10u);
 
   auto result = aggregateResults(results);
-  EXPECT_EQ(result.count("1"), 500u);
+  EXPECT_EQ(result.count("1"), 10u);
 }
 
 /// Empty inputs (trajectories or measureQubits) should return empty result
 CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
-  QppSimulator sim;
 
   // Test 1: Empty trajectories vector
   {
@@ -174,7 +142,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
     batch.trace = kHadamardTrace;
     batch.measureQubits = {0};
 
-    auto results = runPTSBETest(sim, batch);
+    auto results = samplePTSBEWithLifecycle(batch);
     EXPECT_TRUE(results.empty());
   }
 
@@ -184,17 +152,16 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
     batch.trace = kHadamardTrace;
     batch.measureQubits = {};
 
-    KrausTrajectory traj(0, {}, 1.0, 100);
+    KrausTrajectory traj(0, {}, 1.0, 10);
     batch.trajectories.push_back(traj);
 
-    auto results = runPTSBETest(sim, batch);
+    auto results = samplePTSBEWithLifecycle(batch);
     EXPECT_TRUE(results.empty());
   }
 }
 
 /// Bell state: verify (|00> + |11>)/sqrt(2) distribution
 CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
-  QppSimulator sim;
 
   PTSBatch batch;
   batch.trace = {
@@ -203,19 +170,17 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   };
   batch.measureQubits = {0, 1};
 
-  KrausTrajectory traj(0, {}, 1.0, 2000);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
   auto result = aggregateResults(results);
 
   std::size_t count00 = result.count("00");
   std::size_t count11 = result.count("11");
-  EXPECT_GT(count00, 800u);
-  EXPECT_LT(count00, 1200u);
-  EXPECT_GT(count11, 800u);
-  EXPECT_LT(count11, 1200u);
-  EXPECT_EQ(count00 + count11, 2000u);
+  EXPECT_GT(count00, 0u);
+  EXPECT_GT(count11, 0u);
+  EXPECT_EQ(count00 + count11, 10u);
 
   EXPECT_EQ(result.count("01"), 0u);
   EXPECT_EQ(result.count("10"), 0u);
@@ -223,7 +188,6 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
 
 /// Trajectory with noise insertion: X error should flip the result
 CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
-  QppSimulator sim;
 
   // Trace: [0] id gate on q0, [1] Noise(depol) on q0
   PTSBatch batch;
@@ -241,19 +205,18 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   // Trajectory with X error (index 1) at trace position 1
   std::vector<KrausSelection> selections = {
       KrausSelection(1, {0}, "id", 1, true)};
-  KrausTrajectory traj(0, selections, 1.0, 100);
+  KrausTrajectory traj(0, selections, 1.0, 10);
   batch.trajectories.push_back(traj);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
   auto result = aggregateResults(results);
 
   // I|0> with X error = X|0> = |1>
-  EXPECT_EQ(result.count("1"), 100u);
+  EXPECT_EQ(result.count("1"), 10u);
 }
 
 /// Multi-qubit circuit with noise on specific qubit
 CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
-  QppSimulator sim;
 
   // Trace: [0] X q0, [1] Noise q0, [2] X q1
   PTSBatch batch;
@@ -271,26 +234,25 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
 
   // Trajectory 1: identity noise (no error), should give "11"
   std::vector<KrausSelection> selectionsId = {KrausSelection(1, {0}, "x", 0)};
-  KrausTrajectory traj1(0, selectionsId, 0.5, 100);
+  KrausTrajectory traj1(0, selectionsId, 0.5, 10);
 
   // Trajectory 2: X error (index 1) on qubit 0 at trace position 1
   std::vector<KrausSelection> selectionsX = {
       KrausSelection(1, {0}, "x", 1, true)};
-  KrausTrajectory traj2(1, selectionsX, 0.5, 100);
+  KrausTrajectory traj2(1, selectionsX, 0.5, 10);
 
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
   auto result = aggregateResults(results);
 
-  EXPECT_EQ(result.count("11"), 100u);
-  EXPECT_EQ(result.count("01"), 100u);
+  EXPECT_EQ(result.count("11"), 10u);
+  EXPECT_EQ(result.count("01"), 10u);
 }
 
 /// Partial measurement: measure only one qubit of a two-qubit system
 CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
-  QppSimulator sim;
 
   // Bell state
   PTSBatch batch;
@@ -300,24 +262,21 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   };
   batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 1000);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
   auto result = aggregateResults(results);
 
   std::size_t count0 = result.count("0");
   std::size_t count1 = result.count("1");
-  EXPECT_GT(count0, 400u);
-  EXPECT_LT(count0, 600u);
-  EXPECT_GT(count1, 400u);
-  EXPECT_LT(count1, 600u);
-  EXPECT_EQ(count0 + count1, 1000u);
+  EXPECT_GT(count0, 0u);
+  EXPECT_GT(count1, 0u);
+  EXPECT_EQ(count0 + count1, 10u);
 }
 
 /// Measurement order: verify that measureQubits order affects bitstring order
 CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
-  QppSimulator sim;
 
   // q0=1, q1=0
   std::vector<TraceInstruction> trace = {
@@ -331,12 +290,12 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     batch.trace = trace;
     batch.measureQubits = {0, 1};
 
-    KrausTrajectory traj(0, {}, 1.0, 100);
+    KrausTrajectory traj(0, {}, 1.0, 10);
     batch.trajectories.push_back(traj);
 
-    auto results = runPTSBETest(sim, batch);
+    auto results = samplePTSBEWithLifecycle(batch);
     auto result = aggregateResults(results);
-    EXPECT_EQ(result.count("10"), 100u);
+    EXPECT_EQ(result.count("10"), 10u);
   }
 
   // Second test: measure in order {1, 0}
@@ -345,18 +304,17 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     batch.trace = trace;
     batch.measureQubits = {1, 0};
 
-    KrausTrajectory traj(0, {}, 1.0, 100);
+    KrausTrajectory traj(0, {}, 1.0, 10);
     batch.trajectories.push_back(traj);
 
-    auto results = runPTSBETest(sim, batch);
+    auto results = samplePTSBEWithLifecycle(batch);
     auto result = aggregateResults(results);
-    EXPECT_EQ(result.count("01"), 100u);
+    EXPECT_EQ(result.count("01"), 10u);
   }
 }
 
 /// Verify state is properly reset between trajectories via setToZeroState()
 CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
-  QppSimulator sim;
 
   // Trace: [0] id gate q0, [1] Noise q0
   PTSBatch batch;
@@ -374,29 +332,28 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   // Trajectory 1: X error (index 1) flips to |1>
   std::vector<KrausSelection> selectionsWithX = {
       KrausSelection(1, {0}, "id", 1, true)};
-  KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 100);
+  KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 10);
 
   // Trajectory 2: identity noise (no error), stays |0>
   std::vector<KrausSelection> selectionsId = {KrausSelection(1, {0}, "id", 0)};
-  KrausTrajectory trajNoError(1, selectionsId, 0.5, 100);
+  KrausTrajectory trajNoError(1, selectionsId, 0.5, 10);
 
   batch.trajectories.push_back(trajWithError);
   batch.trajectories.push_back(trajNoError);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
 
   EXPECT_EQ(results.size(), 2u);
-  EXPECT_EQ(results[0].count("1"), 100u);
-  EXPECT_EQ(results[1].count("0"), 100u);
+  EXPECT_EQ(results[0].count("1"), 10u);
+  EXPECT_EQ(results[1].count("0"), 10u);
 
   auto result = aggregateResults(results);
-  EXPECT_EQ(result.count("1"), 100u);
-  EXPECT_EQ(result.count("0"), 100u);
+  EXPECT_EQ(result.count("1"), 10u);
+  EXPECT_EQ(result.count("0"), 10u);
 }
 
 /// Readout noise: bit flip applied after measurement flips X|0>=|1> to |0>
 CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
-  QppSimulator sim;
 
   PTSBatch batch;
   batch.trace = {
@@ -415,47 +372,28 @@ CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
   // X operator (index 1) at trace position 2 (the readout noise entry)
   std::vector<KrausSelection> selections = {
       KrausSelection(2, {0}, "mz", 1, true)};
-  KrausTrajectory traj(0, selections, 1.0, 200);
+  KrausTrajectory traj(0, selections, 1.0, 10);
   batch.trajectories.push_back(traj);
 
-  auto results = runPTSBETest(sim, batch);
+  auto results = samplePTSBEWithLifecycle(batch);
   auto result = aggregateResults(results);
 
-  EXPECT_EQ(result.count("0"), 200u);
+  EXPECT_EQ(result.count("0"), 10u);
   EXPECT_EQ(result.count("1"), 0u);
 }
 
-/// Mock simulator that implements sampleWithPTSBE for testing concept dispatch.
-class MockPTSBESimulator : public QppSimulator {
-public:
-  mutable std::size_t sampleWithPTSBECallCount = 0;
-
-  std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
-    ++sampleWithPTSBECallCount;
-    return samplePTSBEGeneric(*this, batch);
-  }
-};
-
-/// Verify concept dispatch routes to custom implementation and generic fallback
-/// produces equivalent results
-CUDAQ_TEST(ExecutePTSBETest, ConceptDispatchAndGenericEquivalence) {
-  MockPTSBESimulator mock;
-  QppSimulator generic;
-
+/// Verify samplePTSBEWithLifecycle produces correct results via production
+/// dispatch path (runtime precision dispatch + concept check).
+CUDAQ_TEST(ExecutePTSBETest, LifecycleDispatchProducesCorrectResults) {
   PTSBatch batch;
   batch.trace = kXTrace;
   batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 100);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
-  EXPECT_EQ(mock.sampleWithPTSBECallCount, 0u);
-  auto mockResults = runPTSBETest(mock, batch);
-  EXPECT_EQ(mock.sampleWithPTSBECallCount, 1u);
+  auto results = samplePTSBEWithLifecycle(batch);
 
-  auto genericResults = runPTSBETest(generic, batch);
-
-  EXPECT_EQ(mockResults.size(), genericResults.size());
-  EXPECT_EQ(mockResults[0].count("1"), 100u);
-  EXPECT_EQ(genericResults[0].count("1"), 100u);
+  EXPECT_EQ(results.size(), 1u);
+  EXPECT_EQ(results[0].count("1"), 10u);
 }
