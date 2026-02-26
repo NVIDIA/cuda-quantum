@@ -47,7 +47,7 @@ void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
 
   if (currentExecutionContext && persist_cache && jitEng.has_value())
-    currentExecutionContext->jitEng.emplace(jitEng.value());
+    currentExecutionContext->jitEng = jitEng.value();
 }
 
 void detail::resetExecutionContext() {
