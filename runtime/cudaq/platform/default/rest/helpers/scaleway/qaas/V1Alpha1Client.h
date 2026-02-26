@@ -28,7 +28,8 @@ public:
   Platform getPlatform(const std::string &platformId);
   std::vector<Platform> listPlatforms(const std::string &platformName = "");
 
-  Session createSession(const std::string &platformId, const std::string &name = "",
+  Session createSession(const std::string &platformId,
+                        const std::string &name = "",
                         const std::string &deduplicationId = "",
                         const std::string &modelId = "",
                         const std::string &maxDuration = "59m",

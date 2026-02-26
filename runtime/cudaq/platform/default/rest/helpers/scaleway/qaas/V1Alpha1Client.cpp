@@ -41,11 +41,12 @@ long parseDurationToSeconds(const std::string &input) {
 
   return total_seconds;
 }
-}
+} // namespace
 
 V1Alpha1Client::V1Alpha1Client(const std::string &projectId,
-                               const std::string &secretKey, const std::string &url,
-                               bool secure, bool logging)
+                               const std::string &secretKey,
+                               const std::string &url, bool secure,
+                               bool logging)
     : m_projectId(projectId), m_secretKey(secretKey), m_secure(secure),
       m_logging(logging) {
   auto built_url = url.empty() ? DEFAULT_URL : url;
@@ -170,7 +171,8 @@ Session V1Alpha1Client::getSession(const std::string &sessionId) {
 }
 
 Job V1Alpha1Client::createJob(const std::string &sessionId,
-                              const std::string &modelId, const std::string &name) {
+                              const std::string &modelId,
+                              const std::string &name) {
   auto headers = getHeaders();
   json payload;
 
