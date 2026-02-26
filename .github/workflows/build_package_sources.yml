@@ -35,7 +35,6 @@ on:
       artifact_url:
         required: false
         type: string
-        default: 'https://github.com/NVIDIA/cuda-quantum/actions/runs/22404497052/artifacts/5657281727'
         description: 'Optional: URL of macOS wheel artifact to diff pip packages (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID)'
       python_version:
         required: false
