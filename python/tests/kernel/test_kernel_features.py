@@ -2821,6 +2821,7 @@ def test_named_reg_in_sample(capfd):
     assert "WARNING" in captured.err
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_trap_fail():
     """Tests that a recoverable run time error correctly clears the simulator"""
 
