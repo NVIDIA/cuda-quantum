@@ -46,15 +46,14 @@ std::size_t getCurrentQpuId() {
 void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
 
-  if (currentExecutionContext && persist_cache
-      && jitEng.has_value())
+  if (currentExecutionContext && persist_cache && jitEng.has_value())
     currentExecutionContext->jitEng.emplace(jitEng.value());
 }
 
 void detail::resetExecutionContext() {
-  if (currentExecutionContext && persist_cache
-      && currentExecutionContext->jitEng.has_value())
-    jitEng.emplace(currentExecutionContext->jitEng.value());
+  if (currentExecutionContext && persist_cache &&
+      currentExecutionContext->jitEng.has_value())
+    jitEng = currentExecutionContext->jitEng.value();
 
   currentExecutionContext = nullptr;
 }
