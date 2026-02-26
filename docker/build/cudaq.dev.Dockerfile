@@ -18,7 +18,11 @@
 #    as the LLVM dependencies have been built with.
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc11-main
-FROM $base_image
+# Default empty stage for ccache data. CI overrides this with
+# --build-context ccache-data=<path> to inject a pre-populated cache,
+# while the devcontainer builds get the scratch as a noop.
+FROM scratch AS ccache-data
+FROM $base_image AS devbuild
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
@@ -48,7 +52,23 @@ RUN if [ -n "$mpi" ]; \
 # to create the released cuda-quantum image.
 ARG install=
 ARG git_source_sha=xxxxxxxx
-RUN if [ -n "$install" ]; \
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true && \
+        find /root/.ccache -type f | wc -l | tr -d ' ' > /root/.ccache/_restore_file_count.txt; \
+    else \
+        echo "No ccache data injected using empty scratch stage." && \
+        mkdir -p /root/.ccache; \
+    fi && \
+    if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
@@ -61,4 +81,13 @@ RUN if [ -n "$install" ]; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \
         fi; \
         echo "source-sha: $git_source_sha" > "$CUDAQ_INSTALL_PREFIX/build_info.txt"; \
-    fi
+    fi && \
+    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
+
+# Export ccache data so CI can extract it for persistence.
+# Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+FROM scratch AS ccache-export
+COPY --from=devbuild /root/.ccache /ccache
+
+FROM devbuild

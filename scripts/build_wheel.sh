@@ -303,6 +303,16 @@ CMAKE_ARGS="$CMAKE_ARGS ${OpenMP_FLAGS:+-DOpenMP_CXX_FLAGS=\"$OpenMP_FLAGS\"}"
 if $verbose && [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
     echo "OpenMP CMAKE_ARGS: $CMAKE_ARGS"
 fi
+# Check for ccache and add compiler launcher to CMAKE_ARGS
+if [ -x "$(command -v ccache)" ]; then
+    echo "ccache detected enabling in cmake"
+    CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER_LAUNCHER=ccache"
+    CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+    if [ -n "$CUDACXX" ]; then
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache"
+    fi
+fi
+
 export CMAKE_ARGS
 
 # Build the wheel

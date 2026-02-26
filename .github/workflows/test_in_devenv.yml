@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -46,12 +46,26 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
-        if: inputs.devdeps_image != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -85,9 +99,22 @@ jobs:
 
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}"
+
+      - name: Extract ccache from image
+        uses: ./.github/actions/ccache-extract-docker
+        with:
+          image: cuda-quantum-dev:local
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          cache-path: /tmp/ccache-out/.ccache
+          registry-token: ${{ github.token }}
 
       - name: Test CUDA Quantum
         uses: ./.github/actions/run-in-docker
@@ -158,7 +185,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -174,12 +201,26 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
-        if: inputs.devdeps_image != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -214,6 +255,7 @@ jobs:
 
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image
 
       - name: Setup proxy cache
@@ -269,6 +311,19 @@ jobs:
               echo "::error file=test_in_devenv.yml::Mock QPU tests skipped due to missing startServer:$mock_qpu_failures"
               exit 1
             fi
+
+      - name: Extract ccache from container
+        uses: ./.github/actions/ccache-extract-docker
+        with:
+          image: dev_env:local
+          from-container: 'true'
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          cache-path: /tmp/ccache-out/.ccache
+          registry-token: ${{ github.token }}
 
       - name: Save environment
         id: env_save

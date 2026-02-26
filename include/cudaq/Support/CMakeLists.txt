@@ -6,5 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Install TargetConfig.h file
-install (FILES TargetConfig.h DESTINATION include/cudaq/Support)
+install (FILES TargetConfig.h Version.h DESTINATION include/cudaq/Support)
