@@ -14,6 +14,7 @@
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <span>
 #include <unordered_map>
@@ -29,6 +30,25 @@ void validatePTSBEKernel(const std::string &kernelName,
         kernelName +
         "' contains conditional logic based on measurement outcomes. "
         "The gate sequence must be deterministic for pre-trajectory sampling.");
+  }
+}
+
+void warnNamedRegisters(const std::string &kernelName, ExecutionContext &ctx) {
+  if (ctx.warnedNamedMeasurements)
+    return;
+  for (const auto &inst : ctx.kernelTrace) {
+    if (inst.type == cudaq::TraceInstructionType::Measurement &&
+        inst.register_name && *inst.register_name != "__global__") {
+      ctx.warnedNamedMeasurements = true;
+      std::cerr << "WARNING: Kernel \"" << kernelName
+                << "\" uses named measurement results but is invoked via "
+                   "ptsbe::sample (or ptsbe.sample). PTSBE outputs a single "
+                   "global register; "
+                   "named sub-registers are not preserved. Use `cudaq::run` "
+                   "to retrieve individual measurement results."
+                << std::endl;
+      return;
+    }
   }
 }
 

@@ -142,6 +142,24 @@ CUDAQ_TEST(PTSBESampleTest, ValidateKernelNoThrowForValidContext) {
   EXPECT_NO_THROW(validatePTSBEKernel("testKernel", ctx));
 }
 
+CUDAQ_TEST(PTSBESampleTest, WarnNamedRegisters) {
+  // __global__ only: no warning
+  cudaq::ExecutionContext globalCtx("tracer");
+  globalCtx.kernelTrace.appendMeasurement("mz", {{2, 0}}, "__global__");
+  warnNamedRegisters("testKernel", globalCtx);
+  EXPECT_FALSE(globalCtx.warnedNamedMeasurements);
+
+  // Named register: sets flag
+  cudaq::ExecutionContext namedCtx("tracer");
+  namedCtx.kernelTrace.appendMeasurement("mz", {{2, 0}}, "my_register");
+  warnNamedRegisters("testKernel", namedCtx);
+  EXPECT_TRUE(namedCtx.warnedNamedMeasurements);
+
+  // Second call is a no-op (flag already set)
+  warnNamedRegisters("testKernel", namedCtx);
+  EXPECT_TRUE(namedCtx.warnedNamedMeasurements);
+}
+
 // ============================================================================
 // PTSBATCH CONSTRUCTION TESTS
 // ============================================================================

@@ -57,6 +57,9 @@ namespace cudaq::ptsbe {
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx);
 
+/// @brief Warn if kernel uses named measurement registers. PTSBE outputs a
+void warnNamedRegisters(const std::string &kernelName, ExecutionContext &ctx);
+
 /// @brief Validate platform preconditions for PTSBE execution
 void validatePTSBEPreconditions(
     quantum_platform &platform,
@@ -192,6 +195,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
+  warnNamedRegisters(kernelName, traceCtx);
 
   // Stage 2: Build PTSBE trace once, share between execution data and batch
   auto ptsbeTrace = buildPTSBETrace(traceCtx.kernelTrace, noiseModel);
