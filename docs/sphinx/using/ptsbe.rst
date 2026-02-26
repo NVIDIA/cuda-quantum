@@ -23,7 +23,7 @@ orders of magnitude quicker than traditional trajectory sampling methods by allo
 batched sampling. PTSBE can be used to capture millions of times more noisy shot data, which can
 then be used as e.g., training data in ML tasks such as AI decoders, or it can be deployed proportionally, 
 capturing the exact statistics of the problem while still offering a considerable speedup. In particular,
-PTSBE achieves traditional trajectory formalism accuracy at a fraction of
+PTSBE achieves traditional trajectory simulation accuracy at a fraction of
 the computational cost when the number of unique trajectories (errors) is much smaller than the total
 shot count [Patti2025]_.
 
