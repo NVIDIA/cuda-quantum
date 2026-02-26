@@ -260,7 +260,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 /// @return PTSBatch with trace, empty trajectories, and measureQubits
 /// @throws std::runtime_error if MCM detected
 template <typename QuantumKernel, typename... Args>
-PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
+PTSBatch tracePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   ExecutionContext traceCtx("tracer");
   auto &platform = get_platform();
   platform.with_execution_context(
