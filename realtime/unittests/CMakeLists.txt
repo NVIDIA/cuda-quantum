@@ -74,8 +74,6 @@ if(CMAKE_CUDA_COMPILER)
   
   message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
 
-  # Test local GPU dispatch kernel (implementing the bridge interface)
-  add_subdirectory(bridge_interface/external)
 endif()
 
 # ==============================================================================

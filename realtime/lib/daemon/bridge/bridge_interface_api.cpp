@@ -6,10 +6,19 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/// @file bridge_interface_api.cpp
+/// @brief API implementation for transport layer bridge interface.
+///
+/// This file provides the implementation of the API functions declared in
+/// bridge_interface.h.  It manages the loading of transport provider shared
+/// libraries, retrieval of their interface structs, and dispatch of API calls
+/// to the appropriate provider implementation based on the bridge handle.
+
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include <dlfcn.h>
 #include <iostream>
 #include <unordered_map>
+
 namespace {
 std::unordered_map<cudaq_realtime_transport_provider_t,
                    cudaq_realtime_bridge_interface_t *>
@@ -17,6 +26,10 @@ std::unordered_map<cudaq_realtime_transport_provider_t,
 std::unordered_map<cudaq_realtime_bridge_handle_t,
                    cudaq_realtime_bridge_interface_t *>
     bridge_handle_interface_map;
+/// @brief Path to the built-in Hololink bridge library.  This is used when the
+/// provider is CUDAQ_PROVIDER_HOLOLINK to load the Hololink implementation of
+/// the bridge interface.  The library must be present at the load path (e.g.,
+/// LD_LIBRARY_PATH) for the built-in provider to work.
 const char *Hololink_Bridge_Lib = "libcudaq-realtime-bridge-hololink.so";
 } // namespace
 
@@ -77,6 +90,7 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
   }
   provider_interface_map[provider] = bridge_interface;
 
+  // Check interface version compatibility
   if (bridge_interface->version != CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION) {
     std::cerr << "ERROR: Bridge interface version mismatch for '" << lib_name
               << "': expected " << CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION

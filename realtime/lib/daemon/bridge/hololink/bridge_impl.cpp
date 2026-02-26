@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "hololink_wrapper.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 #include "cudaq/realtime/hololink_bridge_common.h"
 
 namespace {

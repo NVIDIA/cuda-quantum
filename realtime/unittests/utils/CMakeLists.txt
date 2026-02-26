@@ -161,11 +161,12 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
 
   # Hololink wrapper static library (compiled by g++, isolates fmt)
   add_library(hololink_wrapper_generic STATIC
-    hololink_wrapper.cpp)
+    ${CMAKE_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
 
   target_include_directories(hololink_wrapper_generic
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CUDAQ_REALTIME_INCLUDE_DIR}
       "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
       ${DOCA_INCLUDE_DIR}
       ${CUDAToolkit_INCLUDE_DIRS}

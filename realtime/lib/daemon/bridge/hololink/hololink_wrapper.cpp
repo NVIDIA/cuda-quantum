@@ -12,7 +12,7 @@
 /// This file is compiled by g++ (not nvcc) to isolate Hololink's fmt
 /// dependency from CUDA translation units.
 
-#include "hololink_wrapper.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 
 // Include Hololink headers here (with Holoscan's fmt)
 // Disable deprecation warnings for Hololink headers, which may use deprecated
