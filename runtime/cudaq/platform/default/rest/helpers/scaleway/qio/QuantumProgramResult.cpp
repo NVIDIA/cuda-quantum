@@ -17,6 +17,7 @@ using namespace cudaq::qio;
 
 struct QiskitExperimentResultData {
   // ex: {"0x3" -> 6170, "0x0" -> 6175}
+  // or can be: {"11" -> 6170, "00" -> 6175}
   std::unordered_map<std::string, std::size_t> counts;
 };
 
