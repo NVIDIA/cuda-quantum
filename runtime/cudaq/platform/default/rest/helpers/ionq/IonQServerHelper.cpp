@@ -70,13 +70,12 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
-  /// @brief extract the job shots url from jobs returned by Ion API
-  std::string getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
-                          const char *DEFAULT_URL);
+  /// @brief Extract the job shots URL from jobs returned by IonQ API.
+  std::string getShotsUrl(ServerMessage &jobs);
 
-  /// @brief Verify if shot-wise output was requested by user and can be
-  /// extracted
-  bool shotWiseOutputIsNeeded(nlohmann::json_v3_11_1::json &jobs);
+  /// @brief Check if shot-wise output was requested by user and can be
+  /// extracted.
+  bool shotWiseOutputIsNeeded(ServerMessage &jobs);
 
 private:
   /// @brief RestClient used for HTTP requests.
@@ -367,8 +366,7 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobs[0].at("status").get<std::string>() == "completed";
 }
 
-std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
-                                          const char *DEFAULT_URL) {
+std::string IonQServerHelper::getShotsUrl(ServerMessage &jobs) {
   if (!keyExists("url"))
     throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
 
@@ -385,8 +383,7 @@ std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
   return shotsUrl;
 }
 
-bool IonQServerHelper::shotWiseOutputIsNeeded(
-    nlohmann::json_v3_11_1::json &jobs) {
+bool IonQServerHelper::shotWiseOutputIsNeeded(ServerMessage &jobs) {
   std::string noiseModel = "ideal";
   if (!jobs.empty() && jobs[0].contains("noise") &&
       jobs[0]["noise"].contains("model")) {
@@ -505,14 +502,16 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   // Add shot-wise output if requested by user
   bool extractShots = shotWiseOutputIsNeeded(jobs);
-  auto shotsUrl = getShotsUrl(jobs, DEFAULT_URL);
-  if (extractShots && shotsUrl != "") {
-
+  auto shotsUrl = getShotsUrl(jobs);
+  if (extractShots && !shotsUrl.empty()) {
     std::vector<std::string> bitStrings;
     auto shotsResults = getResults(shotsUrl);
 
+    if (nQubits > 64)
+      throw std::runtime_error(
+          "Shot-wise output is not supported for more than 64 qubits.");
+
     for (const auto &element : shotsResults.items()) {
-      assert(nQubits <= 64);
       int64_t s = std::stoull(element.value().get<std::string>());
       std::string bitString = std::bitset<64>(s).to_string();
       auto firstone = bitString.find_first_not_of('0');

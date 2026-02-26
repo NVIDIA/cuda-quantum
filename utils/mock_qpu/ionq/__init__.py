@@ -135,6 +135,8 @@ async def postJob(job: Job,
 async def getJob(id: str):
     global countJobGetRequests, createdJobs, numQubitsRequired
     global jobTarget, noiseModel
+
+
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
@@ -182,7 +184,7 @@ async def getResults(jobId: str):
 
 
 @app.get("/v0.4/jobs/{jobId}/results/shots")
-async def getResults(jobId: str):
+async def getShotResults(jobId: str):
     global countJobGetRequests, createdJobs
 
     counts = createdJobs[jobId]
