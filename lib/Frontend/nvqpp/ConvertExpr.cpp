@@ -2210,10 +2210,80 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         funcConst = args[1].getDefiningOp<func::ConstantOp>();
         ++argsOffset;
       }
-      auto symbol = funcConst.getValue();
-      auto devFunc = module.lookupSymbol<func::FuncOp>(symbol);
-      devFunc->setAttr(cudaq::deviceCallAttrName, builder.getUnitAttr());
-      auto devFuncTy = cast<FunctionType>(funcConst.getType());
+
+      auto [symbol, devFuncTy] = [&]() {
+        if (funcConst) {
+          // We have a function declaration, so we can look up the function type directly.
+          auto symbol = funcConst.getValue();
+          auto devFunc = module.lookupSymbol<func::FuncOp>(symbol);
+          devFunc->setAttr(cudaq::deviceCallAttrName, builder.getUnitAttr());
+          return std::make_pair(symbol, cast<FunctionType>(funcConst.getType()));
+        }
+        StringRef funcNameStr =
+            args[1]
+                .getDefiningOp<cudaq::cc::CreateStringLiteralOp>()
+                .getStringLiteral();
+
+        // We have function name, construct the type name from arguments and
+        // template parameters.
+        auto *tsi = functionDecl->getTemplateSpecializationInfo();
+        if (!tsi)
+          reportClangError(x, mangler,
+                           "device_call with function name must be a template "
+                           "instantiation with resolved template arguments");
+        const auto *tArgs = tsi->TemplateArguments;
+        const auto numArgs = tArgs->size();
+        // Expect 2 template arguments here: the return type and the parameter
+        // pack of argument types.
+        if (numArgs != 2)
+          reportClangError(
+              x, mangler,
+              "device_call with function name must have exactly 2 "
+              "template arguments: the return type and the parameter "
+              "pack of argument types");
+        // Add the declaration of the function to the module.
+        SmallVector<Type> argTys;
+        auto args = tArgs->get(1).getPackAsArray();
+        for (std::size_t i = 0; i < args.size(); ++i) {
+          auto arg = args[i];
+          if (arg.getKind() != clang::TemplateArgument::Type)
+            reportClangError(x, mangler,
+                             "device_call template arguments must be types");
+          // Decay the type to handle int& -> int, etc.
+          // Note: the arguments are deduced from the caller, so it may be
+          // deduced as a reference type.
+          auto decayTy =
+              arg.getAsType().getUnqualifiedType().getNonReferenceType();
+
+          if (!TraverseType(decayTy))
+            reportClangError(x, mangler,
+                             "failed to traverse type in device_call template "
+                             "arguments");
+          argTys.push_back(popType());
+        }
+
+        auto retArg = tArgs->get(0);
+        if (retArg.getKind() != clang::TemplateArgument::Type)
+          reportClangError(x, mangler,
+                           "device_call template arguments must be types");
+        if (!TraverseType(retArg.getAsType()))
+          reportClangError(x, mangler,
+                           "failed to traverse type in device_call template "
+                           "return type argument");
+
+        Type resTy = popType();
+        auto deviceCallFuncTy =
+            FunctionType::get(builder.getContext(), argTys, {resTy});
+        auto [devFunc, _] = cudaq::opt::factory::getOrAddFunc(
+            loc, funcNameStr, deviceCallFuncTy, module);
+        devFunc->setAttr(cudaq::deviceCallAttrName, builder.getUnitAttr());
+        devFunc->setAttr(cudaq::autoDeviceCallAttrName, builder.getUnitAttr());
+        // Get the func::ConstantOp for this newly declared function.
+        func::ConstantOp funcConstOp = builder.create<func::ConstantOp>(
+            loc, devFunc.getFunctionType(), devFunc.getSymNameAttr());
+        auto symbol = funcConstOp.getValue();
+        return std::make_pair(symbol, deviceCallFuncTy);
+      }();
 
       auto maybeGPULaunchParams =
           [&]() -> std::optional<std::pair<std::size_t, std::size_t>> {

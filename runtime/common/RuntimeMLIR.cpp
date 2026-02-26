@@ -658,6 +658,28 @@ mlir::LogicalResult qirProfileTranslationFunction(
   return mlir::success();
 }
 
+// A codegen translation to Quake MLIR
+void registerToQuakeTranslation() {
+  cudaq::TranslateFromMLIRRegistration reg(
+      "quake", "translate to raw Quake MLIR string",
+      [](mlir::Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
+         bool printIntermediateMLIR, bool printStats) {
+        std::string codeStr;
+        llvm::raw_string_ostream outStr(codeStr);
+        mlir::OpPrintingFlags opf;
+        opf.enableDebugInfo(/*enable=*/false,
+                            /*pretty=*/true);
+        op->print(outStr, opf);
+        outStr << '\n';
+        outStr.flush();
+        output << llvm::encodeBase64(codeStr);
+        if (printIR)
+          llvm::errs() << codeStr;
+        return mlir::success();
+      });
+}
+
 void registerToQIRTranslation() {
 #define CREATE_QIR_REGISTRATION(_regName, _profile)                            \
   cudaq::TranslateFromMLIRRegistration _regName(                               \
@@ -758,6 +780,7 @@ void cudaq::initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    registerToQuakeTranslation();
 
     mlirContext = createMLIRContext().release();
   });

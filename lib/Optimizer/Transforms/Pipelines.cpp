@@ -50,6 +50,14 @@ struct PythonAOTOptions : public PassPipelineOptions<PythonAOTOptions> {
       *this, "codegen-kind", llvm::cl::desc("GKE launch codegen kind."),
       llvm::cl::init(0)};
 };
+struct TargetFinalizationJitPipelineOptions
+    : public PassPipelineOptions<TargetFinalizationJitPipelineOptions> {
+  PassOptions::Option<bool> lowerDeviceCalls{
+      *this, "lower-device-calls",
+      llvm::cl::desc(
+          "Lower device calls (to normal function calls) in JIT pipeline."),
+      llvm::cl::init(true)};
+};
 } // namespace
 
 static void createTargetPrepPipeline(OpPassManager &pm,
@@ -144,8 +152,10 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
   pm.addPass(createSymbolDCEPass());
 }
 
-static void createJITTargetFinalizePipeline(OpPassManager &pm) {
-  pm.addPass(cudaq::opt::createDistributedDeviceCall());
+static void createJITTargetFinalizePipeline(
+    OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
+  if (options.lowerDeviceCalls)
+    pm.addPass(cudaq::opt::createDistributedDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -154,10 +164,13 @@ static void createJITTargetFinalizePipeline(OpPassManager &pm) {
 /// Register the standard finalization pipeline run for ALL target machines.
 /// This pipeline is run after the low-level target-specific pipelines.
 static void registerTargetFinalizePipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<TargetFinalizationJitPipelineOptions>(
       "jit-finalize-pipeline",
       "Standard JIT finalization pipeline for all targets.",
-      [](OpPassManager &pm) { createJITTargetFinalizePipeline(pm); });
+      [](OpPassManager &pm,
+         const TargetFinalizationJitPipelineOptions &options) {
+        createJITTargetFinalizePipeline(pm, options);
+      });
 }
 
 void cudaq::opt::registerJITPipelines() {

@@ -1,0 +1,25 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: quake_fake
+description: "CUDA-Q target for Quake fake target."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE", "-D CUDAQ_DEVICE_CALL_WITH_CALLBACK_NAME_SUPPORTED"]
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the JIT lowering pipeline
+  jit-high-level-pipeline: "expand-measurements"
+  # Tell the rest-qpu that we are generating Quake code.
+  codegen-emission: quake
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
