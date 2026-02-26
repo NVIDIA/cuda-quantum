@@ -379,12 +379,34 @@ public:
           auto mem = builder.create<cudaq::cc::ComputePtrOp>(
               loc, memTy, castOp,
               SmallVector<cudaq::cc::ComputePtrArg>{offset + o});
-          auto resTy = call.getResult(o).getType();
-          auto resPtrTy = cudaq::cc::PointerType::get(resTy);
-          Value castMem = mem;
-          if (resPtrTy != mem.getType())
-            castMem = builder.create<cudaq::cc::CastOp>(loc, resPtrTy, mem);
-          builder.create<cudaq::cc::StoreOp>(loc, call.getResult(o), castMem);
+          Value resultVal = call.getResult(o);
+          auto resTy = resultVal.getType();
+          if (isa<quake::MeasureType>(resTy)) {
+            // Discriminate: !quake.measure -> i1
+            auto i1Val = builder.create<quake::DiscriminateOp>(
+                loc, builder.getI1Type(), resultVal);
+            // Cast i1 -> i32 for the value field
+            auto bitVal = builder.create<cudaq::cc::CastOp>(
+                loc, builder.getI32Type(), i1Val,
+                cudaq::cc::CastOpMode::Unsigned);
+            // Store value into the first field
+            auto valPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
+                SmallVector<cudaq::cc::ComputePtrArg>{0});
+            builder.create<cudaq::cc::StoreOp>(loc, bitVal, valPtr);
+            // Store id = -1 into the second field
+            auto negOne = builder.create<arith::ConstantIntOp>(loc, -1, 32);
+            auto idPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
+                SmallVector<cudaq::cc::ComputePtrArg>{1});
+            builder.create<cudaq::cc::StoreOp>(loc, negOne, idPtr);
+          } else {
+            auto resPtrTy = cudaq::cc::PointerType::get(resTy);
+            Value castMem = mem;
+            if (resPtrTy != mem.getType())
+              castMem = builder.create<cudaq::cc::CastOp>(loc, resPtrTy, mem);
+            builder.create<cudaq::cc::StoreOp>(loc, resultVal, castMem);
+          }
         }
       }
     }
@@ -671,7 +693,11 @@ public:
         Value arg0 = hostFuncEntryBlock->getArguments().front();
         if (auto spanTy =
                 dyn_cast<cudaq::cc::SpanLikeType>(devFuncTy.getResult(0))) {
-          auto eleTy = spanTy.getElementType();
+          auto bufferMemberTy =
+              cast<cudaq::cc::StructType>(structTy.getMember(offset));
+          auto elePtrTy =
+              cast<cudaq::cc::PointerType>(bufferMemberTy.getMember(0));
+          auto eleTy = elePtrTy.getElementType();
           auto ptrTy = cudaq::cc::PointerType::get(eleTy);
           auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(
               loc, cudaq::cc::PointerType::get(ptrTy), launchResult,
@@ -942,8 +968,18 @@ public:
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
           SmallVector<Attribute> resultTys;
+          auto containsMeasureTy = [](Type ty) {
+            if (isa<quake::MeasureType>(ty))
+              return true;
+            if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty))
+              return isa<quake::MeasureType>(vecTy.getElementType());
+            return false;
+          };
           for (auto rt : epKern.getFunctionType().getResults())
-            resultTys.emplace_back(TypeAttr::get(rt));
+            resultTys.emplace_back(TypeAttr::get(
+                containsMeasureTy(rt)
+                    ? cudaq::opt::factory::convertToHostSideType(rt, module)
+                    : rt));
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);
@@ -1043,11 +1079,26 @@ public:
         FunctionType hostFuncTy;
         const bool hasThisPtr = !funcOp->hasAttr("no_this");
         if (hostEntryNeeded) {
-          if (hostFunc) {
-            hostFuncTy = hostFunc.getFunctionType();
-          } else {
+          if (!hostFunc) {
             // Fatal error was already raised in lookupHostEntryPointFunc().
             return;
+          }
+          hostFuncTy = hostFunc.getFunctionType();
+          // Only override the host function type when the device function
+          // returns MeasureType (directly or in a vector), to resolve
+          // !quake.measure → i32 and prevent QIR from converting it.
+          bool hasMeasureReturn =
+              llvm::any_of(funcTy.getResults(), [](Type ty) {
+                if (isa<quake::MeasureType>(ty))
+                  return true;
+                if (auto spanTy = dyn_cast<cudaq::cc::SpanLikeType>(ty))
+                  return isa<quake::MeasureType>(spanTy.getElementType());
+                return false;
+              });
+          if (hasMeasureReturn) {
+            hostFuncTy = cudaq::opt::factory::toHostSideFuncType(
+                funcTy, hasThisPtr, module);
+            hostFunc.setFunctionType(hostFuncTy);
           }
         } else {
           // Autogenerate an assumed host side function signature for the

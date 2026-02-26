@@ -13,7 +13,7 @@
 module attributes {quake.mangled_name_map = {
   __nvqpp__mlirgen__ghz = "_ZN3ghzclEi"}} {
 
-  func.func @__nvqpp__mlirgen__ghz(%arg0: i32) -> f64 {
+  func.func @__nvqpp__mlirgen__ghz(%arg0: i32) -> f64 attributes {"cudaq-entrypoint"} {
     %0 = cc.alloca i32
     cc.store %arg0, %0 : !cc.ptr<i32>
     %1 = cc.load %0 : !cc.ptr<i32>

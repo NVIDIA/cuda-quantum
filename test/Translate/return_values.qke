@@ -23,7 +23,7 @@ module attributes{ quake.mangled_name_map = {
 func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8> , %arg1: i64 , %arg2: i64 ) -> !cc.ptr<i8>
 
 // vector<bool> -> struct ptr sret
-func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.stdvec<i1> {
+func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.stdvec<i1> attributes {"cudaq-entrypoint"} {
   %c1_i64 = arith.constant 1 : i64
   %c1 = arith.constant 1 : i64
   %c0 = arith.constant 0 : i64
@@ -149,7 +149,7 @@ func.func @test_0(%1: !cc.ptr<!cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}
 // CHECK:       }
 
 // struct{bool, bool} -> i16
-func.func @__nvqpp__mlirgen__test_1() -> !cc.struct<{i1, i1}> {
+func.func @__nvqpp__mlirgen__test_1() -> !cc.struct<{i1, i1}> attributes {"cudaq-entrypoint"} {
   %qubits = quake.alloca !quake.veq<2>
   %q0 = quake.extract_ref %qubits[0] : (!quake.veq<2>) -> !quake.ref
   %q1 = quake.extract_ref %qubits[1] : (!quake.veq<2>) -> !quake.ref
@@ -211,7 +211,7 @@ func.func @test_1(%this: !cc.ptr<i8>) -> i16 {
 // CHECK:       }
 
 // struct{i16, f32, f64, i64} -> sret ptr
-func.func @__nvqpp__mlirgen__test_2() -> !cc.struct<{i16, f32, f64, i64}> {
+func.func @__nvqpp__mlirgen__test_2() -> !cc.struct<{i16, f32, f64, i64}> attributes {"cudaq-entrypoint"} {
   %rv = cc.undef !cc.struct<{i16, f32, f64, i64}>
   %c1 = arith.constant 8 : i16
   %rv1 = cc.insert_value %rv[0], %c1 : (!cc.struct<{i16, f32, f64, i64}>, i16) -> !cc.struct<{i16, f32, f64, i64}>
@@ -255,7 +255,7 @@ func.func @test_2(%1: !cc.ptr<!cc.struct<{i16, f32, f64, i64}>> {llvm.sret = !cc
 
 
 // array<T x n> -> sret ptr
-func.func @__nvqpp__mlirgen__test_3() -> !cc.array<i64 x 5> {
+func.func @__nvqpp__mlirgen__test_3() -> !cc.array<i64 x 5> attributes {"cudaq-entrypoint"} {
   %rv = cc.undef !cc.array<i64 x 5>
   %c1 = arith.constant 5 : i64
   %rv1 = cc.insert_value %rv[0], %c1 : (!cc.array<i64 x 5>, i64) -> !cc.array<i64 x 5>
@@ -300,7 +300,7 @@ func.func @test_3(%1: !cc.ptr<!cc.array<i64 x 5>> {llvm.sret = !cc.array<i64 x 5
 // CHECK:       }
 
 // small struct (<= 128) -> { i64, f64 }
-func.func @__nvqpp__mlirgen__test_4() -> (i64, f64) {
+func.func @__nvqpp__mlirgen__test_4() -> (i64, f64) attributes {"cudaq-entrypoint"} {
   %c1 = arith.constant 537892 : i64
   %c2 = arith.constant 94.2134 : f64
   return %c1, %c2 : i64, f64
@@ -335,7 +335,7 @@ func.func @test_4(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_5() -> (i64, f64) attributes {no_this} {
+func.func @__nvqpp__mlirgen__test_5() -> (i64, f64) attributes {no_this, "cudaq-entrypoint"} {
   %c1 = arith.constant 537892 : i64
   %c2 = arith.constant 94.2134 : f64
   return %c1, %c2 : i64, f64

@@ -18,7 +18,7 @@ module
 
 func.func private @anchor(!cc.ptr<none>, i64)
 
-func.func @__nvqpp__mlirgen__test_0(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) {
+func.func @__nvqpp__mlirgen__test_0(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) attributes {"cudaq-entrypoint"} {
   %0 = cc.stdvec_data %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
   %1 = cc.stdvec_size %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> i64
   %2 = cc.cast %0 : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<none>
@@ -74,7 +74,7 @@ func.func @test_0(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_1(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) {
+func.func @__nvqpp__mlirgen__test_1(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) attributes {"cudaq-entrypoint"} {
   %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<i16>
   %1 = cc.stdvec_data %0 : (!cc.stdvec<i16>) -> !cc.ptr<!cc.array<i16 x ?>>
   %2 = cc.stdvec_size %0 : (!cc.stdvec<i16>) -> i64
@@ -156,7 +156,7 @@ func.func @test_1(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_2(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) {
+func.func @__nvqpp__mlirgen__test_2(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) attributes {"cudaq-entrypoint"} {
   %0 = cc.stdvec_data %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
   %1 = cc.stdvec_size %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> i64
   %2 = cc.cast %0 : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<none>
@@ -212,7 +212,7 @@ func.func @test_2(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_3(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) {
+func.func @__nvqpp__mlirgen__test_3(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) attributes {"cudaq-entrypoint"} {
   %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<i16>
   %1 = cc.stdvec_data %0 : (!cc.stdvec<i16>) -> !cc.ptr<i16>
   %2 = cc.stdvec_size %0 : (!cc.stdvec<i16>) -> i64

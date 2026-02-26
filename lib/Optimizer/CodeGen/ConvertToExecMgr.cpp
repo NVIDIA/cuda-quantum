@@ -49,7 +49,8 @@ struct QuakeTypeConverter : public TypeConverter {
       return cudaq::cc::StructType::get(ty.getContext(), mems);
     });
     addConversion([](quake::MeasureType ty) {
-      return IntegerType::get(ty.getContext(), 64);
+      auto i32Ty = IntegerType::get(ty.getContext(), 32);
+      return cudaq::cc::StructType::get(ty.getContext(), {i32Ty, i32Ty});
     });
   }
 };
