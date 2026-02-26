@@ -657,7 +657,7 @@ if(CUDAQ_BUILD_TESTS)
 endif()
 
 if (CUDAQ_ENABLE_PYTHON)
-  find_package(Python 3 COMPONENTS Interpreter Development)
+  find_package(Python 3 COMPONENTS Interpreter Development.Module)
   
   # Apply specific patch to pybind11 for our documentation.
   # Only apply the patch if not already applied.
