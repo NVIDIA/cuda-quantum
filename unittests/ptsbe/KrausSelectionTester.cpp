@@ -109,7 +109,7 @@ CUDAQ_TEST(KrausSelectionTest, MoveSemantics) {
   EXPECT_TRUE(moved.is_error);
 }
 
-CUDAQ_TEST(KrausSelectionTest, ConstexprEquality) {
+CUDAQ_TEST(KrausSelectionTest, CheckEquality) {
   KrausSelection sel1(0, {0}, "h", 1, true);
   KrausSelection sel2(0, {0}, "h", 1, true);
   KrausSelection sel3(1, {0}, "h", 1, true);
