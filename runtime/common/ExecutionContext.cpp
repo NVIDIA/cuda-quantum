@@ -11,6 +11,8 @@
 namespace {
 /// @brief Thread-local storage for the current execution context.
 thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
+thread_local bool persist_cache = false;
+thread_local std::optional<cudaq::JitEngine> jitEng = std::nullopt;
 } // namespace
 
 namespace nvqir {
@@ -40,9 +42,28 @@ bool isLastBatch() {
 std::size_t getCurrentQpuId() {
   return currentExecutionContext ? currentExecutionContext->qpuId : 0;
 }
+
 void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
+
+  if (currentExecutionContext && persist_cache
+      && jitEng.has_value())
+    currentExecutionContext->jitEng.emplace(jitEng.value());
 }
-void detail::resetExecutionContext() { currentExecutionContext = nullptr; }
+
+void detail::resetExecutionContext() {
+  if (currentExecutionContext && persist_cache
+      && currentExecutionContext->jitEng.has_value())
+    jitEng.emplace(currentExecutionContext->jitEng.value());
+
+  currentExecutionContext = nullptr;
+}
+
+void detail::enablePersistentCache() { persist_cache = true; }
+
+void detail::disablePersistentCache() {
+  persist_cache = false;
+  jitEng.reset();
+}
 
 } // namespace cudaq

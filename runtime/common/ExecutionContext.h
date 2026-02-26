@@ -205,6 +205,9 @@ void setExecutionContext(ExecutionContext *ctx);
 /// Use `quantum_platform::with_execution_context` instead of setting/resetting
 /// the execution context manually.
 void resetExecutionContext();
+
+void enablePersistentCache();
+void disablePersistentCache();
 } // namespace detail
 
 } // namespace cudaq

@@ -24,6 +24,8 @@ void clearQirOutputLog();
 
 namespace cudaq {
 
+class PersistentCache {};
+
 void bindExecutionContext(py::module &mod) {
   py::class_<cudaq::ExecutionContext>(mod, "ExecutionContext")
       .def(py::init<std::string>())
@@ -119,5 +121,16 @@ void bindExecutionContext(py::module &mod) {
             const std::size_t bufferSize = parser.getBufferSize();
             std::memcpy(info.ptr, origBuffer, bufferSize);
           });
+
+  py::class_<PersistentCache>(mod, "PersistentCache")
+      .def(py::init())
+      .def("__enter__",
+           [](PersistentCache &ctx) -> void {
+             cudaq::detail::enablePersistentCache();
+           })
+      .def("__exit__", [](PersistentCache &ctx, py::object type,
+                          py::object value, py::object traceback) {
+        cudaq::detail::disablePersistentCache();
+      });
 }
 } // namespace cudaq
