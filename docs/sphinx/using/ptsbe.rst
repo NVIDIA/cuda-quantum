@@ -405,7 +405,7 @@ plus ``density-matrix-cpu`` and ``qpp-cpu``:
      - CPU state vector simulator. Lightweight option for small circuits
        (< 28 qubits).
 
-Set the target before calling :func:`cudaq.ptsbe.sample`:
+Set the target:
 
 .. tab:: Python
 
@@ -447,9 +447,4 @@ References
    Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis. 2025.
    https://dl.acm.org/doi/full/10.1145/3712285.3759871
 
-.. [Dangwal2025] Siddharth Dangwal, Tina Oberoi, Ajay Sailopal,
-   Dhirpal Shah, Frederic T. Chong,
-   *Noisy Quantum Simulation Using Tracking, Uncomputation and Sampling*,
-   arXiv:2508.04880 (2025).
-   https://arxiv.org/abs/2508.04880
 .. |:spellcheck-enable:| replace:: \

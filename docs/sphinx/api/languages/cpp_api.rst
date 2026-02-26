@@ -195,7 +195,7 @@ Noise Modeling
         :cpp:class:`cudaq::depolarization2`). If you want to use a custom
         :cpp:class:`cudaq::kraus_channel` (i.e. not built-in to CUDA-Q), it must
         first be registered *outside the kernel* with
-        :cpp:func:`cudaq::noise_model::register_channel`, like this:
+        `:cpp:func:cudaq::noise_model::register_channel`, like this:
 
         .. code-block:: cpp
 
@@ -218,7 +218,7 @@ Noise Modeling
             cudaq::noise_model noise;
             noise.register_channel<my_custom_kraus_channel_subtype>();
 
-    :param args: The precise argument pack depend on the concrete `Channel` being
+    :param `args`: The precise argument pack depend on the concrete `Channel` being
         used. The arguments are a concatenated list of parameters and targets.
         For example, to apply a 2-qubit depolarization channel, which has
         `num_parameters = 1` and `num_targets = 2`, one would write the call
@@ -427,17 +427,15 @@ Execution (PTSBE). For a conceptual overview and usage tutorial see
 Sampling Functions
 -------------------
 
-.. cpp:function:: template <typename QuantumKernel, typename... Args> \
-                  sample_result \
-                  sample(const sample_options& options, QuantumKernel&& kernel, Args&&... args)
+.. cpp:function:: template <typename QuantumKernel, typename... Args> sample_result sample(const sample_options& options, QuantumKernel&& kernel, Args&&... args)
 
    Sample a quantum kernel using PTSBE.
 
-   :tparam QuantumKernel: A CUDA-Q kernel callable.
-   :tparam Args: Kernel argument types.
+   :tparam `QuantumKernel`: A CUDA-Q kernel callable.
+   :tparam `Args`: Kernel argument types.
    :param options: Execution options (shots, noise model, PTSBE configuration).
    :param kernel: The kernel to execute.
-   :param args: Arguments forwarded to the kernel.
+   :param `args`: Arguments forwarded to the kernel.
    :returns: Aggregated ``sample_result``.
 
    .. code-block:: cpp
@@ -453,11 +451,9 @@ Sampling Functions
       result.dump();
 
 
-.. cpp:function:: template <typename QuantumKernel, typename... Args> \
-                  cudaq::async_sample_result \
-                  sample_async(const sample_options& options, QuantumKernel&& kernel, Args&&... args, std::size_t qpu_id = 0)
+.. cpp:function:: template <typename QuantumKernel, typename... Args> cudaq::async_sample_result sample_async(const sample_options& options, QuantumKernel&& kernel, Args&&... args, std::size_t qpu_id = 0)
 
-   Asynchronous variant of :cpp:func:`sample`. Returns a
+   Asynchronous variant of `:cpp:func:sample`. Returns a
    ``std::future<sample_result>``.
 
    .. code-block:: cpp
@@ -472,7 +468,7 @@ Options
 
 .. cpp:struct:: sample_options
 
-   Top-level options passed to :cpp:func:`sample`.
+   Top-level options passed to `:cpp:func:sample`.
 
    .. cpp:member:: std::size_t shots = 1000
 
@@ -494,7 +490,7 @@ Options
    .. cpp:member:: bool return_execution_data = false
 
       When ``true``, the returned result contains a
-      :cpp:struct:`PTSBEExecutionData` payload with the circuit trace,
+      `:cpp:struct:PTSBEExecutionData` payload with the circuit trace,
       trajectory details, and per-trajectory measurement counts.
 
    .. cpp:member:: std::optional<std::size_t> max_trajectories = std::nullopt
@@ -519,8 +515,8 @@ Result Type
 
 .. cpp:class:: sample_result : public cudaq::sample_result
 
-   Extends :cpp:class:`cudaq::sample_result` with an optional
-   :cpp:struct:`PTSBEExecutionData` payload.
+   Extends `:cpp:class:cudaq::sample_result` with an optional
+   `:cpp:struct:PTSBEExecutionData` payload.
 
    .. cpp:function:: bool has_execution_data() const
 
@@ -790,4 +786,4 @@ Trajectory and Selection Types
       The identity (no-error) Kraus operator.
 
    Values ≥ 1 correspond to actual error operators from the noise channel,
-   indexed in the order they appear in the :cpp:class:`cudaq::kraus_channel`.
+   indexed in the order they appear in the `:cpp:class:cudaq::kraus_channel`.
