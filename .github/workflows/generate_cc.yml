@@ -112,7 +112,7 @@ jobs:
             fi
 
       - name: Upload C/C++ & Python Coverage To Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: false
           files: ${{ github.workspace }}/shared/coverage.txt,${{ github.workspace }}/shared/coverage.xml

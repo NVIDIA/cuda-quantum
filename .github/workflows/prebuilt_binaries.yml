@@ -157,7 +157,7 @@ jobs:
 
       - name: Build assets
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/assets.Dockerfile
@@ -187,7 +187,7 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Build installer
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/release/installer.Dockerfile
@@ -258,7 +258,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build OpenMPI
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/test/installer/linux.Dockerfile
