@@ -67,9 +67,9 @@ int main() {
     return static_cast<double>(ones[q]) / num_shots;
   };
 
-  // mz[0] and mz[1] are Bell measurement outcomes, so each is ~50%.
-  // mz[2] is the teleported qubit. Its P(1) is determined by the
-  // prepared state: P(mz[2]=1) ~4.6% for the angles above.
+  // `mz[0]` and `mz[1]` are Bell measurement outcomes, so each is ~50%.
+  // Probability of measuring`mz[2]` in 1 is determined by the prepared state,
+  // which is ~4.6% for the angles above.
   std::cout << "Results over " << num_shots << " shots:\n";
   for (std::size_t q = 0; q < 3; ++q)
     std::cout << "  mz[" << q << "] = 1:  " << ones[q] << " / " << num_shots
