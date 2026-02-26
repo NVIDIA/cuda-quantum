@@ -22,7 +22,9 @@ std::string_view getQirOutputLog();
 void clearQirOutputLog();
 } // namespace nvqir
 
+namespace {
 class PersistentCache {};
+}
 
 namespace cudaq {
 
