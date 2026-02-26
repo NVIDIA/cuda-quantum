@@ -70,7 +70,12 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
     const std::string &key = kv.first;
     std::size_t count = kv.second;
 
-    std::string bitstring = hexToBitstring(key, qiskitResult.header.n_qubits);
+    std::string bitstring;
+    if (key.starts_with("0x")) {
+      bitstring = hexToBitstring(key, qiskitResult.header.n_qubits);
+    } else {
+      bitstring = key;
+    }
 
     // bitstring in long value
     serialized.push_back(stoi(bitstring, nullptr, 2));
