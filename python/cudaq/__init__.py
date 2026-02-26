@@ -134,7 +134,9 @@ except Exception:
 from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import (make_kernel, QuakeValue, PyKernel)
-from .kernel.ast_bridge import (globalRegisteredOperations, PyASTBridge)
+from .contrib import (from_qiskit, from_qasm)
+from .kernel.ast_bridge import (globalAstRegistry, globalRegisteredOperations,
+                                PyASTBridge)
 from .runtime.sample import sample
 from .runtime.sample import sample_async, AsyncSampleResult
 from .runtime.observe import observe
