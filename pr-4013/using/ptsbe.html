@@ -850,6 +850,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/languages/python_api.html">Python API</a><ul>
@@ -955,6 +965,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#execution-data">Execution Data</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/default_ops.html">Quantum Operations</a><ul>
@@ -991,27 +1009,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../api/ptsbe_api.html">PTSBE API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/ptsbe_api.html#python-api-cudaq-ptsbe">Python API — <code class="docutils literal notranslate"><span class="pre">cudaq.ptsbe</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#sampling-functions">Sampling Functions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#result-type">Result Type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#execution-data">Execution Data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../api/ptsbe_api.html#c-api-cudaq-ptsbe">C++ API — <code class="docutils literal notranslate"><span class="pre">cudaq::ptsbe</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#id1">Sampling Functions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#options">Options</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#id2">Result Type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#id3">Trajectory Sampling Strategies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#id4">Shot Allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#id5">Execution Data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/ptsbe_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
-</ul>
-</li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="user_guide.html">   User Guide</a><ul class="current">
@@ -1024,12 +1021,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#shot-allocation-strategies">Shot Allocation Strategies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#inspecting-execution-data">Inspecting Execution Data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#asynchronous-execution">Asynchronous Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#trajectory-vs-shot-trade-offs">Trajectory vs Shot Trade-offs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#backend-requirements">Backend Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#related-approaches">Related Approaches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#references">References</a></li>
 </ul>
 </li>
@@ -1085,7 +1080,7 @@ orders of magnitude quicker than traditional trajectory sampling methods by allo
 batched sampling. PTSBE can be used to capture millions of times more noisy shot data, which can
 then be used as e.g., training data in ML tasks such as AI decoders, or it can be deployed proportionally,
 capturing the exact statistics of the problem while still offering a considerable speedup. In particular,
-PTSBE achieves traditional trajectory formalism accuracy at a fraction of
+PTSBE achieves traditional trajectory simulation accuracy at a fraction of
 the computational cost when the number of unique trajectories (errors) is much smaller than the total
 shot count <a class="reference internal" href="#patti2025" id="id4"><span>[Patti2025]</span></a>.</p>
 <section id="conceptual-overview">
@@ -1136,9 +1131,9 @@ count <em>N</em>.</p>
 <h2>When to Use PTSBE<a class="headerlink" href="#when-to-use-ptsbe" title="Permalink to this heading">¶</a></h2>
 <p>PTSBE is most beneficial when:</p>
 <ul class="simple">
-<li><p>The circuit has <strong>few distinct noise sites</strong> so the trajectory space is
+<li><p>The circuit has few distinct noise sites so the trajectory space is
 manageable.</p></li>
-<li><p>A <strong>large shot count</strong> is required (1 000 – 1 000 000+) so the reuse of
+<li><p>A large shot count is required (1 000 – 1 000 000+) so the reuse of
 trajectories provides a significant speed-up.</p></li>
 <li><p>The shots are intended for a data-hungry downstream task that is not necessarily
 inhibited by correlated sampling, such as training AI models</p></li>
@@ -1261,11 +1256,11 @@ and gain the batching benefit:</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Probabilistic</strong> <em>(default)</em></p></td>
-<td><p>Randomly samples unique trajectories weighted by probability. Produces
-a representative cross-section of the noise space.</p></td>
+<td><p>Performs a statistically unbiased Monte Carlo sampling of trajectories
+producing a representative cross-section of the noise space.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Ordered</strong></p></td>
-<td><p>Selects the top-<em>T</em> highest-probability trajectories. Best when the
+<td><p>Selects the top-<em>T</em> highest-probability trajectories. Useful when the
 noise space is dominated by a small number of likely error patterns.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Exhaustive</strong></p></td>
@@ -1274,7 +1269,8 @@ small (few qubits and low-weight noise).</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Conditional</strong></p></td>
 <td><p>Keeps only trajectories that satisfy a user-supplied predicate. Useful
-for targeted studies (e.g. only single-qubit error events).</p></td>
+for targeted studies (e.g. only single-qubit error events). This produces
+a biased distribution.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1337,12 +1333,11 @@ for targeted studies (e.g. only single-qubit error events).</p></td>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Proportional</strong> <em>(default)</em></p></td>
-<td><p>Each trajectory receives shots proportional to its probability.
-Uses multinomial sampling — total is always exact and every trajectory
-with non-zero probability receives a fair share.</p></td>
+<td><p>Each trajectory receives shots proportional to its sampling strategy weight.
+It uses multinomial sampling.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Uniform</strong></p></td>
-<td><p>Equal shots per trajectory regardless of probability.</p></td>
+<td><p>Equal shots per trajectory regardless of weight.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Low-weight bias</strong></p></td>
 <td><p>Biases more shots toward trajectories with fewer errors (lower Kraus
@@ -1387,7 +1382,7 @@ rare error events.</p></td>
 <h3>Inspecting Execution Data<a class="headerlink" href="#inspecting-execution-data" title="Permalink to this heading">¶</a></h3>
 <p>Set <code class="docutils literal notranslate"><span class="pre">return_execution_data=True</span></code> to attach the full execution trace —
 circuit instructions, sampled trajectories, and per-trajectory counts — to
-the result:</p>
+the result. This API is experimental and may be subject to change in future releases.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
@@ -1427,81 +1422,26 @@ the result:</p>
 </div>
 </div>
 </section>
-<section id="asynchronous-execution">
-<h3>Asynchronous Execution<a class="headerlink" href="#asynchronous-execution" title="Permalink to this heading">¶</a></h3>
-<p>Use <code class="docutils literal notranslate"><span class="pre">sample_async</span></code> to submit the job without blocking:</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">future</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="c1"># ... do other work ...</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
-<span class="c1">// ... do other work ...</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">future</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
-</pre></div>
-</div>
-</div>
-</div>
-</section>
 </section>
 <section id="trajectory-vs-shot-trade-offs">
 <h2>Trajectory vs Shot Trade-offs<a class="headerlink" href="#trajectory-vs-shot-trade-offs" title="Permalink to this heading">¶</a></h2>
 <p>The central tension in PTSBE is between <strong>trajectory count</strong> <em>T</em> and
 <strong>shots per trajectory</strong> <em>N/T</em>.</p>
-<p class="rubric">Increasing trajectories</p>
-<ul class="simple">
-<li><p>Covers more of the noise space → lower bias in the estimated distribution.</p></li>
-<li><p>Each trajectory is simulated independently → linear scaling in simulation
-cost.</p></li>
-<li><p>Diminishing returns once <em>T</em> approaches the total trajectory space size.</p></li>
-</ul>
-<p class="rubric">Decreasing trajectories (fewer, reused more)</p>
-<ul class="simple">
-<li><p>Each trajectory accumulates more shots → lower shot-noise variance for that
-trajectory.</p></li>
-<li><p>Fewer circuit simulations → lower wall-clock time.</p></li>
-<li><p>Risk of bias if high-probability regions of the noise space are under-sampled.</p></li>
-</ul>
+<p>Using more trajectories covers more of the noise space and reduces bias in the
+estimated distribution, but since each trajectory is simulated independently the
+simulation cost scales linearly with <em>T</em>. Beyond a certain point there are
+diminishing returns: once <em>T</em> approaches the total trajectory space size,
+additional trajectories yield little improvement.</p>
+<p>Fewer trajectories mean each one accumulates more shots, which reduces
+shot-noise variance per trajectory and lowers wall-clock time. The risk is
+bias: if <em>T</em> is too small, high-probability regions of the noise space may be
+under-sampled and distort the result.</p>
 <p class="rubric">Practical guidance</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 40%" />
-<col style="width: 60%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Scenario</p></th>
-<th class="head"><p>Recommendation</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Few noise sites, low error rates</p></td>
-<td><p>Use <strong>Exhaustive</strong> strategy; all trajectories have manageable count.</p></td>
-</tr>
-<tr class="row-odd"><td><p>Many noise sites, high error rates</p></td>
-<td><p>Use <strong>Probabilistic</strong> with <code class="docutils literal notranslate"><span class="pre">max_trajectories</span></code> ≈ √N; the proportional
-shot allocation handles variance automatically.</p></td>
-</tr>
-<tr class="row-even"><td><p>Studying low-error observables</p></td>
-<td><p>Use <strong>Ordered</strong> or <strong>Low-weight bias</strong> to concentrate shots on the most
-probable (low-error) trajectories.</p></td>
-</tr>
-<tr class="row-odd"><td><p>Studying rare error events</p></td>
-<td><p>Use <strong>High-weight bias</strong> to allocate more shots to high-error
-trajectories.</p></td>
-</tr>
-<tr class="row-even"><td><p>Accuracy validation</p></td>
-<td><p>Compare against a standard density-matrix run. Hellinger fidelity
-<em>F</em> ≈ 1 indicates PTSBE is faithfully reproducing the full distribution.</p></td>
-</tr>
-</tbody>
-</table>
 <p>As a rule of thumb, <code class="docutils literal notranslate"><span class="pre">max_trajectories</span></code> between 100 and 10 000 covers the
 majority of practical use cases. Below 100, bias may dominate. Above 10 000,
-the simulation cost approaches that of a conventional density-matrix run.</p>
+the simulation cost approaches that of a conventional density-matrix run.
+Useful to perform a warm-up run sweeping the number of trajectories to understand
+the convergence behavior.</p>
 </section>
 <section id="backend-requirements">
 <h2>Backend Requirements<a class="headerlink" href="#backend-requirements" title="Permalink to this heading">¶</a></h2>
@@ -1549,9 +1489,9 @@ Handles thousands of qubits.</p></td>
 </tr>
 </tbody>
 </table>
-<p>Set the target before calling <a class="reference internal" href="../api/ptsbe_api.html#cudaq.ptsbe.sample" title="cudaq.ptsbe.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.ptsbe.sample()</span></code></a>:</p>
+<p>Set the target:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Single GPU (most common for production)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 
@@ -1566,7 +1506,7 @@ Handles thousands of qubits.</p></td>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Set via CMake target or the --target flag at runtime.</span>
 <span class="c1">// See backend documentation for available options.</span>
 </pre></div>
@@ -1575,27 +1515,6 @@ Handles thousands of qubits.</p></td>
 </div>
 <p>See <a class="reference internal" href="backends/backends.html"><span class="doc">CUDA-Q Backends</span></a> for full details on each target including precision and
 qubit count limits.</p>
-</section>
-<section id="related-approaches">
-<h2>Related Approaches<a class="headerlink" href="#related-approaches" title="Permalink to this heading">¶</a></h2>
-<p>TUSQ <a class="reference internal" href="#dangwal2025" id="id7"><span>[Dangwal2025]</span></a> is an alternative noisy-simulation framework addressing
-the same problem with a complementary set of techniques:</p>
-<ul class="simple">
-<li><p><strong>Error Realization (ER) Tallying</strong>: Samples noise channels once to identify
-unique error realizations, then simulates each unique circuit once and
-samples from its output multiple times — conceptually similar to PTSBE’s
-trajectory deduplication.</p></li>
-<li><p><strong>ER Commutation</strong>: Pushes Pauli noise gates rightward through the circuit
-using gate commutation rules, merging additional circuits whose error
-patterns are functionally equivalent after commutation.</p></li>
-<li><p><strong>Depth-First Tree Traversal with Uncomputation</strong>: Represents circuits that
-share a common gate prefix as a tree, traverses depth-first, and
-<em>uncomputes</em> backward using inverse gates before branching to the next
-circuit — achieving computation reuse with zero extra memory overhead.</p></li>
-</ul>
-<p>TUSQ reports an average speedup of 52.5× over Qiskit and 12.53× over CUDA-Q
-(up to 30 qubits), with peak gains of 7878× and 439× respectively on larger
-benchmarks <a class="reference internal" href="#dangwal2025" id="id8"><span>[Dangwal2025]</span></a>.</p>
 </section>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Permalink to this heading">¶</a></h2>
@@ -1615,15 +1534,6 @@ Alexander J. McCaskey, Brucek Khailany,
 <em>Augmenting Simulated Noisy Quantum Data Collection by Orders of Magnitude Using Pre-Trajectory Sampling with Batched Execution.</em>
 Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis. 2025.
 <a class="reference external" href="https://dl.acm.org/doi/full/10.1145/3712285.3759871">https://dl.acm.org/doi/full/10.1145/3712285.3759871</a></p>
-</div>
-<div class="citation" id="dangwal2025" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>Dangwal2025<span class="fn-bracket">]</span></span>
-<span class="backrefs">(<a role="doc-backlink" href="#id7">1</a>,<a role="doc-backlink" href="#id8">2</a>)</span>
-<p>Siddharth Dangwal, Tina Oberoi, Ajay Sailopal,
-Dhirpal Shah, Frederic T. Chong,
-<em>Noisy Quantum Simulation Using Tracking, Uncomputation and Sampling</em>,
-arXiv:2508.04880 (2025).
-https://arxiv.org/abs/2508.04880</p>
 </div>
 </div>
 </section>

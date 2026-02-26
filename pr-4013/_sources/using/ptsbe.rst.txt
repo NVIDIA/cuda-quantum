@@ -23,7 +23,7 @@ orders of magnitude quicker than traditional trajectory sampling methods by allo
 batched sampling. PTSBE can be used to capture millions of times more noisy shot data, which can
 then be used as e.g., training data in ML tasks such as AI decoders, or it can be deployed proportionally, 
 capturing the exact statistics of the problem while still offering a considerable speedup. In particular,
-PTSBE achieves traditional trajectory formalism accuracy at a fraction of
+PTSBE achieves traditional trajectory simulation accuracy at a fraction of
 the computational cost when the number of unique trajectories (errors) is much smaller than the total
 shot count [Patti2025]_.
 
@@ -69,9 +69,9 @@ When to Use PTSBE
 
 PTSBE is most beneficial when:
 
-- The circuit has **few distinct noise sites** so the trajectory space is
+- The circuit has few distinct noise sites so the trajectory space is
   manageable.
-- A **large shot count** is required (1 000 – 1 000 000+) so the reuse of
+- A large shot count is required (1 000 – 1 000 000+) so the reuse of
   trajectories provides a significant speed-up.
 - The shots are intended for a data-hungry downstream task that is not necessarily
   inhibited by correlated sampling, such as training AI models
@@ -194,17 +194,18 @@ Four strategies control which trajectories are selected from the noise space:
    * - Strategy
      - Description
    * - **Probabilistic** *(default)*
-     - Randomly samples unique trajectories weighted by probability. Produces
-       a representative cross-section of the noise space.
+     - Performs a statistically unbiased Monte Carlo sampling of trajectories 
+       producing a representative cross-section of the noise space.
    * - **Ordered**
-     - Selects the top-*T* highest-probability trajectories. Best when the
+     - Selects the top-*T* highest-probability trajectories. Useful when the
        noise space is dominated by a small number of likely error patterns.
    * - **Exhaustive**
      - Enumerates every possible trajectory. Use only when the noise space is
        small (few qubits and low-weight noise).
    * - **Conditional**
      - Keeps only trajectories that satisfy a user-supplied predicate. Useful
-       for targeted studies (e.g. only single-qubit error events).
+       for targeted studies (e.g. only single-qubit error events). This produces
+       a biased distribution.
 
 .. tab:: Python
 
@@ -261,11 +262,10 @@ After trajectories are selected, shots are distributed across them:
    * - Strategy
      - Description
    * - **Proportional** *(default)*
-     - Each trajectory receives shots proportional to its probability.
-       Uses multinomial sampling — total is always exact and every trajectory
-       with non-zero probability receives a fair share.
+     - Each trajectory receives shots proportional to its sampling strategy weight.
+       It uses multinomial sampling.
    * - **Uniform**
-     - Equal shots per trajectory regardless of probability.
+     - Equal shots per trajectory regardless of weight.
    * - **Low-weight bias**
      - Biases more shots toward trajectories with fewer errors (lower Kraus
        weight). Useful when low-error events dominate the observable of
@@ -306,7 +306,7 @@ Inspecting Execution Data
 
 Set ``return_execution_data=True`` to attach the full execution trace —
 circuit instructions, sampled trajectories, and per-trajectory counts — to
-the result:
+the result. This API is experimental and may be subject to change in future releases.
 
 .. tab:: Python
 
@@ -346,73 +346,30 @@ the result:
                  trajectory.trajectory_id, trajectory.probability, trajectory.num_shots);
       }
 
-Asynchronous Execution
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Use ``sample_async`` to submit the job without blocking:
-
-.. tab:: Python
-
-   .. code-block:: python
-
-      future = ptsbe.sample_async(bell, shots_count=10_000, noise_model=noise)
-      # ... do other work ...
-      result = future.get()
-
-.. tab:: C++
-
-   .. code-block:: cpp
-
-      auto future = cudaq::ptsbe::sample_async(opts, bell);
-      // ... do other work ...
-      auto result = future.get();
-
 Trajectory vs Shot Trade-offs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The central tension in PTSBE is between **trajectory count** *T* and
 **shots per trajectory** *N/T*.
 
-.. rubric:: Increasing trajectories
+Using more trajectories covers more of the noise space and reduces bias in the
+estimated distribution, but since each trajectory is simulated independently the
+simulation cost scales linearly with *T*. Beyond a certain point there are
+diminishing returns: once *T* approaches the total trajectory space size,
+additional trajectories yield little improvement.
 
-- Covers more of the noise space → lower bias in the estimated distribution.
-- Each trajectory is simulated independently → linear scaling in simulation
-  cost.
-- Diminishing returns once *T* approaches the total trajectory space size.
-
-.. rubric:: Decreasing trajectories (fewer, reused more)
-
-- Each trajectory accumulates more shots → lower shot-noise variance for that
-  trajectory.
-- Fewer circuit simulations → lower wall-clock time.
-- Risk of bias if high-probability regions of the noise space are under-sampled.
+Fewer trajectories mean each one accumulates more shots, which reduces
+shot-noise variance per trajectory and lowers wall-clock time. The risk is
+bias: if *T* is too small, high-probability regions of the noise space may be
+under-sampled and distort the result.
 
 .. rubric:: Practical guidance
-
-.. list-table::
-   :widths: 40 60
-   :header-rows: 1
-
-   * - Scenario
-     - Recommendation
-   * - Few noise sites, low error rates
-     - Use **Exhaustive** strategy; all trajectories have manageable count.
-   * - Many noise sites, high error rates
-     - Use **Probabilistic** with ``max_trajectories`` ≈ √N; the proportional
-       shot allocation handles variance automatically.
-   * - Studying low-error observables
-     - Use **Ordered** or **Low-weight bias** to concentrate shots on the most
-       probable (low-error) trajectories.
-   * - Studying rare error events
-     - Use **High-weight bias** to allocate more shots to high-error
-       trajectories.
-   * - Accuracy validation
-     - Compare against a standard density-matrix run. Hellinger fidelity
-       *F* ≈ 1 indicates PTSBE is faithfully reproducing the full distribution.
 
 As a rule of thumb, ``max_trajectories`` between 100 and 10 000 covers the
 majority of practical use cases. Below 100, bias may dominate. Above 10 000,
 the simulation cost approaches that of a conventional density-matrix run.
+Useful to perform a warm-up run sweeping the number of trajectories to understand
+the convergence behavior.
 
 Backend Requirements
 ^^^^^^^^^^^^^^^^^^^^^
@@ -448,7 +405,7 @@ plus ``density-matrix-cpu`` and ``qpp-cpu``:
      - CPU state vector simulator. Lightweight option for small circuits
        (< 28 qubits).
 
-Set the target before calling :func:`cudaq.ptsbe.sample`:
+Set the target:
 
 .. tab:: Python
 
@@ -476,28 +433,6 @@ Set the target before calling :func:`cudaq.ptsbe.sample`:
 See :doc:`backends/backends` for full details on each target including precision and
 qubit count limits.
 
-Related Approaches
-^^^^^^^^^^^^^^^^^^^
-
-TUSQ [Dangwal2025]_ is an alternative noisy-simulation framework addressing
-the same problem with a complementary set of techniques:
-
-- **Error Realization (ER) Tallying**: Samples noise channels once to identify
-  unique error realizations, then simulates each unique circuit once and
-  samples from its output multiple times — conceptually similar to PTSBE's
-  trajectory deduplication.
-- **ER Commutation**: Pushes Pauli noise gates rightward through the circuit
-  using gate commutation rules, merging additional circuits whose error
-  patterns are functionally equivalent after commutation.
-- **Depth-First Tree Traversal with Uncomputation**: Represents circuits that
-  share a common gate prefix as a tree, traverses depth-first, and
-  *uncomputes* backward using inverse gates before branching to the next
-  circuit — achieving computation reuse with zero extra memory overhead.
-
-TUSQ reports an average speedup of 52.5× over Qiskit and 12.53× over CUDA-Q
-(up to 30 qubits), with peak gains of 7878× and 439× respectively on larger
-benchmarks [Dangwal2025]_.
-
 References
 ^^^^^^^^^^^
 
@@ -512,9 +447,4 @@ References
    Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis. 2025.
    https://dl.acm.org/doi/full/10.1145/3712285.3759871
 
-.. [Dangwal2025] Siddharth Dangwal, Tina Oberoi, Ajay Sailopal,
-   Dhirpal Shah, Frederic T. Chong,
-   *Noisy Quantum Simulation Using Tracking, Uncomputation and Sampling*,
-   arXiv:2508.04880 (2025).
-   https://arxiv.org/abs/2508.04880
 .. |:spellcheck-enable:| replace:: \

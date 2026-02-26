@@ -1428,6 +1428,28 @@ pr-4013
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1684,6 +1706,24 @@ pr-4013
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1761,47 +1801,6 @@ pr-4013
             -   [[`mz`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
-    -   [PTSBE API](../../api/ptsbe_api.html){.reference .internal}
-        -   [Python API --- [`cudaq.ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../../api/ptsbe_api.html#python-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../../api/ptsbe_api.html#sampling-functions){.reference
-                .internal}
-            -   [Result
-                Type](../../api/ptsbe_api.html#result-type){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../../api/ptsbe_api.html#trajectory-sampling-strategies){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../../api/ptsbe_api.html#shot-allocation-strategy){.reference
-                .internal}
-            -   [Execution
-                Data](../../api/ptsbe_api.html#execution-data){.reference
-                .internal}
-        -   [C++ API --- [`cudaq::ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../../api/ptsbe_api.html#c-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../../api/ptsbe_api.html#id1){.reference
-                .internal}
-            -   [Options](../../api/ptsbe_api.html#options){.reference
-                .internal}
-            -   [Result Type](../../api/ptsbe_api.html#id2){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../../api/ptsbe_api.html#id3){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../../api/ptsbe_api.html#id4){.reference
-                .internal}
-            -   [Execution
-                Data](../../api/ptsbe_api.html#id5){.reference
-                .internal}
-            -   [Trajectory and Selection
-                Types](../../api/ptsbe_api.html#trajectory-and-selection-types){.reference
-                .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
     -   [Pre-Trajectory Sampling with Batch Execution
         (PTSBE)](../../using/ptsbe.html){.reference .internal}
@@ -1828,17 +1827,11 @@ pr-4013
             -   [Inspecting Execution
                 Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
-            -   [Asynchronous
-                Execution](../../using/ptsbe.html#asynchronous-execution){.reference
-                .internal}
         -   [Trajectory vs Shot
             Trade-offs](../../using/ptsbe.html#trajectory-vs-shot-trade-offs){.reference
             .internal}
         -   [Backend
             Requirements](../../using/ptsbe.html#backend-requirements){.reference
-            .internal}
-        -   [Related
-            Approaches](../../using/ptsbe.html#related-approaches){.reference
             .internal}
         -   [References](../../using/ptsbe.html#references){.reference
             .internal}
@@ -1901,14 +1894,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![3de0399dd89844bf8fe6ca728837564b](../../_images/gate-fuse1.png)
+![ca207329098e4d8980d73eb6bcf0a1b8](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![e8e01e1f2ff34494b62e97c5c8aefd56](../../_images/gatefusion.png)
+![f60f47df049244fc858d95047f9cfd77](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -1395,6 +1395,28 @@ pr-4013
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1651,6 +1673,24 @@ pr-4013
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1728,47 +1768,6 @@ pr-4013
             -   [[`mz`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
-    -   [PTSBE API](../../api/ptsbe_api.html){.reference .internal}
-        -   [Python API --- [`cudaq.ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../../api/ptsbe_api.html#python-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../../api/ptsbe_api.html#sampling-functions){.reference
-                .internal}
-            -   [Result
-                Type](../../api/ptsbe_api.html#result-type){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../../api/ptsbe_api.html#trajectory-sampling-strategies){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../../api/ptsbe_api.html#shot-allocation-strategy){.reference
-                .internal}
-            -   [Execution
-                Data](../../api/ptsbe_api.html#execution-data){.reference
-                .internal}
-        -   [C++ API --- [`cudaq::ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../../api/ptsbe_api.html#c-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../../api/ptsbe_api.html#id1){.reference
-                .internal}
-            -   [Options](../../api/ptsbe_api.html#options){.reference
-                .internal}
-            -   [Result Type](../../api/ptsbe_api.html#id2){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../../api/ptsbe_api.html#id3){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../../api/ptsbe_api.html#id4){.reference
-                .internal}
-            -   [Execution
-                Data](../../api/ptsbe_api.html#id5){.reference
-                .internal}
-            -   [Trajectory and Selection
-                Types](../../api/ptsbe_api.html#trajectory-and-selection-types){.reference
-                .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
     -   [Pre-Trajectory Sampling with Batch Execution
         (PTSBE)](../../using/ptsbe.html){.reference .internal}
@@ -1795,17 +1794,11 @@ pr-4013
             -   [Inspecting Execution
                 Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
-            -   [Asynchronous
-                Execution](../../using/ptsbe.html#asynchronous-execution){.reference
-                .internal}
         -   [Trajectory vs Shot
             Trade-offs](../../using/ptsbe.html#trajectory-vs-shot-trade-offs){.reference
             .internal}
         -   [Backend
             Requirements](../../using/ptsbe.html#backend-requirements){.reference
-            .internal}
-        -   [Related
-            Approaches](../../using/ptsbe.html#related-approaches){.reference
             .internal}
         -   [References](../../using/ptsbe.html#references){.reference
             .internal}
@@ -1926,7 +1919,7 @@ each pixel with its position
 
 <div>
 
-![3e50b0d1375e43c198d87f004882c405](../../_images/pixels-img.png){.no-scaled-link
+![02779c9cad31461db767d0386afc27c5](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

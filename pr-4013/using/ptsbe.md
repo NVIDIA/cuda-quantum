@@ -1398,6 +1398,28 @@ pr-4013
             .internal}
         -   [Namespaces](../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1654,6 +1676,24 @@ pr-4013
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../api/languages/python_api.html#execution-data){.reference
+                .internal}
     -   [Quantum Operations](../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1731,46 +1771,6 @@ pr-4013
             -   [[`mz`{.code .docutils .literal
                 .notranslate}]{.pre}](../api/default_ops.html#id1){.reference
                 .internal}
-    -   [PTSBE API](../api/ptsbe_api.html){.reference .internal}
-        -   [Python API --- [`cudaq.ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../api/ptsbe_api.html#python-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../api/ptsbe_api.html#sampling-functions){.reference
-                .internal}
-            -   [Result
-                Type](../api/ptsbe_api.html#result-type){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../api/ptsbe_api.html#trajectory-sampling-strategies){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../api/ptsbe_api.html#shot-allocation-strategy){.reference
-                .internal}
-            -   [Execution
-                Data](../api/ptsbe_api.html#execution-data){.reference
-                .internal}
-        -   [C++ API --- [`cudaq::ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../api/ptsbe_api.html#c-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../api/ptsbe_api.html#id1){.reference
-                .internal}
-            -   [Options](../api/ptsbe_api.html#options){.reference
-                .internal}
-            -   [Result Type](../api/ptsbe_api.html#id2){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../api/ptsbe_api.html#id3){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../api/ptsbe_api.html#id4){.reference
-                .internal}
-            -   [Execution Data](../api/ptsbe_api.html#id5){.reference
-                .internal}
-            -   [Trajectory and Selection
-                Types](../api/ptsbe_api.html#trajectory-and-selection-types){.reference
-                .internal}
 -   [User Guide](user_guide.html){.reference .internal}
     -   [Pre-Trajectory Sampling with Batch Execution
         (PTSBE)](#){.current .reference .internal}
@@ -1791,15 +1791,10 @@ pr-4013
                 .internal}
             -   [Inspecting Execution
                 Data](#inspecting-execution-data){.reference .internal}
-            -   [Asynchronous
-                Execution](#asynchronous-execution){.reference
-                .internal}
         -   [Trajectory vs Shot
             Trade-offs](#trajectory-vs-shot-trade-offs){.reference
             .internal}
         -   [Backend Requirements](#backend-requirements){.reference
-            .internal}
-        -   [Related Approaches](#related-approaches){.reference
             .internal}
         -   [References](#references){.reference .internal}
 -   [Other Versions](../versions.html){.reference .internal}
@@ -1858,7 +1853,7 @@ millions of times more noisy shot data, which can then be used as e.g.,
 training data in ML tasks such as AI decoders, or it can be deployed
 proportionally, capturing the exact statistics of the problem while
 still offering a considerable speedup. In particular, PTSBE achieves
-traditional trajectory formalism accuracy at a fraction of the
+traditional trajectory simulation accuracy at a fraction of the
 computational cost when the number of unique trajectories (errors) is
 much smaller than the total shot count [\[Patti2025\]](#patti2025){#id4
 .reference .internal}.
@@ -1911,11 +1906,11 @@ shot count *N*.
 
 PTSBE is most beneficial when:
 
--   The circuit has **few distinct noise sites** so the trajectory space
-    is manageable.
+-   The circuit has few distinct noise sites so the trajectory space is
+    manageable.
 
--   A **large shot count** is required (1 000 -- 1 000 000+) so the
-    reuse of trajectories provides a significant speed-up.
+-   A large shot count is required (1 000 -- 1 000 000+) so the reuse of
+    trajectories provides a significant speed-up.
 
 -   The shots are intended for a data-hungry downstream task that is not
     necessarily inhibited by correlated sampling, such as training AI
@@ -2064,12 +2059,12 @@ space:
 +-----------------+-----------------------------------------------------+
 | Strategy        | Description                                         |
 +=================+=====================================================+
-| **              | Randomly samples unique trajectories weighted by    |
-| Probabilistic** | probability. Produces a representative              |
+| **              | Performs a statistically unbiased Monte Carlo       |
+| Probabilistic** | sampling of trajectories producing a representative |
 | *(default)*     | cross-section of the noise space.                   |
 +-----------------+-----------------------------------------------------+
 | **Ordered**     | Selects the top-*T* highest-probability             |
-|                 | trajectories. Best when the noise space is          |
+|                 | trajectories. Useful when the noise space is        |
 |                 | dominated by a small number of likely error         |
 |                 | patterns.                                           |
 +-----------------+-----------------------------------------------------+
@@ -2079,7 +2074,8 @@ space:
 +-----------------+-----------------------------------------------------+
 | **Conditional** | Keeps only trajectories that satisfy a              |
 |                 | user-supplied predicate. Useful for targeted        |
-|                 | studies (e.g. only single-qubit error events).      |
+|                 | studies (e.g. only single-qubit error events). This |
+|                 | produces a biased distribution.                     |
 +-----------------+-----------------------------------------------------+
 
 ::: {.tab-set .docutils}
@@ -2145,12 +2141,10 @@ After trajectories are selected, shots are distributed across them:
 | Strategy        | Description                                         |
 +=================+=====================================================+
 | *               | Each trajectory receives shots proportional to its  |
-| *Proportional** | probability. Uses multinomial sampling --- total is |
-| *(default)*     | always exact and every trajectory with non-zero     |
-|                 | probability receives a fair share.                  |
+| *Proportional** | sampling strategy weight. It uses multinomial       |
+| *(default)*     | sampling.                                           |
 +-----------------+-----------------------------------------------------+
-| **Uniform**     | Equal shots per trajectory regardless of            |
-|                 | probability.                                        |
+| **Uniform**     | Equal shots per trajectory regardless of weight.    |
 +-----------------+-----------------------------------------------------+
 | **Low-weight    | Biases more shots toward trajectories with fewer    |
 | bias**          | errors (lower Kraus weight). Useful when low-error  |
@@ -2204,7 +2198,8 @@ C++
 Set [`return_execution_data=True`{.docutils .literal
 .notranslate}]{.pre} to attach the full execution trace --- circuit
 instructions, sampled trajectories, and per-trajectory counts --- to the
-result:
+result. This API is experimental and may be subject to change in future
+releases.
 
 ::: {.tab-set .docutils}
 Python
@@ -2254,39 +2249,6 @@ C++
 :::
 :::
 :::
-
-::: {#asynchronous-execution .section}
-### Asynchronous Execution[¶](#asynchronous-execution "Permalink to this heading"){.headerlink}
-
-Use [`sample_async`{.docutils .literal .notranslate}]{.pre} to submit
-the job without blocking:
-
-::: {.tab-set .docutils}
-Python
-
-::: {.tab-content .docutils}
-::: {.highlight-python .notranslate}
-::: highlight
-    future = ptsbe.sample_async(bell, shots_count=10_000, noise_model=noise)
-    # ... do other work ...
-    result = future.get()
-:::
-:::
-:::
-
-C++
-
-::: {.tab-content .docutils}
-::: {.highlight-cpp .notranslate}
-::: highlight
-    auto future = cudaq::ptsbe::sample_async(opts, bell);
-    // ... do other work ...
-    auto result = future.get();
-:::
-:::
-:::
-:::
-:::
 :::
 
 ::: {#trajectory-vs-shot-trade-offs .section}
@@ -2295,58 +2257,26 @@ C++
 The central tension in PTSBE is between **trajectory count** *T* and
 **shots per trajectory** *N/T*.
 
-Increasing trajectories
+Using more trajectories covers more of the noise space and reduces bias
+in the estimated distribution, but since each trajectory is simulated
+independently the simulation cost scales linearly with *T*. Beyond a
+certain point there are diminishing returns: once *T* approaches the
+total trajectory space size, additional trajectories yield little
+improvement.
 
--   Covers more of the noise space → lower bias in the estimated
-    distribution.
-
--   Each trajectory is simulated independently → linear scaling in
-    simulation cost.
-
--   Diminishing returns once *T* approaches the total trajectory space
-    size.
-
-Decreasing trajectories (fewer, reused more)
-
--   Each trajectory accumulates more shots → lower shot-noise variance
-    for that trajectory.
-
--   Fewer circuit simulations → lower wall-clock time.
-
--   Risk of bias if high-probability regions of the noise space are
-    under-sampled.
+Fewer trajectories mean each one accumulates more shots, which reduces
+shot-noise variance per trajectory and lowers wall-clock time. The risk
+is bias: if *T* is too small, high-probability regions of the noise
+space may be under-sampled and distort the result.
 
 Practical guidance
-
-+---------------------------+------------------------------------------+
-| Scenario                  | Recommendation                           |
-+===========================+==========================================+
-| Few noise sites, low      | Use **Exhaustive** strategy; all         |
-| error rates               | trajectories have manageable count.      |
-+---------------------------+------------------------------------------+
-| Many noise sites, high    | Use **Probabilistic** with               |
-| error rates               | [`max_trajectories`{.docutils .literal   |
-|                           | .notranslate}]{.pre} ≈ √N; the           |
-|                           | proportional shot allocation handles     |
-|                           | variance automatically.                  |
-+---------------------------+------------------------------------------+
-| Studying low-error        | Use **Ordered** or **Low-weight bias**   |
-| observables               | to concentrate shots on the most         |
-|                           | probable (low-error) trajectories.       |
-+---------------------------+------------------------------------------+
-| Studying rare error       | Use **High-weight bias** to allocate     |
-| events                    | more shots to high-error trajectories.   |
-+---------------------------+------------------------------------------+
-| Accuracy validation       | Compare against a standard               |
-|                           | density-matrix run. Hellinger fidelity   |
-|                           | *F* ≈ 1 indicates PTSBE is faithfully    |
-|                           | reproducing the full distribution.       |
-+---------------------------+------------------------------------------+
 
 As a rule of thumb, [`max_trajectories`{.docutils .literal
 .notranslate}]{.pre} between 100 and 10 000 covers the majority of
 practical use cases. Below 100, bias may dominate. Above 10 000, the
 simulation cost approaches that of a conventional density-matrix run.
+Useful to perform a warm-up run sweeping the number of trajectories to
+understand the convergence behavior.
 :::
 
 ::: {#backend-requirements .section}
@@ -2411,10 +2341,7 @@ table](https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.ht
 | .notranslate}]{.pre}   |                                             |
 +------------------------+---------------------------------------------+
 
-Set the target before calling [[`cudaq.ptsbe.sample()`{.xref .py
-.py-func .docutils .literal
-.notranslate}]{.pre}](../api/ptsbe_api.html#cudaq.ptsbe.sample "cudaq.ptsbe.sample"){.reference
-.internal}:
+Set the target:
 
 ::: {.tab-set .docutils}
 Python
@@ -2454,34 +2381,6 @@ See [[CUDA-Q Backends]{.doc}](backends/backends.html){.reference
 count limits.
 :::
 
-::: {#related-approaches .section}
-## Related Approaches[¶](#related-approaches "Permalink to this heading"){.headerlink}
-
-TUSQ [\[Dangwal2025\]](#dangwal2025){#id7 .reference .internal} is an
-alternative noisy-simulation framework addressing the same problem with
-a complementary set of techniques:
-
--   **Error Realization (ER) Tallying**: Samples noise channels once to
-    identify unique error realizations, then simulates each unique
-    circuit once and samples from its output multiple times ---
-    conceptually similar to PTSBE's trajectory deduplication.
-
--   **ER Commutation**: Pushes Pauli noise gates rightward through the
-    circuit using gate commutation rules, merging additional circuits
-    whose error patterns are functionally equivalent after commutation.
-
--   **Depth-First Tree Traversal with Uncomputation**: Represents
-    circuits that share a common gate prefix as a tree, traverses
-    depth-first, and *uncomputes* backward using inverse gates before
-    branching to the next circuit --- achieving computation reuse with
-    zero extra memory overhead.
-
-TUSQ reports an average speedup of 52.5× over Qiskit and 12.53× over
-CUDA-Q (up to 30 qubits), with peak gains of 7878× and 439× respectively
-on larger benchmarks [\[Dangwal2025\]](#dangwal2025){#id8 .reference
-.internal}.
-:::
-
 ::: {#references .section}
 ## References[¶](#references "Permalink to this heading"){.headerlink}
 
@@ -2509,15 +2408,6 @@ Execution.* Proceedings of the International Conference for High
 Performance Computing, Networking, Storage and Analysis. 2025.
 [https://dl.acm.org/doi/full/10.1145/3712285.3759871](https://dl.acm.org/doi/full/10.1145/3712285.3759871){.reference
 .external}
-:::
-
-::: {#dangwal2025 .citation role="doc-biblioentry"}
-[[\[]{.fn-bracket}Dangwal2025[\]]{.fn-bracket}]{.label}
-[([1](#id7){role="doc-backlink"},[2](#id8){role="doc-backlink"})]{.backrefs}
-
-Siddharth Dangwal, Tina Oberoi, Ajay Sailopal, Dhirpal Shah, Frederic T.
-Chong, *Noisy Quantum Simulation Using Tracking, Uncomputation and
-Sampling*, arXiv:2508.04880 (2025). https://arxiv.org/abs/2508.04880
 :::
 :::
 :::

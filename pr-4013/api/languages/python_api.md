@@ -1432,6 +1432,24 @@ pr-4013
         -   [Platform](cpp_api.html#platform){.reference .internal}
         -   [Utilities](cpp_api.html#utilities){.reference .internal}
         -   [Namespaces](cpp_api.html#namespaces){.reference .internal}
+        -   [PTSBE](cpp_api.html#ptsbe){.reference .internal}
+            -   [Sampling
+                Functions](cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](cpp_api.html#options){.reference .internal}
+            -   [Result Type](cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution Data](cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](#){.current .reference .internal}
         -   [Program Construction](#program-construction){.reference
             .internal}
@@ -1663,6 +1681,17 @@ pr-4013
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE Submodule](#ptsbe-submodule){.reference .internal}
+            -   [Sampling Functions](#sampling-functions){.reference
+                .internal}
+            -   [Result Type](#result-type){.reference .internal}
+            -   [Trajectory Sampling
+                Strategies](#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution Data](#execution-data){.reference .internal}
     -   [Quantum Operations](../default_ops.html){.reference .internal}
         -   [Unitary Operations on
             Qubits](../default_ops.html#unitary-operations-on-qubits){.reference
@@ -1739,42 +1768,6 @@ pr-4013
             -   [[`mz`{.code .docutils .literal
                 .notranslate}]{.pre}](../default_ops.html#id1){.reference
                 .internal}
-    -   [PTSBE API](../ptsbe_api.html){.reference .internal}
-        -   [Python API --- [`cudaq.ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../ptsbe_api.html#python-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../ptsbe_api.html#sampling-functions){.reference
-                .internal}
-            -   [Result Type](../ptsbe_api.html#result-type){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../ptsbe_api.html#trajectory-sampling-strategies){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../ptsbe_api.html#shot-allocation-strategy){.reference
-                .internal}
-            -   [Execution
-                Data](../ptsbe_api.html#execution-data){.reference
-                .internal}
-        -   [C++ API --- [`cudaq::ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../ptsbe_api.html#c-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling Functions](../ptsbe_api.html#id1){.reference
-                .internal}
-            -   [Options](../ptsbe_api.html#options){.reference
-                .internal}
-            -   [Result Type](../ptsbe_api.html#id2){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../ptsbe_api.html#id3){.reference .internal}
-            -   [Shot Allocation
-                Strategy](../ptsbe_api.html#id4){.reference .internal}
-            -   [Execution Data](../ptsbe_api.html#id5){.reference
-                .internal}
-            -   [Trajectory and Selection
-                Types](../ptsbe_api.html#trajectory-and-selection-types){.reference
-                .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
     -   [Pre-Trajectory Sampling with Batch Execution
         (PTSBE)](../../using/ptsbe.html){.reference .internal}
@@ -1801,17 +1794,11 @@ pr-4013
             -   [Inspecting Execution
                 Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
-            -   [Asynchronous
-                Execution](../../using/ptsbe.html#asynchronous-execution){.reference
-                .internal}
         -   [Trajectory vs Shot
             Trade-offs](../../using/ptsbe.html#trajectory-vs-shot-trade-offs){.reference
             .internal}
         -   [Backend
             Requirements](../../using/ptsbe.html#backend-requirements){.reference
-            .internal}
-        -   [Related
-            Approaches](../../using/ptsbe.html#related-approaches){.reference
             .internal}
         -   [References](../../using/ptsbe.html#references){.reference
             .internal}
@@ -3695,7 +3682,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[4103396349]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3397578789]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -9723,6 +9710,616 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Performs Time Bin Interferometer (TBI) boson sampling experiments on
     ORCA's backends
+:::
+
+::: {#ptsbe-submodule .section}
+## PTSBE Submodule[¶](#ptsbe-submodule "Permalink to this heading"){.headerlink}
+
+The [`cudaq.ptsbe`{.docutils .literal .notranslate}]{.pre} submodule
+implements Pre-Trajectory Sampling with Batch Execution (PTSBE). For a
+conceptual overview and usage tutorial see [[Noisy Simulation with
+PTSBE]{.doc}](../../using/ptsbe.html){.reference .internal}.
+
+::: {#sampling-functions .section}
+### Sampling Functions[¶](#sampling-functions "Permalink to this heading"){.headerlink}
+
+[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[max_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[sampling_strategy]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[shot_allocation]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[return_execution_data]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.custom.cudaq.ptsbe.sample "Permalink to this definition"){.headerlink}
+
+:   Sample a quantum kernel using Pre-Trajectory Sampling with Batch
+    Execution.
+
+    Pre-samples *T* unique noise trajectories from the circuit's noise
+    model and batches circuit executions by unique trajectory. Each
+    trajectory is simulated as a pure-state circuit; results are merged
+    into a single [[`SampleResult`{.xref .py .py-class .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+    .internal}.
+
+    When any argument is a list (broadcast mode), the kernel is executed
+    for each element of the list and a list of results is returned.
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** -- The quantum kernel to execute. Must be a
+            static circuit with no mid-circuit measurements or
+            measurement-dependent conditional logic.
+
+        -   **args** -- Positional arguments forwarded to the kernel.
+
+        -   **shots_count**
+            ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}) -- Total number of measurement shots to
+            distribute across all trajectories. Default:
+            [`1000`{.docutils .literal .notranslate}]{.pre}.
+
+        -   **noise_model** ([[`cudaq.NoiseModel`{.xref .py .py-class
+            .docutils .literal
+            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
+            .internal} or [`None`{.docutils .literal
+            .notranslate}]{.pre}) -- Noise model describing gate-level
+            error channels. Noise can also be injected inside the kernel
+            via [`cudaq.apply_noise()`{.docutils .literal
+            .notranslate}]{.pre}; both can be combined. Default:
+            [`None`{.docutils .literal .notranslate}]{.pre} (no noise).
+
+        -   **max_trajectories** (int or [`None`{.docutils .literal
+            .notranslate}]{.pre}) -- Maximum number of unique
+            trajectories to generate. [`None`{.docutils .literal
+            .notranslate}]{.pre} defaults to [`shots_count`{.docutils
+            .literal .notranslate}]{.pre}. Setting an explicit limit
+            (e.g. 500) enables trajectory reuse and is strongly
+            recommended for large shot counts.
+
+        -   **sampling_strategy** ([[`PTSSamplingStrategy`{.xref .py
+            .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy "cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy"){.reference
+            .internal} or [`None`{.docutils .literal
+            .notranslate}]{.pre}) -- Strategy used to select
+            trajectories from the noise space. [`None`{.docutils
+            .literal .notranslate}]{.pre} uses the default
+            [[`ProbabilisticSamplingStrategy`{.xref .py .py-class
+            .docutils .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy "cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy"){.reference
+            .internal}.
+
+        -   **shot_allocation** ([[`ShotAllocationStrategy`{.xref .py
+            .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy "cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy"){.reference
+            .internal} or [`None`{.docutils .literal
+            .notranslate}]{.pre}) -- Strategy used to distribute shots
+            across the selected trajectories. [`None`{.docutils .literal
+            .notranslate}]{.pre} uses [[`PROPORTIONAL`{.xref .py
+            .py-attr .docutils .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL "cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL"){.reference
+            .internal}.
+
+        -   **return_execution_data**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}) -- When [`True`{.docutils .literal
+            .notranslate}]{.pre}, attaches the full execution trace
+            (circuit instructions, trajectory specifications, and
+            per-trajectory measurement counts) to the returned result.
+            Default: [`False`{.docutils .literal .notranslate}]{.pre}.
+
+    Returns[:]{.colon}
+
+    :   Aggregated measurement outcomes. In broadcast mode, a list of
+        results is returned.
+
+    Return type[:]{.colon}
+
+    :   [[`cudaq.ptsbe.PTSBESampleResult`{.xref .py .py-class .docutils
+        .literal
+        .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult "cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult"){.reference
+        .internal}
+
+    Raises[:]{.colon}
+
+    :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        .external} -- If the kernel contains mid-circuit measurements,
+        conditional feedback, unsupported noise channels, or invalid
+        arguments.
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        import cudaq
+        from cudaq import ptsbe
+
+        cudaq.set_target("nvidia")
+
+        @cudaq.kernel
+        def bell():
+            q = cudaq.qvector(2)
+            h(q[0])
+            cx(q[0], q[1])
+            mz(q)
+
+        noise = cudaq.NoiseModel()
+        noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.01))
+
+        result = ptsbe.sample(bell, shots_count=10_000,
+                              noise_model=noise, max_trajectories=200)
+        print(result)
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[max_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[sampling_strategy]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[shot_allocation]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[return_execution_data]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.custom.cudaq.ptsbe.sample_async "Permalink to this definition"){.headerlink}
+
+:   Asynchronous variant of [[`sample()`{.xref .py .py-func .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.sample "cudaq.operators.custom.cudaq.ptsbe.sample"){.reference
+    .internal}. Submits the job without blocking and returns a future.
+
+    All parameters are identical to [[`sample()`{.xref .py .py-func
+    .docutils .literal
+    .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.sample "cudaq.operators.custom.cudaq.ptsbe.sample"){.reference
+    .internal}.
+
+    Returns[:]{.colon}
+
+    :   A future whose [`.get()`{.docutils .literal .notranslate}]{.pre}
+        method returns the [[`PTSBESampleResult`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult "cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult"){.reference
+        .internal}.
+
+    Return type[:]{.colon}
+
+    :   [[`AsyncSampleResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference
+        .internal}
+
+    Raises[:]{.colon}
+
+    :   Any exception raised during kernel execution is captured and
+        re-raised when [`.get()`{.docutils .literal .notranslate}]{.pre}
+        is called on the returned future.
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        future = ptsbe.sample_async(bell, shots_count=10_000, noise_model=noise)
+        # ... do other work ...
+        result = future.get()
+    :::
+    :::
+:::
+
+------------------------------------------------------------------------
+
+::: {#result-type .section}
+### Result Type[¶](#result-type "Permalink to this heading"){.headerlink}
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[PTSBESampleResult]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult "Permalink to this definition"){.headerlink}
+
+:   Extends [[`cudaq.SampleResult`{.xref .py .py-class .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+    .internal} with an optional [[`PTSBEExecutionData`{.xref .py
+    .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData "cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData"){.reference
+    .internal} payload produced when
+    [`return_execution_data=True`{.docutils .literal
+    .notranslate}]{.pre}.
+
+    [[has_execution_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data "Permalink to this definition"){.headerlink}
+
+    :   Return [`True`{.docutils .literal .notranslate}]{.pre} if
+        execution data is attached to this result.
+
+    [[execution_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[PTSBEExecutionData]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData "cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data "Permalink to this definition"){.headerlink}
+
+    :   Return the attached [[`PTSBEExecutionData`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData "cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData"){.reference
+        .internal}.
+
+        Raises[:]{.colon}
+
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- If no execution data is available. Check
+            [[`has_execution_data()`{.xref .py .py-meth .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data "cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data"){.reference
+            .internal} first.
+:::
+
+------------------------------------------------------------------------
+
+::: {#trajectory-sampling-strategies .section}
+### Trajectory Sampling Strategies[¶](#trajectory-sampling-strategies "Permalink to this heading"){.headerlink}
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[PTSSamplingStrategy]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy "Permalink to this definition"){.headerlink}
+
+:   Abstract base class for trajectory sampling strategies. Subclass and
+    implement [[`generate_trajectories()`{.xref .py .py-meth .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories "cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories"){.reference
+    .internal} to define a custom strategy.
+
+    [[generate_trajectories]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[noise_points]{.pre}]{.n}*, *[[max_trajectories]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[KrausTrajectory]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory "cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories "Permalink to this definition"){.headerlink}
+
+    :   Generate up to *max_trajectories* unique trajectories from the
+        given noise points.
+
+        Parameters[:]{.colon}
+
+        :   -   **noise_points** -- Noise site information extracted
+                from the circuit.
+
+            -   **max_trajectories**
+                ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+                .external}) -- Upper bound on the number of
+                trajectories.
+
+        Returns[:]{.colon}
+
+        :   List of unique [[`KrausTrajectory`{.xref .py .py-class
+            .docutils .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory "cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory"){.reference
+            .internal} objects.
+
+    [[name]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.name "Permalink to this definition"){.headerlink}
+
+    :   Return a human-readable name for this strategy.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[ProbabilisticSamplingStrategy]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[seed]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy "Permalink to this definition"){.headerlink}
+
+:   Randomly samples unique trajectories weighted by their occurrence
+    probability. Produces a representative cross-section of the noise
+    space. Duplicate trajectories are discarded.
+
+    Parameters[:]{.colon}
+
+    :   **seed**
+        ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+        .external}) -- Random seed for reproducibility. [`0`{.docutils
+        .literal .notranslate}]{.pre} uses the global CUDA-Q seed if
+        set, otherwise a random device seed.
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        strategy = ptsbe.ProbabilisticSamplingStrategy(seed=42)
+        result = ptsbe.sample(bell, shots_count=10_000,
+                              noise_model=noise,
+                              sampling_strategy=strategy)
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[OrderedSamplingStrategy]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.OrderedSamplingStrategy "Permalink to this definition"){.headerlink}
+
+:   Selects the top-*T* trajectories sorted by probability in descending
+    order. Ensures the highest-probability noise realizations are always
+    represented. Best when the noise space is dominated by a small
+    number of likely error patterns.
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        result = ptsbe.sample(bell, shots_count=10_000,
+                              noise_model=noise,
+                              max_trajectories=100,
+                              sampling_strategy=ptsbe.OrderedSamplingStrategy())
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[ExhaustiveSamplingStrategy]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.ExhaustiveSamplingStrategy "Permalink to this definition"){.headerlink}
+
+:   Enumerates every possible trajectory in lexicographic order.
+    Produces a complete representation of the noise space. Only
+    practical when the noise space is small (few noise sites and low
+    Kraus operator count).
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[ConditionalSamplingStrategy]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[predicate]{.pre}]{.n}*, *[[seed]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.custom.cudaq.ptsbe.ConditionalSamplingStrategy "Permalink to this definition"){.headerlink}
+
+:   Samples trajectories that satisfy a user-supplied predicate
+    function. Useful for targeted studies such as restricting to
+    single-qubit error events or trajectories below a probability
+    threshold.
+
+    Parameters[:]{.colon}
+
+    :   -   **predicate** -- A callable [`(KrausTrajectory)`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal .notranslate}]{.pre}
+            that returns [`True`{.docutils .literal .notranslate}]{.pre}
+            for trajectories to include.
+
+        -   **seed**
+            ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}) -- Random seed. [`0`{.docutils .literal
+            .notranslate}]{.pre} uses the global CUDA-Q seed.
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        # Keep only trajectories with at most one error
+        strategy = ptsbe.ConditionalSamplingStrategy(
+            predicate=lambda traj: traj.count_errors() <= 1,
+            seed=42,
+        )
+        result = ptsbe.sample(bell, shots_count=10_000,
+                              noise_model=noise,
+                              sampling_strategy=strategy)
+    :::
+    :::
+:::
+
+------------------------------------------------------------------------
+
+::: {#shot-allocation-strategy .section}
+### Shot Allocation Strategy[¶](#shot-allocation-strategy "Permalink to this heading"){.headerlink}
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[ShotAllocationStrategy]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[type]{.pre}]{.n}[[=]{.pre}]{.o}[[ShotAllocationStrategy.Type.PROPORTIONAL]{.pre}]{.default_value}*, *[[bias_strength]{.pre}]{.n}[[=]{.pre}]{.o}[[2.0]{.pre}]{.default_value}*, *[[seed]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy "Permalink to this definition"){.headerlink}
+
+:   Controls how the total shot count is distributed across the selected
+    trajectories after trajectory sampling.
+
+    Parameters[:]{.colon}
+
+    :   -   **type** ([[`Type`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type "cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type"){.reference
+            .internal}) -- Allocation strategy type.
+
+        -   **bias_strength**
+            ([*float*](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}) -- Exponent used by the biased strategies.
+            Higher values produce stronger bias. Default:
+            [`2.0`{.docutils .literal .notranslate}]{.pre}.
+
+        -   **seed**
+            ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}) -- Random seed used by probabilistic allocation
+            (PROPORTIONAL and biased strategies). [`0`{.docutils
+            .literal .notranslate}]{.pre} uses the global CUDA-Q seed.
+
+    *[class]{.pre}[ ]{.w}*[[Type]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[PROPORTIONAL]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL "Permalink to this definition"){.headerlink}
+
+        :   *(default)* Shots are allocated via multinomial sampling
+            weighted by trajectory probability. The total is always
+            exactly [`shots_count`{.docutils .literal
+            .notranslate}]{.pre} and every trajectory with non-zero
+            probability receives a fair share.
+
+        [[UNIFORM]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.UNIFORM "Permalink to this definition"){.headerlink}
+
+        :   Equal shots per trajectory regardless of probability.
+
+        [[LOW_WEIGHT_BIAS]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.LOW_WEIGHT_BIAS "Permalink to this definition"){.headerlink}
+
+        :   Biases more shots toward trajectories with fewer errors
+            (lower Kraus weight). Weight formula: [`(1`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`+`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`error_count)^(-bias_strength)`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`*`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`probability`{.docutils .literal
+            .notranslate}]{.pre}.
+
+        [[HIGH_WEIGHT_BIAS]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.HIGH_WEIGHT_BIAS "Permalink to this definition"){.headerlink}
+
+        :   Biases more shots toward trajectories with more errors.
+            Weight formula: [`(1`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`+`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`error_count)^(+bias_strength)`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`*`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`probability`{.docutils .literal
+            .notranslate}]{.pre}.
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        alloc = ptsbe.ShotAllocationStrategy(
+            ptsbe.ShotAllocationStrategy.Type.LOW_WEIGHT_BIAS,
+            bias_strength=3.0,
+        )
+        result = ptsbe.sample(bell, shots_count=10_000,
+                              noise_model=noise,
+                              shot_allocation=alloc)
+    :::
+    :::
+:::
+
+------------------------------------------------------------------------
+
+::: {#execution-data .section}
+### Execution Data[¶](#execution-data "Permalink to this heading"){.headerlink}
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[PTSBEExecutionData]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData "Permalink to this definition"){.headerlink}
+
+:   Container for the full PTSBE execution trace. Returned by
+    [[`execution_data()`{.xref .py .py-meth .docutils .literal
+    .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data "cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data"){.reference
+    .internal} when [`return_execution_data=True`{.docutils .literal
+    .notranslate}]{.pre}.
+
+    [[instructions]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[TraceInstruction]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction "cudaq.operators.custom.cudaq.ptsbe.TraceInstruction"){.reference .internal}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.instructions "Permalink to this definition"){.headerlink}
+
+    :   Ordered list of circuit operations: gates, noise channel
+        locations, and terminal measurements.
+
+    [[trajectories]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[KrausTrajectory]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory "cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory"){.reference .internal}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.trajectories "Permalink to this definition"){.headerlink}
+
+    :   The trajectories that were sampled and executed.
+
+    [[count_instructions]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[type]{.pre}]{.n}*, *[[name]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.count_instructions "Permalink to this definition"){.headerlink}
+
+    :   Count instructions of the given [[`TraceInstructionType`{.xref
+        .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType "cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType"){.reference
+        .internal}, optionally filtered by operation name.
+
+    [[get_trajectory]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[trajectory_id]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.get_trajectory "Permalink to this definition"){.headerlink}
+
+    :   Look up a trajectory by its ID. Returns [`None`{.docutils
+        .literal .notranslate}]{.pre} if not found.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[TraceInstruction]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction "Permalink to this definition"){.headerlink}
+
+:   A single operation in the PTSBE execution trace.
+
+    [[type]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[TraceInstructionType]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType "cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType"){.reference .internal}*[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.type "Permalink to this definition"){.headerlink}
+
+    :   Whether this instruction is a [`Gate`{.docutils .literal
+        .notranslate}]{.pre}, [`Noise`{.docutils .literal
+        .notranslate}]{.pre}, or [`Measurement`{.docutils .literal
+        .notranslate}]{.pre} (see [[`TraceInstructionType`{.xref .py
+        .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType "cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType"){.reference
+        .internal}).
+
+    [[name]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.name "Permalink to this definition"){.headerlink}
+
+    :   Operation name (e.g. [`"h"`{.docutils .literal
+        .notranslate}]{.pre}, [`"cx"`{.docutils .literal
+        .notranslate}]{.pre}, [`"depolarizing"`{.docutils .literal
+        .notranslate}]{.pre}, [`"mz"`{.docutils .literal
+        .notranslate}]{.pre}).
+
+    [[targets]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.targets "Permalink to this definition"){.headerlink}
+
+    :   Target qubit indices.
+
+    [[controls]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.controls "Permalink to this definition"){.headerlink}
+
+    :   Control qubit indices. Empty for non-controlled operations.
+
+    [[params]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.params "Permalink to this definition"){.headerlink}
+
+    :   Gate rotation angles or noise channel parameters.
+
+    [[channel]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.channel "Permalink to this definition"){.headerlink}
+
+    :   The noise channel ([`cudaq.KrausChannel`{.docutils .literal
+        .notranslate}]{.pre}), or [`None`{.docutils .literal
+        .notranslate}]{.pre}. Populated only for [`Noise`{.docutils
+        .literal .notranslate}]{.pre} instructions.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[TraceInstructionType]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType "Permalink to this definition"){.headerlink}
+
+:   Discriminator enum for [[`TraceInstruction`{.xref .py .py-class
+    .docutils .literal
+    .notranslate}]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction "cudaq.operators.custom.cudaq.ptsbe.TraceInstruction"){.reference
+    .internal} entries.
+
+    [[Gate]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Gate "Permalink to this definition"){.headerlink}
+
+    :   A unitary quantum gate (H, X, CNOT, RX, ...).
+
+    [[Noise]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Noise "Permalink to this definition"){.headerlink}
+
+    :   A noise channel injection point.
+
+    [[Measurement]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Measurement "Permalink to this definition"){.headerlink}
+
+    :   A terminal measurement operation.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[KrausTrajectory]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory "Permalink to this definition"){.headerlink}
+
+:   One complete assignment of Kraus operators across all noise sites in
+    the circuit.
+
+    [[trajectory_id]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.trajectory_id "Permalink to this definition"){.headerlink}
+
+    :   Unique identifier assigned during trajectory sampling.
+
+    [[probability]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.probability "Permalink to this definition"){.headerlink}
+
+    :   Product of the probabilities of the selected Kraus operators at
+        each noise site.
+
+    [[num_shots]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.num_shots "Permalink to this definition"){.headerlink}
+
+    :   Number of measurement shots allocated to this trajectory.
+
+    [[multiplicity]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.multiplicity "Permalink to this definition"){.headerlink}
+
+    :   Number of times this trajectory was drawn before deduplication.
+
+    [[kraus_selections]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[KrausSelection]{.pre}](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection "cudaq.operators.custom.cudaq.ptsbe.KrausSelection"){.reference .internal}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.kraus_selections "Permalink to this definition"){.headerlink}
+
+    :   Ordered list of Kraus operator choices, one per noise site.
+
+    [[count_errors]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.count_errors "Permalink to this definition"){.headerlink}
+
+    :   Return the number of non-identity Kraus operators in this
+        trajectory (the *error weight*).
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.ptsbe.]{.pre}]{.sig-prename .descclassname}[[KrausSelection]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection "Permalink to this definition"){.headerlink}
+
+:   The choice of a specific Kraus operator at one noise site.
+
+    [[circuit_location]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.circuit_location "Permalink to this definition"){.headerlink}
+
+    :   Index of the noise site in the circuit's instruction sequence.
+
+    [[qubits]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.qubits "Permalink to this definition"){.headerlink}
+
+    :   Qubits affected by this noise operation.
+
+    [[op_name]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.op_name "Permalink to this definition"){.headerlink}
+
+    :   Name of the gate after which this noise occurs (e.g.
+        [`"h"`{.docutils .literal .notranslate}]{.pre}).
+
+    [[kraus_operator_index]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.kraus_operator_index "Permalink to this definition"){.headerlink}
+
+    :   Index of the selected Kraus operator. [`0`{.docutils .literal
+        .notranslate}]{.pre} is the identity (no error); values ≥ 1
+        represent actual error operators.
+
+    [[is_error]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}*[¶](#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.is_error "Permalink to this definition"){.headerlink}
+
+    :   [`True`{.docutils .literal .notranslate}]{.pre} if the selected
+        Kraus operator is not the identity (i.e. an actual error
+        occurred at this noise site).
+:::
 :::
 :::
 :::

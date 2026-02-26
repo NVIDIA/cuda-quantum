@@ -850,6 +850,16 @@
 <li class="toctree-l3"><a class="reference internal" href="#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="python_api.html">Python API</a><ul>
@@ -955,6 +965,14 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#execution-data">Execution Data</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../default_ops.html">Quantum Operations</a><ul>
@@ -991,27 +1009,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../ptsbe_api.html">PTSBE API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../ptsbe_api.html#python-api-cudaq-ptsbe">Python API — <code class="docutils literal notranslate"><span class="pre">cudaq.ptsbe</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#sampling-functions">Sampling Functions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#result-type">Result Type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#execution-data">Execution Data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../ptsbe_api.html#c-api-cudaq-ptsbe">C++ API — <code class="docutils literal notranslate"><span class="pre">cudaq::ptsbe</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#id1">Sampling Functions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#options">Options</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#id2">Result Type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#id3">Trajectory Sampling Strategies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#id4">Shot Allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#id5">Execution Data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../ptsbe_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
-</ul>
-</li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/user_guide.html">   User Guide</a><ul>
@@ -1024,12 +1021,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#asynchronous-execution">Asynchronous Execution</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#trajectory-vs-shot-trade-offs">Trajectory vs Shot Trade-offs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#backend-requirements">Backend Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#related-approaches">Related Approaches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#references">References</a></li>
 </ul>
 </li>
@@ -6662,7 +6657,7 @@ implements/defines the desired noise mechanisms as Kraus channels (e.g.
 <a class="reference internal" href="#_CPPv4N5cudaq15depolarization2E" title="cudaq::depolarization2"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">cudaq::depolarization2</span></code></a>). If you want to use a custom
 <a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">cudaq::kraus_channel</span></code></a> (i.e. not built-in to CUDA-Q), it must
 first be registered <em>outside the kernel</em> with
-<a class="reference internal" href="#_CPPv4I00EN5cudaq11noise_model16register_channelEvv" title="cudaq::noise_model::register_channel"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">cudaq::noise_model::register_channel()</span></code></a>, like this:</p>
+<code class="code docutils literal notranslate"><span class="pre">:cpp:func:cudaq::noise_model::register_channel</span></code>, like this:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">my_custom_kraus_channel_subtype</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="o">::</span><span class="n">cudaq</span><span class="o">::</span><span class="n">kraus_channel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_parameters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_targets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
@@ -8785,6 +8780,528 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <span class="target" id="orca__qpu_8h_1a76a830568c0bad0a5ddcd4007de6281a"></span><a class="reference internal" href="#_CPPv4N5cudaq19async_sample_resultE" title="cudaq::async_sample_result"><span class="n"><span class="pre">async_sample_result</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq4orcaE" title="cudaq::orca"><span class="n"><span class="pre">orca</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sample_async</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">input_state</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">loop_lengths</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">bs_angles</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ps_angles</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">n_samples</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">10000</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEiNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
 
+</section>
+<section id="ptsbe">
+<h2>PTSBE<a class="headerlink" href="#ptsbe" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">cudaq::ptsbe</span></code> namespace implements Pre-Trajectory Sampling with Batch
+Execution (PTSBE). For a conceptual overview and usage tutorial see
+<a class="reference internal" href="../../using/ptsbe.html"><span class="doc">Noisy Simulation with PTSBE</span></a>.</p>
+<section id="sampling-functions">
+<h3>Sampling Functions<a class="headerlink" href="#sampling-functions" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe13sample_resultE" title="cudaq::ptsbe::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe14sample_optionsE" title="cudaq::ptsbe::sample_options"><span class="n"><span class="pre">sample_options</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">options</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args" title="cudaq::ptsbe::sample::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args" title="cudaq::ptsbe::sample::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Sample a quantum kernel using PTSBE.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>QuantumKernel</strong> – A CUDA-Q kernel callable.</p></li>
+<li><p><strong>Args</strong> – Kernel argument types.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>options</strong> – Execution options (shots, noise model, PTSBE configuration).</p></li>
+<li><p><strong>kernel</strong> – The kernel to execute.</p></li>
+<li><p><strong>args</strong> – Arguments forwarded to the kernel.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Aggregated <code class="docutils literal notranslate"><span class="pre">sample_result</span></code>.</p>
+</dd>
+</dl>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
+
+<span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">shots</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mi">10&#39;000</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">noise</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="n">noise_model</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">max_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">;</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
+<span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq19async_sample_resultE" title="cudaq::async_sample_result"><span class="n"><span class="pre">async_sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_async</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe14sample_optionsE" title="cudaq::ptsbe::sample_options"><span class="n"><span class="pre">sample_options</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">options</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE" title="cudaq::ptsbe::sample_async::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE" title="cudaq::ptsbe::sample_async::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Asynchronous variant of <code class="code docutils literal notranslate"><span class="pre">:cpp:func:sample</span></code>. Returns a
+<code class="docutils literal notranslate"><span class="pre">std::future&lt;sample_result&gt;</span></code>.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">future</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="options">
+<h3>Options<a class="headerlink" href="#options" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe14sample_optionsE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_options</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe14sample_optionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Top-level options passed to <code class="code docutils literal notranslate"><span class="pre">:cpp:func:sample</span></code>.</p>
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe14sample_options5shotsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shots</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1000</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe14sample_options5shotsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Total number of measurement shots.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe14sample_options5noiseE">
+<a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">noise</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe14sample_options5noiseE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Noise model describing gate-level error channels.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe14sample_options5ptsbeE">
+<a class="reference internal" href="#_CPPv4N5cudaq5ptsbe12PTSBEOptionsE" title="cudaq::ptsbe::PTSBEOptions"><span class="n"><span class="pre">PTSBEOptions</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ptsbe</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe14sample_options5ptsbeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>PTSBE-specific configuration (trajectories, strategy, allocation).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe12PTSBEOptionsE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PTSBEOptions</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe12PTSBEOptionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>PTSBE-specific execution configuration.</p>
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe12PTSBEOptions21return_execution_dataE">
+<span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">return_execution_data</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe12PTSBEOptions21return_execution_dataE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>When <code class="docutils literal notranslate"><span class="pre">true</span></code>, the returned result contains a
+<code class="code docutils literal notranslate"><span class="pre">:cpp:struct:PTSBEExecutionData</span></code> payload with the circuit trace,
+trajectory details, and per-trajectory measurement counts.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe12PTSBEOptions16max_trajectoriesE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_trajectories</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe12PTSBEOptions16max_trajectoriesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Maximum number of unique trajectories to generate. <code class="docutils literal notranslate"><span class="pre">std::nullopt</span></code>
+defaults to the shot count.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe12PTSBEOptions8strategyE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="cudaq::ptsbe::PTSSamplingStrategy"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">strategy</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe12PTSBEOptions8strategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Trajectory sampling strategy. <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> uses the default
+<a class="reference internal" href="#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE" title="cudaq::ptsbe::ProbabilisticSamplingStrategy"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ProbabilisticSamplingStrategy</span></code></a>.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe12PTSBEOptions15shot_allocationE">
+<a class="reference internal" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE" title="cudaq::ptsbe::ShotAllocationStrategy"><span class="n"><span class="pre">ShotAllocationStrategy</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shot_allocation</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe12PTSBEOptions15shot_allocationE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Shot allocation strategy. Defaults to
+<a class="reference internal" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE" title="cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL"><code class="xref cpp cpp-enumerator docutils literal notranslate"><span class="pre">ShotAllocationStrategy::Type::PROPORTIONAL</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="result-type">
+<h3>Result Type<a class="headerlink" href="#result-type" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe13sample_resultE">
+<span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe13sample_resultE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Extends <code class="code docutils literal notranslate"><span class="pre">:cpp:class:cudaq::sample_result</span></code> with an optional
+<code class="code docutils literal notranslate"><span class="pre">:cpp:struct:PTSBEExecutionData</span></code> payload.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe13sample_result18has_execution_dataEv">
+<span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_execution_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe13sample_result18has_execution_dataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">true</span></code> if execution data is attached.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe13sample_result14execution_dataEv">
+<span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE" title="cudaq::ptsbe::PTSBEExecutionData"><span class="n"><span class="pre">PTSBEExecutionData</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">execution_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe13sample_result14execution_dataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the attached execution data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">runtime_error</span></span></span> – If no execution data is available.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe13sample_result18set_execution_dataE18PTSBEExecutionData">
+<span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_execution_data</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE" title="cudaq::ptsbe::PTSBEExecutionData"><span class="n"><span class="pre">PTSBEExecutionData</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe13sample_result18set_execution_dataE18PTSBEExecutionData" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Attach execution data to this result.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="trajectory-sampling-strategies">
+<h3>Trajectory Sampling Strategies<a class="headerlink" href="#trajectory-sampling-strategies" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE">
+<span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Abstract base class for trajectory sampling strategies.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy20generateTrajectoriesENSt4spanIKN5cudaq15KrausTrajectoryEEENSt6size_tE">
+<span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15KrausTrajectoryE" title="cudaq::KrausTrajectory"><span class="n"><span class="pre">KrausTrajectory</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generateTrajectories</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15KrausTrajectoryE" title="cudaq::KrausTrajectory"><span class="n"><span class="pre">KrausTrajectory</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">noise_points</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_trajectories</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy20generateTrajectoriesENSt4spanIKN5cudaq15KrausTrajectoryEEENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Generate up to <em>max_trajectories</em> unique trajectories from the noise
+space.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy4nameEv">
+<span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy4nameEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the strategy name.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy5cloneEv">
+<span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="cudaq::ptsbe::PTSSamplingStrategy"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clone</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy5cloneEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return a deep copy of this strategy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE">
+<span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ProbabilisticSamplingStrategy</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="cudaq::ptsbe::PTSSamplingStrategy"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Randomly samples unique trajectories weighted by probability.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategy29ProbabilisticSamplingStrategyENSt8uint64_tE">
+<span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ProbabilisticSamplingStrategy</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategy29ProbabilisticSamplingStrategyENSt8uint64_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> – Random seed. <code class="docutils literal notranslate"><span class="pre">0</span></code> uses the global CUDA-Q seed if set,
+otherwise <code class="docutils literal notranslate"><span class="pre">std::random_device</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h&quot;</span>
+
+<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ProbabilisticSamplingStrategy</span><span class="o">&gt;</span><span class="p">(</span><span class="cm">/*seed=*/</span><span class="mi">42</span><span class="p">);</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategyE">
+<span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OrderedSamplingStrategy</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="cudaq::ptsbe::PTSSamplingStrategy"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Selects the top-<em>T</em> trajectories by probability (descending order).</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/OrderedSamplingStrategy.h&quot;</span>
+
+<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">max_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">OrderedSamplingStrategy</span><span class="o">&gt;</span><span class="p">();</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategyE">
+<span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExhaustiveSamplingStrategy</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="cudaq::ptsbe::PTSSamplingStrategy"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Enumerates every possible trajectory in lexicographic order.</p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategyE">
+<span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ConditionalSamplingStrategy</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE" title="cudaq::ptsbe::PTSSamplingStrategy"><span class="n"><span class="pre">PTSSamplingStrategy</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Samples trajectories that satisfy a user-supplied predicate.</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy19TrajectoryPredicateE">
+<span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TrajectoryPredicate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15KrausTrajectoryE" title="cudaq::KrausTrajectory"><span class="n"><span class="pre">KrausTrajectory</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy19TrajectoryPredicateE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy27ConditionalSamplingStrategyE19TrajectoryPredicateNSt8uint64_tE">
+<span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ConditionalSamplingStrategy</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy19TrajectoryPredicateE" title="cudaq::ptsbe::ConditionalSamplingStrategy::TrajectoryPredicate"><span class="n"><span class="pre">TrajectoryPredicate</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">predicate</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy27ConditionalSamplingStrategyE19TrajectoryPredicateNSt8uint64_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predicate</strong> – Returns <code class="docutils literal notranslate"><span class="pre">true</span></code> for trajectories to include.</p></li>
+<li><p><strong>seed</strong> – Random seed. <code class="docutils literal notranslate"><span class="pre">0</span></code> uses the global CUDA-Q seed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/ConditionalSamplingStrategy.h&quot;</span>
+
+<span class="c1">// Only single-error trajectories</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ConditionalSamplingStrategy</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">        </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">KrausTrajectory</span><span class="w"> </span><span class="o">&amp;</span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">return</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">countErrors</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="p">});</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="shot-allocation-strategy">
+<h3>Shot Allocation Strategy<a class="headerlink" href="#shot-allocation-strategy" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ShotAllocationStrategy</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Controls how shots are distributed across selected trajectories.</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE">
+<span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PROPORTIONAL</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><em>(default)</em> Multinomial sampling weighted by trajectory probability.
+Total is always exactly <code class="docutils literal notranslate"><span class="pre">total_shots</span></code>.</p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type7UNIFORME">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNIFORM</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type7UNIFORME" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Equal shots per trajectory.</p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type15LOW_WEIGHT_BIASE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW_WEIGHT_BIAS</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type15LOW_WEIGHT_BIASE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>More shots to low-error trajectories.
+Weight: <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">error_count)^(-bias_strength)</span> <span class="pre">*</span> <span class="pre">probability</span></code>.</p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type16HIGH_WEIGHT_BIASE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH_WEIGHT_BIAS</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type16HIGH_WEIGHT_BIASE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>More shots to high-error trajectories.
+Weight: <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">error_count)^(+bias_strength)</span> <span class="pre">*</span> <span class="pre">probability</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4typeE">
+<a class="reference internal" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE" title="cudaq::ptsbe::ShotAllocationStrategy::Type"><span class="n"><span class="pre">Type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE" title="cudaq::ptsbe::ShotAllocationStrategy::Type"><span class="n"><span class="pre">Type</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE" title="cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL"><span class="n"><span class="pre">PROPORTIONAL</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy13bias_strengthE">
+<span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bias_strength</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2.0</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy13bias_strengthE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Exponent for the biased strategies.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4seedE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">seed</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4seedE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Random seed for the multinomial draw. <code class="docutils literal notranslate"><span class="pre">0</span></code> uses the global CUDA-Q seed.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyE4TypedNSt8uint64_tE">
+<span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ShotAllocationStrategy</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE" title="cudaq::ptsbe::ShotAllocationStrategy::Type"><span class="n"><span class="pre">Type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">t</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bias</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2.0</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyE4TypedNSt8uint64_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/ShotAllocationStrategy.h&quot;</span>
+
+<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">shot_allocation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
+<span class="w">    </span><span class="cm">/*bias=*/</span><span class="mf">3.0</span><span class="p">);</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="execution-data">
+<h3>Execution Data<a class="headerlink" href="#execution-data" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PTSBEExecutionData</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Full execution trace attached to the result when
+<code class="docutils literal notranslate"><span class="pre">return_execution_data</span> <span class="pre">=</span> <span class="pre">true</span></code>.</p>
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe18PTSBEExecutionData12instructionsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe16TraceInstructionE" title="cudaq::ptsbe::TraceInstruction"><span class="n"><span class="pre">TraceInstruction</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">instructions</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe18PTSBEExecutionData12instructionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Ordered circuit operations (<code class="docutils literal notranslate"><span class="pre">PTSBETrace</span></code>, alias for
+<code class="docutils literal notranslate"><span class="pre">std::vector&lt;TraceInstruction&gt;</span></code>).</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe18PTSBEExecutionData12trajectoriesE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15KrausTrajectoryE" title="cudaq::KrausTrajectory"><span class="n"><span class="pre">KrausTrajectory</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">trajectories</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe18PTSBEExecutionData12trajectoriesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Trajectories that were sampled and executed.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe18PTSBEExecutionData18count_instructionsE20TraceInstructionTypeNSt8optionalINSt6stringEEE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count_instructions</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE" title="cudaq::ptsbe::TraceInstructionType"><span class="n"><span class="pre">TraceInstructionType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe18PTSBEExecutionData18count_instructionsE20TraceInstructionTypeNSt8optionalINSt6stringEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Count instructions of the given type, optionally filtered by name.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5ptsbe18PTSBEExecutionData14get_trajectoryENSt6size_tE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">reference_wrapper</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15KrausTrajectoryE" title="cudaq::KrausTrajectory"><span class="n"><span class="pre">KrausTrajectory</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_trajectory</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">trajectory_id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5ptsbe18PTSBEExecutionData14get_trajectoryENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Look up a trajectory by ID. Returns <code class="docutils literal notranslate"><span class="pre">std::nullopt</span></code> if not found.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstructionE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TraceInstruction</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstructionE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A single operation in the PTSBE execution trace.</p>
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstruction4typeE">
+<a class="reference internal" href="#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE" title="cudaq::ptsbe::TraceInstructionType"><span class="n"><span class="pre">TraceInstructionType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstruction4typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstruction4nameE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstruction4nameE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operation name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;h&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;depolarizing&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mz&quot;</span></code>).</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstruction7targetsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">targets</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstruction7targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstruction8controlsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">controls</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstruction8controlsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstruction6paramsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">params</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstruction6paramsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe16TraceInstruction7channelE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe16TraceInstruction7channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Populated only for <code class="docutils literal notranslate"><span class="pre">Noise</span></code> instructions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE">
+<span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TraceInstructionType</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe20TraceInstructionType4GateE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Gate</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe20TraceInstructionType4GateE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe20TraceInstructionType5NoiseE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Noise</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe20TraceInstructionType5NoiseE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5ptsbe20TraceInstructionType11MeasurementE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Measurement</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5ptsbe20TraceInstructionType11MeasurementE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="trajectory-and-selection-types">
+<h3>Trajectory and Selection Types<a class="headerlink" href="#trajectory-and-selection-types" title="Permalink to this heading">¶</a></h3>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectoryE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KrausTrajectory</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectoryE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>One complete assignment of Kraus operators across all circuit noise sites.</p>
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectory13trajectory_idE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">trajectory_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectory13trajectory_idE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectory16kraus_selectionsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14KrausSelectionE" title="cudaq::KrausSelection"><span class="n"><span class="pre">KrausSelection</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_selections</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectory16kraus_selectionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Ordered by <code class="docutils literal notranslate"><span class="pre">circuit_location</span></code> (ascending).</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectory11probabilityE">
+<span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probability</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectory11probabilityE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Product of the selected Kraus operator probabilities at each site.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectory9num_shotsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_shots</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectory9num_shotsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Shots allocated to this trajectory.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectory12multiplicityE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">multiplicity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectory12multiplicityE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Draw count before deduplication.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KrausTrajectory18measurement_countsE">
+<span class="n"><span class="pre">CountsDictionary</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">measurement_counts</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15KrausTrajectory18measurement_countsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Per-trajectory measurement outcomes (populated after execution).</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15KrausTrajectory11countErrorsEv">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">countErrors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15KrausTrajectory11countErrorsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the number of non-identity Kraus selections (error weight).</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15KrausTrajectory9isOrderedEv">
+<span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isOrdered</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15KrausTrajectory9isOrderedEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">true</span></code> if <code class="docutils literal notranslate"><span class="pre">kraus_selections</span></code> are sorted by
+<code class="docutils literal notranslate"><span class="pre">circuit_location</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14KrausSelectionE">
+<span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KrausSelection</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq14KrausSelectionE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The choice of a specific Kraus operator at one noise site.</p>
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14KrausSelection16circuit_locationE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">circuit_location</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq14KrausSelection16circuit_locationE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Index of the noise site in the circuit instruction sequence.</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14KrausSelection6qubitsE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qubits</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq14KrausSelection6qubitsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14KrausSelection7op_nameE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">op_name</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq14KrausSelection7op_nameE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Gate name after which this noise occurs (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;h&quot;</span></code>).</p>
+</dd></dl>
+
+<dl class="cpp member">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14KrausSelection20kraus_operator_indexE">
+<a class="reference internal" href="#_CPPv4N5cudaq17KrausOperatorTypeE" title="cudaq::KrausOperatorType"><span class="n"><span class="pre">KrausOperatorType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_operator_index</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq17KrausOperatorTypeE" title="cudaq::KrausOperatorType"><span class="n"><span class="pre">KrausOperatorType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17KrausOperatorType8IDENTITYE" title="cudaq::KrausOperatorType::IDENTITY"><span class="n"><span class="pre">IDENTITY</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq14KrausSelection20kraus_operator_indexE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Selected Kraus operator index. <code class="docutils literal notranslate"><span class="pre">IDENTITY</span></code> (0) means no error.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq17KrausOperatorTypeE">
+<span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KrausOperatorType</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><a class="headerlink" href="#_CPPv4N5cudaq17KrausOperatorTypeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq17KrausOperatorType8IDENTITYE">
+<span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IDENTITY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq17KrausOperatorType8IDENTITYE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The identity (no-error) Kraus operator.</p>
+</dd></dl>
+
+<p>Values ≥ 1 correspond to actual error operators from the noise channel,
+indexed in the order they appear in the <code class="code docutils literal notranslate"><span class="pre">:cpp:class:cudaq::kraus_channel</span></code>.</p>
+</dd></dl>
+
+</section>
 </section>
 </section>
 

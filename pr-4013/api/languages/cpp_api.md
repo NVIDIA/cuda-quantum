@@ -1430,6 +1430,21 @@ pr-4013
         -   [Platform](#platform){.reference .internal}
         -   [Utilities](#utilities){.reference .internal}
         -   [Namespaces](#namespaces){.reference .internal}
+        -   [PTSBE](#ptsbe){.reference .internal}
+            -   [Sampling Functions](#sampling-functions){.reference
+                .internal}
+            -   [Options](#options){.reference .internal}
+            -   [Result Type](#result-type){.reference .internal}
+            -   [Trajectory Sampling
+                Strategies](#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution Data](#execution-data){.reference .internal}
+            -   [Trajectory and Selection
+                Types](#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](python_api.html){.reference .internal}
         -   [Program
             Construction](python_api.html#program-construction){.reference
@@ -1680,6 +1695,23 @@ pr-4013
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result Type](python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](python_api.html#execution-data){.reference
+                .internal}
     -   [Quantum Operations](../default_ops.html){.reference .internal}
         -   [Unitary Operations on
             Qubits](../default_ops.html#unitary-operations-on-qubits){.reference
@@ -1756,42 +1788,6 @@ pr-4013
             -   [[`mz`{.code .docutils .literal
                 .notranslate}]{.pre}](../default_ops.html#id1){.reference
                 .internal}
-    -   [PTSBE API](../ptsbe_api.html){.reference .internal}
-        -   [Python API --- [`cudaq.ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../ptsbe_api.html#python-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling
-                Functions](../ptsbe_api.html#sampling-functions){.reference
-                .internal}
-            -   [Result Type](../ptsbe_api.html#result-type){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../ptsbe_api.html#trajectory-sampling-strategies){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategy](../ptsbe_api.html#shot-allocation-strategy){.reference
-                .internal}
-            -   [Execution
-                Data](../ptsbe_api.html#execution-data){.reference
-                .internal}
-        -   [C++ API --- [`cudaq::ptsbe`{.docutils .literal
-            .notranslate}]{.pre}](../ptsbe_api.html#c-api-cudaq-ptsbe){.reference
-            .internal}
-            -   [Sampling Functions](../ptsbe_api.html#id1){.reference
-                .internal}
-            -   [Options](../ptsbe_api.html#options){.reference
-                .internal}
-            -   [Result Type](../ptsbe_api.html#id2){.reference
-                .internal}
-            -   [Trajectory Sampling
-                Strategies](../ptsbe_api.html#id3){.reference .internal}
-            -   [Shot Allocation
-                Strategy](../ptsbe_api.html#id4){.reference .internal}
-            -   [Execution Data](../ptsbe_api.html#id5){.reference
-                .internal}
-            -   [Trajectory and Selection
-                Types](../ptsbe_api.html#trajectory-and-selection-types){.reference
-                .internal}
 -   [User Guide](../../using/user_guide.html){.reference .internal}
     -   [Pre-Trajectory Sampling with Batch Execution
         (PTSBE)](../../using/ptsbe.html){.reference .internal}
@@ -1818,17 +1814,11 @@ pr-4013
             -   [Inspecting Execution
                 Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
-            -   [Asynchronous
-                Execution](../../using/ptsbe.html#asynchronous-execution){.reference
-                .internal}
         -   [Trajectory vs Shot
             Trade-offs](../../using/ptsbe.html#trajectory-vs-shot-trade-offs){.reference
             .internal}
         -   [Backend
             Requirements](../../using/ptsbe.html#backend-requirements){.reference
-            .internal}
-        -   [Related
-            Approaches](../../using/ptsbe.html#related-approaches){.reference
             .internal}
         -   [References](../../using/ptsbe.html#references){.reference
             .internal}
@@ -10246,10 +10236,8 @@ with optional execution data (trace and per-trajectory info). See
         .notranslate}]{.pre}](#_CPPv4N5cudaq13kraus_channelE "cudaq::kraus_channel"){.reference
         .internal} (i.e. not built-in to CUDA-Q), it must first be
         registered *outside the kernel* with
-        [[`cudaq::noise_model::register_channel()`{.xref .cpp .cpp-func
-        .docutils .literal
-        .notranslate}]{.pre}](#_CPPv4I00EN5cudaq11noise_model16register_channelEvv "cudaq::noise_model::register_channel"){.reference
-        .internal}, like this:
+        [`:cpp:func:cudaq::noise_model::register_channel`{.code
+        .docutils .literal .notranslate}]{.pre}, like this:
 
         ::: {.highlight-cpp .notranslate}
         ::: highlight
@@ -13429,6 +13417,546 @@ with optional execution data (trace and per-trajectory info). See
 []{#orca__qpu_8h_1a76a830568c0bad0a5ddcd4007de6281a .target}[[[async_sample_result]{.pre}]{.n}](#_CPPv4N5cudaq19async_sample_resultE "cudaq::async_sample_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[orca]{.pre}]{.n}](#_CPPv4N5cudaq4orcaE "cudaq::orca"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample_async]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[input_state]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[loop_lengths]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[bs_angles]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[ps_angles]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[n_samples]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[10000]{.pre}]{.m}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEiNSt6size_tE "Permalink to this definition"){.headerlink}\
 
 :   
+:::
+
+::: {#ptsbe .section}
+## PTSBE[¶](#ptsbe "Permalink to this heading"){.headerlink}
+
+The [`cudaq::ptsbe`{.docutils .literal .notranslate}]{.pre} namespace
+implements Pre-Trajectory Sampling with Batch Execution (PTSBE). For a
+conceptual overview and usage tutorial see [[Noisy Simulation with
+PTSBE]{.doc}](../../using/ptsbe.html){.reference .internal}.
+
+::: {#sampling-functions .section}
+### Sampling Functions[¶](#sampling-functions "Permalink to this heading"){.headerlink}
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe13sample_resultE "cudaq::ptsbe::sample_result"){.reference .internal}[ ]{.w}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sample_options]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe14sample_optionsE "cudaq::ptsbe::sample_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::ptsbe::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::ptsbe::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Sample a quantum kernel using PTSBE.
+
+    Template Parameters[:]{.colon}
+
+    :   -   **QuantumKernel** -- A CUDA-Q kernel callable.
+
+        -   **Args** -- Kernel argument types.
+
+    Parameters[:]{.colon}
+
+    :   -   **options** -- Execution options (shots, noise model, PTSBE
+            configuration).
+
+        -   **kernel** -- The kernel to execute.
+
+        -   **args** -- Arguments forwarded to the kernel.
+
+    Returns[:]{.colon}
+
+    :   Aggregated [`sample_result`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    ::: {.highlight-cpp .notranslate}
+    ::: highlight
+        #include "cudaq/ptsbe/PTSBESample.h"
+
+        cudaq::ptsbe::sample_options opts;
+        opts.shots           = 10'000;
+        opts.noise           = noise_model;
+        opts.ptsbe.max_trajectories = 200;
+
+        auto result = cudaq::ptsbe::sample(opts, bell);
+        result.dump();
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[async_sample_result]{.pre}]{.n}](#_CPPv4N5cudaq19async_sample_resultE "cudaq::async_sample_result"){.reference .internal}[ ]{.w}[[[sample_async]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sample_options]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe14sample_optionsE "cudaq::ptsbe::sample_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE "cudaq::ptsbe::sample_async::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE "cudaq::ptsbe::sample_async::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE "Permalink to this definition"){.headerlink}\
+
+:   Asynchronous variant of [`:cpp:func:sample`{.code .docutils .literal
+    .notranslate}]{.pre}. Returns a
+    [`std::future<sample_result>`{.docutils .literal
+    .notranslate}]{.pre}.
+
+    ::: {.highlight-cpp .notranslate}
+    ::: highlight
+        auto future = cudaq::ptsbe::sample_async(opts, bell);
+        auto result = future.get();
+    :::
+    :::
+:::
+
+------------------------------------------------------------------------
+
+::: {#options .section}
+### Options[¶](#options "Permalink to this heading"){.headerlink}
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[sample_options]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe14sample_optionsE "Permalink to this definition"){.headerlink}\
+
+:   Top-level options passed to [`:cpp:func:sample`{.code .docutils
+    .literal .notranslate}]{.pre}.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[shots]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[1000]{.pre}]{.m}[¶](#_CPPv4N5cudaq5ptsbe14sample_options5shotsE "Permalink to this definition"){.headerlink}\
+
+    :   Total number of measurement shots.
+
+    [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[[noise]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe14sample_options5noiseE "Permalink to this definition"){.headerlink}\
+
+    :   Noise model describing gate-level error channels.
+
+    [[[PTSBEOptions]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe12PTSBEOptionsE "cudaq::ptsbe::PTSBEOptions"){.reference .internal}[ ]{.w}[[[ptsbe]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe14sample_options5ptsbeE "Permalink to this definition"){.headerlink}\
+
+    :   PTSBE-specific configuration (trajectories, strategy,
+        allocation).
+
+```{=html}
+<!-- -->
+```
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[PTSBEOptions]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptionsE "Permalink to this definition"){.headerlink}\
+
+:   PTSBE-specific execution configuration.
+
+    [[bool]{.pre}]{.kt}[ ]{.w}[[[return_execution_data]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions21return_execution_dataE "Permalink to this definition"){.headerlink}\
+
+    :   When [`true`{.docutils .literal .notranslate}]{.pre}, the
+        returned result contains a
+        [`:cpp:struct:PTSBEExecutionData`{.code .docutils .literal
+        .notranslate}]{.pre} payload with the circuit trace, trajectory
+        details, and per-trajectory measurement counts.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[max_trajectories]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions16max_trajectoriesE "Permalink to this definition"){.headerlink}\
+
+    :   Maximum number of unique trajectories to generate.
+        [`std::nullopt`{.docutils .literal .notranslate}]{.pre} defaults
+        to the shot count.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[shared_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[[PTSSamplingStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "cudaq::ptsbe::PTSSamplingStrategy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[strategy]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions8strategyE "Permalink to this definition"){.headerlink}\
+
+    :   Trajectory sampling strategy. [`nullptr`{.docutils .literal
+        .notranslate}]{.pre} uses the default
+        [[`ProbabilisticSamplingStrategy`{.xref .cpp .cpp-class
+        .docutils .literal
+        .notranslate}]{.pre}](#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE "cudaq::ptsbe::ProbabilisticSamplingStrategy"){.reference
+        .internal}.
+
+    [[[ShotAllocationStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE "cudaq::ptsbe::ShotAllocationStrategy"){.reference .internal}[ ]{.w}[[[shot_allocation]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions15shot_allocationE "Permalink to this definition"){.headerlink}\
+
+    :   Shot allocation strategy. Defaults to
+        [[`ShotAllocationStrategy::Type::PROPORTIONAL`{.xref .cpp
+        .cpp-enumerator .docutils .literal
+        .notranslate}]{.pre}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE "cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL"){.reference
+        .internal}.
+:::
+
+------------------------------------------------------------------------
+
+::: {#result-type .section}
+### Result Type[¶](#result-type "Permalink to this heading"){.headerlink}
+
+[[class]{.pre}]{.k}[ ]{.w}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[¶](#_CPPv4N5cudaq5ptsbe13sample_resultE "Permalink to this definition"){.headerlink}\
+
+:   Extends [`:cpp:class:cudaq::sample_result`{.code .docutils .literal
+    .notranslate}]{.pre} with an optional
+    [`:cpp:struct:PTSBEExecutionData`{.code .docutils .literal
+    .notranslate}]{.pre} payload.
+
+    [[bool]{.pre}]{.kt}[ ]{.w}[[[has_execution_data]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5ptsbe13sample_result18has_execution_dataEv "Permalink to this definition"){.headerlink}\
+
+    :   Return [`true`{.docutils .literal .notranslate}]{.pre} if
+        execution data is attached.
+
+    [[const]{.pre}]{.k}[ ]{.w}[[[PTSBEExecutionData]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE "cudaq::ptsbe::PTSBEExecutionData"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[execution_data]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5ptsbe13sample_result14execution_dataEv "Permalink to this definition"){.headerlink}\
+
+    :   Return the attached execution data.
+
+        Throws[:]{.colon}
+
+        :   [[std]{.n}[::]{.p}[runtime_error]{.n}]{.cpp-expr .sig
+            .sig-inline .cpp} -- If no execution data is available.
+
+    [[void]{.pre}]{.kt}[ ]{.w}[[[set_execution_data]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[PTSBEExecutionData]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE "cudaq::ptsbe::PTSBEExecutionData"){.reference .internal}[ ]{.w}[[data]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5ptsbe13sample_result18set_execution_dataE18PTSBEExecutionData "Permalink to this definition"){.headerlink}\
+
+    :   Attach execution data to this result.
+:::
+
+------------------------------------------------------------------------
+
+::: {#trajectory-sampling-strategies .section}
+### Trajectory Sampling Strategies[¶](#trajectory-sampling-strategies "Permalink to this heading"){.headerlink}
+
+[[class]{.pre}]{.k}[ ]{.w}[[[PTSSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Abstract base class for trajectory sampling strategies.
+
+    [[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[KrausTrajectory]{.pre}]{.n}](#_CPPv4N5cudaq15KrausTrajectoryE "cudaq::KrausTrajectory"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[generateTrajectories]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[span]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[KrausTrajectory]{.pre}]{.n}](#_CPPv4N5cudaq15KrausTrajectoryE "cudaq::KrausTrajectory"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[noise_points]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[max_trajectories]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy20generateTrajectoriesENSt4spanIKN5cudaq15KrausTrajectoryEEENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Generate up to *max_trajectories* unique trajectories from the
+        noise space.
+
+    [[virtual]{.pre}]{.k}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[char]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[[name]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy4nameEv "Permalink to this definition"){.headerlink}\
+
+    :   Return the strategy name.
+
+    [[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[[PTSSamplingStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "cudaq::ptsbe::PTSSamplingStrategy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[clone]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy5cloneEv "Permalink to this definition"){.headerlink}\
+
+    :   Return a deep copy of this strategy.
+
+```{=html}
+<!-- -->
+```
+
+[[class]{.pre}]{.k}[ ]{.w}[[[ProbabilisticSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[PTSSamplingStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "cudaq::ptsbe::PTSSamplingStrategy"){.reference .internal}[¶](#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Randomly samples unique trajectories weighted by probability.
+
+    [[explicit]{.pre}]{.k}[ ]{.w}[[[ProbabilisticSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategy29ProbabilisticSamplingStrategyENSt8uint64_tE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+        Parameters[:]{.colon}
+
+        :   **seed** -- Random seed. [`0`{.docutils .literal
+            .notranslate}]{.pre} uses the global CUDA-Q seed if set,
+            otherwise [`std::random_device`{.docutils .literal
+            .notranslate}]{.pre}.
+
+    ::: {.highlight-cpp .notranslate}
+    ::: highlight
+        #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
+
+        opts.ptsbe.strategy =
+            std::make_shared<cudaq::ptsbe::ProbabilisticSamplingStrategy>(/*seed=*/42);
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[[class]{.pre}]{.k}[ ]{.w}[[[OrderedSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[PTSSamplingStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "cudaq::ptsbe::PTSSamplingStrategy"){.reference .internal}[¶](#_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Selects the top-*T* trajectories by probability (descending order).
+
+    ::: {.highlight-cpp .notranslate}
+    ::: highlight
+        #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
+
+        opts.ptsbe.max_trajectories = 100;
+        opts.ptsbe.strategy =
+            std::make_shared<cudaq::ptsbe::OrderedSamplingStrategy>();
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[[class]{.pre}]{.k}[ ]{.w}[[[ExhaustiveSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[PTSSamplingStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "cudaq::ptsbe::PTSSamplingStrategy"){.reference .internal}[¶](#_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Enumerates every possible trajectory in lexicographic order.
+
+```{=html}
+<!-- -->
+```
+
+[[class]{.pre}]{.k}[ ]{.w}[[[ConditionalSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[PTSSamplingStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE "cudaq::ptsbe::PTSSamplingStrategy"){.reference .internal}[¶](#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Samples trajectories that satisfy a user-supplied predicate.
+
+    [[using]{.pre}]{.k}[ ]{.w}[[[TrajectoryPredicate]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[function]{.pre}]{.n}[[\<]{.pre}]{.p}[[bool]{.pre}]{.kt}[[(]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[KrausTrajectory]{.pre}]{.n}](#_CPPv4N5cudaq15KrausTrajectoryE "cudaq::KrausTrajectory"){.reference .internal}[[&]{.pre}]{.p}[[)]{.pre}]{.p}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy19TrajectoryPredicateE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[explicit]{.pre}]{.k}[ ]{.w}[[[ConditionalSamplingStrategy]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[TrajectoryPredicate]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy19TrajectoryPredicateE "cudaq::ptsbe::ConditionalSamplingStrategy::TrajectoryPredicate"){.reference .internal}[ ]{.w}[[predicate]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy27ConditionalSamplingStrategyE19TrajectoryPredicateNSt8uint64_tE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+        Parameters[:]{.colon}
+
+        :   -   **predicate** -- Returns [`true`{.docutils .literal
+                .notranslate}]{.pre} for trajectories to include.
+
+            -   **seed** -- Random seed. [`0`{.docutils .literal
+                .notranslate}]{.pre} uses the global CUDA-Q seed.
+
+    ::: {.highlight-cpp .notranslate}
+    ::: highlight
+        #include "cudaq/ptsbe/strategies/ConditionalSamplingStrategy.h"
+
+        // Only single-error trajectories
+        opts.ptsbe.strategy =
+            std::make_shared<cudaq::ptsbe::ConditionalSamplingStrategy>(
+                [](const cudaq::KrausTrajectory &t) {
+                  return t.countErrors() <= 1;
+                });
+    :::
+    :::
+:::
+
+------------------------------------------------------------------------
+
+::: {#shot-allocation-strategy .section}
+### Shot Allocation Strategy[¶](#shot-allocation-strategy "Permalink to this heading"){.headerlink}
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[ShotAllocationStrategy]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Controls how shots are distributed across selected trajectories.
+
+    [[enum]{.pre}]{.k}[ ]{.w}[[class]{.pre}]{.k}[ ]{.w}[[[Type]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+        [[enumerator]{.pre}]{.k}[ ]{.w}[[[PROPORTIONAL]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE "Permalink to this definition"){.headerlink}\
+
+        :   *(default)* Multinomial sampling weighted by trajectory
+            probability. Total is always exactly
+            [`total_shots`{.docutils .literal .notranslate}]{.pre}.
+
+        [[enumerator]{.pre}]{.k}[ ]{.w}[[[UNIFORM]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type7UNIFORME "Permalink to this definition"){.headerlink}\
+
+        :   Equal shots per trajectory.
+
+        [[enumerator]{.pre}]{.k}[ ]{.w}[[[LOW_WEIGHT_BIAS]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type15LOW_WEIGHT_BIASE "Permalink to this definition"){.headerlink}\
+
+        :   More shots to low-error trajectories. Weight:
+            [`(1`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+            .literal .notranslate}[`+`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`error_count)^(-bias_strength)`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`*`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`probability`{.docutils .literal
+            .notranslate}]{.pre}.
+
+        [[enumerator]{.pre}]{.k}[ ]{.w}[[[HIGH_WEIGHT_BIAS]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type16HIGH_WEIGHT_BIASE "Permalink to this definition"){.headerlink}\
+
+        :   More shots to high-error trajectories. Weight:
+            [`(1`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+            .literal .notranslate}[`+`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`error_count)^(+bias_strength)`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`*`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`probability`{.docutils .literal
+            .notranslate}]{.pre}.
+
+    [[[Type]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE "cudaq::ptsbe::ShotAllocationStrategy::Type"){.reference .internal}[ ]{.w}[[[type]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[Type]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE "cudaq::ptsbe::ShotAllocationStrategy::Type"){.reference .internal}[[::]{.pre}]{.p}[[[PROPORTIONAL]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE "cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL"){.reference .internal}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4typeE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[double]{.pre}]{.kt}[ ]{.w}[[[bias_strength]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[2.0]{.pre}]{.m}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy13bias_strengthE "Permalink to this definition"){.headerlink}\
+
+    :   Exponent for the biased strategies.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}[ ]{.w}[[[seed]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4seedE "Permalink to this definition"){.headerlink}\
+
+    :   Random seed for the multinomial draw. [`0`{.docutils .literal
+        .notranslate}]{.pre} uses the global CUDA-Q seed.
+
+    [[explicit]{.pre}]{.k}[ ]{.w}[[[ShotAllocationStrategy]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Type]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE "cudaq::ptsbe::ShotAllocationStrategy::Type"){.reference .internal}[ ]{.w}[[t]{.pre}]{.n .sig-param}, [[double]{.pre}]{.kt}[ ]{.w}[[bias]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[2.0]{.pre}]{.m}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyE4TypedNSt8uint64_tE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    ::: {.highlight-cpp .notranslate}
+    ::: highlight
+        #include "cudaq/ptsbe/ShotAllocationStrategy.h"
+
+        opts.ptsbe.shot_allocation = cudaq::ptsbe::ShotAllocationStrategy(
+            cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
+            /*bias=*/3.0);
+    :::
+    :::
+:::
+
+------------------------------------------------------------------------
+
+::: {#execution-data .section}
+### Execution Data[¶](#execution-data "Permalink to this heading"){.headerlink}
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[PTSBEExecutionData]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE "Permalink to this definition"){.headerlink}\
+
+:   Full execution trace attached to the result when
+    [`return_execution_data`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`=`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`true`{.docutils .literal .notranslate}]{.pre}.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[TraceInstruction]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe16TraceInstructionE "cudaq::ptsbe::TraceInstruction"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[instructions]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe18PTSBEExecutionData12instructionsE "Permalink to this definition"){.headerlink}\
+
+    :   Ordered circuit operations ([`PTSBETrace`{.docutils .literal
+        .notranslate}]{.pre}, alias for
+        [`std::vector<TraceInstruction>`{.docutils .literal
+        .notranslate}]{.pre}).
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[KrausTrajectory]{.pre}]{.n}](#_CPPv4N5cudaq15KrausTrajectoryE "cudaq::KrausTrajectory"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[trajectories]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe18PTSBEExecutionData12trajectoriesE "Permalink to this definition"){.headerlink}\
+
+    :   Trajectories that were sampled and executed.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[count_instructions]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[TraceInstructionType]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE "cudaq::ptsbe::TraceInstructionType"){.reference .internal}[ ]{.w}[[type]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[name]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5ptsbe18PTSBEExecutionData18count_instructionsE20TraceInstructionTypeNSt8optionalINSt6stringEEE "Permalink to this definition"){.headerlink}\
+
+    :   Count instructions of the given type, optionally filtered by
+        name.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[reference_wrapper]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[KrausTrajectory]{.pre}]{.n}](#_CPPv4N5cudaq15KrausTrajectoryE "cudaq::KrausTrajectory"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[get_trajectory]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[trajectory_id]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5ptsbe18PTSBEExecutionData14get_trajectoryENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Look up a trajectory by ID. Returns [`std::nullopt`{.docutils
+        .literal .notranslate}]{.pre} if not found.
+
+```{=html}
+<!-- -->
+```
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[TraceInstruction]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstructionE "Permalink to this definition"){.headerlink}\
+
+:   A single operation in the PTSBE execution trace.
+
+    [[[TraceInstructionType]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE "cudaq::ptsbe::TraceInstructionType"){.reference .internal}[ ]{.w}[[[type]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstruction4typeE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[name]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstruction4nameE "Permalink to this definition"){.headerlink}\
+
+    :   Operation name (e.g. [`"h"`{.docutils .literal
+        .notranslate}]{.pre}, [`"depolarizing"`{.docutils .literal
+        .notranslate}]{.pre}, [`"mz"`{.docutils .literal
+        .notranslate}]{.pre}).
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[targets]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstruction7targetsE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[controls]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstruction8controlsE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[params]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstruction6paramsE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[kraus_channel]{.pre}]{.n}](#_CPPv4N5cudaq13kraus_channelE "cudaq::kraus_channel"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[channel]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe16TraceInstruction7channelE "Permalink to this definition"){.headerlink}\
+
+    :   Populated only for [`Noise`{.docutils .literal
+        .notranslate}]{.pre} instructions.
+
+```{=html}
+<!-- -->
+```
+
+[[enum]{.pre}]{.k}[ ]{.w}[[class]{.pre}]{.k}[ ]{.w}[[[TraceInstructionType]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE "Permalink to this definition"){.headerlink}\
+
+:   
+
+    [[enumerator]{.pre}]{.k}[ ]{.w}[[[Gate]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe20TraceInstructionType4GateE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[enumerator]{.pre}]{.k}[ ]{.w}[[[Noise]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe20TraceInstructionType5NoiseE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[enumerator]{.pre}]{.k}[ ]{.w}[[[Measurement]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe20TraceInstructionType11MeasurementE "Permalink to this definition"){.headerlink}\
+
+    :   
+:::
+
+------------------------------------------------------------------------
+
+::: {#trajectory-and-selection-types .section}
+### Trajectory and Selection Types[¶](#trajectory-and-selection-types "Permalink to this heading"){.headerlink}
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[KrausTrajectory]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15KrausTrajectoryE "Permalink to this definition"){.headerlink}\
+
+:   One complete assignment of Kraus operators across all circuit noise
+    sites.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[trajectory_id]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq15KrausTrajectory13trajectory_idE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[KrausSelection]{.pre}]{.n}](#_CPPv4N5cudaq14KrausSelectionE "cudaq::KrausSelection"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[kraus_selections]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15KrausTrajectory16kraus_selectionsE "Permalink to this definition"){.headerlink}\
+
+    :   Ordered by [`circuit_location`{.docutils .literal
+        .notranslate}]{.pre} (ascending).
+
+    [[double]{.pre}]{.kt}[ ]{.w}[[[probability]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[¶](#_CPPv4N5cudaq15KrausTrajectory11probabilityE "Permalink to this definition"){.headerlink}\
+
+    :   Product of the selected Kraus operator probabilities at each
+        site.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[num_shots]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq15KrausTrajectory9num_shotsE "Permalink to this definition"){.headerlink}\
+
+    :   Shots allocated to this trajectory.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[multiplicity]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[1]{.pre}]{.m}[¶](#_CPPv4N5cudaq15KrausTrajectory12multiplicityE "Permalink to this definition"){.headerlink}\
+
+    :   Draw count before deduplication.
+
+    [[CountsDictionary]{.pre}]{.n}[ ]{.w}[[[measurement_counts]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15KrausTrajectory18measurement_countsE "Permalink to this definition"){.headerlink}\
+
+    :   Per-trajectory measurement outcomes (populated after execution).
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[countErrors]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq15KrausTrajectory11countErrorsEv "Permalink to this definition"){.headerlink}\
+
+    :   Return the number of non-identity Kraus selections (error
+        weight).
+
+    [[bool]{.pre}]{.kt}[ ]{.w}[[[isOrdered]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq15KrausTrajectory9isOrderedEv "Permalink to this definition"){.headerlink}\
+
+    :   Return [`true`{.docutils .literal .notranslate}]{.pre} if
+        [`kraus_selections`{.docutils .literal .notranslate}]{.pre} are
+        sorted by [`circuit_location`{.docutils .literal
+        .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+[[struct]{.pre}]{.k}[ ]{.w}[[[KrausSelection]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq14KrausSelectionE "Permalink to this definition"){.headerlink}\
+
+:   The choice of a specific Kraus operator at one noise site.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[circuit_location]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq14KrausSelection16circuit_locationE "Permalink to this definition"){.headerlink}\
+
+    :   Index of the noise site in the circuit instruction sequence.
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[qubits]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq14KrausSelection6qubitsE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[op_name]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq14KrausSelection7op_nameE "Permalink to this definition"){.headerlink}\
+
+    :   Gate name after which this noise occurs (e.g. [`"h"`{.docutils
+        .literal .notranslate}]{.pre}).
+
+    [[[KrausOperatorType]{.pre}]{.n}](#_CPPv4N5cudaq17KrausOperatorTypeE "cudaq::KrausOperatorType"){.reference .internal}[ ]{.w}[[[kraus_operator_index]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[KrausOperatorType]{.pre}]{.n}](#_CPPv4N5cudaq17KrausOperatorTypeE "cudaq::KrausOperatorType"){.reference .internal}[[::]{.pre}]{.p}[[[IDENTITY]{.pre}]{.n}](#_CPPv4N5cudaq17KrausOperatorType8IDENTITYE "cudaq::KrausOperatorType::IDENTITY"){.reference .internal}[¶](#_CPPv4N5cudaq14KrausSelection20kraus_operator_indexE "Permalink to this definition"){.headerlink}\
+
+    :   Selected Kraus operator index. [`IDENTITY`{.docutils .literal
+        .notranslate}]{.pre} (0) means no error.
+
+```{=html}
+<!-- -->
+```
+
+[[enum]{.pre}]{.k}[ ]{.w}[[class]{.pre}]{.k}[ ]{.w}[[[KrausOperatorType]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[¶](#_CPPv4N5cudaq17KrausOperatorTypeE "Permalink to this definition"){.headerlink}\
+
+:   
+
+    [[enumerator]{.pre}]{.k}[ ]{.w}[[[IDENTITY]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq17KrausOperatorType8IDENTITYE "Permalink to this definition"){.headerlink}\
+
+    :   The identity (no-error) Kraus operator.
+
+    Values ≥ 1 correspond to actual error operators from the noise
+    channel, indexed in the order they appear in the
+    [`:cpp:class:cudaq::kraus_channel`{.code .docutils .literal
+    .notranslate}]{.pre}.
+:::
 :::
 :::
 :::
