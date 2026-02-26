@@ -325,6 +325,16 @@ cudaq::JitEngine cudaq::createQIRJITEngine(mlir::ModuleOp &moduleOp,
   return JitEngine(std::move(jitOrError.get()));
 }
 
+cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
+                                                  std::string kernelName,
+                                                  bool hasResult) {
+  std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+  std::string entryName = hasResult ? kernelName + ".thunk" : fullName;
+  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
+  return cudaq::CompiledKernel(cudaq::makeOpaquePtr<JitEngine>(engine),
+                               std::move(kernelName), entryPoint, hasResult);
+}
+
 namespace cudaq {
 class JitEngine::Impl {
 public:
