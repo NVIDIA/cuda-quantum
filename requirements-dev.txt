@@ -18,7 +18,7 @@ notebook==7.5.2
 nbconvert==7.17.0
 llvmlite==0.44.0
 scipy==1.16.3
-requests==2.32.3
+requests==2.32.4
 fastapi==0.111.0
 uvicorn==0.29.0
 pydantic==2.12.5
