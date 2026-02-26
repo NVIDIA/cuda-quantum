@@ -66,6 +66,13 @@ struct xOp {
   }
 };
 
+auto inlineNoiseKernel = []() __qpu__ {
+  cudaq::qubit q;
+  x(q);
+  cudaq::apply_noise<cudaq::depolarization_channel>(0.1, q);
+  mz(q);
+};
+
 } // namespace
 
 // ============================================================================
@@ -706,6 +713,26 @@ CUDAQ_TEST(PTSBESampleTest, ZeroShotTrajectoriesNotReturnedInE2E) {
     EXPECT_GT(traj.num_shots, 0u)
         << "Trajectory " << traj.trajectory_id << " has 0 shots in output";
   }
+}
+
+CUDAQ_TEST(PTSBESampleTest, InlineApplyNoise) {
+  sample_options options;
+  options.shots = 50;
+  options.ptsbe.return_execution_data = true;
+
+  auto result = sample(options, inlineNoiseKernel);
+
+  EXPECT_EQ(result.get_total_shots(), 50u);
+  EXPECT_GT(result.size(), 0u);
+
+  ASSERT_TRUE(result.has_execution_data());
+  const auto &data = result.execution_data();
+
+  auto gateCount = data.count_instructions(TraceInstructionType::Gate);
+  EXPECT_EQ(gateCount, 1u);
+
+  auto noiseCount = data.count_instructions(TraceInstructionType::Noise);
+  EXPECT_GE(noiseCount, 1u);
 }
 
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
