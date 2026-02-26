@@ -45,10 +45,16 @@ if(CUDA_FOUND)
 
   add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
 
+  find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
+    HINTS /opt/mellanox/doca/include
+  )
+
   target_include_directories(cudaq-realtime-dispatch
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
+    PRIVATE
+      ${DOCA_GPU_INCLUDE_DIR}
   )
 
   # Link CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)

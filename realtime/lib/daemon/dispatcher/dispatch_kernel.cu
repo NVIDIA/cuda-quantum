@@ -15,6 +15,7 @@
 #include <cuda_runtime.h>
 #include <cuda_device_runtime_api.h>
 #include <cstdint>
+#include <doca_gpunetio_dev_verbs_common.cuh>
 
 namespace cudaq::nvqlink {
 
@@ -130,8 +131,6 @@ __global__ void dispatch_kernel_device_call_only(
             }
           }
           if (!s_have_work) {
-            // Bad magic or unsupported mode -- discard
-            __threadfence_system();
             rx_flags[current_slot] = 0;
           }
         }
@@ -192,10 +191,9 @@ __global__ void dispatch_kernel_device_call_only(
         while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
           ;
 
-        __threadfence_system();
+        doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
         tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
 
-        __threadfence_system();
         rx_flags[current_slot] = 0;
         local_packet_count++;
         current_slot = (current_slot + 1) % num_slots;
@@ -207,10 +205,6 @@ __global__ void dispatch_kernel_device_call_only(
       }
 
       KernelType::sync();
-
-      if ((local_packet_count & 0xFF) == 0) {
-        __threadfence_system();
-      }
     }
   } else {
     //==========================================================================
@@ -225,7 +219,6 @@ __global__ void dispatch_kernel_device_call_only(
           void* rx_slot = reinterpret_cast<void*>(rx_value);
           RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
           if (header->magic != RPC_MAGIC_REQUEST) {
-            __threadfence_system();
             rx_flags[current_slot] = 0;
             continue;
           }
@@ -262,12 +255,10 @@ __global__ void dispatch_kernel_device_call_only(
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
 
-            __threadfence_system();
-            // Signal TX with the TX slot address (symmetric with Hololink TX kernel)
+            doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
             tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 
-          __threadfence_system();
           rx_flags[current_slot] = 0;
           local_packet_count++;
           current_slot = (current_slot + 1) % num_slots;
@@ -275,10 +266,6 @@ __global__ void dispatch_kernel_device_call_only(
       }
 
       KernelType::sync();
-
-      if ((local_packet_count & 0xFF) == 0) {
-        __threadfence_system();
-      }
     }
   }
 
@@ -315,7 +302,6 @@ __global__ void dispatch_kernel_with_graph(
         void* rx_slot = reinterpret_cast<void*>(rx_value);
         RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
         if (header->magic != RPC_MAGIC_REQUEST) {
-          __threadfence_system();
           rx_flags[current_slot] = 0;
           continue;
         }
@@ -353,14 +339,11 @@ __global__ void dispatch_kernel_with_graph(
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
 
-            __threadfence_system();
+            doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
             tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 #if __CUDA_ARCH__ >= 900
           else if (entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH) {
-            // Fill IO context so the graph kernel can read input from
-            // rx_slot, write the RPCResponse to tx_slot, and signal
-            // completion by setting *tx_flag = tx_flag_value.
             if (graph_io_ctx != nullptr) {
               graph_io_ctx->rx_slot = rx_slot;
               graph_io_ctx->tx_slot = tx_slot;
@@ -368,19 +351,15 @@ __global__ void dispatch_kernel_with_graph(
               graph_io_ctx->tx_flag_value =
                   reinterpret_cast<std::uint64_t>(tx_slot);
               graph_io_ctx->tx_stride_sz = tx_stride_sz;
-              __threadfence_system();
+              doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
             }
 
-            // Launch pre-created graph (fire-and-forget is async; the
-            // graph kernel is responsible for writing the response and
-            // signaling tx_flag when done).
             cudaGraphLaunch(entry->handler.graph_exec,
                             cudaStreamGraphFireAndForget);
           }
 #endif // __CUDA_ARCH__ >= 900
         }
 
-        __threadfence_system();
         rx_flags[current_slot] = 0;
         local_packet_count++;
         current_slot = (current_slot + 1) % num_slots;
@@ -388,10 +367,6 @@ __global__ void dispatch_kernel_with_graph(
     }
 
     KernelType::sync();
-
-    if ((local_packet_count & 0xFF) == 0) {
-      __threadfence_system();
-    }
   }
 
   if (tid == 0) {
