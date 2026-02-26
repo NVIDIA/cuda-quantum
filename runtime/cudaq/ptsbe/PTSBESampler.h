@@ -68,7 +68,7 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 /// @throws std::runtime_error if simulator cast fails or contract violated
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 
-/// @brief Execute PTSBE with full life-cycle management (registry-based)
+/// @brief Execute `PTSBE` with full life-cycle management (registry-based)
 ///
 /// Convenience function that handles the complete simulator life-cycle:
 /// 1. Gets current simulator from registry
