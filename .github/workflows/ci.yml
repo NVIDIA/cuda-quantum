@@ -180,7 +180,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [clang16, gcc11, gcc12]
-        mpi: [openmpi]
+        mpi: [openmpi, mpich]
         exclude:
           - toolchain: llvm
             mpi: mpich
