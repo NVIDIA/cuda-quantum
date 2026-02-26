@@ -22,9 +22,9 @@ std::string_view getQirOutputLog();
 void clearQirOutputLog();
 } // namespace nvqir
 
-namespace cudaq {
-
 class PersistentCache {};
+
+namespace cudaq {
 
 void bindExecutionContext(py::module &mod) {
   py::class_<cudaq::ExecutionContext>(mod, "ExecutionContext")
@@ -122,7 +122,7 @@ void bindExecutionContext(py::module &mod) {
             std::memcpy(info.ptr, origBuffer, bufferSize);
           });
 
-  py::class_<PersistentCache>(mod, "PersistentCache")
+  py::class_<PersistentCache>(mod, "reuse_compiler_artifacts")
       .def(py::init())
       .def("__enter__",
            [](PersistentCache &ctx) -> void {
