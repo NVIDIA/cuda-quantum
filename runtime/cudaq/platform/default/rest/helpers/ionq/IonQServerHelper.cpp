@@ -504,30 +504,60 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   bool extractShots = shotWiseOutputIsNeeded(jobs);
   auto shotsUrl = getShotsUrl(jobs);
   if (extractShots && !shotsUrl.empty()) {
-    std::vector<std::string> bitStrings;
-    auto shotsResults = getResults(shotsUrl);
+    try {
+      auto shotsResults = getResults(shotsUrl);
 
-    if (nQubits > 64)
-      throw std::runtime_error(
-          "Shot-wise output is not supported for more than 64 qubits.");
+      if (nQubits > 64)
+        throw std::runtime_error(
+            "Shot-wise output is not supported for more than 64 qubits.");
 
-    for (const auto &element : shotsResults.items()) {
-      int64_t s = std::stoull(element.value().get<std::string>());
-      std::string bitString = std::bitset<64>(s).to_string();
-      auto firstone = bitString.find_first_not_of('0');
-      bitString =
-          (firstone == std::string::npos) ? "0" : bitString.substr(firstone);
-      if (bitString.size() < static_cast<size_t>(nQubits)) {
-        bitString.insert(bitString.begin(),
-                         static_cast<size_t>(nQubits) - bitString.size(), '0');
+      // Parse the per-shot integers into full bitstrings (all qubits)
+      std::vector<std::string> fullBitStrings;
+      for (const auto &element : shotsResults.items()) {
+        uint64_t s = std::stoull(element.value().get<std::string>());
+        // Convert integer to bitstring where index q = qubit q (LSB first)
+        std::string bitString(nQubits, '0');
+        for (int q = 0; q < nQubits; q++)
+          bitString[q] = ((s >> q) & 1) ? '1' : '0';
+        fullBitStrings.push_back(bitString);
       }
-      // IonQ returns bitstrings in little-endian format
-      std::reverse(bitString.begin(), bitString.end());
-      bitStrings.push_back(bitString);
-    }
 
-    if (!execResults.empty())
-      execResults[0].sequentialData = std::move(bitStrings);
+      // Populate global register sequential data (with marginal extraction
+      // if there are compiler-generated qubits to strip out)
+      if (!execResults.empty()) {
+        if (qubitNumbers.empty()) {
+          // All qubits are user qubits — use full bitstrings
+          execResults[0].sequentialData = fullBitStrings;
+        } else {
+          // Extract only the user-relevant qubit positions
+          std::vector<std::string> globalSeqData;
+          globalSeqData.reserve(fullBitStrings.size());
+          for (const auto &fullBitstr : fullBitStrings) {
+            std::string marginal;
+            for (auto idx : qubitNumbers)
+              marginal += fullBitstr[idx];
+            globalSeqData.push_back(marginal);
+          }
+          execResults[0].sequentialData = std::move(globalSeqData);
+        }
+      }
+
+      // Populate per-register sequential data
+      std::size_t regIdx = 1;
+      for (const auto &[result, info] : output_names) {
+        if (regIdx >= execResults.size())
+          break;
+        std::vector<std::string> regSeqData;
+        regSeqData.reserve(fullBitStrings.size());
+        for (const auto &fullBitstr : fullBitStrings)
+          regSeqData.push_back(std::string{fullBitstr[info.qubitNum]});
+        execResults[regIdx].sequentialData = std::move(regSeqData);
+        regIdx++;
+      }
+    } catch (...) {
+      // Shots endpoint unavailable — leave sequentialData empty.
+      // Counts derived from probabilities will still work.
+    }
   }
 
   // Return a sample result including the global register and all individual
