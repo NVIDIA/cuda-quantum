@@ -263,6 +263,7 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
+    pip install pytest
 fi
 
 # Run OpenMPI setup (Linux only)

@@ -46,8 +46,9 @@ __qpu__ void grover() {
 };
 
 int main() {
+  cudaq::set_random_seed(13);
   // Note: use a small number of shots.
-  auto result = cudaq::sample(15, grover);
+  auto result = cudaq::sample(50, grover);
   result.dump();
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
