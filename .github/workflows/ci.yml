@@ -83,7 +83,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [clang16, gcc11, gcc12]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -107,7 +107,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -135,7 +135,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -186,7 +186,7 @@ jobs:
             mpi: mpich
           - toolchain: clang16
             mpi: mpich
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
@@ -203,7 +203,7 @@ jobs:
       matrix:
         platform: [amd64]
         toolchain: [clang16]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -220,7 +220,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/docker_images.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -240,7 +240,7 @@ jobs:
         platform: [amd64, arm64]
         python_version: ['3.11', '3.13']
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/python_wheels.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -270,7 +270,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
