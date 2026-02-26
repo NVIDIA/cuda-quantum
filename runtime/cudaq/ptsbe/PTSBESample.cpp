@@ -9,6 +9,7 @@
 #include "PTSBESample.h"
 #include "NoiseExtractor.h"
 #include "ShotAllocationStrategy.h"
+#include "cudaq/algorithms/sample.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include "strategies/ProbabilisticSamplingStrategy.h"
@@ -17,26 +18,11 @@
 #include <span>
 #include <unordered_map>
 
-namespace cudaq {
-// Forward declaration from cudaq.h
-bool kernelHasConditionalFeedback(const std::string &kernelName);
-} // namespace cudaq
-
 namespace cudaq::ptsbe {
-
-bool hasConditionalFeedback(const std::string &kernelName,
-                            const ExecutionContext &ctx) {
-  // Check MLIR-compiled kernel metadata first
-  if (cudaq::kernelHasConditionalFeedback(kernelName))
-    return true;
-
-  // Fallback: check library mode detection via registerNames
-  return !ctx.registerNames.empty();
-}
 
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx) {
-  if (hasConditionalFeedback(kernelName, ctx)) {
+  if (cudaq::detail::hasConditionalFeedback(kernelName, &ctx)) {
     throw std::runtime_error(
         "PTSBE does not support mid-circuit measurements or dynamic circuits. "
         "Kernel '" +

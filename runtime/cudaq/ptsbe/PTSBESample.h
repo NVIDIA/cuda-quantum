@@ -45,25 +45,6 @@
 
 namespace cudaq::ptsbe {
 
-/// @brief Check if kernel has conditional feedback (dynamic circuit)
-///
-/// PTSBE requires static circuits where the gate sequence is deterministic.
-/// Dynamic circuits with measurement-dependent control flow cannot be
-/// pre-trajectory sampled because the gate sequence depends on runtime
-/// measurement outcomes.
-///
-/// Detection uses two mechanisms:
-/// 1. MLIR-compiled kernels: Check registered quake code for
-///    qubitMeasurementFeedback attribute
-/// 2. Library mode: Check registerNames populated during tracing when
-///    __nvqpp__MeasureResultBoolConversion is called
-///
-/// @param kernelName Name of the kernel (for MLIR lookup)
-/// @param ctx ExecutionContext populated after tracing (for library mode)
-/// @return true if conditional feedback detected
-bool hasConditionalFeedback(const std::string &kernelName,
-                            const ExecutionContext &ctx);
-
 /// @brief Validate kernel eligibility for PTSBE execution
 ///
 /// Checks all constraints required for PTSBE trajectory-based simulation:

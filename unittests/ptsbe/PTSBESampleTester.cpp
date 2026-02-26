@@ -118,13 +118,13 @@ CUDAQ_TEST(PTSBESampleTest, TracePTSBatchHandlesEmptyKernel) {
 
 CUDAQ_TEST(PTSBESampleTest, NoConditionalFeedbackWithEmptyRegisterNames) {
   cudaq::ExecutionContext ctx("tracer");
-  EXPECT_FALSE(hasConditionalFeedback("", ctx));
+  EXPECT_FALSE(cudaq::detail::hasConditionalFeedback("", &ctx));
 }
 
 CUDAQ_TEST(PTSBESampleTest, DetectsConditionalFeedbackWithRegisterNames) {
   cudaq::ExecutionContext ctx("tracer");
   ctx.registerNames.push_back("mcm_0");
-  EXPECT_TRUE(hasConditionalFeedback("", ctx));
+  EXPECT_TRUE(cudaq::detail::hasConditionalFeedback("", &ctx));
 }
 
 CUDAQ_TEST(PTSBESampleTest, ValidateKernelThrowsForMCMContext) {
