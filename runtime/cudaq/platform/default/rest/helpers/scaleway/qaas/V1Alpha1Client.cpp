@@ -15,6 +15,7 @@
 using json = nlohmann::json;
 using namespace cudaq::qaas::v1alpha1;
 
+namespace {
 long parseDurationToSeconds(const std::string &input) {
   std::regex re(R"((\d+)([smhd]))");
   std::smatch match;
@@ -40,9 +41,10 @@ long parseDurationToSeconds(const std::string &input) {
 
   return total_seconds;
 }
+}
 
-V1Alpha1Client::V1Alpha1Client(const std::string projectId,
-                               const std::string secretKey, std::string url,
+V1Alpha1Client::V1Alpha1Client(const std::string &projectId,
+                               const std::string &secretKey, const std::string &url,
                                bool secure, bool logging)
     : m_projectId(projectId), m_secretKey(secretKey), m_secure(secure),
       m_logging(logging) {
@@ -74,13 +76,13 @@ Platform V1Alpha1Client::getPlatform(const std::string &platformId) {
     auto response = m_client.get(m_baseUrl, path, headers, m_secure);
     return response.get<Platform>();
   } catch (const std::exception &e) {
-    throw std::runtime_error("fail during get platform " + platformId + ": " +
+    throw std::runtime_error("Failed during get platform " + platformId + ": " +
                              e.what());
   }
 }
 
 std::vector<Platform>
-V1Alpha1Client::listPlatforms(const std::string platformName) {
+V1Alpha1Client::listPlatforms(const std::string &platformName) {
   auto headers = getHeaders();
   std::string path = "/platforms";
 
@@ -98,18 +100,18 @@ V1Alpha1Client::listPlatforms(const std::string platformName) {
     }
     return {};
   } catch (const std::exception &e) {
-    throw std::runtime_error("fail during list platforms: " +
+    throw std::runtime_error("Failed during list platforms: " +
                              std::string(e.what()));
   }
 }
 
 Session V1Alpha1Client::createSession(const std::string &platformId,
-                                      std::string name,
-                                      std::string deduplicationId,
+                                      const std::string &name,
+                                      const std::string &deduplicationId,
                                       const std::string &modelId,
-                                      std::string maxDuration,
-                                      std::string maxIdleDuration,
-                                      std::string parameters) {
+                                      const std::string &maxDuration,
+                                      const std::string &maxIdleDuration,
+                                      const std::string &parameters) {
   auto headers = getHeaders();
   json payload;
 
@@ -168,7 +170,7 @@ Session V1Alpha1Client::getSession(const std::string &sessionId) {
 }
 
 Job V1Alpha1Client::createJob(const std::string &sessionId,
-                              const std::string &modelId, std::string name) {
+                              const std::string &modelId, const std::string &name) {
   auto headers = getHeaders();
   json payload;
 

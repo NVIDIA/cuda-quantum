@@ -9,7 +9,6 @@
 #include "common/RestClient.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
-#include <iostream>
 #include <map>
 #include <sstream>
 
@@ -149,7 +148,7 @@ ScalewayServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 
 std::chrono::microseconds
 ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
-  return std::chrono::microseconds(100000);
+  return std::chrono::microseconds(100);
 }
 
 bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {

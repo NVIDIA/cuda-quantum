@@ -21,23 +21,23 @@ class V1Alpha1Client {
   inline static const std::string DEFAULT_BASE_PATH = "qaas/v1alpha1";
 
 public:
-  V1Alpha1Client(const std::string projectId, const std::string secretKey,
-                 const std::string url, bool secure = true,
+  V1Alpha1Client(const std::string &projectId, const std::string &secretKey,
+                 const std::string &url, bool secure = true,
                  bool logging = false);
 
   Platform getPlatform(const std::string &platformId);
-  std::vector<Platform> listPlatforms(const std::string platformName = "");
+  std::vector<Platform> listPlatforms(const std::string &platformName = "");
 
-  Session createSession(const std::string &platformId, std::string name = "",
-                        std::string deduplicationId = "",
+  Session createSession(const std::string &platformId, const std::string &name = "",
+                        const std::string &deduplicationId = "",
                         const std::string &modelId = "",
-                        std::string maxDuration = "59m",
-                        std::string maxIdleDuration = "59m",
-                        std::string parameters = "");
+                        const std::string &maxDuration = "59m",
+                        const std::string &maxIdleDuration = "59m",
+                        const std::string &parameters = "");
   Session getSession(const std::string &sessionId);
 
   Job createJob(const std::string &sessionId, const std::string &modelId,
-                std::string name = "");
+                const std::string &name = "");
   Job getJob(const std::string &jobId);
   std::vector<JobResult> listJobResults(const std::string &jobId);
 

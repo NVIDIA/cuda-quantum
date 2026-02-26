@@ -79,7 +79,7 @@ qiskitResultToCudaqSampleResult(QiskitExperimentResult qiskitResult) {
     }
 
     // bitstring in long value
-    serialized.push_back(stoi(bitstring, nullptr, 2));
+    serialized.push_back(static_cast<std::size_t>(std::stoull(bitstring, nullptr, 2)));
 
     // size of the bitstring
     serialized.push_back(bitstring.size());

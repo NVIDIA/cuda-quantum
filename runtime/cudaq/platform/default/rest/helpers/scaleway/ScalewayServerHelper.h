@@ -45,7 +45,7 @@ public:
 
   std::string constructGetJobPath(ServerMessage &postResponse) override;
 
-  virtual std::chrono::microseconds
+  std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
 protected:
@@ -57,12 +57,12 @@ protected:
 
 private:
   std::unique_ptr<qaas::v1alpha1::V1Alpha1Client> m_qaasClient;
-  std::string m_targetPlatformName = "";
-  std::string m_sessionId = "";
-  std::string m_sessionDeduplicationId = "";
-  std::string m_sessionName = "";
-  std::string m_sessionMaxDuration = "";
-  std::string m_sessionMaxIdleDuration = "";
+  std::string m_targetPlatformName;
+  std::string m_sessionId;
+  std::string m_sessionDeduplicationId;
+  std::string m_sessionName;
+  std::string m_sessionMaxDuration;
+  std::string m_sessionMaxIdleDuration;
 };
 
 } // namespace cudaq

@@ -184,7 +184,7 @@ def test_multi_qvector():
 
     # Test here is that this runs
     counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
-    print("test_atest_multi_qvectorll_gates", counts)
+    print("test_multi_qvector", counts)
 
     assert counts
 
