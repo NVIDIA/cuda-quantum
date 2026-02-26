@@ -136,7 +136,6 @@ async def getJob(id: str):
     global countJobGetRequests, createdJobs, numQubitsRequired
     global jobTarget, noiseModel
 
-
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
@@ -169,18 +168,14 @@ async def getResults(jobId: str):
 
     counts = createdJobs[jobId]
     counts.dump()
-    retData = {}
-    N = 0
-    for bits, count in counts.items():
-        N += count
+    N = sum(counts.values())
     # Note, the real IonQ backend reverses the bitstring relative to what the
     # simulator does, so flip the bitstring with [::-1]. Also convert
     # to decimal to match the real IonQ backend.
-    for bits, count in counts.items():
-        retData[str(int(bits[::-1], 2))] = float(count / N)
-
-    res = retData
-    return res
+    return {
+        str(int(bits[::-1], 2)): float(count / N)
+        for bits, count in counts.items()
+    }
 
 
 @app.get("/v0.4/jobs/{jobId}/results/shots")
@@ -189,15 +184,13 @@ async def getShotResults(jobId: str):
 
     counts = createdJobs[jobId]
     counts.dump()
-    retData = []
     # Note, the real IonQ backend reverses the bitstring relative to what the
     # simulator does, so flip the bitstring with [::-1].
-    for bits, count in counts.items():
-        for _ in range(count):
-            retData.append(str(int(bits[::-1], 2)))
-
-    res = retData
-    return res
+    return [
+        str(int(bits[::-1], 2))
+        for bits, count in counts.items()
+        for _ in range(count)
+    ]
 
 
 @app.post("/_mock_server_config_target")

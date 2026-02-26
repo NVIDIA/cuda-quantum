@@ -70,13 +70,6 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
-  /// @brief Extract the job shots URL from jobs returned by IonQ API.
-  std::string getShotsUrl(ServerMessage &jobs);
-
-  /// @brief Check if shot-wise output was requested by user and can be
-  /// extracted.
-  bool shotWiseOutputIsNeeded(ServerMessage &jobs);
-
 private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
@@ -95,6 +88,13 @@ private:
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
+
+  /// @brief Extract the job shots URL from jobs returned by IonQ API.
+  std::string getShotsUrl(ServerMessage &jobs);
+
+  /// @brief Check if shot-wise output was requested by user and can be
+  /// extracted.
+  bool shotWiseOutputIsNeeded(ServerMessage &jobs);
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -370,37 +370,29 @@ std::string IonQServerHelper::getShotsUrl(ServerMessage &jobs) {
   if (!keyExists("url"))
     throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
 
-  std::string base_url = backendConfig.at("url");
-  std::string shotsUrl = "";
-
   if (!jobs.empty() && jobs[0].contains("results") &&
-      jobs[0].at("results").contains("shots") &&
-      jobs[0].at("results").at("shots").contains("url")) {
-    shotsUrl = base_url +
-               jobs[0].at("results").at("shots").at("url").get<std::string>();
-  }
+      jobs[0]["results"].contains("shots") &&
+      jobs[0]["results"]["shots"].contains("url"))
+    return backendConfig.at("url") +
+           jobs[0]["results"]["shots"]["url"].get<std::string>();
 
-  return shotsUrl;
+  return {};
 }
 
 bool IonQServerHelper::shotWiseOutputIsNeeded(ServerMessage &jobs) {
-  std::string noiseModel = "ideal";
-  if (!jobs.empty() && jobs[0].contains("noise") &&
-      jobs[0]["noise"].contains("model")) {
-    noiseModel = jobs[0]["noise"]["model"].get<std::string>();
-  }
+  if (!keyExists("memory") || backendConfig["memory"] != "true")
+    return false;
 
-  std::string target = "simulator";
-  if (!jobs.empty() && jobs[0].contains("target")) {
-    target = jobs[0]["target"].get<std::string>();
-  }
+  if (jobs.empty())
+    return false;
 
-  bool targetHasMemoryOption =
-      keyExists("memory") && backendConfig["memory"] == "true";
-  bool noiseModelIsNotIdeal = noiseModel != "ideal";
-  bool targetIsQpu = target != "simulator";
+  auto &job = jobs[0];
+  bool isQpu = job.contains("target") &&
+               job["target"].get<std::string>() != "simulator";
+  bool hasNoise = job.contains("noise") && job["noise"].contains("model") &&
+                  job["noise"]["model"].get<std::string>() != "ideal";
 
-  return targetHasMemoryOption && (targetIsQpu || noiseModelIsNotIdeal);
+  return isQpu || hasNoise;
 }
 
 // Process the results from a job
@@ -433,17 +425,20 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
                info.registerName);
   }
 
+  // Convert an integer to an nQubits-length bitstring (LSB first)
+  assert(nQubits <= 64);
+  auto intToBitString = [nQubits](uint64_t val) {
+    std::string bits(nQubits, '0');
+    for (int q = 0; q < nQubits; q++)
+      bits[q] = ((val >> q) & 1) ? '1' : '0';
+    return bits;
+  };
+
   cudaq::CountsDictionary counts;
 
   // Process the results
-  assert(nQubits <= 64);
   for (const auto &element : results.items()) {
-    // Convert base-10 ASCII key to bitstring and perform endian swap
-    uint64_t s = std::stoull(element.key());
-    std::string newkey = std::bitset<64>(s).to_string();
-    std::reverse(newkey.begin(), newkey.end()); // perform endian swap
-    newkey.resize(nQubits);
-
+    std::string newkey = intToBitString(std::stoull(element.key()));
     double value = element.value().get<double>();
     std::size_t count = static_cast<std::size_t>(value * shots);
     counts[newkey] = count;
@@ -501,42 +496,32 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   }
 
   // Add shot-wise output if requested by user
-  bool extractShots = shotWiseOutputIsNeeded(jobs);
   auto shotsUrl = getShotsUrl(jobs);
-  if (extractShots && !shotsUrl.empty()) {
+  if (shotWiseOutputIsNeeded(jobs) && !shotsUrl.empty()) {
     try {
       auto shotsResults = getResults(shotsUrl);
 
-      if (nQubits > 64)
-        throw std::runtime_error(
-            "Shot-wise output is not supported for more than 64 qubits.");
-
       // Parse the per-shot integers into full bitstrings (all qubits)
       std::vector<std::string> fullBitStrings;
-      for (const auto &element : shotsResults.items()) {
-        uint64_t s = std::stoull(element.value().get<std::string>());
-        // Convert integer to bitstring where index q = qubit q (LSB first)
-        std::string bitString(nQubits, '0');
-        for (int q = 0; q < nQubits; q++)
-          bitString[q] = ((s >> q) & 1) ? '1' : '0';
-        fullBitStrings.push_back(bitString);
-      }
+      fullBitStrings.reserve(shotsResults.size());
+      for (const auto &element : shotsResults.items())
+        fullBitStrings.push_back(
+            intToBitString(std::stoull(element.value().get<std::string>())));
 
       // Populate global register sequential data (with marginal extraction
       // if there are compiler-generated qubits to strip out)
       if (!execResults.empty()) {
         if (qubitNumbers.empty()) {
-          // All qubits are user qubits — use full bitstrings
           execResults[0].sequentialData = fullBitStrings;
         } else {
-          // Extract only the user-relevant qubit positions
           std::vector<std::string> globalSeqData;
           globalSeqData.reserve(fullBitStrings.size());
-          for (const auto &fullBitstr : fullBitStrings) {
+          for (const auto &bs : fullBitStrings) {
             std::string marginal;
+            marginal.reserve(qubitNumbers.size());
             for (auto idx : qubitNumbers)
-              marginal += fullBitstr[idx];
-            globalSeqData.push_back(marginal);
+              marginal += bs[idx];
+            globalSeqData.push_back(std::move(marginal));
           }
           execResults[0].sequentialData = std::move(globalSeqData);
         }
@@ -549,22 +534,21 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
           break;
         std::vector<std::string> regSeqData;
         regSeqData.reserve(fullBitStrings.size());
-        for (const auto &fullBitstr : fullBitStrings)
-          regSeqData.push_back(std::string{fullBitstr[info.qubitNum]});
+        for (const auto &bs : fullBitStrings)
+          regSeqData.push_back(std::string{bs[info.qubitNum]});
         execResults[regIdx].sequentialData = std::move(regSeqData);
         regIdx++;
       }
+    } catch (const std::exception &e) {
+      CUDAQ_INFO("Failed to retrieve shot-wise results: {}", e.what());
     } catch (...) {
-      // Shots endpoint unavailable — leave sequentialData empty.
-      // Counts derived from probabilities will still work.
+      CUDAQ_INFO("Failed to retrieve shot-wise results (unknown error)");
     }
   }
 
   // Return a sample result including the global register and all individual
   // registers.
-  auto ret = cudaq::sample_result(execResults);
-
-  return ret;
+  return cudaq::sample_result(execResults);
 }
 
 // Get the headers for the API requests
