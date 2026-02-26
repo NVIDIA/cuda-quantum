@@ -79,7 +79,8 @@ void bindExecutionContext(py::module &mod) {
       .def("__exit__", [](cudaq::ExecutionContext &ctx, py::object type,
                           py::object value, py::object traceback) {
         if (type.is_none()) {
-          // No exception, so we finalize the context and reset it
+          // Normal exit: finalize results, clean up the simulator,
+          // and reset the context (guaranteed even if finalize throws).
           auto &platform = cudaq::get_platform();
           detail::try_finally(
               [&] {
@@ -88,7 +89,15 @@ void bindExecutionContext(py::module &mod) {
               },
               detail::resetExecutionContext);
         } else {
-          // Reset, silencing any further exceptions
+          // The kernel threw. Still need to tear down the platform so
+          // the simulator doesn't carry stale state into the next run.
+          // Separate invoke_no_throw so the context reset always runs.
+          detail::invoke_no_throw([&] {
+            auto &platform = cudaq::get_platform();
+            platform.finalizeExecutionContext(ctx);
+            platform.endExecution();
+          });
+          // Always reset context, even if the above cleanup failed.
           detail::invoke_no_throw(detail::resetExecutionContext);
         }
         return false;
