@@ -385,7 +385,22 @@ jobs:
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
               echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"
-              curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
+              response=$(
+                curl -sS -w "%{http_code}" \
+                  -c ~/.quantinuum_cookies.txt \
+                  -X POST https://nexus.quantinuum.com/auth/login \
+                  -H "Content-Type: application/json" \
+                  -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' \
+                  -o /dev/null
+              ) || {
+                echo "::error::Quantinuum login request failed (curl error)"
+                exit 1
+              }
+
+              if [ "$response" -ne 200 ]; then
+                echo "::error::Quantinuum login failed with HTTP $response"
+                exit 1
+              fi
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
               chmod 600 ~/.quantinuum_config
               rm ~/.quantinuum_cookies.txt
