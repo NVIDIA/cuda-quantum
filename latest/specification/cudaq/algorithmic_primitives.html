@@ -652,8 +652,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1339,7 +1338,7 @@ and when remote queue jobs are completed, one can invoke <code class="code docut
 be retrieved and returned.</p>
 </section>
 <section id="cudaq-run">
-<h2><span class="section-number">12.2. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code><a class="headerlink" href="#cudaq-run" title="Permalink to this heading">¶</a></h2>
+<span id="cudaq-run-spec"></span><h2><span class="section-number">12.2. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code><a class="headerlink" href="#cudaq-run" title="Permalink to this heading">¶</a></h2>
 <p><strong>[1]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code> API allows programmers to execute a kernel a specified number
 of times and retrieve all the individual values returned. Unlike <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>, which
 collects measurement statistics as a counts dictionary mapping bit strings to frequencies, <code class="code docutils literal notranslate"><span class="pre">run</span></code>

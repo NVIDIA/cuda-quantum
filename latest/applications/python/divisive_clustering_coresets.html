@@ -653,8 +653,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1038,11 +1037,11 @@ leverage coresets for clustering applications on quantum computers and use far f
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">mpi4py</span><span class="o">==</span><span class="m">3</span>.1.6<span class="w"> </span><span class="nv">networkx</span><span class="o">==</span><span class="m">2</span>.8.8<span class="w"> </span><span class="nv">pandas</span><span class="o">==</span><span class="m">2</span>.2.2<span class="w"> </span>scikit-learn<span class="o">==</span><span class="m">1</span>.4.2<span class="w"> </span><span class="nv">tqdm</span><span class="o">==</span><span class="m">4</span>.66.2<span class="w"> </span><span class="nv">numba</span><span class="o">==</span><span class="m">0</span>.60.0<span class="w"> </span>-q
+<span class="o">%</span><span class="k">pip</span> install networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
 </pre></div>
 </div>
 </div>
@@ -1115,16 +1114,16 @@ leverage coresets for clustering applications on quantum computers and use far f
 <div class="highlight"><pre>
 Using BFL2 method to generate coresets
           X         Y     weights Name
-0  7.028364  1.669787  234.230716    A
-1  7.167441  0.354792  101.319288    B
-2  1.022889 -0.921443  125.158339    C
-3  2.706134 -2.636852   13.650774    D
-4  6.998497  0.455847  116.758239    E
-5  7.507918  0.630311  120.727176    F
-6 -2.102508  2.297727   53.294127    G
-7  5.722463  1.400433   77.415840    H
-8 -1.425868  2.341136   42.847985    I
-9  7.985373 -0.063209  240.116237    J
+0  6.462902  2.594957   49.613217    A
+1  0.051144  0.232842  276.595841    B
+2 -0.450107 -0.746274   87.302679    C
+3  8.034959  0.775580  144.561264    D
+4  1.291564  0.043612  126.143762    E
+5  0.254036  0.506646  152.433595    F
+6  6.131545  1.726027   44.296573    G
+7 -0.107979 -0.707216   92.679946    H
+8  8.090555  0.281354   87.716384    I
+9 -1.230102  0.155939   65.063094    J
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -1167,7 +1166,7 @@ Using BFL2 method to generate coresets
 <p>The divisive clustering problem will be implemented on a quantum computer using a variational quantum algorithm (VQA) approach. A VQA takes a Hamiltonian (encoded with the optimization problem) and a parameterized ansatz and evaluates expectation values (quantum computer) that inform updates to the ansatz parameters (classical computer). The graph <span class="math notranslate nohighlight">\(G\)</span> (Code in the “src” file) is used to construct the Hamiltonian, derived specifically for the divisive clustering problem, and motivated by a
 max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class="pre">spin.z(i)</span></code> method in CUDA-Q adds a Pauli Z operation that acts on qubit <span class="math notranslate nohighlight">\(i\)</span> to the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_K2_Hamiltonian</span><span class="p">(</span><span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
@@ -1254,31 +1253,31 @@ max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class=
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-     ╭────────────╮ ╭────────────╮      ╭────────────╮╭────────────╮»
-q0 : ┤ ry(0.8904) ├─┤ rz(0.7335) ├───●──┤ ry(0.4343) ├┤ rz(0.2236) ├»
-     ├────────────┤ ├────────────┤ ╭─┴─╮╰────────────╯├────────────┤»
-q1 : ┤ ry(0.7937) ├─┤ rz(0.9981) ├─┤ x ├──────●───────┤ ry(0.3945) ├»
-     ├───────────┬╯ ├────────────┤ ╰───╯    ╭─┴─╮     ╰────────────╯»
-q2 : ┤ ry(0.696) ├──┤ rz(0.3352) ├──────────┤ x ├───────────●───────»
-     ├───────────┴╮╭┴────────────┤          ╰───╯         ╭─┴─╮     »
-q3 : ┤ ry(0.6658) ├┤ rz(0.05277) ├────────────────────────┤ x ├─────»
-     ├───────────┬╯├─────────────┴╮                       ╰───╯     »
-q4 : ┤ ry(0.791) ├─┤ rz(0.003569) ├─────────────────────────────────»
-     ╰───────────╯ ╰──────────────╯                                 »
+     ╭────────────╮╭────────────╮     ╭────────────╮╭────────────╮»
+q0 : ┤ ry(0.7442) ├┤ rz(0.1862) ├──●──┤ ry(0.8638) ├┤ rz(0.1269) ├»
+     ├────────────┤├───────────┬╯╭─┴─╮╰────────────╯├────────────┤»
+q1 : ┤ ry(0.4138) ├┤ rz(0.231) ├─┤ x ├──────●───────┤ ry(0.3709) ├»
+     ├────────────┤├───────────┴╮╰───╯    ╭─┴─╮     ╰────────────╯»
+q2 : ┤ ry(0.6536) ├┤ rz(0.7644) ├─────────┤ x ├───────────●───────»
+     ├────────────┤├────────────┤         ╰───╯         ╭─┴─╮     »
+q3 : ┤ ry(0.8349) ├┤ rz(0.2122) ├───────────────────────┤ x ├─────»
+     ├───────────┬╯├────────────┤                       ╰───╯     »
+q4 : ┤ ry(0.962) ├─┤ rz(0.2611) ├─────────────────────────────────»
+     ╰───────────╯ ╰────────────╯                                 »
 
 ################################################################################
 
 
-─────────────────────────────────────────────
+───────────────────────────────────────────
 ╭────────────╮
-┤ rz(0.4119) ├───────────────────────────────
+┤ rz(0.6719) ├─────────────────────────────
 ├────────────┤╭────────────╮
-┤ ry(0.3205) ├┤ rz(0.3504) ├─────────────────
-╰────────────╯├────────────┤ ╭────────────╮
-──────●───────┤ ry(0.3913) ├─┤ rz(0.7392) ├──
-    ╭─┴─╮     ├────────────┤╭┴────────────┴─╮
-────┤ x ├─────┤ ry(0.3171) ├┤ rz(0.0008056) ├
-    ╰───╯     ╰────────────╯╰───────────────╯
+┤ ry(0.9339) ├┤ rz(0.5589) ├───────────────
+╰────────────╯├────────────┤╭─────────────╮
+──────●───────┤ ry(0.6724) ├┤ rz(0.07706) ├
+    ╭─┴─╮     ├────────────┤├────────────┬╯
+────┤ x ├─────┤ ry(0.2499) ├┤ rz(0.3556) ├─
+    ╰───╯     ╰────────────╯╰────────────╯
 
 </pre></div></div>
 </div>
@@ -1460,11 +1459,11 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 129/129 [00:00&lt;00:00, 12075.19it/s]
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:00&lt;00:00, 35025.50it/s]
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 18/18 [00:00&lt;00:00, 44254.09it/s]
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00, 15827.56it/s]
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00, 13617.87it/s]
+100%|██████████| 100/100 [00:00&lt;00:00, 42379.55it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 27776.85it/s]
+100%|██████████| 21/21 [00:00&lt;00:00, 78643.20it/s]
+100%|██████████| 3/3 [00:00&lt;00:00, 24385.49it/s]
+100%|██████████| 4/4 [00:00&lt;00:00, 78766.27it/s]
 </pre></div></div>
 </div>
 <p>The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits generally mark divisions between the least similar data.</p>
@@ -1618,31 +1617,45 @@ perform this task.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-                                                                             »
-q0 : ──●──────────────────●──────────────────────────────────────────────────»
-     ╭─┴─╮╭────────────╮╭─┴─╮                                                »
-q1 : ┤ x ├┤ rz(0.3527) ├┤ x ├──●──────────────────●──────────────────────────»
-     ╰───╯╰────────────╯╰───╯╭─┴─╮╭────────────╮╭─┴─╮                        »
-q2 : ────────────────────────┤ x ├┤ rz(0.3527) ├┤ x ├──●──────────────────●──»
-                             ╰───╯╰────────────╯╰───╯╭─┴─╮╭────────────╮╭─┴─╮»
-q3 : ────────────────────────────────────────────────┤ x ├┤ rz(0.3527) ├┤ x ├»
-                                                     ╰───╯╰────────────╯╰───╯»
-q4 : ────────────────────────────────────────────────────────────────────────»
-                                                                             »
+                                                                »
+q0 : ──●─────────────────────●──────────────────────────────────»
+     ╭─┴─╮╭───────────────╮╭─┴─╮                                »
+q1 : ┤ x ├┤ rz(0.0002127) ├┤ x ├──●─────────────────────●───────»
+     ╰───╯╰───────────────╯╰───╯╭─┴─╮╭───────────────╮╭─┴─╮     »
+q2 : ───────────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├──●──»
+                                ╰───╯╰───────────────╯╰───╯╭─┴─╮»
+q3 : ──────────────────────────────────────────────────────┤ x ├»
+                                                           ╰───╯»
+q4 : ───────────────────────────────────────────────────────────»
+                                                                »
 
 ################################################################################
 
-                        ╭───╮╭────────────╮╭───╮╭───────────╮
-────────────────────────┤ x ├┤ rz(0.3527) ├┤ x ├┤ rx(1.111) ├
-                        ╰─┬─╯╰────────────╯╰─┬─╯├───────────┤
-──────────────────────────┼──────────────────┼──┤ rx(1.111) ├
-                          │                  │  ├───────────┤
-──────────────────────────┼──────────────────┼──┤ rx(1.111) ├
-                          │                  │  ├───────────┤
-──●──────────────────●────┼──────────────────┼──┤ rx(1.111) ├
-╭─┴─╮╭────────────╮╭─┴─╮  │                  │  ├───────────┤
-┤ x ├┤ rz(0.3527) ├┤ x ├──●──────────────────●──┤ rx(1.111) ├
-╰───╯╰────────────╯╰───╯                        ╰───────────╯
+                                                 ╭───╮╭───────────────╮╭───╮»
+─────────────────────────────────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├»
+                                                 ╰─┬─╯╰───────────────╯╰─┬─╯»
+───────────────────────────────────────────────────┼─────────────────────┼──»
+                                                   │                     │  »
+───────────────────●───────────────────────────────┼─────────────────────┼──»
+╭───────────────╮╭─┴─╮                             │                     │  »
+┤ rz(0.0002127) ├┤ x ├──●─────────────────────●────┼─────────────────────┼──»
+╰───────────────╯╰───╯╭─┴─╮╭───────────────╮╭─┴─╮  │                     │  »
+──────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├──●─────────────────────●──»
+                      ╰───╯╰───────────────╯╰───╯                           »
+
+################################################################################
+
+╭───────────╮
+┤ rx(1.127) ├
+├───────────┤
+┤ rx(1.127) ├
+├───────────┤
+┤ rx(1.127) ├
+├───────────┤
+┤ rx(1.127) ├
+├───────────┤
+┤ rx(1.127) ├
+╰───────────╯
 
 </pre></div></div>
 </div>
@@ -1702,12 +1715,11 @@ q4 : ─────────────────────────
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 484/484 [00:00&lt;00:00, 12163.89it/s]
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:00&lt;00:00, 52703.30it/s]
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 48/48 [00:00&lt;00:00, 31987.07it/s]
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00&lt;00:00, 36393.09it/s]
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00&lt;00:00, 37957.50it/s]
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00&lt;00:00, 42473.96it/s]
+100%|██████████| 480/480 [00:00&lt;00:00, 44895.88it/s]
+100%|██████████| 48/48 [00:00&lt;00:00, 111600.11it/s]
+100%|██████████| 12/12 [00:00&lt;00:00, 148910.20it/s]
+100%|██████████| 4/4 [00:00&lt;00:00, 98112.37it/s]
+100%|██████████| 4/4 [00:00&lt;00:00, 53261.00it/s]
 </pre></div></div>
 </div>
 </section>
@@ -1717,7 +1729,7 @@ q4 : ─────────────────────────
 divisive clustering procedure using the QAOA method, 100000 simulated shots for each VQE loop, and maximum 75 VQE iterations.</p>
 <p>First, try a slightly larger N=18 problem using the CPU (<code class="docutils literal notranslate"><span class="pre">qpp-cpu</span></code>) backend.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Uncomment the following line if you want to explicitly execute this step on your system.</span>
@@ -1727,7 +1739,7 @@ divisive clustering procedure using the QAOA method, 100000 simulated shots for 
 </div>
 <p>Now try the N=18 example on the GPU backend (<code class="docutils literal notranslate"><span class="pre">nvidia</span></code>).</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>python3<span class="w"> </span>divisive_clustering_src/main_divisive_clustering.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--M<span class="w"> </span><span class="m">18</span>
@@ -1739,24 +1751,26 @@ divisive clustering procedure using the QAOA method, 100000 simulated shots for 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+[1771611064.714571] [fb5fb776d150:85711:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|███████████████████████████████████████| 751/751 [00:00&lt;00:00, 3460.26it/s]
-100%|████████████████████████████████████████| 16/16 [00:00&lt;00:00, 42771.74it/s]
-100%|█████████████████████████████████████| 4064/4064 [00:00&lt;00:00, 6862.37it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 56871.92it/s]
-100%|████████████████████████████████████████| 16/16 [00:00&lt;00:00, 44979.13it/s]
-100%|██████████████████████████████████████| 128/128 [00:00&lt;00:00, 19366.94it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 53773.13it/s]
-100%|██████████████████████████████████████████| 8/8 [00:00&lt;00:00, 54648.91it/s]
-100%|██████████████████████████████████████████| 8/8 [00:00&lt;00:00, 51941.85it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 56111.09it/s]
-Total time for the execution: 461.866833317
-Total time spent on CUDA-Q: 10.452308367999706
+100%|██████████████████████████████████| 14842/14842 [00:01&lt;00:00, 14617.13it/s]
+100%|██████████████████████████████████████| 128/128 [00:00&lt;00:00, 73183.06it/s]
+100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 46867.32it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 147168.56it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 144010.44it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 142481.66it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 134756.76it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 122461.43it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 117323.19it/s]
+Total time for the execution: 25.115535654
+Total time spent on CUDA-Q: 22.706712142
 </pre></div></div>
 </div>
 <p>Scaling up to N=25, the task becomes even more onerous on a CPU. Depending on your device, the simulation may not even run. Try it and feel free to interrupt after your patience has worn out.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># target = &#39;qpp-cpu&#39;</span>
@@ -1767,7 +1781,7 @@ Total time spent on CUDA-Q: 10.452308367999706
 </div>
 <p>N=25 can still easily be completed by a single GPU.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># target = &#39;nvidia&#39;</span>
@@ -1780,28 +1794,31 @@ Total time spent on CUDA-Q: 10.452308367999706
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+[1771611081.663407] [fb5fb776d150:85963:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|█████████████████████████████████████| 7352/7352 [00:03&lt;00:00, 2063.82it/s]
-100%|███████████████████████████████████| 16492/16492 [00:03&lt;00:00, 4739.44it/s]
-100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 15185.58it/s]
-100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 23728.05it/s]
-100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 15437.97it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 50840.05it/s]
-100%|████████████████████████████████████████| 32/32 [00:00&lt;00:00, 33562.82it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 54120.05it/s]
-100%|██████████████████████████████████████████| 8/8 [00:00&lt;00:00, 54560.05it/s]
-100%|██████████████████████████████████████████| 8/8 [00:00&lt;00:00, 55924.05it/s]
-100%|████████████████████████████████████████| 16/16 [00:00&lt;00:00, 42717.29it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 55007.27it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 53601.33it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 47127.01it/s]
-Total time for the execution: 67.61674502899999
-Total time spent on CUDA-Q: 21.439895901
+100%|███████████████████████████████████| 19169/19169 [00:02&lt;00:00, 7340.95it/s]
+100%|████████████████████████████████████| 9699/9699 [00:00&lt;00:00, 20903.20it/s]
+100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 46408.62it/s]
+100%|██████████████████████████████████████| 250/250 [00:00&lt;00:00, 57152.45it/s]
+100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 111015.49it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 141579.88it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 143089.26it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 139810.13it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 127826.41it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 118987.35it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 114130.72it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 118987.35it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 120699.40it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 116508.44it/s]
+Total time for the execution: 52.755354396
+Total time spent on CUDA-Q: 48.283614136999994
 </pre></div></div>
 </div>
 <p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> coreset, a single GPU (assuming A100) will run out of memory. Run the code below to see for yourself.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># target = &#39;nvidia&#39;</span>
@@ -1814,13 +1831,16 @@ Total time spent on CUDA-Q: 21.439895901
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+[1771611118.898043] [fb5fb776d150:86265:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
 RuntimeError: NLOpt runtime error: nlopt failure
 </pre></div></div>
 </div>
 <p>To compute a problem with 34 qubits, we need to pool the memory of multiple GPUs. If you have multiple GPUs available, try the code below to run the same computation on 4 GPUs. You do not need to wait for the code to finish, just note how it does not fail immediately due to memory issues.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># target = &#39;nvidia-mgpu&#39;</span>
@@ -1842,20 +1862,8 @@ RuntimeError: NLOpt runtime error: nlopt failure
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Using BFL2 method to generate coresets
-Using BFL2 method to generate coresets
-Using BFL2 method to generate coresets
-Using BFL2 method to generate coresets
-^C
+Not enough GPUs found on this system (1) to run this step
 </pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
 </div>
 </section>
 </section>

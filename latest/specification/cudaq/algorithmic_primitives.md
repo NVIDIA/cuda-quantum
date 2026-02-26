@@ -1070,11 +1070,7 @@ latest
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -2207,6 +2203,8 @@ returned.
 :::
 
 ::: {#cudaq-run .section}
+[]{#cudaq-run-spec}
+
 ## [12.2. ]{.section-number}[`cudaq::run`{.code .docutils .literal .notranslate}]{.pre}[¶](#cudaq-run "Permalink to this heading"){.headerlink}
 
 **\[1\]** The [`cudaq::run`{.code .docutils .literal

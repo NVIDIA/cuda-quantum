@@ -1022,11 +1022,7 @@ latest
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1774,7 +1770,7 @@ energy of the water molecule.
 ::: {#Installing/Loading-Relevant-Packages .section}
 ## Installing/Loading Relevant Packages[¶](#Installing/Loading-Relevant-Packages "Permalink to this heading"){.headerlink}
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [1]:
@@ -1784,7 +1780,19 @@ energy of the water molecule.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Install the relevant packages.
-    !pip install pyscf>=2.7 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.7.1 -q
+    %pip install pyscf>=2.7 openfermionpyscf==0.5 matplotlib==3.8.4 openfermion==1.7.1 -q
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+    Note: you may need to restart the kernel to use updated packages.
 :::
 :::
 :::
@@ -1893,7 +1901,7 @@ quantum circuit.
 
 ::: {.output_area .stderr .docutils .container}
 ::: highlight
-    /tmp/ipykernel_225414/3022299596.py:7: ComplexWarning: Casting complex values to real discards the imaginary part
+    /tmp/ipykernel_36979/3022299596.py:7: ComplexWarning: Casting complex values to real discards the imaginary part
       spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
 :::
 :::
@@ -2049,13 +2057,25 @@ function and a selected optimizer, in this case COBYLA.
 ::: {.prompt .empty .docutils .container}
 :::
 
+::: {.output_area .stderr .docutils .container}
+::: highlight
+    /usr/local/lib/python3.12/dist-packages/scipy/_lib/pyprima/common/preproc.py:68: UserWarning: COBYLA: Invalid MAXFUN; it should be at least num_vars + 2; it is set to 142
+      warn(f'{solver}: Invalid MAXFUN; it should be at least {min_maxfun_str}; it is set to {maxfun}')
+:::
+:::
+:::
+
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
 ::: {.output_area .docutils .container}
 ::: highlight
-    UCCSD-VQE energy =   -70.21329161891076
+    UCCSD-VQE energy =   -71.05163606391227
     Total number of qubits =  14
     Total number of parameters =  140
     Total number of terms in the spin hamiltonian =  1086
-    Total elapsed time (s) =  21.523745890706778
+    Total elapsed time (s) =  147.76741600100104
 :::
 :::
 :::
@@ -2065,7 +2085,7 @@ function and a selected optimizer, in this case COBYLA.
 :::
 
 ::: {.output_area .docutils .container}
-![](../../_images/applications_python_vqe_advanced_21_1.png)
+![](../../_images/applications_python_vqe_advanced_21_2.png)
 :::
 :::
 
@@ -2098,12 +2118,15 @@ Each of the expectation values needed to evaluate a parameter shift
 gradient can be computed independently. The CUDA-Q
 [`nvidia-mqpu`{.docutils .literal .notranslate}]{.pre} backend is
 designed for parallel computations across multiple simulated QPUs. The
-function below uses [`cudaq.observe_asynch`{.docutils .literal
-.notranslate}]{.pre} to distribute all of the expectation values
-evaluations across as many GPUs that are available. First, try it with
-[`num_qpus`{.docutils .literal .notranslate}]{.pre} set to 1.
+function below uses [`cudaq.observe_async`{.docutils .literal
+.notranslate}]{.pre} to distribute all of the expectation value
+evaluations across as many GPUs as are available. For this
+demonstration, we use the active space approximation (4 electrons, 3
+orbitals) for efficiency; on a multi-GPU system the full system could be
+used instead. First, try it with [`num_qpus`{.docutils .literal
+.notranslate}]{.pre} set to 1.
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [9]:
@@ -2112,6 +2135,24 @@ evaluations across as many GPUs that are available. First, try it with
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
+    # For this gradient demonstration, we use the active space approximation
+    # (4 electrons, 3 orbitals, 6 qubits, 8 parameters) for efficiency.
+    # The full 14-qubit system (140 parameters) requires multiple GPUs to
+    # complete gradient evaluations in reasonable time.
+    import warnings
+    _ncore, _nele_cas, _norb_cas = 3, 4, 3
+    _mol_ham_as = molecule.get_molecular_hamiltonian(
+        occupied_indices=range(_ncore),
+        active_indices=range(_ncore, _ncore + _norb_cas))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        spin_ham = cudaq.SpinOperator(
+            jordan_wigner(get_fermion_operator(_mol_ham_as)))
+    electron_count = _nele_cas
+    qubit_count = 2 * _norb_cas
+    parameter_count = cudaq.kernels.uccsd_num_parameters(electron_count, qubit_count)
+    print(f'Gradient demo: {qubit_count} qubits, {electron_count} electrons, {parameter_count} parameters')
+
     np.random.seed(42)
     x0 = np.random.normal(0, 1, parameter_count)
 
@@ -2164,6 +2205,17 @@ evaluations across as many GPUs that are available. First, try it with
             parameters) == x.shape[0] == xplus.shape[0] == xminus.shape[0]
 
         return gradients
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    Gradient demo: 6 qubits, 4 electrons, 8 parameters
 :::
 :::
 :::
@@ -2244,8 +2296,8 @@ using only 10% of the steps as optimization above without a gradient.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    VQE-UCCSD energy=  -73.19436446992752
-    Total elapsed time (s) =  72.83047100389376
+    VQE-UCCSD energy=  -74.89472908646083
+    Total elapsed time (s) =  34.985621543999514
 :::
 :::
 :::
@@ -2341,7 +2393,7 @@ the active space.
 
 ::: {.output_area .stderr .docutils .container}
 ::: highlight
-    /tmp/ipykernel_225414/1900341958.py:9: ComplexWarning: Casting complex values to real discards the imaginary part
+    /tmp/ipykernel_36979/1900341958.py:9: ComplexWarning: Casting complex values to real discards the imaginary part
       spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
 :::
 :::
@@ -2468,11 +2520,11 @@ inclusion of all orbitals and electrons.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    UCCSD-VQE energy =   -74.96447648834257
+    UCCSD-VQE energy =   -74.96450707178158
     Total number of qubits =  6
     Total number of parameters =  8
     Total number of terms in the spin hamiltonian =  62
-    Total elapsed time (s) =  3.2149466909468174
+    Total elapsed time (s) =  93.54685176699968
 :::
 :::
 :::

@@ -653,8 +653,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1036,7 +1035,7 @@ produce the maximum weighted clique which corresponds to the best (most strongly
 <h2>CUDA-Q Implementation<a class="headerlink" href="#CUDA-Q-Implementation" title="Permalink to this heading">¶</a></h2>
 <p>First, the appropriate libraries are imported and the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend is selected to run on GPUs if available.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1047,7 +1046,7 @@ produce the maximum weighted clique which corresponds to the best (most strongly
 </div>
 <p>The block below defines two of the BIG data sets from the paper. The first is a smaller example, but it can be swapped with the commented out example below at your discretion. The weights are specified for each node based on the nature of the ligand and protein pharmacores represented by the node.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The two graph inputs from the paper</span>
@@ -1097,7 +1096,7 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 \[H = \frac{1}{2}\sum_{i \in V}w_i(\sigma^z_i - 1) + \frac{P}{4} \sum_{(i,j) \notin E, i \neq j} (\sigma^z_i -1)(\sigma^z_j - 1)\]</div>
 <p>The first term concerns the vertices and the weights of the given pharmacores. The second term is a penalty term that penalizes edges of the graph with no interactions. The penalty <span class="math notranslate nohighlight">\(P\)</span> is set by the user and is defined as 6 in the cell above. The function below returns the Hamiltonian as a CUDA-Q <code class="docutils literal notranslate"><span class="pre">spin_op</span></code> object.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the Hamiltonian</span>
@@ -1121,7 +1120,7 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 </div>
 <p>The code below strips the Hamiltonian into a list of coefficients and corresponding Pauli words which can be passed into a quantum kernel.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
@@ -1168,7 +1167,7 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 <p>The kernel below defines a DC-QAOA circuit. What makes the approach “DC” is the inclusion of additional counteradiabatic terms to better drive the optimization to the ground state. These terms are digitized and applied as additional operations following each QAOA layer. The increase in parameters is hopefully offset by requiring fewer layers. In this example, the DC terms are the additional parameterized <span class="math notranslate nohighlight">\(Y\)</span> operations applied to each qubit. These can be commented out to run conventional
 QAOA.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1197,13 +1196,14 @@ QAOA.</p>
 </pre></div>
 </div>
 </div>
-<p>The classical optimizer for the QAOA procedure can be specified as one of the built-in CUDA-Q optimizers, in this case Nelder Mead. The parameter count is defined for DC-QAOA, but can be swapped with the commented line below for conventional QAOA.</p>
+<p>The classical optimizer for the QAOA procedure can be specified as one of the built-in CUDA-Q optimizers, in this case COBYLA. The maximum number of function evaluations is bounded with <code class="docutils literal notranslate"><span class="pre">max_iterations</span></code> to ensure the optimization completes in a reasonable time. The parameter count is defined for DC-QAOA, but can be swapped with the commented line below for conventional QAOA.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify the optimizer and its initial parameters.</span>
-<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">NelderMead</span><span class="p">()</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">max_iterations</span> <span class="o">=</span> <span class="mi">1000</span>
 
 <span class="c1">#Specify random seeds</span>
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
@@ -1233,7 +1233,7 @@ Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.254687763981
 </div>
 <p>A cost function is specified which computes the expectation value of the DC-QAOA circuit and the Hamiltonian using the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function. Running the optimization returns the minimized expectation value and the optimal parameters.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cost_values</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1261,13 +1261,13 @@ Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.254687763981
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-optimal_expectation = -2.005710024421982
-optimal_parameters = [1.8481888913540985, -0.2535399481030596, 0.22783474501904072, 2.081416556947703, 0.3374107641822874, -0.05224802127495901, 1.8679499667316164, 2.009143330388614, 0.1339973108317789, 0.2652751145535136, 1.324101519994548, 1.5559093725862327, -0.16508452001869578, 0.10055168392123187, 1.4335293611790534, -0.022802387382032274, -0.02345217217095934, 0.025049619373114198, -0.32382028011884517, 1.1592457772894376, 0.5114936288385474, -0.14306579846281064, -0.32504364746711095, 1.5987201329360095, -0.47283036988738203, -0.2879606126466135, 0.03195039154942317, 1.6485828925522248, -0.8013579153446403, -0.025680220483288878, 0.37302396767692614, 1.5188370864376863, 2.106660523866304, -0.09725921137896973, 0.17491777895553523, 0.5884424387073575, 1.0185444633156848, 1.2506750467643695, 1.5730001880356774, 0.923145372786352, -0.3016838127319703, 0.10130783752008649, 0.34049803711462423, -0.2742308863536732, -0.0843331582214344, -0.304728036625607, 0.03164048010752481, -0.16945553246060785, 0.21199415583984976, -0.333776464782457, 0.6762454214008358, 0.7077770344190998, -0.04315001481827706, -0.8685775873913754, -0.31256033232512964, -0.13726466931210604, -0.18103220051469332, -0.07014233979739845, -0.04255058220153306, 0.5213395683000333, -0.2522616199668185, -0.5922668326436884, 1.7533503557489256, -0.4243163991330685, 1.8047318156160967, -0.11962817999838339, 1.8264810507160347, 1.9427616058014427, 0.7014295339746117, 0.20606112998073237, 0.5143352145327803, -0.34597927642063775, 0.2594379052182792, -0.05203689954085833, -0.5794522822029166, 0.4906495726071997, -0.034324583542975434, -0.14861293759475658, -0.12344152798253367, 0.025496591883733336, 1.284665133192642, -0.3804169340191194, 0.24490229273798853, 0.17606447338069542, -0.3615511014437435, -0.32667907511589545, -0.02539630711633685, -0.6837298769178322, 0.5233213940389638, -0.10356768274588322, 0.3255850390639937, 0.23127621992973585, -0.44519166728496085]
+optimal_expectation = -1.9073328737083861
+optimal_parameters = [0.35677175214271706, -0.3109797259689975, 0.18438798861911154, 1.9848372049558682, 0.19136344923159243, -0.004928317228573332, 1.713780074387929, 1.9282453416650736, 1.6831409252750253, 0.49126475155891997, -0.4033469884981563, 1.346307763295637, -0.46777347284432186, 0.07081531824317343, -0.13615278375209985, -0.01508158611481932, -0.027519477883181407, -0.06975208593571575, -0.44191817282851714, 1.6428836751531437, 0.29087540268672224, -0.6930588178390455, -0.3487329797641711, 1.7742302908330012, -0.3172547178986839, -0.26054879936432734, 0.0747419358964611, 2.467753656542481, -0.7544927430687135, 0.3168125396632246, 0.7273976223591917, -0.3116294662734041, 1.7809824568084778, 2.416079481922511, -0.040171435896787816, 1.8490406821535388, 1.3118760053884186, -0.1371036946036414, 1.8194942386806627, 1.1768100446711753, -0.10512542522829052, 0.5957769817151616, 0.1602953850275998, -0.5638944253964013, -0.24610050562110908, -0.329695641533241, 0.03919746890409396, 2.2857836617903997, 0.29419282625931065, -0.009621594866499321, 0.5013386583407501, 0.13384283447603898, 0.6635560792137677, -0.4599024177584168, -0.3439939314267574, -0.27276183084207617, 0.2812250277174897, -0.42537873842127016, 0.08855482025002542, 0.07270764914343493, -0.22078974046464098, -0.07929815754645288, -0.026897253935308237, 0.010892352058448566, 1.3537645236194016, -0.22883228207579284, -0.6292069159641992, 1.9861386140898571, 0.38796679827149677, 0.2900571938167373, -0.007552302258683732, -0.49465753277805496, 0.27131726972643, -0.021705527301252824, -0.32844577948280756, 0.10214588654028048, -0.265122003982188, -0.25915231265812805, -0.1719791918589873, 0.17377777362787877, 0.23426034806893092, 0.1953931766768377, 1.1458659686992112, 0.27235277131292907, -0.40413240137904727, -0.1525865734847086, -0.049384660545690476, -0.20162808470334315, 0.19386479549851418, -0.23927717497743023, 0.31679173855256726, 0.09740564030506564, -0.4349632150555254]
 </pre></div></div>
 </div>
 <p>Sampling the circuit with the optimal parameters allows for the <code class="docutils literal notranslate"><span class="pre">most_probable</span></code> command to reveal the bitsting corresponding to the ideal graph partitioning solution. This indicates what sort of interactions are present in the ideal docking configuration</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shots</span> <span class="o">=</span> <span class="mi">200000</span>
@@ -1290,7 +1290,7 @@ optimal_parameters = [1.8481888913540985, -0.2535399481030596, 0.227834745019040
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{ 011100:1 101010:6 110001:20 111000:199973 }
+{ 000001:3 000101:4 001000:12 001010:2 001100:41 001110:9 010000:13 010001:346 010100:25 010101:1022 011000:4552 011001:1 011010:1 011100:13130 011110:2 100000:1 100001:40 100011:16 101000:584 101010:171 110000:370 110001:13230 110011:4 111000:166348 111001:11 111010:36 111100:26 }
 
 The MVWCP is given by the partition:  111000
 </pre></div></div>
@@ -1298,7 +1298,7 @@ The MVWCP is given by the partition:  111000
 <p><img alt="dockin" class="no-scaled-link" src="../../_images/partition.png" style="width: 300px;" /></p>
 <p>The convergence of the optimization can be plotted below.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>

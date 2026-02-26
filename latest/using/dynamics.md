@@ -1046,11 +1046,7 @@ latest
             -   [Setting
                 Credentials](backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](#){.current .reference .internal}
     -   [Quick Start](#quick-start){.reference .internal}
@@ -1981,18 +1977,18 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
+        get_result = lambda idx, res: [
+            exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+        ]
 
-    import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt
 
-    plt.plot(steps, get_result(0, evolution_result))
-    plt.plot(steps, get_result(1, evolution_result))
-    plt.plot(steps, get_result(2, evolution_result))
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
+        plt.plot(steps, get_result(0, evolution_result))
+        plt.plot(steps, get_result(1, evolution_result))
+        plt.plot(steps, get_result(2, evolution_result))
+        plt.ylabel("Expectation value")
+        plt.xlabel("Time")
+        plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
 :::
 :::
 
