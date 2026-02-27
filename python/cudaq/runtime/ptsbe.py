@@ -16,11 +16,11 @@ from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
 
 
 class AsyncPTSBESampleResult(AsyncSampleResult):
-    """Async result for PTSBE sampling.
+    """Asynchronous result for PTSBE sampling.
 
-    Extends AsyncSampleResult with a reference to the noise_model so the
-    Python object is not garbage-collected while the async C++ work is
-    in flight. The reference is released when .get() is called.
+    Extends `AsyncSampleResult` with a reference to the `noise_model` so the
+    Python object is not garbage-collected while the asynchronous C++ work is
+    in flight. The reference is released when `.get()` is called.
     """
 
     def __init__(self, impl, mod, noise_model):
