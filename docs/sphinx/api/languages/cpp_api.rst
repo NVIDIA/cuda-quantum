@@ -190,7 +190,7 @@ Noise Modeling
     it is automatically (and silently) stripped from any programs submitted to
     hardware targets.
 
-    :tparam Channel: A subtype of :cpp:class:`cudaq::kraus_channel` that
+    :`tparam` Channel: A subtype of :cpp:class:`cudaq::kraus_channel` that
         implements/defines the desired noise mechanisms as Kraus channels (e.g.
         :cpp:class:`cudaq::depolarization2`). If you want to use a custom
         :cpp:class:`cudaq::kraus_channel` (i.e. not built-in to CUDA-Q), it must
@@ -218,7 +218,7 @@ Noise Modeling
             cudaq::noise_model noise;
             noise.register_channel<my_custom_kraus_channel_subtype>();
 
-    :param `args`: The precise argument pack depend on the concrete `Channel` being
+    :`param` `args`: The precise argument pack depend on the concrete `Channel` being
         used. The arguments are a concatenated list of parameters and targets.
         For example, to apply a 2-qubit depolarization channel, which has
         `num_parameters = 1` and `num_targets = 2`, one would write the call
@@ -431,11 +431,11 @@ Sampling Functions
 
    Sample a quantum kernel using PTSBE.
 
-   :tparam `QuantumKernel`: A CUDA-Q kernel callable.
-   :tparam `Args`: Kernel argument types.
-   :param options: Execution options (shots, noise model, PTSBE configuration).
-   :param kernel: The kernel to execute.
-   :param `args`: Arguments forwarded to the kernel.
+   :`tparam` `QuantumKernel`: A CUDA-Q kernel callable.
+   :`tparam` `Args`: Kernel argument types.
+   :`param` options: Execution options (shots, noise model, PTSBE configuration).
+   :`param` kernel: The kernel to execute.
+   :`param` `args`: Arguments forwarded to the kernel.
    :returns: Aggregated ``sample_result``.
 
    .. code-block:: cpp
@@ -561,7 +561,7 @@ Trajectory Sampling Strategies
 
    .. cpp:function:: explicit ProbabilisticSamplingStrategy(std::uint64_t seed = 0)
 
-      :param seed: Random seed. ``0`` uses the global CUDA-Q seed if set,
+      :`param` seed: Random seed. ``0`` uses the global CUDA-Q seed if set,
           otherwise ``std::random_device``.
 
    .. code-block:: cpp
@@ -598,8 +598,8 @@ Trajectory Sampling Strategies
 
    .. cpp:function:: explicit ConditionalSamplingStrategy(TrajectoryPredicate predicate, std::uint64_t seed = 0)
 
-      :param predicate: Returns ``true`` for trajectories to include.
-      :param seed: Random seed. ``0`` uses the global CUDA-Q seed.
+      :`param` predicate: Returns ``true`` for trajectories to include.
+      :`param` seed: Random seed. ``0`` uses the global CUDA-Q seed.
 
    .. code-block:: cpp
 

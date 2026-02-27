@@ -298,7 +298,6 @@ parallelization
 parallelize
 parallelized
 parallelizing
-param
 parameterization
 performant
 photonic
@@ -364,7 +363,6 @@ templated
 toolchain
 toolchains
 toolset
-tparam
 transmon
 transpile
 trotterization
