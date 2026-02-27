@@ -529,3 +529,69 @@ To see a complete example of using Quantum Circuits' backends, please take a loo
         depend on the selected simulator.  
         
         Any environment variables must be set prior to setting the target or running "`import cudaq`".
+
+TII
++++
+
+.. _tii-backend:
+
+TII enables execution of CUDA-Q programs on a cloud-based simulator and superconducting quantum hardware.
+The infrastructure is orchestrated by Qibo (https://qibo.science).
+
+Credential setup
+````````````````
+
+Access to TII hardware requires user registration.
+New accounts can be requested at https://q-cloud.tii.ae.
+Authentication is performed using an email address and password.
+
+After the first login, users can generate personal access tokens.
+This token is used to authenticate backend requests and can be set as an environment variable
+(``TII_API_TOKEN``) for convenience.
+
+Backend parameters
+``````````````````
+
+In addition to authentication, users must specify the quantum device and the project under which
+jobs will be executed.
+
+The full list of projects and devices available to the user is shown on the dashboard: https://q-cloud.tii.ae/projects/
+
+Supported parameters:
+
+- ``api_key``: Authentication token. If not provided explicitly, it is read from the
+  ``TII_API_TOKEN`` environment variable.
+- ``device``: Quantum device on which the job is executed (required).
+- ``project``: User project associated with the job (required).
+- ``verbatim``: Currently unused; should be set to ``false``.
+
+Submitting jobs
+```````````````
+
+.. tab:: Python
+
+    Before submitting a job, the TII backend must be selected using ``cudaq.set_target()``.
+    The following example runs a circuit simulation using the user's ``personal`` project:
+
+    .. code:: python
+
+        cudaq.set_target("tii", device="tii-sim", project="personal")
+
+    If the ``TII_API_TOKEN`` environment variable is not set, the authentication token can be
+    passed directly:
+
+    .. code:: python
+
+        cudaq.set_target("tii", api_key="my_authentication_token", device="tii-sim", project="personal")
+
+.. tab:: C++
+
+    C++ programs must first be compiled using ``nvq++``.
+
+    When compiling, both the target device and the project must be specified:
+
+    .. code:: bash
+
+        nvq++ --target tii --tii-device tii-sim --tii-project personal main.cpp -o main.x
+
+    The ``TII_API_TOKEN`` environment variable must be set at runtime to authenticate the job.

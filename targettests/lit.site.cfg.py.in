@@ -71,6 +71,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
+config.cudaq_backends_tii = "@CUDAQ_ENABLE_TII_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_tii):
+    config.available_features.add('tii')
+    config.substitutions.append(('%tii_avail', 'true'))
+else:
+    config.substitutions.append(('%tii_avail', 'false'))
+
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 

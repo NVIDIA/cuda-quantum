@@ -26,6 +26,7 @@ on:
           - pasqal
           - qci
           - quantinuum
+          - tii
       single_test_name:
         type: string
         required: false
@@ -189,7 +190,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -265,6 +266,9 @@ jobs:
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
+                ;;
+              tii)
+                filelist="targettests/tii/*.cpp"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
@@ -400,6 +404,11 @@ jobs:
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
               chmod 600 ~/.quantinuum_config
               rm ~/.quantinuum_cookies.txt
+              ;;
+            tii)
+              echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.TII_AUTH_TOKEN }}"
+              echo "TII_AUTH_TOKEN=${{ secrets.TII_AUTH_TOKEN }}" >> $GITHUB_ENV
               ;;
           esac
         shell: bash
@@ -683,6 +692,24 @@ jobs:
                   echo "::warning::Unsupported file type: $filename"
                   echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
                   test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              tii)
+                nvq++ -v $filename --target tii
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
             esac

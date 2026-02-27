@@ -6,26 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .preallocated_qubits_context import PreallocatedQubitsContext
+add_backend_unittest_executable(test_tii 
+  SOURCES TiiTester.cpp
+  BACKEND tii
+  BACKEND_CONFIG "tii emulate=false"
+  )
 
-# Default ports for each mock QPU backend
-MOCK_QPU_PORTS = {
-    "quantinuum": 62440,
-    "ionq": 62441,
-    "oqc": 62442,
-    "iqm": 62443,
-    "braket": 62445,
-    "anyon": 62446,
-    "infleqtion": 62447,
-    "quantum_machines": 62448,
-    "qci": 62449,
-    "tii": 62451,
-}
-
-
-def get_backend_port(backend: str) -> int:
-    return MOCK_QPU_PORTS[backend]
-
-
-def all_backend_names() -> list[str]:
-    return list(MOCK_QPU_PORTS.keys())
+configure_file(TiiStartServerAndTest.sh.in TiiStartServerAndTest.sh @ONLY)
+add_test(NAME tii-tests COMMAND bash TiiStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

@@ -40,6 +40,12 @@ def start_server(backend: str):
             from mock_qpu.quantinuum import app
         case "quantum_machines":
             from mock_qpu.quantum_machines import app
+        case "tii":
+            # NOTE: The `tii` mock QPU server is not a `FastAPI` app and does not use `uvicorn`
+            from mock_qpu.tii import startServer
+            cudaq.set_random_seed(13)
+            startServer(port)
+            return
         case _:
             # <backend> is in all_backend_names() but not handled!
             raise ValueError(
