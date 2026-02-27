@@ -1928,12 +1928,9 @@ webpage](https://www.scaleway.com/en/quantum-as-a-service/){.reference
 ## Manage your QPU session[¶](#manage-your-qpu-session "Permalink to this heading"){.headerlink}
 
 If you want to manually shutdown a QPU session, you can either go to the
-[`Scaleway`{.code .docutils .literal .notranslate}]{.pre}` `{.code
-.docutils .literal .notranslate}[`console`{.code .docutils .literal
-.notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`<https://console.scaleway.com/qaas/sessions>`{.code
-.docutils .literal .notranslate}]{.pre} or do it by calling the
-Scaleway's QaaS API:
+[Scaleway
+console](https://console.scaleway.com/qaas/sessions){.reference
+.external} or do it by calling the Scaleway's QaaS API:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
