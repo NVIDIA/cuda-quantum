@@ -19,16 +19,11 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipelines
-  # This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.
   jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce"
-  # Tell the rest-qpu that we are generating QIR base profile.
-  # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
   codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
-# Some examples of target arguments are shown below.
-# You do not need to add any arguments for your backend if you do not need them.
 target-arguments:
   - key: api-key
     required: true

@@ -1,3 +1,12 @@
+// 
+// Available projects and devices are show in the dashboard:
+// https://q-cloud.tii.ae/projects/
+//
+// The authentication key must be stored (or exported) as enivronment variable:
+// ```
+// export TII_API_TOKEN="you-tii-token"
+// ```
+//
 // Compile and run with:
 // ```
 // nvq++ --target tii --tii-device tii-sim \
@@ -13,7 +22,7 @@ struct bell_state {
     cudaq::qvector q(2);
     h(q[0]);
     x<cudaq::ctrl>(q[0], q[1]);
-    auto result = mz(q);
+    mz(q);
   }
 };
 

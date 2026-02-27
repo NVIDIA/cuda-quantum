@@ -23,7 +23,7 @@ skipIfTiiNotInstalled = pytest.mark.skipif(
 try:
     from utils.mock_qpu.tii import startServer
 except:
-    print("Mock qpu not available, skipping Provider Name tests.")
+    print("Mock qpu not available, skipping tii tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server - make sure this is unique

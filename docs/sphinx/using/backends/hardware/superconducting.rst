@@ -555,6 +555,8 @@ Backend parameters
 In addition to authentication, users must specify the quantum device and the project under which
 jobs will be executed.
 
+The full list of projects and devices available to the user is shown on the dashboard: https://q-cloud.tii.ae/projects/
+
 Supported parameters:
 
 - ``api_key``: Authentication token. If not provided explicitly, it is read from the
