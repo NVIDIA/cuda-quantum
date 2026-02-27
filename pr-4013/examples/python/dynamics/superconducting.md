@@ -195,27 +195,52 @@ pr-4013
             .internal}
     -   [Noisy Simulations](../noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../ptsbe_end_to_end_workflow.html){.reference
-        .internal}
-        -   [1. Set up the
-            environment](../ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../../../using/ptsbe.html){.reference .internal}
+        -   [PTSBE User
+            Guide](../../../using/ptsbe_user_guide.html){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](../ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            -   [Conceptual
+                Overview](../../../using/ptsbe_user_guide.html#conceptual-overview){.reference
+                .internal}
+            -   [When to Use
+                PTSBE](../../../using/ptsbe_user_guide.html#when-to-use-ptsbe){.reference
+                .internal}
+            -   [Quick
+                Start](../../../using/ptsbe_user_guide.html#quick-start){.reference
+                .internal}
+            -   [Usage
+                Tutorial](../../../using/ptsbe_user_guide.html#usage-tutorial){.reference
+                .internal}
+            -   [Trajectory vs Shot
+                Trade-offs](../../../using/ptsbe_user_guide.html#trajectory-vs-shot-trade-offs){.reference
+                .internal}
+            -   [Backend
+                Requirements](../../../using/ptsbe_user_guide.html#backend-requirements){.reference
+                .internal}
+            -   [References](../../../using/ptsbe_user_guide.html#references){.reference
+                .internal}
+        -   [PTSBE End-to-End
+            Workflow](../ptsbe_end_to_end_workflow.html){.reference
             .internal}
-        -   [3. Run PTSBE
-            sampling](../ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
-            .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](../ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](../ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-            .internal}
-        -   [6. Two API
-            options:](../ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
-            .internal}
+            -   [1. Set up the
+                environment](../ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+                .internal}
+            -   [2. Define the circuit and noise
+                model](../ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+                .internal}
+            -   [3. Run PTSBE
+                sampling](../ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+                .internal}
+            -   [4. Compare with standard (density-matrix)
+                sampling](../ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+                .internal}
+            -   [5. Return execution
+                data](../ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+                .internal}
+            -   [6. Two API
+                options:](../ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+                .internal}
     -   [Constructing
         Operators](../../../using/examples/operators.html){.reference
         .internal}
@@ -1802,41 +1827,6 @@ pr-4013
             -   [[`mz`{.code .docutils .literal
                 .notranslate}]{.pre}](../../../api/default_ops.html#id1){.reference
                 .internal}
--   [User Guide](../../../using/user_guide.html){.reference .internal}
-    -   [Pre-Trajectory Sampling with Batch Execution
-        (PTSBE)](../../../using/ptsbe.html){.reference .internal}
-        -   [Conceptual
-            Overview](../../../using/ptsbe.html#conceptual-overview){.reference
-            .internal}
-        -   [When to Use
-            PTSBE](../../../using/ptsbe.html#when-to-use-ptsbe){.reference
-            .internal}
-        -   [Quick
-            Start](../../../using/ptsbe.html#quick-start){.reference
-            .internal}
-        -   [Usage
-            Tutorial](../../../using/ptsbe.html#usage-tutorial){.reference
-            .internal}
-            -   [Controlling the Number of
-                Trajectories](../../../using/ptsbe.html#controlling-the-number-of-trajectories){.reference
-                .internal}
-            -   [Choosing a Trajectory Sampling
-                Strategy](../../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
-                .internal}
-            -   [Shot Allocation
-                Strategies](../../../using/ptsbe.html#shot-allocation-strategies){.reference
-                .internal}
-            -   [Inspecting Execution
-                Data](../../../using/ptsbe.html#inspecting-execution-data){.reference
-                .internal}
-        -   [Trajectory vs Shot
-            Trade-offs](../../../using/ptsbe.html#trajectory-vs-shot-trade-offs){.reference
-            .internal}
-        -   [Backend
-            Requirements](../../../using/ptsbe.html#backend-requirements){.reference
-            .internal}
-        -   [References](../../../using/ptsbe.html#references){.reference
-            .internal}
 -   [Other Versions](../../../versions.html){.reference .internal}
 :::
 :::

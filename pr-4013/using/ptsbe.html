@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Noisy Simulation with PTSBE &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Pre-Trajectory Sampling with Batch Execution (PTSBE) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="CUDA-Q Versions" href="../versions.html" />
-    <link rel="prev" title="User Guide" href="user_guide.html" /> 
+    <link rel="next" title="Noisy Simulation with PTSBE" href="ptsbe_user_guide.html" />
+    <link rel="prev" title="Noisy Simulation" href="../examples/python/noisy_simulations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -123,7 +123,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="examples/examples.html">   Examples</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="examples/examples.html">   Examples</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="examples/introduction.html">   Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/building_kernels.html">   Building Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#defining-kernels">Defining Kernels</a></li>
@@ -204,13 +204,26 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_user_guide.html">PTSBE User Guide</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#quick-start">Quick Start</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#usage-tutorial">Usage Tutorial</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#trajectory-vs-shot-trade-offs">Trajectory vs Shot Trade-offs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#backend-requirements">Backend Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_user_guide.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html">PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/operators.html">   Constructing Operators</a><ul>
@@ -1011,25 +1024,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="user_guide.html">   User Guide</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#conceptual-overview">Conceptual Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#when-to-use-ptsbe">When to Use PTSBE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#quick-start">Quick Start</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#usage-tutorial">Usage Tutorial</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#shot-allocation-strategies">Shot Allocation Strategies</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#inspecting-execution-data">Inspecting Execution Data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#trajectory-vs-shot-trade-offs">Trajectory vs Shot Trade-offs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend-requirements">Backend Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#references">References</a></li>
-</ul>
-</li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
 </ul>
 
@@ -1047,503 +1041,36 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="user_guide.html">User Guide</a></li>
-      <li class="breadcrumb-item active">Noisy Simulation with PTSBE</li>
+          <li class="breadcrumb-item"><a href="examples/examples.html">CUDA-Q by Example</a></li>
+      <li class="breadcrumb-item active">Pre-Trajectory Sampling with Batch Execution (PTSBE)</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="user_guide.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../versions.html" class="btn btn-neutral float-right" title="CUDA-Q Versions" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../examples/python/noisy_simulations.html" class="btn btn-neutral float-left" title="Noisy Simulation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ptsbe_user_guide.html" class="btn btn-neutral float-right" title="Noisy Simulation with PTSBE" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="noisy-simulation-with-ptsbe">
-<h1>Noisy Simulation with PTSBE<a class="headerlink" href="#noisy-simulation-with-ptsbe" title="Permalink to this heading">¶</a></h1>
-<p id="ptsbe">Pre-Trajectory Sampling with Batch Execution (PTSBE) is a method for
-efficiently sampling noisy quantum circuits <a class="reference internal" href="#patti2025" id="id1"><span>[Patti2025]</span></a>. It builds on
-quantum trajectory methods <a class="reference internal" href="#carmichael2007" id="id2"><span>[Carmichael2007]</span></a>, which simulate noise by
-stochastically selecting a Kraus operator at each noise site and evolving a
-pure statevector rather than the full density matrix. Traditional trajectory
-methods construct a new statevector for every measurement shot.
-PTSBE instead pre-samples a set of unique noise
-realizations (trajectories) and batches shots across them, so the number of
-statevector simulations scales with unique trajectories but not the total shots.
-As the noise pre-sampling and state post-sampling are tasks with only
-low-degree polynomial complexity, while the state construction
-is, in general, of exponential complexity, PTSBE allows us to gather noisy quantum data
-orders of magnitude quicker than traditional trajectory sampling methods by
-allowing finely-tuned batch sampling of simulated statevectors. PTSBE can be used to
-capture millions of times more noisy shot data, which can then be used as e.g., training data
-in ML tasks such as AI decoders, or it can be deployed proportionally, capturing the exact
-statistics of the problem while still offering a considerable speedup. In particular,
-PTSBE achieves traditional trajectory simulation accuracy at a fraction of the computational
-cost when the number of unique trajectories (errors) is much smaller than the total
-shot count <a class="reference internal" href="#patti2025" id="id3"><span>[Patti2025]</span></a>.</p>
-<section id="conceptual-overview">
-<h2>Conceptual Overview<a class="headerlink" href="#conceptual-overview" title="Permalink to this heading">¶</a></h2>
-<p>A quantum circuit subject to noise can be described by a set of Kraus operators
-applied at each gate location. At each noise site, the environment selects one
-Kraus operator with some probability. A <strong>trajectory</strong> is one complete
-assignment of Kraus operators across all noise sites in the circuit. Its
-probability is the product of the probabilities of the chosen operators at
-each site.</p>
-<p>PTSBE works in three phases:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 30%" />
-<col style="width: 60%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Phase</p></th>
-<th class="head"><p>Name</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>1</p></td>
-<td><p>Trajectory Sampling</p></td>
-<td><p>Draw <em>T</em> unique trajectories from the full noise space using a sampling
-strategy. Each trajectory specifies which Kraus operator fires at every
-noise site.</p></td>
-</tr>
-<tr class="row-odd"><td><p>2</p></td>
-<td><p>Shot Allocation</p></td>
-<td><p>Distribute the total <em>N</em> shots across the <em>T</em> trajectories according to
-a shot allocation strategy (e.g. proportional to trajectory probability).</p></td>
-</tr>
-<tr class="row-even"><td><p>3</p></td>
-<td><p>Batch Execution</p></td>
-<td><p>Simulate each trajectory as a pure-state circuit. The per-trajectory
-measurement outcomes are merged into a single <a class="reference internal" href="../api/languages/python_api.html#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a>.</p></td>
-</tr>
-</tbody>
-</table>
-<p>Because trajectories are reused across many shots, the number of circuit
-simulations scales with the number of unique trajectories <em>T</em>, not the shot
-count <em>N</em>.</p>
-</section>
-<section id="when-to-use-ptsbe">
-<h2>When to Use PTSBE<a class="headerlink" href="#when-to-use-ptsbe" title="Permalink to this heading">¶</a></h2>
-<p>PTSBE is most beneficial when:</p>
-<ul class="simple">
-<li><p>The circuit has few distinct noise sites so the trajectory space is
-manageable.</p></li>
-<li><p>A large shot count is required (1 000 – 1 000 000+) so the reuse of
-trajectories provides a significant speed-up.</p></li>
-<li><p>The shots are intended for a data-hungry downstream task that is not necessarily
-inhibited by correlated sampling, such as training AI models</p></li>
+  <section id="pre-trajectory-sampling-with-batch-execution-ptsbe">
+<h1>Pre-Trajectory Sampling with Batch Execution (PTSBE)<a class="headerlink" href="#pre-trajectory-sampling-with-batch-execution-ptsbe" title="Permalink to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ptsbe_user_guide.html">PTSBE User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html">PTSBE End-to-End Workflow</a></li>
 </ul>
-<p>Benchmarks from the original paper <a class="reference internal" href="#patti2025" id="id4"><span>[Patti2025]</span></a> illustrate the potential
-speed-ups:</p>
-<ul class="simple">
-<li><p><strong>35-qubit</strong> statevector simulation (magic state distillation): up to
-<strong>10⁶×</strong> speedup over conventional trajectory methods, producing one
-trillion shots on 4 NVIDIA H100 GPUs.</p></li>
-<li><p><strong>85-qubit</strong> tensor network simulation (magic state distillation): <strong>16×</strong>
-speedup, producing one million shots.</p></li>
-</ul>
-<p>PTSBE is particularly well-suited for generating large synthetic datasets of
-noisy measurement outcomes, such as training data for machine-learning–based
-quantum error correction (QEC) decoders <a class="reference internal" href="#patti2025" id="id5"><span>[Patti2025]</span></a>.</p>
-<p>PTSBE requires:</p>
-<ul class="simple">
-<li><p>A <strong>static circuit</strong> — no mid-circuit measurements or
-measurement-dependent conditional logic.</p></li>
-<li><p>A <strong>local simulator</strong> backend.</p></li>
-</ul>
-</section>
-<section id="quick-start">
-<h2>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading">¶</a></h2>
-<p>The example below simulates a two-qubit Bell circuit under depolarizing noise.</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">ptsbe</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">():</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-
-<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span>  <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="mf">0.01</span><span class="p">))</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;cx&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2Channel</span><span class="p">(</span><span class="mf">0.005</span><span class="p">))</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
 </div>
-</div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">bell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
-<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">  </span><span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="p">};</span>
-
-<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="p">{};</span>
-<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">depolarization_channel</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;h&quot;</span><span class="p">,</span><span class="w">  </span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w">     </span><span class="mf">0.01</span><span class="p">);</span>
-<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">depolarization2_channel</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;cx&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span><span class="w"> </span><span class="mf">0.005</span><span class="p">);</span>
-
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">shots</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">;</span>
-<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">noise</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
-
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</div>
-</section>
-<section id="usage-tutorial">
-<h2>Usage Tutorial<a class="headerlink" href="#usage-tutorial" title="Permalink to this heading">¶</a></h2>
-<section id="controlling-the-number-of-trajectories">
-<h3>Controlling the Number of Trajectories<a class="headerlink" href="#controlling-the-number-of-trajectories" title="Permalink to this heading">¶</a></h3>
-<p>By default, PTSBE generates up to <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> unique trajectories.
-For large shot counts set <code class="docutils literal notranslate"><span class="pre">max_trajectories</span></code> to cap trajectory generation
-and gain the batching benefit:</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-    <span class="n">bell</span><span class="p">,</span>
-    <span class="n">shots_count</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
-    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>   <span class="c1"># reuse each trajectory ~200 times on average</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">shots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100&#39;000</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">max_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">;</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
-</pre></div>
-</div>
-</div>
-</div>
-</section>
-<section id="choosing-a-trajectory-sampling-strategy">
-<h3>Choosing a Trajectory Sampling Strategy<a class="headerlink" href="#choosing-a-trajectory-sampling-strategy" title="Permalink to this heading">¶</a></h3>
-<p>Four strategies control which trajectories are selected from the noise space:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Strategy</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>Probabilistic</strong> <em>(default)</em></p></td>
-<td><p>Performs a statistically unbiased Monte Carlo sampling of trajectories
-producing a representative cross-section of the noise space.</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Ordered</strong></p></td>
-<td><p>Selects the top-<em>T</em> highest-probability trajectories. Useful when the
-noise space is dominated by a small number of likely error patterns.</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Exhaustive</strong></p></td>
-<td><p>Enumerates every possible trajectory. Use only when the noise space is
-small (few qubits and low-weight noise).</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Conditional</strong></p></td>
-<td><p>Keeps only trajectories that satisfy a user-supplied predicate. Useful
-for targeted studies (e.g. only single-qubit error events). This produces
-a biased distribution.</p></td>
-</tr>
-</tbody>
-</table>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.ptsbe</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">ProbabilisticSamplingStrategy</span><span class="p">,</span>
-                         <span class="n">OrderedSamplingStrategy</span><span class="p">,</span>
-                         <span class="n">ExhaustiveSamplingStrategy</span><span class="p">,</span>
-                         <span class="n">ConditionalSamplingStrategy</span><span class="p">)</span>
-
-<span class="c1"># Reproducible probabilistic sampling</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-    <span class="n">bell</span><span class="p">,</span>
-    <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">ProbabilisticSamplingStrategy</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">),</span>
-<span class="p">)</span>
-
-<span class="c1"># Top-100 trajectories by probability</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-    <span class="n">bell</span><span class="p">,</span>
-    <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">OrderedSamplingStrategy</span><span class="p">(),</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/OrderedSamplingStrategy.h&quot;</span>
-
-<span class="c1">// Reproducible probabilistic sampling</span>
-<span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ProbabilisticSamplingStrategy</span><span class="o">&gt;</span><span class="p">(</span><span class="cm">/*seed=*/</span><span class="mi">42</span><span class="p">);</span>
-
-<span class="c1">// Top-100 trajectories</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">max_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">OrderedSamplingStrategy</span><span class="o">&gt;</span><span class="p">();</span>
-</pre></div>
-</div>
-</div>
-</div>
-</section>
-<section id="shot-allocation-strategies">
-<h3>Shot Allocation Strategies<a class="headerlink" href="#shot-allocation-strategies" title="Permalink to this heading">¶</a></h3>
-<p>After trajectories are selected, shots are distributed across them:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Strategy</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>Proportional</strong> <em>(default)</em></p></td>
-<td><p>Each trajectory receives shots proportional to its sampling strategy weight.
-It uses multinomial sampling.</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Uniform</strong></p></td>
-<td><p>Equal shots per trajectory regardless of weight.</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Low-weight bias</strong></p></td>
-<td><p>Biases more shots toward trajectories with fewer errors (lower Kraus
-weight). Useful when low-error events dominate the observable of
-interest.</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>High-weight bias</strong></p></td>
-<td><p>Biases more shots toward high-error trajectories. Useful for studying
-rare error events.</p></td>
-</tr>
-</tbody>
-</table>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.ptsbe</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShotAllocationStrategy</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-    <span class="n">bell</span><span class="p">,</span>
-    <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">shot_allocation</span><span class="o">=</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
-        <span class="n">ShotAllocationStrategy</span><span class="o">.</span><span class="n">Type</span><span class="o">.</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
-        <span class="n">bias_strength</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="p">),</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/ShotAllocationStrategy.h&quot;</span>
-
-<span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">shot_allocation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
-<span class="w">    </span><span class="cm">/*bias=*/</span><span class="mf">2.0</span><span class="p">);</span>
-</pre></div>
-</div>
-</div>
-</div>
-</section>
-<section id="inspecting-execution-data">
-<h3>Inspecting Execution Data<a class="headerlink" href="#inspecting-execution-data" title="Permalink to this heading">¶</a></h3>
-<p>Set <code class="docutils literal notranslate"><span class="pre">return_execution_data=True</span></code> to attach the full execution trace —
-circuit instructions, sampled trajectories, and per-trajectory counts — to
-the result. This API is experimental and may be subject to change in future releases.</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
-    <span class="n">bell</span><span class="p">,</span>
-    <span class="n">shots_count</span><span class="o">=</span><span class="mi">1_000</span><span class="p">,</span>
-    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">return_execution_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">data</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">execution_data</span><span class="p">()</span>
-
-<span class="c1"># Circuit structure</span>
-<span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">instructions</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">inst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">inst</span><span class="o">.</span><span class="n">targets</span><span class="p">)</span>
-
-<span class="c1"># Trajectory details</span>
-<span class="k">for</span> <span class="n">trajectory</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">trajectories</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;id=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">trajectory_id</span><span class="si">}</span><span class="s2">  p=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;  shots=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">  errors=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">count_errors</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">return_execution_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
-
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">has_execution_data</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="p">.</span><span class="n">execution_data</span><span class="p">();</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">trajectory</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">trajectories</span><span class="p">)</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;id=%zu  p=%.4f  shots=%zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
-<span class="w">           </span><span class="n">trajectory</span><span class="p">.</span><span class="n">trajectory_id</span><span class="p">,</span><span class="w"> </span><span class="n">trajectory</span><span class="p">.</span><span class="n">probability</span><span class="p">,</span><span class="w"> </span><span class="n">trajectory</span><span class="p">.</span><span class="n">num_shots</span><span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="trajectory-vs-shot-trade-offs">
-<h2>Trajectory vs Shot Trade-offs<a class="headerlink" href="#trajectory-vs-shot-trade-offs" title="Permalink to this heading">¶</a></h2>
-<p>The central tension in PTSBE is between <strong>trajectory count</strong> <em>T</em> and
-<strong>shots per trajectory</strong> <em>N/T</em>.</p>
-<p>Using more trajectories covers more of the noise space and reduces bias in the
-estimated distribution, but since each trajectory is simulated independently the
-simulation cost scales linearly with <em>T</em>. Beyond a certain point there are
-diminishing returns: once <em>T</em> approaches the total trajectory space size,
-additional trajectories yield little improvement.</p>
-<p>Fewer trajectories mean each one accumulates more shots, which reduces
-shot-noise variance per trajectory and lowers wall-clock time. The risk is
-bias: if <em>T</em> is too small, high-probability regions of the noise space may be
-under-sampled and distort the result.</p>
-<p class="rubric">Practical guidance</p>
-<p>As a rule of thumb, <code class="docutils literal notranslate"><span class="pre">max_trajectories</span></code> between 100 and 10 000 covers the
-majority of practical use cases. Below 100, bias may dominate. Above 10 000,
-the simulation cost approaches that of a conventional density-matrix run.
-Useful to perform a warm-up run sweeping the number of trajectories to understand
-the convergence behavior.</p>
-</section>
-<section id="backend-requirements">
-<h2>Backend Requirements<a class="headerlink" href="#backend-requirements" title="Permalink to this heading">¶</a></h2>
-<p>PTSBE requires a backend that supports trajectory-based noisy simulation.
-The supported targets are those marked with <code class="docutils literal notranslate"><span class="pre">*</span></code> in the
-<a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html">simulator table</a>,
-plus <code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code> and <code class="docutils literal notranslate"><span class="pre">qpp-cpu</span></code>:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 35%" />
-<col style="width: 65%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Target</p></th>
-<th class="head"><p>Notes</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nvidia</span></code></p></td>
-<td><p>Single GPU, single/double precision. General purpose.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nvidia,</span> <span class="pre">option=mgpu</span></code></p></td>
-<td><p>Multi-GPU / multi-node. Suitable for large qubit counts (33+).</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nvidia,</span> <span class="pre">option=mqpu</span></code></p></td>
-<td><p>Multi-QPU asynchronous distribution across multiple GPUs.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tensornet</span></code></p></td>
-<td><p>Tensor network method. Exact simulation of shallow-depth circuits.
-Handles thousands of qubits.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tensornet-mps</span></code></p></td>
-<td><p>Matrix product state (approximate). Efficient for square-shaped circuits.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">remote-mqpu</span></code></p></td>
-<td><p>Combines <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> with other backends for distributed execution.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code></p></td>
-<td><p>CPU density matrix simulator. Recommended for small noisy circuits
-(&lt; 14 qubits) and development/testing.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">qpp-cpu</span></code></p></td>
-<td><p>CPU state vector simulator. Lightweight option for small circuits
-(&lt; 28 qubits).</p></td>
-</tr>
-</tbody>
-</table>
-<p>Set the target:</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Single GPU (most common for production)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="c1"># CPU density matrix (development / small circuits)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
-
-<span class="c1"># Multi-GPU for large circuits</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mgpu&quot;</span><span class="p">)</span>
-
-<span class="c1"># Tensor network for wide shallow circuits</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Set via CMake target or the --target flag at runtime.</span>
-<span class="c1">// See backend documentation for available options.</span>
-</pre></div>
-</div>
-</div>
-</div>
-<p>See <a class="reference internal" href="backends/backends.html"><span class="doc">CUDA-Q Backends</span></a> for full details on each target including precision and
-qubit count limits.</p>
-</section>
-<section id="references">
-<h2>References<a class="headerlink" href="#references" title="Permalink to this heading">¶</a></h2>
-<div role="list" class="citation-list">
-<div class="citation" id="carmichael2007" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">Carmichael2007</a><span class="fn-bracket">]</span></span>
-<p>Carmichael, H. J. <em>Quantum jumps revisited: An overview of quantum trajectory theory.</em> Quantum Future From Volta and
-Como to the Present and Beyond: Proceedings of the Xth Max Born Symposium Held in Przesieka, Poland, 24–27 September 1997. Berlin,
-Heidelberg: Springer Berlin Heidelberg, 2007.
-<a class="reference external" href="https://link.springer.com/chapter/10.1007/bfb0105336">https://link.springer.com/chapter/10.1007/bfb0105336</a></p>
-</div>
-<div class="citation" id="patti2025" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>Patti2025<span class="fn-bracket">]</span></span>
-<span class="backrefs">(<a role="doc-backlink" href="#id1">1</a>,<a role="doc-backlink" href="#id3">2</a>,<a role="doc-backlink" href="#id4">3</a>,<a role="doc-backlink" href="#id5">4</a>)</span>
-<p>Taylor L. Patti, Thien Nguyen, Justin G. Lietz,
-Alexander J. McCaskey, Brucek Khailany,
-<em>Augmenting Simulated Noisy Quantum Data Collection by Orders of Magnitude Using Pre-Trajectory Sampling with Batched Execution.</em>
-Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis. 2025.
-<a class="reference external" href="https://dl.acm.org/doi/full/10.1145/3712285.3759871">https://dl.acm.org/doi/full/10.1145/3712285.3759871</a></p>
-</div>
-</div>
-</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="user_guide.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../versions.html" class="btn btn-neutral float-right" title="CUDA-Q Versions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../examples/python/noisy_simulations.html" class="btn btn-neutral float-left" title="Noisy Simulation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ptsbe_user_guide.html" class="btn btn-neutral float-right" title="Noisy Simulation with PTSBE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
