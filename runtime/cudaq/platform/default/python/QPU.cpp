@@ -171,7 +171,10 @@ static std::optional<cudaq::JitEngine> alreadyBuiltJITCode() {
   if (!currentExecCtx || !currentExecCtx->allowJitEngineCaching)
     return std::nullopt;
   if (currentExecCtx->jitEng)
-    CUDAQ_INFO("Using cached JIT engine for " + currentExecCtx->kernelName);
+    CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
+               "re-run the previous job, discarding any changes to the kernel, "
+               "arguments or launch configuration.",
+               currentExecCtx->kernelName);
   return currentExecCtx->jitEng;
 }
 
