@@ -24,7 +24,7 @@ void clearQirOutputLog();
 
 namespace {
 class PersistentCache {};
-}
+} // namespace
 
 namespace cudaq {
 

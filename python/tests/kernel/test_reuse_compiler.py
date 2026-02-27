@@ -25,15 +25,15 @@ def test_reuse():
             x.ctrl(qubit, qubits[i + 1])
 
     res = cudaq.sample(simple, 2, shots_count=1)
-    assert(res.count("11") == 1)
+    assert (res.count("11") == 1)
     res = cudaq.sample(simple, 3, shots_count=1)
-    assert(res.count("111") == 1)
+    assert (res.count("111") == 1)
     with cudaq.cudaq_runtime.reuse_compiler_artifacts():
         res = cudaq.sample(simple, 4, shots_count=1)
-        assert(res.count("1111") == 1)
+        assert (res.count("1111") == 1)
         # Abuse the foot gun to make sure the cached kernel is rerun
         # (and therefore the number of qubits is the same)
         res = cudaq.sample(simple, 5, shots_count=1)
-        assert(res.count("1111") == 1)
+        assert (res.count("1111") == 1)
     res = cudaq.sample(simple, 6, shots_count=1)
-    assert(res.count("111111") == 1)
+    assert (res.count("111111") == 1)
