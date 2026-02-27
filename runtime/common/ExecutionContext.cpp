@@ -11,7 +11,7 @@
 namespace {
 /// @brief Thread-local storage for the current execution context.
 thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
-thread_local bool persist_JITEngine = false;
+thread_local bool persistJITEngine = false;
 thread_local std::optional<cudaq::JitEngine> jitEng = std::nullopt;
 } // namespace
 
@@ -46,12 +46,12 @@ std::size_t getCurrentQpuId() {
 void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
 
-  if (currentExecutionContext && persist_JITEngine && jitEng.has_value())
+  if (currentExecutionContext && persistJITEngine && jitEng.has_value())
     currentExecutionContext->jitEng = jitEng.value();
 }
 
 void detail::resetExecutionContext() {
-  if (currentExecutionContext && persist_JITEngine &&
+  if (currentExecutionContext && persistJITEngine &&
       currentExecutionContext->jitEng.has_value())
     jitEng = currentExecutionContext->jitEng.value();
 
@@ -60,10 +60,10 @@ void detail::resetExecutionContext() {
 
 /// This will cause the JITEngine stored in the current execution context to be
 /// used for future launches until disabled by `disablePersistentJITEngine`
-void detail::enablePersistentJITEngine() { persist_JITEngine = true; }
+void detail::enablePersistentJITEngine() { persistJITEngine = true; }
 
 void detail::disablePersistentJITEngine() {
-  persist_JITEngine = false;
+  persistJITEngine = false;
   jitEng.reset();
 }
 
