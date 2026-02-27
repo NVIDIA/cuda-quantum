@@ -365,6 +365,45 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
 // EXECUTION DATA INTEGRATION TESTS
 // ============================================================================
 
+CUDAQ_TEST(PTSBESampleTest, ExecutionDataWarningEmittedOnceOnlyWhenAccessed) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+
+  sample_options noDataOptions;
+  noDataOptions.shots = 1;
+  noDataOptions.noise = noise;
+
+  testing::internal::CaptureStdout();
+  auto noDataResult = sample(noDataOptions, bellKernel);
+  EXPECT_FALSE(noDataResult.has_execution_data());
+  auto noWarning = testing::internal::GetCapturedStdout();
+  constexpr std::string_view warningToken = "PTSBE execution data API is "
+                                            "experimental";
+  EXPECT_EQ(noWarning.find(warningToken), std::string::npos);
+
+  sample_options withDataOptions;
+  withDataOptions.shots = 1;
+  withDataOptions.noise = noise;
+  withDataOptions.ptsbe.return_execution_data = true;
+
+  testing::internal::CaptureStdout();
+  auto withDataResult1 = sample(withDataOptions, bellKernel);
+  ASSERT_TRUE(withDataResult1.has_execution_data());
+  EXPECT_NO_THROW((void)withDataResult1.execution_data());
+  EXPECT_NO_THROW((void)withDataResult1.execution_data());
+
+  auto withDataResult2 = sample(withDataOptions, bellKernel);
+  ASSERT_TRUE(withDataResult2.has_execution_data());
+  EXPECT_NO_THROW((void)withDataResult2.execution_data());
+  auto warningOutput = testing::internal::GetCapturedStdout();
+
+  const auto first = warningOutput.find(warningToken);
+  ASSERT_NE(first, std::string::npos) << "Expected warning was not emitted.";
+  const auto second =
+      warningOutput.find(warningToken, first + warningToken.size());
+  EXPECT_EQ(second, std::string::npos) << "Warning emitted more than once.";
+}
+
 CUDAQ_TEST(PTSBESampleTest, SampleWithExecutionDataPopulatesData) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
