@@ -8,12 +8,11 @@
 
 import pytest
 import numpy as np
-from typing import Callable, List
 
 import os
 
 
-def test_simple_sampling_ghz(capfd, monkeypatch):
+def test_reuse(capfd, monkeypatch):
     """Test that we can build a very simple kernel and sample it."""
 
     os.environ['CUDAQ_LOG_LEVEL'] = 'info'
@@ -40,3 +39,6 @@ def test_simple_sampling_ghz(capfd, monkeypatch):
         cudaq.sample(simple, num_qubits, shots_count=1)
         captured = capfd.readouterr()
         assert "Using cached JIT engine" in captured.out
+    cudaq.sample(simple, num_qubits, shots_count=1)
+    captured = capfd.readouterr()
+    assert "Using cached JIT engine" not in captured.out
