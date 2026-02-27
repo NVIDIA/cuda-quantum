@@ -1032,11 +1032,7 @@ pr-4054
             -   [Setting
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -3253,11 +3249,14 @@ C++
     // ./teleport.x
     // ```
 
+    #include <array>
     #include <cudaq.h>
     #include <iostream>
 
     struct teleportation {
       auto operator()() __qpu__ {
+        std::vector<bool> results(3);
+
         // Initialize a three qubit quantum circuit
         cudaq::qvector qubits(3);
 
@@ -3273,26 +3272,44 @@ C++
         cx(qubits[0], qubits[1]);
         h(qubits[0]);
 
-        if (mz(qubits[0])) {
+        results[0] = mz(qubits[0]);
+        results[1] = mz(qubits[1]);
+
+        if (results[0]) {
           z(qubits[2]);
         }
 
-        if (mz(qubits[1])) {
+        if (results[1]) {
           x(qubits[2]);
         }
 
-        /// NOTE: If the return statement is changed to `mz(qubits)`, the program
-        /// fails. Ref: https://github.com/NVIDIA/cuda-quantum/issues/3708
-        return mz(qubits[2]);
+        results[2] = mz(qubits[2]);
+        return results;
       }
     };
 
     int main() {
-      auto results = cudaq::run(20, teleportation{});
-      std::cout << "Measurement results of the teleported qubit:\n[ ";
-      for (auto r : results)
-        std::cout << r << " ";
-      std::cout << "]\n";
+      // Note: Increase the number of shots to get closer to expected probabilities.
+      constexpr std::size_t num_shots = 25;
+      auto results = cudaq::run(num_shots, teleportation{});
+
+      std::array<std::size_t, 3> ones{};
+      for (const auto &shot : results)
+        for (std::size_t q = 0; q < 3; ++q)
+          ones[q] += static_cast<std::size_t>(shot[q]);
+
+      auto freq = [&](std::size_t q) {
+        return static_cast<double>(ones[q]) / num_shots;
+      };
+
+      // `mz[0]` and `mz[1]` are Bell measurement outcomes, so each is ~50%.
+      // Probability of measuring`mz[2]` in 1 is determined by the prepared state,
+      // which is ~4.6% for the angles above.
+      std::cout << "Results over " << num_shots << " shots:\n";
+      for (std::size_t q = 0; q < 3; ++q)
+        std::cout << "  mz[" << q << "] = 1:  " << ones[q] << " / " << num_shots
+                  << "  (" << 100.0 * freq(q) << "%)\n";
+
       return 0;
     }
 :::

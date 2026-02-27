@@ -1021,11 +1021,7 @@ pr-4054
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1786,7 +1782,7 @@ mutual polarization.
 
 <div>
 
-![d8c3d467f71a406cb94461ff8f228d53](../../_images/qm-mm-pe.png){.no-scaled-link
+![67fbd3d8012f4bccbc9dcb6d6943f606](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>
