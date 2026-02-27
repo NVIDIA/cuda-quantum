@@ -34,7 +34,7 @@ struct HololinkTransceiverImpl {
 //==============================================================================
 
 hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port,
+hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
                             size_t frame_size, size_t page_size,
                             unsigned num_pages, const char *peer_ip,
                             int forward, int rx_only, int tx_only) {
@@ -42,7 +42,7 @@ hololink_create_transceiver(const char *device_name, int ib_port,
     auto *impl = new HololinkTransceiverImpl();
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(
         device_name, static_cast<unsigned>(ib_port),
-        0 /* gpu_id */,
+        gpu_id,
         frame_size, page_size,
         num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0);
     return reinterpret_cast<hololink_transceiver_t>(impl);

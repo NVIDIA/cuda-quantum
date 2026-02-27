@@ -234,6 +234,15 @@ setup_port() {
 
     echo "  Configuring $iface: ip=$ip mtu=$mtu"
 
+    # Remove this IP from any other interface to prevent routing ambiguity
+    local other
+    for other in $(ip -o addr show to "${ip}/24" 2>/dev/null | awk '{print $2}' | sort -u); do
+        if [[ "$other" != "$iface" ]]; then
+            echo "    Removing stale ${ip}/24 from $other"
+            sudo ip addr del "${ip}/24" dev "$other" 2>/dev/null || true
+        fi
+    done
+
     sudo ip link set "$iface" up
     sudo ip link set "$iface" mtu "$mtu"
     sudo ip addr flush dev "$iface"

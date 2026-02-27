@@ -34,6 +34,7 @@ typedef void *hololink_transceiver_t;
  *
  * @param device_name IB device name (e.g., "rocep1s0f0")
  * @param ib_port IB port number
+ * @param gpu_id CUDA GPU device ID for DOCA GPUNetIO
  * @param frame_size Size of each frame (cu_frame_size)
  * @param page_size Size of each page/slot (cu_page_size)
  * @param num_pages Number of pages (ring buffer slots)
@@ -44,7 +45,7 @@ typedef void *hololink_transceiver_t;
  * @return Handle to transceiver, or NULL on failure
  */
 hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port,
+hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
                             size_t frame_size, size_t page_size,
                             unsigned num_pages, const char *peer_ip,
                             int forward, int rx_only, int tx_only);

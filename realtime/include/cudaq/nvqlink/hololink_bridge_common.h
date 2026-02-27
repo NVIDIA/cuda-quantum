@@ -211,6 +211,7 @@ inline int bridge_run(BridgeConfig &config) {
 
   hololink_transceiver_t transceiver = hololink_create_transceiver(
       config.device.c_str(), 1, // ib_port
+      config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
       "0.0.0.0", // deferred connection
       0,         // forward = false
