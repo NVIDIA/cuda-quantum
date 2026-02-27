@@ -981,6 +981,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
 </ul>
@@ -1073,6 +1074,7 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
  | <a href="#X"><strong>X</strong></a>
  | <a href="#Y"><strong>Y</strong></a>
  | <a href="#Z"><strong>Z</strong></a>
@@ -1195,9 +1197,11 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.beta2">beta2 (cudaq.optimizers.Adam property)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.beta_reduction">beta_reduction() (cudaq.PyKernelDecorator method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.beta_reduction">beta_reduction() (cudaq.PyKernelDecorator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationStrategy.bias_strength">bias_strength (cudaq.ptsbe.ShotAllocationStrategy property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.BitFlipChannel">BitFlipChannel (class in cudaq)</a>
 </li>
@@ -1247,10 +1251,6 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference">CentralDifference (class in cudaq.gradients)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.channel">channel (cudaq.operators.custom.cudaq.ptsbe.TraceInstruction attribute)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.circuit_location">circuit_location (cudaq.operators.custom.cudaq.ptsbe.KrausSelection attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.clear">clear() (cudaq.Resources method)</a>
 
       <ul>
@@ -1285,8 +1285,6 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.const">const() (cudaq.operators.ScalarOperator class method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.controls">controls (cudaq.operators.custom.cudaq.ptsbe.TraceInstruction attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.copy">copy() (cudaq.operators.boson.BosonOperator method)</a>
 
       <ul>
@@ -1313,9 +1311,7 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.count_controls">count_controls() (cudaq.Resources method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.count_errors">count_errors() (cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.count_instructions">count_instructions() (cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSBEExecutionData.count_instructions">count_instructions() (cudaq.ptsbe.PTSBEExecutionData method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.counts">counts() (cudaq.ObserveResult method)</a>
 </li>
@@ -1359,36 +1355,6 @@
         <li><a href="api/languages/python_api.html#module-cudaq.operators.custom">module</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ConditionalSamplingStrategy">cudaq.ptsbe.ConditionalSamplingStrategy (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ExhaustiveSamplingStrategy">cudaq.ptsbe.ExhaustiveSamplingStrategy (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausSelection">cudaq.ptsbe.KrausSelection (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory">cudaq.ptsbe.KrausTrajectory (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.OrderedSamplingStrategy">cudaq.ptsbe.OrderedSamplingStrategy (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy">cudaq.ptsbe.ProbabilisticSamplingStrategy (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData">cudaq.ptsbe.PTSBEExecutionData (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult">cudaq.ptsbe.PTSBESampleResult (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy">cudaq.ptsbe.PTSSamplingStrategy (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.sample">cudaq.ptsbe.sample() (in module cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.sample_async">cudaq.ptsbe.sample_async() (in module cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy">cudaq.ptsbe.ShotAllocationStrategy (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type">cudaq.ptsbe.ShotAllocationStrategy.Type (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction">cudaq.ptsbe.TraceInstruction (class in cudaq.operators.custom)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType">cudaq.ptsbe.TraceInstructionType (class in cudaq.operators.custom)</a>
-</li>
       <li>
     cudaq.spin
 
@@ -1722,21 +1688,25 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op9precisionE">cudaq::kraus_op::precision (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17KrausOperatorTypeE">cudaq::KrausOperatorType (C++ enum)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17KrausOperatorType8IDENTITYE">cudaq::KrausOperatorType::IDENTITY (C++ enumerator)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelectionE">cudaq::KrausSelection (C++ struct)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection16circuit_locationE">cudaq::KrausSelection::circuit_location (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection8is_errorE">cudaq::KrausSelection::is_error (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection20kraus_operator_indexE">cudaq::KrausSelection::kraus_operator_index (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection14KrausSelectionENSt6size_tENSt6vectorINSt6size_tEEENSt6stringENSt6size_tEb">cudaq::KrausSelection::KrausSelection (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection14KrausSelectionEv">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection7op_nameE">cudaq::KrausSelection::op_name (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14KrausSelectioneqERK14KrausSelection">cudaq::KrausSelection::operator== (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelection6qubitsE">cudaq::KrausSelection::qubits (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectoryE">cudaq::KrausTrajectory (C++ struct)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory7builderEv">cudaq::KrausTrajectory::builder (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq15KrausTrajectory11countErrorsEv">cudaq::KrausTrajectory::countErrors (C++ function)</a>
 </li>
@@ -1744,15 +1714,31 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory16kraus_selectionsE">cudaq::KrausTrajectory::kraus_selections (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory15KrausTrajectoryENSt6size_tENSt6vectorI14KrausSelectionEEdNSt6size_tE">cudaq::KrausTrajectory::KrausTrajectory (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory15KrausTrajectoryEv">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory18measurement_countsE">cudaq::KrausTrajectory::measurement_counts (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory12multiplicityE">cudaq::KrausTrajectory::multiplicity (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory9num_shotsE">cudaq::KrausTrajectory::num_shots (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq15KrausTrajectoryeqERK15KrausTrajectory">cudaq::KrausTrajectory::operator== (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory11probabilityE">cudaq::KrausTrajectory::probability (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory13trajectory_idE">cudaq::KrausTrajectory::trajectory_id (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15KrausTrajectory6weightE">cudaq::KrausTrajectory::weight (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22KrausTrajectoryBuilderE">cudaq::KrausTrajectoryBuilder (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq22KrausTrajectoryBuilder5buildEv">cudaq::KrausTrajectoryBuilder::build (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22KrausTrajectoryBuilder5setIdENSt6size_tE">cudaq::KrausTrajectoryBuilder::setId (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22KrausTrajectoryBuilder14setProbabilityEd">cudaq::KrausTrajectoryBuilder::setProbability (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22KrausTrajectoryBuilder13setSelectionsENSt6vectorI14KrausSelectionEE">cudaq::KrausTrajectoryBuilder::setSelections (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15matrix_callbackE">cudaq::matrix_callback (C++ class)</a>
 </li>
@@ -1930,8 +1916,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli26pauli2ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli2::pauli2 (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_dampingE">cudaq::phase_damping (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_damping14num_parametersE">cudaq::phase_damping::num_parameters (C++ member)</a>
@@ -1962,6 +1946,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratormmEi">cudaq::product_op::const_iterator::operator-- (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratormmEv">[1]</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratorptEv">cudaq::product_op::const_iterator::operator-&gt; (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10product_op14const_iteratoreqERK14const_iterator">cudaq::product_op::const_iterator::operator== (C++ function)</a>
@@ -2010,19 +1996,65 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_opD0Ev">cudaq::product_op::~product_op (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbeE">cudaq::ptsbe (C++ type)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategyE">cudaq::ptsbe::ConditionalSamplingStrategy (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe27ConditionalSamplingStrategy5cloneEv">cudaq::ptsbe::ConditionalSamplingStrategy::clone (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy27ConditionalSamplingStrategyE19TrajectoryPredicateNSt8uint64_tE">cudaq::ptsbe::ConditionalSamplingStrategy::ConditionalSamplingStrategy (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategy19TrajectoryPredicateE">cudaq::ptsbe::ConditionalSamplingStrategy::TrajectoryPredicate (C++ type)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe27ConditionalSamplingStrategy20generateTrajectoriesENSt4spanIK10NoisePointEENSt6size_tE">cudaq::ptsbe::ConditionalSamplingStrategy::generateTrajectories (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe27ConditionalSamplingStrategy4nameEv">cudaq::ptsbe::ConditionalSamplingStrategy::name (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategyD0Ev">cudaq::ptsbe::ConditionalSamplingStrategy::~ConditionalSamplingStrategy (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategyE">cudaq::ptsbe::ExhaustiveSamplingStrategy (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe26ExhaustiveSamplingStrategy5cloneEv">cudaq::ptsbe::ExhaustiveSamplingStrategy::clone (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategy26ExhaustiveSamplingStrategyEv">cudaq::ptsbe::ExhaustiveSamplingStrategy::ExhaustiveSamplingStrategy (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe26ExhaustiveSamplingStrategy20generateTrajectoriesENSt4spanIK10NoisePointEENSt6size_tE">cudaq::ptsbe::ExhaustiveSamplingStrategy::generateTrajectories (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe26ExhaustiveSamplingStrategy4nameEv">cudaq::ptsbe::ExhaustiveSamplingStrategy::name (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategyD0Ev">cudaq::ptsbe::ExhaustiveSamplingStrategy::~ExhaustiveSamplingStrategy (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe10NoisePointE">cudaq::ptsbe::NoisePoint (C++ struct)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe10NoisePoint7channelE">cudaq::ptsbe::NoisePoint::channel (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe10NoisePoint16circuit_locationE">cudaq::ptsbe::NoisePoint::circuit_location (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe10NoisePoint7op_nameE">cudaq::ptsbe::NoisePoint::op_name (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe10NoisePoint6qubitsE">cudaq::ptsbe::NoisePoint::qubits (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategyE">cudaq::ptsbe::OrderedSamplingStrategy (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe23OrderedSamplingStrategy5cloneEv">cudaq::ptsbe::OrderedSamplingStrategy::clone (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe23OrderedSamplingStrategy20generateTrajectoriesENSt4spanIK10NoisePointEENSt6size_tE">cudaq::ptsbe::OrderedSamplingStrategy::generateTrajectories (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe23OrderedSamplingStrategy4nameEv">cudaq::ptsbe::OrderedSamplingStrategy::name (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategy23OrderedSamplingStrategyEv">cudaq::ptsbe::OrderedSamplingStrategy::OrderedSamplingStrategy (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategyD0Ev">cudaq::ptsbe::OrderedSamplingStrategy::~OrderedSamplingStrategy (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE">cudaq::ptsbe::ProbabilisticSamplingStrategy (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategy29ProbabilisticSamplingStrategyENSt8uint64_tE">cudaq::ptsbe::ProbabilisticSamplingStrategy::ProbabilisticSamplingStrategy (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe29ProbabilisticSamplingStrategy5cloneEv">cudaq::ptsbe::ProbabilisticSamplingStrategy::clone (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe29ProbabilisticSamplingStrategy20generateTrajectoriesENSt4spanIK10NoisePointEENSt6size_tE">cudaq::ptsbe::ProbabilisticSamplingStrategy::generateTrajectories (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe29ProbabilisticSamplingStrategy4nameEv">cudaq::ptsbe::ProbabilisticSamplingStrategy::name (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategy29ProbabilisticSamplingStrategyENSt8optionalINSt8uint64_tEEENSt8optionalINSt6size_tEEE">cudaq::ptsbe::ProbabilisticSamplingStrategy::ProbabilisticSamplingStrategy (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyD0Ev">cudaq::ptsbe::ProbabilisticSamplingStrategy::~ProbabilisticSamplingStrategy (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe18PTSBEExecutionDataE">cudaq::ptsbe::PTSBEExecutionData (C++ struct)</a>
 </li>
@@ -2044,25 +2076,23 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe12PTSBEOptions8strategyE">cudaq::ptsbe::PTSBEOptions::strategy (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe10PTSBETraceE">cudaq::ptsbe::PTSBETrace (C++ type)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyE">cudaq::ptsbe::PTSSamplingStrategy (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy5cloneEv">cudaq::ptsbe::PTSSamplingStrategy::clone (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy20generateTrajectoriesENSt4spanIKN5cudaq15KrausTrajectoryEEENSt6size_tE">cudaq::ptsbe::PTSSamplingStrategy::generateTrajectories (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy20generateTrajectoriesENSt4spanIK10NoisePointEENSt6size_tE">cudaq::ptsbe::PTSSamplingStrategy::generateTrajectories (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe19PTSSamplingStrategy4nameEv">cudaq::ptsbe::PTSSamplingStrategy::name (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::ptsbe::sample (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe19PTSSamplingStrategyD0Ev">cudaq::ptsbe::PTSSamplingStrategy::~PTSSamplingStrategy (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncEN5cudaq19async_sample_resultERK14sample_optionsRR13QuantumKernelDpRR4ArgsNSt6size_tE">cudaq::ptsbe::sample_async (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::ptsbe::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq5ptsbe6sampleE13sample_resultRKN5cudaq11noise_modelENSt6size_tERR13QuantumKernelDpRR4Args">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncE19async_sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::ptsbe::sample_async (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq5ptsbe12sample_asyncE19async_sample_resultRKN5cudaq11noise_modelENSt6size_tERR13QuantumKernelDpRR4Args">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe14sample_optionsE">cudaq::ptsbe::sample_options (C++ struct)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe14sample_options5noiseE">cudaq::ptsbe::sample_options::noise (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe14sample_options5ptsbeE">cudaq::ptsbe::sample_options::ptsbe (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe14sample_options5shotsE">cudaq::ptsbe::sample_options::shots (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe13sample_resultE">cudaq::ptsbe::sample_result (C++ class)</a>
 </li>
@@ -2070,19 +2100,15 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5ptsbe13sample_result18has_execution_dataEv">cudaq::ptsbe::sample_result::has_execution_data (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe13sample_result13sample_resultERRN5cudaq13sample_resultE">cudaq::ptsbe::sample_result::sample_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe13sample_result13sample_resultERRN5cudaq13sample_resultE18PTSBEExecutionData">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe13sample_result18set_execution_dataE18PTSBEExecutionData">cudaq::ptsbe::sample_result::set_execution_data (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE">cudaq::ptsbe::ShotAllocationStrategy (C++ struct)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy13bias_strengthE">cudaq::ptsbe::ShotAllocationStrategy::bias_strength (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4seedE">cudaq::ptsbe::ShotAllocationStrategy::seed (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyE4TypedNSt8uint64_tE">cudaq::ptsbe::ShotAllocationStrategy::ShotAllocationStrategy (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyE4TypedNSt8optionalINSt8uint64_tEEE">cudaq::ptsbe::ShotAllocationStrategy::ShotAllocationStrategy (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE">cudaq::ptsbe::ShotAllocationStrategy::Type (C++ enum)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4typeE">cudaq::ptsbe::ShotAllocationStrategy::type (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type16HIGH_WEIGHT_BIASE">cudaq::ptsbe::ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS (C++ enumerator)</a>
 </li>
@@ -2104,6 +2130,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe16TraceInstruction7targetsE">cudaq::ptsbe::TraceInstruction::targets (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe16TraceInstruction16TraceInstructionE20TraceInstructionTypeNSt6stringENSt6vectorINSt6size_tEEENSt6vectorINSt6size_tEEENSt6vectorIdEENSt8optionalIN5cudaq13kraus_channelEEE">cudaq::ptsbe::TraceInstruction::TraceInstruction (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe16TraceInstruction16TraceInstructionEv">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe16TraceInstruction4typeE">cudaq::ptsbe::TraceInstruction::type (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe20TraceInstructionTypeE">cudaq::ptsbe::TraceInstructionType (C++ enum)</a>
@@ -2113,6 +2141,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe20TraceInstructionType11MeasurementE">cudaq::ptsbe::TraceInstructionType::Measurement (C++ enumerator)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe20TraceInstructionType5NoiseE">cudaq::ptsbe::TraceInstructionType::Noise (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe19TrajectoryPredicateE">cudaq::ptsbe::TrajectoryPredicate (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUE">cudaq::QPU (C++ class)</a>
 </li>
@@ -2768,7 +2798,7 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.EvolveResult">EvolveResult (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data">execution_data() (cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ExhaustiveSamplingStrategy">ExhaustiveSamplingStrategy (class in cudaq.ptsbe)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.expectation">expectation() (cudaq.ObserveResult method)</a>
 
@@ -2858,10 +2888,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.gamma">gamma (cudaq.optimizers.SPSA property)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Gate">Gate (cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType attribute)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories">generate_trajectories() (cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.AsyncEvolveResult.get">get() (cudaq.AsyncEvolveResult method)</a>
 
       <ul>
@@ -2894,14 +2920,14 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.get_raw_data">get_raw_data() (cudaq.operators.spin.SpinOperator method)</a>
 
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.get_raw_data">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.get_register_counts">get_register_counts() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.get_sequential_data">get_sequential_data() (cudaq.SampleResult method)</a>
@@ -2922,7 +2948,7 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.get_total_shots">get_total_shots() (cudaq.SampleResult method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.get_trajectory">get_trajectory() (cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSBEExecutionData.get_trajectory">get_trajectory() (cudaq.ptsbe.PTSBEExecutionData method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State.getTensor">getTensor() (cudaq.State method)</a>
 </li>
@@ -2940,13 +2966,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.handle_call_arguments">handle_call_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data">has_execution_data() (cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.has_target">has_target() (in module cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSBESampleResult.has_execution_data">has_execution_data() (cudaq.ptsbe.PTSBESampleResult method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.HIGH_WEIGHT_BIAS">HIGH_WEIGHT_BIAS (cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.has_target">has_target() (in module cudaq)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3000,10 +3024,10 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.initial_parameters">(cudaq.optimizers.SPSA property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.mpi.initialize">initialize() (in module cudaq.mpi)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.mpi.initialize">initialize() (in module cudaq.mpi)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.initialize_cudaq">initialize_cudaq() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.dynamics.helpers.InitialState">InitialState (in module cudaq.dynamics.helpers)</a>
@@ -3016,8 +3040,6 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.custom.instantiate">(in module cudaq.operators.custom)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.instructions">instructions (cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.EvolveResult.intermediate_states">intermediate_states() (cudaq.EvolveResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.IntermediateResultSave">IntermediateResultSave (class in cudaq)</a>
@@ -3027,8 +3049,6 @@
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.is_constant">is_constant() (cudaq.operators.ScalarOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.is_emulated">is_emulated() (cudaq.Target method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.is_error">is_error (cudaq.operators.custom.cudaq.ptsbe.KrausSelection attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.is_identity">is_identity() (cudaq.operators.boson.BosonOperatorTerm method)</a>
 
@@ -3062,15 +3082,15 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.kernel">kernel() (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.kraus_operator_index">kraus_operator_index (cudaq.operators.custom.cudaq.ptsbe.KrausSelection attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.KrausChannel">KrausChannel (class in cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.kraus_selections">kraus_selections (cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory attribute)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.KrausChannel">KrausChannel (class in cudaq)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator">KrausOperator (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausSelection">KrausSelection (class in cudaq.ptsbe)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausTrajectory">KrausTrajectory (class in cudaq.ptsbe)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3085,8 +3105,6 @@
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.left_multiply">left_multiply() (cudaq.SuperOperator static method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.left_right_multiply">left_right_multiply() (cudaq.SuperOperator static method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.LOW_WEIGHT_BIAS">LOW_WEIGHT_BIAS (cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.lower_bounds">lower_bounds (cudaq.optimizers.Adam property)</a>
 
@@ -3158,12 +3176,10 @@
       </ul></li>
       <li><a href="api/languages/cpp_api.html#_CPPv419mdiag_sparse_matrix">mdiag_sparse_matrix (C++ type)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Measurement">Measurement (cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_kernel">merge_kernel() (cudaq.PyKernelDecorator method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_kernel">merge_kernel() (cudaq.PyKernelDecorator method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_quake_source">merge_quake_source() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.min_degree">min_degree (cudaq.operators.boson.BosonOperator property)</a>
@@ -3211,7 +3227,7 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.most_probable">most_probable() (cudaq.SampleResult method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.multiplicity">multiplicity (cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausTrajectory.multiplicity">multiplicity (cudaq.ptsbe.KrausTrajectory property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3219,9 +3235,11 @@
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.name">name (cudaq.operators.custom.cudaq.ptsbe.TraceInstruction attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationType.name">name (cudaq.ptsbe.ShotAllocationType property)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.ptsbe.TraceInstructionType.name">(cudaq.ptsbe.TraceInstructionType property)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.PyKernel.name">(cudaq.PyKernel attribute)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.SimulationPrecision.name">(cudaq.SimulationPrecision property)</a>
@@ -3231,11 +3249,9 @@
         <li><a href="api/languages/python_api.html#cudaq.Target.name">(cudaq.Target property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.name">name() (cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSSamplingStrategy.name">name() (cudaq.ptsbe.PTSSamplingStrategy method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead">NelderMead (class in cudaq.optimizers)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Noise">Noise (cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel">NoiseModel (class in cudaq)</a>
 </li>
@@ -3252,8 +3268,6 @@
       <li><a href="api/languages/python_api.html#cudaq.mpi.num_ranks">num_ranks() (in module cudaq.mpi)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.num_rows">num_rows() (cudaq.ComplexMatrix method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.num_shots">num_shots (cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.boson.number">number() (in module cudaq.boson)</a>
 
@@ -3279,12 +3293,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult">ObserveResult (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.op_name">op_name (cudaq.operators.custom.cudaq.ptsbe.KrausSelection attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.OperatorSum">OperatorSum (in module cudaq.operators)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.ops_count">ops_count (cudaq.operators.boson.BosonOperatorTerm property)</a>
 
       <ul>
@@ -3295,7 +3305,11 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.ops_count">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.OptimizationResult">OptimizationResult (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.OrderedSamplingStrategy">OrderedSamplingStrategy (class in cudaq.ptsbe)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State.overlap">overlap() (cudaq.State method)</a>
 </li>
@@ -3329,18 +3343,16 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.ParameterShift">ParameterShift (class in cudaq.gradients)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.params">params (cudaq.operators.custom.cudaq.ptsbe.TraceInstruction attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.parity">parity() (in module cudaq.operators.custom)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.spin.Pauli">Pauli (class in cudaq.spin)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Pauli1">Pauli1 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Pauli2">Pauli2 (class in cudaq)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.PhaseDamping">PhaseDamping (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PhaseFlipChannel">PhaseFlipChannel (class in cudaq)</a>
@@ -3355,13 +3367,19 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.custom.position">(in module cudaq.operators.custom)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.probability">probability (cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ProbabilisticSamplingStrategy">ProbabilisticSamplingStrategy (class in cudaq.ptsbe)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ProductOperator">ProductOperator (in module cudaq.operators)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL">PROPORTIONAL (cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSBESampleResult.ptsbe_execution_data">ptsbe_execution_data (cudaq.ptsbe.PTSBESampleResult property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSBEExecutionData">PTSBEExecutionData (class in cudaq.ptsbe)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSBESampleResult">PTSBESampleResult (class in cudaq.ptsbe)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.PTSSamplingStrategy">PTSSamplingStrategy (class in cudaq.ptsbe)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel">PyKernel (class in cudaq)</a>
 </li>
@@ -3379,18 +3397,16 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue">QuakeValue (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.qubit">qubit (class in cudaq)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.qubit">qubit (class in cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.qubit_count">qubit_count (cudaq.operators.spin.SpinOperator property)</a>
 
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.qubit_count">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.qubits">qubits (cudaq.operators.custom.cudaq.ptsbe.KrausSelection attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.qvector">qvector (class in cudaq)</a>
 </li>
   </ul></td>
@@ -3434,9 +3450,15 @@
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.orca.sample">(in module cudaq.orca)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.ptsbe.sample">(in module cudaq.ptsbe)</a>
+</li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.sample_async">sample_async() (in module cudaq)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.ptsbe.sample_async">(in module cudaq.ptsbe)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator">ScalarOperator (class in cudaq.operators)</a>
@@ -3459,10 +3481,14 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD">SGD (class in cudaq.optimizers)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.signatureWithCallables">signatureWithCallables() (cudaq.PyKernelDecorator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationStrategy">ShotAllocationStrategy (class in cudaq.ptsbe)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationType">ShotAllocationType (class in cudaq.ptsbe)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.signatureWithCallables">signatureWithCallables() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.SimulationPrecision">SimulationPrecision (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.simulator">simulator (cudaq.Target property)</a>
@@ -3509,8 +3535,6 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorElement.target">(cudaq.operators.spin.SpinOperatorElement property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.targets">targets (cudaq.operators.custom.cudaq.ptsbe.TraceInstruction attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.Tensor">Tensor (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.term_count">term_count (cudaq.operators.boson.BosonOperator property)</a>
@@ -3625,9 +3649,9 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.to_string">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.trajectories">trajectories (cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.TraceInstruction">TraceInstruction (class in cudaq.ptsbe)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.trajectory_id">trajectory_id (cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.TraceInstructionType">TraceInstructionType (class in cudaq.ptsbe)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.translate">translate() (in module cudaq)</a>
 </li>
@@ -3641,7 +3665,7 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.trim">(cudaq.operators.spin.SpinOperator method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.type">type (cudaq.operators.custom.cudaq.ptsbe.TraceInstruction attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationStrategy.type">type (cudaq.ptsbe.ShotAllocationStrategy property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.type_to_str">type_to_str() (cudaq.PyKernelDecorator static method)</a>
 </li>
@@ -3651,8 +3675,6 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.UNIFORM">UNIFORM (cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type attribute)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.unregister_set_target_callback">unregister_set_target_callback() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.unset_noise">unset_noise() (in module cudaq)</a>
@@ -3684,6 +3706,14 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.vqe">vqe() (in module cudaq)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausTrajectory.weight">weight (cudaq.ptsbe.KrausTrajectory property)</a>
 </li>
   </ul></td>
 </tr></table>

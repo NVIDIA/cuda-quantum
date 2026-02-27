@@ -1709,6 +1709,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1877,7 +1880,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![85c2b38c85e540c698d26916818554d2](../../_images/adapt-vqe.png){.no-scaled-link
+![1444d1535dc742169d793553bd55f382](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>

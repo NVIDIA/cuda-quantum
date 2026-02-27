@@ -1710,6 +1710,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1958,7 +1961,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![fbcc4bfbbe774b2f83fcc4802dd53cd0](../../_images/oracle.png){.no-scaled-link
+![d49fd0060dd04e2b99f34b7c4d3272c6](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2064,7 +2067,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![12127730a87d41a580067732b9ed5677](../../_images/deutsch.png){.no-scaled-link
+![8b8e3dc91e8043bb9df5afb5fec0b108](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

@@ -1714,6 +1714,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1868,7 +1871,7 @@ mutual polarization.
 
 <div>
 
-![55adc27319b84c3187a4581a7bf3864a](../../_images/qm-mm-pe.png){.no-scaled-link
+![f43b25b2cde94dad96857994cf1dd232](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>

@@ -1716,6 +1716,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -2364,7 +2367,7 @@ and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
 
-![1280cf7f160c4b068ff694400fcdc4b6](../../_images/speedup.png){.no-scaled-link
+![2c6eee0db9cb4fa08b8cb32c5521efb9](../../_images/speedup.png){.no-scaled-link
 style="width: 600px;"}
 
 ::: {.nbinput .docutils .container}

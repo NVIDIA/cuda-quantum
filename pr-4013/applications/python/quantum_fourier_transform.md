@@ -1717,6 +1717,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -2208,7 +2211,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 71a503af2f6e8b334026d6794140fb967583f76b)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 9486f2e6e3586f5f957e580a670cd06089284cf9)
 :::
 :::
 :::

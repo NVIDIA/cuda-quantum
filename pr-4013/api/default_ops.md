@@ -1747,6 +1747,9 @@ pr-4013
             -   [Execution
                 Data](languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](#){.current .reference .internal}
         -   [Unitary Operations on
             Qubits](#unitary-operations-on-qubits){.reference .internal}

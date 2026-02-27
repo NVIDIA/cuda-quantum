@@ -1716,6 +1716,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1910,7 +1913,7 @@ each pixel with its position
 
 <div>
 
-![1c05df43289c4d82ab6ea124bda3771c](../../_images/pixels-img.png){.no-scaled-link
+![ed787513a82a4d0b87c1c818ec47146a](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

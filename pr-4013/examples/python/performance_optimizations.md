@@ -1750,6 +1750,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1886,14 +1889,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![00f1020ac7b0459d93723d7f34f423ff](../../_images/gate-fuse.png)
+![23070526b17d40fc8317e43edead376a](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![0c9b433c897a43018f253e0c7b0d9e39](../../_images/gatefusion.png)
+![985898bcbdb24e6390e94327fab7f314](../../_images/gatefusion.png)
 :::
 :::
 :::

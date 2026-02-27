@@ -986,6 +986,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
 </ul>
@@ -1062,9 +1063,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="00f1020ac7b0459d93723d7f34f423ff" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="23070526b17d40fc8317e43edead376a" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="0c9b433c897a43018f253e0c7b0d9e39" src="../../_images/gatefusion.png" /></p>
+<p><img alt="985898bcbdb24e6390e94327fab7f314" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

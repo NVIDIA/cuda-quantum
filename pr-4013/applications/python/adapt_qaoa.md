@@ -1717,6 +1717,9 @@ pr-4013
             -   [Execution
                 Data](../../api/languages/python_api.html#execution-data){.reference
                 .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1909,7 +1912,7 @@ explained above.
 
 <div>
 
-![28fcb52ba31240548f74fc7056bd5763](../../_images/adapt-qaoa.png){.no-scaled-link
+![4a1329a4b7aa4174ab8eff894da9feeb](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

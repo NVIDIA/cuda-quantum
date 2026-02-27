@@ -984,6 +984,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#shot-allocation-strategy">Shot Allocation Strategy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
 </ul>
@@ -2450,7 +2451,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4192679091</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">862704647</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>
@@ -7534,102 +7535,87 @@ Execution (PTSBE). For a conceptual overview and usage tutorial see
 <section id="sampling-functions">
 <h3>Sampling Functions<a class="headerlink" href="#sampling-functions" title="Permalink to this heading">¶</a></h3>
 <dl class="py function">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.sample">
-<span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_allocation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_execution_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.sample" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sample a quantum kernel using Pre-Trajectory Sampling with Batch Execution.</p>
-<p>Pre-samples <em>T</em> unique noise trajectories from the circuit’s noise model
-and batches circuit executions by unique trajectory. Each trajectory is
-simulated as a pure-state circuit; results are merged into a single
-<a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a>.</p>
-<p>When any argument is a list (broadcast mode), the kernel is executed for
-each element of the list and a list of results is returned.</p>
+<dt class="sig sig-object py" id="cudaq.ptsbe.sample">
+<span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_allocation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_execution_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ptsbe.sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample using Pre-Trajectory Sampling with Batch Execution (<code class="code docutils literal notranslate"><span class="pre">PTSBE</span></code>).</p>
+<p>Pre-samples noise realizations (trajectories) and batches circuit
+executions by unique noise configuration, enabling efficient noisy
+sampling of many shots.</p>
+<p>When called with list arguments (broadcast mode), executes the kernel
+for each set of arguments and returns a list of results.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>kernel</strong> – The quantum kernel to execute. Must be a static circuit
-with no mid-circuit measurements or measurement-dependent conditional
-logic.</p></li>
-<li><p><strong>args</strong> – Positional arguments forwarded to the kernel.</p></li>
-<li><p><strong>shots_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Total number of measurement shots to distribute
-across all trajectories. Default: <code class="docutils literal notranslate"><span class="pre">1000</span></code>.</p></li>
-<li><p><strong>noise_model</strong> (<a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.NoiseModel</span></code></a> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Noise model describing gate-level error channels.
-Noise can also be injected inside the kernel via
-<code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code>; both can be combined. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>
-(no noise).</p></li>
-<li><p><strong>max_trajectories</strong> (int or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Maximum number of unique trajectories to
-generate. <code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>. Setting an explicit
-limit (e.g. 500) enables trajectory reuse and is strongly recommended
-for large shot counts.</p></li>
-<li><p><strong>sampling_strategy</strong> (<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy" title="cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">PTSSamplingStrategy</span></code></a> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Strategy used to select trajectories from the
-noise space. <code class="docutils literal notranslate"><span class="pre">None</span></code> uses the default
-<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy" title="cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProbabilisticSamplingStrategy</span></code></a>.</p></li>
-<li><p><strong>shot_allocation</strong> (<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy" title="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">ShotAllocationStrategy</span></code></a> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Strategy used to distribute shots across the
-selected trajectories. <code class="docutils literal notranslate"><span class="pre">None</span></code> uses
-<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL" title="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PROPORTIONAL</span></code></a>.</p></li>
-<li><p><strong>return_execution_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – When <code class="docutils literal notranslate"><span class="pre">True</span></code>, attaches the full
-execution trace (circuit instructions, trajectory specifications, and
-per-trajectory measurement counts) to the returned result. Default:
-<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>kernel</strong> – The quantum kernel to execute.</p></li>
+<li><p><strong>shots_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of measurement shots. Defaults to 1000.</p></li>
+<li><p><strong>noise_model</strong> – Optional noise model for gate-based noise. Noise can also
+be specified inside the kernel via <code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code>; both
+can be used together.</p></li>
+<li><p><strong>max_trajectories</strong> (int or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Maximum unique trajectories to
+generate. <code class="docutils literal notranslate"><span class="pre">None</span></code> means use the number of shots. Note for large
+shot counts setting a maximum is recommended to get the benefits
+of PTS.</p></li>
+<li><p><strong>sampling_strategy</strong> (<code class="docutils literal notranslate"><span class="pre">PTSSamplingStrategy</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Strategy for
+trajectory generation. <code class="docutils literal notranslate"><span class="pre">None</span></code> uses the default probabilistic
+sampling strategy.</p></li>
+<li><p><strong>shot_allocation</strong> (<code class="docutils literal notranslate"><span class="pre">ShotAllocationStrategy</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Strategy for
+allocating shots across trajectories. <code class="docutils literal notranslate"><span class="pre">None</span></code> uses the default
+proportional (weight-based) allocation.</p></li>
+<li><p><strong>return_execution_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Include circuit structure, trajectory
+specifications, and per-trajectory measurement outcomes in the
+returned result. Defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Aggregated measurement outcomes. In broadcast mode, a list of
-results is returned.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult" title="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.ptsbe.PTSBESampleResult</span></code></a></p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – If the kernel contains mid-circuit measurements,
-conditional feedback, unsupported noise channels, or invalid arguments.</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Measurement results. Returns a list of results</dt><dd><p>in broadcast mode.</p>
 </dd>
 </dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">ptsbe</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">():</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-
-<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="mf">0.01</span><span class="p">))</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-                      <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span> <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-</div>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – If the kernel is invalid or arguments are invalid.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.sample_async">
-<span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">sample_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_allocation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_execution_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.sample_async" title="Permalink to this definition">¶</a></dt>
-<dd><p>Asynchronous variant of <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.sample" title="cudaq.operators.custom.cudaq.ptsbe.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample()</span></code></a>. Submits the job
-without blocking and returns a future.</p>
-<p>All parameters are identical to <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.sample" title="cudaq.operators.custom.cudaq.ptsbe.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample()</span></code></a>.</p>
+<dt class="sig sig-object py" id="cudaq.ptsbe.sample_async">
+<span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">sample_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_allocation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_execution_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ptsbe.sample_async" title="Permalink to this definition">¶</a></dt>
+<dd><p>Asynchronously sample using PTSBE. Returns a future whose result
+can be retrieved via <code class="docutils literal notranslate"><span class="pre">.get()</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A future whose <code class="docutils literal notranslate"><span class="pre">.get()</span></code> method returns the
-<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult" title="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">PTSBESampleResult</span></code></a>.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – The quantum kernel to execute.</p></li>
+<li><p><strong>shots_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of measurement shots. Defaults to 1000.</p></li>
+<li><p><strong>noise_model</strong> – Optional noise model for gate-based noise; noise can also
+be specified in the kernel via <code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code>.</p></li>
+<li><p><strong>max_trajectories</strong> (int or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Maximum unique trajectories.</p></li>
+<li><p><strong>sampling_strategy</strong> (<code class="docutils literal notranslate"><span class="pre">PTSSamplingStrategy</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Strategy for
+trajectory generation.</p></li>
+<li><p><strong>shot_allocation</strong> (<code class="docutils literal notranslate"><span class="pre">ShotAllocationStrategy</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Strategy for
+allocating shots across trajectories.</p></li>
+<li><p><strong>return_execution_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Include execution data in the result.</p></li>
+</ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#cudaq.AsyncSampleResult" title="cudaq.AsyncSampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Any exception raised during kernel execution is captured and
-re-raised when <code class="docutils literal notranslate"><span class="pre">.get()</span></code> is called on the returned future.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A future whose <code class="docutils literal notranslate"><span class="pre">.get()</span></code> returns the</dt><dd><p><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code>.</p>
 </dd>
 </dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">future</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="c1"># ... do other work ...</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</pre></div>
-</div>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – If the kernel is invalid or arguments are invalid.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -7637,27 +7623,24 @@ re-raised when <code class="docutils literal notranslate"><span class="pre">.get
 <section id="result-type">
 <h3>Result Type<a class="headerlink" href="#result-type" title="Permalink to this heading">¶</a></h3>
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">PTSBESampleResult</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extends <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SampleResult</span></code></a> with an optional
-<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData" title="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData"><code class="xref py py-class docutils literal notranslate"><span class="pre">PTSBEExecutionData</span></code></a> payload produced when
-<code class="docutils literal notranslate"><span class="pre">return_execution_data=True</span></code>.</p>
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSBESampleResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">PTSBESampleResult</span></span><a class="headerlink" href="#cudaq.ptsbe.PTSBESampleResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>PTSBE sample result with optional execution data.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data">
-<span class="sig-name descname"><span class="pre">has_execution_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if execution data is attached to this result.</p>
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSBESampleResult.has_execution_data">
+<span class="sig-name descname"><span class="pre">has_execution_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ptsbe.PTSBESampleResult.has_execution_data" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">has_execution_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ptsbe.PTSBESampleResult" title="cudaq.ptsbe.PTSBESampleResult"><span class="pre">ptsbe.PTSBESampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Check if execution data is available.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data">
-<span class="sig-name descname"><span class="pre">execution_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData" title="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData"><span class="pre">PTSBEExecutionData</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the attached <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData" title="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData"><code class="xref py py-class docutils literal notranslate"><span class="pre">PTSBEExecutionData</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – If no execution data is available. Check
-<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data" title="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.has_execution_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">has_execution_data()</span></code></a> first.</p>
-</dd>
-</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSBESampleResult.ptsbe_execution_data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ptsbe_execution_data</span></span><a class="headerlink" href="#cudaq.ptsbe.PTSBESampleResult.ptsbe_execution_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>PTSBE execution data if return_execution_data was True, None otherwise.</p>
 </dd></dl>
 
 </dd></dl>
@@ -7667,104 +7650,38 @@ re-raised when <code class="docutils literal notranslate"><span class="pre">.get
 <section id="trajectory-sampling-strategies">
 <h3>Trajectory Sampling Strategies<a class="headerlink" href="#trajectory-sampling-strategies" title="Permalink to this heading">¶</a></h3>
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">PTSSamplingStrategy</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Abstract base class for trajectory sampling strategies. Subclass and
-implement <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories" title="cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_trajectories()</span></code></a> to define a custom strategy.</p>
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSSamplingStrategy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">PTSSamplingStrategy</span></span><a class="headerlink" href="#cudaq.ptsbe.PTSSamplingStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for trajectory sampling strategies.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories">
-<span class="sig-name descname"><span class="pre">generate_trajectories</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">noise_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_trajectories</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory" title="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory"><span class="pre">KrausTrajectory</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.generate_trajectories" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate up to <em>max_trajectories</em> unique trajectories from the given
-noise points.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>noise_points</strong> – Noise site information extracted from the circuit.</p></li>
-<li><p><strong>max_trajectories</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Upper bound on the number of trajectories.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>List of unique <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory" title="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausTrajectory</span></code></a> objects.</p>
-</dd>
-</dl>
-</dd></dl>
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSSamplingStrategy.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ptsbe.PTSSamplingStrategy.name" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ptsbe.PTSSamplingStrategy" title="cudaq.ptsbe.PTSSamplingStrategy"><span class="pre">ptsbe.PTSSamplingStrategy</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.name">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSSamplingStrategy.name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a human-readable name for this strategy.</p>
+<p>Get the name of this strategy.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ProbabilisticSamplingStrategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ProbabilisticSamplingStrategy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Randomly samples unique trajectories weighted by their occurrence
-probability. Produces a representative cross-section of the noise space.
-Duplicate trajectories are discarded.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Random seed for reproducibility. <code class="docutils literal notranslate"><span class="pre">0</span></code> uses the global
-CUDA-Q seed if set, otherwise a random device seed.</p>
-</dd>
-</dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">strategy</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">ProbabilisticSamplingStrategy</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-                      <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-                      <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
-</pre></div>
-</div>
+<dt class="sig sig-object py" id="cudaq.ptsbe.ProbabilisticSamplingStrategy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ProbabilisticSamplingStrategy</span></span><a class="headerlink" href="#cudaq.ptsbe.ProbabilisticSamplingStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample trajectories randomly based on their occurrence probabilities.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.OrderedSamplingStrategy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">OrderedSamplingStrategy</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.OrderedSamplingStrategy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Selects the top-<em>T</em> trajectories sorted by probability in descending
-order. Ensures the highest-probability noise realizations are always
-represented. Best when the noise space is dominated by a small number
-of likely error patterns.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-                      <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-                      <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                      <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">OrderedSamplingStrategy</span><span class="p">())</span>
-</pre></div>
-</div>
+<dt class="sig sig-object py" id="cudaq.ptsbe.OrderedSamplingStrategy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">OrderedSamplingStrategy</span></span><a class="headerlink" href="#cudaq.ptsbe.OrderedSamplingStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample trajectories sorted by probability in descending order.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ExhaustiveSamplingStrategy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ExhaustiveSamplingStrategy</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ExhaustiveSamplingStrategy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Enumerates every possible trajectory in lexicographic order. Produces a
-complete representation of the noise space. Only practical when the noise
-space is small (few noise sites and low Kraus operator count).</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ConditionalSamplingStrategy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ConditionalSamplingStrategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predicate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ConditionalSamplingStrategy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Samples trajectories that satisfy a user-supplied predicate function.
-Useful for targeted studies such as restricting to single-qubit error
-events or trajectories below a probability threshold.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>predicate</strong> – A callable <code class="docutils literal notranslate"><span class="pre">(KrausTrajectory)</span> <span class="pre">-&gt;</span> <span class="pre">bool</span></code> that returns
-<code class="docutils literal notranslate"><span class="pre">True</span></code> for trajectories to include.</p></li>
-<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Random seed. <code class="docutils literal notranslate"><span class="pre">0</span></code> uses the global CUDA-Q seed.</p></li>
-</ul>
-</dd>
-</dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Keep only trajectories with at most one error</span>
-<span class="n">strategy</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">ConditionalSamplingStrategy</span><span class="p">(</span>
-    <span class="n">predicate</span><span class="o">=</span><span class="k">lambda</span> <span class="n">traj</span><span class="p">:</span> <span class="n">traj</span><span class="o">.</span><span class="n">count_errors</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-                      <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-                      <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
-</pre></div>
-</div>
+<dt class="sig sig-object py" id="cudaq.ptsbe.ExhaustiveSamplingStrategy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ExhaustiveSamplingStrategy</span></span><a class="headerlink" href="#cudaq.ptsbe.ExhaustiveSamplingStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enumerate all possible trajectories in lexicographic order.</p>
 </dd></dl>
 
 </section>
@@ -7772,64 +7689,50 @@ events or trajectories below a probability threshold.</p>
 <section id="shot-allocation-strategy">
 <h3>Shot Allocation Strategy<a class="headerlink" href="#shot-allocation-strategy" title="Permalink to this heading">¶</a></h3>
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ShotAllocationStrategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ShotAllocationStrategy.Type.PROPORTIONAL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias_strength</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Controls how the total shot count is distributed across the selected
-trajectories after trajectory sampling.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>type</strong> (<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type" title="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>) – Allocation strategy type.</p></li>
-<li><p><strong>bias_strength</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Exponent used by the biased strategies.
-Higher values produce stronger bias. Default: <code class="docutils literal notranslate"><span class="pre">2.0</span></code>.</p></li>
-<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Random seed used by probabilistic allocation (PROPORTIONAL
-and biased strategies). <code class="docutils literal notranslate"><span class="pre">0</span></code> uses the global CUDA-Q seed.</p></li>
-</ul>
+<dt class="sig sig-object py" id="cudaq.ptsbe.ShotAllocationStrategy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ShotAllocationStrategy</span></span><a class="headerlink" href="#cudaq.ptsbe.ShotAllocationStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Strategy for allocating shots across selected trajectories.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.ShotAllocationStrategy.bias_strength">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bias_strength</span></span><a class="headerlink" href="#cudaq.ptsbe.ShotAllocationStrategy.bias_strength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bias factor for weighted strategies (default 2.0).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.ShotAllocationStrategy.type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">type</span></span><a class="headerlink" href="#cudaq.ptsbe.ShotAllocationStrategy.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The allocation strategy type.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.ptsbe.ShotAllocationType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">ShotAllocationType</span></span><a class="headerlink" href="#cudaq.ptsbe.ShotAllocationType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Strategy type for allocating shots across trajectories.</p>
+<p>Members:</p>
+<blockquote>
+<div><p>PROPORTIONAL : Shots proportional to trajectory weight.</p>
+<p>UNIFORM : Equal shots per trajectory.</p>
+<p>LOW_WEIGHT_BIAS : Bias toward low-weight error trajectories.</p>
+<p>HIGH_WEIGHT_BIAS : Bias toward high-weight error trajectories.</p>
+</div></blockquote>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.ShotAllocationType.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cudaq.ptsbe.ShotAllocationType.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>object) -&gt; str
+:noindex:</p>
+<dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">name(self</span></span></dt>
+<dd></dd></dl>
+
 </dd>
 </dl>
-<dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Type</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL">
-<span class="sig-name descname"><span class="pre">PROPORTIONAL</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>(default)</em> Shots are allocated via multinomial sampling weighted by
-trajectory probability. The total is always exactly <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-and every trajectory with non-zero probability receives a fair share.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.UNIFORM">
-<span class="sig-name descname"><span class="pre">UNIFORM</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.UNIFORM" title="Permalink to this definition">¶</a></dt>
-<dd><p>Equal shots per trajectory regardless of probability.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.LOW_WEIGHT_BIAS">
-<span class="sig-name descname"><span class="pre">LOW_WEIGHT_BIAS</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.LOW_WEIGHT_BIAS" title="Permalink to this definition">¶</a></dt>
-<dd><p>Biases more shots toward trajectories with fewer errors (lower Kraus
-weight). Weight formula:
-<code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">error_count)^(-bias_strength)</span> <span class="pre">*</span> <span class="pre">probability</span></code>.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.HIGH_WEIGHT_BIAS">
-<span class="sig-name descname"><span class="pre">HIGH_WEIGHT_BIAS</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.ShotAllocationStrategy.Type.HIGH_WEIGHT_BIAS" title="Permalink to this definition">¶</a></dt>
-<dd><p>Biases more shots toward trajectories with more errors. Weight
-formula: <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">error_count)^(+bias_strength)</span> <span class="pre">*</span> <span class="pre">probability</span></code>.</p>
-</dd></dl>
-
-</dd></dl>
-
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">alloc</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
-    <span class="n">ptsbe</span><span class="o">.</span><span class="n">ShotAllocationStrategy</span><span class="o">.</span><span class="n">Type</span><span class="o">.</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
-    <span class="n">bias_strength</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
-                      <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-                      <span class="n">shot_allocation</span><span class="o">=</span><span class="n">alloc</span><span class="p">)</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>
@@ -7837,188 +7740,93 @@ formula: <code class="docutils literal notranslate"><span class="pre">(1</span> 
 <section id="execution-data">
 <h3>Execution Data<a class="headerlink" href="#execution-data" title="Permalink to this heading">¶</a></h3>
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">PTSBEExecutionData</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData" title="Permalink to this definition">¶</a></dt>
-<dd><p>Container for the full PTSBE execution trace. Returned by
-<a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data" title="cudaq.operators.custom.cudaq.ptsbe.PTSBESampleResult.execution_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">execution_data()</span></code></a> when
-<code class="docutils literal notranslate"><span class="pre">return_execution_data=True</span></code>.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.instructions">
-<span class="sig-name descname"><span class="pre">instructions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction" title="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction"><span class="pre">TraceInstruction</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.instructions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ordered list of circuit operations: gates, noise channel locations, and
-terminal measurements.</p>
-</dd></dl>
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSBEExecutionData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">PTSBEExecutionData</span></span><a class="headerlink" href="#cudaq.ptsbe.PTSBEExecutionData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Container for PTSBE execution data including circuit structure, trajectory specifications, and per-trajectory measurement outcomes.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSBEExecutionData.count_instructions">
+<span class="sig-name descname"><span class="pre">count_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ptsbe.PTSBEExecutionData.count_instructions" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">count_instructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ptsbe.PTSBEExecutionData" title="cudaq.ptsbe.PTSBEExecutionData"><span class="pre">ptsbe.PTSBEExecutionData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ptsbe.TraceInstructionType" title="cudaq.ptsbe.TraceInstructionType"><span class="pre">ptsbe.TraceInstructionType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.trajectories">
-<span class="sig-name descname"><span class="pre">trajectories</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory" title="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory"><span class="pre">KrausTrajectory</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.trajectories" title="Permalink to this definition">¶</a></dt>
-<dd><p>The trajectories that were sampled and executed.</p>
+<p>Count instructions of a given type.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.count_instructions">
-<span class="sig-name descname"><span class="pre">count_instructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.count_instructions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Count instructions of the given <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType" title="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType"><code class="xref py py-class docutils literal notranslate"><span class="pre">TraceInstructionType</span></code></a>,
-optionally filtered by operation name.</p>
-</dd></dl>
+<dt class="sig sig-object py" id="cudaq.ptsbe.PTSBEExecutionData.get_trajectory">
+<span class="sig-name descname"><span class="pre">get_trajectory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ptsbe.PTSBEExecutionData.get_trajectory" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ptsbe.PTSBEExecutionData" title="cudaq.ptsbe.PTSBEExecutionData"><span class="pre">ptsbe.PTSBEExecutionData</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajectory_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.ptsbe.KrausTrajectory" title="cudaq.ptsbe.KrausTrajectory"><span class="pre">ptsbe.KrausTrajectory</span></a></span></span></dt>
+<dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.get_trajectory">
-<span class="sig-name descname"><span class="pre">get_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trajectory_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.PTSBEExecutionData.get_trajectory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Look up a trajectory by its ID. Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> if not found.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">TraceInstruction</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction" title="Permalink to this definition">¶</a></dt>
-<dd><p>A single operation in the PTSBE execution trace.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.type">
-<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType" title="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType"><span class="pre">TraceInstructionType</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.type" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this instruction is a <code class="docutils literal notranslate"><span class="pre">Gate</span></code>, <code class="docutils literal notranslate"><span class="pre">Noise</span></code>, or <code class="docutils literal notranslate"><span class="pre">Measurement</span></code>
-(see <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType" title="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType"><code class="xref py py-class docutils literal notranslate"><span class="pre">TraceInstructionType</span></code></a>).</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.name">
-<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Operation name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;h&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cx&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;depolarizing&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mz&quot;</span></code>).</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.targets">
-<span class="sig-name descname"><span class="pre">targets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.targets" title="Permalink to this definition">¶</a></dt>
-<dd><p>Target qubit indices.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.controls">
-<span class="sig-name descname"><span class="pre">controls</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.controls" title="Permalink to this definition">¶</a></dt>
-<dd><p>Control qubit indices. Empty for non-controlled operations.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.params">
-<span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gate rotation angles or noise channel parameters.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.channel">
-<span class="sig-name descname"><span class="pre">channel</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction.channel" title="Permalink to this definition">¶</a></dt>
-<dd><p>The noise channel (<code class="docutils literal notranslate"><span class="pre">cudaq.KrausChannel</span></code>), or <code class="docutils literal notranslate"><span class="pre">None</span></code>.
-Populated only for <code class="docutils literal notranslate"><span class="pre">Noise</span></code> instructions.</p>
+<p>Look up a trajectory by its ID. Returns None if not found.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">TraceInstructionType</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Discriminator enum for <a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstruction" title="cudaq.operators.custom.cudaq.ptsbe.TraceInstruction"><code class="xref py py-class docutils literal notranslate"><span class="pre">TraceInstruction</span></code></a> entries.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Gate">
-<span class="sig-name descname"><span class="pre">Gate</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Gate" title="Permalink to this definition">¶</a></dt>
-<dd><p>A unitary quantum gate (H, X, CNOT, RX, …).</p>
+<dt class="sig sig-object py" id="cudaq.ptsbe.TraceInstruction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">TraceInstruction</span></span><a class="headerlink" href="#cudaq.ptsbe.TraceInstruction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Single operation in the execution trace.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Noise">
-<span class="sig-name descname"><span class="pre">Noise</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Noise" title="Permalink to this definition">¶</a></dt>
-<dd><p>A noise channel injection point.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.ptsbe.TraceInstructionType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">TraceInstructionType</span></span><a class="headerlink" href="#cudaq.ptsbe.TraceInstructionType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Type discriminator for trace instructions.</p>
+<p>Members:</p>
+<blockquote>
+<div><p>Gate</p>
+<p>Noise</p>
+<p>Measurement</p>
+</div></blockquote>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.TraceInstructionType.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cudaq.ptsbe.TraceInstructionType.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>object) -&gt; str
+:noindex:</p>
+<dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">name(self</span></span></dt>
+<dd></dd></dl>
+
+</dd>
+</dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Measurement">
-<span class="sig-name descname"><span class="pre">Measurement</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.TraceInstructionType.Measurement" title="Permalink to this definition">¶</a></dt>
-<dd><p>A terminal measurement operation.</p>
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="trajectory-and-selection-types">
+<h3>Trajectory and Selection Types<a class="headerlink" href="#trajectory-and-selection-types" title="Permalink to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.ptsbe.KrausTrajectory">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">KrausTrajectory</span></span><a class="headerlink" href="#cudaq.ptsbe.KrausTrajectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Complete specification of one noise trajectory with outcomes.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.KrausTrajectory.multiplicity">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">multiplicity</span></span><a class="headerlink" href="#cudaq.ptsbe.KrausTrajectory.multiplicity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of times this trajectory was sampled.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.ptsbe.KrausTrajectory.weight">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">weight</span></span><a class="headerlink" href="#cudaq.ptsbe.KrausTrajectory.weight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allocation weight for shot distribution.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">KrausTrajectory</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory" title="Permalink to this definition">¶</a></dt>
-<dd><p>One complete assignment of Kraus operators across all noise sites in the
-circuit.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.trajectory_id">
-<span class="sig-name descname"><span class="pre">trajectory_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.trajectory_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>Unique identifier assigned during trajectory sampling.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.probability">
-<span class="sig-name descname"><span class="pre">probability</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.probability" title="Permalink to this definition">¶</a></dt>
-<dd><p>Product of the probabilities of the selected Kraus operators at each
-noise site.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.num_shots">
-<span class="sig-name descname"><span class="pre">num_shots</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.num_shots" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of measurement shots allocated to this trajectory.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.multiplicity">
-<span class="sig-name descname"><span class="pre">multiplicity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.multiplicity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of times this trajectory was drawn before deduplication.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.kraus_selections">
-<span class="sig-name descname"><span class="pre">kraus_selections</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection" title="cudaq.operators.custom.cudaq.ptsbe.KrausSelection"><span class="pre">KrausSelection</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.kraus_selections" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ordered list of Kraus operator choices, one per noise site.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.count_errors">
-<span class="sig-name descname"><span class="pre">count_errors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausTrajectory.count_errors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the number of non-identity Kraus operators in this trajectory
-(the <em>error weight</em>).</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausSelection">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">KrausSelection</span></span><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection" title="Permalink to this definition">¶</a></dt>
-<dd><p>The choice of a specific Kraus operator at one noise site.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausSelection.circuit_location">
-<span class="sig-name descname"><span class="pre">circuit_location</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.circuit_location" title="Permalink to this definition">¶</a></dt>
-<dd><p>Index of the noise site in the circuit’s instruction sequence.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausSelection.qubits">
-<span class="sig-name descname"><span class="pre">qubits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.qubits" title="Permalink to this definition">¶</a></dt>
-<dd><p>Qubits affected by this noise operation.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausSelection.op_name">
-<span class="sig-name descname"><span class="pre">op_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.op_name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Name of the gate after which this noise occurs (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;h&quot;</span></code>).</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausSelection.kraus_operator_index">
-<span class="sig-name descname"><span class="pre">kraus_operator_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.kraus_operator_index" title="Permalink to this definition">¶</a></dt>
-<dd><p>Index of the selected Kraus operator. <code class="docutils literal notranslate"><span class="pre">0</span></code> is the identity
-(no error); values ≥ 1 represent actual error operators.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.custom.cudaq.ptsbe.KrausSelection.is_error">
-<span class="sig-name descname"><span class="pre">is_error</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#cudaq.operators.custom.cudaq.ptsbe.KrausSelection.is_error" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the selected Kraus operator is not the identity
-(i.e. an actual error occurred at this noise site).</p>
-</dd></dl>
-
+<dt class="sig sig-object py" id="cudaq.ptsbe.KrausSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.ptsbe.</span></span><span class="sig-name descname"><span class="pre">KrausSelection</span></span><a class="headerlink" href="#cudaq.ptsbe.KrausSelection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reference to a single Kraus operator selection.</p>
 </dd></dl>
 
 </section>
