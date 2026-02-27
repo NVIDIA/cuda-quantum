@@ -284,6 +284,7 @@ macOS
 makefiles
 merchantability
 mps
+multinomial
 multithreaded
 mutex
 namespace
@@ -323,6 +324,7 @@ qumode
 qumodes
 reStructuredText
 reconfigurable
+reproducibility
 runtime
 runtimes
 rvalue
