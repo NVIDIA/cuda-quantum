@@ -207,6 +207,15 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -1349,7 +1358,7 @@ Generating Krylov state U^11...
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
 <p><strong>Note</strong>: Set <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> at the beginning of the notebook to enable GPU acceleration for postprocessing. The quantum circuit simulation uses the NVIDIA target in CUDA-Q regardless of this flag.</p>
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code>.</p>
-<p><img alt="80fca177ae9c4f5eac508c2081dbfcfe" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
+<p><img alt="41dc3c8b1def4a148348dbb57d4587bc" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>

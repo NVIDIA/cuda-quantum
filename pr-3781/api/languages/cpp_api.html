@@ -204,6 +204,15 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -5760,6 +5769,7 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultE">
 <span class="target" id="classcudaq_1_1sample__result"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> abstraction wraps a set of <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code>s for a single quantum kernel execution under the sampling or observation <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1ExecutionContext"><span class="std std-ref"><span class="pre">ExecutionContext</span></span></a></code>. Each <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> is mapped to a register name, with a default <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> with name <strong>global</strong> representing the observed measurement results holistically for the quantum kernel. </p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq-1-1ptsbe-1-1sample-result"><span class="std std-ref">cudaq::ptsbe::sample_result</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -5811,7 +5821,7 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultD0Ev">
-<span class="target" id="classcudaq_1_1sample__result_1adc32e8aaef0e8a7cd2a542c63c8c1ae6"></span><span class="sig-name descname"><span class="n"><span class="pre">~sample_result</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1sample__result_1ab8e94c8e90555e31fa0dc3230f51ec76"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~sample_result</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultD0Ev" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The destructor. </p>
 </dd></dl>
 
@@ -6132,6 +6142,7 @@
 </div>
 </dd></dl>
 
+<p id="classcudaq-1-1ptsbe-1-1sample-result"><strong>cudaq::`ptsbe`::sample_result</strong> — Result type returned by <code class="docutils literal notranslate"><span class="pre">ptsbe::sample()</span></code>, extending <code class="code docutils literal notranslate"><span class="pre">cudaq::sample_result</span></code> with optional execution data (trace and per-trajectory info). See <code class="docutils literal notranslate"><span class="pre">PTSBESampleResult.h</span></code> and <code class="docutils literal notranslate"><span class="pre">PTSBEExecutionData.h</span></code>.</p>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14sample_optionsE">
 <span class="target" id="structcudaq_1_1sample__options"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_options</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq14sample_optionsE" title="Permalink to this definition">¶</a><br /></dt>
@@ -6565,6 +6576,7 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq5TraceE">
 <span class="target" id="classcudaq_1_1Trace"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Trace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5TraceE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A trace is a circuit representation of the executed computation, as seen by the execution manager. (Here, a circuit is represented as a list of instructions on qudits). Since the execution manager cannot “see” control flow, the trace of a kernel with control flow represents a single execution path, and thus two calls to the same kernel might produce traces. </p>
+<p>Instructions are typed (Gate or Noise). Noise instructions represent apply_noise; the channel is resolved via noise_model::get_channel( noise_channel_key, <code class="docutils literal notranslate"><span class="pre">params</span></code>). </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -6810,6 +6822,12 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a156cfa2b8e3da14ec9b864db5cb685fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_identity_op</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Check whether the operator at the given index is an identity. Determined from the unitary matrix data during channel construction, recognizing both exact identity and global-phase-times-identity. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv">
 <span class="target" id="classcudaq_1_1kraus__channel_1a79d06d1d1a601d4f702d759b7612bbb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">populateDefaultOpNames</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Populate op_names with default names of the form type_name[index]. Called by constructors that do not set explicit op_names. </p>
@@ -6840,6 +6858,12 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel13probabilitiesE">
 <span class="target" id="classcudaq_1_1kraus__channel_1a9f9cfb565a7013493a72d67602442bca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel13probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>If all Kraus ops are - when scaled - unitary, this holds the probabilities of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel14identity_flagsE">
+<span class="target" id="classcudaq_1_1kraus__channel_1aa9c5cbb20fd0898112112277e28275aa"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">identity_flags</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel14identity_flagsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>For unitary mixture channels, flags indicating which operators are identity (or global-phase-times-identity). Populated during <a class="reference internal" href="#classcudaq_1_1kraus__channel_1a49b36a2b346c14e4cbd6bdabdc2b04fa"><span class="std std-ref">generateUnitaryParameters()</span></a>. Empty for non-unitary channels. </p>
 </dd></dl>
 
 <dl class="cpp var">
