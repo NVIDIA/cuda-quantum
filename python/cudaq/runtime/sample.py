@@ -26,6 +26,9 @@ class AsyncSampleResult:
         global cudaq_async_sample_cache_counter
         if isinstance(impl, str):
             impl = cudaq_runtime.AsyncSampleResultImpl(impl)
+        if not hasattr(impl, 'get'):
+            raise RuntimeError(
+                "Invalid arguments passed to AsyncSampleResult constructor.")
         self.impl = impl
         self.getCalled = False
         if mod is not None:
