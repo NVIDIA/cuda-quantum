@@ -34,8 +34,7 @@ from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    recover_value_of, globalRegisteredOperations,
-                    recover_calling_module)
+                    recover_value_of, globalRegisteredOperations)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1374,11 +1373,6 @@ class PyKernel(object):
         fn = recover_func_op(self.module, fulluniq)
 
         # build the closure to capture the lifted `args`
-        thisPyMod = recover_calling_module()
-        if target.defModule != thisPyMod:
-            m = target.defModule
-        else:
-            m = None
         funcTy = target.signature.get_lifted_type()
         callableTy = target.signature.get_callable_type()
         with insPt, self.loc:
@@ -1392,7 +1386,7 @@ class PyKernel(object):
                 for ba in initBlock.arguments:
                     vs.append(ba)
                 for var in target.captured_variables():
-                    v = recover_value_of(var.name, m)
+                    v = recover_value_of(var.name, target.defFrame)
                     if isa_kernel_decorator(v):
                         # The recursive step
                         v = self.resolve_callable_arg(inner, v)
