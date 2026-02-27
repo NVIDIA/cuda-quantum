@@ -193,6 +193,26 @@ pr-4054
             .internal}
     -   [Noisy Simulations](noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [1. Set up the
+            environment](ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1800,14 +1820,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![e3b4edbe8e9d40cabf2dff2861c475a4](../../_images/gate-fuse.png)
+![6e33c9e4b962470babf8a3ca78cb0c95](../../_images/gate-fuse1.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![e1f127aff2264be7a39db3883157e82e](../../_images/gatefusion.png)
+![7e35463f3c274c4b87c8534e5a4c5482](../../_images/gatefusion.png)
 :::
 :::
 :::

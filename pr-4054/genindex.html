@@ -201,6 +201,15 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -1598,6 +1607,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel7get_opsEv">cudaq::kraus_channel::get_ops (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel14identity_flagsE">cudaq::kraus_channel::identity_flags (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE">cudaq::kraus_channel::is_identity_op (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv">cudaq::kraus_channel::is_unitary_mixture (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq13kraus_channel13kraus_channelEDpRRNSt16initializer_listI1TEE">cudaq::kraus_channel::kraus_channel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERK13kraus_channel">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERKNSt6vectorI8kraus_opEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERRNSt6vectorI8kraus_opEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelEv">[4]</a>
@@ -1798,10 +1811,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
@@ -2710,10 +2723,6 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.handle_call_arguments">handle_call_arguments() (cudaq.PyKernelDecorator method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.has_target">has_target() (in module cudaq)</a>
 </li>
   </ul></td>
@@ -2862,10 +2871,6 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.lower_bounds">(cudaq.optimizers.SPSA property)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.lower_quake_to_codegen">lower_quake_to_codegen() (cudaq.PyKernelDecorator method)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -3075,10 +3080,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.parity">parity() (in module cudaq.operators.custom)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.spin.Pauli">Pauli (class in cudaq.spin)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Pauli1">Pauli1 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Pauli2">Pauli2 (class in cudaq)</a>
@@ -3097,7 +3102,11 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.custom.position">(in module cudaq.operators.custom)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.prepare_call">prepare_call() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.process_call_arguments">process_call_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ProductOperator">ProductOperator (in module cudaq.operators)</a>
 </li>
@@ -3144,6 +3153,8 @@
       <li><a href="api/languages/python_api.html#cudaq.register_set_target_callback">register_set_target_callback() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.reset_target">reset_target() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.resolve_captured_arguments">resolve_captured_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
