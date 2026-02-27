@@ -7,15 +7,15 @@
 # ============================================================================ #
 
 # [Begin PTSBE_Execution_Data]
-from cudaq
+import cudaq
 from utils import bell, noise
 
 result = cudaq.ptsbe.sample(
-          bell,
-          shots_count=1_000,
-          noise_model=noise,
-          return_execution_data=True,
-        )
+    bell,
+    shots_count=1_000,
+    noise_model=noise,
+    return_execution_data=True,
+)
 
 data = result.ptsbe_execution_data
 
@@ -26,5 +26,5 @@ for inst in data.instructions:
 # Trajectory details
 for trajectory in data.trajectories:
     print(f"id={trajectory.trajectory_id}  p={trajectory.probability:.4f}"
-        f"  shots={trajectory.num_shots}")
+          f"  shots={trajectory.num_shots}")
 # [End PTSBE_Execution_Data]

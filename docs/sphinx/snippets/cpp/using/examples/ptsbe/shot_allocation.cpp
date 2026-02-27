@@ -11,9 +11,9 @@
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
 
 int main() {
-    cudaq::ptsbe::sample_options opts;
-    opts.ptsbe.shot_allocation = cudaq::ptsbe::ShotAllocationStrategy(
-        cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
-        /*bias=*/2.0);
+  cudaq::ptsbe::sample_options opts;
+  opts.ptsbe.shot_allocation = cudaq::ptsbe::ShotAllocationStrategy(
+      cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
+      /*bias=*/2.0);
 }
 // [End PTSBE_Shot_Allocation]

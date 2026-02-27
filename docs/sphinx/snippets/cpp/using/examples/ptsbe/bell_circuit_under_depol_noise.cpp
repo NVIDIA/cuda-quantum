@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 // [Begin PTSBE_Bell]
-#include <utils.h>
 #include "cudaq/ptsbe/PTSBESample.h"
+#include <utils.h>
 
 int main() {
   cudaq::ptsbe::sample_options opts;
-  opts.shots  = 10000;
-  opts.noise  = bell_noise_model();
+  opts.shots = 10000;
+  opts.noise = bell_noise_model();
 
   auto result = cudaq::ptsbe::sample(opts, bell);
   result.dump();
