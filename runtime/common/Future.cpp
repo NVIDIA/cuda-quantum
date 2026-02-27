@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "Future.h"
-#include "Logger.h"
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <thread>
 
 namespace cudaq::details {
@@ -59,19 +59,18 @@ sample_result future::get() {
     }
 
     auto c = serverHelper->processResults(resultResponse, id.first);
+    if (c.has_expectation()) {
+      // If the QPU returns the data with expectation values, just use it
+      // directly.
+      // This can be the case for remote emulation/simulation providers who
+      // compute the expectation value for us.
+      return c;
+    }
     if (isObserve()) {
       // Use the job name instead of the global register.
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
     } else {
-      if (c.has_expectation()) {
-        // If the QPU returns the data with expectation values, just use it
-        // directly.
-        // This can be the case for remote emulation/simulation providers who
-        // compute the expectation value for us.
-        return c;
-      }
-
       // For each register, add the results into result.
       for (auto &regName : c.register_names()) {
         results.emplace_back(c.to_map(regName), regName);

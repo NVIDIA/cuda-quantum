@@ -18,6 +18,8 @@ from typing import List
 import cudaq
 from cudaq import spin
 
+from test_helpers import h2_hamiltonian_4q
+
 
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
@@ -1032,15 +1034,7 @@ def test_from_state1():
 
 
 def test_pauli_word_input():
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
 
     kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
     q = kernel.qalloc(4)
@@ -1063,15 +1057,7 @@ def test_exp_pauli():
     print(type(.11))
     kernel.exp_pauli(.11, qubits, "XXXY")
     print(kernel)
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
     want_exp = cudaq.observe(kernel, h).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
@@ -1147,7 +1133,7 @@ def test_fermionic_swap_op():
 
 def test_call_kernel_expressions():
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesInt(qubits: cudaq.qview, val: int):
         x(qubits[val])
 
@@ -1161,7 +1147,7 @@ def test_call_kernel_expressions():
     assert len(counts) == 1
     assert '00100' in counts
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndFloat(qubits: cudaq.qview, qbit: int, val: float):
         ry(val, qubits[qbit])
 
@@ -1184,7 +1170,7 @@ def test_call_kernel_expressions_List():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: List[float]):
         ry(val[0], qubits[qbit])
@@ -1199,7 +1185,7 @@ def test_call_kernel_expressions_List():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: List[List[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1231,7 +1217,7 @@ def test_call_kernel_expressions_list():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: list[float]):
         ry(val[0], qubits[qbit])
@@ -1246,7 +1232,7 @@ def test_call_kernel_expressions_list():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: list[list[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1271,6 +1257,57 @@ def test_call_kernel_expressions_list():
     kernelAndArgs = cudaq.make_kernel(list[float])
     qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
+
+
+def test_call_kernel_deferred_compilation():
+    # We currently don't support calling a kernel that hasn't been compiled yet
+    # from a kernel builder. This is because both the kernel builder and the
+    # MLIR compilation require exclusive access to the global MLIR context.
+    # Launching compilation during the lifetime of the kernel builder would
+    # invalidate the references to MLIR objects that the kernel builder holds.
+    @cudaq.kernel(defer_compilation=True)
+    def notPrecompiledKernel():
+        pass
+
+    kernel = cudaq.make_kernel()
+    with pytest.raises(RuntimeError) as e:
+        kernel.apply_call(notPrecompiledKernel)
+
+    assert "must be compiled to be used in the kernel builder" in str(e.value)
+    assert "notPrecompiledKernel" in str(e.value)
+    assert "or deactivate deferred compilation" in str(e.value)
+
+
+def test_apply_call_captures_from_definition_scope():
+    """
+    A kernel builder calls (via apply_call) a decorator kernel that itself
+    captures another decorator kernel from its *definition* scope.  The
+    captured inner kernel is not in scope at the apply_call call-site.
+    """
+
+    def make():
+        n_qubits = 0
+
+        @cudaq.kernel()
+        def inner(q: cudaq.qubit):
+            x(q)
+
+        @cudaq.kernel(defer_compilation=False)
+        def wrapper():
+            # capture n_qubits, resolves to n_qubits=1
+            q = cudaq.qvector(n_qubits)
+            # capture inner
+            inner(q[0])
+
+        n_qubits = 1  # this is the value that matters
+
+        return wrapper
+
+    wrapper = make()
+    # `inner` and `n_qubits` are NOT reachable from this scope.
+    builder = cudaq.make_kernel()
+    builder.apply_call(wrapper)
+    cudaq.sample(builder, shots_count=3)
 
 
 def test_sample_with_no_qubits():

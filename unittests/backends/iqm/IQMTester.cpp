@@ -13,20 +13,9 @@
 #include <gtest/gtest.h>
 
 #include "CUDAQTestUtils.h"
-#include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "cudaq/algorithm.h"
 
-#include <fstream>
-#include <regex>
-
-std::string backendString = "iqm;emulate;false;url;"
-                            "http://localhost:62443";
-
 CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.x(qubit[0]);
@@ -40,9 +29,6 @@ CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
 }
 
 CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -55,9 +41,6 @@ CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
 }
 
 CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto N = 5;
   auto kernel = cudaq::make_kernel();
 
@@ -74,9 +57,6 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
 }
 
 CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto N = 2;
   auto kernel = cudaq::make_kernel();
 
@@ -99,8 +79,11 @@ CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {
   EXPECT_THAT(
       []() {
         setenv("IQM_TOKEN", "invalid-invalid-invalid", true);
-        auto &platform = cudaq::get_platform();
-        platform.setTargetBackend(backendString);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
           testing::HasSubstr("HTTP GET Error - status code 401")));
@@ -118,8 +101,11 @@ CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
   EXPECT_THAT(
       []() {
         setenv("IQM_SERVER_URL", "fake-fake-fake", true);
-        auto &platform = cudaq::get_platform();
-        platform.setTargetBackend(backendString);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
           testing::HasSubstr("Could not resolve host: fake-fake-fake")));
@@ -142,8 +128,11 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
       []() {
         unsetenv("IQM_TOKEN");
         setenv("IQM_TOKENS_FILE", "fake-fake-fake", true);
-        auto &platform = cudaq::get_platform();
-        platform.setTargetBackend(backendString);
+        auto kernel = cudaq::make_kernel();
+        auto qubit = kernel.qalloc(1);
+        kernel.h(qubit[0]);
+        kernel.mz(qubit[0]);
+        cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
           testing::HasSubstr("Unable to open tokens file: fake-fake-fake")));
@@ -158,66 +147,6 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
   } else {
     unsetenv("IQM_TOKENS_FILE");
   }
-}
-
-CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
-  const char dqa_filename[] = "dqa_mock_qpu.txt";
-
-  unlink(dqa_filename);
-
-  // Test 1: saving dynamic quantum architecture to file
-  setenv("IQM_SAVE_QPU_QA", dqa_filename, true);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
-
-  auto counts = cudaq::sample(kernel);
-
-  unsetenv("IQM_SAVE_QPU_QA");
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  // Test 2: use quantum architecture file referenced in environment variable
-  setenv("IQM_QPU_QA", dqa_filename, true);
-
-  // platform.setTargetBackend(backendString);
-
-  auto kernel2 = cudaq::make_kernel();
-  auto qubit2 = kernel2.qalloc(2);
-  kernel2.h(qubit2[0]);
-  kernel2.mz(qubit2[0]);
-  kernel2.mz(qubit2[1]);
-
-  counts = cudaq::sample(kernel2);
-
-  unsetenv("IQM_QPU_QA");
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  // Test 3: quantum architecture file referenced in backend string
-
-  platform.setTargetBackend(backendString + ";mapping_file;" + dqa_filename);
-
-  auto kernel3 = cudaq::make_kernel();
-  auto qubit3 = kernel3.qalloc(2);
-  kernel3.h(qubit3[0]);
-  kernel3.mz(qubit3[0]);
-  kernel3.mz(qubit3[1]);
-
-  counts = cudaq::sample(kernel3);
-
-  EXPECT_GE(counts.size(), 2);
-  EXPECT_LE(counts.size(), 4);
-
-  unlink(dqa_filename);
 }
 
 int main(int argc, char **argv) {

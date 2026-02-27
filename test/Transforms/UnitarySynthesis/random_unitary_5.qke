@@ -6,6 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// KAK decomposition produces different (but equivalent) results on macOS due to
+// platform-specific math library implementations.
+// UNSUPPORTED: system-darwin
 // RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-inlining %s | FileCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel2 = "__nvqpp__mlirgen__kernel2_PyKernelEntryPointRewrite"}} {

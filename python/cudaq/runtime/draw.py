@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -18,13 +18,13 @@ def _detail_draw(format, decorator, *args):
                            str(len(args)) + " given and " +
                            str(decorator.formal_arity()) + " expected.")
     # Must handle arguments exactly like this is a `callsite` to the decorator.
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    retTy = decorator.returnType
+    processedArgs, module = decorator.prepare_call(*args)
+    retTy = decorator.return_type
     if not retTy:
         retTy = decorator.get_none_type()
     # Arguments are resolved, so go ahead and do the draw functionality, which
     # performs a kernel launch.
-    return cudaq_runtime.draw_impl(format, decorator.uniqName, specMod, retTy,
+    return cudaq_runtime.draw_impl(format, decorator.uniqName, module, retTy,
                                    *processedArgs)
 
 

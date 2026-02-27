@@ -9,7 +9,8 @@
 add_backend_unittest_executable(test_oqc 
   SOURCES OQCTester.cpp
   BACKEND oqc
-  )
+  BACKEND_CONFIG "oqc emulate=false url=http://localhost:62442 auth_token=fake_auth_token device=qpu:uk:-1:1234567890"
+)
 
-configure_file("OQCStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/oqc/OQCStartServerAndTest.sh" @ONLY)
-add_test(NAME oqc-tests COMMAND bash OQCStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/oqc/)
+configure_file(OQCStartServerAndTest.sh.in OQCStartServerAndTest.sh @ONLY)
+add_test(NAME oqc-tests COMMAND bash OQCStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

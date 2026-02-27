@@ -71,15 +71,18 @@ public:
 
   void setToZeroState() override { resourceCounts.clear(); }
 
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (context->name != "resource-count")
+  void configureExecutionContext(cudaq::ExecutionContext &context) override {
+    if (context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
-    this->CircuitSimulatorBase::setExecutionContext(context);
+    this->CircuitSimulatorBase::configureExecutionContext(context);
   }
 
   cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }
+  void setResourceCounts(cudaq::Resources &&rc) {
+    this->resourceCounts = std::move(rc);
+  }
 
   void setChoiceFunction(std::function<bool()> choice) {
     assert(choice);

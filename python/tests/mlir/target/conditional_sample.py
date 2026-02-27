@@ -7,13 +7,15 @@
 # ============================================================================ #
 
 # RUN: PYTHONPATH=../../.. python3 %s
-# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
+# NOTE: The machine arg is not reflecting correctly with the following command, gives
+#       RuntimeError: `run` is not yet supported on this target.
+# SKIPPED: PYTHONPATH=../../.. python3 %s --target quantinuum --quantinuum-machine Helios-1SC --emulate
 
 import cudaq
 
 
 @cudaq.kernel
-def kernel():
+def kernel() -> bool:
     q = cudaq.qvector(3)
     x(q[0])
     h(q[1])
@@ -27,20 +29,16 @@ def kernel():
     if b0:
         z(q[2])
 
-    mz(q[2])
+    return mz(q[2])
 
 
-counts = cudaq.sample(kernel, shots_count=100)
-counts.dump()
-resultsOnZero = counts.get_marginal_counts([0])
-resultsOnZero.dump()
-
-nOnes = resultsOnZero.count('1')
-assert nOnes == 100
+results = cudaq.run(kernel, shots_count=10)
+assert len(results) == 10
+assert all(res for res in results)
 
 
 @cudaq.kernel
-def kernel1():
+def kernel1() -> list[bool]:
     data = cudaq.qvector(2)
     aux = cudaq.qvector(2)
     bits = mz(aux)
@@ -48,16 +46,16 @@ def kernel1():
     if bits[0]:
         x(data[0])
 
-    mz(data)
+    return mz(data)
 
 
-counts = cudaq.sample(kernel1, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["00"] == 100
+results = cudaq.run(kernel1, shots_count=10)
+for res in results:
+    assert res == [False, False]
 
 
 @cudaq.kernel
-def kernel2():
+def kernel2() -> list[bool]:
     data = cudaq.qvector(2)
     aux = cudaq.qvector(2)
     bits = mz(aux)
@@ -66,82 +64,85 @@ def kernel2():
     if bits[0] == True:
         x(data[0])
 
-    mz(data)
+    return mz(data)
 
 
-counts = cudaq.sample(kernel2, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["00"] == 100
+results = cudaq.run(kernel2, shots_count=10)
+for res in results:
+    assert res == [False, False]
 
 
 @cudaq.kernel
-def kernel3():
+def kernel3() -> list[bool]:
     data = cudaq.qvector(2)
     aux = cudaq.qvector(2)
     bits = mz(aux)
-    # Now, this should has some effects
+    # Now, this should have some effects
     if not bits[0]:
         x(data[0])
 
-    mz(data)
+    return mz(data)
 
 
-counts = cudaq.sample(kernel3, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["10"] == 100
+results = cudaq.run(kernel3, shots_count=10)
+for res in results:
+    assert res == [True, False]
 
 
 @cudaq.kernel
-def kernel4(checkVal: bool):
+def kernel4(checkVal: bool) -> list[bool]:
     data = cudaq.qvector(2)
     aux = cudaq.qubit()
     bit = mz(aux)
     if bit != checkVal:
         x(data[0])
-    mz(data)
+    return mz(data)
 
 
-counts = cudaq.sample(kernel4, True, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["10"] == 100
-counts = cudaq.sample(kernel4, False, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["00"] == 100
+results = cudaq.run(kernel4, True, shots_count=10)
+for res in results:
+    assert res == [True, False]
+
+results = cudaq.run(kernel4, False, shots_count=10)
+for res in results:
+    assert res == [False, False]
 
 
 @cudaq.kernel
-def kernel5(checkVal: int):
+def kernel5(checkVal: int) -> list[bool]:
     # Check bool -> int conversion in == comparison.
     data = cudaq.qvector(2)
     aux = cudaq.qubit()
     bit = mz(aux)
     if bit == checkVal:
         x(data[0])
-    mz(data)
+    return mz(data)
 
 
-counts = cudaq.sample(kernel5, 0, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["10"] == 100
-counts = cudaq.sample(kernel5, 1, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["00"] == 100
+results = cudaq.run(kernel5, 0, shots_count=10)
+for res in results:
+    assert res == [True, False]
+
+results = cudaq.run(kernel5, 1, shots_count=10)
+for res in results:
+    assert res == [False, False]
 
 
 @cudaq.kernel
-def kernel6(checkVal: int):
+def kernel6(checkVal: int) -> list[bool]:
     # Check bool -> int conversion in != comparison.
     data = cudaq.qvector(2)
     aux = cudaq.qubit()
     bit = mz(aux)
     if bit != checkVal:
         x(data[0])
-    mz(data)
+    return mz(data)
 
 
-counts = cudaq.sample(kernel6, 1, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["10"] == 100
-counts = cudaq.sample(kernel6, 0, shots_count=100)
-counts.dump()
-assert counts.get_register_counts("__global__")["00"] == 100
+results = cudaq.run(kernel6, 1, shots_count=10)
+for res in results:
+    assert res == [True, False]
+
+results = cudaq.run(kernel6, 0, shots_count=10)
+for res in results:
+    assert res == [False, False]

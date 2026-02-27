@@ -50,9 +50,6 @@ protected:
   /// configuration.
   std::map<std::string, std::string> backendConfig;
 
-  /// @brief Mapping of thread and execution context
-  std::unordered_map<std::size_t, cudaq::ExecutionContext *> contexts;
-
 private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
@@ -85,9 +82,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }
 
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override { return false; }
-
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
 
@@ -99,22 +93,6 @@ public:
 
   /// @brief Return true if the current backend is remote
   virtual bool isRemote() override { return !emulate; }
-
-  /// @brief Store the execution context for launching kernel
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU::setExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts.emplace(tid, context);
-    cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
-  }
-
-  /// @brief Overrides resetExecutionContext
-  void resetExecutionContext() override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts[tid] = nullptr;
-    contexts.erase(tid);
-  }
 
   /// @brief This setTargetBackend override is in charge of reading the
   /// specific target backend configuration file.

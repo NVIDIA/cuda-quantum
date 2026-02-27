@@ -16,6 +16,7 @@ import importlib
 import numpy as np
 from typing import get_origin, get_args, Callable, List
 import types
+from contextlib import contextmanager
 from cudaq.mlir.execution_engine import ExecutionEngine
 from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -23,22 +24,15 @@ from cudaq.mlir.dialects import quake, cc
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType, Context,
                            Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
+from cudaq.kernel_types import qubit, qvector, qview
 
 State = cudaq_runtime.State
-qvector = cudaq_runtime.qvector
-qview = cudaq_runtime.qview
-qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
 
 ahkPrefix = '__analog_hamiltonian_kernel__'
-
-# Keep a global registry of all kernel Python AST modules keyed on their name
-# (without `__nvqpp__mlirgen__` prefix). The values in this dictionary are a
-# tuple of the AST module and the source code location for the kernel.
-globalAstRegistry = {}
 
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
@@ -106,40 +100,14 @@ def recover_func_op(module, name):
     return None
 
 
-def recover_calling_module():
-
-    def frame_and_mod(fr):
-        if fr is None:
-            return None
-        mod = inspect.getmodule(fr)
-        if mod is not None and getattr(mod, "__name__", None):
-            return mod.__name__
-        # Fallback for notebooks to search module in `globals`
-        return fr.f_globals.get("__name__")
-
-    frame = inspect.currentframe()
-    try:
-        frame = frame.f_back
-        name = frame_and_mod(frame)
-
-        while frame is not None and name is not None and (
-                name.startswith("cudaq.kernel") or
-                name.startswith("cudaq.runtime")):
-            frame = frame.f_back
-            name = frame_and_mod(frame)
-
-        if frame is None:
-            return None
-
-        # A real module object if available
-        mod = inspect.getmodule(frame)
-        if mod is not None:
-            return mod
-
-        # Resolve by `globals` name
-        return sys.modules.get(frame.f_globals.get("__name__"))
-    finally:
-        del frame
+def get_module_name(fr):
+    if fr is None:
+        return None
+    mod = inspect.getmodule(fr)
+    if mod is not None and getattr(mod, "__name__", None):
+        return mod.__name__
+    # Fallback for notebooks to search module in `globals`
+    return fr.f_globals.get("__name__")
 
 
 def resolve_qualified_symbol(y):
@@ -181,7 +149,7 @@ def resolve_qualified_symbol(y):
     return None
 
 
-def recover_value_of_or_none(name, resMod):
+def recover_value_of_or_none(name, frame=None):
     """
     Recover the Python value of the symbol `name` from the enclosing context.
     The enclosing context is the context in which the `PyKernelDecorator`
@@ -190,44 +158,34 @@ def recover_value_of_or_none(name, resMod):
     If `name` is qualified, then lookup the symbol in the module that is
     specified in the name itself.
 
-    If there is a resolve-in module, `resMod`, then resolve the symbol in the
-    given module.
+    If there is a resolve-in frame, `frame`, then resolve the symbol in the
+    given frame.
 
-    Otherwise, the symbol is neither qualified nor is there another module to
-    resolve the name in.  So perform a normal LEGB resolution of the symbol in
-    the current set of stack frames. (Actually, EGB since the symbol cannot be
-    local.)
-
-    Note that this need not be used with a `PyKernel` object as the semantics of
-    the kernel builder presumes immediate lookup and resolution of all symbols
-    during construction.
+    Otherwise, perform a normal LEGB resolution (actually, EGB since the symbol
+    cannot be local.) of the symbol. If `frame` is provided, resolve the symbol
+    in the given frame. Otherwise, resolve it in the current set of stack
+    frames. 
     """
-    from .kernel_decorator import isa_kernel_decorator
-
     if '.' in name:
         return resolve_qualified_symbol(name)
 
-    if resMod:
-        return resMod.__dict__.get(name, None)
+    try:
+        if frame is None:
+            frame = inspect.currentframe()
+            # Walk back until we leave the cudaq.kernel module
+            while frame is not None and get_module_name(frame).startswith(
+                    "cudaq.kernel"):
+                frame = frame.f_back
 
-    def drop_front():
-        drop = 0
-        for frameinfo in inspect.stack():
-            frame = frameinfo.frame
-            if 'self' in frame.f_locals:
-                if isa_kernel_decorator(frame.f_locals['self']):
-                    return drop
-            drop = drop + 1
-        return drop
-
-    drop = drop_front()
-    for frameinfo in inspect.stack()[drop:]:
-        frame = frameinfo.frame
-        if name in frame.f_locals:
-            return frame.f_locals[name]
-        if name in frame.f_globals:
-            return frame.f_globals[name]
-    return None
+        while frame is not None:
+            if name in frame.f_locals:
+                return frame.f_locals[name]
+            if name in frame.f_globals:
+                return frame.f_globals[name]
+            frame = frame.f_back
+        return None
+    finally:
+        del frame
 
 
 def is_recovered_value_ok(result):
@@ -241,11 +199,30 @@ def is_recovered_value_ok(result):
     return False
 
 
-def recover_value_of(name, resMod):
-    result = recover_value_of_or_none(name, resMod)
+def recover_value_of(name, frame=None):
+    result = recover_value_of_or_none(name, frame)
     if is_recovered_value_ok(result):
         return result
     raise RuntimeError("'" + name + "' is not available in this scope.")
+
+
+@contextmanager
+def set_tracebacklimit(limit=None):
+    """
+    Set the `traceback` limit for the duration of the context.
+    
+    Restores the original `traceback` limit after the context is exited.
+    """
+    try:
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = limit
+        yield
+        sys.tracebacklimit = cached
+    except AttributeError:
+        # `tracebacklimit` was not set: delete it at the end
+        sys.tracebacklimit = limit
+        yield
+        del sys.tracebacklimit
 
 
 def emitFatalError(msg):
@@ -261,10 +238,8 @@ def emitFatalError(msg):
     except RuntimeError:
         # Immediately grab the exception and analyze the stack trace, getting
         # the source location and construct a new error diagnostic.
-        cached = sys.tracebacklimit
-        sys.tracebacklimit = None
-        offendingSrc = traceback.format_stack()
-        sys.tracebacklimit = cached
+        with set_tracebacklimit(None):
+            offendingSrc = traceback.format_stack()
         if len(offendingSrc):
             msg = (Color.RED + "error: " + Color.END + Color.BOLD + msg +
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
@@ -283,22 +258,22 @@ def emitWarning(msg):
     except RuntimeError:
         # Immediately grab the exception and analyze the stack trace, getting
         # the source location and construct a new error diagnostic
-        cached = sys.tracebacklimit
-        sys.tracebacklimit = None
-        offendingSrc = traceback.format_stack()
-        sys.tracebacklimit = cached
+        with set_tracebacklimit(None):
+            offendingSrc = traceback.format_stack()
         if len(offendingSrc):
             msg = (Color.YELLOW + "error: " + Color.END + Color.BOLD + msg +
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
 
 
-def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
+def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
     tuples and `dataclass` structs of quantum and classical types. Returns
     None if the given element types don't satisfy the restrictions imposed
     on these types.
     """
+
+    name = name or "tuple"
 
     def isQuantumType(ty):
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(

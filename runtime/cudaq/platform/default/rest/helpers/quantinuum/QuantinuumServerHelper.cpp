@@ -9,9 +9,9 @@
 #include "QuantinuumHelper.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
 #include <fstream>
@@ -28,7 +28,7 @@ constexpr const char *qirEndpoint = "api/qir/v1beta/";
 // Legacy result endpoint (PYTKET)
 constexpr const char *resultsEndpoint = "api/results/v1beta3/";
 // NG device result endpoint (QSYS)
-constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta/";
+constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta2/partial/";
 // Decoder config endpoint
 constexpr const char *gpuDecoderConfigEndpoint =
     "api/gpu_decoder_configs/v1beta";

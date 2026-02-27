@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: config
         run: |
@@ -96,6 +96,7 @@ jobs:
         toolchain=${{ matrix.toolchain }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
+      environment: ghcr-ci
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -123,6 +124,7 @@ jobs:
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      environment: ghcr-ci
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
@@ -149,6 +151,7 @@ jobs:
         toolchain=llvm
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
+      environment: ghcr-ci
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
@@ -227,6 +230,7 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
+      environment: ghcr-ci
 
   python_wheels:
     name: Create Python wheels

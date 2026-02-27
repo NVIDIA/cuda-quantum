@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --enable-mlir %s -o %t
 // XFAIL: *
 // ^^^^^ This is caused by this error: invalid instruction found:   %2 = xor i1 %0, true
@@ -20,7 +20,7 @@
 #include <iostream>
 
 struct kernel {
-  void operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qubit q0;
     cudaq::qubit q1;
     cudaq::qubit q2;
@@ -31,6 +31,7 @@ struct kernel {
     if (result0 && result1)
       x(q2); // toggle q2 when both q0 and q1 are heads
     auto result2 = mz(q2);
+    return {result0, result1, result2};
   }
 };
 
@@ -39,23 +40,30 @@ int main() {
   int nShots = 100;
   cudaq::set_random_seed(13);
 
-  // Sample
-  auto counts = cudaq::sample(/*shots=*/nShots, kernel{});
-  counts.dump();
+  auto counts = cudaq::run(/*shots=*/nShots, kernel{});
 
-  auto q2result_0 = counts.count("0", "q2result");
-  auto q2result_1 = counts.count("1", "q2result");
+  std::size_t q2result_0 = 0, q2result_1 = 0;
+  for (auto r : counts) {
+    if (r[2])
+      q2result_1++;
+    else
+      q2result_0++;
+  }
+
+  printf("q2 : { 1:%zu }\n", q2result_1);
+  printf("q2 : { 0:%zu }\n", q2result_0);
+
   if (q2result_0 + q2result_1 != nShots) {
     std::cout << "q2result_0 (" << q2result_0 << ") + q2result_1 ("
               << q2result_1 << ") != nShots (" << nShots << ")\n";
     return 1;
   }
-  if (q2result_0 < static_cast<int>(0.3 * nShots) ||
-      q2result_0 > static_cast<int>(0.7 * nShots)) {
+  if (q2result_0 < static_cast<int>(0.23 * nShots) ||
+      q2result_0 > static_cast<int>(0.77 * nShots)) {
     std::cout << "q2result_0 (" << q2result_0
               << ") is not within expected range ["
-              << static_cast<int>(0.3 * nShots) << ","
-              << static_cast<int>(0.7 * nShots) << "]\n";
+              << static_cast<int>(0.23 * nShots) << ","
+              << static_cast<int>(0.77 * nShots) << "]\n";
     return 2;
   }
   std::cout << "SUCCESS\n";

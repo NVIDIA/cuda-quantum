@@ -83,7 +83,8 @@ public:
   virtual void execute() const;
 
   /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  virtual std::optional<
+      std::tuple<std::string, std::string, std::vector<void *>>>
   getKernelInfo() const override;
 
   /// @brief Return the number of qubits this state represents.

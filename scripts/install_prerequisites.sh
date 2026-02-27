@@ -35,12 +35,11 @@
 toolchain=''
 exclude_prereq=''
 install_all=true
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":e:t:ml:-:" opt; do
   case $opt in
-    e) exclude_prereq="${OPTARG,,}"
+    e) exclude_prereq="$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')"
     ;;
     t) toolchain="$OPTARG"
     ;;
@@ -56,17 +55,17 @@ while getopts ":e:t:ml:-:" opt; do
 done
 OPTIND=$__optind__
 
+# Set default install prefix environment variables (only when install_all is true)
 if $install_all; then
-  LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-  PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
-  BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
-  ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
-  OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
-  CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
-  AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}
-  CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
-  CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
+  source "$(dirname "${BASH_SOURCE[0]}")/set_env_defaults.sh"
 fi
+
+# Create a temporary directory for building source packages
+PREREQS_BUILD_DIR=$(mktemp -d)
+: "${PREREQS_BUILD_DIR:?ERROR mktemp failed}"
+echo "Building prerequisites in $PREREQS_BUILD_DIR"
+# Remove below if you wish to debug pre-req build failures
+trap "rm -rf $PREREQS_BUILD_DIR" EXIT
 
 function temp_install_if_command_unknown {
   if [ ! -x "$(command -v $1)" ]; then
@@ -75,6 +74,8 @@ function temp_install_if_command_unknown {
       apt-get install -y --no-install-recommends $2
     elif [ -x "$(command -v dnf)" ]; then
       dnf install -y --nobest --setopt=install_weak_deps=False $2
+    elif [ -x "$(command -v brew)" ]; then
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install $2
     else
       echo "No package manager was found to install $2." >&2
     fi
@@ -91,6 +92,8 @@ function remove_temp_installs {
     elif [ -x "$(command -v dnf)" ]; then
       dnf remove -y $PKG_UNINSTALL
       dnf clean all
+    elif [ -x "$(command -v brew)" ]; then
+      brew uninstall --force $PKG_UNINSTALL 
     else
       echo "No package manager configured for clean up." >&2
     fi
@@ -99,7 +102,7 @@ function remove_temp_installs {
 }
 
 working_dir=`pwd`
-read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
+read __errexit__ < <(echo $SHELLOPTS | grep -Eo '(^|:)errexit(:|$)' || echo)
 function prepare_exit {
   cd "$working_dir" && remove_temp_installs
   if [ -z "$__errexit__" ]; then set +e; fi
@@ -107,7 +110,7 @@ function prepare_exit {
 
 set -e
 trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
@@ -122,55 +125,102 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     # Note that when we first build the compiler/runtime built here we need to make sure it is
     # the same version as CUDA Quantum depends on, even if we rebuild the runtime libraries later,
     # since otherwise we need to rebuild zlib.
-    LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
-    source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
+    # On macOS, use Apple's system clang to avoid header conflicts with macOS SDK
+    if [ "$(uname)" = "Darwin" ]; then
+      export CC=clang
+      export CXX=clang++
+      echo "Using Apple Clang: $(clang --version | head -1)"
+    else
+      LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
+      source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
+    fi
   fi
   if [ ! -x "$(command -v cmake)" ]; then
     echo "Installing CMake..."
     temp_install_if_command_unknown wget wget
-    wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
-    bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
-    rm -rf cmake-install.sh 
+    pushd "$PREREQS_BUILD_DIR"
+    if [ "$(uname)" = "Darwin" ]; then
+      cmake_arch="$(uname -m)"
+      wget "https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-macos-universal.tar.gz" -O cmake.tar.gz
+      tar -xzf cmake.tar.gz
+      mv cmake-3.26.4-macos-universal/CMake.app/Contents/bin/* $HOME/.local/bin/
+      mv cmake-3.26.4-macos-universal/CMake.app/Contents/share/* $HOME/.local/share/
+    else
+      wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
+      bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+    fi
+    popd
   fi
   if [ ! -x "$(command -v ninja)" ]; then
     echo "Installing Ninja..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
 
-    # The pre-built binary for Linux on GitHub is built for x86_64 only, 
+    pushd "$PREREQS_BUILD_DIR"
+
+    # The pre-built binary for Linux on GitHub is built for x86_64 only,
     # see also https://github.com/ninja-build/ninja/issues/2284.
     wget https://github.com/ninja-build/ninja/archive/refs/tags/v1.11.1.tar.gz
     tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
-    LDFLAGS="-static-libstdc++" cmake -B build
+    if [ "$(uname)" = "Darwin" ]; then
+      cmake -B build
+    else
+      LDFLAGS="-static-libstdc++" cmake -B build
+    fi
     cmake --build build
-    mv build/ninja /usr/local/bin/
-    cd .. && rm -rf v1.11.1.tar.gz ninja-1.11.1
+
+    if [ "$(uname)" = "Darwin" ]; then
+      mv build/ninja $HOME/.local/bin/
+    else
+      mv build/ninja /usr/local/bin/
+    fi 
+
+    popd
   fi
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
+# [Minizip] Needed by rest_server for archive handling
+# Build both from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
-    echo "Installing libz..."
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
+    echo "Installing libz and minizip..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
-    temp_install_if_command_unknown libtool libtool
+    # On macOS, Apple ships /usr/bin/libtool which is NOT GNU libtool.
+    # Homebrew installs GNU libtool as 'glibtool' to avoid conflicts.
+    # We need glibtoolize for autoreconf, so check for that instead.
+    if [ "$(uname)" = "Darwin" ]; then
+      temp_install_if_command_unknown glibtoolize libtool
+    else
+      temp_install_if_command_unknown libtool libtool
+    fi
 
-    wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
-    tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
+    pushd "$PREREQS_BUILD_DIR"
+
+    wget -O zlib-1.3.1.tar.gz https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
+    tar -xzf zlib-1.3.1.tar.gz && cd zlib-1.3.1
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
-    cd contrib/minizip 
-    autoreconf --install 
+    cd contrib/minizip
+    # On macOS with Homebrew, set up environment for autoreconf:
+    # - Add Homebrew's m4 macros to aclocal search path
+    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
+    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
+      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
+      export LIBTOOLIZE=glibtoolize
+    fi
+    autoreconf --install
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
     make CC="$CC" && make install
-    cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
+
+    popd
     remove_temp_installs
   else
-    echo "libz already installed in $ZLIB_INSTALL_PREFIX."
+    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 
@@ -206,16 +256,20 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     temp_install_if_command_unknown make make
     if [ ! -x "$(command -v "$FC")" ]; then
       unset FC
+      # On macOS, 'brew install gfortran' installs gcc which provides gfortran
       temp_install_if_command_unknown gfortran gfortran
     fi
 
+    pushd "$PREREQS_BUILD_DIR"
+
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget http://www.netlib.org/blas/blas-3.11.0.tgz
-    tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0 
+    tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
     make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
-    mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
-    cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
+    mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
+
+    popd
     remove_temp_installs
   else
     echo "BLAS already installed in $BLAS_INSTALL_PREFIX."
@@ -224,21 +278,24 @@ fi
 
 # [OpenSSL] Needed for communication with external services
 if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)" ]; then
-  if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name libssl.a)" ]; then
+  if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || \
+     [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name 'libssl.a' 2>/dev/null)" ]; then
     echo "Installing OpenSSL..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
 
+    pushd "$PREREQS_BUILD_DIR"
+
     # Not all perl installations include all necessary modules.
-    # To facilitate a consistent build across platforms and to minimize dependencies, 
+    # To facilitate a consistent build across platforms and to minimize dependencies,
     # we just use our own perl version for the OpenSSL build.
     wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
     tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
-    ./Configure -des -Dcc="$CC" -Dprefix="$HOME/.perl5"
+    ./Configure -des -Dcc="$CC" -Dprefix="$PREREQS_BUILD_DIR/perl5"
     make CC="$CC" && make install
-    cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
+    cd ..
     # Additional perl modules can be installed with cpan, e.g.
-    # PERL_MM_USE_DEFAULT=1 $HOME/.perl5/bin/cpan App::cpanminus
+    # PERL_MM_USE_DEFAULT=1 $PREREQS_BUILD_DIR/perl5/bin/cpan App::cpanminus
 
     if [ ! -x "$(command -v ar)" ]; then
       cc_exe_dir=`dirname "$CC"`
@@ -250,10 +307,13 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     wget https://www.openssl.org/source/openssl-3.5.1.tar.gz
     tar -xf openssl-3.5.1.tar.gz && cd openssl-3.5.1
     CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
-    "$HOME/.perl5/bin/perl" Configure no-shared \
-      --prefix="$OPENSSL_INSTALL_PREFIX" zlib --with-zlib-lib="$ZLIB_INSTALL_PREFIX"
+    "$PREREQS_BUILD_DIR/perl5/bin/perl" Configure no-shared \
+      --prefix="$OPENSSL_INSTALL_PREFIX" zlib \
+      --with-zlib-include="$ZLIB_INSTALL_PREFIX/include" \
+      --with-zlib-lib="$ZLIB_INSTALL_PREFIX/lib"
     make CC="$CC" CXX="$CXX" && make install
-    cd .. && rm -rf openssl-3.5.1.tar.gz openssl-3.5.1 "$HOME/.perl5"
+
+    popd
     remove_temp_installs
   else
     echo "OpenSSL already installed in $OPENSSL_INSTALL_PREFIX."
@@ -267,46 +327,81 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
 
+    pushd "$PREREQS_BUILD_DIR"
+
     # The arguments --with-ca-path and --with-ca-bundle can be used to configure the default
     # locations where Curl will look for certificates. Note that the paths where certificates
-    # are stored by default varies across operating systems, and to build a Curl library that 
-    # can run out of the box on various operating systems pretty much necessitates including 
+    # are stored by default varies across operating systems, and to build a Curl library that
+    # can run out of the box on various operating systems pretty much necessitates including
     # and distributing a certificate bundle, or downloading such a bundle dynamically at
-    # at runtime if needed. The Mozilla certificate bundle can be 
+    # at runtime if needed. The Mozilla certificate bundle can be
     # downloaded from https://curl.se/ca/cacert.pem. For more information, see
     # - https://curl.se/docs/sslcerts.html
     # - https://curl.se/docs/caextract.html
-    wget https://curl.se/ca/cacert.pem 
+    wget https://curl.se/ca/cacert.pem
     wget https://curl.se/ca/cacert.pem.sha256
-    if [ "$(sha256sum cacert.pem)" != "$(cat cacert.pem.sha256)" ]; then 
+    if [ -x "$(command -v sha256sum)" ]; then
+      computed_sha256="$(sha256sum cacert.pem)"
+    else
+      computed_sha256="$(shasum -a 256 cacert.pem)"
+    fi
+    if [ "$computed_sha256" != "$(cat cacert.pem.sha256)" ]; then
       echo -e "\e[01;31mWarning: Incorrect sha256sum of cacert.pem. The file cacert.pem has been removed. The file can be downloaded manually from https://curl.se/docs/sslcerts.html.\e[0m" >&2
-      rm -rf cacert.pem cacert.pem.sha256
     else
       mkdir -p "$CURL_INSTALL_PREFIX" && mv cacert.pem "$CURL_INSTALL_PREFIX"
-      rm -rf cacert.pem.sha256
     fi
-    
+
     # Unfortunately, it looks like the default paths need to be absolute and known at compile time.
-    # Note that while the environment variable CURL_CA_BUNDLE allows to easily override the default 
-    # path when invoking the Curl executable, this variable is *not* respected by default by the 
-    # built library itself; instead, the user of libcurl is responsible for picking up the 
-    # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
+    # Note that while the environment variable CURL_CA_BUNDLE allows to easily override the default
+    # path when invoking the Curl executable, this variable is *not* respected by default by the
+    # built library itself; instead, the user of libcurl is responsible for picking up the
+    # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO.
     # We opt to build Curl without any default paths, and instead have the CUDA-Q runtime
     # determine and pass a suitable path.
+    #
+    # Build curl with CMake to generate proper CMake config files (CURLConfig.cmake).
+    # This allows CMake's find_package(CURL) to use config mode, which correctly encodes
+    # full paths to dependencies (OpenSSL, zlib) and avoids pkg-config issues where
+    # -lssl/-lcrypto resolve to the wrong system libraries on macOS.
     wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
     tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
-    CC="$CC" CFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
-    ./configure --prefix="$CURL_INSTALL_PREFIX" \
-      --enable-shared=no --enable-static=yes \
-      --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
-      --without-ca-bundle --without-ca-path \
-      --without-zstd --without-brotli \
-      --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
-      --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
-      --disable-pop3 --disable-imap --disable-file  --disable-dict \
-      --disable-versioned-symbols --disable-manual
-    make CC="$CC" && make install
-    cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
+    cmake -G Ninja -B build \
+      -DCMAKE_C_COMPILER="$CC" \
+      -DCMAKE_C_FLAGS="-fPIC" \
+      -DCMAKE_INSTALL_PREFIX="$CURL_INSTALL_PREFIX" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DBUILD_CURL_EXE=ON \
+      -DCURL_USE_OPENSSL=ON \
+      -DOPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX" \
+      -DCURL_ZLIB=ON \
+      -DZLIB_ROOT="$ZLIB_INSTALL_PREFIX" \
+      -DCURL_CA_BUNDLE=none \
+      -DCURL_CA_PATH=none \
+      -DCURL_USE_LIBSSH2=OFF \
+      -DCURL_USE_LIBPSL=OFF \
+      -DUSE_LIBIDN2=OFF \
+      -DCURL_BROTLI=OFF \
+      -DCURL_ZSTD=OFF \
+      -DUSE_NGHTTP2=OFF \
+      -DENABLE_ARES=OFF \
+      -DCURL_DISABLE_FTP=ON \
+      -DCURL_DISABLE_TFTP=ON \
+      -DCURL_DISABLE_SMTP=ON \
+      -DCURL_DISABLE_LDAP=ON \
+      -DCURL_DISABLE_LDAPS=ON \
+      -DCURL_DISABLE_SMB=ON \
+      -DCURL_DISABLE_GOPHER=ON \
+      -DCURL_DISABLE_TELNET=ON \
+      -DCURL_DISABLE_RTSP=ON \
+      -DCURL_DISABLE_POP3=ON \
+      -DCURL_DISABLE_IMAP=ON \
+      -DCURL_DISABLE_FILE=ON \
+      -DCURL_DISABLE_DICT=ON
+    cmake --build build --config Release
+    cmake --install build --config Release
+
+    popd
     remove_temp_installs
   else
     echo "Curl already installed in $CURL_INSTALL_PREFIX."
@@ -316,6 +411,8 @@ fi
 # [AWS SDK] Needed for communication with Braket
 if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; then
   if [ ! -d "$AWS_INSTALL_PREFIX" ] || [ -z "$(ls -A "$AWS_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    pushd "$PREREQS_BUILD_DIR"
+
     aws_service_components='braket s3-crt sts'
     git clone --filter=tree:0 https://github.com/aws/aws-sdk-cpp aws-sdk-cpp
     cd aws-sdk-cpp && git checkout 1.11.454 && git submodule update --init --recursive
@@ -341,7 +438,8 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
       -DAUTORUN_UNIT_TESTS=OFF
     cmake --build . --config=Release
     cmake --install . --config=Release
-    cd ../.. && rm -rf 1.11.454.tar.gz aws-sdk-cpp
+
+    popd
     remove_temp_installs
   else
     echo "AWS SDK already installed in $AWS_INSTALL_PREFIX."

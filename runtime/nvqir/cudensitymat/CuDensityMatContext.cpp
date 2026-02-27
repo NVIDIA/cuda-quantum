@@ -9,9 +9,9 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
-#include "common/Logger.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <memory>
 #include <mutex>
 
@@ -116,6 +116,16 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
   }
   HANDLE_CUBLAS_ERROR(cublasCreate(&m_cublasHandle));
   m_opConverter = std::make_unique<CuDensityMatOpConverter>(m_cudmHandle);
+}
+
+bool Context::isDistributed() const { return getNumRanks() > 1; }
+
+int Context::getNumRanks() const {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
+}
+
+int Context::getRank() const {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::rank() : 0;
 }
 
 /// @brief Destroy the Context object and release resources.

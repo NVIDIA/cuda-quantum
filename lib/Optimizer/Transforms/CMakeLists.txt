@@ -62,10 +62,12 @@ add_cudaq_library(OptTransforms
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
   ResourceCountPreprocess.cpp
   SROA.cpp
   StackFramePrealloc.cpp
+  StatePreparation.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp

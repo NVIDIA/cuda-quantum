@@ -39,16 +39,16 @@ n=0
 while ! checkServerConnection; do
   sleep 1
   n=$((n+1))
-  if [ "$n" -eq "20" ]; then
+  if [ "$n" -eq "60" ]; then
     kill -INT $pid
     exit 99
   fi
 done
 # Run the tests
 if [ a${IQM_SERVER_URL} = a ]; then
-  IQM_TOKEN="good_access_token" IQM_TOKENS_FILE=$tmp_file ./test_iqm
+  IQM_TOKEN="good_access_token" IQM_TOKENS_FILE=$tmp_file ./$1
 else
-  ./test_iqm
+  ./$1
 fi
 # Did they fail?
 testsPassed=$?

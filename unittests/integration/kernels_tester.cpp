@@ -245,18 +245,16 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_only) {
   // result will be returned in ctx_msm_size.shots.
   cudaq::ExecutionContext ctx_msm_size("msm_size");
   auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(&ctx_msm_size);
-  multi_round_ghz{}(num_qubits, num_rounds);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx_msm_size, multi_round_ghz{}, num_qubits,
+                                  num_rounds);
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
   cudaq::ExecutionContext ctx_msm("msm");
   ctx_msm.noiseModel = &noise;
   ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.set_exec_ctx(&ctx_msm);
-  multi_round_ghz{}(num_qubits, num_rounds);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx_msm, multi_round_ghz{}, num_qubits,
+                                  num_rounds);
 
   // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
   // MSM is stored there, but some post-processing may be required to
@@ -308,18 +306,16 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_corr) {
   // result will be returned in ctx_msm_size.shots.
   cudaq::ExecutionContext ctx_msm_size("msm_size");
   auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(&ctx_msm_size);
-  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx_msm_size, multi_round_ghz{}, num_qubits,
+                                  num_rounds, noise_bf_prob);
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
   cudaq::ExecutionContext ctx_msm("msm");
   ctx_msm.noiseModel = &noise;
   ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.set_exec_ctx(&ctx_msm);
-  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx_msm, multi_round_ghz{}, num_qubits,
+                                  num_rounds, noise_bf_prob);
 
   // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
   // MSM is stored there, but some post-processing may be required to
@@ -410,18 +406,15 @@ get_msm_test(double noise_probability) {
   // result will be returned in ctx_msm_size.shots.
   cudaq::ExecutionContext ctx_msm_size("msm_size");
   auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(&ctx_msm_size);
-  simple_test{}(noise_probability);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx_msm_size, simple_test{},
+                                  noise_probability);
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
   cudaq::ExecutionContext ctx_msm("msm");
   ctx_msm.noiseModel = &noise;
   ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.set_exec_ctx(&ctx_msm);
-  simple_test{}(noise_probability);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx_msm, simple_test{}, noise_probability);
 
   return {transpose_msm(ctx_msm.result.sequential_data()),
           ctx_msm.msm_probabilities.value(), ctx_msm.msm_prob_err_id.value()};

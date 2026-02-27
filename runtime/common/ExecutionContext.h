@@ -12,6 +12,7 @@
 #include "NoiseModel.h"
 #include "SampleResult.h"
 #include "Trace.h"
+#include "common/JIT.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
 #include <optional>
@@ -20,6 +21,7 @@
 namespace cudaq {
 
 class SimulationState;
+class ExecutionManager;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -134,6 +136,10 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
+  /// @brief Flag to indicate that a warning about named measurement registers
+  /// in sampling context has already been emitted.
+  bool warnedNamedMeasurements = false;
+
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;
@@ -151,10 +157,54 @@ public:
 
   bool allowJitEngineCaching = false;
 
-  /// For performance, a launcher may cache the JIT execution engine and use it
-  /// for multiple discrete calls. This is actually a pointer to a
-  /// `mlir::ExecutionEngine` object, but we hide that because of problems with
-  /// the structure and organization of the runtime libraries.
-  void *jitEng = nullptr;
+  /// @cond HIDDEN_MEMBERS
+  /// @brief Pointer to the execution manager for the current execution context,
+  /// if it exists.
+  ExecutionManager *executionManager = nullptr;
+
+  /// @brief For performance, a launcher may cache the JIT execution engine and
+  /// use it for multiple discrete calls.
+  std::optional<JitEngine> jitEng = std::nullopt;
+
+  /// @endcond
 };
+
+//===----------------------------------------------------------------------===//
+// Access to the thread-local ExecutionContext
+//===----------------------------------------------------------------------===//
+
+/// @brief Get the current thread-local execution context.
+///
+/// This is used by the NVQIR bridge to forward calls from QPU kernels to the
+/// appropriate QPU backend. It is also currently used in QPUs and simulators
+/// to adjust behavior based on the execution context.
+ExecutionContext *getExecutionContext();
+
+/// @brief Return true if the simulator is in the tracer mode.
+bool isInTracerMode();
+
+/// @brief Return true if the current execution is in batch mode.
+bool isInBatchMode();
+
+/// @brief Return true if the current execution is the last execution of batch
+/// mode.
+bool isLastBatch();
+
+/// @brief Get the ID of the current QPU.
+std::size_t getCurrentQpuId();
+
+namespace detail {
+/// Set the execution context for the current thread.
+///
+/// Use `quantum_platform::with_execution_context` instead of setting/resetting
+/// the execution context manually.
+void setExecutionContext(ExecutionContext *ctx);
+
+/// Reset the execution context for the current thread.
+///
+/// Use `quantum_platform::with_execution_context` instead of setting/resetting
+/// the execution context manually.
+void resetExecutionContext();
+} // namespace detail
+
 } // namespace cudaq

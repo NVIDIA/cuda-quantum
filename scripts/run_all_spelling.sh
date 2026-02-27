@@ -32,7 +32,7 @@ while getopts "::d" opt; do
 done
 OPTIND=$__optind__
 
-CONFIG=.github/workflows/config/spellcheck_config.yml
+CONFIG=.github/pre-commit/spellcheck_config.yml
 
 if [ "$RUN_ON_ALL_FILES" = "1" ]; then
   ALL_FILES_TO_CONSIDER=`git ls-files --`

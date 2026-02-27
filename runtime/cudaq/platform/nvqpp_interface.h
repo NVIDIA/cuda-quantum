@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include "common/JIT.h"
 #include "common/ThunkInterface.h"
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -68,10 +70,9 @@ streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
                         const std::vector<void *> &rawArgs,
                         mlir::Type resultTy);
 
-[[nodiscard]] void *
-streamlinedSpecializeModule(const std::string &kernelName,
-                            mlir::ModuleOp moduleOp,
-                            const std::vector<void *> &rawArgs,
-                            mlir::Type resultTy, void *cachedEngine);
+[[nodiscard]] void *streamlinedSpecializeModule(
+    const std::string &kernelName, mlir::ModuleOp moduleOp,
+    const std::vector<void *> &rawArgs, mlir::Type resultTy,
+    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint);
 
 } // namespace cudaq

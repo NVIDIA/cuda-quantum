@@ -330,6 +330,51 @@ def testMpiTwoQubitBatched():
         assert abs(norm - 1.0) < 0.01
 
 
+@skipIfUnsupported
+def testMpiBatchedStatesInvalidBatchSize():
+    """
+    Test invalid batch size for distributed batched evolution. This should raise a runtime error when the batch size
+    is not evenly divisible by the number of MPI ranks.
+    """
+    import cupy as cp
+
+    num_ranks = cudaq.mpi.num_ranks()
+
+    # Skip if running with a single MPI rank, since any batch size is divisible by 1
+    if num_ranks == 1:
+        pytest.skip(
+            "This test requires at least 2 MPI ranks to test invalid batch size"
+        )
+
+    # Simple single-qubit Hamiltonian
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+
+    # Create (num_ranks + 1) distinct initial states to ensure invalid batch size
+    initial_states = []
+    for i in range(num_ranks + 1):
+        theta = i * np.pi / 8
+        state_data = cp.array([np.cos(theta), np.sin(theta)],
+                              dtype=cp.complex128)
+        initial_states.append(cudaq.State.from_data(state_data))
+
+    batch_size = len(initial_states)
+    steps = np.linspace(0, 1, 11)
+    schedule = Schedule(steps, ['time'])
+
+    # This should raise a runtime error due to invalid batch size
+    with pytest.raises(RuntimeError) as excinfo:
+        evolution_results = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[spin.z(0)],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+            integrator=RungeKuttaIntegrator())
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

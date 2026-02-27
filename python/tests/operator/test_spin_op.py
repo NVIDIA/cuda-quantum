@@ -18,6 +18,20 @@ except ImportError:
     has_scipy = False
 
 
+def _term_tuples(op):
+    """Set of (term_id, coefficient) from iterating over op"""
+    it = iter(op)
+    first = next(it, None)
+    if first is None:
+        return set()
+    if hasattr(first, "term_id") and hasattr(first, "evaluate_coefficient"):
+        result = {(first.term_id, first.evaluate_coefficient())}
+        for t in it:
+            result.add((t.term_id, t.evaluate_coefficient()))
+        return result
+    return {(op.term_id, op.evaluate_coefficient())}
+
+
 @pytest.fixture(autouse=True)
 def setup():
     random.seed(10)
@@ -54,25 +68,10 @@ def test_definitions():
     y_ = y(qubit)
     z_ = z(qubit)
 
-    data, _ = i_.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 2)
-    assert (data[0] == [0, 0])
-
-    data, _ = x_.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 2)
-    assert (data[0] == [1, 0])
-
-    data, _ = y_.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 2)
-    assert (data[0] == [1, 1])
-
-    data, _ = z_.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 2)
-    assert (data[0] == [0, 1])
+    assert [int(b) for b in i_.get_binary_symplectic_form()] == [0, 0]
+    assert [int(b) for b in x_.get_binary_symplectic_form()] == [1, 0]
+    assert [int(b) for b in y_.get_binary_symplectic_form()] == [1, 1]
+    assert [int(b) for b in z_.get_binary_symplectic_form()] == [0, 1]
 
 
 def test_commutation_relations():
@@ -209,6 +208,8 @@ def test_properties():
     assert sum.max_degree == 3
 
     assert sum.term_count == 2
+    assert prod1.term_count == 1
+    assert prod2.term_count == 1
     assert prod1.ops_count == 2
     sum += prod1
     assert sum.term_count == 2
@@ -222,8 +223,7 @@ def test_properties():
     assert prod1.term_id == "Y0X1"
 
     spin_operator = empty()
-    # (is_identity on sum is deprecated, kept for backwards compatibility)
-    assert spin_operator.is_identity()
+    assert all(term.is_identity() for term in spin_operator)
     # Sum is empty.
     assert spin_operator.term_count == 0
     assert spin_operator.qubit_count == 0
@@ -232,12 +232,10 @@ def test_properties():
     assert spin_operator.term_count == 1
     assert spin_operator.qubit_count == 1
     # No longer identity.
-    assert not spin_operator.is_identity()
-    # Term should have a coefficient -1
     term, *_ = spin_operator
+    assert not term.is_identity()
+    # Term should have a coefficient -1
     assert term.evaluate_coefficient() == -1.0
-    assert term.get_coefficient(
-    ) == -1.0  # deprecated function replaced by evaluate_coefficient
 
 
 def test_matrix_construction():
@@ -583,133 +581,41 @@ def test_arithmetics():
     # double - SpinOperator
     spin_p = 3.0 - spin_a
 
-    data, coeffs = spin_a.get_raw_data()
-    # this was 3 due to the (incorrect) identity that the default constructor used to create
-    # same goes for all other len check adjustments in this test
-    assert (len(data) == 2)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [5 + 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_a) == {("X0Z2", 5 + 5j), ("Y1Z2", -5 - 5j)}
 
-    data, coeffs = spin_b.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 2)
-    expected = [[1, 0]]
-    assert (all([d in expected for d in data]))
-    expected = [1]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_b) == {("X0", 1)}
 
-    data, coeffs = spin_c.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 4)
-    expected = [[0, 1, 0, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [1]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_c) == {("Y1", 1)}
 
-    data, coeffs = spin_d.get_raw_data()
-    assert (len(data) == 1)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [1]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_d) == {("Z2", 1)}
 
-    data, coeffs = spin_f.get_raw_data()
-    assert (len(data) == 3)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1],
-                [1, 0, 0, 0, 0, 0]]
-    assert (all([d in expected for d in data]))
-    expected = [5 + 5j, 5 + 5j, -5 - 5j, 1]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_f) == {("X0Z2", 5 + 5j), ("Y1Z2", -5 - 5j),
+                                    ("X0", 1)}
 
-    data, coeffs = spin_g.get_raw_data()
-    assert (len(data) == 3)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1],
-                [1, 0, 0, 0, 0, 0]]
-    assert (all([d in expected for d in data]))
-    expected = [5 + 5j, 5 + 5j, -5 - 5j, -1]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_g) == {("X0Z2", 5 + 5j), ("Y1Z2", -5 - 5j),
+                                    ("X0", -1)}
 
-    data, coeffs = spin_h.get_raw_data()
-    assert (len(data) == 2)
-    assert (len(data[0]) == 6)
-    expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [1, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [5 + 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_h) == {("I0Z2", 5 + 5j), ("X0Y1Z2", -5 - 5j)}
 
-    data, coeffs = spin_i.get_raw_data()
-    assert (len(data) == 2)
-    assert (len(data[0]) == 6)
-    expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [-5 - 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_i) == {("X0Z2", -5 - 5j), ("Y1Z2", 5 + 5j)}
 
-    data, coeffs = spin_j.get_raw_data()
-    assert (len(data) == 2)
-    assert (len(data[0]) == 6)
-    expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [-5 - 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_j) == {("X0Z2", -5 - 5j), ("Y1Z2", 5 + 5j)}
 
-    data, coeffs = spin_k.get_raw_data()
-    assert (len(data) == 2)
-    assert (len(data[0]) == 6)
-    expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [10j, 10j, -10j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_k) == {("X0Z2", 10j), ("Y1Z2", -10j)}
 
-    data, coeffs = spin_l.get_raw_data()
-    assert (len(data) == 2)
-    assert (len(data[0]) == 6)
-    expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [10j, 10j, -10j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_l) == {("X0Z2", 10j), ("Y1Z2", -10j)}
 
-    data, coeffs = spin_m.get_raw_data()
-    assert (len(data) == 3)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [3, 5 + 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_m) == {("X0Z2", 5 + 5j), ("Y1Z2", -5 - 5j),
+                                    ("", 3)}
 
-    data, coeffs = spin_n.get_raw_data()
-    assert (len(data) == 3)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [3, 5 + 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_n) == {("X0Z2", 5 + 5j), ("Y1Z2", -5 - 5j),
+                                    ("", 3)}
 
-    data, coeffs = spin_o.get_raw_data()
-    assert (len(data) == 3)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [-3, 5 + 5j, 5 + 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_o) == {("X0Z2", 5 + 5j), ("Y1Z2", -5 - 5j),
+                                    ("", -3)}
 
-    data, coeffs = spin_p.get_raw_data()
-    assert (len(data) == 3)
-    assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 1]]
-    assert (all([d in expected for d in data]))
-    expected = [3, 5 + 5j, -5 - 5j, -5 - 5j]
-    assert (all([c in expected for c in coeffs]))
+    assert _term_tuples(spin_p) == {("X0Z2", -5 - 5j), ("Y1Z2", 5 + 5j),
+                                    ("", 3)}
 
 
 def test_term_distribution():
@@ -785,46 +691,40 @@ def test_vqe():
     assert hamiltonian == hamiltonian
     assert hamiltonian.term_count == 5
 
-    got_data, got_coefficients = hamiltonian.get_raw_data()
-    assert (len(got_data) == 5)
-    assert (len(got_data[0]) == 4)
-    expected = [[0, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 1], [0, 0, 0, 1],
-                [0, 0, 1, 0]]
-    assert (all([d in expected for d in got_data]))
-    expected = [5.907, -2.1433, -2.1433, .21829, -6.125]
-    assert (all([c in expected for c in got_coefficients]))
+    expected_terms = {
+        ("", 5.907),
+        ("X0X1", -2.1433),
+        ("Y0Y1", -2.1433),
+        ("Z0", 0.21829),
+        ("Z1", -6.125),
+    }
+    assert _term_tuples(hamiltonian) == expected_terms
 
 
 # deprecated functionality - replaced by iteration
 def test_legacy_foreach():
+    from cudaq import Pauli
+
     hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
         1) + .21829 * z(0) - 6.125 * z(1)
     print(hamiltonian)
 
     counter = 0
-
-    def doSomethingWithTerm(term):
-        nonlocal counter
+    for term in hamiltonian:
         print(term)
         counter += 1
-
-    hamiltonian.for_each_term(doSomethingWithTerm)
     assert counter == 5
 
     counter = 0
     xSupports = []
 
-    def doSomethingWithTerm(term):
-
-        def doSomethingWithPauli(pauli: Pauli, idx: int):
-            nonlocal counter, xSupports
+    for term in hamiltonian:
+        for idx, op in enumerate(term):
+            pauli = op.as_pauli()
             if pauli == Pauli.X:
                 counter = counter + 1
                 xSupports.append(idx)
 
-        term.for_each_pauli(doSomethingWithPauli)
-
-    hamiltonian.for_each_term(doSomethingWithTerm)
     assert counter == 2
     assert xSupports == [0, 1]
 

@@ -20,6 +20,11 @@ on:
         description: The platforms to build the Docker images for. A semicolon separated list creates a separate list for each platform, whereas a comma separate list creates a multi-platform build.
         required: false
         default: default
+      devcontainer_only:
+        type: boolean
+        description: Build and push only the dev container image.
+        required: false
+        default: false
       create_release:
         type: string
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
@@ -32,6 +37,8 @@ on:
       - completed
     # PR merged workflow runs after merge into certain branches an on pull_request_target;
     # there should hence be no need for additional branch filtering here.
+  schedule:
+    - cron: "0 14 * * *"
   push:
     branches:
       - 'releases/*'
@@ -100,8 +107,8 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          if ${{ github.event_name == 'workflow_dispatch' }}; then 
-            defaults="${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            defaults="${{ ((inputs.update_registry_cache || github.event_name == 'schedule') && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
             requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
           else
             requested_platforms="linux/arm64 linux/amd64"
@@ -151,7 +158,7 @@ jobs:
           if-no-files-found: error
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ steps.pr_info.outputs.merge_commit }}"
 
@@ -306,6 +313,7 @@ jobs:
               inputs: {
                 platforms: 'linux/arm64 linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
+                devcontainer_only: ${{ github.event_name == 'schedule' }}
               },
             })
 
@@ -334,6 +342,7 @@ jobs:
 
   coverage:
     name: Update code coverage
+    if: ${{ ! inputs.devcontainer_only }}
     needs: [metadata, config]
     strategy:
       matrix:
@@ -362,7 +371,7 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      dockerfile: build/devdeps.ext.Dockerfile
+      dockerfile: build/devcontainer.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
@@ -396,9 +405,94 @@ jobs:
         run: |
           echo '${{ steps.read_json.outputs.result }}'
 
+  stitch_devdeps:
+    name: Stitch devdeps (CUDA ${{ matrix.cuda }}) images
+    needs: ext_config
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cuda: ["12.6", "13.0"]
+
+    environment: ghcr-deployment
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up environment
+        run: |
+          docker context create builder_context || echo "Context exists"
+          docker context use builder_context
+
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: metadata for jobs
+        id: metadata
+        run: |
+          set -euo pipefail
+          EXT_JSON='${{ needs.ext_config.outputs.json }}'
+          echo "ext_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$EXT_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Stitch devdeps image
+        run: |
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+          EXT_JSON='${{ steps.metadata.outputs.ext_json }}'
+
+          refs=""
+          for arch in arm64 amd64; do
+            key="${arch}-cu${cuda}-ext"
+            image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
+            refs="$refs $image"
+          done
+
+          registry=$(echo "$image" | cut -d'@' -f1)
+
+          # Retrieve image tag from EXT_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-ext"
+          image_tag=$(echo "$EXT_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
+
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${image_tag/amd64-/}"
+
+          echo "Stitching devdeps image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "devdeps-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          echo "$stitched_output" | tee stitched_digests.json
+
+      - name: Read stitched_digests.json
+        id: stitched_json
+        run: |
+          echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
+
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: stitched_devdeps_images
+          matrix-key: cu${{ matrix.cuda }}
+          outputs: |
+            json: ${{ steps.stitched_json.outputs.json }}
+
   docker_images:
     name: Create Docker images
     needs: [metadata, config, ext_config]
+    if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -438,8 +532,8 @@ jobs:
           echo '${{ steps.read.outputs.result }}' | jq .
 
   stitch:
-    name: Stitch CUDA ${{ matrix.cuda }} images
-    needs: [digest_config, ext_config]
+    name: Stitch CUDA-Q (CUDA ${{ matrix.cuda }}) images
+    needs: digest_config
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -449,7 +543,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up environment
         run: |
@@ -479,57 +573,12 @@ jobs:
         id: metadata
         run: |
           set -euo pipefail
-
           DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
-          EXT_JSON='${{ needs.ext_config.outputs.json }}'
-
           echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
           echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
           echo "EOF" | tee -a "$GITHUB_OUTPUT"
 
-          echo "ext_json<<EOF" | tee -a "$GITHUB_OUTPUT"
-          echo "$EXT_JSON" | tee -a "$GITHUB_OUTPUT"
-          echo "EOF" | tee -a "$GITHUB_OUTPUT"
-
-      - name: Stitch devdeps image
-        id: stitch_devdeps_image
-        run: |
-          cuda="${{ matrix.cuda }}"
-          cuda_major="${cuda%%.*}"
-
-          EXT_JSON='${{ steps.metadata.outputs.ext_json }}'
-          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
-
-          refs=""
-          for arch in arm64 amd64; do
-            key="${arch}-cu${cuda}-ext"
-            image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
-            refs="$refs $image"
-          done
-
-          registry=$(echo "$image" | cut -d'@' -f1)
-
-          # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
-          key="amd64-cu${cuda}-dev-image"
-          dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
-
-          # Remove 'amd64-' from the whole string
-          stitched_tag="${dev_image/amd64-/}"
-
-          # push to cuda-quantum-devdeps instead of cuda-quantum-dev
-          stitched_tag="${stitched_tag/cuda-quantum-dev:/cuda-quantum-devdeps:}"
-
-          echo "Stitching devdeps image with tag: $stitched_tag"
-          echo "References: $refs"
-
-          docker buildx imagetools create --tag "$stitched_tag" $refs
-          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
-          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
-          stitched_output=$(echo "$stitched_output" | jq --arg key "devdeps-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
-          echo "$stitched_output" | tee stitched_digests.json
-
       - name: Stitch debug image
-        id: stitch_debug_image
         run: |
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
@@ -563,7 +612,6 @@ jobs:
           echo "$stitched_output" | tee stitched_digests.json
 
       - name: Stitch release image
-        id: stitch_release_image
         run: |
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
@@ -625,96 +673,105 @@ jobs:
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
-          matrix-step-name: stitched_images
+          matrix-step-name: stitched_cudaq_images
           matrix-key: cu${{ matrix.cuda }}
           outputs: |
             json: ${{ steps.stitched_json.outputs.json }}
 
   aggregate_stitched_images:
     name: Aggregate Stitched Images
-    needs: stitch
+    needs: [stitch, stitch_devdeps]
     runs-on: ubuntu-latest
 
     outputs:
-      json: "${{ steps.read.outputs.result }}"
+      devdeps_json: "${{ steps.read_devdeps.outputs.result }}"
+      cudaq_json: "${{ steps.read_cudaq.outputs.result }}"
 
     steps:
-      - name: Read matrix outputs
-        id: read
+      - name: Read matrix outputs (devdeps)
+        id: read_devdeps
         uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         with:
-          matrix-step-name: stitched_images
+          matrix-step-name: stitched_devdeps_images
+
+      - name: Read matrix outputs (CUDA-Q)
+        id: read_cudaq
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        with:
+          matrix-step-name: stitched_cudaq_images
 
       - name: Print full digest config JSON
         run: |
-          echo "Received matrix outputs:"
-          echo '${{ steps.read.outputs.result }}' | jq .
+          echo "Received matrix outputs (devdeps):"
+          echo '${{ steps.read_devdeps.outputs.result }}' | jq .
+          echo "Received matrix outputs (CUDA-Q):"
+          echo '${{ steps.read_cudaq.outputs.result }}' | jq .
 
   summary:
     name: Write deployment summary
     needs: [metadata, aggregate_stitched_images]
+    strategy:
+      matrix:
+        cuda: ["12.6", "13.0"]
 
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create image summary
         id: summary
         run: |
-          STITCHED_JSON='${{ needs.aggregate_stitched_images.outputs.json }}'
-          echo "$STITCHED_JSON" | jq .
+          STITCHED_DEVDEPS_JSON='${{ needs.aggregate_stitched_images.outputs.devdeps_json }}'
+          echo "$STITCHED_DEVDEPS_JSON" | jq .
+          STITCHED_CUDAQ_JSON='${{ needs.aggregate_stitched_images.outputs.cudaq_json }}'
+          echo "$STITCHED_CUDAQ_JSON" | jq .
 
-          for cuda in 12.6 13.0; do
-            cuda_major="${cuda%%.*}"
-            artifact_name="image_cu${cuda_major}_publishing"            
-            info_file="$artifact_name.txt"
+          cuda=${{ matrix.cuda }}
+          cuda_major="${cuda%%.*}"
+          artifact_name="image_cu${cuda_major}_publishing"            
+          info_file="$artifact_name.txt"
 
-            key="base-cu${cuda_major}"
-            cudaq_reference=$(echo "$STITCHED_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
+          key="base-cu${cuda_major}"
+          cudaq_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
-            key="dev-cu${cuda_major}"
-            dev_reference=$(echo "$STITCHED_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
+          key="dev-cu${cuda_major}"
+          dev_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
-            key="devdeps-cu${cuda_major}"
-            devdeps_reference=$(echo "$STITCHED_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
+          key="devdeps-cu${cuda_major}"
+          devdeps_reference=$(echo "$STITCHED_DEVDEPS_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
-            # Parse JSON and join docker_flag values (e.g., "linux/amd64,linux/arm64")
-            platforms=$(echo '${{ needs.metadata.outputs.platforms }}' \
-              | jq -r '[.ids[] as $id | .[$id].docker_flag] | join(",")')
+          # Parse JSON and join docker_flag values (e.g., "linux/amd64,linux/arm64")
+          platforms=$(echo '${{ needs.metadata.outputs.platforms }}' \
+            | jq -r '[.ids[] as $id | .[$id].docker_flag] | join(",")')
 
-            {
-              echo "source-sha: ${{ github.sha }}"
-              echo "cuda-quantum-image: ${cudaq_reference}"
-              echo "cuda-quantum-dev-image: ${dev_reference}"
-              echo "cuda-quantum-devdeps-image: ${devdeps_reference}"
-              echo "platforms: ${platforms}"
-              echo "cuda-version: ${cuda}"
-              cat .github/workflows/config/gitlab_commits.txt
-            } | tee "$info_file"
-            echo "Created $info_file"
-          done
+          {
+            echo "source-sha: ${{ github.sha }}"
+            echo "cuda-quantum-image: ${cudaq_reference}"
+            echo "cuda-quantum-dev-image: ${dev_reference}"
+            echo "cuda-quantum-devdeps-image: ${devdeps_reference}"
+            echo "platforms: ${platforms}"
+            echo "cuda-version: ${cuda}"
+            cat .github/workflows/config/gitlab_commits.txt
+          } | tee "$info_file"
+          echo "Created $info_file"
 
-      - name: Upload image_cu12_publishing
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT          
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT          
+
+      - name: Upload ${{ steps.summary.outputs.artifact_name }}
         uses: actions/upload-artifact@v4
         with:
-          name: image_cu12_publishing
-          path: image_cu12_publishing.txt
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: Upload image_cu13_publishing
-        uses: actions/upload-artifact@v4
-        with:
-          name: image_cu13_publishing
-          path: image_cu13_publishing.txt
+          name: ${{ steps.summary.outputs.artifact_name }}
+          path: ${{ steps.summary.outputs.info_file }}
           retention-days: 30
           if-no-files-found: error
 
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config]
+    if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -735,6 +792,7 @@ jobs:
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config]
+    if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}

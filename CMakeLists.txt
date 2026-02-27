@@ -156,33 +156,42 @@ option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Fron
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
+option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+if (${CUDAQ_FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+       add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+       add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
+# These are cached so they persist across cmake runs without needing the env vars set again.
 if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
-  SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
+  SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
 endif()
 if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
 endif()
 if(NOT CUSTATEVEC_ROOT)
-  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
+  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuStateVec installation")
 endif()
 if(NOT CUTENSORNET_ROOT)
-  SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
+  SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuTensorNet installation")
 endif()
 if(NOT CUDENSITYMAT_ROOT)
-  SET(CUDENSITYMAT_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
+  SET(CUDENSITYMAT_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuDensityMat installation")
 endif()
 if(NOT CUTENSOR_ROOT)
-  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}")
+  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}" CACHE PATH "Path to cuTensor installation")
 endif()
 if(NOT ZLIB_ROOT)
-  SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}")	
+  SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
 if(NOT OPENSSL_ROOT_DIR)	
-  SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
+  SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}" CACHE PATH "Path to OpenSSL installation")
 endif()
 if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
   SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE INTERNAL "")
@@ -192,15 +201,13 @@ endif()
 if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
   SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
 endif()
-if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
-  SET(CURL_LIBRARY "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")	
-  SET(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include")
-  SET(CURL_CONFIG_EXECUTABLE "$ENV{CURL_INSTALL_PREFIX}/bin/curl-config")
+if(NOT CURL_ROOT AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/cmake/CURL/CURLConfig.cmake")
+  # Point to custom curl installation - CMake will use its config files
+  SET(CURL_ROOT "$ENV{CURL_INSTALL_PREFIX}" CACHE PATH "Path to curl installation")
   SET(CMAKE_USE_SYSTEM_CURL TRUE)
-  SET(CURL_NO_CURL_CMAKE ON)
 endif()
 if(NOT AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
-  SET(AWSSDK_ROOT "$ENV{AWS_INSTALL_PREFIX}")
+  SET(AWSSDK_ROOT "$ENV{AWS_INSTALL_PREFIX}" CACHE PATH "Path to AWS SDK installation")
 endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
@@ -213,7 +220,11 @@ SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
+if(APPLE)
+  SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins")
+else()
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
+endif()
 
 SET(BLA_STATIC ON)
 if(NOT DEFINED ZLIB_USE_STATIC_LIBS)
@@ -221,6 +232,39 @@ if(NOT DEFINED ZLIB_USE_STATIC_LIBS)
 endif()
 if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
   SET(OPENSSL_USE_STATIC_LIBS TRUE)
+endif()
+
+# Platform-specific linker flags
+# --no-as-needed forces linking of all specified libraries (GNU ld only, not available on Apple)
+if(NOT APPLE)
+  set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
+else()
+  set(CUDAQ_FORCE_LINK_FLAG "")
+  # macOS Two-Level Namespace Workaround:
+  # By default, macOS uses two-level namespace linking where symbols are bound
+  # to the specific library they came from. This causes issues when LLVM/MLIR
+  # static initializers (e.g., PassRegistry, TargetRegistry) are duplicated
+  # across multiple shared libraries - each gets its own isolated copy.
+  #
+  # flat_namespace makes all symbols global, allowing shared libraries to see
+  # each other's registrations. This is not a very graceful fix.
+  # Alternatives might be:
+  # A. Restructuring libraries to avoid multiple symbol definitions 
+  #    (but this still might struggle due to how plugin systems are used).
+  # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as 
+  #    the first versions of this setting did not appropriately link all libraries to the dylibs.
+  add_link_options("-Wl,-flat_namespace")
+endif()
+
+# Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
+# clang doesn't know the SDK location (unlike Linux where headers are in /usr/include).
+if(NOT DEFINED CUDAQ_SYSROOT_PATH AND APPLE)
+  execute_process(
+    COMMAND xcrun --show-sdk-path
+    OUTPUT_VARIABLE CUDAQ_SYSROOT_PATH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
 endif()
 
 if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
@@ -358,6 +402,26 @@ endif()
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+
+# Detect C++ standard library headers for cudaq-quake
+# cudaq-quake needs to find C++ stdlib headers for parsing user code.
+# Priority order:
+# 1. LLVM's bundled libc++ (if LLVM was built with LLVM_ENABLE_PROJECTS=libcxx)
+# 2. macOS SDK sysroot (auto-detected via xcrun, provides system libc++)
+# 3. System headers (Linux: /usr/include, works automatically)
+# The paths are passed to cudaq-quake via nvqpp_config.h.in
+set(CUDAQ_LIBCXX_PATH "${LLVM_BINARY_DIR}/include/c++/v1")
+if(EXISTS "${CUDAQ_LIBCXX_PATH}")
+  message(STATUS "Using LLVM libc++ headers: ${CUDAQ_LIBCXX_PATH}")
+  set(CUDAQ_LIBCXX_TARGET_PATH "${LLVM_BINARY_DIR}/include/${LLVM_TARGET_TRIPLE}/c++/v1")
+elseif(CUDAQ_SYSROOT_PATH)
+  # Use sysroot (auto-detected on macOS, or user-provided)
+  message(STATUS "Using sysroot for C++ headers: ${CUDAQ_SYSROOT_PATH}")
+  unset(CUDAQ_LIBCXX_PATH)
+else()
+  # On Linux, system headers are found automatically
+  unset(CUDAQ_LIBCXX_PATH)
+endif()
 
 set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
 set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
@@ -614,7 +678,21 @@ if (CUDAQ_ENABLE_PYTHON)
   if (NOT GIT_PATCH_RESULT EQUAL "0")
     message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
   endif()
-  
+
+  # Apply patch to fix LTO flag bug with Clang (https://github.com/pybind/pybind11/issues/5098)
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying LTO patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
+
   # Regarding the use of PyBind, we need to be careful that the same STL is used for any 
   # Python bindings generated as part of the CUDA-Q build and bindings generated for 
   # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262

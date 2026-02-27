@@ -29,11 +29,14 @@ n=0
 while ! checkServerConnection; do
   sleep 1
   n=$((n+1))
-  if [ "$n" -eq "20" ]; then
+  if [ "$n" -eq "60" ]; then
     kill -INT $pid
     exit 99
   fi
 done
+# Set the environment before entering main
+export QCI_AUTH_TOKEN="00000000000000000000000000000000"
+export QCI_API_URL="http://localhost:62449"
 # Run the tests
 ./test_qci
 # Did they fail? 

@@ -47,8 +47,6 @@
 namespace py = pybind11;
 using namespace mlir;
 
-static std::unique_ptr<cudaq::JITExecutionCache> jitCache;
-
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
 };
@@ -59,6 +57,7 @@ struct PyStateVectorData {
   cudaq::simulation_precision precision = cudaq::simulation_precision::fp32;
   std::string kernelName;
 };
+
 } // namespace
 using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 
@@ -217,9 +216,10 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         auto appendVectorValue = []<typename T>(py::object value, void *data,
                                                 std::size_t offset, T) {
           auto asList = value.cast<py::list>();
-          std::vector<double> *values = new std::vector<double>(asList.size());
+          // Use the correct element type T (not always double).
+          auto *values = new std::vector<T>(asList.size());
           for (std::size_t i = 0; auto &v : asList)
-            (*values)[i++] = v.cast<double>();
+            (*values)[i++] = v.cast<T>();
 
           std::memcpy(((char *)data) + offset, values, 16);
         };
@@ -369,6 +369,10 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
   for (auto [i, zippy] : llvm::enumerate(llvm::zip(args, mlirTys))) {
     py::object arg = py::reinterpret_borrow<py::object>(std::get<0>(zippy));
     Type kernelArgTy = std::get<1>(zippy);
+    if (arg.is_none()) {
+      argData.emplace_back(nullptr, [](void *ptr) {});
+      continue;
+    }
     llvm::TypeSwitch<Type, void>(kernelArgTy)
         .Case([&](ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
@@ -405,9 +409,31 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         })
         .Case([&](cc::PointerType ty) {
           if (isa<quake::StateType>(ty.getElementType())) {
-            argData.emplace_back(arg.cast<state *>(), [](void *ptr) {
-              /* Do nothing, state is passed as reference */
-            });
+            auto *stateArg = arg.cast<state *>();
+
+            if (stateArg == nullptr)
+              throw std::runtime_error("Null cudaq::state* argument passed.");
+            auto simState = cudaq::state_helper::getSimulationState(
+                const_cast<cudaq::state *>(stateArg));
+            if (!simState)
+              throw std::runtime_error("Error: Unable to retrieve simulation "
+                                       "state from cudaq::state. The state "
+                                       "contains no simulation state.");
+            if (simState->getKernelInfo().has_value()) {
+              // For state arguments represented by a kernel, we need to make a
+              // copy of the state since this state is lazily evaluated. Note:
+              // the state that holds the kernel info also holds ownership of
+              // the packed arguments, hence the unravelling the correct
+              // arguments when evaluated.
+              state *copyState = new state(*stateArg);
+              argData.emplace_back(copyState, [](void *ptr) {
+                delete static_cast<state *>(ptr);
+              });
+            } else {
+              argData.emplace_back(
+                  stateArg,
+                  [](void *ptr) { /* do nothing, we don't own the state */ });
+            }
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
                                      py::str(arg).cast<std::string>() +
@@ -460,34 +486,51 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         .Case([&](cc::CallableType ty) {
           // arg must be a DecoratorCapture object.
           checkArgumentType<py::object>(arg, i);
-          py::object decorator = arg.attr("decorator");
-          auto kernelName = decorator.attr("uniqName").cast<std::string>();
-          auto kernelModule =
-              unwrap(decorator.attr("qkeModule").cast<MlirModule>());
-          auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
-              cudaq::runtime::cudaqGenPrefixName + kernelName);
-          py::list arguments = arg.attr("resolved");
-          auto startLiftedArgs = [&]() -> std::optional<unsigned> {
-            if (!arguments.empty())
-              return decorator.attr("firstLiftedPos").cast<unsigned>();
-            return std::nullopt;
-          }();
-          // build the recursive closure in a C++ object
-          auto *closure = [&]() {
+          if (py::hasattr(arg, "linkedKernel")) {
+            auto kernelName = arg.attr("linkedKernel").cast<std::string>();
+            // TODO: This is kinda yucky to have to remove because it's already
+            // present
+            kernelName.erase(0, strlen(cudaq::runtime::cudaqGenPrefixName));
+            auto kernelModule =
+                unwrap(arg.attr("qkeModule").cast<MlirModule>());
             OpaqueArguments resolvedArgs;
-            if (startLiftedArgs) {
-              auto fnTy = calledFuncOp.getFunctionType();
-              auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
-              packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
-                       calledFuncOp);
-            }
-            return new runtime::CallableClosureArgument(
-                kernelName, kernelModule, std::move(startLiftedArgs),
-                std::move(resolvedArgs));
-          }();
-          argData.emplace_back(closure, [](void *that) {
-            delete static_cast<runtime::CallableClosureArgument *>(that);
-          });
+            argData.emplace_back(
+                new runtime::CallableClosureArgument(kernelName, kernelModule,
+                                                     std::nullopt,
+                                                     std::move(resolvedArgs)),
+                [](void *that) {
+                  delete static_cast<runtime::CallableClosureArgument *>(that);
+                });
+          } else {
+            py::object decorator = arg.attr("decorator");
+            auto kernelName = decorator.attr("uniqName").cast<std::string>();
+            auto kernelModule =
+                unwrap(decorator.attr("qkeModule").cast<MlirModule>());
+            auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
+                cudaq::runtime::cudaqGenPrefixName + kernelName);
+            py::list arguments = arg.attr("resolved");
+            auto startLiftedArgs = [&]() -> std::optional<unsigned> {
+              if (!arguments.empty())
+                return decorator.attr("formal_arity")().cast<unsigned>();
+              return std::nullopt;
+            }();
+            // build the recursive closure in a C++ object
+            auto *closure = [&]() {
+              OpaqueArguments resolvedArgs;
+              if (startLiftedArgs) {
+                auto fnTy = calledFuncOp.getFunctionType();
+                auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
+                packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
+                         calledFuncOp);
+              }
+              return new runtime::CallableClosureArgument(
+                  kernelName, kernelModule, std::move(startLiftedArgs),
+                  std::move(resolvedArgs));
+            }();
+            argData.emplace_back(closure, [](void *that) {
+              delete static_cast<runtime::CallableClosureArgument *>(that);
+            });
+          }
         })
         .Default([&](Type ty) {
           // See if we have a backup type handler.
@@ -901,15 +944,18 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// NB: `cachedEngine` is actually of type `mlir::ExecutionEngine**`.
-static void *marshal_and_retain_module(const std::string &name,
-                                       MlirModule module, MlirType returnType,
-                                       void *cachedEngine,
-                                       py::args runtimeArgs) {
+// Return the pointer to the JITted LLVM code for the entry point function, and
+// a cache key for the JIT engine that was used to JIT the module. The engine is
+// cached and cleaned up automatically. The caller can use the cache key to
+// manually clean up the engine as well by calling
+// `delete_cache_execution_engine` with the cache key.
+static std::pair<void *, std::size_t>
+marshal_and_retain_module(const std::string &name, MlirModule module,
+                          MlirType returnType, bool isEntryPoint,
+                          py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
-  if (!cachedEngine)
-    throw std::runtime_error(
-        "Must have a storage location to retain the ExecutionEngine provided");
+  std::optional<cudaq::JitEngine> cachedEngine;
+
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = unwrap(returnType);
@@ -920,10 +966,23 @@ static void *marshal_and_retain_module(const std::string &name,
   Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
   auto clone = mod.clone();
   // Returns the pointer to the JITted LLVM code for the entry point function.
-  void *funcPtr = cudaq::streamlinedSpecializeModule(name, clone, rawArgs,
-                                                     resTy, cachedEngine);
+  void *funcPtr = cudaq::streamlinedSpecializeModule(
+      name, clone, rawArgs, resTy, cachedEngine, isEntryPoint);
   clone.erase();
-  return funcPtr;
+  // `streamlinedSpecializeModule` should always set the cached engine pointer
+  if (!cachedEngine)
+    throw std::runtime_error("Failed to retrieve the JIT engine pointer when "
+                             "specializing the module.");
+  // Use address of the allocated `ExecutionEngine` as the hash key to cache the
+  // JITted engine, and store the engine pointer in the cache
+  const size_t cacheKey = cachedEngine->getKey();
+  cudaq::JITExecutionCache::getJITCache().cache(cacheKey, cachedEngine.value());
+  return std::make_pair(funcPtr, cacheKey);
+}
+
+// Clean up the cached JIT engine corresponding to the given cache key.
+static void delete_cache_execution_engine(std::size_t cacheKey) {
+  cudaq::JITExecutionCache::getJITCache().deleteJITEngine(cacheKey);
 }
 
 static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
@@ -1112,7 +1171,6 @@ static std::size_t get_launch_args_required(MlirModule module,
 
 void cudaq::bindAltLaunchKernel(py::module &mod,
                                 std::function<std::string()> &&getTL) {
-  jitCache = std::make_unique<JITExecutionCache>();
   getTransportLayer = std::move(getTL);
 
   mod.def("lower_to_codegen", lower_to_codegen,
@@ -1129,7 +1187,8 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
           "The kernel is NOT executed, but rather cached to a location managed "
           "by the calling code. This allows the calling code to invoke the "
           "entry point with a regular C++ call.");
-
+  mod.def("delete_cache_execution_engine", delete_cache_execution_engine,
+          "Delete a cached JIT execution engine with the given cache key.");
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "
           "payload.");

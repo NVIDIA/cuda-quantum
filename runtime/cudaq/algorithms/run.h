@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
+#include "common/LayoutInfo.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
@@ -45,8 +46,8 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
                            const std::string &kernel_name,
                            const std::string &original_name, std::size_t shots,
-                           std::size_t qpu_id = 0,
-                           /* mlir::Operation* */ void *opt_module = nullptr);
+                           const LayoutInfoType &layoutInfo,
+                           std::size_t qpu_id = 0, bool allowCaching = true);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
@@ -120,24 +121,24 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   std::vector<ResultTy> results;
   auto &platform = get_platform();
 #ifdef CUDAQ_LIBRARY_MODE
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+  cudaq::ExecutionContext ctx("run", 1);
   // Direct kernel invocation loop for library mode
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
-    platform.set_exec_ctx(ctx.get());
-    results.emplace_back(kernel(std::forward<ARGS>(args)...));
-    platform.reset_exec_ctx();
+    results.emplace_back(platform.with_execution_context(
+        ctx, std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
   }
 #else
   // Launch the kernel in the appropriate context.
   std::string kernelName{details::getKernelName(kernel)};
+  LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
         auto *runKernel =
             details::get_run_entry_point(qkernel{kernel}, kernelName);
         (*runKernel)(std::forward<ARGS>(args)...);
       },
-      platform, kernelName, kernelName, shots);
+      platform, kernelName, kernelName, shots, layoutInfo);
   details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
@@ -172,25 +173,25 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+  cudaq::ExecutionContext ctx("run", 1);
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
-    platform.set_exec_ctx(ctx.get());
-    results.emplace_back(kernel(std::forward<ARGS>(args)...));
-    platform.reset_exec_ctx();
+    results.emplace_back(platform.with_execution_context(
+        ctx, std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
   }
   platform.reset_noise();
 #else
   // Launch the kernel in the appropriate context.
   platform.set_noise(&noise_model);
   std::string kernelName{details::getKernelName(kernel)};
+  LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
         auto *runKernel =
             details::get_run_entry_point(qkernel{kernel}, kernelName);
         (*runKernel)(std::forward<ARGS>(args)...);
       },
-      platform, kernelName, kernelName, shots);
+      platform, kernelName, kernelName, shots, layoutInfo);
   platform.reset_noise();
   details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
@@ -234,23 +235,24 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
+        cudaq::ExecutionContext ctx("run", 1, qpu_id);
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(kernel(std::forward<ARGS>(args)...));
-          platform.reset_exec_ctx();
+          res.emplace_back(platform.with_execution_context(
+              ctx, std::forward<QuantumKernel>(kernel),
+              std::forward<ARGS>(args)...));
         }
         p.set_value(std::move(res));
 #else
         const std::string kernelName{details::getKernelName(kernel)};
+        LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               auto *runKernel =
                   details::get_run_entry_point(qkernel{kernel}, kernelName);
               (*runKernel)(std::forward<ARGS>(args)...);
             },
-            platform, kernelName, kernelName, shots, qpu_id);
+            platform, kernelName, kernelName, shots, layoutInfo, qpu_id);
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
@@ -302,26 +304,27 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
+        cudaq::ExecutionContext ctx("run", 1, qpu_id);
         std::vector<ResultTy> res;
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(kernel(std::forward<ARGS>(args)...));
-          platform.reset_exec_ctx();
+          res.emplace_back(platform.with_execution_context(
+              ctx, std::forward<QuantumKernel>(kernel),
+              std::forward<ARGS>(args)...));
         }
         platform.reset_noise();
         p.set_value(std::move(res));
 #else
         platform.set_noise(&noise_model);
         const std::string kernelName{details::getKernelName(kernel)};
+        LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               auto *runKernel =
                   details::get_run_entry_point(qkernel{kernel}, kernelName);
               (*runKernel)(std::forward<ARGS>(args)...);
             },
-            platform, kernelName, kernelName, shots, qpu_id);
+            platform, kernelName, kernelName, shots, layoutInfo, qpu_id);
         platform.reset_noise();
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);

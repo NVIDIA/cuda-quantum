@@ -5,9 +5,9 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>
@@ -453,10 +453,8 @@ void AnyonServerHelper::updatePassPipeline(
   std::string qgate_type = "cgate";
   if (machine.starts_with("berkeley")) {
     qgate_type = "pgate";
-    printf("Compiling gates for berkeley\n");
   } else if (machine.starts_with("telegraph")) {
     qgate_type = "cgate";
-    printf("Compiling gates for telegraph\n");
   } else {
     printf("Unidentified machine type %s\n", machine.c_str());
   }

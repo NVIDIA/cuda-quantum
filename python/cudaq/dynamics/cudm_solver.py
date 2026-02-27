@@ -296,6 +296,13 @@ def evolve_dynamics(
     mpi_rank = cudaq_runtime.mpi.rank() if is_mpi_init else 0
     mpi_num_ranks = cudaq_runtime.mpi.num_ranks() if is_mpi_init else 1
 
+    # We requires an even partition for distributed batched states.
+    if batch_size > 1 and batch_size % mpi_num_ranks != 0:
+        raise RuntimeError(
+            f"Distributed batched states require an even partition across ranks: "
+            f"batch size {batch_size} is not divisible by number of ranks {mpi_num_ranks}. Please adjust "
+            "the number of MPI ranks or the batch size.")
+
     for step_idx, parameters in enumerate(schedule):
         if step_idx > 0:
             with ScopeTimer("evolve.integrator.integrate") as timer:

@@ -31,8 +31,11 @@ target_link_libraries(sunrise-provider
 
 add_backend_unittest_executable(test_fake_extra_payload_provider 
   SOURCES FakeHorizonTester.cpp
-  BACKEND horizon)
+  BACKEND horizon
+  BACKEND_CONFIG "horizon emulate=false extra_payload_provider=sunrise"
+)
 
-configure_file("HorizonStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/extra_payload_provider/HorizonStartServerAndTest.sh" @ONLY)
-add_test(NAME extra-payload-provider-tests COMMAND bash HorizonStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/extra_payload_provider/)
+configure_file(HorizonStartServerAndTest.sh.in HorizonStartServerAndTest.sh @ONLY)
+add_test(NAME extra-payload-provider-tests COMMAND bash HorizonStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+# initialization which can cause server startup timeouts on resource-constrained systems.

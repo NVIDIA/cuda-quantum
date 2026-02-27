@@ -10,11 +10,10 @@ add_backend_unittest_executable(test_pasqal
   SOURCES PasqalTester.cpp
   
   LINK_LIBS
-  fmt::fmt-header-only 
   cudaq
   cudaq-common 
   gtest_main
   cudaq-platform-default
 )
 
-gtest_discover_tests(test_pasqal)
+gtest_discover_tests(test_pasqal DISCOVERY_TIMEOUT 120)

@@ -8,9 +8,9 @@
 
 #include "NoiseModel.h"
 #include "FmtCore.h"
-#include "Logger.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <numeric>
 #include <optional>
 
@@ -19,7 +19,7 @@ namespace cudaq {
 // Helper to check whether a matrix is a scaled unitary matrix, i.e., `k * U`
 // where U is a unitary matrix. If so, it also returns the `k` factor.
 // Otherwise, return a nullopt.
-static std::optional<double>
+std::optional<double>
 isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
   typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
                         Eigen::RowMajor>
@@ -46,11 +46,11 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
 // Helper to determine if a vector of Kraus ops are actually a unitary mixture.
 // If so, it returns all the unitaries and the probabilities associated with
 // each one of those unitaries.
-static std::optional<std::pair<std::vector<double>,
-                               std::vector<std::vector<std::complex<double>>>>>
+std::optional<std::pair<std::vector<double>,
+                        std::vector<std::vector<std::complex<double>>>>>
 computeUnitaryMixture(
     const std::vector<std::vector<std::complex<double>>> &krausOps,
-    double tol = 1e-6) {
+    double tol) {
   std::vector<double> probs;
   std::vector<std::vector<std::complex<double>>> mats;
   const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
@@ -144,10 +144,44 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
         "Provided kraus_ops are not completely positive and trace preserving.");
 }
 
+// Check whether a d x d unitary matrix (stored row-major as a flat vector)
+// is a global-phase-times-identity, i.e. e^{i*phi} * I. Global phase is
+// unobservable in measurement, so these operators act as identity for PTSBE.
+bool isIdentityUnitary(const std::vector<std::complex<double>> &mat,
+                       double tol = 1e-6) {
+  auto n = mat.size();
+  if (n == 0)
+    return false;
+  std::size_t dim = static_cast<std::size_t>(std::round(std::sqrt(n)));
+  if (dim * dim != n)
+    return false;
+  auto phase = mat[0];
+  if (std::abs(std::abs(phase) - 1.0) > tol)
+    return false;
+  for (std::size_t r = 0; r < dim; ++r) {
+    for (std::size_t c = 0; c < dim; ++c) {
+      auto expected = (r == c) ? phase : std::complex<double>(0.0);
+      if (std::abs(mat[r * dim + c] - expected) > tol)
+        return false;
+    }
+  }
+  return true;
+}
+
+// After computing unitary_ops, determine which are identity operators.
+void computeIdentityFlags(
+    const std::vector<std::vector<std::complex<double>>> &unitary_ops,
+    std::vector<bool> &identity_flags) {
+  identity_flags.clear();
+  identity_flags.reserve(unitary_ops.size());
+  for (const auto &u : unitary_ops)
+    identity_flags.push_back(isIdentityUnitary(u));
+}
+
 void generateUnitaryParameters_fp32(
     const std::vector<kraus_op> &ops,
     std::vector<std::vector<std::complex<double>>> &unitary_ops,
-    std::vector<double> &probabilities) {
+    std::vector<double> &probabilities, std::vector<bool> &identity_flags) {
   std::vector<std::vector<std::complex<double>>> double_kraus_ops;
   double_kraus_ops.reserve(ops.size());
   for (auto &op : ops) {
@@ -166,13 +200,14 @@ void generateUnitaryParameters_fp32(
   if (asUnitaryMixture.has_value()) {
     probabilities = std::move(asUnitaryMixture.value().first);
     unitary_ops = std::move(asUnitaryMixture.value().second);
+    computeIdentityFlags(unitary_ops, identity_flags);
   }
 }
 
 void generateUnitaryParameters_fp64(
     const std::vector<kraus_op> &ops,
     std::vector<std::vector<std::complex<double>>> &unitary_ops,
-    std::vector<double> &probabilities) {
+    std::vector<double> &probabilities, std::vector<bool> &identity_flags) {
   std::vector<std::vector<std::complex<double>>> double_kraus_ops;
   double_kraus_ops.reserve(ops.size());
   for (auto &op : ops)
@@ -183,13 +218,15 @@ void generateUnitaryParameters_fp64(
   if (asUnitaryMixture.has_value()) {
     probabilities = std::move(asUnitaryMixture.value().first);
     unitary_ops = std::move(asUnitaryMixture.value().second);
+    computeIdentityFlags(unitary_ops, identity_flags);
   }
 }
 
 kraus_channel::kraus_channel(const kraus_channel &other)
     : ops(other.ops), noise_type(other.noise_type),
       parameters(other.parameters), unitary_ops(other.unitary_ops),
-      probabilities(other.probabilities) {}
+      probabilities(other.probabilities), identity_flags(other.identity_flags),
+      op_names(other.op_names) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
@@ -205,11 +242,22 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   parameters = other.parameters;
   unitary_ops = other.unitary_ops;
   probabilities = other.probabilities;
+  identity_flags = other.identity_flags;
+  op_names = other.op_names;
   return *this;
 }
 
 std::vector<kraus_op> kraus_channel::get_ops() const { return ops; }
-void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
+
+void kraus_channel::push_back(kraus_op op, std::optional<std::string> name) {
+  ops.push_back(op);
+  identity_flags.push_back(false);
+  if (name.has_value())
+    op_names.push_back(std::move(*name));
+  else
+    op_names.push_back(get_type_name() + "[" + std::to_string(ops.size() - 1) +
+                       "]");
+}
 
 void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,

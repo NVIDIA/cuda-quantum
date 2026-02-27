@@ -75,7 +75,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-logger cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
@@ -116,5 +116,5 @@ if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   target_link_libraries(rest-remote-platform-server PRIVATE CUDA::cudart_static)
 endif()
 
-target_link_options(rest-remote-platform-server PRIVATE -Wl,--no-as-needed)
+target_link_options(rest-remote-platform-server PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 install(TARGETS rest-remote-platform-server DESTINATION lib)

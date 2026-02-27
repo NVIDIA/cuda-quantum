@@ -304,6 +304,8 @@ public:
   }
 
   bool canHandleObserve() override {
+    auto executionContext = cudaq::getExecutionContext();
+
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&
         executionContext->shots != static_cast<std::size_t>(-1)) {
@@ -402,11 +404,6 @@ public:
     return std::is_same_v<StateType, qpp::ket>;
   }
 
-  /// @brief Primarily used for testing.
-  auto getStateVector() {
-    flushGateQueue();
-    return state;
-  }
   std::string name() const override { return "qpp"; }
   NVQIR_SIMULATOR_CLONE_IMPL(QppCircuitSimulator<StateType>)
 };

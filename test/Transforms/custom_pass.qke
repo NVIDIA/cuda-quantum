@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin.so --cudaq-custom-pass  | FileCheck %s
+// RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin%cudaq_plugin_ext --cudaq-custom-pass  | FileCheck %s
 
 module {
     func.func @bell() {

@@ -17,7 +17,9 @@ add_library(${LIBRARY_NAME}
     target_control.cpp
     algorithms/draw.cpp
     algorithms/evolve.cpp
+    algorithms/run.cpp
     algorithms/schedule.cpp
+    platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
@@ -26,8 +28,18 @@ add_library(${LIBRARY_NAME}
     qis/remote_state.cpp
     qis/state.cpp
     utils/cudaq_utils.cpp
-    utils/matrix.cpp
     distributed/mpi_plugin.cpp
+    ptsbe/PTSBEExecutionData.cpp
+    ptsbe/PTSBESample.cpp
+    ptsbe/PTSBESampleResult.cpp
+    ptsbe/PTSBESampler.cpp
+    ptsbe/ShotAllocationStrategy.cpp
+    ptsbe/TrajectoryDeduplication.cpp
+    ptsbe/strategies/ProbabilisticSamplingStrategy.cpp
+    ptsbe/strategies/ExhaustiveSamplingStrategy.cpp
+    ptsbe/strategies/OrderedSamplingStrategy.cpp
+    ptsbe/strategies/ConditionalSamplingStrategy.cpp
+    ptsbe/NoiseExtractor.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
@@ -41,7 +53,7 @@ if (CUDA_FOUND)
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
             $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC
@@ -53,6 +65,7 @@ if (CUDA_FOUND)
       MLIRIR
     PRIVATE
       nvqir
+      cudaq-logger
       fmt::fmt-header-only
       CUDA::cudart_static
       CUDAQTargetConfigUtil
@@ -64,7 +77,7 @@ else()
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC
@@ -76,6 +89,7 @@ else()
       MLIRIR
     PRIVATE
       nvqir
+      cudaq-logger
       fmt::fmt-header-only
       CUDAQTargetConfigUtil
   )
@@ -87,6 +101,7 @@ add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
 add_subdirectory(operators)
+add_subdirectory(ptsbe)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

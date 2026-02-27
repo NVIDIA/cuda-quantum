@@ -10,7 +10,7 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
@@ -199,6 +199,11 @@ std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
+
+TargetSetter::TargetSetter(const char *backend) {
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(std::string(backend));
+}
 } // namespace cudaq::__internal__
 
 //===----------------------------------------------------------------------===//
@@ -208,11 +213,6 @@ void setRandomSeed(std::size_t);
 }
 
 namespace cudaq {
-
-void set_target_backend(const char *backend) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(std::string(backend));
-}
 
 void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();

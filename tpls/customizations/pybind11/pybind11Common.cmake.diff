@@ -1,0 +1,16 @@
+diff --git a/tools/pybind11Common.cmake b/tools/pybind11Common.cmake
+--- a/tools/pybind11Common.cmake
++++ b/tools/pybind11Common.cmake
+@@ -319,8 +319,10 @@ function(_pybind11_generate_lto target prefer_thin_lto)
+       # This compile is very costly when cross-compiling, so set this without checking
+       set(PYBIND11_LTO_CXX_FLAGS "-flto${thin}${cxx_append}")
+       set(PYBIND11_LTO_LINKER_FLAGS "-flto${thin}${linker_append}")
+     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
++      # Fix for https://github.com/pybind/pybind11/issues/5098
++      # The original had "-flto=${thin}" which produces invalid "-flto=" or "-flto==thin"
+       _pybind11_return_if_cxx_and_linker_flags_work(
+-        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto=${thin}${linker_append}"
++        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto${thin}${linker_append}"
+         PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+     endif()
+     if(NOT HAS_FLTO_THIN)

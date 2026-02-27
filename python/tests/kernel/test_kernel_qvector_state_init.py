@@ -371,7 +371,7 @@ def test_init_from_other_kernel_state_f64():
         qubits = cudaq.qvector(initialState)
 
     state2 = cudaq.get_state(kernel, state)
-    cudaq.StateMemoryView(state2).dump()
+    state2.dump()
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -418,13 +418,11 @@ def test_inner_kernels_state():
     @cudaq.kernel
     def kernel0():
 
-        @cudaq.kernel
         def kernel1():
             q1 = cudaq.qvector(state)
 
         kernel1()
 
-        @cudaq.kernel
         def kernel2():
             q2 = cudaq.qvector(state)
 

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "execution_manager.h"
+#include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 
 namespace cudaq {
@@ -23,5 +24,12 @@ void resetExecutionManagerInternal() {
 }
 
 ExecutionManager *getExecutionManagerInternal() { return execution_manager; }
+
+ExecutionManager *detail::getExecutionManagerFromContext() {
+  auto ctx = getExecutionContext();
+  if (ctx)
+    return ctx->executionManager;
+  return nullptr;
+}
 
 } // namespace cudaq

@@ -26,12 +26,12 @@ port = 62449
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.9
+    return got < -1.1 and got > -2.2
 
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    cudaq.set_random_seed(42)
+    cudaq.set_random_seed(13)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -104,18 +104,18 @@ def test_observe():
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
     # Run the observe task on synchronously
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=200)
+    res = cudaq.observe(ansatz, hamiltonian, .59)
     assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
     assert assert_close(res.expectation())
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59)
     futureAsString = str(future)
 
     # Later you can come back and read it in
@@ -150,6 +150,40 @@ def test_u3_ctrl_decomposition():
 
     # Test here is that this runs without error
     cudaq.sample(kernel, shots_count=10)
+
+
+def test_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+        mz(q)
+
+    s = cudaq.get_state(init, 2)
+    counts = cudaq.sample(kernel, s)
+    assert '11' in counts
+    assert len(counts) == 1
+
+
+def test_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+        mz(qubits)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 def test_exp_pauli():

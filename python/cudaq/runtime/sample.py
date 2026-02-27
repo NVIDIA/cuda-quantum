@@ -9,7 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-from cudaq.kernel.utils import nvqppPrefix
+from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -22,8 +22,7 @@ cudaq_async_sample_cache_counter = 0
 class AsyncSampleResult:
 
     def __init__(self, *args, **kwargs):
-        if len(args) == 2 and isinstance(args[0],
-                                         cudaq_runtime.AsyncSampleResultImpl):
+        if len(args) == 2 and hasattr(args[0], 'get'):
             impl = args[0]
             mod = args[1]
             global cudaq_async_sample_module_cache
@@ -74,55 +73,48 @@ def __broadcastSample(kernel,
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
-        cudaq_runtime.setExecutionContext(ctx)
-        try:
+        with ctx:
             kernel(*a)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         res = ctx.result
         results.append(res)
 
     return results
 
 
-def _detail_has_conditionals_on_measure(kernel):
+def _detail_check_conditionals_on_measure(kernel):
+    has_conditionals_on_measure_result = False
     if isa_kernel_decorator(kernel):
-        if kernel.returnType is not None:
+        if kernel.return_type is not None:
             raise RuntimeError(
                 f"The `sample` API only supports kernels that return None "
                 f"(void). Kernel '{kernel.name}' has return type "
-                f"'{kernel.returnType}'. Consider using `run` for kernels "
+                f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
                 f"that return values.")
-        # Only check for kernels that are compiled, not library-mode kernels (e.g., photonics)
-        if kernel.qkeModule is not None:
+        # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
+        if kernel.supports_compilation():
             for operation in kernel.qkeModule.body.operations:
                 if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
                         == operation.name.value and
                         'qubitMeasurementFeedback' in operation.attributes):
-                    return True
+                    has_conditionals_on_measure_result = True
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
-        return True
-    return False
+        has_conditionals_on_measure_result = True
+
+    if has_conditionals_on_measure_result:
+        raise RuntimeError(
+            f"`cudaq.sample` and `cudaq.sample_async` no longer support "
+            f"kernels that branch on measurement results. Kernel "
+            f"'{kernel.name}' uses conditional feedback. Use `cudaq.run` "
+            f"or `cudaq.run_async` instead. See CUDA-Q docs for migration guide."
+        )
 
 
-def _detail_check_explicit_measurements(explicit_measurements,
-                                        has_conditionals_on_measure_result):
-    if explicit_measurements:
-        if not cudaq_runtime.supportsExplicitMeasurements():
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported "
-                "on this target.")
-        if has_conditionals_on_measure_result:
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported "
-                "on kernel with conditional logic on a measurement result.")
+def _detail_check_explicit_measurements(explicit_measurements):
+    if explicit_measurements and not cudaq_runtime.supportsExplicitMeasurements(
+    ):
+        raise RuntimeError(
+            "The sampling option `explicit_measurements` is not supported "
+            "on this target.")
 
 
 def sample(kernel,
@@ -162,11 +154,9 @@ def sample(kernel,
           such results in the case of `sample` function broadcasting.
     """
 
-    has_conditionals_on_measure_result = _detail_has_conditionals_on_measure(
-        kernel)
+    _detail_check_conditionals_on_measure(kernel)
 
-    _detail_check_explicit_measurements(explicit_measurements,
-                                        has_conditionals_on_measure_result)
+    _detail_check_explicit_measurements(explicit_measurements)
 
     if noise_model:
         cudaq_runtime.set_noise(noise_model)
@@ -180,24 +170,14 @@ def sample(kernel,
         return res
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
+    ctx.kernelName = kernel.name if hasattr(kernel, 'name') else ''
     ctx.explicitMeasurements = explicit_measurements
     ctx.allowJitEngineCaching = True
-    cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
-        try:
+        with ctx:
             kernel(*args)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         # If the platform is a hardware QPU, launch only once
         countsTotalIsZero = counts.get_total_shots() == 0
         resultTotalWasReached = ctx.result.get_total_shots() == shots_count
@@ -218,9 +198,6 @@ def sample(kernel,
                   "loop.")
             break
         ctx.result.clear()
-        if counts.get_total_shots() < shots_count:
-            cudaq_runtime.setExecutionContext(ctx)
-
     cudaq_runtime.unset_noise()
     ctx.unset_jit_engine()
     return counts
@@ -267,8 +244,8 @@ def sample_async(decorator,
     if (not isinstance(shots_count, int)) or (shots_count < 0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
-    if (decorator.returnType and
-            decorator.returnType != decorator.get_none_type()):
+    if (decorator.return_type and
+            decorator.return_type != decorator.get_none_type()):
         raise RuntimeError("The `sample_async` API only supports kernels that "
                            "return None (void). Consider using `run_async` for "
                            "kernels that return values.")
@@ -283,16 +260,16 @@ def sample_async(decorator,
             raise ValueError("Noise model is not supported on remote simulator"
                              " or hardware QPU.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    has_conditionals_on_measure_result = _detail_has_conditionals_on_measure(
-        kernel)
-    _detail_check_explicit_measurements(explicit_measurements,
-                                        has_conditionals_on_measure_result)
+    processedArgs, module = decorator.prepare_call(*args)
+
+    _detail_check_conditionals_on_measure(kernel)
+
+    _detail_check_explicit_measurements(explicit_measurements)
 
     retTy = decorator.get_none_type()
-    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName,
-                                                     specMod, retTy,
-                                                     shots_count, noise_model,
+    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
+                                                     retTy, shots_count,
+                                                     noise_model,
                                                      explicit_measurements,
                                                      qpu_id, *processedArgs)
-    return AsyncSampleResult(sample_results, specMod)
+    return AsyncSampleResult(sample_results, module)

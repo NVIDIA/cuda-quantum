@@ -45,9 +45,8 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   ExecutionContext context("tracer");
 
   // set the context, execute and then reset
-  platform.set_exec_ctx(&context);
-  kernel(args...);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(context, std::forward<KernelFunctor>(kernel),
+                                  std::forward<Args>(args)...);
 
   return context.kernelTrace;
 }

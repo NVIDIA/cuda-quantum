@@ -1,0 +1,384 @@
+on:
+  # Daily rebuild on main to ensure devdeps rebuilt as needed
+  schedule:
+    - cron: '0 4 * * *'  # aim to be ready by 9am CET/CEST
+  workflow_dispatch:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+  merge_group:
+    types:
+      - checks_requested
+
+name: CI - macOS # do not change name without updating workflow_run triggers
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Metadata: Retrieve PR info and commit hashes
+  # ============================================================================
+  metadata:
+    name: Retrieve PR info
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+
+    outputs:
+      pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
+      pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
+      cache_base: ${{ steps.pr_info.outputs.pr_base }}
+      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - id: pr_info
+        run: |
+          pr_number=`echo ${{ github.ref_name }} | grep pull-request/ | (grep -o [0-9]* || true)`
+          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
+
+          if [ -n "$pr_number" ]; then
+            pr_base=`gh pr view $pr_number -R ${{ github.repository }} --json baseRefName --jq .baseRefName`
+
+            echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+            echo "pr_base=$pr_base" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - id: version
+        run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          else
+            cudaq_version=0.0.0
+          fi
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+
+  # ============================================================================
+  # Build prerequisites via GHCR caching
+  # Uses dev_environment_macos.yml which packages artifacts into an Ubuntu image
+  # ============================================================================
+  devdeps:
+    name: Load macOS dependencies
+    needs: metadata
+    uses: ./.github/workflows/dev_environment_macos.yml
+    with:
+      platforms: darwin/arm64
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: false
+      environment: ghcr-ci
+
+  # ============================================================================
+  # Build and test CUDA-Q
+  # ============================================================================
+  build_and_test:
+    name: Build & Test (arm64)
+    needs: devdeps
+    runs-on: macos-26
+    timeout-minutes: 180
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ORAS
+        run: brew install oras
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          set -e  # Exit on error
+          # Login and pull cache artifact using ORAS
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          oras pull ${{ needs.devdeps.outputs.image_hash }}
+
+          # Extract to home directory
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
+
+          echo "=== Restored prerequisites ==="
+          du -sh ~/.local || true
+          du -sh ~/.llvm-project || true
+
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+
+          # Incremental rebuild: add python-bindings to cached LLVM build
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+
+      - name: Build CUDA-Q
+        run: bash scripts/build_cudaq.sh -v
+
+      - name: Run tests
+        run: bash scripts/run_tests.sh -v
+
+  # ============================================================================
+  # Build Python wheels for all supported Python versions
+  # Rebuilds MLIR Python bindings for each Python version from cached LLVM
+  # ============================================================================
+  wheel:
+    name: Wheel (arm64, py${{ matrix.python_version }})
+    needs: [devdeps, metadata]
+    strategy:
+      matrix:
+        python_version: ['3.11', '3.12', '3.13']
+      fail-fast: false
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    outputs:
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install ORAS
+        run: brew install oras
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          set -e  # Exit on error
+          # Login and pull cache artifact using ORAS
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          oras pull ${{ needs.devdeps.outputs.image_hash }}
+
+          # Extract to home directory
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
+
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+
+          # Incremental rebuild: add python-bindings to cached LLVM build
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+
+      - name: Build wheel
+        run: |
+          echo "Building wheel version: ${{ needs.metadata.outputs.cudaq_version }}"
+          # Source env defaults to set ZLIB_INSTALL_PREFIX, LLVM_INSTALL_PREFIX, etc.
+          # These point to cached prerequisites in ~/.local
+          source scripts/set_env_defaults.sh
+
+          export CUDA_QUANTUM_VERSION=${{ needs.metadata.outputs.cudaq_version }}
+          bash scripts/build_wheel.sh -v
+
+          # Find and report the built wheel
+          wheel_file=$(ls dist/cuda_quantum*.whl 2>/dev/null | head -1)
+          echo "Built wheel: $wheel_file"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Consistent with Linux: pycudaq-<python_version_dashed>-<platform_info>
+          name: pycudaq-${{ matrix.python_version }}-darwin-arm64
+          path: dist/cuda_quantum*.whl
+          retention-days: 1
+          if-no-files-found: error
+
+  # ============================================================================
+  # Validate wheels in clean environments
+  # ============================================================================
+  validate_wheel:
+    name: Validate (arm64, py${{ matrix.python_version }})
+    needs: wheel
+    strategy:
+      matrix:
+        python_version: ['3.11', '3.12', '3.13']
+      fail-fast: false
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pycudaq-${{ matrix.python_version }}-darwin-arm64
+          path: dist/
+
+      - name: Validate wheel
+        run: |
+          # Validates wheel: core tests, examples, snippets, backends.
+          # GPU/remote targets are skipped (no CUDA on macOS runners).
+          # TODO: When adding macOS to publishing.yml, align the validation
+          # approach with python_wheels.yml (which uses
+          # explicit find exclusions for platform/backends/dynamics paths,
+          # and does not use validate_pycudaq.sh for snippets/examples
+          # currently used in python_wheels.yml).
+          bash scripts/validate_pycudaq.sh \
+            -v ${{ needs.wheel.outputs.cudaq_version }} \
+            -i dist \
+            -p ${{ matrix.python_version }}
+
+  # ============================================================================
+  # Build self-extracting installer for C++ SDK
+  # ============================================================================
+  installer:
+    name: Installer (arm64)
+    needs: [devdeps, metadata]
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    outputs:
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ORAS
+        run: brew install oras
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          set -e  # Exit on error
+          # Login and pull cache artifact using ORAS
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          oras pull ${{ needs.devdeps.outputs.image_hash }}
+
+          # Extract to home directory
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          brew install makeself
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+
+          # Incremental rebuild: add python-bindings to cached LLVM build
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+
+      - name: Build CUDA-Q
+        run: bash scripts/build_cudaq.sh -v
+
+      - name: Build installer
+        run: |
+          echo "Building installer version: ${{ needs.metadata.outputs.cudaq_version }}"
+          source scripts/set_env_defaults.sh
+          bash scripts/build_installer.sh -v -V ${{ needs.metadata.outputs.cudaq_version }}
+          
+          # List output
+          ls -la out/
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Consistent with Linux: cudaq-<platform>-<config>-installer-<run_id>
+          name: cudaq-arm64-darwin-installer-${{ github.run_id }}
+          path: out/install_cuda_quantum*
+          retention-days: 1
+          if-no-files-found: error
+
+  # ============================================================================
+  # Validate installation in clean environment
+  # Installer provides C++ support; wheel provides Python support
+  # ============================================================================
+  validate_installation:
+    name: Validate Installation (arm64)
+    needs: [installer, wheel]
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cudaq-arm64-darwin-installer-${{ github.run_id }}
+          path: installer/
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pycudaq-3.12-darwin-arm64
+          path: wheel/
+
+      - name: Install CUDA-Q (C++ via installer)
+        run: |
+          # Make installer executable and run with sudo (installs to /opt/nvidia/cudaq)
+          chmod +x installer/install_cuda_quantum*
+          sudo bash installer/install_cuda_quantum* --accept
+
+      - name: Install CUDA-Q (Python via wheel)
+        run: |
+          # Install wheel for Python support (per documentation, Python is separate)
+          pip install wheel/*.whl
+
+      - name: Validate installation
+        run: |
+          # Source the installer's environment setup to add nvq++ to PATH
+          source /opt/nvidia/cudaq/set_env.sh
+          bash scripts/validate_installation.sh

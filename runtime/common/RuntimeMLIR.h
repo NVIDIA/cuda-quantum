@@ -9,19 +9,18 @@
 #pragma once
 
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include <functional>
 #include <memory>
+#include <optional>
+#include <string>
 
 namespace mlir {
 class MLIRContext;
-class ExecutionEngine;
 class ModuleOp;
 } // namespace mlir
 
-namespace llvm {
-class Module;
-}
-
 namespace cudaq {
+
 /// @brief Function to lower MLIR to target
 /// @param op MLIR operation
 /// @param output Output stream
@@ -36,21 +35,16 @@ using TranslateFromMLIRFunctionExtended = std::function<mlir::LogicalResult(
     mlir::Operation *, const std::string &, llvm::raw_string_ostream &,
     const std::string &, bool, bool, bool)>;
 
-/// @brief Initialize MLIR with CUDA-Q dialects and return the
-/// MLIRContext.
-std::unique_ptr<mlir::MLIRContext> initializeMLIR();
-/// @brief Given an LLVM Module, set its target triple corresponding to the
-/// current host machine.
-bool setupTargetTriple(llvm::Module *);
+/// @brief Initialize MLIR with CUDA-Q dialects and create an internal MLIR
+/// context
+void initializeMLIR();
 
-/// @brief Run the LLVM PassManager.
-void optimizeLLVM(llvm::Module *);
+/// @brief Retrieve the context created by initializeMLIR()
+mlir::MLIRContext *getMLIRContext();
 
-/// @brief Lower ModuleOp to a full QIR LLVMIR representation
-/// and return an ExecutionEngine pointer for JIT function pointer
-/// execution. Clients are responsible for deleting this pointer.
-mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo);
+/// @brief Create a new context and transfer the ownership. To be used to avoid
+/// overcrowding the current MLIR context with temporary modules.
+std::unique_ptr<mlir::MLIRContext> getOwningMLIRContext();
 
 class Translation {
 public:

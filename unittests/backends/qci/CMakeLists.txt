@@ -9,7 +9,8 @@
 add_backend_unittest_executable(test_qci 
   SOURCES QCITester.cpp
   BACKEND qci
+  BACKEND_CONFIG "qci emulate=false"
   )
 
-configure_file("QCIStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/qci/QCIStartServerAndTest.sh" @ONLY)
-add_test(NAME qci-tests COMMAND bash QCIStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/qci/)
+configure_file(QCIStartServerAndTest.sh.in QCIStartServerAndTest.sh @ONLY)
+add_test(NAME qci-tests COMMAND bash QCIStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
