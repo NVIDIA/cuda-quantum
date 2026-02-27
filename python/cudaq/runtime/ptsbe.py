@@ -166,7 +166,7 @@ def sample_async(kernel,
       return_execution_data (bool): Include execution data in the result.
 
     Returns:
-      ``AsyncSampleResult``: A future whose ``.get()`` returns the
+      ``AsyncPTSBESampleResult``: A future whose ``.get()`` returns the
           ``SampleResult``.
 
     Raises:
