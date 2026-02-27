@@ -10,6 +10,7 @@
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
+#include "utils.h"
 
 int main() {
   // Reproducible probabilistic sampling
@@ -22,5 +23,8 @@ int main() {
   opts.ptsbe.max_trajectories = 100;
   opts.ptsbe.strategy =
       std::make_shared<cudaq::ptsbe::OrderedSamplingStrategy>();
+
+  auto result = cudaq::ptsbe::sample(opts, bell);
+  result.dump();
 }
 // [End PTSBE_Sampling]
