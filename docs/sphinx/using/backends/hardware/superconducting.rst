@@ -542,7 +542,7 @@ Credential setup
 ````````````````
 
 Access to TII hardware requires user registration.
-New accounts can be requested at https://tii.qibo.science.
+New accounts can be requested at https://q-cloud.tii.ae.
 Authentication is performed using an email address and password.
 
 After the first login, users can generate personal access tokens.
