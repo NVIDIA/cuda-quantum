@@ -7,55 +7,96 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-pasqal-qpu)
+set(SERVERHELPER_LIBRARY_NAME cudaq-serverhelper-pasqal) # For some reason need to set this for runtime discoverability of the server helper symbols
 message(STATUS "Building Pasqal REST QPU.")
 
 add_library(${LIBRARY_NAME}
   SHARED
     PasqalRemoteRESTQPU.cpp
+)
+
+add_library(${SERVERHELPER_LIBRARY_NAME}
+  SHARED
     PasqalServerHelper.cpp
     PasqalQrmiServerHelper.cpp
     PasqalExecutor.cpp
 )
 
-target_include_directories(${LIBRARY_NAME} PRIVATE .
-  PUBLIC 
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-    $<INSTALL_INTERFACE:include>
-)
-
-target_link_libraries(${LIBRARY_NAME}
-  PUBLIC
-    cudaq-operator
-    cudaq-common 
-  PRIVATE
-    pthread
-    cudaq-mlir-runtime 
-    fmt::fmt-header-only
-    cudaq 
-    cudaq-platform-default
-    nvqir
-) 
+set(_pasqal_public_link_libs
+  cudaq-operator
+  cudaq-common)
+set(_pasqal_private_link_libs
+  pthread
+  cudaq-mlir-runtime
+  fmt::fmt-header-only
+  cudaq
+  cudaq-platform-default
+  nvqir)
+foreach(_pasqal_target IN ITEMS ${LIBRARY_NAME} ${SERVERHELPER_LIBRARY_NAME})
+  target_include_directories(${_pasqal_target} PRIVATE .
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+      $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(${_pasqal_target}
+    PUBLIC ${_pasqal_public_link_libs}
+    PRIVATE ${_pasqal_private_link_libs}
+  )
+endforeach()
     
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)
 
 add_target_config(pasqal)
 
 if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(QRMI_ROOT "" CACHE PATH "Optional prefix for a prebuilt QRMI installation")
+  macro(_pasqal_download_or_fail url out_path label)
+    file(DOWNLOAD "${url}" "${out_path}" STATUS _pasqal_dl_status SHOW_PROGRESS)
+    list(GET _pasqal_dl_status 0 _pasqal_dl_code)
+    if(NOT _pasqal_dl_code EQUAL 0)
+      list(GET _pasqal_dl_status 1 _pasqal_dl_error)
+      message(FATAL_ERROR
+        "Failed to download ${label} from ${url}: ${_pasqal_dl_error}")
+    endif()
+  endmacro()
 
-  # Example (disabled): fetch prebuilt QRMI artifacts from GitHub Releases.
-  # Keep this commented out until release assets/policy are finalized.
-  #
-  # set(QRMI_VERSION "v0.12.0")
-  # set(QRMI_ROOT "${CMAKE_BINARY_DIR}/qrmi-${QRMI_VERSION}")
-  # execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${QRMI_ROOT}/include" "${QRMI_ROOT}/lib")
-  # file(DOWNLOAD
-  #   "https://github.com/qiskit-community/qrmi/releases/download/${QRMI_VERSION}/qrmi.h"
-  #   "${QRMI_ROOT}/include/qrmi.h" SHOW_PROGRESS)
-  # file(DOWNLOAD
-  #   "https://github.com/qiskit-community/qrmi/releases/download/${QRMI_VERSION}/libqrmi.so"
-  #   "${QRMI_ROOT}/lib/libqrmi.so" SHOW_PROGRESS)
-  # Then configure with: -DQRMI_ROOT=${QRMI_ROOT}
+  set(QRMI_ROOT "" CACHE PATH "Optional prefix for a prebuilt QRMI installation")
+  set(CUDAQ_PASQAL_QRMI_FETCH_RELEASE OFF CACHE BOOL
+      "Download QRMI prebuilt artifacts from GitHub release assets")
+  set(CUDAQ_PASQAL_QRMI_RELEASE_TAG "v0.12.0" CACHE STRING
+      "QRMI release tag used when CUDAQ_PASQAL_QRMI_FETCH_RELEASE=ON")
+
+  if(CUDAQ_PASQAL_QRMI_FETCH_RELEASE AND NOT QRMI_ROOT)
+    set(QRMI_ROOT "${CMAKE_BINARY_DIR}/qrmi-${CUDAQ_PASQAL_QRMI_RELEASE_TAG}"
+        CACHE PATH "Auto-downloaded QRMI prefix" FORCE)
+    set(_qrmi_release_base
+        "https://github.com/qiskit-community/qrmi/releases/download/${CUDAQ_PASQAL_QRMI_RELEASE_TAG}")
+
+    file(MAKE_DIRECTORY "${QRMI_ROOT}/include" "${QRMI_ROOT}/lib")
+    _pasqal_download_or_fail("${_qrmi_release_base}/qrmi.h"
+      "${QRMI_ROOT}/include/qrmi.h" "qrmi.h")
+    _pasqal_download_or_fail("${_qrmi_release_base}/libqrmi.so"
+      "${QRMI_ROOT}/lib/libqrmi.so" "libqrmi.so")
+    _pasqal_download_or_fail("${_qrmi_release_base}/libqrmi.sha256"
+      "${QRMI_ROOT}/lib/libqrmi.sha256" "libqrmi.sha256")
+
+    file(READ "${QRMI_ROOT}/lib/libqrmi.sha256" _qrmi_sha_line)
+    string(REGEX MATCH "^[0-9A-Fa-f]+" _qrmi_expected_sha "${_qrmi_sha_line}")
+    if(NOT _qrmi_expected_sha)
+      message(FATAL_ERROR
+        "Failed to parse expected SHA256 from ${QRMI_ROOT}/lib/libqrmi.sha256")
+    endif()
+    file(SHA256 "${QRMI_ROOT}/lib/libqrmi.so" _qrmi_actual_sha)
+    string(TOLOWER "${_qrmi_expected_sha}" _qrmi_expected_sha)
+    string(TOLOWER "${_qrmi_actual_sha}" _qrmi_actual_sha)
+    if(NOT _qrmi_expected_sha STREQUAL _qrmi_actual_sha)
+      message(FATAL_ERROR
+        "QRMI checksum mismatch for downloaded libqrmi.so")
+    endif()
+
+    message(STATUS
+      "Downloaded QRMI release assets into ${QRMI_ROOT}")
+  endif()
 
   set(_qrmi_include_hints)
   set(_qrmi_library_hints)
@@ -100,13 +141,13 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   endif()
 
   message(STATUS "Enabling Pasqal QRMI mode support in pasqal target.")
-  target_include_directories(${LIBRARY_NAME} PRIVATE ${QRMI_INCLUDE_DIR})
-  target_link_libraries(${LIBRARY_NAME} PRIVATE ${QRMI_LIBRARY})
-  target_compile_definitions(${LIBRARY_NAME}
+  target_include_directories(${SERVERHELPER_LIBRARY_NAME} PRIVATE ${QRMI_INCLUDE_DIR})
+  target_link_libraries(${SERVERHELPER_LIBRARY_NAME} PRIVATE ${QRMI_LIBRARY})
+  target_compile_definitions(${SERVERHELPER_LIBRARY_NAME}
                              PRIVATE CUDAQ_PASQAL_QRMI_ENABLED)
 
   get_filename_component(QRMI_LIBRARY_DIR "${QRMI_LIBRARY}" DIRECTORY)
-  set_target_properties(${LIBRARY_NAME} PROPERTIES
+  set_target_properties(${SERVERHELPER_LIBRARY_NAME} PROPERTIES
     BUILD_RPATH "${QRMI_LIBRARY_DIR}"
   )
 endif()
