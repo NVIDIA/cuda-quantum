@@ -38,6 +38,55 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
     }
   }
 }
+
+std::optional<config::ArgumentType>
+ServerHelper::getArgumentType(const std::string &key) const {
+  for (const auto &arg : runtimeTarget.config.TargetArguments)
+    // Check both the key name and platform-arg key
+    if (arg.KeyName == key || arg.PlatformArgKey == key)
+      return arg.Type;
+  return std::nullopt;
+}
+
+nlohmann::json ServerHelper::getTypedConfigValue(const std::string &key) const {
+  auto it = backendConfig.find(key);
+  if (it == backendConfig.end())
+    return nlohmann::json(); // null
+
+  const std::string &value = it->second;
+  auto argType = getArgumentType(key);
+
+  // If no type info available, return as string
+  if (!argType.has_value())
+    return value;
+
+  switch (argType.value()) {
+  case config::ArgumentType::Bool:
+    // Handle common boolean string representations
+    if (value == "true" || value == "True" || value == "TRUE" || value == "1")
+      return true;
+    if (value == "false" || value == "False" || value == "FALSE" ||
+        value == "0")
+      return false;
+    throw std::runtime_error("Invalid boolean value for '" + key + "': '" +
+                             value + "'. Expected true/false/1/0.");
+  case config::ArgumentType::Int: {
+    try {
+      return std::stoll(value);
+    } catch (...) {
+      // If parsing fails, return as string
+      return value;
+    }
+  }
+  case config::ArgumentType::String:
+  case config::ArgumentType::UUID:
+  case config::ArgumentType::FeatureFlag:
+  case config::ArgumentType::MachineConfig:
+  default:
+    return value;
+  }
+  __builtin_unreachable();
+}
 } // namespace cudaq
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)

@@ -18,6 +18,7 @@
 #include "common/RecordLogParser.h"
 #include "nlohmann/json.hpp"
 #include <filesystem>
+#include <optional>
 
 namespace cudaq {
 
@@ -97,6 +98,21 @@ protected:
 
   /// @brief  Information about the runtime target managing this server helper.
   RuntimeTarget runtimeTarget;
+
+  /// @brief Get the ArgumentType for a key from target configuration.
+  /// @param key The key to look up
+  /// @return The ArgumentType if found, std::nullopt otherwise
+  std::optional<config::ArgumentType>
+  getArgumentType(const std::string &key) const;
+
+  /// @brief Get a value converted to the appropriate JSON type based on
+  /// the ArgumentType declared in the target configuration.
+  /// - Bool: converts "true"/"false" strings to JSON boolean
+  /// - Int: converts numeric strings to JSON number
+  /// - String/UUID/others: keeps as JSON string
+  /// @param key The key to retrieve
+  /// @return JSON value with appropriate type, or null if key not found
+  nlohmann::json getTypedConfigValue(const std::string &key) const;
 
 public:
   ServerHelper() = default;

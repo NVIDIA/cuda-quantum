@@ -270,6 +270,7 @@ void ScalarEnumerationTraits<cudaq::config::ArgumentType>::enumeration(
     IO &io, cudaq::config::ArgumentType &value) {
   io.enumCase(value, "string", cudaq::config::ArgumentType::String);
   io.enumCase(value, "integer", cudaq::config::ArgumentType::Int);
+  io.enumCase(value, "bool", cudaq::config::ArgumentType::Bool);
   io.enumCase(value, "uuid", cudaq::config::ArgumentType::UUID);
   io.enumCase(value, "option-flags", cudaq::config::ArgumentType::FeatureFlag);
   io.enumCase(value, "machine-config",
