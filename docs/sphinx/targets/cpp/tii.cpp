@@ -1,4 +1,4 @@
-// 
+//
 // Available projects and devices are show in the dashboard:
 // https://q-cloud.tii.ae/projects/
 //
