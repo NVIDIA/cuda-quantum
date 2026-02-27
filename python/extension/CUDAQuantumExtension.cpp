@@ -25,6 +25,7 @@
 #include "runtime/cudaq/algorithms/py_resource_count.h"
 #include "runtime/cudaq/algorithms/py_run.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
+#include "runtime/cudaq/algorithms/py_sample_ptsbe.h"
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_translate.h"
 #include "runtime/cudaq/algorithms/py_unitary.h"
@@ -122,6 +123,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   bindPyTranslate(cudaqRuntime);
   bindCountResources(cudaqRuntime);
   bindSampleAsync(cudaqRuntime);
+  bindSamplePTSBE(cudaqRuntime);
   bindObserveAsync(cudaqRuntime);
   bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
     return python::getTransportLayer(holderPtr);

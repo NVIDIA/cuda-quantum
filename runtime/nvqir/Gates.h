@@ -45,7 +45,8 @@ enum class GateName {
   U2,
   U3,
   PhasedRx,
-  Swap
+  Swap,
+  Id
 };
 
 /// @brief Given a string, return the corresponding GateName enum value.
@@ -84,6 +85,8 @@ inline GateName getGateNameFromString(const std::string &name) {
     return GateName::PhasedRx;
   else if (name == "swap")
     return GateName::Swap;
+  else if (name == "id")
+    return GateName::Id;
 
   throw std::runtime_error("Invalid gate name provided: " + name);
 }
@@ -172,6 +175,8 @@ getGateByName(GateName name, const std::vector<Scalar> angles = {}) {
     // The swap gate is a 4x4 matrix
     return {1., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1.};
   }
+  case (GateName::Id):
+    return {{1., 0.}, {0., 0.}, {0., 0.}, {1., 0.}};
   }
 
   throw std::runtime_error("Invalid gate provided to getGateByName.");
