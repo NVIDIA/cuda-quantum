@@ -11,34 +11,29 @@ import numpy as np
 
 import os
 
+import cudaq
 
-def test_reuse(capfd, monkeypatch):
-    """Test that we can build a very simple kernel and sample it."""
 
-    os.environ['CUDAQ_LOG_LEVEL'] = 'info'
-    import cudaq
+def test_reuse():
+    """Test that we can reuse a compiled jit across launches"""
 
     @cudaq.kernel
     def simple(numQubits: int):
         qubits = cudaq.qvector(numQubits)
-        h(qubits.front())
+        x(qubits.front())
         for i, qubit in enumerate(qubits.front(numQubits - 1)):
             x.ctrl(qubit, qubits[i + 1])
 
-    num_qubits = 5
-    cudaq.sample(simple, num_qubits, shots_count=1)
-    captured = capfd.readouterr()
-    assert "Using cached JIT engine" not in captured.out
-    cudaq.sample(simple, num_qubits, shots_count=1)
-    captured = capfd.readouterr()
-    assert "Using cached JIT engine" not in captured.out
+    res = cudaq.sample(simple, 2, shots_count=1)
+    assert(res.count("11") == 1)
+    res = cudaq.sample(simple, 3, shots_count=1)
+    assert(res.count("111") == 1)
     with cudaq.cudaq_runtime.reuse_compiler_artifacts():
-        cudaq.sample(simple, num_qubits, shots_count=1)
-        captured = capfd.readouterr()
-        assert "Using cached JIT engine" not in captured.out
-        cudaq.sample(simple, num_qubits, shots_count=1)
-        captured = capfd.readouterr()
-        assert "Using cached JIT engine" in captured.out
-    cudaq.sample(simple, num_qubits, shots_count=1)
-    captured = capfd.readouterr()
-    assert "Using cached JIT engine" not in captured.out
+        res = cudaq.sample(simple, 4, shots_count=1)
+        assert(res.count("1111") == 1)
+        # Abuse the foot gun to make sure the cached kernel is rerun
+        # (and therefore the number of qubits is the same)
+        res = cudaq.sample(simple, 5, shots_count=1)
+        assert(res.count("1111") == 1)
+    res = cudaq.sample(simple, 6, shots_count=1)
+    assert(res.count("111111") == 1)
