@@ -206,8 +206,8 @@ void setExecutionContext(ExecutionContext *ctx);
 /// the execution context manually.
 void resetExecutionContext();
 
-void enablePersistentCache();
-void disablePersistentCache();
+void enablePersistentJITEngine();
+void disablePersistentJITEngine();
 } // namespace detail
 
 } // namespace cudaq

@@ -23,7 +23,7 @@ void clearQirOutputLog();
 } // namespace nvqir
 
 namespace {
-class PersistentCache {};
+class PersistJITEngine {};
 } // namespace
 
 namespace cudaq {
@@ -133,15 +133,19 @@ void bindExecutionContext(py::module &mod) {
             std::memcpy(info.ptr, origBuffer, bufferSize);
           });
 
-  py::class_<PersistentCache>(mod, "reuse_compiler_artifacts")
+  py::class_<PersistJITEngine>(
+      mod, "reuse_compiler_artifacts",
+      "Within this context, CUDAQ will blindly reuse compiled objects."
+      "It is up to the user to ensure that there are never two distinct"
+      "computations launched within a single context.")
       .def(py::init())
       .def("__enter__",
-           [](PersistentCache &ctx) -> void {
-             cudaq::detail::enablePersistentCache();
+           [](PersistJITEngine &ctx) -> void {
+             cudaq::detail::enablePersistentJITEngine();
            })
-      .def("__exit__", [](PersistentCache &ctx, py::object type,
+      .def("__exit__", [](PersistJITEngine &ctx, py::object type,
                           py::object value, py::object traceback) {
-        cudaq::detail::disablePersistentCache();
+        cudaq::detail::disablePersistentJITEngine();
       });
 }
 } // namespace cudaq
