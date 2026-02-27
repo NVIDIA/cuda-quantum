@@ -11,7 +11,7 @@
 /// @file bridge_interface.h
 /// @brief Interface Bindings for transport layer providers (e.g. Hololink).
 ///
-/// Different transport providers can be loaded at runtime via dlopen, allowing
+/// Different transport providers can be loaded at runtime via `dlopen`, allowing
 /// for dynamic selection and initialization of the desired transport layer.
 /// Environment variable CUDAQ_REALTIME_BRIDGE_LIB must be set to the path of
 /// the shared library implementing the desired transport provider (if not using
@@ -36,7 +36,7 @@ typedef enum {
 
 /// @brief Create and initialize a transport bridge for the specified provider.
 /// For the built-in Hololink provider, this loads the Hololink shared library
-/// and initializes the transceiver with the provided args.  For the EXTERNAL
+/// and initializes the transceiver with the provided `args`.  For the EXTERNAL
 /// provider, this loads the shared library specified by the
 /// CUDAQ_REALTIME_BRIDGE_LIB environment variable and calls its create callback
 /// to initialize the bridge.
@@ -48,7 +48,7 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 /// @brief Destroy the transport bridge and release all associated resources.
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Retrieve the ringbuffer information for the given bridge.
+/// @brief Retrieve the ring buffer information for the given bridge.
 cudaq_status_t
 cudaq_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t bridge,
                             cudaq_ringbuffer_t *out_ringbuffer);
@@ -67,8 +67,8 @@ cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 #define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 1
 
 /// @brief Interface struct for transport layer providers.  Each provider must
-/// implement this interface and provide a getter function
-/// (cudaq_realtime_get_bridge_interface) that returns a pointer to a statically
+/// implement this interface and provide a `getter` function
+/// (`cudaq_realtime_get_bridge_interface`) that returns a pointer to a statically
 /// allocated instance of this struct with the function pointers set to the
 /// provider's implementation.
 typedef struct {

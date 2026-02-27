@@ -197,8 +197,8 @@ int main(int argc, char *argv[]) {
     cudaq_dispatch_manager_t *manager = nullptr;
     cudaq_dispatcher_t *dispatcher = nullptr;
 
-    // Create CUDA-Q dispatcher manager 
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));      
+    // Create CUDA-Q dispatcher manager
+    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));
     cudaq_dispatcher_config_t dconfig{};
     dconfig.device_id = config.gpu_id;
     dconfig.num_blocks = config.num_blocks;
@@ -209,10 +209,12 @@ int main(int argc, char *argv[]) {
     dconfig.kernel_type = config.kernel_type;
     dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
     // Create dispatcher with the above config
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
-    
+    HANDLE_CUDAQ_REALTIME_ERROR(
+        cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
+
     // Set the ring buffer retrieved from the bridge
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer));
+    HANDLE_CUDAQ_REALTIME_ERROR(
+        cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer));
 
     // Set up the function table with the increment handler entries
     // Populate the GPU function table with the increment handler entry
