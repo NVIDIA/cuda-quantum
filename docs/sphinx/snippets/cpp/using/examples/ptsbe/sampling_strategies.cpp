@@ -8,18 +8,19 @@
 
 // [Begin PTSBE_Sampling]
 #include "cudaq/ptsbe/PTSBESample.h"
-#include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
+#include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
 
 int main() {
-    // Reproducible probabilistic sampling
-    cudaq::ptsbe::sample_options opts;
-    opts.ptsbe.strategy =
-        std::make_shared<cudaq::ptsbe::ProbabilisticSamplingStrategy>(/*seed=*/42);
+  // Reproducible probabilistic sampling
+  cudaq::ptsbe::sample_options opts;
+  opts.ptsbe.strategy =
+      std::make_shared<cudaq::ptsbe::ProbabilisticSamplingStrategy>(
+          /*seed=*/42);
 
-    // Top-100 trajectories
-    opts.ptsbe.max_trajectories = 100;
-    opts.ptsbe.strategy =
-        std::make_shared<cudaq::ptsbe::OrderedSamplingStrategy>();
+  // Top-100 trajectories
+  opts.ptsbe.max_trajectories = 100;
+  opts.ptsbe.strategy =
+      std::make_shared<cudaq::ptsbe::OrderedSamplingStrategy>();
 }
 // [End PTSBE_Sampling]

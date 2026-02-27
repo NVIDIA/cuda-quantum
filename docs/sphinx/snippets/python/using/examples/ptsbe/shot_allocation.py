@@ -11,8 +11,7 @@ import cudaq
 from utils import bell, noise
 
 alloc = cudaq.ptsbe.ShotAllocationStrategy(
-        cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS,
-        bias_strength=2.0)
+    cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS, bias_strength=2.0)
 
 result = cudaq.ptsbe.sample(
     bell,
