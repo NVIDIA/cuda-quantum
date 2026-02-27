@@ -64,6 +64,7 @@ PAYLOAD_SIZE=8
 PAGE_SIZE=384
 NUM_PAGES=128
 CONTROL_PORT=8193
+FORWARD=false
 
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
@@ -129,6 +130,7 @@ while [[ $# -gt 0 ]]; do
         --fpga-ip)          FPGA_IP="$2"; shift ;;
         --mtu)              MTU="$2"; shift ;;
         --gpu)              GPU_ID="$2"; shift ;;
+        --forward)          FORWARD=true ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
         --payload-size)     PAYLOAD_SIZE="$2"; shift ;;
@@ -401,15 +403,19 @@ do_run() {
     # Start bridge
     echo "--- Starting bridge ---"
     > /tmp/bridge.log
-    "$bridge_bin" \
-        --device="$IB_DEVICE" \
-        --peer-ip="$FPGA_TARGET_IP" \
-        --remote-qp="$FPGA_QP" \
-        --gpu="$GPU_ID" \
-        --timeout="$TIMEOUT" \
-        --page-size="$PAGE_SIZE" \
-        --num-pages="$NUM_PAGES" \
-        > /tmp/bridge.log 2>&1 &
+    local bridge_args=(
+        --device="$IB_DEVICE"
+        --peer-ip="$FPGA_TARGET_IP"
+        --remote-qp="$FPGA_QP"
+        --gpu="$GPU_ID"
+        --timeout="$TIMEOUT"
+        --page-size="$PAGE_SIZE"
+        --num-pages="$NUM_PAGES"
+    )
+    if $FORWARD; then
+        bridge_args+=(--forward)
+    fi
+    "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
     tail -f /tmp/bridge.log &
@@ -450,6 +456,9 @@ do_run() {
     fi
     if ! $VERIFY; then
         playback_args+=(--no-verify)
+    fi
+    if $FORWARD; then
+        playback_args+=(--forward)
     fi
 
     "$playback_bin" "${playback_args[@]}"

@@ -115,6 +115,7 @@ struct PlaybackArgs {
   std::string bridge_ip = "10.0.0.1";
   bool verify = true;
   bool emulator = false;
+  bool forward = false; ///< Forward (echo) mode: accept RPC_MAGIC_REQUEST
 };
 
 PlaybackArgs parse_args(int argc, char *argv[]) {
@@ -165,6 +166,8 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
       args.verify = false;
     else if (a == "--emulator")
       args.emulator = true;
+    else if (a == "--forward")
+      args.forward = true;
     else if (a == "--help" || a == "-h") {
       std::cout
           << "Usage: hololink_fpga_playback [options]\n"
@@ -183,7 +186,8 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
           << "  --hif-address=ADDR    HIF register base (default: 0x0800)\n"
           << "  --bridge-ip=ADDR      Bridge IP for FPGA (default: 10.0.0.1)\n"
           << "  --emulator            Using emulator (skip FPGA reset)\n"
-          << "  --no-verify           Skip ILA response verification\n";
+          << "  --no-verify           Skip ILA response verification\n"
+          << "  --forward             Forward (echo) mode: accept echoed requests\n";
       exit(0);
     }
   }
@@ -688,14 +692,18 @@ int main(int argc, char *argv[]) {
       auto *resp = reinterpret_cast<const cudaq::nvqlink::RPCResponse *>(
           payload.data());
 
-      if (resp->magic != cudaq::nvqlink::RPC_MAGIC_RESPONSE) {
+      uint32_t expected_magic = args.forward
+          ? cudaq::nvqlink::RPC_MAGIC_REQUEST
+          : cudaq::nvqlink::RPC_MAGIC_RESPONSE;
+
+      if (resp->magic != expected_magic) {
         ++non_rpc_frames;
         continue;
       }
 
       ++rpc_responses;
 
-      if (resp->status != 0) {
+      if (!args.forward && resp->status != 0) {
         std::cerr << "  Response request_id=" << resp->request_id
                   << ": error status " << resp->status << std::endl;
         ++header_errors;
@@ -705,28 +713,32 @@ int main(int argc, char *argv[]) {
       uint32_t rid = resp->request_id;
       seen_request_ids.insert(rid);
 
-      const uint8_t *result_data =
-          payload.data() + sizeof(cudaq::nvqlink::RPCResponse);
-      bool ok = true;
-      uint32_t check_len = std::min(resp->result_len, args.payload_size);
+      if (!args.forward) {
+        const uint8_t *result_data =
+            payload.data() + sizeof(cudaq::nvqlink::RPCResponse);
+        bool ok = true;
+        uint32_t check_len = std::min(resp->result_len, args.payload_size);
 
-      for (uint32_t j = 0; j < check_len && ok; j++) {
-        uint8_t expected =
-            static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
-        if (result_data[j] != expected) {
-          if (payload_errors < 5) {
-            std::cerr << "  Shot " << rid << " byte " << j << ": expected "
-                      << (int)expected << " got " << (int)result_data[j]
-                      << std::endl;
+        for (uint32_t j = 0; j < check_len && ok; j++) {
+          uint8_t expected =
+              static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
+          if (result_data[j] != expected) {
+            if (payload_errors < 5) {
+              std::cerr << "  Shot " << rid << " byte " << j << ": expected "
+                        << (int)expected << " got " << (int)result_data[j]
+                        << std::endl;
+            }
+            ok = false;
           }
-          ok = false;
         }
-      }
 
-      if (ok)
+        if (ok)
+          ++matched;
+        else
+          ++payload_errors;
+      } else {
         ++matched;
-      else
-        ++payload_errors;
+      }
 
       // PTP round-trip latency: send timestamp from response header,
       // receive timestamp from ILA bits [584:521].

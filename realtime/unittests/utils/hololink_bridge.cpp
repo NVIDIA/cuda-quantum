@@ -69,7 +69,9 @@ int main(int argc, char *argv[]) {
              "64)\n"
           << "  --exchange-qp         Enable QP exchange protocol\n"
           << "  --exchange-port=N     TCP port for QP exchange (default: "
-             "12345)\n";
+             "12345)\n"
+          << "  --forward             Use Hololink forward kernel (echo) "
+             "instead of dispatch\n";
       return 0;
     }
   }
