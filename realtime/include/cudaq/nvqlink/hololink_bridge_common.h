@@ -92,7 +92,8 @@ struct BridgeConfig {
   int timeout_sec = 60;              ///< Runtime timeout in seconds
 
   // Ring buffer sizing
-  size_t frame_size = 256; ///< Minimum frame size (RPCHeader + payload)
+  uint32_t payload_size = 8; ///< RPC payload size in bytes
+  size_t frame_size = 0;     ///< Computed: sizeof(RPCHeader) + payload_size
   size_t page_size =
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
@@ -158,9 +159,14 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.exchange_qp = true;
     else if (arg.find("--exchange-port=") == 0)
       config.exchange_port = std::stoi(arg.substr(16));
+    else if (arg.find("--payload-size=") == 0)
+      config.payload_size = std::stoul(arg.substr(15));
     else if (arg == "--forward")
       config.forward = true;
   }
+
+  config.frame_size =
+      sizeof(cudaq::nvqlink::RPCHeader) + config.payload_size;
 }
 
 //==============================================================================

@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
           << "  --remote-qp=N         Remote QP number (default: 0x2)\n"
           << "  --gpu=N               GPU device ID (default: 0)\n"
           << "  --timeout=N           Timeout in seconds (default: 60)\n"
+          << "  --payload-size=N      RPC payload size in bytes (default: 8)\n"
           << "  --page-size=N         Ring buffer slot size (default: 384)\n"
           << "  --num-pages=N         Number of ring buffer slots (default: "
              "64)\n"
@@ -82,9 +83,6 @@ int main(int argc, char *argv[]) {
     // Parse common bridge args
     cudaq::nvqlink::BridgeConfig config;
     cudaq::nvqlink::parse_bridge_args(argc, argv, config);
-
-    // Frame size: RPCHeader + 256 bytes payload
-    config.frame_size = sizeof(cudaq::nvqlink::RPCHeader) + 256;
 
     std::cout << "Device: " << config.device << std::endl;
     std::cout << "Peer IP: " << config.peer_ip << std::endl;

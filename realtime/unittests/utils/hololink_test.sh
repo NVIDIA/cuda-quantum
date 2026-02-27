@@ -409,6 +409,7 @@ do_run() {
         --remote-qp="$FPGA_QP"
         --gpu="$GPU_ID"
         --timeout="$TIMEOUT"
+        --payload-size="$PAYLOAD_SIZE"
         --page-size="$PAGE_SIZE"
         --num-pages="$NUM_PAGES"
     )
