@@ -185,12 +185,31 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -638,8 +657,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1091,6 +1109,8 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam">Adam (class in cudaq.optimizers)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel.add_all_qubit_channel">add_all_qubit_channel() (cudaq.NoiseModel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel.add_channel">add_channel() (cudaq.NoiseModel method)</a>
@@ -1135,12 +1155,22 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator">BaseIntegrator (class in cudaq.dynamics.integrator)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.batch_size">batch_size (cudaq.optimizers.Adam property)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.batch_size">(cudaq.optimizers.SGD property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.beta1">beta1 (cudaq.optimizers.Adam property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.beta2">beta2 (cudaq.optimizers.Adam property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.beta_reduction">beta_reduction() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.BitFlipChannel">BitFlipChannel (class in cudaq)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator">BosonOperator (class in cudaq.operators.boson)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorElement">BosonOperatorElement (class in cudaq.operators.boson)</a>
@@ -1183,6 +1213,8 @@
         <li><a href="api/languages/python_api.html#cudaq.spin.canonicalized">(in module cudaq.spin)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.captured_variables">captured_variables() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference">CentralDifference (class in cudaq.gradients)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.clear">clear() (cudaq.Resources method)</a>
@@ -1204,6 +1236,8 @@
 </li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.col_count">col_count (cudaq.KrausOperator property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.compile">compile() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix">ComplexMatrix (class in cudaq)</a>
 </li>
@@ -1438,8 +1472,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE">cudaq::ExecutionContext::invocationResultBuffer (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext6jitEngE">cudaq::ExecutionContext::jitEng (C++ member)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10kernelNameE">cudaq::ExecutionContext::kernelName (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext11kernelTraceE">cudaq::ExecutionContext::kernelTrace (C++ member)</a>
@@ -1477,6 +1509,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext4spinE">cudaq::ExecutionContext::spin (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext15totalIterationsE">cudaq::ExecutionContext::totalIterations (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE">cudaq::ExecutionContext::warnedNamedMeasurements (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResultE">cudaq::ExecutionResult (C++ struct)</a>
 </li>
@@ -1574,11 +1608,17 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel7get_opsEv">cudaq::kraus_channel::get_ops (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel14identity_flagsE">cudaq::kraus_channel::identity_flags (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel14is_identity_opENSt6size_tE">cudaq::kraus_channel::is_identity_op (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel18is_unitary_mixtureEv">cudaq::kraus_channel::is_unitary_mixture (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq13kraus_channel13kraus_channelEDpRRNSt16initializer_listI1TEE">cudaq::kraus_channel::kraus_channel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERK13kraus_channel">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERKNSt6vectorI8kraus_opEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERRNSt6vectorI8kraus_opEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelEv">[4]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel10noise_typeE">cudaq::kraus_channel::noise_type (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel8op_namesE">cudaq::kraus_channel::op_names (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channelaSERK13kraus_channel">cudaq::kraus_channel::operator= (C++ function)</a>
 </li>
@@ -1586,9 +1626,11 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel10parametersE">cudaq::kraus_channel::parameters (C++ member)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel22populateDefaultOpNamesEv">cudaq::kraus_channel::populateDefaultOpNames (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13probabilitiesE">cudaq::kraus_channel::probabilities (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_op">cudaq::kraus_channel::push_back (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_opNSt8optionalINSt6stringEEE">cudaq::kraus_channel::push_back (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13kraus_channel4sizeEv">cudaq::kraus_channel::size (C++ function)</a>
 </li>
@@ -1770,10 +1812,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
@@ -1868,7 +1910,15 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUE">cudaq::QPU (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU14beginExecutionEv">cudaq::QPU::beginExecution (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU25configureExecutionContextER16ExecutionContext">cudaq::QPU::configureExecutionContext (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12endExecutionEv">cudaq::QPU::endExecution (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU7enqueueER11QuantumTask">cudaq::QPU::enqueue (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU24finalizeExecutionContextER16ExecutionContext">cudaq::QPU::finalizeExecutionContext (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15getConnectivityEv">cudaq::QPU::getConnectivity (C++ function)</a>
 </li>
@@ -1888,15 +1938,9 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext">cudaq::QPU::setExecutionContext (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU5setIdENSt6size_tE">cudaq::QPU::setId (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU8setShotsEi">cudaq::QPU::setShots (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU27supportsConditionalFeedbackEv">cudaq::QPU::supportsConditionalFeedback (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">cudaq::QPU::supportsExplicitMeasurements (C++ function)</a>
 </li>
@@ -1960,13 +2004,19 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platformE">cudaq::quantum_platform (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14beginExecutionEv">cudaq::quantum_platform::beginExecution (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext">cudaq::quantum_platform::configureExecutionContext (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12connectivityEv">cudaq::quantum_platform::connectivity (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12endExecutionEv">cudaq::quantum_platform::endExecution (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16enqueueAsyncTaskEKNSt6size_tER19KernelExecutionTask">cudaq::quantum_platform::enqueueAsyncTask (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16enqueueAsyncTaskEKNSt6size_tERNSt8functionIFvvEEE">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv">cudaq::quantum_platform::get_codegen_config (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform24finalizeExecutionContextERN5cudaq16ExecutionContextE">cudaq::quantum_platform::finalizeExecutionContext (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform15get_current_qpuEv">cudaq::quantum_platform::get_current_qpu (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv">cudaq::quantum_platform::get_codegen_config (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12get_exec_ctxEv">cudaq::quantum_platform::get_exec_ctx (C++ function)</a>
 </li>
@@ -2008,13 +2058,11 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12setLogStreamERNSt7ostreamE">cudaq::quantum_platform::setLogStream (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16setTargetBackendERKNSt6stringE">cudaq::quantum_platform::setTargetBackend (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackENSt6size_tE">cudaq::quantum_platform::supports_conditional_feedback (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsENSt6size_tE">cudaq::quantum_platform::supports_explicit_measurements (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv">cudaq::quantum_platform::supports_task_distribution (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq16quantum_platform22with_execution_contextEDaR16ExecutionContextRR8CallableDpRR4Args">cudaq::quantum_platform::with_execution_context (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11QuantumTaskE">cudaq::QuantumTask (C++ type)</a>
 </li>
@@ -2044,7 +2092,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvectorixEKNSt6size_tE">cudaq::qvector::operator[] (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">cudaq::qvector::qvector (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK5state">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK7qvector">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERR7qvector">[3]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">cudaq::qvector::qvector (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK5state">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK7qvector">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERR7qvector">[4]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq7qvector4sizeEv">cudaq::qvector::size (C++ function)</a>
 </li>
@@ -2402,6 +2450,8 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.degrees">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.delete_cache_execution_engine">delete_cache_execution_engine() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization1">Depolarization1 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization2">Depolarization2 (class in cudaq)</a>
@@ -2410,10 +2460,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize() (cudaq.SampleResult method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize() (cudaq.SampleResult method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.displace">displace() (in module cudaq.operators.custom)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.distribute_terms">distribute_terms() (cudaq.operators.boson.BosonOperator method)</a>
@@ -2488,12 +2538,14 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.enable_return_to_log">enable_return_to_log() (cudaq.PyKernelDecorator method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.estimate_resources">estimate_resources() (in module cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.epsilon">epsilon (cudaq.optimizers.Adam property)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.evaluate">evaluate() (cudaq.operators.ScalarOperator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.estimate_resources">estimate_resources() (in module cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.evaluate">evaluate() (cudaq.operators.ScalarOperator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.evaluate_coefficient">evaluate_coefficient() (cudaq.operators.boson.BosonOperatorTerm method)</a>
 
       <ul>
@@ -2522,14 +2574,18 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.MatrixOperatorElement.expected_dimensions">expected_dimensions (cudaq.operators.MatrixOperatorElement property)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.extract_c_function_pointer">extract_c_function_pointer() (cudaq.PyKernelDecorator method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.f_tol">f_tol (cudaq.optimizers.Adam property)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.f_tol">(cudaq.optimizers.SGD property)</a>
+</li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.operators.fermion.FermionOperator">FermionOperator (class in cudaq.operators.fermion)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.fermion.FermionOperatorElement">FermionOperatorElement (class in cudaq.operators.fermion)</a>
@@ -2567,6 +2623,8 @@
 </li>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.from_json">(cudaq.operators.spin.SpinOperatorTerm static method)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.from_json">(cudaq.optimizers.Adam static method)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.from_json">(cudaq.optimizers.COBYLA static method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.from_json">(cudaq.optimizers.GradientDescent static method)</a>
@@ -2574,6 +2632,10 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.from_json">(cudaq.optimizers.LBFGS static method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.from_json">(cudaq.optimizers.NelderMead static method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.from_json">(cudaq.optimizers.SGD static method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.from_json">(cudaq.optimizers.SPSA static method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.from_json">(cudaq.PyKernelDecorator static method)</a>
 </li>
@@ -2586,6 +2648,8 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.gamma">gamma (cudaq.optimizers.SPSA property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.AsyncEvolveResult.get">get() (cudaq.AsyncEvolveResult method)</a>
 
       <ul>
@@ -2660,10 +2724,6 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.handle_call_arguments">handle_call_arguments() (cudaq.PyKernelDecorator method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.has_target">has_target() (in module cudaq)</a>
 </li>
   </ul></td>
@@ -2702,20 +2762,26 @@
         <li><a href="api/languages/python_api.html#cudaq.spin.identity">(in module cudaq.spin)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.initial_parameters">initial_parameters (cudaq.optimizers.COBYLA property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.initial_parameters">initial_parameters (cudaq.optimizers.Adam property)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.initial_parameters">(cudaq.optimizers.COBYLA property)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.initial_parameters">(cudaq.optimizers.GradientDescent property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.initial_parameters">(cudaq.optimizers.LBFGS property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.initial_parameters">(cudaq.optimizers.NelderMead property)</a>
 </li>
-      </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.mpi.initialize">initialize() (in module cudaq.mpi)</a>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.initial_parameters">(cudaq.optimizers.SGD property)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.initial_parameters">(cudaq.optimizers.SPSA property)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.mpi.initialize">initialize() (in module cudaq.mpi)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.initialize_cudaq">initialize_cudaq() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.dynamics.helpers.InitialState">InitialState (in module cudaq.dynamics.helpers)</a>
@@ -2731,6 +2797,8 @@
       <li><a href="api/languages/python_api.html#cudaq.EvolveResult.intermediate_states">intermediate_states() (cudaq.EvolveResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.IntermediateResultSave">IntermediateResultSave (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.is_compiled">is_compiled() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.is_constant">is_constant() (cudaq.operators.ScalarOperator method)</a>
 </li>
@@ -2788,20 +2856,22 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.left_right_multiply">left_right_multiply() (cudaq.SuperOperator static method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.lower_bounds">lower_bounds (cudaq.optimizers.COBYLA property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.lower_bounds">lower_bounds (cudaq.optimizers.Adam property)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.lower_bounds">(cudaq.optimizers.COBYLA property)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.lower_bounds">(cudaq.optimizers.GradientDescent property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.lower_bounds">(cudaq.optimizers.LBFGS property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.lower_bounds">(cudaq.optimizers.NelderMead property)</a>
 </li>
-      </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.lower_quake_to_codegen">lower_quake_to_codegen() (cudaq.PyKernelDecorator method)</a>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.lower_bounds">(cudaq.optimizers.SGD property)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.lower_bounds">(cudaq.optimizers.SPSA property)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -2834,24 +2904,30 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.max_degree">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.max_iterations">max_iterations (cudaq.optimizers.COBYLA property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.max_iterations">max_iterations (cudaq.optimizers.Adam property)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.max_iterations">(cudaq.optimizers.COBYLA property)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.max_iterations">(cudaq.optimizers.GradientDescent property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.max_iterations">(cudaq.optimizers.LBFGS property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.max_iterations">(cudaq.optimizers.NelderMead property)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.max_iterations">(cudaq.optimizers.SGD property)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.max_iterations">(cudaq.optimizers.SPSA property)</a>
+</li>
       </ul></li>
       <li><a href="api/languages/cpp_api.html#_CPPv419mdiag_sparse_matrix">mdiag_sparse_matrix (C++ type)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_kernel">merge_kernel() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_quake_source">merge_quake_source() (cudaq.PyKernelDecorator method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.min_degree">min_degree (cudaq.operators.boson.BosonOperator property)</a>
 
       <ul>
@@ -2971,18 +3047,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.OptimizationResult">OptimizationResult (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.optimize">optimize() (cudaq.optimizers.COBYLA method)</a>
-
-      <ul>
-        <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.optimize">(cudaq.optimizers.GradientDescent method)</a>
-</li>
-        <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.optimize">(cudaq.optimizers.LBFGS method)</a>
-</li>
-        <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.optimize">(cudaq.optimizers.NelderMead method)</a>
-</li>
-      </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.optimizer">optimizer (class in cudaq.optimizers)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.State.overlap">overlap() (cudaq.State method)</a>
 </li>
   </ul></td>
@@ -3039,9 +3103,11 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.custom.position">(in module cudaq.operators.custom)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.pre_compile">pre_compile() (cudaq.PyKernelDecorator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.prepare_call">prepare_call() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.process_call_arguments">process_call_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ProductOperator">ProductOperator (in module cudaq.operators)</a>
 </li>
@@ -3055,14 +3121,16 @@
 <h2 id="Q">Q</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.qkeModule">qkeModule (cudaq.PyKernelDecorator property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.qreg">qreg (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue">QuakeValue (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.qubit">qubit (class in cudaq)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.qubit">qubit (class in cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.qubit_count">qubit_count (cudaq.operators.spin.SpinOperator property)</a>
 
       <ul>
@@ -3085,20 +3153,12 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.register_set_target_callback">register_set_target_callback() (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.requires_gradients">requires_gradients() (cudaq.optimizers.COBYLA method)</a>
-
-      <ul>
-        <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.requires_gradients">(cudaq.optimizers.GradientDescent method)</a>
-</li>
-        <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.requires_gradients">(cudaq.optimizers.LBFGS method)</a>
-</li>
-        <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.requires_gradients">(cudaq.optimizers.NelderMead method)</a>
-</li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.reset_target">reset_target() (in module cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.resolve_captured_arguments">resolve_captured_arguments() (cudaq.PyKernelDecorator method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Resources">Resources (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply() (cudaq.SuperOperator static method)</a>
@@ -3143,12 +3203,14 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.set_random_seed">set_random_seed() (in module cudaq)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.set_target">set_target() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD">SGD (class in cudaq.optimizers)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.signatureWithCallables">signatureWithCallables() (cudaq.PyKernelDecorator method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.SimulationPrecision">SimulationPrecision (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.simulator">simulator (cudaq.Target property)</a>
@@ -3161,11 +3223,23 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm">SpinOperatorTerm (class in cudaq.operators.spin)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA">SPSA (class in cudaq.optimizers)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.squeeze">squeeze() (in module cudaq.operators.custom)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State">State (class in cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.step_size">step_size (cudaq.optimizers.Adam property)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.step_size">(cudaq.optimizers.SGD property)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.step_size">(cudaq.optimizers.SPSA property)</a>
+</li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator">SuperOperator (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.supports_compilation">supports_compilation() (cudaq.PyKernelDecorator method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3194,6 +3268,8 @@
 </li>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.term_count">(cudaq.operators.spin.SpinOperator property)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.term_count">(cudaq.operators.spin.SpinOperatorTerm property)</a>
+</li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.term_id">term_id (cudaq.operators.boson.BosonOperatorTerm property)</a>
 
@@ -3218,6 +3294,8 @@
 </li>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.to_json">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.to_json">(cudaq.optimizers.Adam method)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.to_json">(cudaq.optimizers.COBYLA method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.to_json">(cudaq.optimizers.GradientDescent method)</a>
@@ -3225,6 +3303,10 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.to_json">(cudaq.optimizers.LBFGS method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.to_json">(cudaq.optimizers.NelderMead method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.to_json">(cudaq.optimizers.SGD method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.to_json">(cudaq.optimizers.SPSA method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.to_json">(cudaq.PyKernelDecorator method)</a>
 </li>
@@ -3313,14 +3395,20 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.unset_noise">unset_noise() (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.upper_bounds">upper_bounds (cudaq.optimizers.COBYLA property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.upper_bounds">upper_bounds (cudaq.optimizers.Adam property)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.upper_bounds">(cudaq.optimizers.COBYLA property)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.GradientDescent.upper_bounds">(cudaq.optimizers.GradientDescent property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS.upper_bounds">(cudaq.optimizers.LBFGS property)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.upper_bounds">(cudaq.optimizers.NelderMead property)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SGD.upper_bounds">(cudaq.optimizers.SGD property)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.upper_bounds">(cudaq.optimizers.SPSA property)</a>
 </li>
       </ul></li>
   </ul></td>

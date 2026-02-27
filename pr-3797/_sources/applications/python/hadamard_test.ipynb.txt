@@ -66,7 +66,11 @@
     "import numpy as np\n",
     "from functools import reduce\n",
     "\n",
-    "cudaq.set_target('nvidia')\n",
+    "if cudaq.num_available_gpus() > 0 and cudaq.has_target(\"nvidia\"):\n",
+    "    cudaq.set_target(\"nvidia\")\n",
+    "else:\n",
+    "    print(\"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.\")\n",
+    "    cudaq.set_target(\"qpp-cpu\")\n",
     "\n",
     "qubit_num = 2\n",
     "\n",
@@ -107,10 +111,10 @@
     }
    ],
    "source": [
-    "psi_state = cudaq.StateMemoryView(cudaq.get_state(psi, qubit_num))\n",
+    "psi_state = cudaq.get_state(psi, qubit_num)\n",
     "print('Psi state: ', psi_state)\n",
     "\n",
-    "phi_state = cudaq.StateMemoryView(cudaq.get_state(phi, qubit_num))\n",
+    "phi_state = cudaq.get_state(phi, qubit_num)\n",
     "print('Phi state: ', phi_state)"
    ]
   },
@@ -171,7 +175,11 @@
    "source": [
     "import cudaq\n",
     "\n",
-    "cudaq.set_target('nvidia')\n",
+    "if cudaq.num_available_gpus() > 0 and cudaq.has_target(\"nvidia\"):\n",
+    "    cudaq.set_target(\"nvidia\")\n",
+    "else:\n",
+    "    print(\"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.\")\n",
+    "    cudaq.set_target(\"qpp-cpu\")\n",
     "\n",
     "\n",
     "@cudaq.kernel\n",
@@ -314,7 +322,13 @@
     }
    ],
    "source": [
-    "cudaq.set_target(\"nvidia\", option=\"mqpu\")\n",
+    "if cudaq.num_available_gpus() > 1 and cudaq.has_target(\"nvidia\"):\n",
+    "    cudaq.set_target(\"nvidia\", option=\"mqpu\")\n",
+    "elif cudaq.num_available_gpus() > 0 and cudaq.has_target(\"nvidia\"):\n",
+    "    cudaq.set_target(\"nvidia\")\n",
+    "else:\n",
+    "    print(\"CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.\")\n",
+    "    cudaq.set_target(\"qpp-cpu\")\n",
     "\n",
     "target = cudaq.get_target()\n",
     "qpu_count = target.num_qpus()\n",

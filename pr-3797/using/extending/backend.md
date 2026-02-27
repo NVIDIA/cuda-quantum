@@ -161,18 +161,57 @@ pr-3797
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](../examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -1044,11 +1083,7 @@ pr-3797
             -   [Setting
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1790,7 +1825,7 @@ Here's a template for implementing a server helper class:
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     // ProviderNameServerHelper.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/Support/Version.h"
@@ -2059,18 +2094,16 @@ Create unit tests for your server helper:
 ::: {.highlight-cmake .notranslate}
 ::: highlight
     # CMakeLists.txt
-    add_executable(ProviderNameTester ProviderNameTester.cpp)
-    target_link_libraries(ProviderNameTester
-      PRIVATE
-      cudaq-common
-      cudaq
-      gtest_main
+    add_backend_unittest_executable(ProviderNameTester
+      SOURCES ProviderNameTester.cpp
+      BACKEND ProviderName
+      BACKEND_CONFIG "<provider_name> url=http://localhost:<PORT>"
     )
 
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ProviderNameStartServerAndTest.sh.in
-                  ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh @ONLY)
+    configure_file(ProviderNameStartServerAndTest.sh.in
+                   ProviderNameStartServerAndTest.sh @ONLY)
 
-    add_test(NAME ProviderNameTester COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh)
+    add_test(NAME ProviderNameTester COMMAND bash ProviderNameStartServerAndTest.sh)
     set_tests_properties(ProviderNameTester PROPERTIES TIMEOUT 120)
 :::
 :::
@@ -2105,21 +2138,13 @@ Create unit tests for your server helper:
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     // ProviderNameTester.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/platform/quantum_platform.h"
     #include "gtest/gtest.h"
 
     TEST(ProviderNameTester, checkSimpleCircuit) {
-      // Initialize the platform
-      auto platform = cudaq::get_platform();
-      platform->setTargetBackend("<provider_name>");
-
-      // Set configuration
-      platform->setBackendParameter("url", "http://localhost:PORT");
-      platform->setBackendParameter("api_key", "test_key");
-
       // Create a simple circuit
       auto kernel = cudaq::make_kernel();
       auto qubits = kernel.qalloc(2);

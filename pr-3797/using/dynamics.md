@@ -156,18 +156,57 @@ pr-3797
     -   [Optimizers &
         Gradients](../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -1030,11 +1069,7 @@ pr-3797
             -   [Setting
                 Credentials](backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](#){.current .reference .internal}
     -   [Quick Start](#quick-start){.reference .internal}
@@ -1965,18 +2000,18 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
+        get_result = lambda idx, res: [
+            exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+        ]
 
-    import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt
 
-    plt.plot(steps, get_result(0, evolution_result))
-    plt.plot(steps, get_result(1, evolution_result))
-    plt.plot(steps, get_result(2, evolution_result))
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
+        plt.plot(steps, get_result(0, evolution_result))
+        plt.plot(steps, get_result(1, evolution_result))
+        plt.plot(steps, get_result(2, evolution_result))
+        plt.ylabel("Expectation value")
+        plt.xlabel("Time")
+        plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
 :::
 :::
 
@@ -3345,6 +3380,21 @@ Note
 Not all integrators are capable of handling distributed state. Errors
 will be raised if parallel execution is activated but the selected
 integrator does not support distributed state.
+:::
+
+::: {.admonition .note}
+Note
+
+When running batched simulations in a multi-GPU multi-node environment,
+the batch size will be automatically divided by the number of MPI
+processes. Hence, the batch size needs to be divisible by the number of
+processes. For example, if the original batch size is 8 and there are 4
+MPI processes, then each process (GPU) will simulate a batch size of 2.
+Errors will be raised if the batch size is not divisible by the number
+of processes.
+
+Each process will return its own set of results. The user is responsible
+for gathering the results from all processes if needed.
 :::
 :::
 

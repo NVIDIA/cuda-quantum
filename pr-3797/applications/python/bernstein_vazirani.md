@@ -167,18 +167,57 @@ pr-3797
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1003,11 +1042,7 @@ pr-3797
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1726,7 +1761,7 @@ aria-hidden="true"}](cost_minimization.html "Cost Minimization"){.btn
 The Bernstein-Vazirani (BV) algorithm demonstrates an exponential
 speedup over classical methods for the particular task:
 
-Suppose we have an oracle that implements the function [\\(f:
+Suppose we have an oracle that implements the function [\\(f\\colon
 \\{0,1\\}\^n \\longrightarrow \\{0,1\\}\\)]{.math .notranslate
 .nohighlight}.
 
@@ -1735,8 +1770,8 @@ product between [\\(x\\)]{.math .notranslate .nohighlight} and a secret
 [\\(n\\)]{.math .notranslate .nohighlight}-bit binary string
 [\\(s\\)]{.math .notranslate .nohighlight}:
 
-[\\(f(x) = x \\cdot s (mod \\space 2) = (x_1s_1 + x_2s_2 + \... +
-x_ns_n) (mod \\space 2)\\)]{.math .notranslate .nohighlight}.
+[\\(f(x) = x \\cdot s \\pmod{2} = (x_1s_1 + x_2s_2 + \\ldots + x_ns_n)
+\\pmod{2}\\)]{.math .notranslate .nohighlight}.
 
 Our goal is to find the secret string [\\(s\\)]{.math .notranslate
 .nohighlight}.
@@ -1755,17 +1790,17 @@ We have access to the function: [\\(f(x) = x\\cdot s (mod \\space 2) =
 Let us strategically query the function to determine [\\(s\\)]{.math
 .notranslate .nohighlight}.
 
-[\\(1\^{st}\\)]{.math .notranslate .nohighlight} query: [\\(f(001) = 001
-\\cdot s (mod \\space 2) = (0 \\cdot 1 + 0 \\cdot 0 + 1 \\cdot 1)(mod
-\\space 2) = 1 (mod \\space 2) = 1\\)]{.math .notranslate .nohighlight}
+1st query: [\\(f(001) = 001 \\cdot s \\pmod2 = (0 \\cdot 1 + 0 \\cdot
+0 + 1 \\cdot 1)\\pmod2 = 1 \\pmod2 = 1\\)]{.math .notranslate
+.nohighlight}
 
-[\\(2\^{nd}\\)]{.math .notranslate .nohighlight} query: [\\(f(010) = 010
-\\cdot s (mod \\space 2) = (0 \\cdot 1 + 1 \\cdot 0 + 0 \\cdot 1)(mod
-\\space 2) = 0 (mod \\space 2) = 0\\)]{.math .notranslate .nohighlight}
+2nd query: [\\(f(010) = 010 \\cdot s \\pmod2 = (0 \\cdot 1 + 1 \\cdot
+0 + 0 \\cdot 1)\\pmod2 = 0 \\pmod2 = 0\\)]{.math .notranslate
+.nohighlight}
 
-[\\(3\^{rd}\\)]{.math .notranslate .nohighlight} query: [\\(f(100) = 100
-\\cdot s (mod \\space 2) = (1 \\cdot 1 + 0 \\cdot 0 + 0 \\cdot 1)(mod
-\\space 2) = 1 (mod \\space 2) = 1\\)]{.math .notranslate .nohighlight}
+3rd query: [\\(f(100) = 100 \\cdot s \\pmod2 = (1 \\cdot 1 + 0 \\cdot
+0 + 0 \\cdot 1)\\pmod2 = 1 \\pmod2 = 1\\)]{.math .notranslate
+.nohighlight}
 
 Remember that from a user perspective, you only see [\\(f(001) =
 1\\)]{.math .notranslate .nohighlight} since the inner mechanisms of the
@@ -1775,30 +1810,27 @@ hidden from you.
 Why did we query [\\(f(001)\\)]{.math .notranslate .nohighlight} and not
 [\\(f(011)\\)]{.math .notranslate .nohighlight}?
 
-For [\\(f(001) = (x_1s_1 + x_2s_2 + x_3s_3) (mod \\space 2) = (0 + 0 +
-x_3s_3) (mod \\space 2) = (x_3s_3) (mod \\space 2) = 1 \\cdot s_3 (mod
-\\space 2) = s_3 (mod \\space 2) = 1\\)]{.math .notranslate
-.nohighlight}
+For [\\(f(001) = (x_1s_1 + x_2s_2 + x_3s_3) \\pmod2 = (0 + 0 + x_3s_3)
+\\pmod2 = (x_3s_3) \\pmod2 = 1 \\cdot s_3 \\pmod2 = s_3 \\pmod2 =
+1\\)]{.math .notranslate .nohighlight}
 
 We have now isolated [\\(s_3\\)]{.math .notranslate .nohighlight} and
-know that [\\(s_3 (mod \\space 2) = 1\\)]{.math .notranslate
-.nohighlight}. [\\(s_3\\)]{.math .notranslate .nohighlight} can only be
-0 or 1 and in this case it has to be [\\(1\\)]{.math .notranslate
-.nohighlight} since [\\(0 (mod \\space 2) = 0\\)]{.math .notranslate
-.nohighlight}.
+know that [\\(s_3 \\pmod2 = 1\\)]{.math .notranslate .nohighlight}.
+[\\(s_3\\)]{.math .notranslate .nohighlight} can only be 0 or 1 and in
+this case it has to be [\\(1\\)]{.math .notranslate .nohighlight} since
+[\\(0 \\pmod2 = 0\\)]{.math .notranslate .nohighlight}.
 
-For [\\(f(011) = (x_2s_2 + x_3s_3) (mod \\space 2)\\)]{.math
-.notranslate .nohighlight}, we will be left with [\\(s_2\\)]{.math
-.notranslate .nohighlight} and [\\(s_3\\)]{.math .notranslate
-.nohighlight} each of which will be more difficult to isolate via a
-combination of linear equations. Hence why we have to strategically
-query the function.
+For [\\(f(011) = (x_2s_2 + x_3s_3) \\pmod2\\)]{.math .notranslate
+.nohighlight}, we will be left with [\\(s_2\\)]{.math .notranslate
+.nohighlight} and [\\(s_3\\)]{.math .notranslate .nohighlight} each of
+which will be more difficult to isolate via a combination of linear
+equations. Hence why we have to strategically query the function.
 
 In the classical case, we see that the secret string [\\(s\\)]{.math
 .notranslate .nohighlight} can be calculated in 3 queries. More
 generally speaking, it would take [\\(n\\)]{.math .notranslate
 .nohighlight} queries to generate enough information to determine
-[\\(s\\)]{.math .notranslate .nohighlight}
+[\\(s\\)]{.math .notranslate .nohighlight}.
 :::
 
 ::: {#Quantum-case .section}
@@ -1832,24 +1864,24 @@ in:
 ::: {.math .notranslate .nohighlight}
 \\\[U_f \\frac{1}{\\sqrt{2\^n}}\\sum_x\^{n-1} \\ket{x} =
 \\frac{1}{\\sqrt{2\^n}}\\sum_x\^{n-1} (-1)\^{f(x)}\\ket{x}
-=\\frac{1}{\\sqrt{2\^n}}\\sum_x\^{n-1} (-1)\^{a\*x}\\ket{x}\\\]
+=\\frac{1}{\\sqrt{2\^n}}\\sum_x\^{n-1} (-1)\^{s\\cdot x}\\ket{x}\\\]
 :::
 
 Applying Hadamard gates again returns the following state:
 
 ::: {.math .notranslate .nohighlight}
-\\\[H \\frac{1}{\\sqrt{2\^n}}\\sum_x\^{n-1} (-1)\^{a\*x}\\ket{x} =
-\\frac{1}{\\sqrt{2\^n}}\\sum\_{x,y}\^{n-1} (-1)\^{a\*x} (-1)\^{y\*x}
-\\ket{y} = \\frac{1}{\\sqrt{2\^n}}\\sum\_{y}\^{n-1} \\sum\_{x}\^{n-1}
-(-1)\^{(a \\oplus y)\*x}\\ket{y}\\\]
+\\\[H \\frac{1}{\\sqrt{2\^n}}\\sum_x\^{n-1} (-1)\^{s\\cdot x}\\ket{x} =
+\\frac{1}{\\sqrt{2\^n}}\\sum\_{x,y}\^{n-1} (-1)\^{s\\cdot x}
+(-1)\^{y\\cdot x} \\ket{y} = \\frac{1}{\\sqrt{2\^n}}\\sum\_{y}\^{n-1}
+\\sum\_{x}\^{n-1} (-1)\^{(s \\oplus y)\\cdot x}\\ket{y}\\\]
 :::
 
-In the case of [\\(a \\neq y\\)]{.math .notranslate .nohighlight}, the
-entire term becomes zero. In the case of [\\(a = y\\)]{.math
-.notranslate .nohighlight}, the state [\\(\\ket{a}\\)]{.math
+In the case of [\\(s \\neq y\\)]{.math .notranslate .nohighlight}, the
+entire term becomes zero. In the case of [\\(s = y\\)]{.math
+.notranslate .nohighlight}, the state [\\(\\ket{s}\\)]{.math
 .notranslate .nohighlight} is returned with an amplitude of 1. This
 means there is a 100% chance of the measurement result being the hidden
-bitstring [\\(a\\)]{.math .notranslate .nohighlight} with only one call
+bitstring [\\(s\\)]{.math .notranslate .nohighlight} with only one call
 to the oracle!
 :::
 
@@ -1871,15 +1903,15 @@ GPU with the [`nvidia`{.docutils .literal .notranslate}]{.pre} backend.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     import cudaq
-    from typing import List
+    import numpy as np
 
-    cudaq.set_target('qpp-cpu')
-    #cudaq.set_target('nvidia')  # GPU backend which enables scaling to large problem sizes
+    cudaq.set_target("qpp-cpu")  # CPU backend
+    # cudaq.set_target("nvidia")  # GPU backend which enables scaling to large problem sizes
 :::
 :::
 :::
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [2]:
@@ -1890,10 +1922,24 @@ GPU with the [`nvidia`{.docutils .literal .notranslate}]{.pre} backend.
 ::: highlight
     qubit_count = 5  # Set to around 30 qubits if you have GPU access
 
-    secret_string = [1, 1, 0, 1,
-                     0]  # Change the secret string to whatever you prefer
+    random_generator = np.random.default_rng(seed=15)
+    secret_string = random_generator.integers(
+        2, size=qubit_count
+    )  # Change the secret string to whatever you prefer
 
+    print("Your secret string is", secret_string)
     assert qubit_count == len(secret_string)
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    Your secret string is [1 1 1 1 0]
 :::
 :::
 :::
@@ -1914,8 +1960,7 @@ register qubit is a 1.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     @cudaq.kernel
-    def oracle(register: cudaq.qview, auxiliary_qubit: cudaq.qubit,
-               secret_string: List[int]):
+    def oracle(register: cudaq.qview, auxiliary_qubit: cudaq.qubit, secret_string: list[int]):
 
         for index, bit in enumerate(secret_string):
             if bit == 1:
@@ -1938,7 +1983,7 @@ below and verify that the procedure guessed the correct bitstring.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     @cudaq.kernel
-    def bernstein_vazirani(secret_string: List[int]):
+    def bernstein_vazirani(secret_string: list[int]):
 
         qubits = cudaq.qvector(len(secret_string))  # register of size n
         auxiliary_qubit = cudaq.qubit()  # auxiliary qubit
@@ -1961,12 +2006,12 @@ below and verify that the procedure guessed the correct bitstring.
 
     print(cudaq.draw(bernstein_vazirani, secret_string))
     result = cudaq.sample(bernstein_vazirani, secret_string)
+    print("Sample result:", result)
 
     print(f"secret bitstring = {secret_string}")
     print(f"measured state = {result.most_probable()}")
-    print(
-        f"Were we successful? {''.join([str(i) for i in secret_string]) == result.most_probable()}"
-    )
+    is_success = "".join(str(i) for i in secret_string) == result.most_probable()
+    print(f"Were we successful?", is_success)
 :::
 :::
 :::
@@ -1978,21 +2023,23 @@ below and verify that the procedure guessed the correct bitstring.
 ::: {.output_area .docutils .container}
 ::: highlight
          ╭───╮          ╭───╮
-    q0 : ┤ h ├───────●──┤ h ├──────────
+    q0 : ┤ h ├───────●──┤ h ├───────────────
          ├───┤       │  ╰───╯╭───╮
-    q1 : ┤ h ├───────┼────●──┤ h ├─────
-         ├───┤       │    │  ├───┤
-    q2 : ┤ h ├───────┼────┼──┤ h ├─────
+    q1 : ┤ h ├───────┼────●──┤ h ├──────────
          ├───┤       │    │  ╰───╯╭───╮
-    q3 : ┤ h ├───────┼────┼────●──┤ h ├
-         ├───┤       │    │    │  ├───┤
-    q4 : ┤ h ├───────┼────┼────┼──┤ h ├
-         ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯
-    q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├─────
-         ╰───╯╰───╯╰───╯╰───╯╰───╯
+    q2 : ┤ h ├───────┼────┼────●──┤ h ├─────
+         ├───┤       │    │    │  ╰───╯╭───╮
+    q3 : ┤ h ├───────┼────┼────┼────●──┤ h ├
+         ├───┤       │    │    │    │  ├───┤
+    q4 : ┤ h ├───────┼────┼────┼────┼──┤ h ├
+         ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯
+    q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├┤ x ├─────
+         ╰───╯╰───╯╰───╯╰───╯╰───╯╰───╯
 
-    secret bitstring = [1, 1, 0, 1, 0]
-    measured state = 11010
+    Sample result: { 11110:1000 }
+
+    secret bitstring = [1 1 1 1 0]
+    measured state = 11110
     Were we successful? True
 :::
 :::
@@ -2018,7 +2065,7 @@ below and verify that the procedure guessed the correct bitstring.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum 176f1e7df8a58c2dc3d6b1b47bf7f63b4b8d3b63)
+    CUDA-Q Version amd64-cu13-0.13.0 (https://github.com/NVIDIA/cuda-quantum b66c5bb7fd8c08e5014e2f03e97e7b0e92691650)
 :::
 :::
 :::

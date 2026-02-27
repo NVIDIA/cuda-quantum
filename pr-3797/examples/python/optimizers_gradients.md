@@ -163,16 +163,54 @@ pr-3797
             .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers & Gradients](#){.current .reference .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](#CUDA-Q-Optimizer-Overview){.reference .internal}
+            -   [Gradient-Free Optimizers (no gradients
+                required):](#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Third-Party Optimizers](#Third-Party-Optimizers){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](#2.-Third-Party-Optimizers){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](#Parallel-Parameter-Shift-Gradients){.reference
+        -   [3. Parallel Parameter Shift
+            Gradients](#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy Simulations](noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [1. Set up the
+            environment](ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1043,11 +1081,7 @@ pr-3797
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1764,23 +1798,60 @@ aria-hidden="true"}](noisy_simulations.html "Noisy Simulation"){.btn
 # Optimizers and Gradients[¶](#Optimizers-and-Gradients "Permalink to this heading"){.headerlink}
 
 Many quantum algorithms require the optimization of quantum circuit
-parameters with respect to an expectation value. CUDA-Q has a number of
-tools available for optimization techniques. This example will
-demonstrate how to optimize the variational parameters of a circuit
-using:
+parameters with respect to an expectation value. CUDA-Q provides a
+comprehensive suite of optimization tools for hybrid quantum-classical
+algorithms like VQE (Variational Quantum Eigensolver).
 
-1.  Built in CUDA-Q optimizers and gradients
+This notebook will demonstrate:
 
-2.  A Third-Party Optimizer
+1.  **Built-in CUDA-Q Optimizers**: Adam, SGD, SPSA, COBYLA, NelderMead,
+    LBFGS, and GradientDescent
 
-3.  A Parallel parameter shift gradient.
+2.  **Optimizer Parameters**: Detailed configuration options with
+    defaults and tuning guidance
 
-First, the kernel and Hamiltonian and specified below.
+3.  **Gradient Strategies**: CentralDifference, ForwardDifference, and
+    ParameterShift
+
+4.  **Third-Party Optimizers**: Integration with SciPy
+
+5.  **Parallel Parameter Shift**: Multi-GPU gradient computation
+
+::: {#CUDA-Q-Optimizer-Overview .section}
+## CUDA-Q Optimizer Overview[¶](#CUDA-Q-Optimizer-Overview "Permalink to this heading"){.headerlink}
+
+CUDA-Q includes the following optimizers:
+
+::: {#Gradient-Free-Optimizers-(no-gradients-required): .section}
+### Gradient-Free Optimizers (no gradients required):[¶](#Gradient-Free-Optimizers-(no-gradients-required): "Permalink to this heading"){.headerlink}
+
+-   **COBYLA**: Constrained Optimization BY Linear Approximations
+
+-   **NelderMead**: Simplex-based derivative-free optimizer
+
+-   **SPSA**: Simultaneous Perturbation Stochastic Approximation
+    (excellent for noisy functions)
+:::
+
+::: {#Gradient-Based-Optimizers-(require-gradients): .section}
+### Gradient-Based Optimizers (require gradients):[¶](#Gradient-Based-Optimizers-(require-gradients): "Permalink to this heading"){.headerlink}
+
+-   **Adam**: Adaptive Moment Estimation with momentum (recommended for
+    most cases)
+
+-   **SGD**: Stochastic Gradient Descent
+
+-   **LBFGS**: Limited-memory BFGS quasi-Newton method
+
+-   **GradientDescent**: Basic gradient descent
+
+First, let's set up the kernel and Hamiltonian that we'll use throughout
+the examples.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [1]:
 :::
 :::
 
@@ -1795,23 +1866,49 @@ First, the kernel and Hamiltonian and specified below.
 
     @cudaq.kernel
     def kernel(angles: list[float]):
-
         qubits = cudaq.qvector(2)
         x(qubits[0])
         ry(angles[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
 
-    initial_params = np.random.normal(0, np.pi, 2)
+    initial_params = np.random.normal(0, np.pi, 1)
+:::
+:::
 :::
 :::
 :::
 
-::: {#Built-in-CUDA-Q-Optimizers-and-Gradients .section}
-## Built in CUDA-Q Optimizers and Gradients[¶](#Built-in-CUDA-Q-Optimizers-and-Gradients "Permalink to this heading"){.headerlink}
+::: {#1.-Built-in-CUDA-Q-Optimizers-and-Gradients .section}
+## 1. Built-in CUDA-Q Optimizers and Gradients[¶](#1.-Built-in-CUDA-Q-Optimizers-and-Gradients "Permalink to this heading"){.headerlink}
 
-The optimizer and gradient are specified first from a built in CUDA-Q
-optimizer and gradient technique. An objective function is defined next
-which uses a lambda expression to evaluate the cost (a CUDA-Q
+CUDA-Q provides several optimizers with configurable parameters. Let's
+explore the most commonly used optimizers: **Adam**, **SGD**, and
+**SPSA**.
+
+::: {#1.1-Adam-Optimizer-with-Parameter-Configuration .section}
+### 1.1 Adam Optimizer with Parameter Configuration[¶](#1.1-Adam-Optimizer-with-Parameter-Configuration "Permalink to this heading"){.headerlink}
+
+**Adam (Adaptive Moment Estimation)** combines momentum and adaptive
+learning rates for efficient optimization. It's particularly effective
+for problems with noisy gradients.
+
+**Configurable Parameters:** - [`step_size`{.docutils .literal
+.notranslate}]{.pre} (default: 0.01): Learning rate for parameter
+updates - [`beta1`{.docutils .literal .notranslate}]{.pre} (default:
+0.9): Exponential decay rate for first moment (momentum) -
+[`beta2`{.docutils .literal .notranslate}]{.pre} (default: 0.999):
+Exponential decay rate for second moment (adaptive learning) -
+[`epsilon`{.docutils .literal .notranslate}]{.pre} (default: 1e-8):
+Small constant for numerical stability - [`batch_size`{.docutils
+.literal .notranslate}]{.pre} (default: 1): Number of samples per
+batch - [`f_tol`{.docutils .literal .notranslate}]{.pre} (default:
+1e-4): Convergence tolerance - [`max_iterations`{.docutils .literal
+.notranslate}]{.pre}: Maximum number of iterations -
+[`initial_parameters`{.docutils .literal .notranslate}]{.pre}: Starting
+parameter values
+
+The optimizer and gradient are specified below. An objective function is
+defined which uses a lambda expression to evaluate the cost (a CUDA-Q
 [`observe`{.docutils .literal .notranslate}]{.pre} expectation value).
 The gradient is calculated using the [`compute`{.docutils .literal
 .notranslate}]{.pre} method.
@@ -1819,48 +1916,60 @@ The gradient is calculated using the [`compute`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [2]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
+    # Configure Adam optimizer with custom parameters
     optimizer = cudaq.optimizers.Adam()
-    gradient = cudaq.gradients.CentralDifference()
+    optimizer.step_size = 0.1                      # Learning rate
+    optimizer.beta1 = 0.9                          # First moment decay
+    optimizer.beta2 = 0.999                        # Second moment decay
+    optimizer.epsilon = 1e-8                       # Numerical stability
+    optimizer.max_iterations = 100                 # Maximum iterations
+    optimizer.initial_parameters = initial_params  # Set initial parameters
 
+    # Use CentralDifference gradient strategy
+    gradient = cudaq.gradients.CentralDifference()
 
     def objective_function(parameter_vector: list[float],
                            hamiltonian=hamiltonian,
                            gradient_strategy=gradient,
                            kernel=kernel) -> tuple[float, list[float]]:
+        """
+        Objective function for gradient-based optimizers.
+        Returns: (cost, gradient_vector)
+        """
+        get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()
 
-            get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()
+        cost = get_result(parameter_vector)
 
-            cost = get_result(parameter_vector)
+        gradient_vector = gradient_strategy.compute(parameter_vector, get_result, cost)
 
-            gradient_vector = gradient_strategy.compute(parameter_vector, get_result, cost)
-
-            return cost, gradient_vector
+        return cost, gradient_vector
 :::
 :::
 :::
 
-Finally, the optimizer is called to return the optimal cost and
-parameters.
+Now run the optimizer to find the optimal energy and parameters. Adam
+will use adaptive learning rates for each parameter.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [3]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    energy, parameter = optimizer.optimize(dimensions=1,function=objective_function)
+    energy, parameter = optimizer.optimize(dimensions=1, function=objective_function)
 
-    print(f"\nminimized <H> = {round(energy,16)}")
-    print(f"optimal theta 0 = {round(parameter[0],16)}")
+    print(f"\n=== Adam Optimizer Results ===")
+    print(f"Minimized <H> = {energy:.6f}")
+    print(f"Optimal parameters: {[round(p, 6) for p in parameter]}")
 :::
 :::
 :::
@@ -1872,25 +1981,159 @@ parameters.
 ::: {.output_area .docutils .container}
 ::: highlight
 
-    minimized <H> = -1.748382901613712
-    optimal theta 0 = 0.58409164053813
+    === Adam Optimizer Results ===
+    Minimized <H> = -1.744713
+    Optimal parameters: [-5.721116]
 :::
 :::
 :::
 :::
 
-::: {#Third-Party-Optimizers .section}
-## Third-Party Optimizers[¶](#Third-Party-Optimizers "Permalink to this heading"){.headerlink}
+::: {#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer .section}
+### 1.2 SGD (Stochastic Gradient Descent) Optimizer[¶](#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer "Permalink to this heading"){.headerlink}
 
-The same procedure can be accomplised using any third-party such as
-SciPy. In this case, a simple cost fucntion is defined and provided as
-an input for the standard SciPy [`minimize`{.docutils .literal
-.notranslate}]{.pre} function.
+**SGD** is a fundamental optimization algorithm that updates parameters
+by taking steps proportional to the negative gradient.
+
+**Configurable Parameters:** - [`step_size`{.docutils .literal
+.notranslate}]{.pre} (default: 0.01): Learning rate for parameter
+updates - [`batch_size`{.docutils .literal .notranslate}]{.pre}
+(default: 1): Number of samples per batch - [`f_tol`{.docutils .literal
+.notranslate}]{.pre} (default: 1e-4): Convergence tolerance -
+[`max_iterations`{.docutils .literal .notranslate}]{.pre}: Maximum
+number of iterations - [`initial_parameters`{.docutils .literal
+.notranslate}]{.pre}: Starting parameter values
+
+SGD is simpler than Adam and can be effective when you understand your
+problem well enough to tune the learning rate appropriately.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [4]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    # Configure SGD optimizer
+    sgd_optimizer = cudaq.optimizers.SGD()
+    sgd_optimizer.step_size = 0.05       # Learning rate
+    sgd_optimizer.batch_size = 1         # Stochastic mode
+    sgd_optimizer.max_iterations = 100   # Maximum iterations
+    sgd_optimizer.f_tol = 1e-6           # Convergence tolerance
+    sgd_optimizer.initial_parameters = initial_params
+
+    # Run optimization
+    sgd_energy, sgd_params = sgd_optimizer.optimize(dimensions=1, function=objective_function)
+
+    print(f"\n=== SGD Optimizer Results ===")
+    print(f"Minimized <H> = {sgd_energy:.6f}")
+    print(f"Optimal parameters: {[round(p, 6) for p in sgd_params]}")
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+
+    === SGD Optimizer Results ===
+    Minimized <H> = -1.748865
+    Optimal parameters: [-5.688733]
+:::
+:::
+:::
+:::
+
+::: {#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation) .section}
+### 1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)[¶](#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation) "Permalink to this heading"){.headerlink}
+
+**SPSA** is a gradient-free stochastic optimization algorithm that is
+particularly useful for noisy objective functions (like quantum hardware
+with shot noise). It approximates gradients using simultaneous
+perturbations and requires only **2 function evaluations per iteration**
+regardless of problem dimension.
+
+**Configurable Parameters:** - [`step_size`{.docutils .literal
+.notranslate}]{.pre} (default: 0.3): Evaluation step size for gradient
+approximation - [`gamma`{.docutils .literal .notranslate}]{.pre}
+(default: 0.101): Scaling exponent for step size schedule -
+[`max_iterations`{.docutils .literal .notranslate}]{.pre}: Maximum
+number of iterations - [`initial_parameters`{.docutils .literal
+.notranslate}]{.pre}: Starting parameter values
+
+**Key Advantage**: SPSA does **not** require gradients, making it ideal
+for noisy functions and quantum hardware.
+
+::: {.nbinput .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [5]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    # Configure SPSA optimizer
+    spsa_optimizer = cudaq.optimizers.SPSA()
+    spsa_optimizer.step_size = 0.3       # Evaluation step size
+    spsa_optimizer.gamma = 0.101         # Scaling exponent
+    spsa_optimizer.max_iterations = 100  # Maximum iterations
+    spsa_optimizer.initial_parameters = initial_params
+
+    # Define gradient-free objective function
+    def spsa_objective(parameter_vector: list[float]) -> float:
+        """
+        Objective function for gradient-free optimizers like SPSA.
+        Returns: cost only (no gradient)
+        """
+        return cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()
+
+    # Run optimization
+    spsa_energy, spsa_params = spsa_optimizer.optimize(dimensions=1, function=spsa_objective)
+
+    print(f"\n=== SPSA Optimizer Results ===")
+    print(f"Minimized <H> = {round(spsa_energy, 6)}")
+    print(f"Optimal parameters: {[round(p, 6) for p in spsa_params]}")
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+
+    === SPSA Optimizer Results ===
+    Minimized <H> = -1.748668
+    Optimal parameters: [-5.681724]
+:::
+:::
+:::
+:::
+:::
+
+::: {#2.-Third-Party-Optimizers .section}
+## 2. Third-Party Optimizers[¶](#2.-Third-Party-Optimizers "Permalink to this heading"){.headerlink}
+
+CUDA-Q optimizers can work alongside third-party optimization libraries
+like SciPy. This provides flexibility to use familiar optimization tools
+while leveraging CUDA-Q's quantum simulation capabilities.
+
+The same VQE procedure can be accomplished using SciPy. In this case, a
+simple cost function is defined and provided as input to the standard
+SciPy [`minimize`{.docutils .literal .notranslate}]{.pre} function.
+
+::: {.nbinput .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [6]:
 :::
 :::
 
@@ -1919,17 +2162,17 @@ an input for the standard SciPy [`minimize`{.docutils .literal
      message: Optimization terminated successfully.
      success: True
       status: 1
-         fun: -1.7488646919931474
-           x: [ 5.944e-01  1.288e+00]
-        nfev: 33
+         fun: -1.748865011330396
+           x: [ 5.943e-01]
+        nfev: 26
        maxcv: 0.0
 :::
 :::
 :::
 :::
 
-::: {#Parallel-Parameter-Shift-Gradients .section}
-## Parallel Parameter Shift Gradients[¶](#Parallel-Parameter-Shift-Gradients "Permalink to this heading"){.headerlink}
+::: {#3.-Parallel-Parameter-Shift-Gradients .section}
+## 3. Parallel Parameter Shift Gradients[¶](#3.-Parallel-Parameter-Shift-Gradients "Permalink to this heading"){.headerlink}
 
 CUDA-Q's [`mqpu`{.docutils .literal .notranslate}]{.pre} backend allows
 for parallel computation of parameter shift gradients using multiple
@@ -1968,7 +2211,7 @@ final gradient.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [11]:
+    [7]:
 :::
 :::
 
@@ -1983,7 +2226,7 @@ final gradient.
 
     def batched_gradient_function(kernel, parameters, hamiltonian, epsilon):
 
-        #Prepare an array of parameters corresponding to the plus and minus shifts
+        # Prepare an array of parameters corresponding to the plus and minus shifts
         x = np.tile(parameters, (len(parameters),1))
         xplus = x + (np.eye(x.shape[0]) * epsilon)
         xminus = x - (np.eye(x.shape[0]) * epsilon)
@@ -2003,7 +2246,7 @@ final gradient.
             g_minus.append(cudaq.observe_async(kernel, hamiltonian, xminus[i], qpu_id = qpu_counter%num_qpus))
             qpu_counter += 1
 
-        #use the expectation values to compute the gradient
+        # Use the expectation values to compute the gradient
         gradient = [(g_plus[i].get().expectation() - g_minus[i].get().expectation()) / (2*epsilon) for i in range(len(g_minus))]
 
         return gradient
@@ -2011,68 +2254,58 @@ final gradient.
 :::
 :::
 
-This function can be used in a VQE procedure as presented below. First,
-the gradient is computed using the initial parameters, then the standard
-VQE construction is used, but the [`batched_gradient_function`{.docutils
-.literal .notranslate}]{.pre} is used to evaluate the gradient at each
-step. This objective function will return the cost and gradient at each
-step and can be used with any SciPy optimizer that uses a gradient.
+This function can be used in a VQE procedure as presented below. The
+[`batched_gradient_function`{.docutils .literal .notranslate}]{.pre} is
+used to evaluate the gradient at each optimization step. This objective
+function returns the cost and gradient at the current parameter values
+and can be used with any SciPy optimizer that uses gradients (like
+L-BFGS-B).
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [12]:
+    [8]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    gradient = batched_gradient_function(kernel, initial_params, hamiltonian, epsilon)
-
-
     def objective_function(parameter_vector,
                            hamiltonian=hamiltonian,
-                           gradient=gradient,
-                           kernel=kernel):
+                           kernel=kernel,
+                           epsilon=epsilon):
+        """
+        Objective function for VQE with parallel parameter shift gradients.
+        Computes both cost and gradient at the current parameter values.
+        """
+        # Compute cost at current parameters
+        cost = cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()
 
-        cost=cudaq.observe(kernel,hamiltonian,parameter_vector).expectation()
-
-
-        gradient_vector = batched_gradient_function(kernel, initial_params, hamiltonian, epsilon)
+        # Compute gradient at current parameters using parallel parameter shift
+        gradient_vector = batched_gradient_function(kernel, parameter_vector, hamiltonian, epsilon)
 
         return cost, gradient_vector
 :::
 :::
 :::
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [9]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    result_vqe=minimize(objective_function,initial_params, method='L-BFGS-B', jac=True, tol=1e-8, options={'maxiter': 5})
-    print(result)
-:::
-:::
-:::
+    # Run VQE optimization with parallel parameter shift gradients
+    result_vqe = minimize(objective_function, initial_params, method='L-BFGS-B', jac=True, tol=1e-8, options={'maxiter': 50})
 
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-     message: Optimization terminated successfully.
-     success: True
-      status: 1
-         fun: -1.7488646919931474
-           x: [ 5.944e-01  1.288e+00]
-        nfev: 33
-       maxcv: 0.0
+    print("\n=== VQE with Parallel Parameter Shift Gradients ===")
+    print(f"Optimized energy: {result_vqe.fun:.6f}")
+    print(f"Optimal parameters: {result_vqe.x}")
+    print(f"Number of iterations: {result_vqe.nit}")
+    print(f"Success: {result_vqe.success}")
 :::
 :::
 :::

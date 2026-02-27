@@ -191,12 +191,31 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -644,8 +663,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1012,24 +1030,24 @@
   <section id="Bernstein-Vazirani-Algorithm">
 <h1>Bernstein-Vazirani Algorithm<a class="headerlink" href="#Bernstein-Vazirani-Algorithm" title="Permalink to this heading">¶</a></h1>
 <p>The Bernstein-Vazirani (BV) algorithm demonstrates an exponential speedup over classical methods for the particular task:</p>
-<p>Suppose we have an oracle that implements the function <span class="math notranslate nohighlight">\(f: \{0,1\}^n \longrightarrow \{0,1\}\)</span>.</p>
+<p>Suppose we have an oracle that implements the function <span class="math notranslate nohighlight">\(f\colon \{0,1\}^n \longrightarrow \{0,1\}\)</span>.</p>
 <p><span class="math notranslate nohighlight">\(f(x)\)</span> is promised to be the dot product between <span class="math notranslate nohighlight">\(x\)</span> and a secret <span class="math notranslate nohighlight">\(n\)</span>-bit binary string <span class="math notranslate nohighlight">\(s\)</span>:</p>
-<p><span class="math notranslate nohighlight">\(f(x) = x \cdot s (mod \space 2) = (x_1s_1 + x_2s_2 + ... + x_ns_n) (mod \space 2)\)</span>.</p>
+<p><span class="math notranslate nohighlight">\(f(x) = x \cdot s \pmod{2} = (x_1s_1 + x_2s_2 + \ldots + x_ns_n) \pmod{2}\)</span>.</p>
 <p>Our goal is to find the secret string <span class="math notranslate nohighlight">\(s\)</span>.</p>
 <section id="Classical-case">
 <h2>Classical case<a class="headerlink" href="#Classical-case" title="Permalink to this heading">¶</a></h2>
 <p>For the case of <span class="math notranslate nohighlight">\(n=3\)</span> consider <span class="math notranslate nohighlight">\(s=101\)</span>, which is a secret string and hence we dont have access to it.</p>
 <p>We have access to the function: <span class="math notranslate nohighlight">\(f(x) = x\cdot s (mod \space 2) = (x_1s_1 + x_2s_2 + x_3s_3) (mod \space 2)\)</span></p>
 <p>Let us strategically query the function to determine <span class="math notranslate nohighlight">\(s\)</span>.</p>
-<p><span class="math notranslate nohighlight">\(1^{st}\)</span> query: <span class="math notranslate nohighlight">\(f(001) = 001 \cdot s (mod \space 2) = (0 \cdot 1 + 0 \cdot 0 + 1 \cdot 1)(mod \space 2) = 1 (mod \space 2) = 1\)</span></p>
-<p><span class="math notranslate nohighlight">\(2^{nd}\)</span> query: <span class="math notranslate nohighlight">\(f(010) = 010 \cdot s (mod \space 2) = (0 \cdot 1 + 1 \cdot 0 + 0 \cdot 1)(mod \space 2) = 0 (mod \space 2) = 0\)</span></p>
-<p><span class="math notranslate nohighlight">\(3^{rd}\)</span> query: <span class="math notranslate nohighlight">\(f(100) = 100 \cdot s (mod \space 2) = (1 \cdot 1 + 0 \cdot 0 + 0 \cdot 1)(mod \space 2) = 1 (mod \space 2) = 1\)</span></p>
+<p>1st query: <span class="math notranslate nohighlight">\(f(001) = 001 \cdot s \pmod2 = (0 \cdot 1 + 0 \cdot 0 + 1 \cdot 1)\pmod2 = 1 \pmod2 = 1\)</span></p>
+<p>2nd query: <span class="math notranslate nohighlight">\(f(010) = 010 \cdot s \pmod2 = (0 \cdot 1 + 1 \cdot 0 + 0 \cdot 1)\pmod2 = 0 \pmod2 = 0\)</span></p>
+<p>3rd query: <span class="math notranslate nohighlight">\(f(100) = 100 \cdot s \pmod2 = (1 \cdot 1 + 0 \cdot 0 + 0 \cdot 1)\pmod2 = 1 \pmod2 = 1\)</span></p>
 <p>Remember that from a user perspective, you only see <span class="math notranslate nohighlight">\(f(001) = 1\)</span> since the inner mechanisms of the oracle and the value of <span class="math notranslate nohighlight">\(s\)</span> is hidden from you.</p>
 <p>Why did we query <span class="math notranslate nohighlight">\(f(001)\)</span> and not <span class="math notranslate nohighlight">\(f(011)\)</span>?</p>
-<p>For <span class="math notranslate nohighlight">\(f(001) = (x_1s_1 + x_2s_2 + x_3s_3) (mod \space 2) = (0 + 0 + x_3s_3) (mod \space 2) = (x_3s_3) (mod \space 2) = 1 \cdot s_3 (mod \space 2) = s_3 (mod \space 2) = 1\)</span></p>
-<p>We have now isolated <span class="math notranslate nohighlight">\(s_3\)</span> and know that <span class="math notranslate nohighlight">\(s_3 (mod \space 2) = 1\)</span>. <span class="math notranslate nohighlight">\(s_3\)</span> can only be 0 or 1 and in this case it has to be <span class="math notranslate nohighlight">\(1\)</span> since <span class="math notranslate nohighlight">\(0 (mod \space 2) = 0\)</span>.</p>
-<p>For <span class="math notranslate nohighlight">\(f(011) = (x_2s_2 + x_3s_3) (mod \space 2)\)</span>, we will be left with <span class="math notranslate nohighlight">\(s_2\)</span> and <span class="math notranslate nohighlight">\(s_3\)</span> each of which will be more difficult to isolate via a combination of linear equations. Hence why we have to strategically query the function.</p>
-<p>In the classical case, we see that the secret string <span class="math notranslate nohighlight">\(s\)</span> can be calculated in 3 queries. More generally speaking, it would take <span class="math notranslate nohighlight">\(n\)</span> queries to generate enough information to determine <span class="math notranslate nohighlight">\(s\)</span></p>
+<p>For <span class="math notranslate nohighlight">\(f(001) = (x_1s_1 + x_2s_2 + x_3s_3) \pmod2 = (0 + 0 + x_3s_3) \pmod2 = (x_3s_3) \pmod2 = 1 \cdot s_3 \pmod2 = s_3 \pmod2 = 1\)</span></p>
+<p>We have now isolated <span class="math notranslate nohighlight">\(s_3\)</span> and know that <span class="math notranslate nohighlight">\(s_3 \pmod2 = 1\)</span>. <span class="math notranslate nohighlight">\(s_3\)</span> can only be 0 or 1 and in this case it has to be <span class="math notranslate nohighlight">\(1\)</span> since <span class="math notranslate nohighlight">\(0 \pmod2 = 0\)</span>.</p>
+<p>For <span class="math notranslate nohighlight">\(f(011) = (x_2s_2 + x_3s_3) \pmod2\)</span>, we will be left with <span class="math notranslate nohighlight">\(s_2\)</span> and <span class="math notranslate nohighlight">\(s_3\)</span> each of which will be more difficult to isolate via a combination of linear equations. Hence why we have to strategically query the function.</p>
+<p>In the classical case, we see that the secret string <span class="math notranslate nohighlight">\(s\)</span> can be calculated in 3 queries. More generally speaking, it would take <span class="math notranslate nohighlight">\(n\)</span> queries to generate enough information to determine <span class="math notranslate nohighlight">\(s\)</span>.</p>
 </section>
 <section id="Quantum-case">
 <h2>Quantum case<a class="headerlink" href="#Quantum-case" title="Permalink to this heading">¶</a></h2>
@@ -1041,11 +1059,11 @@
 \[H \ket{0}  = \frac{1}{\sqrt{2^n}}\sum_x^{n-1} \ket{x}\]</div>
 <p>Next, the oracle, <span class="math notranslate nohighlight">\(U_f\)</span>, performs maps <span class="math notranslate nohighlight">\(\ket{x}\)</span> to <span class="math notranslate nohighlight">\((-1)^{f(x)}\ket{x}\)</span> resulting in:</p>
 <div class="math notranslate nohighlight">
-\[U_f \frac{1}{\sqrt{2^n}}\sum_x^{n-1} \ket{x} = \frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{f(x)}\ket{x} =\frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{a*x}\ket{x}\]</div>
+\[U_f \frac{1}{\sqrt{2^n}}\sum_x^{n-1} \ket{x} = \frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{f(x)}\ket{x} =\frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{s\cdot x}\ket{x}\]</div>
 <p>Applying Hadamard gates again returns the following state:</p>
 <div class="math notranslate nohighlight">
-\[H \frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{a*x}\ket{x}  =  \frac{1}{\sqrt{2^n}}\sum_{x,y}^{n-1} (-1)^{a*x} (-1)^{y*x} \ket{y}  = \frac{1}{\sqrt{2^n}}\sum_{y}^{n-1} \sum_{x}^{n-1} (-1)^{(a \oplus y)*x}\ket{y}\]</div>
-<p>In the case of <span class="math notranslate nohighlight">\(a \neq y\)</span>, the entire term becomes zero. In the case of <span class="math notranslate nohighlight">\(a = y\)</span>, the state <span class="math notranslate nohighlight">\(\ket{a}\)</span> is returned with an amplitude of 1. This means there is a 100% chance of the measurement result being the hidden bitstring <span class="math notranslate nohighlight">\(a\)</span> with only one call to the oracle!</p>
+\[H \frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{s\cdot x}\ket{x}  =  \frac{1}{\sqrt{2^n}}\sum_{x,y}^{n-1} (-1)^{s\cdot x} (-1)^{y\cdot x} \ket{y}  = \frac{1}{\sqrt{2^n}}\sum_{y}^{n-1} \sum_{x}^{n-1} (-1)^{(s \oplus y)\cdot x}\ket{y}\]</div>
+<p>In the case of <span class="math notranslate nohighlight">\(s \neq y\)</span>, the entire term becomes zero. In the case of <span class="math notranslate nohighlight">\(s = y\)</span>, the state <span class="math notranslate nohighlight">\(\ket{s}\)</span> is returned with an amplitude of 1. This means there is a 100% chance of the measurement result being the hidden bitstring <span class="math notranslate nohighlight">\(s\)</span> with only one call to the oracle!</p>
 </section>
 <section id="Implementing-in-CUDA-Q">
 <h2>Implementing in CUDA-Q<a class="headerlink" href="#Implementing-in-CUDA-Q" title="Permalink to this heading">¶</a></h2>
@@ -1055,25 +1073,36 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>
-<span class="c1">#cudaq.set_target(&#39;nvidia&#39;)  # GPU backend which enables scaling to large problem sizes</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>  <span class="c1"># CPU backend</span>
+<span class="c1"># cudaq.set_target(&quot;nvidia&quot;)  # GPU backend which enables scaling to large problem sizes</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># Set to around 30 qubits if you have GPU access</span>
 
-<span class="n">secret_string</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-                 <span class="mi">0</span><span class="p">]</span>  <span class="c1"># Change the secret string to whatever you prefer</span>
+<span class="n">random_generator</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">secret_string</span> <span class="o">=</span> <span class="n">random_generator</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span>
+    <span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">qubit_count</span>
+<span class="p">)</span>  <span class="c1"># Change the secret string to whatever you prefer</span>
 
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Your secret string is&quot;</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">qubit_count</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">secret_string</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Your secret string is [1 1 1 1 0]
+</pre></div></div>
 </div>
 <p>Next, the oracle kernel is defined. This will be used inside of the primary BV kernel, so it needs to take both the main register and auxiliary qubit as inputs as well as the secret bitstring. The oracle loops through the bits and applies a CNOT on the auxiliary qubit if the register qubit is a 1.</p>
 <div class="nbinput nblast docutils container">
@@ -1081,8 +1110,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">oracle</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">auxiliary_qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-           <span class="n">secret_string</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">oracle</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">auxiliary_qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">secret_string</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">bit</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -1096,7 +1124,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">bernstein_vazirani</span><span class="p">(</span><span class="n">secret_string</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bernstein_vazirani</span><span class="p">(</span><span class="n">secret_string</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">secret_string</span><span class="p">))</span>  <span class="c1"># register of size n</span>
     <span class="n">auxiliary_qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>  <span class="c1"># auxiliary qubit</span>
@@ -1119,12 +1147,12 @@
 
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">bernstein_vazirani</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">))</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bernstein_vazirani</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sample result:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;secret bitstring = </span><span class="si">{</span><span class="n">secret_string</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;measured state = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">&quot;Were we successful? </span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">secret_string</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="p">)</span>
+<span class="n">is_success</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">secret_string</span><span class="p">)</span> <span class="o">==</span> <span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Were we successful?&quot;</span><span class="p">,</span> <span class="n">is_success</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1134,21 +1162,23 @@
 <div class="output_area docutils container">
 <div class="highlight"><pre>
      ╭───╮          ╭───╮
-q0 : ┤ h ├───────●──┤ h ├──────────
+q0 : ┤ h ├───────●──┤ h ├───────────────
      ├───┤       │  ╰───╯╭───╮
-q1 : ┤ h ├───────┼────●──┤ h ├─────
-     ├───┤       │    │  ├───┤
-q2 : ┤ h ├───────┼────┼──┤ h ├─────
+q1 : ┤ h ├───────┼────●──┤ h ├──────────
      ├───┤       │    │  ╰───╯╭───╮
-q3 : ┤ h ├───────┼────┼────●──┤ h ├
-     ├───┤       │    │    │  ├───┤
-q4 : ┤ h ├───────┼────┼────┼──┤ h ├
-     ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯
-q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├─────
-     ╰───╯╰───╯╰───╯╰───╯╰───╯
+q2 : ┤ h ├───────┼────┼────●──┤ h ├─────
+     ├───┤       │    │    │  ╰───╯╭───╮
+q3 : ┤ h ├───────┼────┼────┼────●──┤ h ├
+     ├───┤       │    │    │    │  ├───┤
+q4 : ┤ h ├───────┼────┼────┼────┼──┤ h ├
+     ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯
+q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├┤ x ├─────
+     ╰───╯╰───╯╰───╯╰───╯╰───╯╰───╯
 
-secret bitstring = [1, 1, 0, 1, 0]
-measured state = 11010
+Sample result: { 11110:1000 }
+
+secret bitstring = [1 1 1 1 0]
+measured state = 11110
 Were we successful? True
 </pre></div></div>
 </div>
@@ -1165,7 +1195,7 @@ Were we successful? True
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum 176f1e7df8a58c2dc3d6b1b47bf7f63b4b8d3b63)
+CUDA-Q Version amd64-cu13-0.13.0 (https://github.com/NVIDIA/cuda-quantum b66c5bb7fd8c08e5014e2f03e97e7b0e92691650)
 </pre></div></div>
 </div>
 </section>

@@ -152,18 +152,57 @@ pr-3797
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
             Operators](operators.html#constructing-spin-operators){.reference
@@ -1016,11 +1055,7 @@ pr-3797
             -   [Setting
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1820,7 +1855,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -1967,7 +2002,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -2116,7 +2151,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -2259,7 +2294,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -2409,7 +2444,7 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        auto result = mz(q);
+        mz(q);
       }
     };
 
@@ -3237,11 +3272,14 @@ C++
     // ./teleport.x
     // ```
 
+    #include <array>
     #include <cudaq.h>
     #include <iostream>
 
     struct teleportation {
       auto operator()() __qpu__ {
+        std::vector<bool> results(3);
+
         // Initialize a three qubit quantum circuit
         cudaq::qvector qubits(3);
 
@@ -3257,24 +3295,45 @@ C++
         cx(qubits[0], qubits[1]);
         h(qubits[0]);
 
-        auto m1 = mz(qubits[0]);
-        auto m2 = mz(qubits[1]);
+        results[0] = mz(qubits[0]);
+        results[1] = mz(qubits[1]);
 
-        if (m1) {
+        if (results[0]) {
           z(qubits[2]);
         }
 
-        if (m2) {
+        if (results[1]) {
           x(qubits[2]);
         }
 
-        mz(qubits);
+        results[2] = mz(qubits[2]);
+        return results;
       }
     };
 
     int main() {
-      auto result = cudaq::sample(teleportation{});
-      result.dump();
+      // Note: Increase the number of shots to get closer to expected probabilities.
+      constexpr std::size_t num_shots = 25;
+      auto results = cudaq::run(num_shots, teleportation{});
+
+      std::array<std::size_t, 3> ones{};
+      for (const auto &shot : results)
+        for (std::size_t q = 0; q < 3; ++q)
+          ones[q] += static_cast<std::size_t>(shot[q]);
+
+      auto freq = [&](std::size_t q) {
+        return static_cast<double>(ones[q]) / num_shots;
+      };
+
+      // `mz[0]` and `mz[1]` are Bell measurement outcomes, so each is ~50%.
+      // Probability of measuring`mz[2]` in 1 is determined by the prepared state,
+      // which is ~4.6% for the angles above.
+      std::cout << "Results over " << num_shots << " shots:\n";
+      for (std::size_t q = 0; q < 3; ++q)
+        std::cout << "  mz[" << q << "] = 1:  " << ones[q] << " / " << num_shots
+                  << "  (" << 100.0 * freq(q) << "%)\n";
+
+      return 0;
     }
 :::
 :::
@@ -3363,7 +3422,7 @@ C++
         }
         s(q[0]);
         r1(M_PI / 2, q[1]);
-        auto result = mz(q);
+        mz(q);
       }
     };
 

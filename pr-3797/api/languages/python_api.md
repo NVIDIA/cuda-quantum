@@ -167,18 +167,57 @@ pr-3797
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1054,11 +1093,7 @@ pr-3797
             -   [Setting
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../../using/backends/cloud/braket.html#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
+            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1838,18 +1873,19 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[funcSrc]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[fromBuilder]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[defer_compilation]{.pre}]{.n}[[=]{.pre}]{.o}[[True]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
 
 :   The [`PyKernelDecorator`{.code .docutils .literal
     .notranslate}]{.pre} serves as a standard Python decorator that
-    takes the decorated function as input and optionally lowers its AST
-    representation to executable code via MLIR. This decorator enables
-    full JIT compilation mode, where the function is lowered to an MLIR
-    representation.
+    takes the decorated function as input. The function AST is parsed
+    and converted to a Quake MLIR representation. This is passed on to
+    the CUDAQ runtime for execution at kernel call time.
 
-    This decorator exposes a call overload that executes the code via
-    the MLIR [`ExecutionEngine`{.code .docutils .literal
-    .notranslate}]{.pre} for the MLIR mode.
+    By default, MLIR compilation is deferred until the first call to the
+    kernel. If [`defer_compilation`{.code .docutils .literal
+    .notranslate}]{.pre} is set to [`False`{.code .docutils .literal
+    .notranslate}]{.pre}, the kernel will be compiled at declaration
+    time instead.
 
     [[\_\_call\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__call__ "Permalink to this definition"){.headerlink}
 
@@ -1858,9 +1894,9 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[\_\_str\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__str__ "Permalink to this definition"){.headerlink}
 
-    :   Return the MLIR Module string representation for this kernel.
+    :   Return a string representation for this kernel as MLIR.
 
-    [[beta_reduction]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[execEngine]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.beta_reduction "Permalink to this definition"){.headerlink}
+    [[beta_reduction]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[isEntryPoint]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.beta_reduction "Permalink to this definition"){.headerlink}
 
     :   Perform beta reduction on this kernel decorator in the current
         calling context. We are primary concerned with resolving the
@@ -1873,23 +1909,31 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         specialized and passed to algorithms written in C++ that call
         back to these Python kernels in a functional composition.
 
+    [[captured_variables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.captured_variables "Permalink to this definition"){.headerlink}
+
+    :   The list of variables captured by the kernel.
+
+    [[compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.compile "Permalink to this definition"){.headerlink}
+
+    :   Compile the Python AST to portable Quake.
+
+    [[delete_cache_execution_engine]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[key]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.delete_cache_execution_engine "Permalink to this definition"){.headerlink}
+
+    :   Delete the [`ExecutionEngine`{.code .docutils .literal
+        .notranslate}]{.pre} cache given by a cache key.
+
     [[enable_return_to_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
 
     :   Enable translation from [`return`{.code .docutils .literal
         .notranslate}]{.pre} statements to QIR output log
 
-    [[extract_c_function_pointer]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[name]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.extract_c_function_pointer "Permalink to this definition"){.headerlink}
-
-    :   Return the C function pointer for the function with given name,
-        or with the name of this kernel if not provided.
-
     *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
 
     :   Convert a JSON string into a new PyKernelDecorator object.
 
-    [[handle_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[ignoreReturnType]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.handle_call_arguments "Permalink to this definition"){.headerlink}
+    [[is_compiled]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.is_compiled "Permalink to this definition"){.headerlink}
 
-    :   Resolve all the arguments at the call site for this decorator.
+    :   Whether the kernel has already been compiled.
 
     [[launch_args_required]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.launch_args_required "Permalink to this definition"){.headerlink}
 
@@ -1902,12 +1946,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         quake module and determine if any arguments are used and return
         the number used.
 
-    [[lower_quake_to_codegen]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[argValues]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.lower_quake_to_codegen "Permalink to this definition"){.headerlink}
-
-    :   Take the quake code as input and lower it to be ready for final
-        code generation. If argument values are provided, we run
-        argument synthesis and specialize this instance of the kernel.
-
     [[merge_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[otherMod]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.merge_kernel "Permalink to this definition"){.headerlink}
 
     :   Merge the kernel in this PyKernelDecorator (the ModuleOp) with
@@ -1919,14 +1957,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         decorator's [`qkeModule`{.code .docutils .literal
         .notranslate}]{.pre} attribute.
 
-    [[pre_compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.pre_compile "Permalink to this definition"){.headerlink}
+    [[prepare_call]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.prepare_call "Permalink to this definition"){.headerlink}
 
-    :   Compile the Python AST to portable Quake.
+    :   Process call site arguments, capture lifted arguments and
+        retrieve compiled module for kernel execution.
+
+        \# Returns:
+
+        [`processed_args`{.code .docutils .literal .notranslate}]{.pre}[list]{.classifier}
+
+        :   The list of processed runtime arguments, including captured
+            arguments,
+
+        [`module`{.code .docutils .literal .notranslate}]{.pre}[Module]{.classifier}
+
+        :   A clone of the MLIR module to be used for kernel execution.
+
+    [[process_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.process_call_arguments "Permalink to this definition"){.headerlink}
+
+    :   Resolve the arguments passed to the decorator at call site.
+
+    *[property]{.pre}[ ]{.w}*[[qkeModule]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernelDecorator.qkeModule "Permalink to this definition"){.headerlink}
+
+    :   A target independent Quake MLIR representation of the kernel.
+
+    [[resolve_captured_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.resolve_captured_arguments "Permalink to this definition"){.headerlink}
+
+    :   Resolve the captured arguments of the decorator.
+
+        These arguments get resolved in the scope of the kernel
+        definition (lexical scoping).
 
     [[signatureWithCallables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.signatureWithCallables "Permalink to this definition"){.headerlink}
 
     :   returns True if and only if the entry-point contains callable
         arguments and/or return values.
+
+    [[supports_compilation]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.supports_compilation "Permalink to this definition"){.headerlink}
+
+    :   Whether the kernel can be compiled for the current target.
 
     [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.to_json "Permalink to this definition"){.headerlink}
 
@@ -2863,7 +2932,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[option]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Optional]{.pre}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[emulate]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Optional]{.pre}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Optional]{.pre}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -3569,7 +3638,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1760428024]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2759012956]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3937,6 +4006,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   
 
         Returns the serialized data representation of the operator.
+
+    *[property]{.pre}[ ]{.w}*[[term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.term_count "Permalink to this definition"){.headerlink}
+
+    :   Returns the number of terms in the operator. Always returns 1.
 
     *[property]{.pre}[ ]{.w}*[[term_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.term_id "Permalink to this definition"){.headerlink}
 
@@ -6368,7 +6441,12 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[State]{.pre}]{.sig-name .descname}[¶](#cudaq.State "Permalink to this definition"){.headerlink}
 
-:   FIXME: document
+:   A data-type representing the quantum state of the internal
+    simulator. This type is not user-constructible and instances can
+    only be retrieved via the [`cudaq.get_state(...)`{.code .docutils
+    .literal .notranslate}]{.pre} function or the static
+    [`cudaq.State.from_data()`{.code .docutils .literal
+    .notranslate}]{.pre} method.
 
     [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.State.amplitude "Permalink to this definition"){.headerlink}
 
@@ -6907,7 +6985,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[qubit]{.pre}]{.sig-name .descname}[¶](#cudaq.qubit "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[qubit]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.qubit "Permalink to this definition"){.headerlink}
 
 :   The qubit is the primary unit of information in a quantum computer.
     Qubits can be created individually or as part of larger registers.
@@ -6919,20 +6997,19 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[qreg]{.pre}]{.sig-name .descname}[¶](#cudaq.qreg "Permalink to this definition"){.headerlink}
 
 :   alias of [[`qvector`{.xref .py .py-class .docutils .literal
-    .notranslate}]{.pre}](#cudaq.qvector "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.qvector"){.reference
+    .notranslate}]{.pre}](#cudaq.qvector "cudaq.kernel_types.qvector"){.reference
     .internal}
 
 ```{=html}
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[qvector]{.pre}]{.sig-name .descname}[¶](#cudaq.qvector "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[qvector]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.qvector "Permalink to this definition"){.headerlink}
 
 :   An owning, dynamically sized container for qubits. The semantics of
     the [`qvector`{.code .docutils .literal .notranslate}]{.pre} follows
     that of a [`std::vector`{.code .docutils .literal
-    .notranslate}]{.pre} or [`list`{.code .docutils .literal
-    .notranslate}]{.pre} for qubits.
+    .notranslate}]{.pre} or list for qubits.
 
 ```{=html}
 <!-- -->
@@ -7045,9 +7122,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     ::: {.admonition .note}
     Note
 
-    At this time, mid-circuit measurements are not directly supported.
-    Mid-circuit measurements may only be used if they are passed through
-    to [`c_if`{.code .docutils .literal .notranslate}]{.pre}.
+    Conditional logic on mid-circuit measurements is no longer supported
+    with
+
+    [`sample`{.code .docutils .literal .notranslate}]{.pre}. Use
+    [`run`{.code .docutils .literal .notranslate}]{.pre} instead.
     :::
 
     [[register_names]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.register_names "Permalink to this definition"){.headerlink}
@@ -7837,9 +7916,31 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}
 
-*[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[optimizer]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.optimizer "Permalink to this definition"){.headerlink}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
-:   
+:   Run the optimization procedure.
+
+    Parameters[:]{.colon}
+
+    :   -   **dimensions** -- The number of parameters to optimize
+
+        -   **function** -- The objective function to minimize
+
+    Returns[:]{.colon}
+
+    :   tuple of (optimal_value, optimal_parameters)
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+:   Check whether this optimizer requires gradient information.
+
+    Returns[:]{.colon}
+
+    :   True if gradients required, False otherwise
 
 ```{=html}
 <!-- -->
@@ -7861,36 +7962,63 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.initial_parameters "Permalink to this definition"){.headerlink}
 
-    :   Set the initial parameter values for the optimization.
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.lower_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the lower value bound for the optimization parameters.
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.max_iterations "Permalink to this definition"){.headerlink}
 
-    :   Set the maximum number of optimizer iterations.
+    :   Maximum number of optimizer iterations (default: unlimited).
 
-    [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.optimize "Permalink to this definition"){.headerlink}
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
 
-    :   
+        Type[:]{.colon}
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Run [`cudaq.optimize()`{.code .docutils .literal
-        .notranslate}]{.pre} on the provided objective function.
-
-    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.requires_gradients "Permalink to this definition"){.headerlink}
-
-    :   
-
-        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Returns whether the optimizer requires gradient.
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
 
     [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.to_json "Permalink to this definition"){.headerlink}
 
@@ -7904,7 +8032,25 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.upper_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the upper value bound for the optimization parameters.
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
 ```{=html}
 <!-- -->
@@ -7926,36 +8072,63 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.initial_parameters "Permalink to this definition"){.headerlink}
 
-    :   Set the initial parameter values for the optimization.
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.lower_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the lower value bound for the optimization parameters.
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.max_iterations "Permalink to this definition"){.headerlink}
 
-    :   Set the maximum number of optimizer iterations.
+    :   Maximum number of optimizer iterations (default: unlimited).
 
-    [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.optimize "Permalink to this definition"){.headerlink}
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
 
-    :   
+        Type[:]{.colon}
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Run [`cudaq.optimize()`{.code .docutils .literal
-        .notranslate}]{.pre} on the provided objective function.
-
-    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.requires_gradients "Permalink to this definition"){.headerlink}
-
-    :   
-
-        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Returns whether the optimizer requires gradient.
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
 
     [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.to_json "Permalink to this definition"){.headerlink}
 
@@ -7969,7 +8142,25 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.upper_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the upper value bound for the optimization parameters.
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
 ```{=html}
 <!-- -->
@@ -7991,36 +8182,63 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.initial_parameters "Permalink to this definition"){.headerlink}
 
-    :   Set the initial parameter values for the optimization.
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.lower_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the lower value bound for the optimization parameters.
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.max_iterations "Permalink to this definition"){.headerlink}
 
-    :   Set the maximum number of optimizer iterations.
+    :   Maximum number of optimizer iterations (default: unlimited).
 
-    [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.optimize "Permalink to this definition"){.headerlink}
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
 
-    :   
+        Type[:]{.colon}
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Run [`cudaq.optimize()`{.code .docutils .literal
-        .notranslate}]{.pre} on the provided objective function.
-
-    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.requires_gradients "Permalink to this definition"){.headerlink}
-
-    :   
-
-        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Returns whether the optimizer requires gradient.
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
 
     [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.to_json "Permalink to this definition"){.headerlink}
 
@@ -8034,7 +8252,25 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.upper_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the upper value bound for the optimization parameters.
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
 ```{=html}
 <!-- -->
@@ -8056,36 +8292,63 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.initial_parameters "Permalink to this definition"){.headerlink}
 
-    :   Set the initial parameter values for the optimization.
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.lower_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the lower value bound for the optimization parameters.
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.max_iterations "Permalink to this definition"){.headerlink}
 
-    :   Set the maximum number of optimizer iterations.
+    :   Maximum number of optimizer iterations (default: unlimited).
 
-    [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.optimize "Permalink to this definition"){.headerlink}
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
 
-    :   
+        Type[:]{.colon}
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Run [`cudaq.optimize()`{.code .docutils .literal
-        .notranslate}]{.pre} on the provided objective function.
-
-    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.requires_gradients "Permalink to this definition"){.headerlink}
-
-    :   
-
-        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Returns whether the optimizer requires gradient.
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
 
     [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.to_json "Permalink to this definition"){.headerlink}
 
@@ -8099,7 +8362,516 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.upper_bounds "Permalink to this definition"){.headerlink}
 
-    :   Set the upper value bound for the optimization parameters.
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[Adam]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam "Permalink to this definition"){.headerlink}
+
+:   
+
+    *[property]{.pre}[ ]{.w}*[[batch_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.batch_size "Permalink to this definition"){.headerlink}
+
+    :   Number of samples per batch (default: 1).
+
+        For stochastic optimization, determines how many samples are
+        used to compute each gradient estimate. Batch size of 1
+        corresponds to online learning. Larger batch sizes can provide
+        more stable gradient estimates but require more computation per
+        iteration.
+
+        Type[:]{.colon}
+
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[beta1]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.beta1 "Permalink to this definition"){.headerlink}
+
+    :   Exponential decay rate for the first moment estimates (default:
+        0.9).
+
+        Controls the exponential moving average of past gradients
+        (momentum term). Values are typically in the range \[0.9,
+        0.999\]. Higher values give more weight to past gradients,
+        providing smoother updates but slower adaptation.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[beta2]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.beta2 "Permalink to this definition"){.headerlink}
+
+    :   Exponential decay rate for the second moment estimates (default:
+        0.999).
+
+        Controls the exponential moving average of past squared
+        gradients. Values are typically in the range \[0.99, 0.9999\].
+        Higher values provide more stable learning rates but slower
+        adaptation to changing gradient magnitudes.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[epsilon]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.epsilon "Permalink to this definition"){.headerlink}
+
+    :   Small constant for numerical stability (default: 1e-8).
+
+        Added to the denominator to prevent division by zero when
+        computing adaptive learning rates. Should be a small positive
+        value, typically between 1e-8 and 1e-6.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[f_tol]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.f_tol "Permalink to this definition"){.headerlink}
+
+    :   Convergence tolerance on the objective function value (default:
+        1e-4).
+
+        Optimization terminates when the change in objective function
+        value between iterations falls below this threshold. Smaller
+        values lead to tighter convergence but may require more
+        iterations.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.Adam.from_json "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.Adam]{.pre}](#cudaq.optimizers.Adam "cudaq.optimizers.Adam"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert JSON string to optimizer
+
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.initial_parameters "Permalink to this definition"){.headerlink}
+
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.lower_bounds "Permalink to this definition"){.headerlink}
+
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.max_iterations "Permalink to this definition"){.headerlink}
+
+    :   Maximum number of optimizer iterations (default: unlimited).
+
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
+
+        Type[:]{.colon}
+
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[step_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.step_size "Permalink to this definition"){.headerlink}
+
+    :   Learning rate (step size) for parameter updates (default: 0.01).
+
+        Controls the magnitude of parameter updates at each iteration.
+        Typical values range from 0.001 to 0.1. The effective learning
+        rate is adapted per parameter based on gradient history. Start
+        with 0.001 or 0.01 and adjust based on convergence behavior.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.Adam.to_json "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.Adam]{.pre}](#cudaq.optimizers.Adam "cudaq.optimizers.Adam"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert optimizer to JSON string
+
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.upper_bounds "Permalink to this definition"){.headerlink}
+
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[SGD]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD "Permalink to this definition"){.headerlink}
+
+:   
+
+    *[property]{.pre}[ ]{.w}*[[batch_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.batch_size "Permalink to this definition"){.headerlink}
+
+    :   Number of samples per batch (default: 1).
+
+        For stochastic optimization, determines how many samples are
+        used to compute each gradient estimate. Batch size of 1
+        corresponds to true stochastic gradient descent. Larger batch
+        sizes (mini-batch SGD) can provide more stable gradient
+        estimates but require more computation per iteration.
+
+        Type[:]{.colon}
+
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[f_tol]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.f_tol "Permalink to this definition"){.headerlink}
+
+    :   Convergence tolerance on the objective function value (default:
+        1e-4).
+
+        Optimization terminates when the change in objective function
+        value between iterations falls below this threshold. Smaller
+        values lead to tighter convergence but may require more
+        iterations. Note that with stochastic gradients, convergence may
+        be noisy.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.SGD.from_json "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.SGD]{.pre}](#cudaq.optimizers.SGD "cudaq.optimizers.SGD"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert JSON string to optimizer
+
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.initial_parameters "Permalink to this definition"){.headerlink}
+
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.lower_bounds "Permalink to this definition"){.headerlink}
+
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.max_iterations "Permalink to this definition"){.headerlink}
+
+    :   Maximum number of optimizer iterations (default: unlimited).
+
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
+
+        Type[:]{.colon}
+
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[step_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.step_size "Permalink to this definition"){.headerlink}
+
+    :   Learning rate (step size) for parameter updates (default: 0.01).
+
+        Controls the magnitude of parameter updates at each iteration.
+        The update rule is: x_new = x_old - step_size \* gradient.
+        Typical values range from 0.001 to 0.1. Too large values can
+        cause divergence, while too small values lead to slow
+        convergence.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.SGD.to_json "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.SGD]{.pre}](#cudaq.optimizers.SGD "cudaq.optimizers.SGD"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert optimizer to JSON string
+
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.upper_bounds "Permalink to this definition"){.headerlink}
+
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[SPSA]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA "Permalink to this definition"){.headerlink}
+
+:   
+
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.SPSA.from_json "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.SPSA]{.pre}](#cudaq.optimizers.SPSA "cudaq.optimizers.SPSA"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert JSON string to optimizer
+
+    *[property]{.pre}[ ]{.w}*[[gamma]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.gamma "Permalink to this definition"){.headerlink}
+
+    :   Scaling exponent for the step size schedule (default: 0.101).
+
+        Controls how the step size decreases over iterations. The step
+        size at iteration k is proportional to (A + k + 1)\^(-gamma),
+        where A is a stability constant. Common values are in the range
+        \[0.1, 0.6\].
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.initial_parameters "Permalink to this definition"){.headerlink}
+
+    :   Initial values for the optimization parameters (optional).
+
+        Provides a starting point for the optimization. If not
+        specified, the optimizer typically initializes parameters to
+        zeros. Good initial parameter values can significantly improve
+        convergence speed and help avoid poor local minima. The length
+        must match the problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.initial_parameters = [0.5, -0.3, 1.2]
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.lower_bounds "Permalink to this definition"){.headerlink}
+
+    :   Lower bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying minimum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
+
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.max_iterations "Permalink to this definition"){.headerlink}
+
+    :   Maximum number of optimizer iterations (default: unlimited).
+
+        Sets an upper bound on the number of function evaluations or
+        iterations the optimizer will perform. If not set, the optimizer
+        may run until convergence or until another stopping criterion is
+        met.
+
+        Type[:]{.colon}
+
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}
+
+    *[property]{.pre}[ ]{.w}*[[step_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.step_size "Permalink to this definition"){.headerlink}
+
+    :   Evaluation step size for gradient approximation (default: 0.3).
+
+        Controls the magnitude of perturbations used to approximate
+        gradients. Larger values provide coarser gradient estimates but
+        may be more robust to noise. Typical values range from 0.1 to
+        0.5.
+
+        Type[:]{.colon}
+
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}
+
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.SPSA.to_json "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.SPSA]{.pre}](#cudaq.optimizers.SPSA "cudaq.optimizers.SPSA"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert optimizer to JSON string
+
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.upper_bounds "Permalink to this definition"){.headerlink}
+
+    :   Upper bounds for optimization parameters (optional).
+
+        Constrains the search space by specifying maximum allowed values
+        for each parameter. When specified, the length must match the
+        problem dimension.
+
+        Example
+
+        ::: {.highlight-python .notranslate}
+        ::: highlight
+            optimizer.upper_bounds = [2.0, 2.0]  # For 2D problem
+        :::
+        :::
+
+        Type[:]{.colon}
+
+        :   [list](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+            .external}\[[float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}\]
 :::
 
 ::: {#gradients .section}
@@ -8694,7 +9466,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 

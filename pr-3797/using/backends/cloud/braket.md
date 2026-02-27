@@ -164,18 +164,57 @@ pr-3797
     -   [Optimizers &
         Gradients](../../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../examples/operators.html){.reference .internal}
         -   [Constructing Spin
@@ -1032,10 +1071,7 @@ pr-3797
         -   [Amazon Braket (braket)](#){.current .reference .internal}
             -   [Setting Credentials](#setting-credentials){.reference
                 .internal}
-            -   [Submission from C++](#submission-from-c){.reference
-                .internal}
-            -   [Submission from
-                Python](#submission-from-python){.reference .internal}
+            -   [Submitting](#submitting){.reference .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
         .internal}
@@ -1791,50 +1827,13 @@ Alternatively, users can set the following environment variables.
 :::
 :::
 
-::: {#submission-from-c .section}
-## Submission from C++[¶](#submission-from-c "Permalink to this heading"){.headerlink}
+::: {#submitting .section}
+## Submitting[¶](#submitting "Permalink to this heading"){.headerlink}
 
-To target quantum kernel code for execution in Amazon Braket, pass the
-flag [`--target`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`braket`{.docutils .literal .notranslate}]{.pre}
-to the [`nvq++`{.docutils .literal .notranslate}]{.pre} compiler. By
-default jobs are submitted to the state vector simulator, [`SV1`{.code
-.docutils .literal .notranslate}]{.pre}.
+::: {.tab-set .docutils}
+Python
 
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --target braket src.cpp
-:::
-:::
-
-To execute your kernels on different device, pass the
-[`--braket-machine`{.docutils .literal .notranslate}]{.pre} flag to the
-[`nvq++`{.docutils .literal .notranslate}]{.pre} compiler to specify
-which machine to submit quantum kernels to:
-
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
-:::
-:::
-
-where [`arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`{.docutils
-.literal .notranslate}]{.pre} refers to IQM Garnet QPU.
-
-To emulate the device locally, without submitting through the cloud, you
-can also pass the [`--emulate`{.docutils .literal .notranslate}]{.pre}
-flag to [`nvq++`{.docutils .literal .notranslate}]{.pre}.
-
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --emulate --target braket src.cpp
-:::
-:::
-:::
-
-::: {#submission-from-python .section}
-## Submission from Python[¶](#submission-from-python "Permalink to this heading"){.headerlink}
-
+::: {.tab-content .docutils}
 The target to which quantum kernels are submitted can be controlled with
 the [`cudaq.set_target()`{.docutils .literal .notranslate}]{.pre}
 function.
@@ -1879,6 +1878,49 @@ The number of shots for a kernel execution can be set through the
 ::: {.highlight-python .notranslate}
 ::: highlight
     cudaq.sample(kernel, shots_count=100)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+To target quantum kernel code for execution in Amazon Braket, pass the
+flag [`--target`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`braket`{.docutils .literal .notranslate}]{.pre}
+to the [`nvq++`{.docutils .literal .notranslate}]{.pre} compiler. By
+default jobs are submitted to the state vector simulator, [`SV1`{.code
+.docutils .literal .notranslate}]{.pre}.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target braket src.cpp
+:::
+:::
+
+To execute your kernels on different device, pass the
+[`--braket-machine`{.docutils .literal .notranslate}]{.pre} flag to the
+[`nvq++`{.docutils .literal .notranslate}]{.pre} compiler to specify
+which machine to submit quantum kernels to:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
+:::
+:::
+
+where [`arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`{.docutils
+.literal .notranslate}]{.pre} refers to IQM Garnet QPU.
+
+To emulate the device locally, without submitting through the cloud, you
+can also pass the [`--emulate`{.docutils .literal .notranslate}]{.pre}
+flag to [`nvq++`{.docutils .literal .notranslate}]{.pre}.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --emulate --target braket src.cpp
+:::
+:::
 :::
 :::
 

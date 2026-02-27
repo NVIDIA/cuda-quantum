@@ -188,12 +188,31 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -641,8 +660,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1189,7 +1207,7 @@ source code for the latest version of the CUDA-Q Python wheels from our
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 The source code for previous versions can be downloaded from the respective
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
-<p>At this time, wheels are distributed for Linux operating systems only.
+<p>Wheels are distributed for Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
 If your platform is not <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">officially supported</span></a> and
 <code class="code docutils literal notranslate"><span class="pre">pip</span></code> does not find a compatible wheel to install, you can build your own
 wheel from source following the instructions here: <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.</p>
@@ -1209,8 +1227,8 @@ and then run the following commands in the repository root:</p>
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed
 side-by-side with the pre-built binaries for C++ by following the instructions on
 <a class="reference external" href="https://pypi.org/project/cudaq/">PyPI.org</a>.
-The pre-built binaries work across a range of Linux operating systems listed
-under <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a>.</p>
+The pre-built binaries work across the operating systems listed
+under <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a>, including Linux and macOS (ARM64/Apple silicon only, CPU-only).</p>
 <p>Before installing our pre-built binaries, please make sure that your
 operating system is using the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
 version 2.28 or newer. You can confirm this by checking the output of the command
@@ -1219,12 +1237,15 @@ please double check that your operating system is listed as
 <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">supported</span></a>. If you use an operating system
 with an older GNU C library version, you will need to build the installer from
 source following the instructions in <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.</p>
-<p>You can download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
-the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>.
-The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a> that contains the
+<p>You can download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your platform from
+the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>:</p>
+<ul class="simple">
+<li><p><strong>Linux</strong>: <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum_cu12.&lt;arch&gt;</span></code> or <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum_cu13.&lt;arch&gt;</span></code> (where <code class="code docutils literal notranslate"><span class="pre">&lt;arch&gt;</span></code> is <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> or <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code>)</p></li>
+<li><p><strong>macOS</strong>: <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum_darwin.arm64</span></code> (CPU-only, Apple silicon)</p></li>
+</ul>
+<p>The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a> that contains the
 pre-built binaries as well as a script to move them to the correct locations. You will need
-<code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> (usually already installed on most Linux distributions) to run
-the installer.
+<code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> to run the installer.
 The installation location of CUDA-Q is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
@@ -1243,7 +1264,8 @@ For more information see the corresponding section on
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command is found. If it is not, please make sure
 to set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the
-CUDA-Q installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/usr/local/cudaq</span></code> or <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
+CUDA-Q installation folder (<code class="docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code> for the pre-built installer,
+or <code class="docutils literal notranslate"><span class="pre">$HOME/.cudaq</span></code> for local builds from source).</p>
 <p>If an MPI installation is available in the directory defined by <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code>,
 the installer automatically enables MPI support in CUDA-Q.
 If you do not have MPI installed on your system, you can simply
@@ -1710,7 +1732,8 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <section id="dependencies-and-compatibility">
 <span id="id10"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="../backends/simulators.html"><span class="doc">CUDA-Q Circuit Simulation Backends</span></a>.</p>
-<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).</p>
+<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).
+On macOS, only ARM64 (Apple silicon) is supported.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Some of the components included in the CUDA-Q Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA-Q Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
@@ -1727,7 +1750,7 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <td><p>x86_64, ARM64</p></td>
 </tr>
 <tr class="row-even"><td><p>Operating systems</p></td>
-<td><p>Linux, Windows via Windows Subsystem for Linux 2 (WSL2)</p></td>
+<td><p>Linux, macOS (ARM64/Apple silicon only), Windows via Windows Subsystem for Linux 2 (WSL2)</p></td>
 </tr>
 <tr class="row-odd"><td><p>Tested Distributions</p></td>
 <td><p>CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04</p></td>

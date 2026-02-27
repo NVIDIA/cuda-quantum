@@ -1,6 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ --library-mode --target tii tii.cpp
+// nvq++ --target tii --tii-device tii-sim \
+// --tii-project <tii-project-name> tii.cpp
 // ./a.out
 // ```
 
@@ -17,7 +18,7 @@ struct bell_state {
 };
 
 int main() {
-  // OR: Submit to TII synchronously.
+  // Submit to `tii` synchronously.
   auto result_counts = cudaq::sample(bell_state{});
   result_counts.dump();
 }
