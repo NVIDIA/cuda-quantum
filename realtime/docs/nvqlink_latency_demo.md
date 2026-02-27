@@ -31,9 +31,8 @@ To run the test, here is an example for 32B messages reported in the paper:
 python3 ./examples/gpu_roce_loopback.py --frame-size=32 --hololink=192.168.0.2 --rx-ibv-name=mlx5_0 --tx-ibv-name=mlx5_0 --mtu=256
 ```
 
-> **Note:** The `rx-ibv-name` and `tx-ibv-name` arguments in the above command 
+> **Note:** The `rx-ibv-name` and `tx-ibv-name` arguments in the above command
 may need to be changed according to the system setup.
-
 
 Then to capture the data from the experiment and run the latency calculation:
 
