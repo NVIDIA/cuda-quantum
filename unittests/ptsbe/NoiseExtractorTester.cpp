@@ -16,11 +16,11 @@
 using namespace cudaq::ptsbe;
 
 /// Build PTSBE trace then extract noise sites (the two-step pipeline).
-static NoiseExtractionResult buildAndExtract(const cudaq::Trace &trace,
-                                             const cudaq::noise_model &noise,
-                                             bool validate = true) {
-  auto ptsbe = buildPTSBETrace(trace, noise);
-  return extractNoiseSites(ptsbe, validate);
+static detail::NoiseExtractionResult
+buildAndExtract(const cudaq::Trace &trace, const cudaq::noise_model &noise,
+                bool validate = true) {
+  auto ptsbe = cudaq::ptsbe::detail::buildPTSBETrace(trace, noise);
+  return cudaq::ptsbe::detail::extractNoiseSites(ptsbe, validate);
 }
 
 cudaq::Trace createSimpleCircuit() {
@@ -405,7 +405,7 @@ TEST(NoiseExtractorTest, ImplicitMeasurementPerQubitNoise) {
   noise_model.add_channel("mz", {0}, cudaq::bit_flip_channel(0.1));
   noise_model.add_channel("mz", {1}, cudaq::bit_flip_channel(0.2));
 
-  auto ptsbe = buildPTSBETrace(trace, noise_model);
+  auto ptsbe = cudaq::ptsbe::detail::buildPTSBETrace(trace, noise_model);
 
   std::size_t measCount = 0;
   std::size_t noiseCount = 0;
@@ -418,7 +418,7 @@ TEST(NoiseExtractorTest, ImplicitMeasurementPerQubitNoise) {
   EXPECT_EQ(measCount, 2);
   EXPECT_EQ(noiseCount, 2);
 
-  auto result = extractNoiseSites(ptsbe);
+  auto result = cudaq::ptsbe::detail::extractNoiseSites(ptsbe);
   EXPECT_EQ(result.noise_sites.size(), 2);
   EXPECT_NE(result.noise_sites[0].qubits, result.noise_sites[1].qubits);
 }

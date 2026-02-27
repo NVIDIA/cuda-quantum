@@ -17,6 +17,61 @@
 namespace cudaq::ptsbe {
 
 template <typename ScalarType>
+std::vector<GateTask<ScalarType>>
+mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
+                         const cudaq::KrausTrajectory &trajectory,
+                         bool includeIdentity) {
+  const auto &selections = trajectory.kraus_selections;
+
+  std::vector<GateTask<ScalarType>> merged;
+  merged.reserve(ptsbeTrace.size());
+
+  std::size_t noiseIdx = 0;
+  for (std::size_t i = 0; i < ptsbeTrace.size(); ++i) {
+    const auto &inst = ptsbeTrace[i];
+
+    if (inst.type == TraceInstructionType::Gate)
+      merged.push_back(detail::convertToSimulatorTask<ScalarType>(inst));
+
+    while (noiseIdx < selections.size() &&
+           selections[noiseIdx].circuit_location == i) {
+      if (includeIdentity || selections[noiseIdx].is_error) {
+        merged.push_back(detail::krausSelectionToTask<ScalarType>(
+            selections[noiseIdx], inst));
+      }
+      ++noiseIdx;
+    }
+  }
+
+  if (noiseIdx < selections.size()) {
+    throw std::runtime_error(
+        "Invalid circuit_location: " +
+        std::to_string(selections[noiseIdx].circuit_location) +
+        " >= " + std::to_string(ptsbeTrace.size()));
+  }
+
+  return merged;
+}
+
+template std::vector<GateTask<float>>
+mergeTasksWithTrajectory<float>(std::span<const TraceInstruction>,
+                                const cudaq::KrausTrajectory &, bool);
+template std::vector<GateTask<double>>
+mergeTasksWithTrajectory<double>(std::span<const TraceInstruction>,
+                                 const cudaq::KrausTrajectory &, bool);
+
+std::size_t PTSBatch::totalShots() const {
+  std::size_t total = 0;
+  for (const auto &traj : trajectories)
+    total += traj.num_shots;
+  return total;
+}
+
+} // namespace cudaq::ptsbe
+
+namespace cudaq::ptsbe::detail {
+
+template <typename ScalarType>
 GateTask<ScalarType> convertToSimulatorTask(const TraceInstruction &inst) {
   std::vector<ScalarType> typedParams;
   typedParams.reserve(inst.params.size());
@@ -69,47 +124,6 @@ GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
   return GateTask<ScalarType>(opName, matrix, {}, sel.qubits, {});
 }
 
-template <typename ScalarType>
-std::vector<GateTask<ScalarType>>
-mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
-                         const cudaq::KrausTrajectory &trajectory,
-                         bool includeIdentity) {
-  const auto &selections = trajectory.kraus_selections;
-
-  std::vector<GateTask<ScalarType>> merged;
-  merged.reserve(ptsbeTrace.size());
-
-  std::size_t noiseIdx = 0;
-  for (std::size_t i = 0; i < ptsbeTrace.size(); ++i) {
-    const auto &inst = ptsbeTrace[i];
-
-    if (inst.type == TraceInstructionType::Gate)
-      merged.push_back(convertToSimulatorTask<ScalarType>(inst));
-
-    while (noiseIdx < selections.size() &&
-           selections[noiseIdx].circuit_location == i) {
-      if (includeIdentity || selections[noiseIdx].is_error) {
-        merged.push_back(
-            krausSelectionToTask<ScalarType>(selections[noiseIdx], inst));
-      }
-      ++noiseIdx;
-    }
-  }
-
-  if (noiseIdx < selections.size()) {
-    throw std::runtime_error(
-        "Invalid circuit_location: " +
-        std::to_string(selections[noiseIdx].circuit_location) +
-        " >= " + std::to_string(ptsbeTrace.size()));
-  }
-
-  return merged;
-}
-
-// ---------------------------------------------------------------------------
-// Explicit template instantiations for float and double
-// ---------------------------------------------------------------------------
-
 template GateTask<float>
 convertToSimulatorTask<float>(const TraceInstruction &);
 template GateTask<double>
@@ -126,24 +140,6 @@ krausSelectionToTask<float>(const cudaq::KrausSelection &,
 template GateTask<double>
 krausSelectionToTask<double>(const cudaq::KrausSelection &,
                              const TraceInstruction &);
-
-template std::vector<GateTask<float>>
-mergeTasksWithTrajectory<float>(std::span<const TraceInstruction>,
-                                const cudaq::KrausTrajectory &, bool);
-template std::vector<GateTask<double>>
-mergeTasksWithTrajectory<double>(std::span<const TraceInstruction>,
-                                 const cudaq::KrausTrajectory &, bool);
-
-// ---------------------------------------------------------------------------
-// Non-template implementations
-// ---------------------------------------------------------------------------
-
-std::size_t PTSBatch::totalShots() const {
-  std::size_t total = 0;
-  for (const auto &traj : trajectories)
-    total += traj.num_shots;
-  return total;
-}
 
 cudaq::sample_result
 aggregateResults(const std::vector<cudaq::sample_result> &results) {
@@ -201,7 +197,8 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
     simulator.setToZeroState();
 
-    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(batch.trace, traj);
+    auto mergedTasks =
+        cudaq::ptsbe::mergeTasksWithTrajectory<ScalarType>(batch.trace, traj);
 
     for (const auto &task : mergedTasks)
       simulator.applyGate(task);
@@ -227,7 +224,9 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<float> &, const PTSBatch &);
 template std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<double> &, const PTSBatch &);
 
-/// @brief Helper template for compile-time concept dispatch
+namespace {
+
+/// @brief Helper template for simulator dispatch
 template <typename SimulatorType>
 std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
                                                 const PTSBatch &batch) {
@@ -253,6 +252,20 @@ std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
   return samplePTSBEGeneric(sim, batch);
 }
 
+/// Finalize and tear down the execution context and deallocate qubits.
+/// finalizeExecutionContext must precede deallocateQubits because
+/// CircuitSimulatorBase::deallocateQubits is a no-op while a context is set.
+void teardown(nvqir::CircuitSimulator *sim, cudaq::ExecutionContext &ctx,
+              std::size_t nQubits) {
+  sim->finalizeExecutionContext(ctx);
+  cudaq::detail::resetExecutionContext();
+  std::vector<std::size_t> qubitIds(nQubits);
+  std::iota(qubitIds.begin(), qubitIds.end(), 0);
+  sim->deallocateQubits(qubitIds);
+}
+
+} // namespace
+
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   auto *baseSim = nvqir::getCircuitSimulatorInternal();
 
@@ -269,18 +282,6 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
           "Failed to cast simulator to CircuitSimulatorBase<double>");
     return dispatchPTSBE(*sim, batch);
   }
-}
-
-/// Finalize and tear down the execution context and deallocate qubits.
-/// finalizeExecutionContext must precede deallocateQubits because
-/// CircuitSimulatorBase::deallocateQubits is a no-op while a context is set.
-static void teardown(nvqir::CircuitSimulator *sim, cudaq::ExecutionContext &ctx,
-                     std::size_t nQubits) {
-  sim->finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
-  std::vector<std::size_t> qubitIds(nQubits);
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  sim->deallocateQubits(qubitIds);
 }
 
 std::vector<cudaq::sample_result>
@@ -311,4 +312,4 @@ samplePTSBEWithLifecycle(const PTSBatch &batch,
   return results;
 }
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

@@ -10,7 +10,6 @@
 
 #include "KrausTrajectory.h"
 #include "PTSBEExecutionData.h"
-#include <concepts>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -36,18 +35,9 @@ struct PTSBatch {
   std::size_t totalShots() const;
 };
 
-/// @brief Concept for simulators supporting a customized PTSBE implementation
-///
-/// Enables compile-time detection of simulator PTSBE support with zero runtime
-/// overhead. Simulators opting into PTSBE should implement sampleWithPTSBE
-/// returning per-trajectory results. We use a concept to avoid exposing
-/// the simulator base class to PTSBE.
-template <typename SimulatorType>
-concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
-  {
-    sim.sampleWithPTSBE(batch)
-  } -> std::same_as<std::vector<cudaq::sample_result>>;
-};
+} // namespace cudaq::ptsbe
+
+namespace cudaq::ptsbe::detail {
 
 /// @brief Aggregate per-trajectory sample results into a single result
 cudaq::sample_result
@@ -55,9 +45,9 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 
 /// @brief Execute PTSBE batch on current simulator
 ///
-/// Handles both runtime precision dispatch and compile-time concept dispatch:
+/// Handles runtime precision and custom simulator dispatch:
 /// 1. Uses isSinglePrecision() to determine float vs double
-/// 2. Checks PTSBECapable concept for custom simulator implementations
+/// 2. Checks BatchSimulator interface for custom simulator implementations
 /// 3. Falls back to samplePTSBEGeneric if no custom implementation
 ///
 /// Caller must have set up ExecutionContext and allocated qubits
@@ -85,4 +75,4 @@ std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch,
                          const std::string &contextType = "ptsbe-sample");
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

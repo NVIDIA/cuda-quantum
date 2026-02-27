@@ -49,7 +49,7 @@ public:
   /// estimates suitable for PROPORTIONAL shot allocation.
   /// @return Vector of unique trajectories with accumulated multiplicities
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
-  generateTrajectories(std::span<const NoisePoint> noise_points,
+  generateTrajectories(std::span<const detail::NoisePoint> noise_points,
                        std::size_t max_trajectories) const override;
 
   /// @brief Get strategy name

@@ -19,13 +19,13 @@ OrderedSamplingStrategy::~OrderedSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
 OrderedSamplingStrategy::generateTrajectories(
-    std::span<const NoisePoint> noise_points,
+    std::span<const detail::NoisePoint> noise_points,
     std::size_t max_trajectories) const {
 
   if (noise_points.empty())
     return {};
 
-  std::size_t total = computeTotalTrajectories(noise_points);
+  std::size_t total = detail::computeTotalTrajectories(noise_points);
 
   // Sort operator indices by descending probability so the lexicographic
   // prefix contains the highest-probability trajectories first.
@@ -43,8 +43,8 @@ OrderedSamplingStrategy::generateTrajectories(
   std::size_t generation_limit =
       std::min(total, max_trajectories * GENERATION_MULTIPLIER);
 
-  auto results =
-      enumerateLexicographic(noise_points, generation_limit, sorted_indices);
+  auto results = detail::enumerateLexicographic(noise_points, generation_limit,
+                                                sorted_indices);
 
   std::ranges::sort(results, [](const auto &a, const auto &b) {
     return a.probability > b.probability;
