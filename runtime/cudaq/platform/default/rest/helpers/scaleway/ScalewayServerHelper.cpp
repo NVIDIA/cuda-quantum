@@ -148,7 +148,7 @@ ScalewayServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 
 std::chrono::microseconds
 ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
-  return std::chrono::microseconds(100);
+  return std::chrono::seconds(1);
 }
 
 bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
