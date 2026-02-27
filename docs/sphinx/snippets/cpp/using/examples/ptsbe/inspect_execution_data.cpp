@@ -9,8 +9,8 @@
 // [Begin PTSBE_Execution_Data]
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
+#include "utils.h"
 #include <cstdio>
-#include <utils.h>
 
 int main() {
   cudaq::ptsbe::sample_options opts;

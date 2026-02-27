@@ -8,7 +8,7 @@
 
 // [Begin PTSBE_Bell]
 #include "cudaq/ptsbe/PTSBESample.h"
-#include <utils.h>
+#include "utils.h"
 
 int main() {
   cudaq::ptsbe::sample_options opts;
