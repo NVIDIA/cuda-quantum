@@ -95,7 +95,7 @@ Backend Configuration
     it is automatically (and silently) stripped from any programs submitted to
     hardware targets.
 
-    :param error_type: A subtype of :class:`cudaq.KrausChannel` that
+    :`param` error_type: A subtype of :class:`cudaq.KrausChannel` that
         implements/defines the desired noise mechanisms as Kraus channels (e.g.
         :class:`cudaq.Depolarization2`). If you want to use a custom
         :class:`cudaq.KrausChannel` (i.e. not built-in to CUDA-Q), it must
@@ -126,7 +126,7 @@ Backend Configuration
             noise = cudaq.NoiseModel()
             noise.register_channel(CustomNoiseChannel)
 
-    :param parameters: The precise argument pack depend on the concrete
+    :`param` parameters: The precise argument pack depend on the concrete
         :class:`cudaq.KrausChannel` being used. The arguments are a concatenated
         list of parameters and targets.  For example, to apply a 2-qubit
         depolarization channel, which has `num_parameters = 1` and `num_targets =
@@ -137,7 +137,7 @@ Backend Configuration
             q, r = cudaq.qubit(), cudaq.qubit()
             cudaq.apply_noise(cudaq.Depolarization2, 0.1, q, r)
 
-    :param targets: The target qubits on which to apply the noise
+    :`param` targets: The target qubits on which to apply the noise
 
 
 .. automethod:: cudaq::initialize_cudaq
@@ -299,8 +299,8 @@ Optimizers
 
    Run the optimization procedure.
 
-   :param dimensions: The number of parameters to optimize
-   :param function: The objective function to minimize
+   :`param` dimensions: The number of parameters to optimize
+   :`param` function: The objective function to minimize
    :returns: tuple of (optimal_value, optimal_parameters)
 
 .. py:method:: requires_gradients() -> bool
@@ -442,31 +442,31 @@ Sampling Functions
    When any argument is a list (broadcast mode), the kernel is executed for
    each element of the list and a list of results is returned.
 
-   :param kernel: The quantum kernel to execute. Must be a static circuit
+   :`param` kernel: The quantum kernel to execute. Must be a static circuit
        with no mid-circuit measurements or measurement-dependent conditional
        logic.
-   :param `args`: Positional arguments forwarded to the kernel.
-   :param int shots_count: Total number of measurement shots to distribute
+   :`param` `args`: Positional arguments forwarded to the kernel.
+   :`param` int shots_count: Total number of measurement shots to distribute
        across all trajectories. Default: ``1000``.
-   :param noise_model: Noise model describing gate-level error channels.
+   :`param` noise_model: Noise model describing gate-level error channels.
        Noise can also be injected inside the kernel via
        ``cudaq.apply_noise()``; both can be combined. Default: ``None``
        (no noise).
    :type noise_model: :class:`cudaq.NoiseModel` or ``None``
-   :param max_trajectories: Maximum number of unique trajectories to
+   :`param` max_trajectories: Maximum number of unique trajectories to
        generate. ``None`` defaults to ``shots_count``. Setting an explicit
        limit (e.g. 500) enables trajectory reuse and is strongly recommended
        for large shot counts.
    :type max_trajectories: int or ``None``
-   :param sampling_strategy: Strategy used to select trajectories from the
+   :`param` sampling_strategy: Strategy used to select trajectories from the
        noise space. ``None`` uses the default
        :class:`~cudaq.ptsbe.ProbabilisticSamplingStrategy`.
    :type sampling_strategy: :class:`~cudaq.ptsbe.PTSSamplingStrategy` or ``None``
-   :param shot_allocation: Strategy used to distribute shots across the
+   :`param` shot_allocation: Strategy used to distribute shots across the
        selected trajectories. ``None`` uses
        :attr:`~cudaq.ptsbe.ShotAllocationStrategy.Type.PROPORTIONAL`.
    :type shot_allocation: :class:`~cudaq.ptsbe.ShotAllocationStrategy` or ``None``
-   :param bool return_execution_data: When ``True``, attaches the full
+   :`param` bool return_execution_data: When ``True``, attaches the full
        execution trace (circuit instructions, trajectory specifications, and
        per-trajectory measurement counts) to the returned result. Default:
        ``False``.
@@ -557,8 +557,8 @@ Trajectory Sampling Strategies
       Generate up to *max_trajectories* unique trajectories from the given
       noise points.
 
-      :param noise_points: Noise site information extracted from the circuit.
-      :param int max_trajectories: Upper bound on the number of trajectories.
+      :`param` noise_points: Noise site information extracted from the circuit.
+      :`param` int max_trajectories: Upper bound on the number of trajectories.
       :returns: List of unique :class:`~cudaq.ptsbe.KrausTrajectory` objects.
 
    .. py:method:: name() -> str
@@ -572,7 +572,7 @@ Trajectory Sampling Strategies
    probability. Produces a representative cross-section of the noise space.
    Duplicate trajectories are discarded.
 
-   :param int seed: Random seed for reproducibility. ``0`` uses the global
+   :`param` int seed: Random seed for reproducibility. ``0`` uses the global
        CUDA-Q seed if set, otherwise a random device seed.
 
    .. code-block:: python
@@ -611,9 +611,9 @@ Trajectory Sampling Strategies
    Useful for targeted studies such as restricting to single-qubit error
    events or trajectories below a probability threshold.
 
-   :param predicate: A callable ``(KrausTrajectory) -> bool`` that returns
+   :`param` predicate: A callable ``(KrausTrajectory) -> bool`` that returns
        ``True`` for trajectories to include.
-   :param int seed: Random seed. ``0`` uses the global CUDA-Q seed.
+   :`param` int seed: Random seed. ``0`` uses the global CUDA-Q seed.
 
    .. code-block:: python
 
@@ -636,11 +636,11 @@ Shot Allocation Strategy
    Controls how the total shot count is distributed across the selected
    trajectories after trajectory sampling.
 
-   :param type: Allocation strategy type.
+   :`param` type: Allocation strategy type.
    :type type: :class:`~cudaq.ptsbe.ShotAllocationStrategy.Type`
-   :param float bias_strength: Exponent used by the biased strategies.
+   :`param` float bias_strength: Exponent used by the biased strategies.
        Higher values produce stronger bias. Default: ``2.0``.
-   :param int seed: Random seed used by probabilistic allocation (PROPORTIONAL
+   :`param` int seed: Random seed used by probabilistic allocation (PROPORTIONAL
        and biased strategies). ``0`` uses the global CUDA-Q seed.
 
    .. py:class:: Type
