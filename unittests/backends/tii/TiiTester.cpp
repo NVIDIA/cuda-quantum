@@ -8,9 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/algorithm.h"
-#include "gtest/gtest.h"
-
-std::string backendString = "tii;";
+#include <gtest/gtest.h>
 
 bool result_maps_are_matching(
     const std::unordered_map<std::string, std::size_t> &results,
@@ -25,10 +23,6 @@ bool result_maps_are_matching(
 }
 
 TEST(TiiTester, checkSimpleCircuitSync) {
-  // Initialize the platform
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   // Create a simple circuit
   auto kernel = cudaq::make_kernel();
   auto qubits = kernel.qalloc(2);
@@ -46,10 +40,6 @@ TEST(TiiTester, checkSimpleCircuitSync) {
 }
 
 TEST(TiiTester, checkSimpleCircuitAsync) {
-  // Initialize the platform
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   // Create a simple circuit
   auto kernel = cudaq::make_kernel();
   auto qubits = kernel.qalloc(2);
@@ -67,8 +57,6 @@ TEST(TiiTester, checkSimpleCircuitAsync) {
 }
 
 int main(int argc, char **argv) {
-  setenv("TII_API_TOKEN", "api_key", 0);
-  setenv("TII_API_URL", "http://localhost:62450", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;

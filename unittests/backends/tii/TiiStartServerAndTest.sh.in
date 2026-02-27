@@ -13,7 +13,7 @@ checkServerConnection() {
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", 62450))
+    s.connect(("localhost", 62451))
     s.close()
 except Exception:
     exit(1)
@@ -22,7 +22,7 @@ EOF
 
 
 # Launch the mock server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/tii/__init__.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py tii &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -34,6 +34,9 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+# Set the environment before entering main
+export TII_API_TOKEN="00000000000000000000000000000000"
+export TII_API_URL="http://localhost:62451"
 # Run the tests
 ./test_tii
 # Did they fail? 

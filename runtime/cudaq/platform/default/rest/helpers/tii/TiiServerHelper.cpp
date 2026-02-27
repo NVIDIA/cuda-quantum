@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
@@ -63,9 +63,13 @@ public:
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
 
-    headers["x-api-token"] = getEnvVar("TII_API_TOKEN", "", true);
+    // If Authentication token is not provided explicitly, it is read from the
+    // `TII_API_TOKEN` environment variable.
     if (backendConfig.count("api_key"))
       headers["x-api-token"] = backendConfig["api_key"];
+    else
+      headers["x-api-token"] = getEnvVar("TII_API_TOKEN", "", true);
+
     headers["x-qibo-client-version"] = backendConfig["version"];
 
     return headers;

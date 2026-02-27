@@ -1,7 +1,10 @@
 import cudaq
+import os
 
 # Set the target at the beginning of the program.
-cudaq.set_target("tii")
+cudaq.set_target("tii",
+                 device="tii-sim",
+                 project=os.environ.get("TII_PROJECT", None))
 
 
 # Create the kernel.

@@ -11,6 +11,7 @@ import sys
 import time
 import pytest
 from multiprocessing import Process
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin
@@ -27,30 +28,35 @@ except:
 
 # Define the port for the mock server - make sure this is unique
 # across all tests.
-port = 62450
+port = 62451
+
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    # Set the targeted QPU
-    cudaq.set_target('tii',
-                    url=f'http://localhost:{port}',
-                    api_key="test_key")
-
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
+
+    cudaq.set_target('tii', url=f'http://localhost:{port}', api_key="test_key")
 
     yield "Running the tests."
 
     # Kill the server
     p.terminate()
+    cudaq.reset_target()
+
 
 def test_tii_sample():
     # Create the kernel
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
+    kernel.cx(qubits[0], qubits[1])
     kernel.mz(qubits)
 
     # Run sample
