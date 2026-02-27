@@ -57,7 +57,17 @@ find_symlinks() {
 # does not perform any validation regarding whether the copied
 # files are compatible or functional after moving them.
 
-# Process command line arguments
+# Process command line arguments.
+# Pre-process long options (getopts only handles short options).
+args=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --installpath) args+=(-t "$2"); shift 2 ;;
+        *) args+=("$1"); shift ;;
+    esac
+done
+set -- "${args[@]}"
+
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:s:t:" opt; do
@@ -253,6 +263,8 @@ if $install; then
     fi
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then
         update_profile /etc/zprofile
+    elif [ -f $HOME/.zshrc ] || [ "$(basename "$SHELL")" = "zsh" ] || [ "$(uname)" = "Darwin" ]; then
+        update_profile $HOME/.zshrc
     fi
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then
         plugin_path="${CUDA_QUANTUM_PATH}/distributed_interfaces"
@@ -276,7 +288,8 @@ if $install; then
 fi
 
 this_file="$(realpath "${BASH_SOURCE[0]}")"
-remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$build_config"`)
+install_script="$(dirname "$this_file")/install.sh"
+remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$install_script" -not -path "$build_config"`)
 if [ ! ${#remaining_files[@]} -eq 0 ]; then
     rel_paths=(${remaining_files[@]##$assets/})
     components=(`echo "${rel_paths[@]%%/*}" | tr ' ' '\n' | uniq`)
