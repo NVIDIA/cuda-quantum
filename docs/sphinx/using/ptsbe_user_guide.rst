@@ -101,53 +101,20 @@ The example below simulates a two-qubit Bell circuit under depolarizing noise.
 
 .. tab:: Python
 
-   .. code-block:: python
+   .. literalinclude:: ../snippets/python/using/examples/ptsbe/bell_circuit_under_depol_noise.py
+        :language: python
+        :start-after: [Begin PTSBE_Bell]
+        :end-before: [End PTSBE_Bell]
 
-      import cudaq
-      from cudaq import ptsbe
-
-      cudaq.set_target("nvidia")
-
-      @cudaq.kernel
-      def bell():
-          q = cudaq.qvector(2)
-          h(q[0])
-          cx(q[0], q[1])
-          mz(q)
-
-      noise = cudaq.NoiseModel()
-      noise.add_channel("h",  [0], cudaq.DepolarizationChannel(0.01))
-      noise.add_channel("cx", [0, 1], cudaq.Depolarization2Channel(0.005))
-
-      result = ptsbe.sample(bell, shots_count=10_000, noise_model=noise)
-      print(result)
 
 .. tab:: C++
 
-   .. code-block:: cpp
+   .. literalinclude:: ../snippets/cpp/using/examples/ptsbe/bell_circuit_under_depol_noise.cpp
+        :language: cpp
+        :start-after: [Begin PTSBE_Bell]
+        :end-before: [End PTSBE_Bell]
 
-      #include "cudaq.h"
-      #include "cudaq/ptsbe/PTSBESample.h"
 
-      auto bell = []() __qpu__ {
-        cudaq::qvector<2> q;
-        h(q[0]);
-        cx(q[0], q[1]);
-        mz(q);
-      };
-
-      int main() {
-        auto noise = cudaq::noise_model{};
-        noise.add_channel<cudaq::depolarization_channel>("h",  {0},     0.01);
-        noise.add_channel<cudaq::depolarization2_channel>("cx", {0, 1}, 0.005);
-
-        cudaq::ptsbe::sample_options opts;
-        opts.shots  = 10000;
-        opts.noise  = noise;
-
-        auto result = cudaq::ptsbe::sample(opts, bell);
-        result.dump();
-      }
 
 Usage Tutorial
 ^^^^^^^^^^^^^^^
@@ -167,7 +134,7 @@ and gain the batching benefit:
           bell,
           shots_count=100_000,
           noise_model=noise,
-          max_trajectories=500,   # reuse each trajectory ~200 times on average
+          max_trajectories=500,
       )
 
 .. tab:: C++
@@ -208,46 +175,21 @@ Four strategies control which trajectories are selected from the noise space:
 
 .. tab:: Python
 
-   .. code-block:: python
+   .. literalinclude:: ../snippets/python/using/examples/ptsbe/sampling_strategies.py
+        :language: python
+        :start-after: [Begin PTSBE_Sampling]
+        :end-before: [End PTSBE_Sampling]
 
-      from cudaq.ptsbe import (ProbabilisticSamplingStrategy,
-                               OrderedSamplingStrategy,
-                               ExhaustiveSamplingStrategy,
-                               ConditionalSamplingStrategy)
 
-      # Reproducible probabilistic sampling
-      result = ptsbe.sample(
-          bell,
-          shots_count=10_000,
-          noise_model=noise,
-          sampling_strategy=ProbabilisticSamplingStrategy(seed=42),
-      )
-
-      # Top-100 trajectories by probability
-      result = ptsbe.sample(
-          bell,
-          shots_count=10_000,
-          noise_model=noise,
-          max_trajectories=100,
-          sampling_strategy=OrderedSamplingStrategy(),
-      )
 
 .. tab:: C++
 
-   .. code-block:: cpp
+   .. literalinclude:: ../snippets/cpp/using/examples/ptsbe/sampling_strategies.cpp
+        :language: cpp
+        :start-after: [Begin PTSBE_Sampling]
+        :end-before: [End PTSBE_Sampling]
 
-      #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
-      #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 
-      // Reproducible probabilistic sampling
-      cudaq::ptsbe::sample_options opts;
-      opts.ptsbe.strategy =
-          std::make_shared<cudaq::ptsbe::ProbabilisticSamplingStrategy>(/*seed=*/42);
-
-      // Top-100 trajectories
-      opts.ptsbe.max_trajectories = 100;
-      opts.ptsbe.strategy =
-          std::make_shared<cudaq::ptsbe::OrderedSamplingStrategy>();
 
 Shot Allocation Strategies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -275,30 +217,21 @@ After trajectories are selected, shots are distributed across them:
 
 .. tab:: Python
 
-   .. code-block:: python
+   .. literalinclude:: ../snippets/python/using/examples/ptsbe/shot_allocation.py
+        :language: python
+        :start-after: [Begin PTSBE_Shot_Allocation]
+        :end-before: [End PTSBE_Shot_Allocation]
 
-      from cudaq.ptsbe import ShotAllocationStrategy
 
-      result = ptsbe.sample(
-          bell,
-          shots_count=10_000,
-          noise_model=noise,
-          shot_allocation=ShotAllocationStrategy(
-              ShotAllocationStrategy.Type.LOW_WEIGHT_BIAS,
-              bias_strength=2.0,
-          ),
-      )
 
 .. tab:: C++
 
-   .. code-block:: cpp
+   .. literalinclude:: ../snippets/cpp/using/examples/ptsbe/shot_allocation.cpp
+        :language: cpp
+        :start-after: [Begin PTSBE_Shot_Allocation]
+        :end-before: [End PTSBE_Shot_Allocation]
 
-      #include "cudaq/ptsbe/ShotAllocationStrategy.h"
 
-      cudaq::ptsbe::sample_options opts;
-      opts.ptsbe.shot_allocation = cudaq::ptsbe::ShotAllocationStrategy(
-          cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
-          /*bias=*/2.0);
 
 Inspecting Execution Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -309,41 +242,17 @@ the result. This API is experimental and may be subject to change in future rele
 
 .. tab:: Python
 
-   .. code-block:: python
-
-      result = ptsbe.sample(
-          bell,
-          shots_count=1_000,
-          noise_model=noise,
-          return_execution_data=True,
-      )
-
-      data = result.execution_data()
-
-      # Circuit structure
-      for inst in data.instructions:
-          print(inst.type, inst.name, inst.targets)
-
-      # Trajectory details
-      for trajectory in data.trajectories:
-          print(f"id={trajectory.trajectory_id}  p={trajectory.probability:.4f}"
-                f"  shots={trajectory.num_shots}  errors={trajectory.count_errors()}")
+   .. literalinclude:: ../snippets/python/using/examples/ptsbe/inspect_execution_data.py
+        :language: python
+        :start-after: [Begin PTSBE_Execution_Data]
+        :end-before: [End PTSBE_Execution_Data]
 
 .. tab:: C++
 
-   .. code-block:: cpp
-
-      cudaq::ptsbe::sample_options opts;
-      opts.ptsbe.return_execution_data = true;
-
-      auto result = cudaq::ptsbe::sample(opts, bell);
-
-      if (result.has_execution_data()) {
-        const auto &data = result.execution_data();
-        for (const auto &trajectory : data.trajectories)
-          printf("id=%zu  p=%.4f  shots=%zu\n",
-                 trajectory.trajectory_id, trajectory.probability, trajectory.num_shots);
-      }
+   .. literalinclude:: ../snippets/cpp/using/examples/ptsbe/inspect_execution_data.cpp
+        :language: cpp
+        :start-after: [Begin PTSBE_Execution_Data]
+        :end-before: [End PTSBE_Execution_Data]
 
 Trajectory vs Shot Trade-offs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
