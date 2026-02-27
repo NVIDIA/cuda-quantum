@@ -11,11 +11,11 @@
 /// @file bridge_interface.h
 /// @brief Interface Bindings for transport layer providers (e.g. Hololink).
 ///
-/// Different transport providers can be loaded at runtime via `dlopen`, allowing
-/// for dynamic selection and initialization of the desired transport layer.
-/// Environment variable CUDAQ_REALTIME_BRIDGE_LIB must be set to the path of
-/// the shared library implementing the desired transport provider (if not using
-/// the built-in Hololink provider).
+/// Different transport providers can be loaded at runtime via `dlopen`,
+/// allowing for dynamic selection and initialization of the desired transport
+/// layer. Environment variable CUDAQ_REALTIME_BRIDGE_LIB must be set to the
+/// path of the shared library implementing the desired transport provider (if
+/// not using the built-in Hololink provider).
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
@@ -68,9 +68,9 @@ cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
-/// (`cudaq_realtime_get_bridge_interface`) that returns a pointer to a statically
-/// allocated instance of this struct with the function pointers set to the
-/// provider's implementation.
+/// (`cudaq_realtime_get_bridge_interface`) that returns a pointer to a
+/// statically allocated instance of this struct with the function pointers set
+/// to the provider's implementation.
 typedef struct {
   int version;
   cudaq_status_t (*create)(cudaq_realtime_bridge_handle_t *, int, char **);
