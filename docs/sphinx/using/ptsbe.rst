@@ -5,26 +5,25 @@ Noisy Simulation with PTSBE
 
 .. _ptsbe:
 
-Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method
-for sampling noisy quantum circuits [Patti2025]_. It is a powerful generalization of the
-trajectories methods for noisy quantum systems that stochastically samples
-noise operators from a noisy quantum circuit and then subsequently builds
-and samples from the corresponding pseudo-coherent quantum states rather than sampling from
-the full density matrix of a system, as this is quadratically larger than
-each pseudo-coherent quantum statevector [Carmichael2007]_. While these trajectory methods
-can be much more efficient than constructing and sampling from full density
-matrices, they traditionally sampled only one shot per constructed state.
-In contrast, PTSBE *pre-samples* a set of noise
-realizations (trajectories) from the circuit's noise model and then *batches*
-circuit executions by unique trajectory [Patti2025]_. As the noise pre-sampling and state post-sampling
-are tasks with only low-degree polynomial complexity, while the state construction
+Pre-Trajectory Sampling with Batch Execution (PTSBE) is a method for
+efficiently sampling noisy quantum circuits [Patti2025]_. It builds on
+quantum trajectory methods [Carmichael2007]_, which simulate noise by
+stochastically selecting a Kraus operator at each noise site and evolving a
+pure statevector rather than the full density matrix. Traditional trajectory 
+methods construct a new statevector for every measurement shot.
+PTSBE instead pre-samples a set of unique noise
+realizations (trajectories) and batches shots across them, so the number of
+statevector simulations scales with unique trajectories but not the total shots.
+As the noise pre-sampling and state post-sampling are tasks with only 
+low-degree polynomial complexity, while the state construction
 is, in general, of exponential complexity, PTSBE allows us to gather noisy quantum data
-orders of magnitude quicker than traditional trajectory sampling methods by allowing finely-tuned
-batched sampling. PTSBE can be used to capture millions of times more noisy shot data, which can
-then be used as e.g., training data in ML tasks such as AI decoders, or it can be deployed proportionally, 
-capturing the exact statistics of the problem while still offering a considerable speedup. In particular,
-PTSBE achieves traditional trajectory simulation accuracy at a fraction of
-the computational cost when the number of unique trajectories (errors) is much smaller than the total
+orders of magnitude quicker than traditional trajectory sampling methods by
+allowing finely-tuned batch sampling of simulated statevectors. PTSBE can be used to 
+capture millions of times more noisy shot data, which can then be used as e.g., training data 
+in ML tasks such as AI decoders, or it can be deployed proportionally, capturing the exact 
+statistics of the problem while still offering a considerable speedup. In particular,
+PTSBE achieves traditional trajectory simulation accuracy at a fraction of the computational 
+cost when the number of unique trajectories (errors) is much smaller than the total
 shot count [Patti2025]_.
 
 Conceptual Overview
