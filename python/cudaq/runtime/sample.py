@@ -260,16 +260,16 @@ def sample_async(decorator,
             raise ValueError("Noise model is not supported on remote simulator"
                              " or hardware QPU.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
 
     _detail_check_conditionals_on_measure(kernel)
 
     _detail_check_explicit_measurements(explicit_measurements)
 
     retTy = decorator.get_none_type()
-    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName,
-                                                     specMod, retTy,
-                                                     shots_count, noise_model,
+    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
+                                                     retTy, shots_count,
+                                                     noise_model,
                                                      explicit_measurements,
                                                      qpu_id, *processedArgs)
-    return AsyncSampleResult(sample_results, specMod)
+    return AsyncSampleResult(sample_results, module)
