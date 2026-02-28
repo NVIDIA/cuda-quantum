@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os
+import cudaq, pytest, os, requests
 from cudaq import spin
 import numpy as np
 from typing import List
@@ -325,6 +325,41 @@ def test_2q_unitary_synthesis():
 
     counts = cudaq.sample(ctrl_z_kernel)
     assert counts["0010011"] == 1000
+
+
+@pytest.mark.parametrize("mock_target,mock_noise,memory,expect_shots", [
+    ("aria-1", "", True, ['110', '110', '110']),
+    ("aria-1", "", False, []),
+    ("simulator", "aria-1", True, ['110', '110', '110']),
+    ("simulator", "aria-1", False, []),
+])
+def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
+
+    url = "http://localhost:{}".format(port)
+
+    requests.post(f"{url}/_mock_server_config_target?target={mock_target}")
+    if mock_noise:
+        requests.post(
+            f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
+
+    cudaq.set_target("ionq",
+                     url=url,
+                     noise='forte-enterprise-1',
+                     memory=memory)
+
+    @cudaq.kernel
+    def bell_state():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    results = cudaq.sample(bell_state, shots_count=3)
+    assert results.get_sequential_data() == expect_shots
+
+    # Reset mock server state
+    requests.post(f"{url}/_mock_server_config_target?target=")
+    if mock_noise:
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
 
 
 # leave for gdb debugging
