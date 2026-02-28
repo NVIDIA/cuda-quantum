@@ -330,7 +330,7 @@ You can then create a self-extracting archive with the command
     ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
         cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
-        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
+        bash install.sh
 
 Installation on the Host
 ++++++++++++++++++++++++++++++++++++

@@ -22,11 +22,10 @@ def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
     if not isa_kernel_decorator(decorator):
         decorator = mk_decorator(decorator)
 
-    if isa_kernel_decorator(decorator):
-        if decorator.qkeModule is None:
-            raise RuntimeError(
-                "Unsupported target / Invalid kernel for `ptsbe.sample`: "
-                "missing module")
+    if decorator.qkeModule is None:
+        raise RuntimeError(
+            "Unsupported target / Invalid kernel for `ptsbe.sample`: "
+            "missing module")
 
     if decorator.formal_arity() != len(args):
         raise RuntimeError(

@@ -368,17 +368,14 @@ jobs:
 
       - name: Install CUDA-Q (C++ via installer)
         run: |
-          # Make installer executable and run with sudo (installs to /opt/nvidia/cudaq)
           chmod +x installer/install_cuda_quantum*
-          sudo bash installer/install_cuda_quantum* --accept
+          bash installer/install_cuda_quantum* --accept -- --installpath $HOME/.cudaq
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          # Install wheel for Python support (per documentation, Python is separate)
           pip install wheel/*.whl
 
       - name: Validate installation
         run: |
-          # Source the installer's environment setup to add nvq++ to PATH
-          source /opt/nvidia/cudaq/set_env.sh
+          source $HOME/.zshrc
           bash scripts/validate_installation.sh
