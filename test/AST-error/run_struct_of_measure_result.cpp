@@ -6,13 +6,24 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/platform.h"
-#include "measure_result.h"
+// RUN: cudaq-quake -verify %s
 
-bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
-  auto &platform = get_platform();
-  auto *ctx = getExecutionContext();
-  if (ctx && ctx->name == "tracer")
-    ctx->registerNames.push_back("");
-  return result == 1;
+#include <cudaq.h>
+#include <iostream>
+
+struct Foo {
+  bool b;
+  cudaq::measure_result r;
+};
+
+__qpu__ auto return_struct_with_measure_result() { // expected-error{{kernel result type not supported}}
+  cudaq::qubit q;
+  h(q);
+  Foo foo{false, mz(q)};
+  return foo;
+};
+
+int main() {
+  auto const result = cudaq::run(10, return_struct_with_measure_result);
+  return 0;
 }

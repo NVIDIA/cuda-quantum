@@ -79,10 +79,11 @@ void reuse2() __qpu__ {
 // CHECK:           cc.if(%[[VAL_2]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_3:.*]] = cc.alloca i1
-// CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i1>
-// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_5]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
 // clang-format on
@@ -112,10 +113,11 @@ void reuse3() __qpu__ {
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_4:.*]] = cc.alloca i1
-// CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i1>
-// CHECK:           cc.if(%[[VAL_5]]) {
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_4]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_6]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           }

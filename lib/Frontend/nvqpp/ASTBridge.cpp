@@ -53,7 +53,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
 // Does `ty` refer to a Quake quantum type? This also checks custom recursive
 // types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (quake::isQuakeType(ty))
+  if (quake::isQuantumType(ty))
     return true;
   // FIXME: next if case is a bug.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
@@ -70,6 +70,19 @@ static bool hasAnyQubitTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getResults())
     if (isQubitType(ty))
       return true;
+  return false;
+}
+
+// Check the builtin type `FunctionType` to see if it has any `MeasureType`
+// arguments.
+static bool hasMeasureResultArgs(FunctionType funcTy) {
+  for (auto ty : funcTy.getInputs()) {
+    if (isa<quake::MeasureType>(ty))
+      return true;
+    if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+      if (isa<quake::MeasureType>(vecTy.getElementType()))
+        return true;
+  }
   return false;
 }
 
@@ -640,6 +653,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
       if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+          (!hasMeasureResultArgs(func.getFunctionType())) &&
           (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.

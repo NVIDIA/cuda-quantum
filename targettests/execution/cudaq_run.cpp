@@ -53,11 +53,7 @@ struct vector_mz_test {
     cudaq::qvector q(5);
     cudaq::qubit p;
     x(q);
-#ifdef CUDAQ_LIBRARY_MODE
-    return cudaq::measure_result::to_bool_vector(mz(q));
-#else
-    return mz(q);
-#endif
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 
@@ -93,6 +89,18 @@ auto struct_test = []() __qpu__ {
   MyTuple t = {true, 654, 9.123};
   return t;
 };
+
+__qpu__ auto return_mz() {
+  cudaq::qubit q;
+  h(q);
+  return mz(q);
+}
+
+__qpu__ auto return_vector_mz() {
+  cudaq::qvector q(3);
+  x(q);
+  return mz(q);
+}
 
 int main() {
   std::size_t shots = 10;
@@ -255,6 +263,34 @@ int main() {
     }
   }
 
+  {
+    const auto results = cudaq::run(shots, return_mz);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      c = 0;
+      for (auto i : results)
+        printf("%d: %d\n", c++, (bool)i);
+      printf("success - return_mz\n");
+    }
+  }
+
+  {
+    const auto results = cudaq::run(shots, return_vector_mz);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      c = 0;
+      for (auto &vec : results) {
+        printf("%d: {", c++);
+        for (auto b : vec)
+          printf("%d ", static_cast<bool>(b));
+        printf("}\n");
+      }
+      printf("success - return_vector_mz\n");
+    }
+  }
+
   return 0;
 }
 
@@ -268,3 +304,5 @@ int main() {
 // CHECK: success - vector_int_test
 // CHECK: success - vector_float_test
 // CHECK: success - struct_test
+// CHECK: success - return_mz
+// CHECK: success - return_vector_mz

@@ -75,10 +75,13 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
       throw std::runtime_error(
           "`cudaq.run` does not yet support returning nested `list` from "
           "entry-point kernels.");
-    if (elemTy.isa<cudaq::cc::StructType>())
-      throw std::runtime_error("`cudaq.run` does not yet support returning "
-                               "`list` of `dataclass`/`tuple` from "
-                               "entry-point kernels.");
+    if (auto structTy = dyn_cast<cudaq::cc::StructType>(elemTy)) {
+      auto nameAttr = structTy.getName();
+      if (!nameAttr || nameAttr.str() != "measure_result")
+        throw std::runtime_error("`cudaq.run` does not yet support returning "
+                                 "`list` of `dataclass`/`tuple` from "
+                                 "entry-point kernels.");
+    }
   }
   auto layoutInfo = getLayoutInfo(name, mod.getOperation());
   auto results = details::runTheKernel(

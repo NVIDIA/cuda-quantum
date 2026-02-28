@@ -23,12 +23,12 @@ struct Foo {
 struct Quark {
   Foo operator()() __qpu__ { // expected-error{{kernel result type not supported}}
     cudaq::qvector q(3);
-    return {747, mz(q)};
+    return {747, cudaq::to_bool_vector(mz(q))};
   }
 };
 
 int main() {
-  auto const result1 = cudaq::run(10, vec_of_vec); 
+  auto const result1 = cudaq::run(10, vec_of_vec);
   auto const result2 = cudaq::run(10, Quark{});
   return 0;
 }

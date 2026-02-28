@@ -458,6 +458,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::opt::QIRIntegerRecordOutput, {}, R"#(
   func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
 )#"},
+    {cudaq::opt::QIRRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__result_record_output(!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>)
+)#"},
     {cudaq::opt::QIRTupleRecordOutput, {}, R"#(
   func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
 )#"},

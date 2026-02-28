@@ -178,6 +178,9 @@ Resources = cudaq_runtime.Resources
 # to be deprecated
 qreg = qvector
 
+# Measurement result type
+measure_result = cudaq_runtime.measure_result
+
 # Operator API
 from .operators import boson
 from .operators import fermion

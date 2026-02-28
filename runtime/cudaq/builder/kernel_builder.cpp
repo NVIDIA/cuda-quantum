@@ -794,8 +794,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
     measureResult =
         builder.template create<QuakeMeasureOp>(measTy, value).getMeasOut();
 
-  Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
-  return QuakeValue(builder, bits);
+  return QuakeValue(builder, measureResult);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,

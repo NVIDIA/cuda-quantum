@@ -53,7 +53,7 @@ class Qernel5 {
 public:
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 
@@ -61,7 +61,7 @@ class Qernel6 {
 public:
   std::vector<bool> operator()(int sz) __qpu__ {
     cudaq::qvector q(sz);
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 

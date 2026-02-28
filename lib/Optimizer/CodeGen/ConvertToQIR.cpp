@@ -206,9 +206,8 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
     return LLVM::LLVMStructType::getLiteral(type.getContext(), mems,
                                             /*packed=*/false);
   });
-  typeConverter.addConversion([](quake::MeasureType type) {
-    return IntegerType::get(type.getContext(), 1);
-  });
+  typeConverter.addConversion(
+      [](quake::MeasureType type) { return getResultType(type.getContext()); });
   cudaq::opt::populateCCTypeConversions(&typeConverter);
 }
 

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/qis/measure_result.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstddef>
 #include <cstring>
@@ -36,6 +37,18 @@ class TypeConverterBase {
 public:
   virtual ~TypeConverterBase() = default;
   virtual T convert(const std::string &value) const = 0;
+};
+
+class MeasureResultConverter : public TypeConverterBase<cudaq::measure_result> {
+public:
+  cudaq::measure_result convert(const std::string &value) const override {
+    if (value == "0")
+      return cudaq::measure_result(0);
+    if (value == "1")
+      return cudaq::measure_result(1);
+    throw std::runtime_error(
+        "Invalid `measure_result` value. Is this a qudit measurement?");
+  }
 };
 
 class BooleanConverter : public TypeConverterBase<bool> {
@@ -222,6 +235,28 @@ public:
       return std::stoi(label.substr(1, label.size() - 2));
     if (label[0] == '.')
       return std::stoi(label.substr(1, label.size() - 1));
+    // Handle register-name labels like "r00000" or "result%0".
+    // This logic is fragile; for example a user may have only one mz
+    // assigned to a variable like r00001 and it will be interpreted as
+    // index 1, potentially causing an out-of-bounds error. The proper
+    // fix is to disallow explicit mz operations in sampled kernels.
+    // Also, `run` is appropriate for getting sub-register results.
+    if (label.size() == 6 && label[0] == 'r') {
+      // Auto-generated labels: rNNNNN (r + exactly 5 digits)
+      bool allDigits = true;
+      for (std::size_t i = 1; i < 6; ++i) {
+        if (label[i] < '0' || label[i] > '9') {
+          allDigits = false;
+          break;
+        }
+      }
+      if (allDigits)
+        return std::stoi(label.substr(1));
+    }
+    // Named results: result%N
+    std::size_t percentPos = label.find('%');
+    if (percentPos != std::string::npos)
+      return std::stoi(label.substr(percentPos + 1));
     throw std::runtime_error("Index not found in label");
   }
 

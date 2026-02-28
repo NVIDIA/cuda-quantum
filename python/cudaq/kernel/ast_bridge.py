@@ -624,6 +624,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if self.getIntegerType(1) == value.type:
             return value
+        if quake.MeasureType.isinstance(value.type):
+            return quake.DiscriminateOp(self.getIntegerType(1), value).result
         if IntegerType.isinstance(value.type):
             zero = self.getConstantInt(0, width=IntegerType(value.type).width)
             condPred = IntegerAttr.get(self.getIntegerType(), 1)
@@ -650,6 +652,24 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if ty == operand.type:
             return operand
+
+        if quake.MeasureType.isinstance(operand.type):
+            if quake.MeasureType.isinstance(ty):
+                return operand
+            operand = quake.DiscriminateOp(self.getIntegerType(1),
+                                           operand).result
+            if ty == operand.type:
+                return operand
+
+        if (cc.StdvecType.isinstance(operand.type) and
+                quake.MeasureType.isinstance(
+                    cc.StdvecType.getElementType(operand.type))):
+            if cc.StdvecType.isinstance(ty):
+                targetEleTy = cc.StdvecType.getElementType(ty)
+                if IntegerType.isinstance(targetEleTy):
+                    resTy = cc.StdvecType.get(targetEleTy)
+                    return quake.DiscriminateOp(resTy, operand).result
+
         if cc.CallableType.isinstance(ty):
             fctTy = cc.CallableType.getFunctionType(ty)
             if fctTy == operand.type:
@@ -906,7 +926,16 @@ class PyASTBridge(ast.NodeVisitor):
             self.getIntegerType(1))
         return cc.StdvecInitOp(vecTy, alloca, length=arrSize).result
 
-    def __createStructWithKnownValues(self, mlirVals, name=None):
+    def __createStructWithKnownValues(self,
+                                      mlirVals,
+                                      name=None,
+                                      expectedTypes=None):
+        if expectedTypes:
+            assert len(expectedTypes) == len(mlirVals)
+            mlirVals = [
+                self.changeOperandToType(eTy, val) if val.type != eTy else val
+                for val, eTy in zip(mlirVals, expectedTypes)
+            ]
         structTy = mlirTryCreateStructType([item.type for item in mlirVals],
                                            name=name,
                                            context=self.ctx)
@@ -1271,6 +1300,10 @@ class PyASTBridge(ast.NodeVisitor):
         Returns:
             MLIR Type representing the superior type
         """
+        if quake.MeasureType.isinstance(t1):
+            t1 = self.getIntegerType(1)
+        if quake.MeasureType.isinstance(t2):
+            t2 = self.getIntegerType(1)
 
         def fp_type(fpt, ot):
             assert (F64Type.isinstance(fpt) or F32Type.isinstance(fpt))
@@ -1754,11 +1787,12 @@ class PyASTBridge(ast.NodeVisitor):
             self.kernelFuncOp = f
 
             # Set this kernel as an entry point if the argument types are
-            # classical only
-            anyQuantumType = any(
-                self.isQuantumType(ty) for ty in self.signature.arg_types)
+            # classical only (no quantum types or measure_result).
+            anyDeviceType = any(
+                self.isQuantumType(ty) or quake.MeasureType.isinstance(ty)
+                for ty in self.signature.arg_types)
             f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
-            if not anyQuantumType:
+            if not anyDeviceType:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
             # Create the entry block
@@ -1812,7 +1846,7 @@ class PyASTBridge(ast.NodeVisitor):
                     "processing error - unprocessed scope(s) in symbol table",
                     node)
 
-            if not anyQuantumType:
+            if not anyDeviceType:
                 attr = DictAttr.get(
                     {
                         fullName:
@@ -1907,13 +1941,10 @@ class PyASTBridge(ast.NodeVisitor):
             containerFuncArg = (not self.buildingFunctionBody and
                                 (cc.StructType.isinstance(varTy) or
                                  cc.StdvecType.isinstance(varTy)))
-            # FIXME: Measurement results are stored as values
-            # to preserve their origin from discriminate.
-            # This should be revised when we introduce the proper
-            # type distinction.
-            measurementResult = (hasattr(val, 'owner') and
-                                 hasattr(val.owner, 'name') and
-                                 val.owner.name == 'quake.discriminate')
+            measurementResult = (quake.MeasureType.isinstance(varTy) or
+                                 (cc.StdvecType.isinstance(varTy) and
+                                  quake.MeasureType.isinstance(
+                                      cc.StdvecType.getElementType(varTy))))
             # FIXME: Consider storing vectors and callables as pointers like
             # other variables.
             storeAsVal = (containerFuncArg or measurementResult or
@@ -2575,7 +2606,8 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 for val in call.results:
                     self.__validate_container_entry(val, node)
-                result = self.__createStructWithKnownValues(call.results)
+                result = self.__createStructWithKnownValues(
+                    call.results, expectedTypes=list(functionTy.results))
 
             # The logic for calls that return values must match the logic in
             # `visit_Return`; anything copied to the heap during return must be
@@ -2943,10 +2975,8 @@ class PyASTBridge(ast.NodeVisitor):
                 if len(qubits) == 1 and quake.RefType.isinstance(
                         qubits[0].type):
                     measTy = quake.MeasureType.get()
-                    resTy = self.getIntegerType(1)
                 else:
                     measTy = cc.StdvecType.get(quake.MeasureType.get())
-                    resTy = cc.StdvecType.get(self.getIntegerType(1))
                 measureResult = processQuantumOperation(
                     node.func.id.title(), [],
                     qubits,
@@ -2954,11 +2984,8 @@ class PyASTBridge(ast.NodeVisitor):
                     broadcast=False,
                     registerName=label).result
 
-                # FIXME: needs to be revised when we properly distinguish
-                # measurement types
                 if pushResultToStack:
-                    self.pushValue(
-                        quake.DiscriminateOp(resTy, measureResult).result)
+                    self.pushValue(measureResult)
                 return
 
             if node.func.id == 'swap':
@@ -3085,8 +3112,8 @@ class PyASTBridge(ast.NodeVisitor):
                 ctorArgs = convertArguments(structTys, ctorArgs)
                 for idx, arg in enumerate(ctorArgs):
                     self.__validate_container_entry(arg, node.args[idx])
-                struct = self.__createStructWithKnownValues(ctorArgs,
-                                                            name=node.func.id)
+                struct = self.__createStructWithKnownValues(
+                    ctorArgs, name=node.func.id, expectedTypes=structTys)
                 self.pushValue(struct)
                 return
 
@@ -4989,7 +5016,14 @@ class PyASTBridge(ast.NodeVisitor):
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
-        struct = self.__createStructWithKnownValues(elementValues)
+        expectedTypes = None
+        if self.walkingReturnNode and cc.StructType.isinstance(
+                self.signature.return_type):
+            expectedTypes = cc.StructType.getTypes(self.signature.return_type)
+            if len(expectedTypes) != len(elementValues):
+                expectedTypes = None
+        struct = self.__createStructWithKnownValues(elementValues,
+                                                    expectedTypes=expectedTypes)
         self.pushValue(struct)
 
     def visit_UnaryOp(self, node):

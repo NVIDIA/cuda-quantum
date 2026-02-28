@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
@@ -30,7 +29,19 @@ __qpu__ int test_kernel(int count) {
 __qpu__ std::vector<bool> mz_test(int count) {
   cudaq::qvector v(count);
   h(v);
-  return mz(v);
+  return cudaq::to_bool_vector(mz(v));
+}
+
+__qpu__ auto return_mz() {
+  cudaq::qubit q;
+  h(q);
+  return mz(q);
+}
+
+__qpu__ auto return_vector_mz() {
+  cudaq::qvector q(3);
+  x(q);
+  return mz(q);
 }
 
 int main() {
@@ -68,9 +79,39 @@ int main() {
     }
   }
 
+  {
+    const auto results = cudaq::run(shots, return_mz);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      c = 0;
+      for (auto i : results)
+        printf("%d: %d\n", c++, (bool)i);
+      printf("success - return_mz\n");
+    }
+  }
+
+  {
+    const auto results = cudaq::run(shots, return_vector_mz);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      c = 0;
+      for (auto &vec : results) {
+        printf("%d: {", c++);
+        for (auto b : vec)
+          printf("%d ", (bool)b);
+        printf("}\n");
+      }
+      printf("success - return_vector_mz\n");
+    }
+  }
+
   return 0;
 }
 
 // FAIL: `run` is not yet supported on this target
 // CHECK: success!
 // CHECK: success async!
+// CHECK: success - return_mz
+// CHECK: success - return_vector_mz

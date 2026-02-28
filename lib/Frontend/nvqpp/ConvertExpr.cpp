@@ -99,6 +99,12 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
   return std::make_pair(targets, SmallVector<Value>{});
 }
 
+static Value emitDiscriminate(OpBuilder &builder, Location loc, Value val) {
+  if (isa<quake::MeasureType>(val.getType()))
+    return builder.create<quake::DiscriminateOp>(loc, builder.getI1Type(), val);
+  return val;
+}
+
 namespace {
 // Type used to specialize the buildOp function. This extends the cases below by
 // prefixing a single parameter value to the list of arguments for cases 1
@@ -636,21 +642,25 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
         builder.create<cudaq::cc::CastOp>(loc, castToTy, popValue(), mode));
   }
   case clang::CastKind::CK_IntegralToFloating: {
+    auto value = popValue();
+    value = emitDiscriminate(builder, loc, value);
     auto mode =
         (x->getSubExpr()->getType()->isUnsignedIntegerOrEnumerationType())
             ? cudaq::cc::CastOpMode::Unsigned
             : cudaq::cc::CastOpMode::Signed;
     return pushValue(
-        builder.create<cudaq::cc::CastOp>(loc, castToTy, popValue(), mode));
+        builder.create<cudaq::cc::CastOp>(loc, castToTy, value, mode));
   }
   case clang::CastKind::CK_IntegralToBoolean: {
     auto last = popValue();
+    last = emitDiscriminate(builder, loc, last);
     Value zero = builder.create<arith::ConstantIntOp>(loc, 0, last.getType());
     return pushValue(builder.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::ne, last, zero));
   }
   case clang::CastKind::CK_FloatingToBoolean: {
     auto last = popValue();
+    last = emitDiscriminate(builder, loc, last);
     Value zero = opt::factory::createFloatConstant(
         loc, builder, 0.0, cast<FloatType>(last.getType()));
     return pushValue(builder.create<arith::CmpFOp>(
@@ -658,7 +668,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   }
   case clang::CastKind::CK_UserDefinedConversion: {
     auto sub = popValue();
-    // castToTy is the converion function signature.
+    // castToTy is the conversion function signature.
     castToTy = popType();
     if (isa<IntegerType>(castToTy) && isa<IntegerType>(sub.getType())) {
       auto locSub = toLocation(x->getSubExpr());
@@ -666,6 +676,36 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
       assert(result && "integer conversion failed");
       return result;
     }
+    auto i1Type = builder.getI1Type();
+    // Handle conversion of `measure_result`
+    if (isa<quake::MeasureType>(sub.getType())) {
+      auto i1Val = emitDiscriminate(builder, loc, sub);
+      // Convert to `int`
+      if (isa<IntegerType>(castToTy))
+        return pushValue(
+            builder.create<cudaq::cc::CastOp>(loc, castToTy, i1Val));
+      // Convert to `float`
+      if (isa<FloatType>(castToTy))
+        return pushValue(builder.create<cudaq::cc::CastOp>(
+            loc, castToTy, i1Val, cudaq::cc::CastOpMode::Unsigned));
+      // Otherwise, just return the `i1` value
+      return pushValue(i1Val);
+    }
+
+    // Handle conversion of `std::vector<measure_result>` to `std::vector<bool>`
+    if (auto vecTy = dyn_cast<cc::StdvecType>(sub.getType()))
+      if (isa<quake::MeasureType>(vecTy.getElementType()))
+        return pushValue(builder.create<quake::DiscriminateOp>(
+            loc, cc::StdvecType::get(i1Type), sub));
+
+    // Handle pointer to `measure_result` (from vector element access)
+    if (auto ptrTy = dyn_cast<cc::PointerType>(sub.getType()))
+      if (isa<quake::MeasureType>(ptrTy.getElementType())) {
+        auto loaded = builder.create<cc::LoadOp>(loc, sub);
+        return pushValue(
+            builder.create<quake::DiscriminateOp>(loc, i1Type, loaded));
+      }
+
     TODO_loc(loc, "unhandled user-defined implicit conversion");
   }
   case clang::CastKind::CK_ConstructorConversion: {
@@ -811,6 +851,9 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
       x->getOpcode() == clang::BinaryOperatorKind::BO_NE) {
     rhs = maybeLoadValue(rhs);
     lhs = maybeLoadValue(lhs);
+    // Discriminate measure types before comparison
+    lhs = emitDiscriminate(builder, loc, lhs);
+    rhs = emitDiscriminate(builder, loc, rhs);
     // Floating point comparison?
     if (isa<FloatType>(lhs.getType())) {
       arith::CmpFPredicate pred;
@@ -889,6 +932,9 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   }
   rhs = maybeLoadValue(rhs);
   lhs = maybeLoadValue(lhs);
+  // Discriminate measure types before arithmetic
+  lhs = emitDiscriminate(builder, loc, lhs);
+  rhs = emitDiscriminate(builder, loc, rhs);
   castToSameType(builder, loc, x->getLHS()->getType().getTypePtrOrNull(), lhs,
                  x->getRHS()->getType().getTypePtrOrNull(), rhs);
   switch (x->getOpcode()) {
@@ -976,6 +1022,7 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
   if (!TraverseStmt(x->getCond()))
     return false;
   auto condVal = popValue();
+  condVal = emitDiscriminate(builder, loc, condVal);
   Type resultTy = builder.getI64Type();
 
   // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
@@ -1015,7 +1062,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
   if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType,
-          quake::StateType>(ty))
+          quake::StateType, quake::MeasureType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1430,6 +1477,21 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     TODO_loc(loc, "unhandled std::vector<bool> member function, " + funcName);
   }
 
+  // Handle `measure_result` member functions
+  if (isInClassInNamespace(func, "measure_result", "cudaq")) {
+    if (func->isOverloadedOperator()) {
+      auto overloadedOperator = func->getOverloadedOperator();
+      if (isAssignmentOperator(overloadedOperator)) {
+        // resultVector[i] = mz(q0)
+        auto rhs = popValue();
+        auto lhs = popValue();
+        popValue();
+        builder.create<cc::StoreOp>(loc, rhs, lhs);
+        return pushValue(lhs);
+      }
+    }
+  }
+
   if (isInClassInNamespace(func, "qreg", "cudaq") ||
       isInClassInNamespace(func, "qvector", "cudaq") ||
       isInClassInNamespace(func, "qarray", "cudaq") ||
@@ -1520,9 +1582,37 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   auto funcArity = func->getNumParams();
   SmallVector<Value> args = lastValues(funcArity);
   if (isa<clang::CXXMethodDecl>(func)) {
-    [[maybe_unused]] auto thisPtrValue = popValue();
+    auto thisPtrValue = popValue();
+
+    // Handle `measure_result` conversion operators
+    if (isa<clang::CXXConversionDecl>(func) &&
+        isInClassInNamespace(func, "measure_result", "cudaq")) {
+      return pushValue(thisPtrValue);
+    }
   }
   auto calleeOp = popValue();
+
+  // Handle operator== and operator!= for measure_result (friend functions)
+  if (func->isOverloadedOperator() && isInNamespace(func, "cudaq")) {
+    auto opKind = func->getOverloadedOperator();
+    if ((opKind == clang::OO_EqualEqual || opKind == clang::OO_ExclaimEqual) &&
+        args.size() == 2) {
+      auto lhs = args[0];
+      auto rhs = args[1];
+      // Load from pointers if needed
+      if (isa<cc::PointerType>(lhs.getType()))
+        lhs = builder.create<cc::LoadOp>(loc, lhs);
+      if (isa<cc::PointerType>(rhs.getType()))
+        rhs = builder.create<cc::LoadOp>(loc, rhs);
+      // Discriminate measure types
+      lhs = emitDiscriminate(builder, loc, lhs);
+      rhs = emitDiscriminate(builder, loc, rhs);
+      // Choose predicate based on operator
+      auto pred = (opKind == clang::OO_EqualEqual) ? arith::CmpIPredicate::eq
+                                                   : arith::CmpIPredicate::ne;
+      return pushValue(builder.create<arith::CmpIOp>(loc, pred, lhs, rhs));
+    }
+  }
 
   if (isInNamespace(func, "cudaq")) {
     // Check and see if this quantum operation is adjoint
@@ -1646,7 +1736,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      // Measurements always return a bool or a std::vector<bool>.
       bool useStdvec =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
@@ -1660,11 +1749,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           return builder.create<quake::MyOp>(loc, measTy, args).getMeasOut();
         return builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
       }();
-      Type resTy = builder.getI1Type();
-      if (useStdvec)
-        resTy = cc::StdvecType::get(resTy);
-      return pushValue(
-          builder.create<quake::DiscriminateOp>(loc, resTy, measure));
+      // No more discrimination needed, just return the measurement.
+      return pushValue(measure);
     }
 
     // Handle the quantum gate set.
@@ -2125,15 +2211,40 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "toInteger" || funcName == "to_integer") {
+      auto arg = args[0];
+      // Insert discriminate if input is `!cc.stdvec<!quake.measure>`
+      if (auto vecTy = dyn_cast<cc::StdvecType>(arg.getType())) {
+        if (isa<quake::MeasureType>(vecTy.getElementType())) {
+          auto i1Ty = builder.getI1Type();
+          arg = builder.create<quake::DiscriminateOp>(
+              loc, cc::StdvecType::get(i1Ty), arg);
+        }
+      }
       IRBuilder irBuilder(builder.getContext());
       if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
         return false;
       }
       auto i64Ty = builder.getI64Type();
-      return pushValue(
-          builder.create<func::CallOp>(loc, i64Ty, cudaqConvertToInteger, args)
-              .getResult(0));
+      return pushValue(builder
+                           .create<func::CallOp>(loc, i64Ty,
+                                                 cudaqConvertToInteger,
+                                                 ValueRange{arg})
+                           .getResult(0));
+    }
+
+    if (funcName == "to_bool_vector") {
+      // `args[0]` is `!cc.stdvec<!quake.measure>`
+      auto arg = args[0];
+      // Insert discriminate if needed
+      if (auto vecTy = dyn_cast<cc::StdvecType>(arg.getType())) {
+        if (isa<quake::MeasureType>(vecTy.getElementType())) {
+          auto i1Ty = builder.getI1Type();
+          arg = builder.create<quake::DiscriminateOp>(
+              loc, cc::StdvecType::get(i1Ty), arg);
+        }
+      }
+      return pushValue(arg);
     }
 
     if (funcName == "slice_vector") {
@@ -3249,6 +3360,18 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     auto fromVal = builder.create<cc::LoadOp>(loc, fromStruct);
     builder.create<cc::StoreOp>(loc, fromVal, copyObj);
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
+  }
+
+  // Handle `measure_result` copy and move constructors
+  if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
+      isInClassInNamespace(ctor, "measure_result", "cudaq")) {
+    // The source is a pointer to measure_result (!cc.ptr<!quake.measure>)
+    // Just load and return the value
+    assert(x->getNumArgs() == 1);
+    auto srcPtr = popValue();
+    if (auto ptrTy = dyn_cast<cc::PointerType>(srcPtr.getType()))
+      if (isa<quake::MeasureType>(ptrTy.getElementType()))
+        return pushValue(builder.create<cc::LoadOp>(loc, srcPtr));
   }
 
   // TODO: remove this when we can handle ctors more generally.
