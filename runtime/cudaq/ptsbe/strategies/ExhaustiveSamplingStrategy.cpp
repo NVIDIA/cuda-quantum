@@ -9,9 +9,7 @@
 #include "ExhaustiveSamplingStrategy.h"
 #include <algorithm>
 
-namespace cudaq::ptsbe {
-
-std::vector<cudaq::KrausTrajectory> enumerateLexicographic(
+std::vector<cudaq::KrausTrajectory> cudaq::ptsbe::enumerateLexicographic(
     std::span<const NoisePoint> noise_points, std::size_t limit,
     std::span<const std::vector<std::size_t>> index_mapping) {
   std::vector<cudaq::KrausTrajectory> results;
@@ -61,15 +59,14 @@ std::vector<cudaq::KrausTrajectory> enumerateLexicographic(
   return results;
 }
 
-ExhaustiveSamplingStrategy::~ExhaustiveSamplingStrategy() = default;
+cudaq::ptsbe::ExhaustiveSamplingStrategy::~ExhaustiveSamplingStrategy() =
+    default;
 
 std::vector<cudaq::KrausTrajectory>
-ExhaustiveSamplingStrategy::generateTrajectories(
+cudaq::ptsbe::ExhaustiveSamplingStrategy::generateTrajectories(
     std::span<const NoisePoint> noise_points,
     std::size_t max_trajectories) const {
   std::size_t total = computeTotalTrajectories(noise_points);
   return enumerateLexicographic(noise_points, std::min(total, max_trajectories),
                                 {});
 }
-
-} // namespace cudaq::ptsbe

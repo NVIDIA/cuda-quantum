@@ -26,9 +26,6 @@ enum class TraceInstructionType {
   Measurement,
 };
 
-/// @brief Name used in the trace for apply_noise (inline noise) instructions.
-constexpr std::string_view TRACE_APPLY_NOISE_NAME = "apply_noise";
-
 /// @brief A trace is a circuit representation of the executed computation, as
 /// seen by the execution manager. (Here, a circuit is represented as a list
 /// of instructions on qudits). Since the execution manager cannot "see" control
@@ -63,8 +60,11 @@ public:
                          std::vector<QuditInfo> controls,
                          std::vector<QuditInfo> targets);
 
-  /// @brief Append an apply_noise instruction (for PTSBE trace capture).
+  /// @brief Append a noise instruction (for PTSBE trace capture).
+  /// @param channel_name The noise channel type name (e.g.
+  ///        "depolarization_channel"). Stored as the instruction name.
   void appendNoiseInstruction(std::intptr_t noise_channel_key,
+                              std::string_view channel_name,
                               std::vector<double> params,
                               std::vector<QuditInfo> controls,
                               std::vector<QuditInfo> targets);

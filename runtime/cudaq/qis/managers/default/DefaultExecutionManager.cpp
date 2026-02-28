@@ -241,8 +241,8 @@ protected:
       if (ctx) {
         std::intptr_t key = static_cast<std::intptr_t>(
             std::hash<std::string>{}(channel.get_type_name()));
-        ctx->kernelTrace.appendNoiseInstruction(key, channel.parameters, {},
-                                                targets);
+        ctx->kernelTrace.appendNoiseInstruction(
+            key, channel.get_type_name(), channel.parameters, {}, targets);
       }
       return;
     }

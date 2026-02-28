@@ -88,6 +88,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
   return result;
 }
 
+namespace {
 /// @brief Async wrapper that holds the future for PTSBE sampling.
 ///
 /// The future is a std::future<ptsbe::sample_result> which preserves the full
@@ -100,12 +101,14 @@ struct AsyncPTSBESampleResultImpl {
 
   ptsbe::sample_result get() { return future.get(); }
 };
+} // namespace
 
 /// @brief Run PTSBE sampling asynchronously from Python.
 ///
-/// Takes noise_model by reference so platform.set_noise() stores a pointer to
-/// the pybind11-managed C++ object, not a stack-local copy. The Python wrapper
-/// keeps the noise model alive until .get() is called.
+/// Takes noise_model by reference to avoid a redundant copy.
+/// runSamplingAsyncPTSBE copies the noise model into its async lambda
+/// (PTSBESample.h), so the original can safely be released after this
+/// function returns.
 static AsyncPTSBESampleResultImpl
 pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
                    MlirType returnTy, std::size_t shots_count,
@@ -374,10 +377,12 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
           "ptsbe_execution_data",
           [](const ptsbe::sample_result &self)
               -> const ptsbe::PTSBEExecutionData * {
-            if (!self.has_execution_data())
-              return nullptr;
-            return &self.execution_data();
+            if (self.has_execution_data())
+              return &self.execution_data();
+            return nullptr;
           },
+          // reference_internal ties the returned object's lifetime to self,
+          // so the pointer into internal data stays valid.
           py::return_value_policy::reference_internal,
           "PTSBE execution data if return_execution_data was True, None "
           "otherwise.")

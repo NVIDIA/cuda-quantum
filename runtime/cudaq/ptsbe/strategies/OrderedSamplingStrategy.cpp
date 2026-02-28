@@ -11,14 +11,12 @@
 #include <algorithm>
 #include <numeric>
 
-namespace cudaq::ptsbe {
-
 static constexpr std::size_t GENERATION_MULTIPLIER = 10;
 
-OrderedSamplingStrategy::~OrderedSamplingStrategy() = default;
+cudaq::ptsbe::OrderedSamplingStrategy::~OrderedSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
-OrderedSamplingStrategy::generateTrajectories(
+cudaq::ptsbe::OrderedSamplingStrategy::generateTrajectories(
     std::span<const NoisePoint> noise_points,
     std::size_t max_trajectories) const {
 
@@ -58,5 +56,3 @@ OrderedSamplingStrategy::generateTrajectories(
 
   return results;
 }
-
-} // namespace cudaq::ptsbe

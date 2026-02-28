@@ -3,7 +3,7 @@
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -13,6 +13,24 @@ from cudaq.runtime.sample import (_detail_check_conditionals_on_measure,
 from .utils import __isBroadcast, __createArgumentSet
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
+
+
+class AsyncPTSBESampleResult(AsyncSampleResult):
+    """Asynchronous result for PTSBE sampling.
+
+    Extends `AsyncSampleResult` with a reference to the `noise_model` so the
+    Python object is not garbage-collected while the asynchronous C++ work is
+    in flight. The reference is released when `.get()` is called.
+    """
+
+    def __init__(self, impl, mod, noise_model):
+        super().__init__(impl, mod)
+        self._noise_model = noise_model
+
+    def get(self):
+        result = super().get()
+        self._noise_model = None
+        return result
 
 
 def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
@@ -147,7 +165,7 @@ def sample_async(kernel,
       return_execution_data (bool): Include execution data in the result.
 
     Returns:
-      ``AsyncSampleResult``: A future whose ``.get()`` returns the
+      ``AsyncPTSBESampleResult``: A future whose ``.get()`` returns the
           ``SampleResult``.
 
     Raises:
@@ -167,6 +185,4 @@ def sample_async(kernel,
         max_trajectories, sampling_strategy, shot_allocation,
         return_execution_data, *processedArgs)
 
-    result = AsyncSampleResult(impl, module)
-    result._noise_model = noise_model  # prevent GC until .get() is called
-    return result
+    return AsyncPTSBESampleResult(impl, module, noise_model)
