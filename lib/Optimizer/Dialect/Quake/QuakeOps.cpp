@@ -665,6 +665,35 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// CastAsRefOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::CastAsRefOp::verify() {
+  std::size_t arity = 1;
+  if (auto ty = dyn_cast<CableType>(getValue().getType()))
+    arity = ty.getSize();
+
+  if (getValue().getType() != getOutVal().getType())
+    return failure();
+
+  // Make sure the ref output has the same arity.
+  std::size_t coarity = 0;
+  auto outTy = getOutRef().getType();
+  if (auto ty = dyn_cast<StruqType>(outTy)) {
+    if (!ty.hasSpecifiedSize())
+      return failure();
+    coarity = ty.getArity().value();
+  } else if (auto ty = dyn_cast<VeqType>(outTy)) {
+    if (!ty.hasSpecifiedSize())
+      return failure();
+    coarity = ty.getSize();
+  } else {
+    coarity = 1;
+  }
+  return success(arity == coarity);
+}
+
+//===----------------------------------------------------------------------===//
 // Measurements (MxOp, MyOp, MzOp)
 //===----------------------------------------------------------------------===//
 
@@ -733,9 +762,29 @@ LogicalResult quake::BundleCableOp::verify() {
   return success();
 }
 
-LogicalResult quake::TerminateCableOp::verify() {
+LogicalResult quake::SplitCableOp::verify() {
   if (getResults().size() != getCable().getType().getSize())
     return emitOpError("the bundle type size must equal the coarity.");
+  return success();
+}
+
+LogicalResult quake::LeftTeeOp::verify() {
+  if (!getCable().getType().getSize())
+    return emitOpError("cannot remove a wire from an empty bundle.");
+  if (getIndex() >= getCable().getType().getSize())
+    return emitOpError("index into the bundle is out of bounds.");
+  if (getCableOut().getType().getSize() != getCable().getType().getSize() - 1)
+    return emitOpError("the bundle result type size must equal the size of the "
+                       "bundle argument - 1.");
+  return success();
+}
+
+LogicalResult quake::RightTeeOp::verify() {
+  if (getIndex() > getCable().getType().getSize())
+    return emitOpError("index into the bundle is out of bounds.");
+  if (getCableOut().getType().getSize() != getCable().getType().getSize() + 1)
+    return emitOpError("the bundle result type size must equal the size of "
+                       "the bundle argument + 1.");
   return success();
 }
 

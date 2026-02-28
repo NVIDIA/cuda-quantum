@@ -587,6 +587,46 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
+def quake_CastAsRefOp : QuakeOp<"cast_as_ref", [Pure]> {
+  let summary = "Cast value to reference types to satisfy strong typing.";
+  let description = [{
+    The argument must be of quake value type. This operation is a `nop` that
+    converts the SSI value type argument to a reference type of the same
+    constant arity. To maintain SSI structure, the argument is also returned.
+    The qubits are unchanged.
+
+    This operation is meant for very limited use. Primarily it allows one to
+    convert wires to refs so that calls to external functions can maintain the
+    proper types. There is a one-to-one correspondence and the wires and refs
+    are fully paired. When lowered to the transport layer, these distinctions
+    in the representation will be unified and this operation becomes a `nop`.
+
+    Example:
+    ```mlir
+    // Specialization to cable4 of external `foo` device-only kernel.
+    func.func @foo.wire.c4(%a: !quake.cable<4>) -> !quake.cable<4> {
+      %1:2 = quake.cast_as_ref %a : (!quake.cable<4>) -> (!quake.veq<4>,
+                                                          !quake.cable<4>)
+      %2 = quake.relax_size %1#0 : (!quake.veq<4>) -> !quake.veq<?>
+      func.call @foo(%2) : (!quake.veq<?>) -> ()
+      return %1#1 : !quake.cable<4>
+    }
+    ```
+  }];
+
+  let arguments = (ins AnyQValueType:$value);
+  let results = (outs
+    AnyRefType:$outRef,
+    AnyQValueType:$outVal
+  );
+
+  let assemblyFormat = [{
+    $value `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+}
+
 //===----------------------------------------------------------------------===//
 // Qubit value semantics: NullWire, Sink
 //===----------------------------------------------------------------------===//
@@ -654,7 +694,7 @@ def quake_NullCableOp : QuakeOp<"null_cable"> {
   }];
 }
 
-def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
+def quake_BundleCableOp : QuakeOp<"bundle_cable", [Pure]> {
   let summary = "Bundle a list of wire values into a single cable value.";
   let description = [{
     This operation can be used as syntactic sugar to logically bind any number
@@ -662,7 +702,7 @@ def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
     a size that exactly matches the arity of the arguments.
 
     The order of the wires as presented at the `bundle_cable` operation will be
-    the exact same order as will be found in the results of a `terminate_cable`
+    the exact same order as will be found in the results of a `split_cable`
     operation.
   }];
 
@@ -675,12 +715,13 @@ def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
   let hasVerifier = 1;
 }
 
-def quake_TerminateCableOp : QuakeOp<"terminate_cable"> {
-  let summary = "Termination of a cable of wires, exposing all the wires.";
+def quake_SplitCableOp : QuakeOp<"split_cable", [Pure]> {
+  let summary = "Split a cable exposing all the wires it contains.";
   let description = [{
-    This operation can be used as syntactic sugar at the termination of a cable
-    of wires. This exposed all the wires in a cable as individual wire values.
-    All wires are linear types and must be used exactly one time.
+    This operation can be used as syntactic sugar at a point where wires bundled
+    into a cable need to be dealt with individually. This operation exposes all
+    the wires in a cable as individual wire values. All resulting wires have
+    linear types and must be used exactly one time after this operation.
   }];
   
   let arguments = (ins CableType:$cable);
@@ -688,6 +729,88 @@ def quake_TerminateCableOp : QuakeOp<"terminate_cable"> {
 
   let assemblyFormat = [{
     $cable `:` functional-type(operands, results) attr-dict
+  }];
+  let hasVerifier = 1;
+}
+
+def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
+  let summary = "Split a cable exposing a single wire and a new cable.";
+  let description = [{
+    This operation can be used as syntactic sugar for extracting a single wire
+    value from out of a cable value. The remaining wires in the cable are
+    retained in a new cable with a size reduced by 1. The relative positions in
+    the new cable are maintained, with the wires after the removed wire's
+    position all shifted down by 1.
+
+    This syntactic sugar is provided to capture a common array-like idiom and
+    give the illusion that cables can be used like an imperative array.
+
+    Example:
+    ```mlir
+      // create a cable with 3 wires: 0, 1, and 2
+      %20 = quake.null_cable !quake.cable<3>
+      %21:2 = quake.left_tee %20[1] : (!cable<3>) -> (!wire, !cable<2>)
+      // %21#0 contains wire 1 previous at position 1 in %20
+      // %21#1 contains wire 0 at position 0, and wire 2 at position 1
+    ```
+
+    See also `quake.right_tee`.
+  }];
+
+  let arguments = (ins
+    CableType:$cable,
+    I64Attr:$index
+  );
+  let results = (outs
+    WireType:$wireOut,
+    CableType:$cableOut
+  );
+
+  let assemblyFormat = [{
+    $cable `[` $index `]` `:` functional-type(operands, results) attr-dict
+  }];
+  let hasVerifier = 1;
+}
+
+def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
+  let summary = "Compose a cable from a single wire and an existing cable.";
+  let description = [{
+    This operation can be used as syntactic sugar for inserting a single wire
+    value into a cable value. This is a pure insertion operation and the wire
+    will be placed in the specified position. Wires in the cable argument will
+    be shifted by 1 if at and above the requested position to facilitate the
+    insertion operation. For example, this means an insertion at position 0 will
+    necessarily shift all the wires in the original cable argument up by 1.
+    (See also the example.)
+
+    This syntactic sugar is provided to capture a common array-like idiom and
+    give the illusion that cables can be used like an imperative array.
+
+    Example:
+    ```mlir
+      // create a cable with 3 wires: 0, 1, and 2
+      %20 = quake.null_cable !quake.cable<3>
+      %21:2 = quake.left_tee %20[1] : (!cable<3>) -> (!wire, !cable<2>)
+      // %21#0 contains wire 1 previous at position 1 in %20
+      // %21#1 contains wire 0 at position 0, and wire 2 at position 1
+      %22 = quake.right_tee %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
+      // %22 contains wire 0 at position 0, wire 2 at position 1,
+      // and wire 1 at position 2 as they were originally created in %20
+    ```
+
+    See also `quake.left_tee`.
+  }];
+
+  let arguments = (ins
+    WireType:$wire,
+    CableType:$cable,
+    I64Attr:$index
+  );
+  let results = (outs CableType:$cableOut);
+
+  let assemblyFormat = [{
+    $wire `,` $cable `[` $index `]` `:` functional-type(operands, results)
+      attr-dict
   }];
   let hasVerifier = 1;
 }
