@@ -186,13 +186,14 @@ Pasqal via QRMI
 CUDA-Q also provides a ``pasqal`` target for routing Pasqal
 jobs through the vendor agnostic Quantum Resource Management Interface (QRMI).
 This target enables integration with resource managers like Slurm for scheduling.
-Select Pasqal backend with the ``--qpu`` ``sbatch`` option let QRMI handle submission.
+Select the Pasqal backend with the ``--qpu`` option in ``sbatch`` and let QRMI
+handle submission.
 
 
 For this route, credentials and project id are read by QRMI using either
-``~/.pasqal/config``or other methods supported by your clusters QRMI setup.
+``~/.pasqal/config`` or other methods supported by your cluster's QRMI setup.
 
-The job submission process is the same as for the ``pasqal`` target, but with the ```pasqal`` target instead. For example:
+The job submission process is the same as for the ``pasqal`` target. For example:
 
 
 Submitting

@@ -37,7 +37,6 @@ inline ExecutionResult
 parseExecutionResultFromTaskResult(const std::string &taskResultJson) {
   auto payload = nlohmann::json::parse(taskResultJson);
 
-  // Fix this outside CUDA-Q. Why are these payloads different?
   if (payload.contains("counter") && payload["counter"].is_object()) {
     payload = payload["counter"];
   }
