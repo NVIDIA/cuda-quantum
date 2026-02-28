@@ -31,7 +31,6 @@ add_cudaq_library(OptCodeGen
   ReturnToOutputLog.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
-  VerifyNVQIRCalls.cpp
   VerifyQIRProfile.cpp
   WireSetsToProfileQIR.cpp
 

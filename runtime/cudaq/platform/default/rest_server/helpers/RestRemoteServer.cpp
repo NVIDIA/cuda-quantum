@@ -20,6 +20,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Verifier/NVQIRCalls.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
@@ -72,10 +73,9 @@ T getValueOrThrow(llvm::Expected<T> valOrErr,
                   const std::string &errorMsgToThrow) {
   if (valOrErr)
     return std::move(*valOrErr);
-  else {
-    LLVMConsumeError(llvm::wrap(valOrErr.takeError()));
-    throw std::runtime_error(errorMsgToThrow);
-  }
+
+  LLVMConsumeError(llvm::wrap(valOrErr.takeError()));
+  throw std::runtime_error(errorMsgToThrow);
 }
 
 // Clear any registered operations in the ExecutionManager and then destroy the
@@ -93,11 +93,9 @@ template <typename Func>
 auto withExecutionContextExceptRun(cudaq::ExecutionContext &io_context,
                                    cudaq::quantum_platform &platform, Func &&fn)
     -> decltype(fn()) {
-  if (io_context.name != "run") {
+  if (io_context.name != "run")
     return platform.with_execution_context(io_context, std::forward<Func>(fn));
-  } else {
-    return fn();
-  }
+  return fn();
 }
 
 /// Util to invoke a wrapped kernel defined by LLVM IR with serialized
@@ -169,6 +167,7 @@ public:
     return std::make_pair(cudaq::RestRequest::REST_PAYLOAD_VERSION,
                           cudaq::RestRequest::REST_PAYLOAD_MINOR_VERSION);
   }
+
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
     const auto portIter = configs.find("port");
@@ -214,6 +213,7 @@ public:
     m_mlirContext = cudaq::getOwningMLIRContext();
     m_hasMpi = cudaq::mpi::is_initialized();
   }
+
   // Start the server.
   virtual void start() override {
     if (!m_server)
@@ -236,6 +236,7 @@ public:
       }
     }
   }
+
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
@@ -459,34 +460,14 @@ protected:
 
       CUDAQ_INFO("- Pass manager was applied.");
     }
+
     // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
     // QIR functions)
-    {
-      // Collect all functions that are defined (and have non-empty bodies) in
-      // this module Op.
-      const std::vector<llvm::StringRef> allFunctionNames = [&]() {
-        std::vector<llvm::StringRef> allFuncs;
-        for (auto &op : *module.getBody())
-          if (auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op))
-            if (!funcOp.getFunctionBody().empty())
-              allFuncs.emplace_back(funcOp.getName());
-        return allFuncs;
-      }();
-      // Note: run this verification as a standalone step to decouple IR
-      // conversion and verification.
-      // Verification condition: all function definitions can only make function
-      // calls to:
-      //  (1) NVQIR-compliance functions, or
-      //  (2) other functions defined in this module.
-      PassManager pm(ctx);
-      pm.addNestedPass<LLVM::LLVMFuncOp>(
-          cudaq::opt::createVerifyNVQIRCallOpsPass(allFunctionNames));
-      if (failed(pm.run(module)))
-        throw std::runtime_error(
-            "Failed check to verify IR compliance for NVQIR runtime.");
+    if (failed(cudaq::verify::checkNvqirCalls(module)))
+      throw std::runtime_error(
+          "Failed check to verify IR compliance for NVQIR runtime.");
 
-      CUDAQ_INFO("- Finish IR input verification.");
-    }
+    CUDAQ_INFO("- Finish IR input verification.");
 
     opts.llvmModuleBuilder =
         [](Operation *module,
@@ -584,9 +565,9 @@ protected:
   void *loadNvqirSimLib(const std::string &simulatorName) {
     const std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
 #if defined(__APPLE__) && defined(__MACH__)
-    const auto libSuffix = "dylib";
+    constexpr const char libSuffix[] = "dylib";
 #else
-    const auto libSuffix = "so";
+    constexpr const char libSuffix[] = "so";
 #endif
     const auto simLibPath =
         cudaqLibPath.parent_path() /
