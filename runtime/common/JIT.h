@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "CompiledKernel.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -55,5 +56,8 @@ private:
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
 JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
                              llvm::StringRef convertTo);
+
+CompiledKernel createCompiledKernel(JitEngine engine, std::string kernelName,
+                                    bool hasResult);
 
 } // namespace cudaq

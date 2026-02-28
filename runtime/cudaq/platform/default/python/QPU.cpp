@@ -192,84 +192,22 @@ static void cacheJITForPerformance(cudaq::JitEngine jit) {
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::KernelThunkResultType launchModule(const std::string &name,
-                                            ModuleOp module,
-                                            const std::vector<void *> &rawArgs,
-                                            Type resultTy) override {
-    // In this launch scenario, we have a ModuleOp that has the entry-point
-    // kernel, but needs to be merged with anything else it may call. The
-    // merging of modules mirrors the late binding and dynamic scoping of the
-    // host language (Python).
-    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule");
+  cudaq::CompiledKernel compileModule(const std::string &name, ModuleOp module,
+                                      const std::vector<void *> &rawArgs,
+                                      Type resultTy,
+                                      bool isEntryPoint) override {
+    // Check the ExecutionContext JIT cache first (used by cudaq.sample to
+    // avoid recompiling on every shot).
+    if (auto jit = alreadyBuiltJITCode())
+      return cudaq::createCompiledKernel(*jit, name, /*hasResult=*/!!resultTy);
+
+    ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
+                           "PythonLauncher::compileModule");
     const bool enablePythonCodegenDump =
         cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
 
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
-    cudaq::KernelThunkResultType result{nullptr, 0};
-    auto jit = alreadyBuiltJITCode();
-    if (!jit) {
-      // 1. Check that this call is sane.
-      if (enablePythonCodegenDump)
-        module.dump();
-      auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
-      if (!funcOp)
-        throw std::runtime_error("no kernel named " + name +
-                                 " found in module");
 
-      // 2. Merge other modules (e.g., if there are device kernel calls).
-      cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
-
-      // Mark all newly merged kernels private.
-      for (auto &op : module)
-        if (auto f = dyn_cast<func::FuncOp>(op))
-          if (f != funcOp)
-            f.setPrivate();
-
-      updateExecutionContext(module);
-
-      // 3. LLVM JIT the code so we can execute it.
-      CUDAQ_INFO("Run Argument Synth.\n");
-      if (enablePythonCodegenDump)
-        module.dump();
-      specializeKernel(name, module, rawArgs, resultTy,
-                       enablePythonCodegenDump);
-
-      // 4. Execute the code right here, right now.
-      jit = cudaq::createQIRJITEngine(module, "qir:");
-    }
-
-    if (resultTy) {
-      // Proceed to call the .thunk function so that the result value will be
-      // properly marshaled into the buffer we allocated in
-      // appendTheResultBuffer().
-      // FIXME: Python ought to set up the call stack so that a legit C++ entry
-      // point can be called instead of winging it and duplicating what the core
-      // compiler already does.
-      auto funcPtr = jit->lookupRawNameOrFail(name + ".thunk");
-      void *buff = const_cast<void *>(rawArgs.back());
-      result = reinterpret_cast<cudaq::KernelThunkResultType (*)(void *, bool)>(
-          *funcPtr)(buff, /*client_server=*/false);
-    } else {
-      jit->run(name);
-    }
-    cacheJITForPerformance(jit.value());
-    // FIXME: actually handle results
-    return result;
-  }
-
-  void *specializeModule(const std::string &name, ModuleOp module,
-                         const std::vector<void *> &rawArgs, Type resultTy,
-                         std::optional<cudaq::JitEngine> &cachedEngine,
-                         bool isEntryPoint) override {
-    // In this launch scenario, we have a ModuleOp that has the entry-point
-    // kernel, but needs to be merged with anything else it may call. The
-    // merging of modules mirrors the late binding and dynamic scoping of the
-    // host language (Python).
-    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule");
-    const bool enablePythonCodegenDump =
-        cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
-
-    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     // 1. Check that this call is sane.
     if (enablePythonCodegenDump)
       module.dump();
@@ -288,23 +226,20 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     updateExecutionContext(module);
 
-    // 3. LLVM JIT the code so we can execute it.
+    // 3. Specialize the kernel (argument synthesis, optimization).
     CUDAQ_INFO("Run Argument Synth.\n");
     if (enablePythonCodegenDump)
       module.dump();
     specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
                      isEntryPoint);
 
-    // 4. Execute the code right here, right now.
+    // 4. Lower to QIR and JIT compile.
     auto jit = cudaq::createQIRJITEngine(module, "qir:");
-    if (cachedEngine)
-      throw std::runtime_error("cache must not be populated");
-    cachedEngine = jit;
+    cacheJITForPerformance(jit);
 
-    std::string entryName =
-        (resultTy && isEntryPoint) ? name + ".thunk" : fullName;
-    auto funcPtr = jit.lookupRawNameOrFail(entryName);
-    return reinterpret_cast<void *>(funcPtr);
+    return cudaq::createCompiledKernel(jit, name,
+                                       /*hasResult=*/!!resultTy &&
+                                           isEntryPoint);
   }
 };
 } // namespace
