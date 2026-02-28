@@ -45,25 +45,6 @@
 
 namespace cudaq::ptsbe {
 
-/// @brief Check if kernel has conditional feedback (dynamic circuit)
-///
-/// PTSBE requires static circuits where the gate sequence is deterministic.
-/// Dynamic circuits with measurement-dependent control flow cannot be
-/// pre-trajectory sampled because the gate sequence depends on runtime
-/// measurement outcomes.
-///
-/// Detection uses two mechanisms:
-/// 1. MLIR-compiled kernels: Check registered quake code for
-///    qubitMeasurementFeedback attribute
-/// 2. Library mode: Check registerNames populated during tracing when
-///    __nvqpp__MeasureResultBoolConversion is called
-///
-/// @param kernelName Name of the kernel (for MLIR lookup)
-/// @param ctx ExecutionContext populated after tracing (for library mode)
-/// @return true if conditional feedback detected
-bool hasConditionalFeedback(const std::string &kernelName,
-                            const ExecutionContext &ctx);
-
 /// @brief Validate kernel eligibility for PTSBE execution
 ///
 /// Checks all constraints required for PTSBE trajectory-based simulation:
@@ -75,6 +56,9 @@ bool hasConditionalFeedback(const std::string &kernelName,
 /// @throws std::runtime_error if kernel is not eligible for PTSBE
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx);
+
+/// @brief Warn if kernel uses named measurement registers. PTSBE outputs a
+void warnNamedRegisters(const std::string &kernelName, ExecutionContext &ctx);
 
 /// @brief Validate platform preconditions for PTSBE execution
 void validatePTSBEPreconditions(
@@ -211,6 +195,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
+  warnNamedRegisters(kernelName, traceCtx);
 
   // Stage 2: Build PTSBE trace once, share between execution data and batch
   auto ptsbeTrace = buildPTSBETrace(traceCtx.kernelTrace, noiseModel);
@@ -260,7 +245,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 /// @return PTSBatch with trace, empty trajectories, and measureQubits
 /// @throws std::runtime_error if MCM detected
 template <typename QuantumKernel, typename... Args>
-PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
+PTSBatch tracePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   ExecutionContext traceCtx("tracer");
   auto &platform = get_platform();
   platform.with_execution_context(

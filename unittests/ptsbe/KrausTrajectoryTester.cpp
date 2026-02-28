@@ -120,7 +120,7 @@ CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
   EXPECT_NEAR(total_prob, 0.95, PROBABILITY_EPSILON);
 }
 
-CUDAQ_TEST(KrausTrajectoryTest, ConstexprEquality) {
+CUDAQ_TEST(KrausTrajectoryTest, CheckEquality) {
   KrausSelection sel(0, {0}, "h", 1, true);
   std::vector<KrausSelection> sels1 = {sel};
   std::vector<KrausSelection> sels2 = {sel};
