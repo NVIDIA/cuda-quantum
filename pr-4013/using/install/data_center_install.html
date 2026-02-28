@@ -1377,27 +1377,58 @@ have an existing default linker on its path; CUDA-Q supports the same linkers as
 <a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
 <a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
 files to install into a separate folder using the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/bin<span class="w"> </span>cuda_quantum_assets/llvm/lib<span class="w"> </span>cuda_quantum_assets/llvm/include
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/&quot;</span>clang*<span class="w"> </span>cuda_quantum_assets/llvm/bin/
-rm<span class="w"> </span>-f<span class="w"> </span>cuda_quantum_assets/llvm/bin/clang-format*
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/llc&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/lld&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/ld.lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/llvm/lib/
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/llvm/include/
-<span class="c1"># Copy cuTensor and cuQuantum (Linux only; variables unset on macOS)</span>
-<span class="k">if</span><span class="w"> </span><span class="nv">$include_cuda_deps</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets
-<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets
-<span class="k">fi</span>
-<span class="c1"># Copy CUDA-Q installation and build config</span>
-cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/build_config.xml&quot;</span><span class="w"> </span>cuda_quantum_assets/build_config.xml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Stage all assets into a single merged prefix.</span>
+<span class="c1"># All dependencies are merged into the CUDAQ installation directory so that</span>
+<span class="c1"># existing relative RPATHs ($ORIGIN/../lib, @loader_path/../lib) cover</span>
+<span class="c1"># everything and no hardcoded absolute paths are needed.</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets
 cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq
+
+<span class="c1"># Bundle the complete LLVM installation in its own subtree so clang&#39;s</span>
+<span class="c1"># internal path resolution (resource dir, C++ headers, runtime libs) works</span>
+<span class="c1"># without custom fallbacks. Preserving the full install also keeps LLVM</span>
+<span class="c1"># tools off the user&#39;s PATH (only cudaq/bin/ is added by set_env.sh).</span>
+<span class="nv">llvm_dest</span><span class="o">=</span>cuda_quantum_assets/cudaq/lib/llvm
+cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Copy runtime libs also to cudaq/lib/ for RPATH compatibility -- CUDAQ</span>
+<span class="c1"># binaries in bin/ have RPATH $ORIGIN/../lib and need libc++ etc. there.</span>
+<span class="k">for</span><span class="w"> </span>lib<span class="w"> </span><span class="k">in</span><span class="w"> </span>libc++<span class="w"> </span>libunwind<span class="w"> </span>libomp<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/</span><span class="si">${</span><span class="nv">lib</span><span class="si">}</span><span class="s2">&quot;</span>*.dylib*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/</span><span class="si">${</span><span class="nv">lib</span><span class="si">}</span><span class="s2">&quot;</span>*.so*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">llvm_dest</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*/<span class="si">${</span><span class="nv">lib</span><span class="si">}</span>*<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="o">[</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$f</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">continue</span>
+<span class="w">    </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$f</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq/lib/
+<span class="w">  </span><span class="k">done</span>
+<span class="k">done</span>
+
+<span class="c1"># Merge cuQuantum/cuTensor libs and headers.</span>
+<span class="c1"># Try both lib64/ and lib/ since different distros use different conventions;</span>
+<span class="c1"># || true prevents set -e from aborting when a glob matches nothing.</span>
+<span class="k">if</span><span class="w"> </span><span class="nv">$include_cuda_deps</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib64/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/include/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib64/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/lib/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/cudaq/include/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="k">fi</span>
+
+<span class="c1"># Generate an empty build_config.xml since all dependencies are already</span>
+<span class="c1"># merged into cudaq/.</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span><span class="s">&lt;&lt; &#39;BCONFIG&#39;</span>
+<span class="s">&lt;build_config&gt;</span>
+<span class="s">&lt;/build_config&gt;</span>
+<span class="s">BCONFIG</span>
+<span class="c1"># Use the same config inside the installed cudaq/ directory.</span>
+cp<span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span>cuda_quantum_assets/cudaq/build_config.xml
 </pre></div>
 </div>
 <p>You can then create a self-extracting archive with the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--sha256<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda_quantum_assets<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="s2">&quot;CUDA-Q toolkit for heterogeneous quantum-classical workflows&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>bash<span class="w"> </span>cudaq/migrate_assets.sh<span class="w"> </span>-t<span class="w"> </span>/opt/nvidia/cudaq
+<span class="w">    </span>bash<span class="w"> </span>install.sh
 </pre></div>
 </div>
 </section>

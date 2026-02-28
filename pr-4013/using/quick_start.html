@@ -1149,6 +1149,13 @@ Download the <code class="code docutils literal notranslate"><span class="pre">i
 .<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
+<p>Alternatively, install to a custom location without <code class="docutils literal notranslate"><span class="pre">sudo</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span>--<span class="w"> </span>--installpath<span class="w"> </span><span class="nv">$HOME</span>/.cudaq
+</pre></div>
+</div>
+<p>In both cases, the installer configures your shell profile so that CUDA-Q
+is available in new shells automatically. To use it in the current shell,
+run <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">/opt/nvidia/cudaq/set_env.sh</span></code> (or the path you chose).</p>
 <p>If you have an NVIDIA GPU on Linux, please also install the <a class="reference external" href="https://developer.nvidia.com/cuda-downloads">CUDA Toolkit</a> to enable GPU-acceleration within CUDA-Q.</p>
 <p>Please see the complete <a class="reference internal" href="install/local_installation.html#install-prebuilt-binaries"><span class="std std-ref">installation guide</span></a> for more details, including</p>
 <ul class="simple">

@@ -1986,10 +1986,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Convert a JSON string into a new PyKernelDecorator object.
 
-    [[handle_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.handle_call_arguments "Permalink to this definition"){.headerlink}
-
-    :   Resolve all the arguments at the call site for this decorator.
-
     [[is_compiled]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.is_compiled "Permalink to this definition"){.headerlink}
 
     :   Whether the kernel has already been compiled.
@@ -2005,12 +2001,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         quake module and determine if any arguments are used and return
         the number used.
 
-    [[lower_quake_to_codegen]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[argValues]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.lower_quake_to_codegen "Permalink to this definition"){.headerlink}
-
-    :   Take the quake code as input and lower it to be ready for final
-        code generation. If argument values are provided, we run
-        argument synthesis and specialize this instance of the kernel.
-
     [[merge_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[otherMod]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.merge_kernel "Permalink to this definition"){.headerlink}
 
     :   Merge the kernel in this PyKernelDecorator (the ModuleOp) with
@@ -2022,9 +2012,36 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         decorator's [`qkeModule`{.code .docutils .literal
         .notranslate}]{.pre} attribute.
 
+    [[prepare_call]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.prepare_call "Permalink to this definition"){.headerlink}
+
+    :   Process call site arguments, capture lifted arguments and
+        retrieve compiled module for kernel execution.
+
+        \# Returns:
+
+        [`processed_args`{.code .docutils .literal .notranslate}]{.pre}[list]{.classifier}
+
+        :   The list of processed runtime arguments, including captured
+            arguments,
+
+        [`module`{.code .docutils .literal .notranslate}]{.pre}[Module]{.classifier}
+
+        :   A clone of the MLIR module to be used for kernel execution.
+
+    [[process_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.process_call_arguments "Permalink to this definition"){.headerlink}
+
+    :   Resolve the arguments passed to the decorator at call site.
+
     *[property]{.pre}[ ]{.w}*[[qkeModule]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernelDecorator.qkeModule "Permalink to this definition"){.headerlink}
 
     :   A target independent Quake MLIR representation of the kernel.
+
+    [[resolve_captured_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.resolve_captured_arguments "Permalink to this definition"){.headerlink}
+
+    :   Resolve the captured arguments of the decorator.
+
+        These arguments get resolved in the scope of the kernel
+        definition (lexical scoping).
 
     [[signatureWithCallables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.signatureWithCallables "Permalink to this definition"){.headerlink}
 
@@ -3676,7 +3693,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[862704647]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2598504001]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 

@@ -2330,20 +2330,51 @@ command
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    mkdir -p cuda_quantum_assets/llvm/bin cuda_quantum_assets/llvm/lib cuda_quantum_assets/llvm/include
-    cp -a "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/llvm/bin/
-    rm -f cuda_quantum_assets/llvm/bin/clang-format*
-    cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/
-    cp -a "${LLVM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/llvm/lib/
-    cp -a "${LLVM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/llvm/include/
-    # Copy cuTensor and cuQuantum (Linux only; variables unset on macOS)
-    if $include_cuda_deps; then
-      cp -a "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets
-      cp -a "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets
-    fi
-    # Copy CUDA-Q installation and build config
-    cp -a "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml
+    # Stage all assets into a single merged prefix.
+    # All dependencies are merged into the CUDAQ installation directory so that
+    # existing relative RPATHs ($ORIGIN/../lib, @loader_path/../lib) cover
+    # everything and no hardcoded absolute paths are needed.
+    mkdir -p cuda_quantum_assets
     cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
+
+    # Bundle the complete LLVM installation in its own subtree so clang's
+    # internal path resolution (resource dir, C++ headers, runtime libs) works
+    # without custom fallbacks. Preserving the full install also keeps LLVM
+    # tools off the user's PATH (only cudaq/bin/ is added by set_env.sh).
+    llvm_dest=cuda_quantum_assets/cudaq/lib/llvm
+    cp -a "${LLVM_INSTALL_PREFIX}" "${llvm_dest}"
+
+    # Copy runtime libs also to cudaq/lib/ for RPATH compatibility -- CUDAQ
+    # binaries in bin/ have RPATH $ORIGIN/../lib and need libc++ etc. there.
+    for lib in libc++ libunwind libomp; do
+      cp -a "${llvm_dest}/lib/${lib}"*.dylib* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+      cp -a "${llvm_dest}/lib/${lib}"*.so* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+      for f in "${llvm_dest}/lib/"*/${lib}*; do
+        [ -e "$f" ] || continue
+        cp -a "$f" cuda_quantum_assets/cudaq/lib/
+      done
+    done
+
+    # Merge cuQuantum/cuTensor libs and headers.
+    # Try both lib64/ and lib/ since different distros use different conventions;
+    # || true prevents set -e from aborting when a glob matches nothing.
+    if $include_cuda_deps; then
+      cp -a "${CUQUANTUM_INSTALL_PREFIX}/lib64/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+      cp -a "${CUQUANTUM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+      cp -a "${CUQUANTUM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/cudaq/include/ 2>/dev/null || true
+      cp -a "${CUTENSOR_INSTALL_PREFIX}/lib64/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+      cp -a "${CUTENSOR_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/cudaq/lib/ 2>/dev/null || true
+      cp -a "${CUTENSOR_INSTALL_PREFIX}/include/"* cuda_quantum_assets/cudaq/include/ 2>/dev/null || true
+    fi
+
+    # Generate an empty build_config.xml since all dependencies are already
+    # merged into cudaq/.
+    cat > cuda_quantum_assets/build_config.xml << 'BCONFIG'
+    <build_config>
+    </build_config>
+    BCONFIG
+    # Use the same config inside the installed cudaq/ directory.
+    cp cuda_quantum_assets/build_config.xml cuda_quantum_assets/cudaq/build_config.xml
 :::
 :::
 
@@ -2354,7 +2385,7 @@ You can then create a self-extracting archive with the command
     ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
         cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
-        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
+        bash install.sh
 :::
 :::
 :::

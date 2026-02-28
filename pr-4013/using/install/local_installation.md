@@ -2269,22 +2269,22 @@ version, you will need to build the installer from source following the
 instructions in [[Installation from
 Source]{.doc}](data_center_install.html){.reference .internal}.
 
-You can download the [`install_cuda_quantum`{.code .docutils .literal
+You can download the [`install_cuda_quantum`{.docutils .literal
 .notranslate}]{.pre} file for your platform from the assets of the
 respective [GitHub
 release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
 .external}:
 
--   **Linux**: [`install_cuda_quantum_cu12.<arch>`{.code .docutils
-    .literal .notranslate}]{.pre} or
-    [`install_cuda_quantum_cu13.<arch>`{.code .docutils .literal
+-   **Linux**: [`install_cuda_quantum_cu12.<arch>`{.docutils .literal
+    .notranslate}]{.pre} or
+    [`install_cuda_quantum_cu13.<arch>`{.docutils .literal
     .notranslate}]{.pre} (where [`<arch>`{.code .docutils .literal
     .notranslate}]{.pre} is [`x86_64`{.code .docutils .literal
     .notranslate}]{.pre} or [`aarch64`{.code .docutils .literal
     .notranslate}]{.pre})
 
--   **macOS**: [`install_cuda_quantum_darwin.arm64`{.code .docutils
-    .literal .notranslate}]{.pre} (CPU-only, Apple silicon)
+-   **macOS**: [`install_cuda_quantum_darwin.arm64`{.docutils .literal
+    .notranslate}]{.pre} (CPU-only, Apple silicon)
 
 The installer is a [self-extracting
 archive](https://makeself.io/){.reference .external} that contains the
@@ -2292,14 +2292,9 @@ pre-built binaries as well as a script to move them to the correct
 locations. You will need [`bash`{.code .docutils .literal
 .notranslate}]{.pre}, [`tar`{.code .docutils .literal
 .notranslate}]{.pre}, and [`gzip`{.code .docutils .literal
-.notranslate}]{.pre} to run the installer. The installation location of
-CUDA-Q is not currently configurable and using the installer hence
-requires admin privileges on the system. We may revise that in the
-future; please see and upvote the corresponding [GitHub
-issue](https://github.com/NVIDIA/cuda-quantum/issues/1075){.reference
-.external}.
-
-To install CUDA-Q, execute the command
+.notranslate}]{.pre} to run the installer. To install CUDA-Q to the
+default location ([`/opt/nvidia/cudaq`{.docutils .literal
+.notranslate}]{.pre}), execute the command
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
@@ -2307,6 +2302,23 @@ To install CUDA-Q, execute the command
     sudo -E bash install_cuda_quantum*.$(uname -m) --accept && . /etc/profile
 :::
 :::
+
+To install to a custom location (no [`sudo`{.docutils .literal
+.notranslate}]{.pre} required), pass [`--installpath`{.docutils .literal
+.notranslate}]{.pre}:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+:::
+:::
+
+In both cases, the installer configures your shell profile so that
+CUDA-Q is available in new shells automatically. To use it in the
+current shell, run [`source`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`<installpath>/set_env.sh`{.docutils .literal
+.notranslate}]{.pre}.
 
 ::: {.admonition .note}
 Note

@@ -1196,12 +1196,6 @@ kernels in a functional composition.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.handle_call_arguments">
-<span class="sig-name descname"><span class="pre">handle_call_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_no_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.handle_call_arguments" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resolve all the arguments at the call site for this decorator.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.is_compiled">
 <span class="sig-name descname"><span class="pre">is_compiled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.is_compiled" title="Permalink to this definition">¶</a></dt>
 <dd><p>Whether the kernel has already been compiled.</p>
@@ -1218,14 +1212,6 @@ and determine if any arguments are used and return the number used.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.lower_quake_to_codegen">
-<span class="sig-name descname"><span class="pre">lower_quake_to_codegen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argValues</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.lower_quake_to_codegen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take the quake code as input and lower it to be ready for final code
-generation. If argument values are provided, we run argument synthesis
-and specialize this instance of the kernel.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.merge_kernel">
 <span class="sig-name descname"><span class="pre">merge_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">otherMod</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.merge_kernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Merge the kernel in this PyKernelDecorator (the ModuleOp) with the
@@ -1239,10 +1225,38 @@ provided ModuleOp.</p>
 <code class="code docutils literal notranslate"><span class="pre">qkeModule</span></code> attribute.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.prepare_call">
+<span class="sig-name descname"><span class="pre">prepare_call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_no_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.prepare_call" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process call site arguments, capture lifted arguments and retrieve
+compiled module for kernel execution.</p>
+<p># Returns:</p>
+<dl class="simple">
+<dt><code class="code docutils literal notranslate"><span class="pre">processed_args</span></code><span class="classifier">list</span></dt><dd><p>The list of processed runtime arguments, including captured arguments,</p>
+</dd>
+<dt><code class="code docutils literal notranslate"><span class="pre">module</span></code><span class="classifier">Module</span></dt><dd><p>A clone of the MLIR module to be used for kernel execution.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.process_call_arguments">
+<span class="sig-name descname"><span class="pre">process_call_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_no_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.process_call_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve the arguments passed to the decorator at call site.</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.qkeModule">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">qkeModule</span></span><a class="headerlink" href="#cudaq.PyKernelDecorator.qkeModule" title="Permalink to this definition">¶</a></dt>
 <dd><p>A target independent Quake MLIR representation of the kernel.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.resolve_captured_arguments">
+<span class="sig-name descname"><span class="pre">resolve_captured_arguments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.resolve_captured_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve the captured arguments of the decorator.</p>
+<p>These arguments get resolved in the scope of the kernel definition
+(lexical scoping).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2451,7 +2465,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">862704647</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2598504001</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>

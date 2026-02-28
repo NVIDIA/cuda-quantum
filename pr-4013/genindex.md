@@ -5161,15 +5161,12 @@ pr-4013
 ## H {#H}
 
 +-----------------------------------+-----------------------------------+
-| -   [handle_call_arguments()      | -   [has_execution_data()         |
-|     (cudaq.PyKernelDecorator      |                                   |
-|     method)](api/langua           |    (cudaq.ptsbe.PTSBESampleResult |
-| ges/python_api.html#cudaq.PyKerne |     method)](api/languages        |
-| lDecorator.handle_call_arguments) | /python_api.html#cudaq.ptsbe.PTSB |
-|                                   | ESampleResult.has_execution_data) |
-|                                   | -   [has_target() (in module      |
+| -   [has_execution_data()         | -   [has_target() (in module      |
 |                                   |     cudaq)](api/languages/        |
-|                                   | python_api.html#cudaq.has_target) |
+|    (cudaq.ptsbe.PTSBESampleResult | python_api.html#cudaq.has_target) |
+|     method)](api/languages        |                                   |
+| /python_api.html#cudaq.ptsbe.PTSB |                                   |
+| ESampleResult.has_execution_data) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## I {#I}
@@ -5290,58 +5287,41 @@ pr-4013
 
 ## L {#L}
 
-+-----------------------------------+-----------------------------------+
-| -   [launch_args_required()       | -   [lower_quake_to_codegen()     |
-|     (cudaq.PyKernelDecorator      |     (cudaq.PyKernelDecorator      |
-|     method)](api/langu            |     method)](api/languag          |
-| ages/python_api.html#cudaq.PyKern | es/python_api.html#cudaq.PyKernel |
-| elDecorator.launch_args_required) | Decorator.lower_quake_to_codegen) |
-| -   [LBFGS (class in              |                                   |
-|     cudaq.                        |                                   |
-| optimizers)](api/languages/python |                                   |
-| _api.html#cudaq.optimizers.LBFGS) |                                   |
-| -   [left_multiply()              |                                   |
-|     (cudaq.SuperOperator static   |                                   |
-|     method)                       |                                   |
-| ](api/languages/python_api.html#c |                                   |
-| udaq.SuperOperator.left_multiply) |                                   |
-| -   [left_right_multiply()        |                                   |
-|     (cudaq.SuperOperator static   |                                   |
-|     method)](api/                 |                                   |
-| languages/python_api.html#cudaq.S |                                   |
-| uperOperator.left_right_multiply) |                                   |
-| -   [lower_bounds                 |                                   |
-|     (cudaq.optimizers.Adam        |                                   |
-|     property)]                    |                                   |
-| (api/languages/python_api.html#cu |                                   |
-| daq.optimizers.Adam.lower_bounds) |                                   |
-|     -   [(cudaq.optimizers.COBYLA |                                   |
-|         property)](a              |                                   |
-| pi/languages/python_api.html#cuda |                                   |
-| q.optimizers.COBYLA.lower_bounds) |                                   |
-|     -   [                         |                                   |
-| (cudaq.optimizers.GradientDescent |                                   |
-|         property)](api/langua     |                                   |
-| ges/python_api.html#cudaq.optimiz |                                   |
-| ers.GradientDescent.lower_bounds) |                                   |
-|     -   [(cudaq.optimizers.LBFGS  |                                   |
-|         property)](               |                                   |
-| api/languages/python_api.html#cud |                                   |
-| aq.optimizers.LBFGS.lower_bounds) |                                   |
-|                                   |                                   |
-| -   [(cudaq.optimizers.NelderMead |                                   |
-|         property)](api/l          |                                   |
-| anguages/python_api.html#cudaq.op |                                   |
-| timizers.NelderMead.lower_bounds) |                                   |
-|     -   [(cudaq.optimizers.SGD    |                                   |
-|         property)                 |                                   |
-| ](api/languages/python_api.html#c |                                   |
-| udaq.optimizers.SGD.lower_bounds) |                                   |
-|     -   [(cudaq.optimizers.SPSA   |                                   |
-|         property)]                |                                   |
-| (api/languages/python_api.html#cu |                                   |
-| daq.optimizers.SPSA.lower_bounds) |                                   |
-+-----------------------------------+-----------------------------------+
++-----------------------------------------------------------------------+
+| -   [launch_args_required() (cudaq.PyKernelDecorator                  |
+|     method)](api/la                                                   |
+| nguages/python_api.html#cudaq.PyKernelDecorator.launch_args_required) |
+| -   [LBFGS (class in                                                  |
+|     cud                                                               |
+| aq.optimizers)](api/languages/python_api.html#cudaq.optimizers.LBFGS) |
+| -   [left_multiply() (cudaq.SuperOperator static                      |
+|     meth                                                              |
+| od)](api/languages/python_api.html#cudaq.SuperOperator.left_multiply) |
+| -   [left_right_multiply() (cudaq.SuperOperator static                |
+|     method)](a                                                        |
+| pi/languages/python_api.html#cudaq.SuperOperator.left_right_multiply) |
+| -   [lower_bounds (cudaq.optimizers.Adam                              |
+|     propert                                                           |
+| y)](api/languages/python_api.html#cudaq.optimizers.Adam.lower_bounds) |
+|     -   [(cudaq.optimizers.COBYLA                                     |
+|         property)                                                     |
+| ](api/languages/python_api.html#cudaq.optimizers.COBYLA.lower_bounds) |
+|     -   [(cudaq.optimizers.GradientDescent                            |
+|         property)](api/lan                                            |
+| guages/python_api.html#cudaq.optimizers.GradientDescent.lower_bounds) |
+|     -   [(cudaq.optimizers.LBFGS                                      |
+|         property                                                      |
+| )](api/languages/python_api.html#cudaq.optimizers.LBFGS.lower_bounds) |
+|     -   [(cudaq.optimizers.NelderMead                                 |
+|         property)](ap                                                 |
+| i/languages/python_api.html#cudaq.optimizers.NelderMead.lower_bounds) |
+|     -   [(cudaq.optimizers.SGD                                        |
+|         proper                                                        |
+| ty)](api/languages/python_api.html#cudaq.optimizers.SGD.lower_bounds) |
+|     -   [(cudaq.optimizers.SPSA                                       |
+|         propert                                                       |
+| y)](api/languages/python_api.html#cudaq.optimizers.SPSA.lower_bounds) |
++-----------------------------------------------------------------------+
 
 ## M {#M}
 
@@ -5541,77 +5521,80 @@ pr-4013
 ## P {#P}
 
 +-----------------------------------+-----------------------------------+
-| -   [parameters                   | -   [PhaseDamping (class in       |
-|     (cu                           |     cudaq)](api/languages/py      |
-| daq.operators.boson.BosonOperator | thon_api.html#cudaq.PhaseDamping) |
-|     property)](api/languag        | -   [PhaseFlipChannel (class in   |
-| es/python_api.html#cudaq.operator |     cudaq)](api/languages/python  |
-| s.boson.BosonOperator.parameters) | _api.html#cudaq.PhaseFlipChannel) |
-|     -   [(cudaq.                  | -   [platform (cudaq.Target       |
-| operators.boson.BosonOperatorTerm |                                   |
-|                                   |    property)](api/languages/pytho |
-|        property)](api/languages/p | n_api.html#cudaq.Target.platform) |
-| ython_api.html#cudaq.operators.bo | -   [plus() (in module            |
-| son.BosonOperatorTerm.parameters) |     cudaq.spin)](api/languages    |
-|     -   [(cudaq.                  | /python_api.html#cudaq.spin.plus) |
-| operators.fermion.FermionOperator | -   [position() (in module        |
-|                                   |                                   |
-|        property)](api/languages/p |  cudaq.boson)](api/languages/pyth |
-| ython_api.html#cudaq.operators.fe | on_api.html#cudaq.boson.position) |
-| rmion.FermionOperator.parameters) |     -   [(in module               |
-|     -   [(cudaq.oper              |         cudaq.operators.custo     |
-| ators.fermion.FermionOperatorTerm | m)](api/languages/python_api.html |
-|                                   | #cudaq.operators.custom.position) |
-|    property)](api/languages/pytho | -                                 |
-| n_api.html#cudaq.operators.fermio |    [ProbabilisticSamplingStrategy |
-| n.FermionOperatorTerm.parameters) |     (class in                     |
-|     -                             |     cudaq.ptsbe)](api/la          |
-|  [(cudaq.operators.MatrixOperator | nguages/python_api.html#cudaq.pts |
-|         property)](api/la         | be.ProbabilisticSamplingStrategy) |
-| nguages/python_api.html#cudaq.ope | -   [probability()                |
-| rators.MatrixOperator.parameters) |     (cudaq.SampleResult           |
-|     -   [(cuda                    |     meth                          |
-| q.operators.MatrixOperatorElement | od)](api/languages/python_api.htm |
-|         property)](api/languages  | l#cudaq.SampleResult.probability) |
-| /python_api.html#cudaq.operators. | -   [ProductOperator (in module   |
-| MatrixOperatorElement.parameters) |     cudaq.operator                |
-|     -   [(c                       | s)](api/languages/python_api.html |
-| udaq.operators.MatrixOperatorTerm | #cudaq.operators.ProductOperator) |
-|         property)](api/langua     | -   [ptsbe_execution_data         |
-| ges/python_api.html#cudaq.operato |                                   |
-| rs.MatrixOperatorTerm.parameters) |    (cudaq.ptsbe.PTSBESampleResult |
-|     -                             |     property)](api/languages/p    |
-|  [(cudaq.operators.ScalarOperator | ython_api.html#cudaq.ptsbe.PTSBES |
-|         property)](api/la         | ampleResult.ptsbe_execution_data) |
-| nguages/python_api.html#cudaq.ope | -   [PTSBEExecutionData (class in |
-| rators.ScalarOperator.parameters) |     cudaq.pts                     |
-|     -   [(                        | be)](api/languages/python_api.htm |
-| cudaq.operators.spin.SpinOperator | l#cudaq.ptsbe.PTSBEExecutionData) |
-|         property)](api/langu      | -   [PTSBESampleResult (class in  |
-| ages/python_api.html#cudaq.operat |     cudaq.pt                      |
-| ors.spin.SpinOperator.parameters) | sbe)](api/languages/python_api.ht |
-|     -   [(cuda                    | ml#cudaq.ptsbe.PTSBESampleResult) |
-| q.operators.spin.SpinOperatorTerm | -   [PTSSamplingStrategy (class   |
-|         property)](api/languages  |     in                            |
-| /python_api.html#cudaq.operators. |     cudaq.ptsb                    |
-| spin.SpinOperatorTerm.parameters) | e)](api/languages/python_api.html |
-| -   [ParameterShift (class in     | #cudaq.ptsbe.PTSSamplingStrategy) |
-|     cudaq.gradien                 | -   [PyKernel (class in           |
-| ts)](api/languages/python_api.htm |     cudaq)](api/language          |
-| l#cudaq.gradients.ParameterShift) | s/python_api.html#cudaq.PyKernel) |
-| -   [parity() (in module          | -   [PyKernelDecorator (class in  |
-|     cudaq.operators.cus           |     cudaq)](api/languages/python_ |
-| tom)](api/languages/python_api.ht | api.html#cudaq.PyKernelDecorator) |
-| ml#cudaq.operators.custom.parity) |                                   |
-| -   [Pauli (class in              |                                   |
-|     cudaq.spin)](api/languages/   |                                   |
-| python_api.html#cudaq.spin.Pauli) |                                   |
-| -   [Pauli1 (class in             |                                   |
-|     cudaq)](api/langua            |                                   |
-| ges/python_api.html#cudaq.Pauli1) |                                   |
+| -   [parameters                   | -   [PhaseFlipChannel (class in   |
+|     (cu                           |     cudaq)](api/languages/python  |
+| daq.operators.boson.BosonOperator | _api.html#cudaq.PhaseFlipChannel) |
+|     property)](api/languag        | -   [platform (cudaq.Target       |
+| es/python_api.html#cudaq.operator |                                   |
+| s.boson.BosonOperator.parameters) |    property)](api/languages/pytho |
+|     -   [(cudaq.                  | n_api.html#cudaq.Target.platform) |
+| operators.boson.BosonOperatorTerm | -   [plus() (in module            |
+|                                   |     cudaq.spin)](api/languages    |
+|        property)](api/languages/p | /python_api.html#cudaq.spin.plus) |
+| ython_api.html#cudaq.operators.bo | -   [position() (in module        |
+| son.BosonOperatorTerm.parameters) |                                   |
+|     -   [(cudaq.                  |  cudaq.boson)](api/languages/pyth |
+| operators.fermion.FermionOperator | on_api.html#cudaq.boson.position) |
+|                                   |     -   [(in module               |
+|        property)](api/languages/p |         cudaq.operators.custo     |
+| ython_api.html#cudaq.operators.fe | m)](api/languages/python_api.html |
+| rmion.FermionOperator.parameters) | #cudaq.operators.custom.position) |
+|     -   [(cudaq.oper              | -   [prepare_call()               |
+| ators.fermion.FermionOperatorTerm |     (cudaq.PyKernelDecorator      |
+|                                   |     method)](a                    |
+|    property)](api/languages/pytho | pi/languages/python_api.html#cuda |
+| n_api.html#cudaq.operators.fermio | q.PyKernelDecorator.prepare_call) |
+| n.FermionOperatorTerm.parameters) | -                                 |
+|     -                             |    [ProbabilisticSamplingStrategy |
+|  [(cudaq.operators.MatrixOperator |     (class in                     |
+|         property)](api/la         |     cudaq.ptsbe)](api/la          |
+| nguages/python_api.html#cudaq.ope | nguages/python_api.html#cudaq.pts |
+| rators.MatrixOperator.parameters) | be.ProbabilisticSamplingStrategy) |
+|     -   [(cuda                    | -   [probability()                |
+| q.operators.MatrixOperatorElement |     (cudaq.SampleResult           |
+|         property)](api/languages  |     meth                          |
+| /python_api.html#cudaq.operators. | od)](api/languages/python_api.htm |
+| MatrixOperatorElement.parameters) | l#cudaq.SampleResult.probability) |
+|     -   [(c                       | -   [process_call_arguments()     |
+| udaq.operators.MatrixOperatorTerm |     (cudaq.PyKernelDecorator      |
+|         property)](api/langua     |     method)](api/languag          |
+| ges/python_api.html#cudaq.operato | es/python_api.html#cudaq.PyKernel |
+| rs.MatrixOperatorTerm.parameters) | Decorator.process_call_arguments) |
+|     -                             | -   [ProductOperator (in module   |
+|  [(cudaq.operators.ScalarOperator |     cudaq.operator                |
+|         property)](api/la         | s)](api/languages/python_api.html |
+| nguages/python_api.html#cudaq.ope | #cudaq.operators.ProductOperator) |
+| rators.ScalarOperator.parameters) | -   [ptsbe_execution_data         |
+|     -   [(                        |                                   |
+| cudaq.operators.spin.SpinOperator |    (cudaq.ptsbe.PTSBESampleResult |
+|         property)](api/langu      |     property)](api/languages/p    |
+| ages/python_api.html#cudaq.operat | ython_api.html#cudaq.ptsbe.PTSBES |
+| ors.spin.SpinOperator.parameters) | ampleResult.ptsbe_execution_data) |
+|     -   [(cuda                    | -   [PTSBEExecutionData (class in |
+| q.operators.spin.SpinOperatorTerm |     cudaq.pts                     |
+|         property)](api/languages  | be)](api/languages/python_api.htm |
+| /python_api.html#cudaq.operators. | l#cudaq.ptsbe.PTSBEExecutionData) |
+| spin.SpinOperatorTerm.parameters) | -   [PTSBESampleResult (class in  |
+| -   [ParameterShift (class in     |     cudaq.pt                      |
+|     cudaq.gradien                 | sbe)](api/languages/python_api.ht |
+| ts)](api/languages/python_api.htm | ml#cudaq.ptsbe.PTSBESampleResult) |
+| l#cudaq.gradients.ParameterShift) | -   [PTSSamplingStrategy (class   |
+| -   [parity() (in module          |     in                            |
+|     cudaq.operators.cus           |     cudaq.ptsb                    |
+| tom)](api/languages/python_api.ht | e)](api/languages/python_api.html |
+| ml#cudaq.operators.custom.parity) | #cudaq.ptsbe.PTSSamplingStrategy) |
+| -   [Pauli (class in              | -   [PyKernel (class in           |
+|     cudaq.spin)](api/languages/   |     cudaq)](api/language          |
+| python_api.html#cudaq.spin.Pauli) | s/python_api.html#cudaq.PyKernel) |
+| -   [Pauli1 (class in             | -   [PyKernelDecorator (class in  |
+|     cudaq)](api/langua            |     cudaq)](api/languages/python_ |
+| ges/python_api.html#cudaq.Pauli1) | api.html#cudaq.PyKernelDecorator) |
 | -   [Pauli2 (class in             |                                   |
 |     cudaq)](api/langua            |                                   |
 | ges/python_api.html#cudaq.Pauli2) |                                   |
+| -   [PhaseDamping (class in       |                                   |
+|     cudaq)](api/languages/py      |                                   |
+| thon_api.html#cudaq.PhaseDamping) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## Q {#Q}
@@ -5663,6 +5646,11 @@ pr-4013
 | -   [reset_target() (in module    | (api/languages/python_api.html#cu |
 |     cudaq)](api/languages/py      | daq.operators.RydbergHamiltonian) |
 | thon_api.html#cudaq.reset_target) |                                   |
+| -   [resolve_captured_arguments() |                                   |
+|     (cudaq.PyKernelDecorator      |                                   |
+|     method)](api/languages/p      |                                   |
+| ython_api.html#cudaq.PyKernelDeco |                                   |
+| rator.resolve_captured_arguments) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## S {#S}

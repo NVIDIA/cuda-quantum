@@ -1159,19 +1159,7 @@ measurement-dependent conditional logic.</p></li>
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">ptsbe</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">():</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-
-<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span>  <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="mf">0.01</span><span class="p">))</span>
-<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;cx&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2Channel</span><span class="p">(</span><span class="mf">0.005</span><span class="p">))</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">bell</span><span class="p">,</span> <span class="n">noise</span>
 
 <span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
@@ -1179,24 +1167,13 @@ measurement-dependent conditional logic.</p></li>
 </div>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">bell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
-<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">  </span><span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;utils.h&quot;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="p">{};</span>
-<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">depolarization_channel</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;h&quot;</span><span class="p">,</span><span class="w">  </span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w">     </span><span class="mf">0.01</span><span class="p">);</span>
-<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">depolarization2_channel</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;cx&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span><span class="w"> </span><span class="mf">0.005</span><span class="p">);</span>
-
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">shots</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">;</span>
-<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">noise</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">shots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bell_noise_model</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
 <span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
@@ -1219,7 +1196,7 @@ and gain the batching benefit:</p>
     <span class="n">bell</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>   <span class="c1"># reuse each trajectory ~200 times on average</span>
+    <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -1271,43 +1248,51 @@ a biased distribution.</p></td>
 </table>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.ptsbe</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">ProbabilisticSamplingStrategy</span><span class="p">,</span>
-                         <span class="n">OrderedSamplingStrategy</span><span class="p">,</span>
-                         <span class="n">ExhaustiveSamplingStrategy</span><span class="p">,</span>
-                         <span class="n">ConditionalSamplingStrategy</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">bell</span><span class="p">,</span> <span class="n">noise</span>
 
 <span class="c1"># Reproducible probabilistic sampling</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
     <span class="n">bell</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">ProbabilisticSamplingStrategy</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">),</span>
+    <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">ProbabilisticSamplingStrategy</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">),</span>
 <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
 <span class="c1"># Top-100 trajectories by probability</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
     <span class="n">bell</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
     <span class="n">max_trajectories</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">OrderedSamplingStrategy</span><span class="p">(),</span>
+    <span class="n">sampling_strategy</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">OrderedSamplingStrategy</span><span class="p">(),</span>
 <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h&quot;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/OrderedSamplingStrategy.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;utils.h&quot;</span>
 
-<span class="c1">// Reproducible probabilistic sampling</span>
-<span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ProbabilisticSamplingStrategy</span><span class="o">&gt;</span><span class="p">(</span><span class="cm">/*seed=*/</span><span class="mi">42</span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Reproducible probabilistic sampling</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ProbabilisticSamplingStrategy</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">          </span><span class="cm">/*seed=*/</span><span class="mi">42</span><span class="p">);</span>
 
-<span class="c1">// Top-100 trajectories</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">max_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">OrderedSamplingStrategy</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// Top-100 trajectories</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">max_trajectories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">strategy</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">OrderedSamplingStrategy</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -1347,27 +1332,36 @@ rare error events.</p></td>
 </table>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.ptsbe</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShotAllocationStrategy</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">bell</span><span class="p">,</span> <span class="n">noise</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+<span class="n">alloc</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">ShotAllocationType</span><span class="o">.</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span> <span class="n">bias_strength</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
     <span class="n">bell</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
-    <span class="n">shot_allocation</span><span class="o">=</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
-        <span class="n">ShotAllocationStrategy</span><span class="o">.</span><span class="n">Type</span><span class="o">.</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
-        <span class="n">bias_strength</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="p">),</span>
+    <span class="n">shot_allocation</span><span class="o">=</span><span class="n">alloc</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/ShotAllocationStrategy.h&quot;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/ShotAllocationStrategy.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;utils.h&quot;</span>
 
-<span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">shot_allocation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
-<span class="w">    </span><span class="cm">/*bias=*/</span><span class="mf">2.0</span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">shot_allocation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="p">(</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">ShotAllocationStrategy</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">LOW_WEIGHT_BIAS</span><span class="p">,</span>
+<span class="w">      </span><span class="cm">/*bias=*/</span><span class="mf">2.0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -1380,14 +1374,17 @@ circuit instructions, sampled trajectories, and per-trajectory counts — to
 the result. This API is experimental and may be subject to change in future releases.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">bell</span><span class="p">,</span> <span class="n">noise</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
     <span class="n">bell</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="mi">1_000</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
     <span class="n">return_execution_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">execution_data</span><span class="p">()</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">ptsbe_execution_data</span>
 
 <span class="c1"># Circuit structure</span>
 <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">instructions</span><span class="p">:</span>
@@ -1396,21 +1393,30 @@ the result. This API is experimental and may be subject to change in future rele
 <span class="c1"># Trajectory details</span>
 <span class="k">for</span> <span class="n">trajectory</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">trajectories</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;id=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">trajectory_id</span><span class="si">}</span><span class="s2">  p=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">probability</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;  shots=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">  errors=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">count_errors</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+          <span class="sa">f</span><span class="s2">&quot;  shots=</span><span class="si">{</span><span class="n">trajectory</span><span class="o">.</span><span class="n">num_shots</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
-<span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">return_execution_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/PTSBESample.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/ptsbe/ShotAllocationStrategy.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;utils.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
 
-<span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">shots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bell_noise_model</span><span class="p">();</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">ptsbe</span><span class="p">.</span><span class="n">return_execution_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">has_execution_data</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="p">.</span><span class="n">execution_data</span><span class="p">();</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">trajectory</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">trajectories</span><span class="p">)</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;id=%zu  p=%.4f  shots=%zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
-<span class="w">           </span><span class="n">trajectory</span><span class="p">.</span><span class="n">trajectory_id</span><span class="p">,</span><span class="w"> </span><span class="n">trajectory</span><span class="p">.</span><span class="n">probability</span><span class="p">,</span><span class="w"> </span><span class="n">trajectory</span><span class="p">.</span><span class="n">num_shots</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ptsbe</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span><span class="w"> </span><span class="n">bell</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">has_execution_data</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="p">.</span><span class="n">execution_data</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">trajectory</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">trajectories</span><span class="p">)</span>
+<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;id=%zu  p=%.4f  shots=%zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">trajectory</span><span class="p">.</span><span class="n">trajectory_id</span><span class="p">,</span>
+<span class="w">             </span><span class="n">trajectory</span><span class="p">.</span><span class="n">probability</span><span class="p">,</span><span class="w"> </span><span class="n">trajectory</span><span class="p">.</span><span class="n">num_shots</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
