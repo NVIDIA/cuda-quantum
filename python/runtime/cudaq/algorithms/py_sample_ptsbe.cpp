@@ -198,7 +198,7 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
                      "The allocation strategy type.")
       .def_readwrite("bias_strength",
                      &ptsbe::ShotAllocationStrategy::bias_strength,
-                     "Bias factor for weighted strategies (default: 2.0).");
+                     "Bias factor for weighted strategies (default 2.0).");
 
   // Concrete strategies
   py::class_<ptsbe::ProbabilisticSamplingStrategy, ptsbe::PTSSamplingStrategy,
@@ -368,7 +368,7 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
 
   // PTSBE sample result (subclass of sample_result)
   py::class_<ptsbe::sample_result, sample_result>(
-      ptsbe, "SampleResult",
+      ptsbe, "PTSBESampleResult",
       "PTSBE sample result with optional execution data.")
       .def_property_readonly(
           "ptsbe_execution_data",
@@ -410,7 +410,7 @@ Args:
   *arguments: The kernel arguments.
 
 Returns:
-  SampleResult with optional PTSBE execution data.
+  PTSBESampleResult with optional PTSBE execution data.
 )pbdoc");
 
   // PTSBE async sample implementation
