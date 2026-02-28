@@ -113,6 +113,11 @@ if (NOT DEFINED CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
   set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ON CACHE BOOL "Enable building the Quantum Machines target.")
 endif()
 
+# Enable Scaleway target by default.
+if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
+  set(CUDAQ_ENABLE_SCALEWAY_BACKEND ON CACHE BOOL "Enable building the Scaleway target.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)

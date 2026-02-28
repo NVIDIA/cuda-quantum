@@ -6,26 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .preallocated_qubits_context import PreallocatedQubitsContext
+add_backend_unittest_executable(test_scaleway
+  SOURCES ScalewayTester.cpp
+  BACKEND scaleway
+  BACKEND_CONFIG "scaleway url=http://localhost:62450 machine=EMU-CUDAQ-FAKE"
+)
 
-# Default ports for each mock QPU backend
-MOCK_QPU_PORTS = {
-    "quantinuum": 62440,
-    "ionq": 62441,
-    "oqc": 62442,
-    "iqm": 62443,
-    "braket": 62445,
-    "anyon": 62446,
-    "infleqtion": 62447,
-    "quantum_machines": 62448,
-    "qci": 62449,
-    "scaleway": 62450
-}
-
-
-def get_backend_port(backend: str) -> int:
-    return MOCK_QPU_PORTS[backend]
-
-
-def all_backend_names() -> list[str]:
-    return list(MOCK_QPU_PORTS.keys())
+configure_file(ScalewayStartServerAndTest.sh.in ScalewayStartServerAndTest.sh @ONLY)
+add_test(NAME scaleway-tests COMMAND bash ScalewayStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/scaleway/)
+set_property(TEST scaleway-tests PROPERTY SKIP_RETURN_CODE 77)

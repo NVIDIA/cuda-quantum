@@ -7,4 +7,4 @@ CUDA-Q provides a number of options to access hardware resources (GPUs and QPUs)
    :maxdepth: 1
       
         Amazon Braket (braket) <cloud/braket.rst>
-
+        Scaleway QaaS (scaleway) <cloud/scaleway.rst>
