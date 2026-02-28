@@ -105,6 +105,7 @@ target_link_libraries(rest-remote-platform-server
     cudaq-em-default 
     cudaq-mlir-runtime
     cudaq-platform-default
+    cudaq-qir-verifier
     nvqir
     fmt::fmt-header-only
 )
