@@ -58,6 +58,11 @@ if [ "$pkg_manager" == "apt-get" ]; then
         rm cuda-keyring_1.1-1_all.deb
     fi
 
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        apt-get install -y --no-install-recommends ${VALIDATION_PACKAGES}
+    fi
+
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
     dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -75,6 +80,11 @@ elif [ "$pkg_manager" == "dnf" ]; then
         dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
     fi
 
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        dnf install -y --nobest --setopt=install_weak_deps=False ${VALIDATION_PACKAGES}
+    fi
+
 elif [ "$pkg_manager" == "zypper" ]; then
     ## [Prerequisites]
     zypper clean --all && zypper ref && zypper --non-interactive up --no-recommends
@@ -90,6 +100,11 @@ elif [ "$pkg_manager" == "zypper" ]; then
     if [ -n "${CUDA_DISTRIBUTION}" ]; then
         zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
         zypper --non-interactive --gpg-auto-import-keys in --no-recommends ${CUDA_PACKAGES}
+    fi
+
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        zypper --non-interactive in --no-recommends ${VALIDATION_PACKAGES}
     fi
 
 else

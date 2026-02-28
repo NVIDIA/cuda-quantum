@@ -9,5 +9,7 @@
 get_filename_component(CUDAQ_PYTHONINTEROP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 if(NOT TARGET cudaq::cudaq-python-interop)
-  include("${CUDAQ_PYTHONINTEROP_CMAKE_DIR}/CUDAQPythonInteropTargets.cmake")
+  if(EXISTS "${CUDAQ_PYTHONINTEROP_CMAKE_DIR}/CUDAQPythonInteropTargets.cmake")
+    include("${CUDAQ_PYTHONINTEROP_CMAKE_DIR}/CUDAQPythonInteropTargets.cmake")
+  endif()
 endif()
