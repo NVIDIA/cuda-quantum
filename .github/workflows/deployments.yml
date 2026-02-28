@@ -30,6 +30,11 @@ on:
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
         required: false
         default: ''
+      include_macos:
+        type: boolean
+        description: Build and include macOS wheels and installer.
+        required: false
+        default: true
   workflow_run:
     workflows:
       - PR merged
@@ -809,3 +814,13 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
+
+  macos_ci:
+    name: macOS CI
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && (github.event_name != 'workflow_dispatch' || inputs.include_macos != false)
+    uses: ./.github/workflows/ci_macos.yml
+    with:
+      cache_base: ${{ needs.metadata.outputs.cache_base }}
