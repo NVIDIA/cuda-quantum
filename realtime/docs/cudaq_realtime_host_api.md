@@ -245,22 +245,24 @@ Magic values (little-endian 32-bit):
 ```cpp
 // Wire format (byte layout must match dispatch_kernel_launch.h)
 struct RPCHeader {
-  uint32_t magic;        // RPC_MAGIC_REQUEST
-  uint32_t function_id;  // fnv1a_hash("handler_name")
-  uint32_t arg_len;      // payload bytes following this header
-  uint32_t request_id;   // caller-assigned ID, echoed in the response
+  uint32_t magic;          // RPC_MAGIC_REQUEST
+  uint32_t function_id;    // fnv1a_hash("handler_name")
+  uint32_t arg_len;        // payload bytes following this header
+  uint32_t request_id;     // caller-assigned ID, echoed in the response
+  uint64_t ptp_timestamp;  // PTP send timestamp (set by sender; 0 if unused)
 };
 
 struct RPCResponse {
-  uint32_t magic;        // RPC_MAGIC_RESPONSE
-  int32_t  status;       // 0 = success
-  uint32_t result_len;   // bytes of response payload
-  uint32_t request_id;   // echoed from RPCHeader::request_id
+  uint32_t magic;          // RPC_MAGIC_RESPONSE
+  int32_t  status;         // 0 = success
+  uint32_t result_len;     // bytes of response payload
+  uint32_t request_id;     // echoed from RPCHeader::request_id
+  uint64_t ptp_timestamp;  // echoed from RPCHeader::ptp_timestamp
 };
 ```
 
-Both structs are 16 bytes, packed with no padding. See `cudaq_realtime_message_protocol.bs`
-for `request_id` semantics.
+Both structs are 24 bytes, packed with no padding. See `cudaq_realtime_message_protocol.bs`
+for `request_id` and `ptp_timestamp` semantics.
 
 Payload conventions:
 
@@ -862,6 +864,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
   header->function_id = MOCK_DECODE_FUNCTION_ID;
   header->arg_len = static_cast<std::uint32_t>(measurements.size());
   header->request_id = static_cast<std::uint32_t>(slot);
+  header->ptp_timestamp = 0;  // Set by FPGA in production; 0 for NIC-free tests
   
   // Write measurement data after header
   memcpy(slot_data + sizeof(cudaq::realtime::RPCHeader),
@@ -880,7 +883,8 @@ when consuming TX slots in a Hololink deployment.
 bool read_rpc_response(std::size_t slot, uint8_t& correction,
                        std::int32_t* status_out = nullptr,
                        std::uint32_t* result_len_out = nullptr,
-                       std::uint32_t* request_id_out = nullptr) {
+                       std::uint32_t* request_id_out = nullptr,
+                       std::uint64_t* ptp_timestamp_out = nullptr) {
   __sync_synchronize();
   const uint8_t* slot_data = const_cast<uint8_t*>(tx_data_host_) + slot * slot_size_;
   
@@ -898,6 +902,8 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
     *result_len_out = response->result_len;
   if (request_id_out)
     *request_id_out = response->request_id;
+  if (ptp_timestamp_out)
+    *ptp_timestamp_out = response->ptp_timestamp;
   
   if (response->status != 0) {
     return false;

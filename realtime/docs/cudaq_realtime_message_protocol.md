@@ -8,6 +8,7 @@ which focuses on wiring and API usage.
 ## Scope
 
 - RPC header/response wire format
+- `PTP` timestamp propagation for latency measurement
 - Payload encoding and type system
 - Schema contract and payload interpretation
 - Function dispatch semantics
@@ -27,21 +28,23 @@ Each ring-buffer slot is interpreted as:
 
 ```cpp
 struct RPCHeader {
-  uint32_t magic;        // RPC_MAGIC_REQUEST
-  uint32_t function_id;  // fnv1a_hash("handler_name")
-  uint32_t arg_len;      // payload bytes following this header
-  uint32_t request_id;   // caller-assigned ID, echoed in the response
+  uint32_t magic;          // RPC_MAGIC_REQUEST
+  uint32_t function_id;    // fnv1a_hash("handler_name")
+  uint32_t arg_len;        // payload bytes following this header
+  uint32_t request_id;     // caller-assigned ID, echoed in the response
+  uint64_t ptp_timestamp;  // PTP send timestamp (set by sender; 0 if unused)
 };
 
 struct RPCResponse {
-  uint32_t magic;        // RPC_MAGIC_RESPONSE
-  int32_t  status;       // 0 = success
-  uint32_t result_len;   // bytes of response payload
-  uint32_t request_id;   // echoed from RPCHeader::request_id
+  uint32_t magic;          // RPC_MAGIC_RESPONSE
+  int32_t  status;         // 0 = success
+  uint32_t result_len;     // bytes of response payload
+  uint32_t request_id;     // echoed from RPCHeader::request_id
+  uint64_t ptp_timestamp;  // echoed from RPCHeader::ptp_timestamp
 };
 ```
 
-Both `structs` are 16 bytes, packed with no padding.
+Both `structs` are 24 bytes, packed with no padding.
 
 Magic values (little-endian 32-bit):
 
@@ -64,6 +67,35 @@ Typical uses:
 - **Unused**: Set to 0 when not needed. The dispatcher echoes it regardless.
 
 The dispatcher echoes `request_id` in all dispatch paths (cooperative,
+regular, and graph-launch).
+
+## `PTP` Timestamp Semantics
+
+`ptp_timestamp` is a 64-bit field carrying a Precision Time Protocol (`PTP`)
+send timestamp. It enables end-to-end latency measurement from the moment a
+message leaves the sender (e.g., FPGA) to the moment a response is produced.
+
+The dispatch kernel copies `ptp_timestamp` verbatim from the incoming
+`RPCHeader` into the corresponding `RPCResponse`. Individual RPC handlers do
+not need to read, interpret, or propagate this field; it is handled entirely
+by the dispatch infrastructure.
+
+Typical uses:
+
+- **FPGA-injected timestamp**: The FPGA writes the `PTP` time-of-day into
+    `ptp_timestamp` just before transmitting each message. The receiver
+    compares the echoed timestamp against the `PTP` clock at capture time to
+    compute round-trip latency.
+- **Software timestamp**: A software sender (e.g., playback tool) may set the
+    field to a host-side `PTP` or monotonic clock value for profiling.
+- **Unused**: Set to 0 when latency measurement is not needed. The dispatcher
+    echoes it regardless.
+
+The encoding is opaque to the protocol; the 64-bit value is echoed without
+interpretation. By convention, the field carries a `PTP` time-of-day in
+nanoseconds, but senders and receivers may agree on any encoding.
+
+The dispatcher echoes `ptp_timestamp` in all dispatch paths (cooperative,
 regular, and graph-launch).
 
 ## Function ID Semantics
@@ -198,9 +230,9 @@ Wire encoding:
 ```text
 Offset | Content
 -------|--------
-0-15   | RPCHeader { magic, function_id, arg_len=8, request_id }
-16-19  | count (int32_t, little-endian)
-20-23  | threshold (float, IEEE 754)
+0-23   | RPCHeader { magic, function_id, arg_len=8, request_id, ptp_timestamp }
+24-27  | count (int32_t, little-endian)
+28-31  | threshold (float, IEEE 754)
 ```
 
 **Example 2: Handler with signature**
@@ -216,9 +248,9 @@ Wire encoding:
 ```text
 Offset | Content
 -------|--------
-0-15   | RPCHeader { magic, function_id, arg_len=20, request_id }
-16-31  | bits (bit-packed, LSB-first, 128 bits)
-32-35  | num_bits=128 (uint32_t, little-endian)
+0-23   | RPCHeader { magic, function_id, arg_len=20, request_id, ptp_timestamp }
+24-39  | bits (bit-packed, LSB-first, 128 bits)
+40-43  | num_bits=128 (uint32_t, little-endian)
 ```
 
 ### Bit-Packed Data Encoding
@@ -311,9 +343,10 @@ Offset | Content                                    | Value (hex)
 0-3    | magic (RPC_MAGIC_RESPONSE)                 | 53 51 55 43
 4-7    | status (0 = success)                       | 00 00 00 00
 8-11   | result_len                                 | 01 00 00 00
-12-15  | request_id (echoed from request)            | XX XX XX XX
-16     | result value (uint8_t)                     | 03
-17-... | unused padding                             | XX XX XX XX
+12-15  | request_id (echoed from request)           | XX XX XX XX
+16-23  | ptp_timestamp (echoed from request)        | XX XX XX XX XX XX XX XX
+24     | result value (uint8_t)                     | 03
+25-... | unused padding                             | XX XX XX XX
 ```
 
 ### Multi-Result Response
@@ -337,9 +370,9 @@ Wire encoding:
 ```text
 Offset | Content
 -------|--------
-0-15   | RPCResponse { magic, status=0, result_len=5, request_id }
-16     | correction (uint8_t)
-17-20  | confidence (float32, IEEE 754)
+0-23   | RPCResponse { magic, status=0, result_len=5, request_id, ptp_timestamp }
+24     | correction (uint8_t)
+25-28  | confidence (float32, IEEE 754)
 ```
 
 ### Status Codes
