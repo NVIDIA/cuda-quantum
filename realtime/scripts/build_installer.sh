@@ -27,19 +27,41 @@ set -euo pipefail
 # Setup
 # ============================================================================ #
 
-# Run from repo root
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cuda_variant=""
 arch=$(uname -m)
+output_dir="out"
+install_dir=""
+
+usage() {
+  cat <<'EOF'
+Usage:
+  bash realtime/scripts/build_installer.sh -c 12
+  bash realtime/scripts/build_installer.sh -c 13
+
+Options:
+  -c <cuda_version>   CUDA variant, 12 or 13 (required)
+  -o <output_dir>     Output directory for installer (default: out)
+  -i <install_dir>    Directory with built CUDA-Q realtime installation
+                     (default: $CUDAQ_REALTIME_INSTALL_PREFIX or $HOME/.cudaq_realtime)
+EOF
+}
 
 # Parse command line arguments
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:" opt; do
+while getopts ":c:o:i:h" opt; do
   case $opt in
     c) cuda_variant="$OPTARG" ;;
+    o) output_dir="$OPTARG" ;;
+    i) install_dir="$OPTARG" ;;
+    h)
+      usage
+      exit 0
+      ;;
     \?)
       echo "Invalid command line option -$OPTARG" >&2
+      usage >&2
       exit 1
       ;;
   esac
@@ -61,7 +83,9 @@ installer_name=install_cuda_quantum_realtime_cu${cuda_variant}.${arch}
 
 echo "Building installer $installer_name for CUDA $cuda_variant on $arch..."
 
-install_dir="${CUDAQ_REALTIME_INSTALL_PREFIX:-$HOME/.cudaq_realtime}"   
+if [ -z "$install_dir" ]; then
+  install_dir="${CUDAQ_REALTIME_INSTALL_PREFIX:-$HOME/.cudaq_realtime}"
+fi
 
 # Verify CUDA-Q Realtime is built
 if [ ! -d "$install_dir" ] || [ ! -f "$install_dir/lib/libcudaq-realtime.so" ]; then
@@ -77,31 +101,45 @@ if ! command -v makeself &>/dev/null; then
     exit 1
 fi
 
-echo "CUDAQ_REALTIME_INSTALL_PREFIX: $install_dir"
+echo "Using install directory: $install_dir"
 
 # ============================================================================ #
 # Create self-extracting archive
 # ============================================================================ #
-output_dir="${output_dir:-out}"
 mkdir -p "$output_dir"
 
 echo "Creating self-extracting archive..."
 
-makeself_args="--gzip --sha256"
+declare -a makeself_args
+makeself_args=(--gzip --sha256)
 # Add license if available
 if [ -f "$this_file_dir/../LICENSE" ]; then
-  makeself_args="$makeself_args --license $this_file_dir/../LICENSE"
+  makeself_args+=(--license "$this_file_dir/../LICENSE")
 fi
 
-# Copy install script
-cp "$this_file_dir/migrate_assets.sh" "$install_dir/install.sh"
-chmod a+x "$install_dir/install.sh"
+# Stage a clean payload directory so we don't mutate the install prefix.
+staging_dir="$(mktemp -d "${TMPDIR:-/tmp}/cudaq-realtime-installer.XXXXXX")"
+cleanup() {
+  rm -rf "$staging_dir"
+}
+trap cleanup EXIT
+
+if [ ! -f "$this_file_dir/migrate_assets.sh" ]; then
+  echo "Error: missing $this_file_dir/migrate_assets.sh" >&2
+  exit 1
+fi
+
+echo "Staging payload in $staging_dir..."
+mkdir -p "$staging_dir/payload"
+cp -a "$install_dir/." "$staging_dir/payload/"
+cp "$this_file_dir/migrate_assets.sh" "$staging_dir/payload/install.sh"
+chmod a+x "$staging_dir/payload/install.sh"
 
 # Default installation target 
 default_target='/opt/nvidia/cudaq/realtime'
 
-makeself $makeself_args \
-  "$install_dir" \
+makeself "${makeself_args[@]}" \
+  "$staging_dir/payload" \
   "$output_dir/$installer_name" \
   "CUDA-Q Realtime" \
   bash install.sh -t "$default_target"
@@ -109,5 +147,3 @@ makeself $makeself_args \
 echo ""
 echo "Done! Installer created: $output_dir/$installer_name"
 echo "To install: bash $output_dir/$installer_name --accept"
-
-# TODO: add uninstall script

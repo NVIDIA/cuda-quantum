@@ -56,20 +56,23 @@ evolution_result = cudaq.evolve(
     store_intermediate_results=cudaq.IntermediateResultSave.ALL)
 #[End Evolve]
 
-#[Begin Plot]
-get_result = lambda idx, res: [
-    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-]
+try:
+    #[Begin Plot]
+    get_result = lambda idx, res: [
+        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+    ]
 
-import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
-plt.plot(steps, get_result(0, evolution_result))
-plt.plot(steps, get_result(1, evolution_result))
-plt.plot(steps, get_result(2, evolution_result))
-plt.ylabel("Expectation value")
-plt.xlabel("Time")
-plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-#[End Plot]
+    plt.plot(steps, get_result(0, evolution_result))
+    plt.plot(steps, get_result(1, evolution_result))
+    plt.plot(steps, get_result(2, evolution_result))
+    plt.ylabel("Expectation value")
+    plt.xlabel("Time")
+    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
+    #[End Plot]
+except ImportError:
+    pass
 
 # Made up values - not sure what values are reasonable here.
 omega_c = 6 * np.pi

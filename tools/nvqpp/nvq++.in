@@ -280,9 +280,17 @@ install_dir="$(
 	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
 	pwd -P
 )"
-llvm_install_dir="@LLVM_BINARY_DIR@"
 llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
+# Locate the LLVM toolchain. The installer bundles LLVM under lib/llvm/;
+# fall back to a flat layout or the build-time LLVM directory.
+if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}/lib/llvm"
+elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}"
+else
+	llvm_install_dir="@LLVM_BINARY_DIR@"
+fi
 
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 # Full version string of this nvq++ script.

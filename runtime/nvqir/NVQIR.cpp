@@ -11,6 +11,7 @@
 #include "QIRTypes.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "common/Trace.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
@@ -715,8 +716,18 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
+  if (cudaq::isInTracerMode()) {
+    std::vector<double> paramVec(params, params + numParams);
+    std::vector<cudaq::QuditInfo> targets;
+    for (std::size_t id : arrayToVectorSizeT(qubits))
+      targets.emplace_back(2, id);
+    ctx->kernelTrace.appendNoiseInstruction(
+        static_cast<std::intptr_t>(krausChannelKey), std::move(paramVec), {},
+        std::move(targets));
+    return;
+  }
+
   auto *noise = ctx->noiseModel;
-  // per-spec, no noise model provided, emit warning, no application
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");
@@ -736,8 +747,21 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
+  if (cudaq::isInTracerMode()) {
+    std::vector<double> paramVec;
+    paramVec.reserve(numParams);
+    for (std::size_t i = 0; i < numParams; ++i)
+      paramVec.push_back(static_cast<double>(params[i]));
+    std::vector<cudaq::QuditInfo> targets;
+    for (std::size_t id : arrayToVectorSizeT(qubits))
+      targets.emplace_back(2, id);
+    ctx->kernelTrace.appendNoiseInstruction(
+        static_cast<std::intptr_t>(krausChannelKey), std::move(paramVec), {},
+        std::move(targets));
+    return;
+  }
+
   auto *noise = ctx->noiseModel;
-  // per-spec, no noise model provided, emit warning, no application
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");

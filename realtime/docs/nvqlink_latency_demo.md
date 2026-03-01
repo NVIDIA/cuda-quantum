@@ -28,17 +28,20 @@ More details can be found at the
 To run the test, here is an example for 32B messages reported in the paper:
 
 ```sh
-python3 ./examples/gpunetio_loopback.py --frame-size=32 --hololink=192.168.0.2 --rx-ibv-name=mlx5_0 --tx-ibv-name=mlx5_0 --mtu=256
+python3 ./examples/gpu_roce_loopback.py --frame-size=32 --hololink=192.168.0.2 --rx-ibv-name=mlx5_0 --tx-ibv-name=mlx5_0 --mtu=256
 ```
+
+> **Note:** The `rx-ibv-name` and `tx-ibv-name` arguments in the above command
+may need to be changed according to the system setup.
 
 Then to capture the data from the experiment and run the latency calculation:
 
 ```sh
 python3 ila.py
-python3 latency_analysis.py
+python3 latency_calc.py
 ```
 
-(These two python scripts can be found next to the Verilog source code).
+> **Note:** These two python scripts can be found next to the Verilog source code.
 
 ## Hololink IP: Connecting an `APB` `ILA` for Debug
 

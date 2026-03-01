@@ -1,0 +1,390 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+#
+# Workflow: diff apt and pip packages between a base and target image, then
+# build a source image containing source code for all added packages.
+# Optionally diff pip packages added by the macOS wheel (provide artifact_url).
+#
+# Inputs:
+#   push_to_NGC: boolean, default false
+#     Push the built source image to NGC, otherwise push to GHCR.
+#   environment: string, no default
+#     The environment to build the source image for.
+#   artifact_url: string, no default
+#     If set, diff pip packages added by the macOS wheel from this artifact URL
+#     (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID for pycudaq-3.13-darwin-arm64).
+#   python_version: string, default 3.13
+#     Python version for the macOS diff (must match the wheel).
+
+on:
+  workflow_dispatch:
+    inputs:
+      push_to_NGC:
+        required: false
+        type: boolean
+        default: false
+        description: 'Push the built source image to NGC, otherwise push to GHCR.'
+      environment:
+        required: false
+        type: string
+      artifact_url:
+        required: false
+        type: string
+        description: 'Optional: URL of macOS wheel artifact to diff pip packages (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID)'
+      python_version:
+        required: false
+        type: string
+        default: '3.13'
+        description: 'Python version for macOS diff (must match the wheel)'
+
+name: Build package sources
+
+jobs:
+  diff-packages-cudaq:
+    name: Diff apt/pip packages ${{ matrix.release }} (CUDA ${{ matrix.cuda }})
+    runs-on: ubuntu-latest
+    outputs:
+      base_image: ${{ steps.images.outputs.base_image }}
+      target_image: ${{ steps.images.outputs.target_image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cuda: ['12.6', '13.0']
+        release: ['cudaq', 'cudaqx']
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set image names
+        id: images
+        run: |
+          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
+          if [ "${{ matrix.release }}" = "cudaq" ]; then
+            echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" | tee -a $GITHUB_OUTPUT
+            echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
+          else
+            # cudaqx: devcontainer base, cudaqx target
+            cu_tag=$(echo "${{ matrix.cuda }}" | tr -d .)
+            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-gcc11-main" | tee -a $GITHUB_OUTPUT
+            echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to container registries
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin 2>/dev/null || true
+          echo "${{ secrets.DOCKERHUB_READONLY_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin 2>/dev/null || true
+
+      - name: Pull images
+        run: |
+          docker pull "${{ steps.images.outputs.base_image }}"
+          docker pull "${{ steps.images.outputs.target_image }}"
+
+      - name: Diff package lists
+        run: |
+          chmod +x scripts/diff_image_packages.sh
+          ./scripts/diff_image_packages.sh \
+            "${{ steps.images.outputs.base_image }}" \
+            "${{ steps.images.outputs.target_image }}" \
+            package-source-diff
+
+      - name: Package diff step summary
+        run: |
+          echo "## Diffed packages (${{ steps.images.outputs.base_image }} vs ${{ steps.images.outputs.target_image }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Apt packages added" >> $GITHUB_STEP_SUMMARY
+          if [ -s package-source-diff/apt_packages.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat package-source-diff/apt_packages.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "_None_" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pip packages added" >> $GITHUB_STEP_SUMMARY
+          if [ -s package-source-diff/pip_packages.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat package-source-diff/pip_packages.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "_None_" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload package lists
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-source-diff-cu${{ matrix.cuda }}-${{ matrix.release }}.zip
+          path: package-source-diff/
+          retention-days: 1
+
+  diff-macos-package:
+    name: Diff pip packages (macOS arm64)
+    if: inputs.artifact_url != ''
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Parse artifact URL
+        id: parse
+        run: |
+          url="${{ inputs.artifact_url }}"
+          run_id=$(echo "$url" | sed -n 's|.*/runs/\([0-9]*\)/.*|\1|p')
+          artifact_id=$(echo "$url" | sed -n 's|.*/artifacts/\([0-9]*\)$|\1|p')
+          if [ -z "$run_id" ] || [ -z "$artifact_id" ]; then
+            echo "Could not parse run_id and artifact_id from: $url"
+            exit 1
+          fi
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Capture pip packages (before)
+        run: |
+          pip list --format=freeze | grep -v '^#' | sort -u > pip_before.txt
+          echo "Packages before: $(wc -l < pip_before.txt)"
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.parse.outputs.run_id }}
+          artifact-ids: ${{ steps.parse.outputs.artifact_id }}
+          path: wheel/
+          github-token: ${{ github.token }}
+
+      - name: Install wheel
+        run: |
+          whl=$(find wheel -name '*.whl' 2>/dev/null | head -1)
+          if [ -z "$whl" ]; then
+            echo "No .whl file found under wheel/"
+            find wheel -type f
+            exit 1
+          fi
+          echo "Installing $whl"
+          pip install "$whl"
+          # Capture package name (PEP 427: name-version-...); normalize to pip form (dashes)
+          installed_pkg=$(basename "$whl" .whl | sed -E 's/-[0-9]+\.[0-9]+(\.[0-9]+)?.*//' | tr '_' '-')
+          echo "$installed_pkg" > installed_wheel_package.txt
+
+      - name: Capture pip packages (after)
+        run: |
+          pip list --format=freeze | grep -v '^#' | sort -u > pip_after.txt
+          echo "Packages after: $(wc -l < pip_after.txt)"
+
+      - name: Diff added pip packages
+        id: diff
+        run: |
+          exclude_pkg=''
+          [ -f installed_wheel_package.txt ] && exclude_pkg=$(cat installed_wheel_package.txt)
+          awk -F'==' '{print $1}' pip_before.txt | sort -u > pip_before_names.txt
+          while IFS= read -r line; do
+            pkg="${line%%==*}"
+            if [ -n "$exclude_pkg" ] && [ "$pkg" = "$exclude_pkg" ]; then
+              continue
+            fi
+            if ! grep -qxF "$pkg" pip_before_names.txt 2>/dev/null; then
+              echo "$line"
+            fi
+          done < pip_after.txt > pip_added.txt || true
+          count=$(wc -l < pip_added.txt | tr -d ' ')
+          echo "count=$count" >> $GITHUB_OUTPUT
+          echo "## Pip packages added by macOS wheel" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Count: **$count**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat pip_added.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload macOS pip diff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-pip-diff.zip
+          path: |
+            pip_added.txt
+            pip_before.txt
+            pip_after.txt
+          retention-days: 7
+
+  build-source-image:
+    name: Build source image CUDA ${{ matrix.cuda }}
+    needs: [diff-packages-cudaq, diff-macos-package]
+    if: always() && needs.diff-packages-cudaq.result == 'success' && (needs.diff-macos-package.result == 'success' || needs.diff-macos-package.result == 'skipped')
+    runs-on: linux-amd64-cpu32
+    strategy:
+      fail-fast: false
+      matrix:
+        cuda: ['12.6', '13.0']
+    permissions:
+      contents: read
+      packages: write
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Set base image
+        id: base-image
+        run: echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
+
+      - name: Download package lists (cudaq)
+        uses: actions/download-artifact@v4
+        with:
+          name: package-source-diff-cu${{ matrix.cuda }}-cudaq.zip
+          path: package-source-diff-cudaq
+
+      - name: Download package lists (cudaqx)
+        uses: actions/download-artifact@v4
+        with:
+          name: package-source-diff-cu${{ matrix.cuda }}-cudaqx.zip
+          path: package-source-diff-cudaqx
+
+      - name: Restore package-source-diff directory layout
+        run: |
+          mkdir -p package-source-diff
+          for variant in cudaq cudaqx; do
+            dir="package-source-diff-${variant}"
+            apt_src="$dir/apt_packages.txt"; [ -f "$dir/package-source-diff/apt_packages.txt" ] && apt_src="$dir/package-source-diff/apt_packages.txt"
+            pip_src="$dir/pip_packages.txt"; [ -f "$dir/package-source-diff/pip_packages.txt" ] && pip_src="$dir/package-source-diff/pip_packages.txt"
+            [ -f "$apt_src" ] && cp "$apt_src" "package-source-diff/apt_packages_${variant}.txt" || touch "package-source-diff/apt_packages_${variant}.txt"
+            [ -f "$pip_src" ] && cp "$pip_src" "package-source-diff/pip_packages_${variant}.txt" || touch "package-source-diff/pip_packages_${variant}.txt"
+          done
+          touch package-source-diff/pip_packages_macos.txt
+          ls -la package-source-diff/
+
+      - name: Download macOS pip diff
+        if: github.event.inputs.artifact_url != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-pip-diff.zip
+          path: macos-pip-diff
+
+      - name: Apply macOS pip diff to package list
+        if: github.event.inputs.artifact_url != ''
+        run: cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
+
+      - name: Generate trimmed package lists (cudaqx minus cudaq, macos minus cudaq/cudaqx)
+        run: |
+          d=package-source-diff
+          # apt: cudaqx trimmed = packages in cudaqx not in cudaq
+          if [ -f "$d/apt_packages_cudaqx.txt" ]; then
+            if [ -f "$d/apt_packages_cudaq.txt" ]; then
+              comm -23 <(sort -u "$d/apt_packages_cudaqx.txt") <(sort -u "$d/apt_packages_cudaq.txt") | grep -v '^$' > "$d/apt_packages_cudaqx_trimmed.txt" || true
+            else
+              cp "$d/apt_packages_cudaqx.txt" "$d/apt_packages_cudaqx_trimmed.txt"
+            fi
+          else
+            : > "$d/apt_packages_cudaqx_trimmed.txt"
+          fi
+          # pip: cudaqx trimmed = packages in cudaqx (by name) not in cudaq
+          awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null | sort -u > /tmp/pip_cudaq_names.txt || true
+          : > "$d/pip_packages_cudaqx_trimmed.txt"
+          if [ -f "$d/pip_packages_cudaqx.txt" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              pkg="${line%%==*}"
+              grep -qxF "$pkg" /tmp/pip_cudaq_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_cudaqx_trimmed.txt"
+            done < "$d/pip_packages_cudaqx.txt"
+          fi
+          # macOS pip: trimmed = packages in macos not in cudaq and not in cudaqx
+          { awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null; awk -F'==' '{print $1}' "$d/pip_packages_cudaqx.txt" 2>/dev/null; } | sort -u > /tmp/pip_union_names.txt
+          : > "$d/pip_packages_macos_trimmed.txt"
+          if [ -f "$d/pip_packages_macos.txt" ] && [ -s "$d/pip_packages_macos.txt" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              pkg="${line%%==*}"
+              grep -qxF "$pkg" /tmp/pip_union_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_macos_trimmed.txt"
+            done < "$d/pip_packages_macos.txt"
+          fi
+          ls -la "$d"/*trimmed* 2>/dev/null || true
+
+      - name: Generate tpls lock file
+        run: |
+          chmod +x scripts/generate_tpls_lock.sh
+          ./scripts/generate_tpls_lock.sh tpls_commits.lock
+          cat tpls_commits.lock
+          wc -l tpls_commits.lock || true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build source image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/build/package_sources.Dockerfile
+          build-args: |
+            base_image=${{ steps.base-image.outputs.base_image }}
+          load: true
+          tags: package-sources:latest
+          outputs: type=docker,dest=/tmp/package-sources.tar
+          push: false
+
+      - name: Log in to GitHub CR
+        if: github.event.inputs.push_to_NGC != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Log in to NGC
+        if: github.event.inputs.push_to_NGC == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: Tag and push to GHCR or NGC
+        id: push
+        run: |
+          docker load --input /tmp/package-sources.tar
+          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
+          target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
+          tag_suffix="${target_image##*:}"
+          if [ "${{ github.event.inputs.push_to_NGC }}" = "true" ]; then
+            # Derive push destination from target_image: .../cuda-quantum:tag -> .../cuda-quantum-src:tag
+            repo_part="${target_image%:*}"
+            tag="${repo_part}-src:${tag_suffix}"
+          else
+            owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
+          fi
+          docker tag package-sources:latest "$tag"
+          docker push "$tag"
+          echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          base_image="${{ steps.base-image.outputs.base_image }}"
+          echo "## Package source diff (CUDA ${{ matrix.cuda }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base image:** \`${base_image}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Built image ${{ steps.push.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
