@@ -157,7 +157,9 @@ protected:
     // Default to single shot
     std::size_t batch_size = 1;
     auto *executionContext = getExecutionContext();
-    if (executionContext && executionContext->name == "sample" &&
+    if (executionContext &&
+        (executionContext->name == "sample" ||
+         executionContext->name == "ptsbe-sample") &&
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "msm")
@@ -459,6 +461,10 @@ protected:
       deallocateState();
       return;
     }
+
+    // Reset all qubits to |0> and clear measurement records, preserving
+    // the allocated simulators for reuse (required by the PTSBE
+    // per-trajectory loop which calls setToZeroState between trajectories).
     auto nq = sampleSim->num_qubits;
     if (nq > 0) {
       std::vector<std::uint32_t> allQubits(nq);
