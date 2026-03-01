@@ -46,7 +46,7 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
-#include "hololink_wrapper.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 
 namespace cudaq::realtime {
 

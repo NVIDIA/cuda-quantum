@@ -6,11 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.   #
 # ============================================================================ #
 
-# Hololink bridge and playback tools
+# Hololink bridge implementation
 # ==============================================================================
 # These targets are gated by CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS and require
 # a pre-built hololink (holoscan-sensor-bridge) with DOCA support.
-# They are NOT CI tests -- they need FPGA hardware or an FPGA emulator.
+
 
 if (NOT HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR)
   message(FATAL_ERROR
@@ -136,79 +136,29 @@ find_path(FMT_INCLUDE_DIR
   NO_DEFAULT_PATH)
 
 # =========================================================================== #
-# hololink_fpga_playback  (no GPU / DOCA dependency)
-# =========================================================================== #
-
-add_executable(hololink_fpga_playback
-  hololink_fpga_playback.cpp)
-
-target_include_directories(hololink_fpga_playback
-  PRIVATE ${CUDAQ_REALTIME_INCLUDE_DIR})
-
-target_link_libraries(hololink_fpga_playback
-  PRIVATE Threads::Threads)
-
-# =========================================================================== #
-# hololink_bridge  (generic increment bridge)
+# hololink_bridge library
 # =========================================================================== #
 
 if (GPU_ROCE_TRANSCEIVER_LIB AND
     DOCA_INCLUDE_DIR AND DOCA_VERBS_LIB AND DOCA_COMMON_LIB AND
     DOCA_GPUNETIO_LIB)
 
-  message(STATUS "Building hololink_bridge (generic increment)")
+  message(STATUS "Building hololink_bridge interface library with the following dependencies:")
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
-  # Hololink wrapper static library (compiled by g++, isolates fmt)
-  add_library(hololink_wrapper_generic STATIC
-    ${CMAKE_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
+  # Library implementing the hololink bridge interface
+  add_library(cudaq-realtime-bridge-hololink SHARED bridge_impl.cpp hololink_wrapper.cpp)
 
-  target_include_directories(hololink_wrapper_generic
+  target_include_directories(cudaq-realtime-bridge-hololink
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
       ${CUDAQ_REALTIME_INCLUDE_DIR}
       "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
       ${DOCA_INCLUDE_DIR}
-      ${CUDAToolkit_INCLUDE_DIRS}
       ${FMT_INCLUDE_DIR})
 
-  target_link_libraries(hololink_wrapper_generic
-    PRIVATE ${GPU_ROCE_TRANSCEIVER_LIB})
-
-  target_compile_options(hololink_wrapper_generic PRIVATE -Wno-deprecated-declarations)
-
-  # Increment function table (compiled by nvcc)
-  add_library(rpc_increment_ft STATIC
-    init_rpc_increment_function_table.cu)
-
-  set_target_properties(rpc_increment_ft PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17)
-
-  target_include_directories(rpc_increment_ft PRIVATE
-    ${CUDAQ_REALTIME_INCLUDE_DIR}
-    ${CUDAToolkit_INCLUDE_DIRS})
-
-  # Bridge executable (.cpp, linked with CUDA)
-  add_executable(hololink_bridge
-    hololink_bridge.cpp)
-
-  set_target_properties(hololink_bridge PROPERTIES
-    LINKER_LANGUAGE CUDA
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-
-  target_include_directories(hololink_bridge
+  target_link_libraries(cudaq-realtime-bridge-hololink
     PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      ${CUDAQ_REALTIME_INCLUDE_DIR}
-      ${CUDAToolkit_INCLUDE_DIRS})
-
-  # Link order: static archives first, then shared
-  target_link_libraries(hololink_bridge
-    PRIVATE
-      rpc_increment_ft
-      cudaq-realtime-dispatch
       hololink_wrapper_generic
       ${GPU_ROCE_TRANSCEIVER_LIB}
       ${ROCE_RECEIVER_LIB}
@@ -226,15 +176,18 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       ${CMAKE_DL_LIBS})
 
   if (holoscan_FOUND)
-    target_link_libraries(hololink_bridge PRIVATE holoscan::core)
-    target_link_libraries(hololink_wrapper_generic PRIVATE holoscan::core)
+    target_link_libraries(cudaq-realtime-bridge-hololink PRIVATE holoscan::core)
+    target_link_libraries(cudaq-realtime-bridge-hololink PRIVATE holoscan::core)
   endif()
 
   # Set RPATH for shared libraries
-  set_target_properties(hololink_bridge PROPERTIES
+  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
     BUILD_RPATH "${DOCA_LIB_DIR}"
     INSTALL_RPATH "${DOCA_LIB_DIR}")
-
+  # Build output directory (/lib)
+  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+  install(TARGETS cudaq-realtime-bridge-hololink DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
   if (NOT GPU_ROCE_TRANSCEIVER_LIB)
     message(WARNING "gpu_roce_transceiver library not found. "
@@ -244,22 +197,4 @@ else()
     message(WARNING "DOCA libraries not found. "
                     "hololink_bridge requires DOCA.")
   endif()
-endif()
-
-# =========================================================================== #
-# hololink_fpga_emulator  (software FPGA, libibverbs only)
-# =========================================================================== #
-
-if (IBVERBS_LIB)
-  message(STATUS "Building hololink_fpga_emulator")
-
-  add_executable(hololink_fpga_emulator
-    hololink_fpga_emulator.cpp)
-
-  target_link_libraries(hololink_fpga_emulator
-    PRIVATE
-      ${IBVERBS_LIB}
-      Threads::Threads)
-else()
-  message(WARNING "libibverbs not found. hololink_fpga_emulator will not be built.")
 endif()

@@ -16,6 +16,7 @@ if(CUDA_FOUND)
   set(CMAKE_INSTALL_LIBDIR lib)
   set(CUDAQ_REALTIME_SOURCES
     dispatcher/cudaq_realtime_api.cpp
+    bridge/bridge_interface_api.cpp
   )
 
   add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
@@ -81,4 +82,8 @@ if(CUDA_FOUND)
     COMPONENT realtime-lib
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
+
+  if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
+    add_subdirectory(bridge/hololink)
+  endif()
 endif()

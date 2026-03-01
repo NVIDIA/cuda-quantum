@@ -1,0 +1,231 @@
+#!/bin/bash
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         #
+# All rights reserved.                                                        #
+#                                                                             #
+# This source code and the accompanying materials are made available under    #
+# the terms of the Apache License 2.0 which accompanies this distribution.   #
+# ============================================================================ #
+#
+# hololink_test.sh
+#
+# Orchestration script for end-to-end Hololink RPC dispatch testing.
+# Tests libcudaq-realtime dispatch kernel over Hololink RDMA with a
+# simple increment RPC handler (no QEC or decoder dependency).
+#
+
+set -euo pipefail
+
+# ============================================================================
+# Defaults
+# ============================================================================
+
+VERIFY=true
+
+# Network defaults
+IB_DEVICE=""           # auto-detect
+BRIDGE_IP="10.0.0.1"
+EMULATOR_IP="10.0.0.2"
+MTU=4096
+
+# Run defaults
+GPU_ID=0
+TIMEOUT=60
+NUM_SHOTS=100
+PAYLOAD_SIZE=8
+PAGE_SIZE=384
+NUM_PAGES=64
+CONTROL_PORT=8193
+
+# Build parallelism
+JOBS=$(nproc 2>/dev/null || echo 8)
+
+
+# ============================================================================
+# Auto-detect IB device
+# ============================================================================
+
+detect_ib_device() {
+    if [[ -n "$IB_DEVICE" ]]; then
+        echo "$IB_DEVICE"
+        return
+    fi
+    local dev
+    dev=$(ibstat -l 2>/dev/null | head -1 || true)
+    if [[ -z "$dev" ]]; then
+        dev=$(ls /sys/class/infiniband/ 2>/dev/null | head -1 || true)
+    fi
+    if [[ -z "$dev" ]]; then
+        echo "ERROR: Could not auto-detect IB device. Use --device." >&2
+        exit 1
+    fi
+    echo "$dev"
+}
+
+# ============================================================================
+# Network interface name from IB device
+# ============================================================================
+
+get_netdev() {
+    local ib_dev=$1
+    local netdev
+    netdev=$(ls "/sys/class/infiniband/$ib_dev/device/net/" 2>/dev/null | head -1 || true)
+    echo "$netdev"
+}
+
+# ============================================================================
+# Network setup
+# ============================================================================
+
+do_setup_network() {
+    IB_DEVICE=$(detect_ib_device)
+    local netdev
+    netdev=$(get_netdev "$IB_DEVICE")
+
+    echo "=== Setting up network ==="
+    echo "  IB device: $IB_DEVICE"
+    echo "  Net device: $netdev"
+
+    if [[ -z "$netdev" ]]; then
+        echo "ERROR: No network device found for $IB_DEVICE" >&2
+        exit 1
+    fi
+
+    sudo ip link set "$netdev" up mtu "$MTU" || true
+    sudo ip addr add "$BRIDGE_IP/24" dev "$netdev" 2>/dev/null || true
+
+    sudo ip addr add "$EMULATOR_IP/24" dev "$netdev" 2>/dev/null || true
+    # Add static ARP entries
+    sudo ip neigh replace "$BRIDGE_IP" lladdr "$(cat /sys/class/net/$netdev/address)" dev "$netdev" nud permanent 2>/dev/null || true
+    sudo ip neigh replace "$EMULATOR_IP" lladdr "$(cat /sys/class/net/$netdev/address)" dev "$netdev" nud permanent 2>/dev/null || true
+    
+
+    echo "=== Network setup complete ==="
+}
+
+# ============================================================================
+# Run
+# ============================================================================
+
+cleanup_pids() {
+    for pid in "${PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+        fi
+    done
+}
+
+do_run() {
+    IB_DEVICE=$(detect_ib_device)
+  
+    local bridge_bin="@CMAKE_CURRENT_BINARY_DIR@/hololink_app"
+    local emulator_bin="@HOLOLINK_EMULATOR_BIN@"
+    local playback_bin="@HOLOLINK_PLAYBACK_BIN@"
+    
+
+    PIDS=()
+    trap cleanup_pids EXIT
+
+   
+    echo "=== Emulated mode ==="
+
+    # Start emulator
+    echo "--- Starting emulator ---"
+    "$emulator_bin" \
+        --device="$IB_DEVICE" \
+        --port="$CONTROL_PORT" \
+        --bridge-ip="$BRIDGE_IP" \
+        --page-size="$PAGE_SIZE" \
+        2>&1 | tee /tmp/emulator.log &
+    PIDS+=($!)
+
+    # Wait for emulator to print QP number
+    sleep 2
+    FPGA_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/emulator.log | head -1)
+    if [[ -z "$FPGA_QP" ]]; then
+        echo "ERROR: Could not parse emulator QP from log" >&2
+        exit 1
+    fi
+    FPGA_QP="0x$FPGA_QP"
+    FPGA_TARGET_IP="$EMULATOR_IP"
+
+    echo "  Emulator QP: $FPGA_QP"
+   
+
+    # Start bridge
+    echo "--- Starting bridge ---"
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+LD_LIBRARY_PATH:}@CMAKE_BINARY_DIR@/lib"
+    "$bridge_bin" \
+        --device="$IB_DEVICE" \
+        --peer-ip="$FPGA_TARGET_IP" \
+        --remote-qp="$FPGA_QP" \
+        --gpu="$GPU_ID" \
+        --timeout="$TIMEOUT" \
+        --page-size="$PAGE_SIZE" \
+        --num-pages="$NUM_PAGES" \
+        2>&1 | tee /tmp/bridge.log &
+    PIDS+=($!)
+
+    # Wait for bridge to print QP info
+    sleep 3
+    local BRIDGE_QP BRIDGE_RKEY BRIDGE_BUFFER
+    BRIDGE_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
+    BRIDGE_RKEY=$(grep -oP 'RKey: \K[0-9]+' /tmp/bridge.log | tail -1)
+    BRIDGE_BUFFER=$(grep -oP 'Buffer Addr: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
+
+    if [[ -z "$BRIDGE_QP" || -z "$BRIDGE_RKEY" || -z "$BRIDGE_BUFFER" ]]; then
+        echo "ERROR: Could not parse bridge QP info from log" >&2
+        echo "  QP=$BRIDGE_QP RKEY=$BRIDGE_RKEY BUFFER=$BRIDGE_BUFFER" >&2
+        exit 1
+    fi
+
+    echo "  Bridge QP: 0x$BRIDGE_QP"
+    echo "  Bridge RKey: $BRIDGE_RKEY"
+    echo "  Bridge Buffer: 0x$BRIDGE_BUFFER"
+
+    # Start playback
+    echo "--- Starting playback ---"
+    local verify_flag=""
+    if ! $VERIFY; then
+        verify_flag="--no-verify"
+    fi
+
+    "$playback_bin" \
+        --control-ip="$FPGA_TARGET_IP" \
+        --control-port="$CONTROL_PORT" \
+        --bridge-qp="0x$BRIDGE_QP" \
+        --bridge-rkey="$BRIDGE_RKEY" \
+        --bridge-buffer="0x$BRIDGE_BUFFER" \
+        --page-size="$PAGE_SIZE" \
+        --num-pages="$NUM_PAGES" \
+        --num-shots="$NUM_SHOTS" \
+        --payload-size="$PAYLOAD_SIZE" \
+        --bridge-ip="$BRIDGE_IP" \
+        $verify_flag
+    PLAYBACK_EXIT=$?
+
+    # Wait for bridge to finish
+    sleep 2
+
+    # Cleanup
+    cleanup_pids
+
+    echo ""
+    if [[ $PLAYBACK_EXIT -eq 0 ]]; then
+        echo "*** TEST PASSED ***"
+    else
+        echo "*** TEST FAILED ***"
+    fi
+    exit $PLAYBACK_EXIT
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+echo "=== Hololink Generic RPC Test ==="
+echo "Mode: emulated"
+
+do_run
+echo "Done."
