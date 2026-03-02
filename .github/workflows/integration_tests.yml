@@ -396,9 +396,14 @@ jobs:
                 echo "::error::Quantinuum login request failed (curl error)"
                 exit 1
               }
-
               if [ "$response" -ne 200 ]; then
                 echo "::error::Quantinuum login failed with HTTP $response"
+                exit 1
+              fi
+              if ! grep -q "myqos_oat" ~/.quantinuum_cookies.txt || \
+                 ! grep -q "myqos_id" ~/.quantinuum_cookies.txt; then
+                echo "::error::Quantinuum login succeeded (HTTP 200) but expected cookies (myqos_oat, myqos_id) were not set. Cookie jar contents:"
+                awk '{if(NF>=7){$7="REDACTED"} print}' ~/.quantinuum_cookies.txt
                 exit 1
               fi
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
