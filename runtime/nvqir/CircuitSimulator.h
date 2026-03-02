@@ -1045,6 +1045,11 @@ public:
 
   /// @brief Clean up state after execution ends
   void endExecution() override {
+    if (nQubitsAllocated == 0) {
+      tracker = {};
+      return;
+    }
+
     bool shouldSetToZero = cudaq::isInBatchMode() && !cudaq::isLastBatch();
 
     // Reset the state if we've deallocated all qubits.
