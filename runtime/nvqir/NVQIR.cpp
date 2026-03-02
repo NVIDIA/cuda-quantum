@@ -716,18 +716,25 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
+  auto *noise = ctx->noiseModel;
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec(params, params + numParams);
     std::vector<cudaq::QuditInfo> targets;
     for (std::size_t id : arrayToVectorSizeT(qubits))
       targets.emplace_back(2, id);
+    auto key = static_cast<std::intptr_t>(krausChannelKey);
+    std::string channelName("apply_noise");
+    if (noise) {
+      try {
+        channelName = noise->get_channel(key, paramVec).get_type_name();
+      } catch (...) {
+      }
+    }
     ctx->kernelTrace.appendNoiseInstruction(
-        static_cast<std::intptr_t>(krausChannelKey), std::move(paramVec), {},
-        std::move(targets));
+        key, channelName, std::move(paramVec), {}, std::move(targets));
     return;
   }
 
-  auto *noise = ctx->noiseModel;
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");
@@ -747,6 +754,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
+  auto *noise = ctx->noiseModel;
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec;
     paramVec.reserve(numParams);
@@ -755,13 +763,19 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
     std::vector<cudaq::QuditInfo> targets;
     for (std::size_t id : arrayToVectorSizeT(qubits))
       targets.emplace_back(2, id);
+    auto key = static_cast<std::intptr_t>(krausChannelKey);
+    std::string channelName("apply_noise");
+    if (noise) {
+      try {
+        channelName = noise->get_channel(key, paramVec).get_type_name();
+      } catch (...) {
+      }
+    }
     ctx->kernelTrace.appendNoiseInstruction(
-        static_cast<std::intptr_t>(krausChannelKey), std::move(paramVec), {},
-        std::move(targets));
+        key, channelName, std::move(paramVec), {}, std::move(targets));
     return;
   }
 
-  auto *noise = ctx->noiseModel;
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");
