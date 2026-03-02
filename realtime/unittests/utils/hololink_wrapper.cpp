@@ -41,10 +41,9 @@ hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
   try {
     auto *impl = new HololinkTransceiverImpl();
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(
-        device_name, static_cast<unsigned>(ib_port),
-        gpu_id,
-        frame_size, page_size,
-        num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0);
+        device_name, static_cast<unsigned>(ib_port), gpu_id, frame_size,
+        page_size, num_pages, peer_ip, forward != 0, rx_only != 0,
+        tx_only != 0);
     return reinterpret_cast<hololink_transceiver_t>(impl);
   } catch (const std::exception &e) {
     std::cerr << "ERROR: Failed to create GpuRoceTransceiver: " << e.what()

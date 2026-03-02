@@ -20,11 +20,12 @@ namespace cudaq::nvqlink {
 /// @brief RPC request header - wire format for function dispatch (24 bytes).
 /// Must be wire-compatible with cuda-quantum RPC protocol.
 struct __attribute__((packed)) RPCHeader {
-  std::uint32_t magic;         ///< Magic value to validate message framing
-  std::uint32_t function_id;   ///< Hash of function name (FNV-1a)
-  std::uint32_t arg_len;       ///< Length of argument data in bytes
-  std::uint32_t request_id;    ///< Caller-assigned ID echoed in the response
-  std::uint64_t ptp_timestamp; ///< PTP send timestamp (set by sender; 0 if unused)
+  std::uint32_t magic;       ///< Magic value to validate message framing
+  std::uint32_t function_id; ///< Hash of function name (FNV-1a)
+  std::uint32_t arg_len;     ///< Length of argument data in bytes
+  std::uint32_t request_id;  ///< Caller-assigned ID echoed in the response
+  std::uint64_t
+      ptp_timestamp; ///< PTP send timestamp (set by sender; 0 if unused)
 };
 
 /// @brief RPC response header - returned to caller (24 bytes).

@@ -173,8 +173,7 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.unified = true;
   }
 
-  config.frame_size =
-      sizeof(cudaq::nvqlink::RPCHeader) + config.payload_size;
+  config.frame_size = sizeof(cudaq::nvqlink::RPCHeader) + config.payload_size;
 }
 
 //==============================================================================
@@ -237,10 +236,10 @@ inline int bridge_run(BridgeConfig &config) {
       config.device.c_str(), 1, // ib_port
       config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
-      "0.0.0.0",                  // deferred connection
-      use_forward_ring ? 1 : 0,   // forward (symmetric ring layout)
-      use_forward_ring ? 0 : 1,   // rx_only
-      use_forward_ring ? 0 : 1    // tx_only
+      "0.0.0.0",                // deferred connection
+      use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
+      use_forward_ring ? 0 : 1, // rx_only
+      use_forward_ring ? 0 : 1  // tx_only
   );
 
   if (!transceiver) {
@@ -339,7 +338,8 @@ inline int bridge_run(BridgeConfig &config) {
     // [4] Wire dispatch kernel
     //==========================================================================
     std::cout << "\n[4/5] Wiring dispatch kernel ("
-              << (config.unified ? "unified" : "3-kernel") << ")..." << std::endl;
+              << (config.unified ? "unified" : "3-kernel") << ")..."
+              << std::endl;
 
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -398,7 +398,8 @@ inline int bridge_run(BridgeConfig &config) {
       if (cudaq_dispatcher_set_unified_launch(
               dispatcher, &cudaq_launch_unified_dispatch_kernel,
               &unified_ctx) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set unified launch function" << std::endl;
+        std::cerr << "ERROR: Failed to set unified launch function"
+                  << std::endl;
         return 1;
       }
     } else {
@@ -410,7 +411,8 @@ inline int bridge_run(BridgeConfig &config) {
       ringbuffer.rx_stride_sz = config.page_size;
       ringbuffer.tx_stride_sz = config.page_size;
 
-      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) != CUDAQ_OK) {
+      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
+          CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
         return 1;
       }
@@ -445,7 +447,8 @@ inline int bridge_run(BridgeConfig &config) {
     }
     std::cout << "  Dispatch kernel launched" << std::endl;
   } else {
-    std::cout << "\n[4/5] Forward mode -- skipping dispatch kernel" << std::endl;
+    std::cout << "\n[4/5] Forward mode -- skipping dispatch kernel"
+              << std::endl;
   }
 
   //============================================================================

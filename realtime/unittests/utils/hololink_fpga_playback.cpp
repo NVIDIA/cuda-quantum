@@ -187,7 +187,8 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
           << "  --bridge-ip=ADDR      Bridge IP for FPGA (default: 10.0.0.1)\n"
           << "  --emulator            Using emulator (skip FPGA reset)\n"
           << "  --no-verify           Skip ILA response verification\n"
-          << "  --forward             Forward (echo) mode: accept echoed requests\n";
+          << "  --forward             Forward (echo) mode: accept echoed "
+             "requests\n";
       exit(0);
     }
   }
@@ -269,10 +270,8 @@ void write_bram(hololink::Hololink &hl,
         if (byte_offset + sizeof(std::uint32_t) <= window.size())
           value = load_le_u32(window.data() + byte_offset);
 
-        auto ram_addr =
-            static_cast<std::uint32_t>(i << (w_sample_addr + 2));
-        auto sample_addr =
-            static_cast<std::uint32_t>((s + (w * cycles)) * 0x4);
+        auto ram_addr = static_cast<std::uint32_t>(i << (w_sample_addr + 2));
+        auto sample_addr = static_cast<std::uint32_t>((s + (w * cycles)) * 0x4);
         std::uint32_t address = RAM_ADDR + ram_addr + sample_addr;
 
         write_data.queue_write_uint32(address, value);
@@ -296,8 +295,7 @@ bool verify_bram(hololink::Hololink &hl,
                  const std::vector<std::vector<std::uint8_t>> &windows,
                  std::size_t bytes_per_window) {
   const std::size_t cycles = bytes_per_window / 64;
-  const auto total_cycles =
-      static_cast<std::uint32_t>(windows.size() * cycles);
+  const auto total_cycles = static_cast<std::uint32_t>(windows.size() * cycles);
   const std::uint32_t w_sample_addr = bram_w_sample_addr();
 
   bool all_ok = true;
@@ -305,9 +303,8 @@ bool verify_bram(hololink::Hololink &hl,
 
   for (std::uint32_t i = 0; i < RAM_NUM; ++i) {
     std::uint32_t bank_base = RAM_ADDR + (i << (w_sample_addr + 2));
-    auto [ok, readback] =
-        hl.read_uint32(bank_base, total_cycles,
-                       hololink::Timeout::default_timeout());
+    auto [ok, readback] = hl.read_uint32(bank_base, total_cycles,
+                                         hololink::Timeout::default_timeout());
     if (!ok) {
       std::cerr << "BRAM readback: failed to read bank " << i << "\n";
       return false;
@@ -387,8 +384,7 @@ std::vector<std::vector<std::uint32_t>> ila_dump(hololink::Hololink &hl,
     bank_data[y].reserve(num_samples);
     for (std::uint32_t off = 0; off < num_samples; off += kChunkSize) {
       std::uint32_t n = std::min(kChunkSize, num_samples - off);
-      auto [ok, data] =
-          hl.read_uint32(bank_base + off * 4, n, timeout);
+      auto [ok, data] = hl.read_uint32(bank_base + off * 4, n, timeout);
       if (!ok)
         throw std::runtime_error("Failed to read ILA bank " +
                                  std::to_string(y));
@@ -426,8 +422,8 @@ extract_payload_bytes(const std::vector<std::uint32_t> &sample,
 
 /// Extract the 64-bit current_ptp_timestamp from ILA bits [584:521].
 /// Returns {sec[31:0], nsec[31:0]} packed as a uint64.
-std::uint64_t extract_ila_ptp_timestamp(
-    const std::vector<std::uint32_t> &sample) {
+std::uint64_t
+extract_ila_ptp_timestamp(const std::vector<std::uint32_t> &sample) {
   // Bits 521..584 span words 16 and 17 (and partially 18).
   // bit 521 = word 16, offset 9
   // We need 64 bits starting at bit 521.
@@ -444,8 +440,8 @@ std::uint64_t extract_ila_ptp_timestamp(
 
 /// Extract the echoed PTP send timestamp from RPCResponse.ptp_timestamp.
 /// The dispatch kernel echoes this field from RPCHeader.ptp_timestamp.
-std::uint64_t extract_echoed_ptp_timestamp(
-    const cudaq::nvqlink::RPCResponse *resp) {
+std::uint64_t
+extract_echoed_ptp_timestamp(const cudaq::nvqlink::RPCResponse *resp) {
   return resp->ptp_timestamp;
 }
 
@@ -491,20 +487,17 @@ int main(int argc, char *argv[]) {
     channel_metadata["cpnx_ip"] = args.hololink_ip;
     channel_metadata["control_port"] =
         static_cast<std::int64_t>(args.control_port);
-    channel_metadata["hsb_ip_version"] =
-        static_cast<std::int64_t>(0x2501);
+    channel_metadata["hsb_ip_version"] = static_cast<std::int64_t>(0x2501);
     channel_metadata["fpga_uuid"] = std::string("emulator");
     channel_metadata["vp_mask"] = static_cast<std::int64_t>(0x1);
     channel_metadata["data_plane"] = static_cast<std::int64_t>(0);
     channel_metadata["sensor"] = static_cast<std::int64_t>(0);
     channel_metadata["sif_address"] = static_cast<std::int64_t>(0);
-    channel_metadata["vp_address"] =
-        static_cast<std::int64_t>(args.vp_address);
+    channel_metadata["vp_address"] = static_cast<std::int64_t>(args.vp_address);
     channel_metadata["hif_address"] =
         static_cast<std::int64_t>(args.hif_address);
   } else {
-    channel_metadata =
-        hololink::Enumerator::find_channel(args.hololink_ip);
+    channel_metadata = hololink::Enumerator::find_channel(args.hololink_ip);
     hololink::DataChannel::use_sensor(channel_metadata, 0);
   }
 
@@ -519,8 +512,7 @@ int main(int argc, char *argv[]) {
   // ------------------------------------------------------------------
   // Configure FPGA SIF for RDMA target
   // ------------------------------------------------------------------
-  size_t frame_size =
-      sizeof(cudaq::nvqlink::RPCHeader) + args.payload_size;
+  size_t frame_size = sizeof(cudaq::nvqlink::RPCHeader) + args.payload_size;
   size_t bytes_per_window = ((frame_size + 63) / 64) * 64;
 
   std::cout << "\n[1/4] Configuring RDMA target..." << std::endl;
@@ -536,8 +528,7 @@ int main(int argc, char *argv[]) {
   hololink_channel.authenticate(args.bridge_qp, args.bridge_rkey);
   hololink_channel.configure_roce(
       args.bridge_buffer, static_cast<uint32_t>(bytes_per_window),
-      static_cast<uint32_t>(args.page_size), args.num_pages,
-      ROCEV2_UDP_PORT);
+      static_cast<uint32_t>(args.page_size), args.num_pages, ROCEV2_UDP_PORT);
 
   std::cout << "  RDMA target configured" << std::endl;
 
@@ -553,8 +544,9 @@ int main(int argc, char *argv[]) {
   hololink::Hololink::WriteData config_write;
   config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_WINDOW_SIZE_OFFSET,
                                   static_cast<std::uint32_t>(bytes_per_window));
-  config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_WINDOW_NUMBER_OFFSET,
-                                  static_cast<std::uint32_t>(args.num_messages));
+  config_write.queue_write_uint32(
+      PLAYER_ADDR + PLAYER_WINDOW_NUMBER_OFFSET,
+      static_cast<std::uint32_t>(args.num_messages));
   config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_TIMER_OFFSET,
                                   RF_SOC_TIMER_SCALE *
                                       DEFAULT_TIMER_SPACING_US);
@@ -595,7 +587,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Disable metadata packet (set bit 16 of METADATA_PACKET_ADDR via RMW)
-  // Needed for FPGA bitfile 0x0227+; comment out for older bitfiles (e.g. 0x2601).
+  // Needed for FPGA bitfile 0x0227+; comment out for older bitfiles (e.g.
+  // 0x2601).
   {
     std::uint32_t val = hololink->read_uint32(METADATA_PACKET_ADDR);
     if (!hololink->write_uint32(METADATA_PACKET_ADDR, val | (1u << 16)))
@@ -631,8 +624,7 @@ int main(int argc, char *argv[]) {
     int stable = 0;
     int elapsed = 0;
     while (elapsed < kVerifyTimeoutMs) {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(kPollIntervalMs));
+      std::this_thread::sleep_for(std::chrono::milliseconds(kPollIntervalMs));
       elapsed += kPollIntervalMs;
       std::uint32_t count = ila_sample_count(*hololink);
       if (count > 0 && count == prev_count)
@@ -689,12 +681,12 @@ int main(int argc, char *argv[]) {
 
       auto payload = extract_payload_bytes(sample, 64);
 
-      auto *resp = reinterpret_cast<const cudaq::nvqlink::RPCResponse *>(
-          payload.data());
+      auto *resp =
+          reinterpret_cast<const cudaq::nvqlink::RPCResponse *>(payload.data());
 
       uint32_t expected_magic = args.forward
-          ? cudaq::nvqlink::RPC_MAGIC_REQUEST
-          : cudaq::nvqlink::RPC_MAGIC_RESPONSE;
+                                    ? cudaq::nvqlink::RPC_MAGIC_REQUEST
+                                    : cudaq::nvqlink::RPC_MAGIC_RESPONSE;
 
       if (resp->magic != expected_magic) {
         ++non_rpc_frames;
@@ -720,8 +712,7 @@ int main(int argc, char *argv[]) {
         uint32_t check_len = std::min(resp->result_len, args.payload_size);
 
         for (uint32_t j = 0; j < check_len && ok; j++) {
-          uint8_t expected =
-              static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
+          uint8_t expected = static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
           if (result_data[j] != expected) {
             if (payload_errors < 5) {
               std::cerr << "  Shot " << rid << " byte " << j << ": expected "
@@ -756,18 +747,16 @@ int main(int argc, char *argv[]) {
           if (delta > lat_max)
             lat_max = delta;
 
-          lat_samples.push_back(
-              {rid, send_ts.sec, send_ts.nsec,
-               recv_ts.sec, recv_ts.nsec, delta});
+          lat_samples.push_back({rid, send_ts.sec, send_ts.nsec, recv_ts.sec,
+                                 recv_ts.nsec, delta});
 
           if (lat_count <= 5) {
             std::cout << "  Msg " << std::setw(3) << rid
                       << ": send={sec=" << send_ts.sec
                       << ", nsec=" << send_ts.nsec
                       << "} recv={sec=" << recv_ts.sec
-                      << ", nsec=" << recv_ts.nsec
-                      << "} delta=" << delta << " ns"
-                      << std::endl;
+                      << ", nsec=" << recv_ts.nsec << "} delta=" << delta
+                      << " ns" << std::endl;
           }
         }
       }
@@ -798,8 +787,7 @@ int main(int argc, char *argv[]) {
         csv << "shot,send_sec,send_nsec,recv_sec,recv_nsec,delta_ns\n";
         for (auto &s : lat_samples)
           csv << s.shot << "," << s.send_sec << "," << s.send_nsec << ","
-              << s.recv_sec << "," << s.recv_nsec << "," << s.delta_ns
-              << "\n";
+              << s.recv_sec << "," << s.recv_nsec << "," << s.delta_ns << "\n";
         csv.close();
         std::cout << "  CSV written: " << csv_path << std::endl;
       }

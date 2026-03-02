@@ -138,8 +138,8 @@ void cudaq_launch_dispatch_kernel_cooperative(
 // Unified dispatch launch function pointer type.
 // The unified kernel combines RDMA RX, RPC dispatch, and RDMA TX into a single
 // kernel, eliminating inter-kernel flag handoff overhead.  Transport-specific
-// details are passed via an opaque context pointer so the dispatcher API remains
-// transport-agnostic.
+// details are passed via an opaque context pointer so the dispatcher API
+// remains transport-agnostic.
 typedef void (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, cudaq_function_entry_t *function_table,
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
