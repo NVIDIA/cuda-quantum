@@ -19,7 +19,7 @@
 #include <span>
 #include <unordered_map>
 
-namespace cudaq::ptsbe {
+namespace cudaq::ptsbe::detail {
 
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx) {
@@ -252,4 +252,4 @@ PTSBatch buildPTSBatchFromTrace(PTSBETrace &&trace, const PTSBEOptions &options,
   return batch;
 }
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail
