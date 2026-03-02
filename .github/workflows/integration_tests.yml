@@ -696,10 +696,24 @@ jobs:
                 ;;
 
               tii)
-                nvq++ -v $filename --target tii
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target tii
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -707,9 +721,6 @@ jobs:
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
                   fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
             esac
