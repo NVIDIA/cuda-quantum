@@ -681,8 +681,8 @@ int main(int argc, char *argv[]) {
 
       auto payload = extract_payload_bytes(sample, 64);
 
-      auto *resp =
-          reinterpret_cast<const cudaq::realtime::RPCResponse *>(payload.data());
+      auto *resp = reinterpret_cast<const cudaq::realtime::RPCResponse *>(
+          payload.data());
 
       uint32_t expected_magic = args.forward
                                     ? cudaq::realtime::RPC_MAGIC_REQUEST
