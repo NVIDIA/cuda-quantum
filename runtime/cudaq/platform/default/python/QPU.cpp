@@ -63,7 +63,9 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  if (resultTy && isEntryPoint) {
+  // If we're persisting the jit cache we need to run GKE to have access
+  // to `.argsCreator` to serialize the arguments.
+  if ((resultTy && isEntryPoint) || cudaq::detail::isPersistingJITEngine()) {
     // If we're expecting a result, then we want to call the .thunk function so
     // that the result is properly marshaled. Add the GKE pass to generate the
     // .thunk. At this point, the kernel should have been specialized so it has
@@ -206,8 +208,12 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     cudaq::KernelThunkResultType result{nullptr, 0};
+
+    bool builtJIT = false;
+
     auto jit = alreadyBuiltJITCode();
     if (!jit) {
+      builtJIT = true;
       // 1. Check that this call is sane.
       if (enablePythonCodegenDump)
         module.dump();
@@ -236,6 +242,24 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
       // 4. Execute the code right here, right now.
       jit = cudaq::createQIRJITEngine(module, "qir:");
+    }
+
+    if (cudaq::detail::isPersistingJITEngine()) {
+      auto funcPtr = jit->lookupRawNameOrFail(name + ".argsCreator");
+      auto argsCreator =
+          reinterpret_cast<int64_t (*)(const void *, void **)>(funcPtr);
+      void *res_buffer;
+      const void *argBlock = rawArgs.data();
+      auto res_size = argsCreator(argBlock, &res_buffer);
+      if (builtJIT) {
+        auto can_reuse = cudaq::detail::isLaunchInfoSame(res_buffer, res_size);
+        free(res_buffer);
+        if (!can_reuse)
+          throw std::runtime_error("Detected reuse of compiler artifact with "
+                                   "diverging explicit arguments.");
+      } else {
+        cudaq::detail::saveLaunchInfo(res_buffer, res_size);
+      }
     }
 
     if (resultTy) {

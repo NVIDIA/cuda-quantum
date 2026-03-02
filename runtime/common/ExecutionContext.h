@@ -208,6 +208,9 @@ void resetExecutionContext();
 
 void enablePersistentJITEngine();
 void disablePersistentJITEngine();
+bool isPersistingJITEngine();
+void saveLaunchInfo(void *argMessageBuffer, size_t size);
+bool isLaunchInfoSame(void *argMessageBuffer, size_t size);
 } // namespace detail
 
 } // namespace cudaq

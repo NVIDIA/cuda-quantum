@@ -7,12 +7,54 @@
  ******************************************************************************/
 
 #include "ExecutionContext.h"
+#include <cstdlib>
+#include <cstring>
 
 namespace {
+class SavedCompilerArtifact {
+public:
+  bool hasJitEngine() const { return jitEng.has_value(); }
+  const std::optional<cudaq::JitEngine> &getJitEngine() const { return jitEng; }
+  void setJitEngine(const cudaq::JitEngine &engine) { jitEng = engine; }
+
+  void reset() {
+    jitEng.reset();
+    clearArgs();
+  }
+
+  // We're responsible for freeing argMessageBuffer.
+  void saveLaunchInfo(void *argMessageBuffer, size_t size) {
+    assert(argMessageBuffer);
+    assert(!argBuff);
+    argBuff = argMessageBuffer;
+    argSize = size;
+  }
+
+  bool isLaunchInfoSame(void *argMessageBuffer, size_t size) const {
+    if (!argBuff || !argMessageBuffer)
+      return false;
+    if (size != argSize)
+      return false;
+    return memcmp(argMessageBuffer, argBuff, size) == 0;
+  }
+
+private:
+  void clearArgs() {
+    if (argBuff)
+      std::free(argBuff);
+    argBuff = nullptr;
+    argSize = 0;
+  }
+
+  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  void *argBuff = nullptr;
+  size_t argSize = 0;
+};
+
 /// @brief Thread-local storage for the current execution context.
 thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
 thread_local bool persistJITEngine = false;
-thread_local std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+thread_local SavedCompilerArtifact savedArtifact;
 } // namespace
 
 namespace nvqir {
@@ -46,14 +88,15 @@ std::size_t getCurrentQpuId() {
 void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
 
-  if (currentExecutionContext && persistJITEngine && jitEng.has_value())
-    currentExecutionContext->jitEng = jitEng.value();
+  if (currentExecutionContext && persistJITEngine &&
+      savedArtifact.hasJitEngine())
+    currentExecutionContext->jitEng = savedArtifact.getJitEngine().value();
 }
 
 void detail::resetExecutionContext() {
   if (currentExecutionContext && persistJITEngine &&
       currentExecutionContext->jitEng.has_value())
-    jitEng = currentExecutionContext->jitEng.value();
+    savedArtifact.setJitEngine(currentExecutionContext->jitEng.value());
 
   currentExecutionContext = nullptr;
 }
@@ -64,7 +107,22 @@ void detail::enablePersistentJITEngine() { persistJITEngine = true; }
 
 void detail::disablePersistentJITEngine() {
   persistJITEngine = false;
-  jitEng.reset();
+  savedArtifact.reset();
+}
+
+bool detail::isPersistingJITEngine() { return persistJITEngine; }
+
+// We're responsible for freeing argMessageBuffer
+void detail::saveLaunchInfo(void *argMessageBuffer, size_t size) {
+  if (!persistJITEngine)
+    return;
+  savedArtifact.saveLaunchInfo(argMessageBuffer, size);
+}
+
+bool detail::isLaunchInfoSame(void *argMessageBuffer, size_t size) {
+  if (!persistJITEngine)
+    return false;
+  return savedArtifact.isLaunchInfoSame(argMessageBuffer, size);
 }
 
 } // namespace cudaq
