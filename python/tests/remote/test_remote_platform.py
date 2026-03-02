@@ -321,9 +321,9 @@ def test_state_kernel():
 
 def check_overlap(entity_bell, entity_x):
     with pytest.raises(RuntimeError) as e:
-        state1 = cudaq.StateMemoryView(cudaq.get_state(entity_bell))
+        state1 = cudaq.get_state(entity_bell)
         state1.dump()
-        state2 = cudaq.StateMemoryView(cudaq.get_state(entity_x))
+        state2 = cudaq.get_state(entity_x)
         state2.dump()
     assert "get_state is not supported" in repr(e)
 
@@ -366,13 +366,13 @@ def check_overlap_param(entity):
         for i in range(num_tests):
             angle1 = (np.random.rand() * 2.0 * np.pi
                      )  # random angle in [0, 2pi] range
-            state1 = cudaq.StateMemoryView(cudaq.get_state(entity, angle1))
+            state1 = cudaq.get_state(entity, angle1)
             print("First angle =", angle1)
             state1.dump()
             angle2 = (np.random.rand() * 2.0 * np.pi
                      )  # random angle in [0, 2pi] range
             print("Second angle =", angle2)
-            state2 = cudaq.StateMemoryView(cudaq.get_state(entity, angle2))
+            state2 = cudaq.get_state(entity, angle2)
             state2.dump()
             overlap = state1.overlap(state2)
             expected = np.abs(

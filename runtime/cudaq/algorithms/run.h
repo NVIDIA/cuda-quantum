@@ -47,7 +47,7 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            const std::string &kernel_name,
                            const std::string &original_name, std::size_t shots,
                            const LayoutInfoType &layoutInfo,
-                           std::size_t qpu_id = 0);
+                           std::size_t qpu_id = 0, bool allowCaching = true);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a

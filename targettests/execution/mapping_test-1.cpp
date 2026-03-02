@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
-// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_test_src_dir/Crystal_5.txt" && %t | FileCheck %s
+// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
 // clang-format on
 // RUN: nvq++ --enable-mlir %s -o %t
 // RUN: rm -f %t.txt

@@ -35,9 +35,26 @@ def test_qudit():
     assert len(counts) == 1
     assert '3' in counts
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel))
+    state = cudaq.get_state(kernel)
     state.dump()
     assert 4 == state.__len__()
+
+
+def test_compilation_unsupported():
+
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=4)
+        create(q)
+
+    assert not kernel.supports_compilation()
+
+    with pytest.raises(RuntimeError) as e:
+        kernel.compile()
+
+    print(e.value)
+    assert "Cannot compile kernel 'kernel': target handler 'orca-photonics' does not support compilation" in str(
+        e.value)
 
 
 def test_qudit_list():
@@ -100,7 +117,7 @@ def test_kernel_with_args():
     result = cudaq.sample(kernel_1f, 0.5)
     result.dump()
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel_1f, 0.5))
+    state = cudaq.get_state(kernel_1f, 0.5)
     state.dump()
 
     @cudaq.kernel
@@ -114,7 +131,7 @@ def test_kernel_with_args():
     result = cudaq.sample(kernel_2f, 0.7854, 0.3927)
     result.dump()
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel_2f, 0.7854, 0.3927))
+    state = cudaq.get_state(kernel_2f, 0.7854, 0.3927)
     state.dump()
 
     @cudaq.kernel
@@ -128,8 +145,7 @@ def test_kernel_with_args():
     result = cudaq.sample(kernel_list, [0.5236, 1.0472])
     result.dump()
 
-    state = cudaq.StateMemoryView(cudaq.get_state(kernel_list,
-                                                  [0.5236, 1.0472]))
+    state = cudaq.get_state(kernel_list, [0.5236, 1.0472])
     state.dump()
 
 
@@ -235,15 +251,18 @@ def test_qudit_level():
 
 def test_run_unsupported():
 
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=2)
+        create(q)
+        mz(q)
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def kernel():
-            q = qudit(level=2)
-            create(q)
-            mz(q)
-
         cudaq.run(kernel, shots_count=10)
+    assert "Unsupported target" in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(kernel, None)
     assert "Unsupported target" in repr(e)
 
 

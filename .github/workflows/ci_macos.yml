@@ -249,8 +249,13 @@ jobs:
 
       - name: Validate wheel
         run: |
-          # Full validation: core tests, examples, snippets, backends
-          # GPU/MPI tests are automatically skipped on macOS (CPU-only)
+          # Validates wheel: core tests, examples, snippets, backends.
+          # GPU/remote targets are skipped (no CUDA on macOS runners).
+          # TODO: When adding macOS to publishing.yml, align the validation
+          # approach with python_wheels.yml (which uses
+          # explicit find exclusions for platform/backends/dynamics paths,
+          # and does not use validate_pycudaq.sh for snippets/examples
+          # currently used in python_wheels.yml).
           bash scripts/validate_pycudaq.sh \
             -v ${{ needs.wheel.outputs.cudaq_version }} \
             -i dist \
@@ -363,17 +368,14 @@ jobs:
 
       - name: Install CUDA-Q (C++ via installer)
         run: |
-          # Make installer executable and run with sudo (installs to /opt/nvidia/cudaq)
           chmod +x installer/install_cuda_quantum*
-          sudo bash installer/install_cuda_quantum* --accept
+          bash installer/install_cuda_quantum* --accept -- --installpath $HOME/.cudaq
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          # Install wheel for Python support (per documentation, Python is separate)
           pip install wheel/*.whl
 
       - name: Validate installation
         run: |
-          # Source the installer's environment setup to add nvq++ to PATH
-          source /opt/nvidia/cudaq/set_env.sh
+          source $HOME/.zshrc
           bash scripts/validate_installation.sh

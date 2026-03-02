@@ -13,6 +13,7 @@
 # and includes the GPU dispatch kernel device code.
 
 if(CUDA_FOUND)
+  set(CMAKE_INSTALL_LIBDIR lib)
   set(CUDAQ_REALTIME_SOURCES
     dispatcher/cudaq_realtime_api.cpp
   )
@@ -31,6 +32,9 @@ if(CUDA_FOUND)
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
+  target_link_options(cudaq-realtime PRIVATE
+    "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/cudaq-realtime.map")
+  set_target_properties(cudaq-realtime PROPERTIES LINK_FLAGS_RELEASE "-s")
 
   set_target_properties(cudaq-realtime PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -47,6 +51,10 @@ if(CUDA_FOUND)
     dispatcher/dispatch_kernel.cu
     dispatcher/unified_dispatch_kernel.cu
   )
+  set_target_properties(cudaq-realtime-dispatch
+    PROPERTIES
+    LINK_FLAGS_RELEASE "-Wl,--exclude-libs=ALL")
+  set_target_properties(cudaq-realtime-dispatch PROPERTIES CXX_VISIBILITY_PRESET "hidden" CUDA_VISIBILITY_PRESET "hidden")
 
   find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
     HINTS /opt/mellanox/doca/include
@@ -76,5 +84,10 @@ if(CUDA_FOUND)
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+  )
+
+  install(TARGETS cudaq-realtime-dispatch
+    COMPONENT realtime-lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 endif()

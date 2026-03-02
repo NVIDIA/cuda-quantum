@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_observe_async.h"
+#include "common/Environment.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
@@ -77,7 +78,8 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
   return details::runObservationAsync(
       detail::make_copyable_function([opaques = std::move(opaques), shortName,
                                       mod = mod.clone(), retTy]() mutable {
-        mod.dump();
+        if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
+          mod.dump();
         [[maybe_unused]] auto result =
             clean_launch_module(shortName, mod, retTy, opaques);
       }),

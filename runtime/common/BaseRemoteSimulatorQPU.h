@@ -10,6 +10,7 @@
 
 #include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
+#include "common/JIT.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
@@ -48,9 +49,6 @@ public:
   std::thread::id getExecutionThreadId() const {
     return execution_queue->getExecutionThreadId();
   }
-
-  // Conditional feedback is handled by the server side.
-  virtual bool supportsConditionalFeedback() override { return true; }
 
   // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
@@ -150,10 +148,10 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  void *
-  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine) override {
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(

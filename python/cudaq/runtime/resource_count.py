@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -34,10 +34,10 @@ def estimate_resources(kernel, *args, **kwargs):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    returnTy = (decorator.returnType
-                if decorator.returnType else decorator.get_none_type())
+    processedArgs, module = decorator.prepare_call(*args)
+    returnTy = (decorator.return_type
+                if decorator.return_type else decorator.get_none_type())
     choice = kwargs.get("choice", None)
-    return cudaq_runtime.estimate_resources_impl(decorator.uniqName, specMod,
+    return cudaq_runtime.estimate_resources_impl(decorator.uniqName, module,
                                                  returnTy, choice,
                                                  *processedArgs)

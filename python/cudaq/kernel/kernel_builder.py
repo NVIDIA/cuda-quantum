@@ -34,8 +34,7 @@ from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    recover_value_of, globalRegisteredOperations,
-                    recover_calling_module)
+                    recover_value_of, globalRegisteredOperations)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1349,6 +1348,14 @@ class PyKernel(object):
         ```
         """
         if isa_kernel_decorator(target):
+            if not target.is_compiled():
+                name = target.name
+                emitFatalError(
+                    f"Kernel '{name}' must be compiled to be used in the kernel builder. "
+                    f"Call `{name}.compile()` before initializing the kernel builder, "
+                    f"or deactivate deferred compilation:\n\n"
+                    f"    @cudaq.kernel(defer_compilation=False)\n"
+                    f"    def {name}(...): ...\n")
             target = self.resolve_callable_arg(self.insertPoint, target)
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
@@ -1360,39 +1367,31 @@ class PyKernel(object):
         closure here.
         Returns a `CreateLambdaOp` closure.
         """
-        cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
-        # build the closure to capture the lifted `args`
-        thisPyMod = recover_calling_module()
-        if target.defModule != thisPyMod:
-            m = target.defModule
-        else:
-            m = None
+        # Add the target kernel to the current module.
         fulluniq = nvqppPrefix + target.uniqName
+        cudaq_runtime.updateModule(fulluniq, self.module, target.qkeModule)
         fn = recover_func_op(self.module, fulluniq)
-        funcTy = fn.type
-        if target.firstLiftedPos:
-            moduloInTys = funcTy.inputs[:target.firstLiftedPos]
-        else:
-            moduloInTys = funcTy.inputs
-        callableTy = cc.CallableType.get(self.ctx, moduloInTys, funcTy.results)
+
+        # build the closure to capture the lifted `args`
+        funcTy = target.signature.get_lifted_type()
+        callableTy = target.signature.get_callable_type()
         with insPt, self.loc:
             lamb = cc.CreateLambdaOp(callableTy, loc=self.loc)
             lamb.attributes.__setitem__('function_type', TypeAttr.get(funcTy))
             initRegion = lamb.initRegion
-            initBlock = Block.create_at_start(initRegion, moduloInTys)
+            initBlock = Block.create_at_start(initRegion, target.arg_types())
             inner = InsertionPoint(initBlock)
             with inner:
                 vs = []
                 for ba in initBlock.arguments:
                     vs.append(ba)
-                for i, a in enumerate(target.liftedArgs):
-                    v = recover_value_of(a, m)
+                for var in target.captured_variables():
+                    v = recover_value_of(var.name, target.defFrame)
                     if isa_kernel_decorator(v):
                         # The recursive step
                         v = self.resolve_callable_arg(inner, v)
                     else:
-                        argTy = funcTy.inputs[target.firstLiftedPos + i]
-                        v = self.__getMLIRValueFromPythonArg(v, argTy)
+                        v = self.__getMLIRValueFromPythonArg(v, var.type)
                     vs.append(v)
                 if funcTy.results:
                     call = func.CallOp(fn, vs).result

@@ -47,9 +47,9 @@ class AsyncRunResult:
 
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     if isa_kernel_decorator(decorator):
-        if decorator.qkeModule is None:
+        if not decorator.supports_compilation():
             raise RuntimeError(
-                "Unsupported target / Invalid kernel for `run`: missing module")
+                "Unsupported target / Invalid kernel for `run`: cannot compile")
 
     if decorator.formal_arity() != len(args):
         raise RuntimeError("Invalid number of arguments passed to run. " +
@@ -59,9 +59,9 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
     retTy = decorator.get_none_type()
-    return cudaq_runtime.run_impl(decorator.uniqName + ".run", specMod, retTy,
+    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module, retTy,
                                   shots_count, noise_model, qpu_id,
                                   *processedArgs)
 
@@ -116,10 +116,10 @@ Returns:
             raise ValueError("Noise model is not supported on remote simulator"
                              " or hardware QPU.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
     retTy = decorator.get_none_type()
     async_results = cudaq_runtime.run_async_impl(decorator.uniqName + ".run",
-                                                 specMod, retTy, shots_count,
+                                                 module, retTy, shots_count,
                                                  noise_model, qpu_id,
                                                  *processedArgs)
-    return AsyncRunResult(async_results, specMod)
+    return AsyncRunResult(async_results, module)

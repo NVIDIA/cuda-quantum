@@ -43,6 +43,9 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  common/ExecutionContextThreadTester.cpp
+  ptsbe/PTSBESampleTester.cpp
+  ptsbe/PTSBEMultiBackendTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
 )
@@ -83,6 +86,10 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "stim")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_STIM -DCUDAQ_SIMULATION_SCALAR_FP64)
+    target_include_directories(${TEST_EXE_NAME} PRIVATE
+      ${CMAKE_SOURCE_DIR}/runtime/nvqir/stim
+      ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
+    target_link_libraries(${TEST_EXE_NAME} PRIVATE libstim)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_SIMULATION_SCALAR_FP64)
@@ -115,7 +122,7 @@ endmacro()
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
-create_tests_with_backend(stim "")
+create_tests_with_backend(stim backends/StimTester.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")
@@ -486,6 +493,31 @@ target_link_libraries(test_utils
   nvqir-qpp 
   gtest_main)
 gtest_discover_tests(test_utils DISCOVERY_TIMEOUT 120)
+
+add_executable(test_ptsbe main.cpp
+  ptsbe/KrausSelectionTester.cpp
+  ptsbe/KrausTrajectoryTester.cpp
+  ptsbe/ShotAllocationTester.cpp
+  ptsbe/PTSBEInterfaceTester.cpp
+  ptsbe/TraceConversionTester.cpp
+  ptsbe/MergeTasksWithTrajectoryTester.cpp
+  ptsbe/ExecutePTSBETester.cpp
+  ptsbe/PTSSamplingStrategyTester.cpp
+  ptsbe/NoiseExtractorTester.cpp
+  ptsbe/TrajectoryDeduplicationTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_ptsbe PRIVATE -Wl,--no-as-needed)
+endif()
+target_include_directories(test_ptsbe PRIVATE .)
+target_link_libraries(test_ptsbe
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  nvqir
+  nvqir-qpp
+  fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_ptsbe)
 
 # Test for thread-local execution context storage
 add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)

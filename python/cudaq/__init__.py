@@ -141,6 +141,7 @@ from .runtime.observe import observe
 from .runtime.observe import observe_async
 from .runtime.run import run
 from .runtime.run import run_async
+from .runtime import ptsbe
 from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
 from .runtime.draw import draw
@@ -169,7 +170,6 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
-StateMemoryView = cudaq_runtime.StateMemoryView
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision

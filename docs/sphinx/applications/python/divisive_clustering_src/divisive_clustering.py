@@ -1193,7 +1193,7 @@ class Voironi_Tessalation:
 
         center = self.voronoi.points.mean(axis=0)
         if radius is None:
-            radius = self.voronoi.points.ptp().max()
+            radius = np.ptp(self.voronoi.points).max()
 
         all_ridges = {}
         for (p1, p2), (v1, v2) in zip(self.voronoi.ridge_points,

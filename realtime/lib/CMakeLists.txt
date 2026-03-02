@@ -9,9 +9,9 @@
 include(GNUInstallDirs)
 
 install(DIRECTORY ${CUDAQ_REALTIME_INCLUDE_DIR}/cudaq
-  COMPONENT realtime-headers
+  COMPONENT cudaq-realtime-headers
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  FILES_MATCHING PATTERN "*.h"
+  FILES_MATCHING PATTERN "*.h" PATTERN "*.cuh"
 )
 
 add_subdirectory(daemon)

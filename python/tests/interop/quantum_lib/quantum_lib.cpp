@@ -69,3 +69,30 @@ __qpu__ void cudaq::most_curious_test(
   cudaq::qvector qs(5);
   qern(qs, 4);
 }
+
+__qpu__ std::size_t cudaq::callback_test(
+    cudaq::qkernel<std::size_t(cudaq::qvector<> &, std::size_t)> &&qern) {
+  cudaq::qvector qs(5);
+  return qern(qs, 4);
+}
+
+// Returning with no args
+__qpu__ void cudaq::py_ret_test1(cudaq::qkernel<std::vector<float>()> &&qern) {
+  auto rots = qern();
+  cudaq::qvector qs(3);
+  rz(rots[0], qs[0]);
+  rz(rots[1], qs[1]);
+  rz(rots[2], qs[2]);
+  mz(qs);
+}
+
+// Returning with an arg
+__qpu__ void
+cudaq::py_ret_test2(cudaq::qkernel<std::vector<float>(std::size_t)> &&qern) {
+  auto rots = qern(3);
+  cudaq::qvector qs(3);
+  rz(rots[0], qs[0]);
+  rz(rots[1], qs[1]);
+  rz(rots[2], qs[2]);
+  mz(qs);
+}

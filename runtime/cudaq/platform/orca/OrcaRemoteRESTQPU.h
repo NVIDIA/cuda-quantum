@@ -82,9 +82,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }
 
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override { return false; }
-
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
 
@@ -96,25 +93,6 @@ public:
 
   /// @brief Return true if the current backend is remote
   virtual bool isRemote() override { return !emulate; }
-
-  void
-  configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    context.executionManager = getDefaultExecutionManager();
-    context.executionManager->configureExecutionContext(context);
-  }
-
-  void
-  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
-    context.executionManager->finalizeExecutionContext(context);
-  }
-
-  void beginExecution() override {
-    getExecutionContext()->executionManager->beginExecution();
-  }
-
-  void endExecution() override {
-    getExecutionContext()->executionManager->endExecution();
-  }
 
   /// @brief This setTargetBackend override is in charge of reading the
   /// specific target backend configuration file.
