@@ -16,6 +16,10 @@ def kernel():
     mz(qvector)
 
 
+# Note: Increase shots count for better distribution of results.
+# Using small number here for testing purposes.
+SHOTS = 50
+
 # Execute on synchronously on the TII cloud and print out the results.
-counts = cudaq.sample(kernel)
+counts = cudaq.sample(kernel, shots_count=SHOTS)
 print(counts)

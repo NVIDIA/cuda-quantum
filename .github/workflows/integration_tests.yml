@@ -268,7 +268,7 @@ jobs:
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
                 ;;
               tii)
-                filelist="targettests/tii/*.cpp docs/sphinx/targets/python/tii.py"
+                filelist="docs/sphinx/targets/cpp/tii.cpp docs/sphinx/targets/python/tii.py"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
@@ -408,7 +408,9 @@ jobs:
             tii)
               echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.TII_AUTH_TOKEN }}"
+              echo "::add-mask::${{ secrets.TII_PROJECT }}"
               echo "TII_AUTH_TOKEN=${{ secrets.TII_AUTH_TOKEN }}" >> $GITHUB_ENV
+              echo "TII_PROJECT=${{ secrets.TII_PROJECT }}" >> $GITHUB_ENV
               ;;
           esac
         shell: bash
@@ -697,7 +699,7 @@ jobs:
 
               tii)
                 if [[ "$filename" == *.cpp ]]; then
-                  nvq++ -v $filename --target tii
+                  nvq++ -v $filename --target tii --tii-device tii-sim --tii-project ${{ secrets.TII_PROJECT }}
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     ./a.out
@@ -721,7 +723,10 @@ jobs:
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
                   fi
-                fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 ;;
             esac
           done

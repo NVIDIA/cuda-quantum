@@ -27,7 +27,10 @@ struct bell_state {
 };
 
 int main() {
+  // Increase shots count for better distribution of results.
+  // Using small number here for testing purposes.
+  constexpr std::size_t SHOTS = 50;
   // Submit to `tii` synchronously.
-  auto result_counts = cudaq::sample(bell_state{});
+  auto result_counts = cudaq::sample(SHOTS, bell_state{});
   result_counts.dump();
 }

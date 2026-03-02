@@ -536,13 +536,13 @@ TII
 .. _tii-backend:
 
 TII enables execution of CUDA-Q programs on a cloud-based simulator and superconducting quantum hardware.
-The infrastructure is orchestrated by Qibo (https://qibo.science).
+The infrastructure is orchestrated by `Qibo <https://qibo.science>`__.
 
 Credential setup
 ````````````````
 
 Access to TII hardware requires user registration.
-New accounts can be requested at https://q-cloud.tii.ae.
+New accounts can be requested at the `TII cloud portal <https://q-cloud.tii.ae>`__.
 Authentication is performed using an email address and password.
 
 After the first login, users can generate personal access tokens.
@@ -555,7 +555,8 @@ Backend parameters
 In addition to authentication, users must specify the quantum device and the project under which
 jobs will be executed.
 
-The full list of projects and devices available to the user is shown on the dashboard: https://q-cloud.tii.ae/projects/
+The full list of projects and devices available to the user is shown on the
+`TII dashboard <https://q-cloud.tii.ae/projects/>`__.
 
 Supported parameters:
 

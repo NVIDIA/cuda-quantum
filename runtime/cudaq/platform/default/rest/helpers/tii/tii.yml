@@ -19,7 +19,7 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipelines
-  jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce"
+  jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations,SToR1,TToR1,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,R1AdjToR1,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(expand-control-veqs,canonicalize),symbol-dce"
   codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
