@@ -17,7 +17,7 @@
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION" "" ${ARGN})
-  set(NVQPP_COMPILE_ARGS "--library-mode ")
+  set(NVQPP_COMPILE_ARGS "--library-mode -I${CMAKE_SOURCE_DIR}/runtime/include")
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
     if (PARSED_ARGS_TARGET_OPTION)
@@ -65,6 +65,13 @@ add_nvqpp_test(QuickStart_default quick_start.cpp SOURCE_DIR ${CMAKE_CURRENT_SOU
 add_nvqpp_test(FirstObserve using/first_observe.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 add_nvqpp_test(FirstSample using/first_sample.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 add_nvqpp_test(Timing using/time.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp APPLICATION_ARGS "10")
+
+set(PTSBE_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/using/examples/ptsbe)
+add_nvqpp_test(PTSBE_BellDepol bell_circuit_under_depol_noise.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_InspectData inspect_execution_data.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_SamplingStrategies sampling_strategies.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_ShotAllocation shot_allocation.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
+
 if (CUDENSITYMAT_ROOT AND CUDA_FOUND) 
   add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
   add_nvqpp_test(Dynamics_State_Batching_Snippets using/backends/dynamics_state_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
