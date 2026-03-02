@@ -193,6 +193,26 @@ latest
             .internal}
     -   [Noisy Simulations](noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [1. Set up the
+            environment](ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -236,6 +256,8 @@ latest
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
@@ -1059,6 +1081,17 @@ latest
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
         .internal}
@@ -1800,14 +1833,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![04c2df6d98684e289ad63a6e79dfb9d3](../../_images/gate-fuse.png)
+![bb56847e2af849b1a31ea636a0d087bd](../../_images/gate-fuse1.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![a4dbb988d12a45578a3f734079404a37](../../_images/gatefusion.png)
+![be4a28bc56a644ff828da098490c1adc](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -197,6 +197,27 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -244,6 +265,8 @@ latest
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
@@ -1018,6 +1041,17 @@ latest
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1872,7 +1906,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![add86f5ff5704c008509acbed9abd573](../../_images/oracle.png){.no-scaled-link
+![040f7abafb1d4ea6a3705c91bc54da52](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -1978,7 +2012,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![ee67798207354adaa97f1fa8d4699428](../../_images/deutsch.png){.no-scaled-link
+![84ddba5d7de44c31925e42af4b599c5d](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

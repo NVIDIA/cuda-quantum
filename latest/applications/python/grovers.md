@@ -197,6 +197,27 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -244,6 +265,8 @@ latest
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
@@ -1024,6 +1047,17 @@ latest
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -2016,7 +2050,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![4544cddf82c94cd38c6c26c328dd97d9](../../_images/grovers-2D-plane.png)
+![2e6d68e6147f492e91e085853cce7a6c](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2231,7 +2265,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![aafccadf9d994293a675331a2c531c18](../../_images/grovers-steps1-3.png)
+![68d4548d90244904b59bee020a0ba08b](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2243,7 +2277,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![d88f6e030c154e3ca86574543c43e709](../../_images/grovers-full-rotation.png)
+![c00a602990c840c5bb00041b69d417c7](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

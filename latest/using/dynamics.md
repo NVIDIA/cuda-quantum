@@ -186,6 +186,27 @@ latest
     -   [Noisy
         Simulations](../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -232,6 +253,8 @@ latest
             .internal}
         -   [QuEra
             Computing](examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](examples/hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics Examples](examples/dynamics_examples.html){.reference
         .internal}
@@ -1048,6 +1071,17 @@ latest
                 .internal}
             -   [Submitting](backends/cloud/braket.html#submitting){.reference
                 .internal}
+        -   [Scaleway QaaS
+            (scaleway)](backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](#){.current .reference .internal}
     -   [Quick Start](#quick-start){.reference .internal}
     -   [Operator](#operator){.reference .internal}
@@ -1723,8 +1757,9 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/braket.html "Amazon Braket"){.btn .btn-neutral
-.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
+Previous](backends/cloud/scaleway.html "Scaleway Quantum as a Service"){.btn
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 .float-right accesskey="n"}
 :::
@@ -3390,8 +3425,8 @@ qubit modalities, and utilize multi-GPU multi-Node capabilities.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/braket.html "Amazon Braket"){.btn .btn-neutral
-.float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](backends/cloud/scaleway.html "Scaleway Quantum as a Service"){.btn
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 .float-right accesskey="n" rel="next"}

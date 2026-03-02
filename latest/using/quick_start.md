@@ -183,6 +183,27 @@ latest
     -   [Noisy
         Simulations](../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -229,6 +250,8 @@ latest
             .internal}
         -   [QuEra
             Computing](examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](examples/hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics Examples](examples/dynamics_examples.html){.reference
         .internal}
@@ -1044,6 +1067,17 @@ latest
                 Credentials](backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](dynamics.html){.reference .internal}
     -   [Quick Start](dynamics.html#quick-start){.reference .internal}
@@ -1907,6 +1941,22 @@ To install CUDA-Q, execute the commands
     . /etc/profile
 :::
 :::
+
+Alternatively, install to a custom location without [`sudo`{.docutils
+.literal .notranslate}]{.pre}:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+:::
+:::
+
+In both cases, the installer configures your shell profile so that
+CUDA-Q is available in new shells automatically. To use it in the
+current shell, run [`source`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`/opt/nvidia/cudaq/set_env.sh`{.docutils .literal
+.notranslate}]{.pre} (or the path you chose).
 
 If you have an NVIDIA GPU on Linux, please also install the [CUDA
 Toolkit](https://developer.nvidia.com/cuda-downloads){.reference
