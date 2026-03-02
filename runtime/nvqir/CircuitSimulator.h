@@ -966,6 +966,9 @@ public:
 
   /// @brief Reset the current execution context.
   void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
+    if (nQubitsAllocated == 0)
+      return;
+
     // Get the ExecutionContext name
     auto execContextName = context.name;
 

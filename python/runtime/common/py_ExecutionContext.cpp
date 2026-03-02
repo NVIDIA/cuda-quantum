@@ -91,10 +91,12 @@ void bindExecutionContext(py::module &mod) {
               },
               detail::resetExecutionContext);
         } else {
-          // The kernel threw before completing. Avoid calling
-          // finalizeExecutionContext.
+          // The kernel threw. Still need to tear down the platform so
+          // the simulator doesn't carry stale state into the next run.
+          // Separate invoke_no_throw so the context reset always runs.
           detail::invoke_no_throw([&] {
             auto &platform = cudaq::get_platform();
+            platform.finalizeExecutionContext(ctx);
             platform.endExecution();
           });
           // Always reset context, even if the above cleanup failed.
