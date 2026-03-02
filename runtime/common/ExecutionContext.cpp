@@ -9,9 +9,10 @@
 #include "ExecutionContext.h"
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
-namespace {
-class SavedCompilerArtifact {
+namespace cudaq::detail {
+class savedCompilerArtifact {
 public:
   bool hasJitEngine() const { return jitEng.has_value(); }
   const std::optional<cudaq::JitEngine> &getJitEngine() const { return jitEng; }
@@ -23,16 +24,20 @@ public:
   }
 
   // We're responsible for freeing argMessageBuffer.
-  void saveLaunchInfo(void *argMessageBuffer, size_t size) {
+  void saveLaunchInfo(std::string_view kernelName, void *argMessageBuffer,
+                      size_t size) {
     assert(argMessageBuffer);
-    assert(!argBuff);
+    this->kernelName.assign(kernelName.data(), kernelName.size());
     argBuff = argMessageBuffer;
     argSize = size;
   }
 
+  bool isKernelSame(std::string_view kernelName) const {
+    return this->kernelName == kernelName;
+  }
+
   bool isLaunchInfoSame(void *argMessageBuffer, size_t size) const {
-    if (!argBuff || !argMessageBuffer)
-      return false;
+    assert(argBuff && argMessageBuffer);
     if (size != argSize)
       return false;
     return memcmp(argMessageBuffer, argBuff, size) == 0;
@@ -47,14 +52,18 @@ private:
   }
 
   std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  std::string kernelName;
   void *argBuff = nullptr;
   size_t argSize = 0;
 };
+} // namespace cudaq::detail
+
+namespace {
 
 /// @brief Thread-local storage for the current execution context.
 thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
 thread_local bool persistJITEngine = false;
-thread_local SavedCompilerArtifact savedArtifact;
+thread_local cudaq::detail::savedCompilerArtifact savedArtifact;
 } // namespace
 
 namespace nvqir {
@@ -113,10 +122,17 @@ void detail::disablePersistentJITEngine() {
 bool detail::isPersistingJITEngine() { return persistJITEngine; }
 
 // We're responsible for freeing argMessageBuffer
-void detail::saveLaunchInfo(void *argMessageBuffer, size_t size) {
+void detail::saveLaunchInfo(std::string_view kernelName, void *argMessageBuffer,
+                            size_t size) {
   if (!persistJITEngine)
     return;
-  savedArtifact.saveLaunchInfo(argMessageBuffer, size);
+  savedArtifact.saveLaunchInfo(kernelName, argMessageBuffer, size);
+}
+
+bool detail::isKernelSame(std::string_view kernelName) {
+  if (!persistJITEngine)
+    return false;
+  return savedArtifact.isKernelSame(kernelName);
 }
 
 bool detail::isLaunchInfoSame(void *argMessageBuffer, size_t size) {

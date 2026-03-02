@@ -23,6 +23,10 @@ def test_reuse():
         x(qubits.front())
         for i, qubit in enumerate(qubits.front(numQubits - 1)):
             x.ctrl(qubit, qubits[i + 1])
+    
+    @cudaq.kernel
+    def nop(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
 
     res = cudaq.sample(simple, 2, shots_count=1)
     assert (res.count("11") == 1)
@@ -31,9 +35,21 @@ def test_reuse():
     with cudaq.cudaq_runtime.reuse_compiler_artifacts():
         res = cudaq.sample(simple, 4, shots_count=1)
         assert (res.count("1111") == 1)
-        # Abuse the foot gun to make sure the cached kernel is rerun
-        # (and therefore the number of qubits is the same)
-        res = cudaq.sample(simple, 5, shots_count=1)
+
+        res = cudaq.sample(simple, 4, shots_count=1)
         assert (res.count("1111") == 1)
+
+        @cudaq.kernel
+        def simple(numQubits: int):
+            qubits = cudaq.qvector(numQubits)
+        with pytest.raises(RuntimeError):
+            res = cudaq.sample(simple, 4, shots_count=1)
+
+        with pytest.raises(RuntimeError):
+            res = cudaq.sample(simple, 5, shots_count=1)
+
+        simple = nop
+        with pytest.raises(RuntimeError):
+            res = cudaq.sample(simple, 5, shots_count=1)
     res = cudaq.sample(simple, 6, shots_count=1)
-    assert (res.count("111111") == 1)
+    assert (res.count("000000") == 1)

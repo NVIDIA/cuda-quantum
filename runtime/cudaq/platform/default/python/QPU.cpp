@@ -245,6 +245,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     }
 
     if (cudaq::detail::isPersistingJITEngine()) {
+      if (!builtJIT && !cudaq::detail::isKernelSame(name))
+        throw std::runtime_error("Detected reuse of compiler artifact with "
+                                   "a different kernel.");
       auto funcPtr = jit->lookupRawNameOrFail(name + ".argsCreator");
       auto argsCreator =
           reinterpret_cast<int64_t (*)(const void *, void **)>(funcPtr);
@@ -252,13 +255,13 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       const void *argBlock = rawArgs.data();
       auto res_size = argsCreator(argBlock, &res_buffer);
       if (builtJIT) {
+        cudaq::detail::saveLaunchInfo(name, res_buffer, res_size);
+      } else {
         auto can_reuse = cudaq::detail::isLaunchInfoSame(res_buffer, res_size);
         free(res_buffer);
         if (!can_reuse)
           throw std::runtime_error("Detected reuse of compiler artifact with "
                                    "diverging explicit arguments.");
-      } else {
-        cudaq::detail::saveLaunchInfo(res_buffer, res_size);
       }
     }
 

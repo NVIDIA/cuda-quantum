@@ -209,7 +209,9 @@ void resetExecutionContext();
 void enablePersistentJITEngine();
 void disablePersistentJITEngine();
 bool isPersistingJITEngine();
-void saveLaunchInfo(void *argMessageBuffer, size_t size);
+void saveLaunchInfo(std::string_view kernelName, void *argMessageBuffer,
+                    size_t size);
+bool isKernelSame(std::string_view kernelName);
 bool isLaunchInfoSame(void *argMessageBuffer, size_t size);
 } // namespace detail
 
