@@ -14,13 +14,12 @@
 #include <numeric>
 #include <optional>
 
-namespace cudaq {
-
 // Helper to check whether a matrix is a scaled unitary matrix, i.e., `k * U`
 // where U is a unitary matrix. If so, it also returns the `k` factor.
 // Otherwise, return a nullopt.
 std::optional<double>
-isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
+cudaq::isScaledUnitary(const std::vector<std::complex<double>> &mat,
+                       double eps) {
   typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
                         Eigen::RowMajor>
       RowMajorMatTy;
@@ -48,7 +47,7 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
 // each one of those unitaries.
 std::optional<std::pair<std::vector<double>,
                         std::vector<std::vector<std::complex<double>>>>>
-computeUnitaryMixture(
+cudaq::computeUnitaryMixture(
     const std::vector<std::vector<std::complex<double>>> &krausOps,
     double tol) {
   std::vector<double> probs;
@@ -77,6 +76,8 @@ computeUnitaryMixture(
 
   return std::make_pair(probs, mats);
 }
+
+namespace cudaq {
 
 template <typename EigenMatTy>
 bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
@@ -144,6 +145,7 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
         "Provided kraus_ops are not completely positive and trace preserving.");
 }
 
+namespace {
 // Check whether a d x d unitary matrix (stored row-major as a flat vector)
 // is a global-phase-times-identity, i.e. e^{i*phi} * I. Global phase is
 // unobservable in measurement, so these operators act as identity for PTSBE.
@@ -168,7 +170,6 @@ bool isIdentityUnitary(const std::vector<std::complex<double>> &mat,
   return true;
 }
 
-// After computing unitary_ops, determine which are identity operators.
 void computeIdentityFlags(
     const std::vector<std::vector<std::complex<double>>> &unitary_ops,
     std::vector<bool> &identity_flags) {
@@ -177,6 +178,7 @@ void computeIdentityFlags(
   for (const auto &u : unitary_ops)
     identity_flags.push_back(isIdentityUnitary(u));
 }
+} // namespace
 
 void generateUnitaryParameters_fp32(
     const std::vector<kraus_op> &ops,

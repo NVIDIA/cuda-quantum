@@ -110,6 +110,7 @@ QPUs
 QPU’s
 QTX
 QX
+QaaS
 Qiskit
 QuEra
 QuTiP
@@ -123,6 +124,7 @@ SLED
 SLES
 SLURM
 SVD
+Scaleway
 Sqale
 Stim
 Superpositions
@@ -206,6 +208,7 @@ decrementing
 dendrogram
 dependence
 dependences
+deserialization
 deserialize
 destructor
 detuning
@@ -310,6 +313,7 @@ programmatically
 pybind
 qaoa
 qed
+qio
 quantize
 quantized
 qubit

@@ -26,6 +26,7 @@ on:
           - pasqal
           - qci
           - quantinuum
+          - scaleway
           - tii
       single_test_name:
         type: string
@@ -190,7 +191,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "tii"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -266,6 +267,9 @@ jobs:
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
+                ;;
+              scaleway)
+                filelist="targettests/scaleway/*.cpp docs/sphinx/targets/python/scaleway.py"
                 ;;
               tii)
                 filelist="docs/sphinx/targets/cpp/tii.cpp docs/sphinx/targets/python/tii.py"
@@ -404,6 +408,13 @@ jobs:
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
               chmod 600 ~/.quantinuum_config
               rm ~/.quantinuum_cookies.txt
+              ;;
+            scaleway)
+              echo "### Setting up Scaleway account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.SCW_PROJECT_ID }}"
+              echo "::add-mask::${{ secrets.SCW_SECRET_KEY }}"
+              echo "SCW_PROJECT_ID=${{ secrets.SCW_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
               ;;
             tii)
               echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
@@ -683,6 +694,39 @@ jobs:
                 elif [[ "$filename" == *.py ]]; then
                   echo "### Running Quantinuum Python test" >> $GITHUB_STEP_SUMMARY
                   QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              scaleway)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY

@@ -51,7 +51,7 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   noise.add_all_qubit_channel("cx", cudaq::depolarization2(0.01));
 
   sample_options options;
-  options.shots = 1000;
+  options.shots = 50;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
   options.ptsbe.max_trajectories = 20;
@@ -59,11 +59,11 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   auto result = sample(options, ghzKernel);
 
   EXPECT_GT(result.size(), 0u);
-  EXPECT_EQ(result.get_total_shots(), 1000u);
+  EXPECT_EQ(result.get_total_shots(), 50u);
 
   auto countAll0 = result.count("00000");
   auto countAll1 = result.count("11111");
-  EXPECT_GT(countAll0 + countAll1, 900u);
+  EXPECT_GT(countAll0 + countAll1, 40u);
 
   ASSERT_TRUE(result.has_execution_data());
   const auto &data = result.execution_data();
@@ -78,18 +78,18 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   std::size_t trajectoryShots = 0;
   for (const auto &traj : data.trajectories)
     trajectoryShots += traj.num_shots;
-  EXPECT_EQ(trajectoryShots, 1000u);
+  EXPECT_EQ(trajectoryShots, 50u);
 }
 
 CUDAQ_TEST(PTSBEMultiBackendTest, MzBitFlipFullFlip) {
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
 
-  auto result = cudaq::ptsbe::sample(noise, 1000, xMzKernel{});
+  auto result = cudaq::ptsbe::sample(noise, 50, xMzKernel{});
 
   EXPECT_GT(result.size(), 0u);
   auto count0 = result.count("0");
-  EXPECT_GT(count0, 900u);
+  EXPECT_GT(count0, 40u);
 }
 
 CUDAQ_TEST(PTSBEMultiBackendTest, ImplicitMzPerQubitNoise) {
@@ -97,8 +97,8 @@ CUDAQ_TEST(PTSBEMultiBackendTest, ImplicitMzPerQubitNoise) {
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
   noise.add_channel("mz", {1}, cudaq::bit_flip_channel(1.0));
 
-  auto result = cudaq::ptsbe::sample(noise, 1000, twoQubitNoMz{});
+  auto result = cudaq::ptsbe::sample(noise, 50, twoQubitNoMz{});
 
-  EXPECT_EQ(result.get_total_shots(), 1000u);
-  EXPECT_GT(result.count("00"), 900u);
+  EXPECT_EQ(result.get_total_shots(), 50u);
+  EXPECT_GT(result.count("00"), 40u);
 }

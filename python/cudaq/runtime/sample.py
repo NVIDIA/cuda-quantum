@@ -21,24 +21,22 @@ cudaq_async_sample_cache_counter = 0
 
 class AsyncSampleResult:
 
-    def __init__(self, *args, **kwargs):
-        if len(args) == 2 and hasattr(args[0], 'get'):
-            impl = args[0]
-            mod = args[1]
-            global cudaq_async_sample_module_cache
-            global cudaq_async_sample_cache_counter
-            self.impl = impl
-            self.getCalled = False
-            self.counter = cudaq_async_sample_cache_counter
-            cudaq_async_sample_cache_counter = self.counter + 1
-            cudaq_async_sample_module_cache[self.counter] = mod
-        elif len(args) == 1 and isinstance(args[0], str):
-            # String-based constructor from JSON
-            self.impl = cudaq_runtime.AsyncSampleResultImpl(args[0])
-            self.counter = None
-        else:
+    def __init__(self, impl, mod=None):
+        global cudaq_async_sample_module_cache
+        global cudaq_async_sample_cache_counter
+        if isinstance(impl, str):
+            impl = cudaq_runtime.AsyncSampleResultImpl(impl)
+        if not hasattr(impl, 'get'):
             raise RuntimeError(
                 "Invalid arguments passed to AsyncSampleResult constructor.")
+        self.impl = impl
+        self.getCalled = False
+        if mod is not None:
+            self.counter = cudaq_async_sample_cache_counter
+            cudaq_async_sample_cache_counter += 1
+            cudaq_async_sample_module_cache[self.counter] = mod
+        else:
+            self.counter = None
 
     def get(self):
         result = self.impl.get()
