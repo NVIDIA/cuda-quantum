@@ -2,7 +2,7 @@
 // Available projects and devices are show in the dashboard:
 // https://q-cloud.tii.ae/projects/
 //
-// The authentication key must be stored (or exported) as enivronment variable:
+// The authentication key must be stored (or exported) as environment variable:
 // ```
 // export TII_API_TOKEN="you-tii-token"
 // ```
