@@ -12,7 +12,7 @@
 /// This header exposes template functions and types that depend on
 /// `nvqir::CircuitSimulator` internals. It is intended for simulator
 /// implementations and tests, not for the public API. The public header
-/// PTSBESampler.h provides the stable API (PTSBatch, PTSBECapable, etc.)
+/// PTSBESampler.h provides the stable API (PTSBatch and dispatch entry points)
 /// without leaking `nvqir` internals.
 
 #pragma once
@@ -43,6 +43,25 @@ template <typename ScalarType>
 using GateTask =
     typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
 
+/// @brief Walk the PTSBE trace and build the merged task list for one
+/// trajectory. Gate entries become gate tasks, Noise entries are resolved
+/// via the trajectory selections (channel looked up from the trace), and
+/// Measurement entries are skipped (terminal measurements are handled
+/// separately by the simulator).
+///
+/// @param includeIdentity When true, identity Kraus operators are
+///   included as gate tasks. Useful if you require all trajectories to have
+///   identical gate structure.
+template <typename ScalarType>
+std::vector<GateTask<ScalarType>>
+mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
+                         const cudaq::KrausTrajectory &trajectory,
+                         bool includeIdentity = false);
+
+} // namespace cudaq::ptsbe
+
+namespace cudaq::ptsbe::detail {
+
 /// @brief Convert a PTSBE TraceInstruction (Gate type) to a simulator task.
 /// Looks up the gate matrix from the registry and maps plain qubit IDs.
 template <typename ScalarType>
@@ -59,21 +78,6 @@ convertTrace(std::span<const TraceInstruction> ptsbeTrace);
 template <typename ScalarType>
 GateTask<ScalarType> krausSelectionToTask(const cudaq::KrausSelection &sel,
                                           const TraceInstruction &noiseInst);
-
-/// @brief Walk the PTSBE trace and build the merged task list for one
-/// trajectory. Gate entries become gate tasks, Noise entries are resolved
-/// via the trajectory selections (channel looked up from the trace), and
-/// Measurement entries are skipped (terminal measurements are handled
-/// separately by the simulator).
-///
-/// @param includeIdentity When true, identity Kraus operators are
-///   included as gate tasks. Useful if you require all trajectories to have
-///   identical gate structure.
-template <typename ScalarType>
-std::vector<GateTask<ScalarType>>
-mergeTasksWithTrajectory(std::span<const TraceInstruction> ptsbeTrace,
-                         const cudaq::KrausTrajectory &trajectory,
-                         bool includeIdentity = false);
 
 /// @brief Generic PTSBE execution implementation
 ///
@@ -104,4 +108,4 @@ std::vector<cudaq::sample_result>
 samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
                    const PTSBatch &batch);
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

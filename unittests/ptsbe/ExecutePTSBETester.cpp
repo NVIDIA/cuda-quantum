@@ -16,6 +16,7 @@
 
 using namespace cudaq;
 using namespace cudaq::ptsbe;
+using namespace cudaq::ptsbe::detail;
 
 // Use QPP simulator for testing samplePTSBE
 using QppSimulator =
