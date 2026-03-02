@@ -107,9 +107,5 @@ LogicalResult cudaq::verify::checkNvqirCalls(ModuleOp module) {
     return WalkResult::advance();
   });
 
-  if (!walkRes.wasInterrupted())
-    return success();
-
-  emitError(module.getLoc(), "module has calls not compatible with NVQIR.");
-  return failure();
+  return success(!walkRes.wasInterrupted());
 }
