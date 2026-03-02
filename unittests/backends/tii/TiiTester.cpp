@@ -22,7 +22,7 @@ bool result_maps_are_matching(
   return true;
 }
 
-TEST(TiiTester, checkSimpleCircuitSync) {
+CUDAQ_TEST(TiiTester, checkSimpleCircuitSync) {
   // Create a simple circuit
   auto kernel = cudaq::make_kernel();
   auto qubits = kernel.qalloc(2);
@@ -40,7 +40,7 @@ TEST(TiiTester, checkSimpleCircuitSync) {
   EXPECT_TRUE(result_maps_are_matching(counts.to_map(), expected));
 }
 
-TEST(TiiTester, checkSimpleCircuitAsync) {
+CUDAQ_TEST(TiiTester, checkSimpleCircuitAsync) {
   // Create a simple circuit
   auto kernel = cudaq::make_kernel();
   auto qubits = kernel.qalloc(2);

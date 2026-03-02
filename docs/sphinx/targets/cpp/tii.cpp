@@ -4,7 +4,7 @@
 //
 // The authentication key must be stored (or exported) as environment variable:
 // ```
-// export TII_API_TOKEN="you-tii-token"
+// export TII_API_TOKEN="your-tii-token"
 // ```
 //
 // Compile and run with:
