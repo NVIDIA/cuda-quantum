@@ -259,6 +259,8 @@ pr-4060
         -   [QuEra
             Computing](../examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../examples/dynamics_examples.html){.reference
         .internal}
@@ -1065,6 +1067,16 @@ pr-4060
                 .internal}
             -   [Submitting](cloud/braket.html#submitting){.reference
                 .internal}
+        -   [Scaleway QaaS (scaleway)](cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
         .internal}
@@ -1775,6 +1787,8 @@ below for more information on running CUDA-Q with cloud resources.
 
 ::: {.toctree-wrapper .compound}
 -   [Amazon Braket (braket)](cloud/braket.html){.reference .internal}
+-   [Scaleway QaaS (scaleway)](cloud/scaleway.html){.reference
+    .internal}
 :::
 :::
 :::

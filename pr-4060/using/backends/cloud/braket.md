@@ -262,6 +262,8 @@ pr-4060
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../../examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../../examples/dynamics_examples.html){.reference
         .internal}
@@ -1070,6 +1072,16 @@ pr-4060
             -   [Setting Credentials](#setting-credentials){.reference
                 .internal}
             -   [Submitting](#submitting){.reference .internal}
+        -   [Scaleway QaaS (scaleway)](scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
         .internal}
@@ -1764,7 +1776,7 @@ pr-4060
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](scaleway.html "Scaleway Quantum as a Service"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1935,7 +1947,7 @@ To see a complete example, take a look at [[Amazon Braket examples]{.std
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](scaleway.html "Scaleway Quantum as a Service"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

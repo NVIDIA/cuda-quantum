@@ -254,6 +254,8 @@ pr-4060
         -   [QuEra
             Computing](examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics Examples](examples/dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
@@ -1069,6 +1071,17 @@ pr-4060
                 .internal}
             -   [Submitting](backends/cloud/braket.html#submitting){.reference
                 .internal}
+        -   [Scaleway QaaS
+            (scaleway)](backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](#){.current .reference .internal}
     -   [Quick Start](#quick-start){.reference .internal}
     -   [Operator](#operator){.reference .internal}
@@ -1744,8 +1757,9 @@ pr-4060
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/braket.html "Amazon Braket"){.btn .btn-neutral
-.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
+Previous](backends/cloud/scaleway.html "Scaleway Quantum as a Service"){.btn
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 .float-right accesskey="n"}
 :::
@@ -3411,8 +3425,8 @@ qubit modalities, and utilize multi-GPU multi-Node capabilities.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/braket.html "Amazon Braket"){.btn .btn-neutral
-.float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](backends/cloud/scaleway.html "Scaleway Quantum as a Service"){.btn
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 .float-right accesskey="n" rel="next"}

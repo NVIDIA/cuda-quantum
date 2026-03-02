@@ -235,6 +235,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scaleway">Scaleway</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics_examples.html">   Dynamics Examples</a><ul>
@@ -662,6 +663,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/cloud/scaleway.html">     Scaleway QaaS (scaleway)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#submitting">Submitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -1025,8 +1032,7 @@
              
   <section id="using-quantum-hardware-providers">
 <h1>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h1>
-<p>CUDA-Q contains support for using a set of hardware providers (Amazon Braket,
-Infleqtion, IonQ, IQM, OQC, ORCA Computing, Quantinuum, and QuEra Computing).
+<p>CUDA-Q contains support for using a set of hardware providers.
 For more information about executing quantum kernels on different hardware
 backends, please take a look at <a class="reference internal" href="../backends/hardware.html"><span class="doc">hardware</span></a>.</p>
 <section id="amazon-braket">
@@ -2700,6 +2706,117 @@ parameters of the time bin interferometer.</p>
 <span class="w">  </span><span class="c1">// Evolve the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve_async</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">).</span><span class="n">get</span><span class="p">();</span>
 <span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">sampling_result</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="scaleway">
+<span id="scaleway-examples"></span><h2>Scaleway<a class="headerlink" href="#scaleway" title="Permalink to this heading">¶</a></h2>
+<p>The following code illustrates how to run kernels on Scaleway’s backends.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--12-input--1" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="c1"># NOTE: Scaleway credentials must be set before running this program.</span>
+<span class="c1"># Scaleway costs apply.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;scaleway&quot;</span><span class="p">,</span> <span class="n">max_duration</span><span class="o">=</span><span class="s2">&quot;10m&quot;</span><span class="p">)</span>
+
+<span class="c1"># The default device is EMU-CUDAQ-H100, a state vector simulator running on an H100 GPU. Users may choose any of</span>
+<span class="c1"># the available devices by supplying its name with the `machine` parameter.</span>
+<span class="c1"># For example,</span>
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;scaleway&quot;, machine=&quot;EMU-CUDAQ-H100&quot;)</span>
+<span class="c1"># ```</span>
+<span class="c1"># To ensure we keep the same QPU session between runs, we can also specify the `deduplication_id` parameter.</span>
+<span class="c1"># For example,</span>
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;scaleway&quot;, machine=&quot;EMU-CUDAQ-H100&quot;, deduplication_id=&quot;my_unique_id_1234&quot;)</span>
+<span class="c1"># ```</span>
+<span class="c1"># Users may also specify QPU session duration limits with the `max_duration` and `max_idle_duration` parameters.</span>
+<span class="c1"># For example,</span>
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;scaleway&quot;, machine=&quot;EMU-CUDAQ-H100&quot;, max_duration=&quot;30m&quot;, max_idle_duration=&quot;5m&quot;)</span>
+<span class="c1"># ```</span>
+
+
+<span class="c1"># Create the kernel we&#39;d like to execute</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="c1"># Execute and print out the results.</span>
+
+<span class="c1"># Option A:</span>
+<span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by Scaleway.</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="n">async_counts</span> <span class="o">=</span> <span class="n">async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">async_counts</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been returned from Scaleway QaaS.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--12-input--2" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target scaleway scaleway.cpp -o out.x &amp;&amp; ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// This will submit the job to the Scaleway QaaS state vector emulator powered</span>
+<span class="c1">// by CUDA-Q (default). Alternatively, users can choose any of the available</span>
+<span class="c1">// devices by specifying its name with the `--scaleway-machine`, e.g.,</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target scaleway --scaleway-machine \</span>
+<span class="c1">// &quot;EMU-CUDAQ-H100&quot; scaleway.cpp -o out.x</span>
+<span class="c1">// ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// Assumes a valid set of credentials have been set prior to execution.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
+
+<span class="c1">// Define a simple quantum kernel to execute on Scaleway&#39;s QaaS.</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Submit asynchronously (e.g., continue executing</span>
+<span class="w">  </span><span class="c1">// code in the file until the job has been returned).</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="c1">// ... classical code to execute in the meantime ...</span>
+
+<span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">future</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">async_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// OR: Submit synchronously (e.g., wait for the job</span>
+<span class="w">  </span><span class="c1">// result to be returned before proceeding).</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>

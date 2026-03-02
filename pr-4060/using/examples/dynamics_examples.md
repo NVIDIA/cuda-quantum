@@ -245,6 +245,8 @@ pr-4060
         -   [QuEra
             Computing](hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics Examples](#){.current .reference .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
             Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
@@ -1066,6 +1068,17 @@ pr-4060
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference

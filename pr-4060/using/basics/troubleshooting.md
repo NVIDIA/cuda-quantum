@@ -255,6 +255,8 @@ pr-4060
         -   [QuEra
             Computing](../examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../examples/dynamics_examples.html){.reference
         .internal}
@@ -1078,6 +1080,17 @@ pr-4060
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
