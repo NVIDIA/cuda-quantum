@@ -35,11 +35,15 @@ void bindEvolveResult(py::module &mod) {
       .def(py::init<std::vector<state>, std::vector<std::vector<double>>>())
       .def(
           "final_state",
-          [](evolve_result &self) { return self.states->back(); },
+          [](evolve_result &self) -> py::object {
+            if (!self.states.has_value() || self.states->empty())
+              return py::none();
+            return py::cast(self.states->back());
+          },
           "Stores the final state produced by a call to :func:`evolve`. "
           "Represent the state of a quantum system after time evolution under "
           "a set of operators, see the :func:`evolve` documentation for more "
-          "detail.\n")
+          "detail. Returns None if no states are available.\n")
       .def(
           "intermediate_states",
           [](evolve_result &self) { return self.states; },
@@ -50,7 +54,12 @@ void bindEvolveResult(py::module &mod) {
           ":func:`evolve`.\n")
       .def(
           "final_expectation_values",
-          [](evolve_result &self) { return self.expectation_values->back(); },
+          [](evolve_result &self) -> py::object {
+            if (!self.expectation_values.has_value() ||
+                self.expectation_values->empty())
+              return py::none();
+            return py::cast(self.expectation_values->back());
+          },
           "Stores the final expectation values, that is the results produced "
           "by "
           "calls to :func:`observe`, triggered by a call to :func:`evolve`. "

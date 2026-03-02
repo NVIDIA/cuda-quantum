@@ -461,6 +461,36 @@ def test_evolve_no_intermediate_results():
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
 
 
+def test_final_expectation_values_without_observables():
+    """Test that final_expectation_values returns None instead of crashing
+    when evolve is called without observables."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+
+    steps = np.linspace(0, 10, 11)
+    schedule = Schedule(steps, ["time"])
+
+    # Evolve without observables
+    result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    # final_expectation_values should return None, not segfault
+    assert result.final_expectation_values() is None
+
+    # expectation_values should also be None
+    assert result.expectation_values() is None
+
+    # final_state should still work
+    assert result.final_state() is not None
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
