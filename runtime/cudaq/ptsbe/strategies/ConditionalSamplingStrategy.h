@@ -66,7 +66,7 @@ public:
   /// 5. If passed, add to results; otherwise, continue sampling
   /// 6. Stop when max_trajectories collected or max_attempts reached
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
-  generateTrajectories(std::span<const NoisePoint> noise_points,
+  generateTrajectories(std::span<const detail::NoisePoint> noise_points,
                        std::size_t max_trajectories) const override;
 
   /// @brief Get strategy name
