@@ -257,6 +257,8 @@ pr-4056
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
@@ -1079,6 +1081,17 @@ pr-4056
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
                 .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
         .internal}
@@ -1820,14 +1833,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![579fa9f0f39b47f3b75f56560e1b4a63](../../_images/gate-fuse.png)
+![289d90279fd446c58a7b548af1f1cc44](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![09dcef7b3d8f4dfbb23d228f4257249a](../../_images/gatefusion.png)
+![5dbd2dd37d4a4568922f814af13dbb8c](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -266,6 +266,8 @@ pr-4056
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
@@ -1045,6 +1047,17 @@ pr-4056
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -2299,7 +2312,7 @@ and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
 
-![65ecb79b9a454bada8d88989f5af5d0a](../../_images/speedup.png){.no-scaled-link
+![1cdc937b728e43459d5f3d40a3164a20](../../_images/speedup.png){.no-scaled-link
 style="width: 600px;"}
 
 ::: {.nbinput .docutils .container}

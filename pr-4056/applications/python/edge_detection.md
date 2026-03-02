@@ -266,6 +266,8 @@ pr-4056
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
@@ -1045,6 +1047,17 @@ pr-4056
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1845,7 +1858,7 @@ each pixel with its position
 
 <div>
 
-![94c3715dbe134480bd51b7da60d6fa7a](../../_images/pixels-img.png){.no-scaled-link
+![286f59c5723740b3b5629838ffd4272c](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

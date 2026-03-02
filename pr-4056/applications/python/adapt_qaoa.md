@@ -266,6 +266,8 @@ pr-4056
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
             .internal}
+        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+            .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
@@ -1046,6 +1048,17 @@ pr-4056
                 Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
             -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+                .internal}
+        -   [Scaleway QaaS
+            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1844,7 +1857,7 @@ explained above.
 
 <div>
 
-![62341588bbad4a4099d63cce5b1bda59](../../_images/adapt-qaoa.png){.no-scaled-link
+![07c7ef51761744d39a3e28f076497f1d](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
