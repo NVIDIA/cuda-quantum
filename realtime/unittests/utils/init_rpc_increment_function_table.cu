@@ -14,9 +14,9 @@
 /// wrapper is extern "C" so that the bridge .cpp (compiled by g++) can
 /// call it without needing CUDA kernel launch syntax.
 
-#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_modes.h"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 
 #include <cuda_runtime.h>
 #include <cstdint>
@@ -46,7 +46,7 @@ __device__ int rpc_increment_handler(const void *input, void *output,
 }
 
 constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID =
-    cudaq::nvqlink::fnv1a_hash("rpc_increment");
+    cudaq::realtime::fnv1a_hash("rpc_increment");
 
 /// @brief Kernel to populate a cudaq_function_entry_t with the increment
 ///        handler.

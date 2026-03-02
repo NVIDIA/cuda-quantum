@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include <stddef.h>
 #include <stdint.h>
 

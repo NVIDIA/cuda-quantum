@@ -43,7 +43,7 @@
 #include <hololink/core/metadata.hpp>
 #include <hololink/core/timeout.hpp>
 
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
 namespace {
 
@@ -217,14 +217,14 @@ std::uint32_t load_le_u32(const std::uint8_t *p) {
 /// send timestamp at transmit time.
 std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
                                             uint32_t payload_size) {
-  using cudaq::nvqlink::fnv1a_hash;
-  using cudaq::nvqlink::RPCHeader;
+  using cudaq::realtime::fnv1a_hash;
+  using cudaq::realtime::RPCHeader;
 
   constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
 
   std::vector<std::uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
   auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
-  hdr->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
+  hdr->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
   hdr->function_id = FUNC_ID;
   hdr->arg_len = payload_size;
   hdr->request_id = msg_index;
@@ -441,7 +441,7 @@ extract_ila_ptp_timestamp(const std::vector<std::uint32_t> &sample) {
 /// Extract the echoed PTP send timestamp from RPCResponse.ptp_timestamp.
 /// The dispatch kernel echoes this field from RPCHeader.ptp_timestamp.
 std::uint64_t
-extract_echoed_ptp_timestamp(const cudaq::nvqlink::RPCResponse *resp) {
+extract_echoed_ptp_timestamp(const cudaq::realtime::RPCResponse *resp) {
   return resp->ptp_timestamp;
 }
 
@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
   // ------------------------------------------------------------------
   // Configure FPGA SIF for RDMA target
   // ------------------------------------------------------------------
-  size_t frame_size = sizeof(cudaq::nvqlink::RPCHeader) + args.payload_size;
+  size_t frame_size = sizeof(cudaq::realtime::RPCHeader) + args.payload_size;
   size_t bytes_per_window = ((frame_size + 63) / 64) * 64;
 
   std::cout << "\n[1/4] Configuring RDMA target..." << std::endl;
@@ -682,11 +682,11 @@ int main(int argc, char *argv[]) {
       auto payload = extract_payload_bytes(sample, 64);
 
       auto *resp =
-          reinterpret_cast<const cudaq::nvqlink::RPCResponse *>(payload.data());
+          reinterpret_cast<const cudaq::realtime::RPCResponse *>(payload.data());
 
       uint32_t expected_magic = args.forward
-                                    ? cudaq::nvqlink::RPC_MAGIC_REQUEST
-                                    : cudaq::nvqlink::RPC_MAGIC_RESPONSE;
+                                    ? cudaq::realtime::RPC_MAGIC_REQUEST
+                                    : cudaq::realtime::RPC_MAGIC_RESPONSE;
 
       if (resp->magic != expected_magic) {
         ++non_rpc_frames;
@@ -707,7 +707,7 @@ int main(int argc, char *argv[]) {
 
       if (!args.forward) {
         const uint8_t *result_data =
-            payload.data() + sizeof(cudaq::nvqlink::RPCResponse);
+            payload.data() + sizeof(cudaq::realtime::RPCResponse);
         bool ok = true;
         uint32_t check_len = std::min(resp->result_len, args.payload_size);
 

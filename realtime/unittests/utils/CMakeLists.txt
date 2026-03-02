@@ -144,7 +144,7 @@ add_executable(hololink_fpga_playback
 
 target_include_directories(hololink_fpga_playback
   PRIVATE
-    ${CUDAQ_NVQLINK_INCLUDE_DIR}
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
     "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
     "${CUDAToolkit_INCLUDE_DIRS}")
 
@@ -193,7 +193,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     CUDA_STANDARD 17)
 
   target_include_directories(rpc_increment_ft PRIVATE
-    ${CUDAQ_NVQLINK_INCLUDE_DIR}
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS})
 
   # Bridge executable (.cpp, linked with CUDA)
@@ -208,7 +208,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   target_include_directories(hololink_bridge
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
-      ${CUDAQ_NVQLINK_INCLUDE_DIR}
+      ${CUDAQ_REALTIME_INCLUDE_DIR}
       ${CUDAToolkit_INCLUDE_DIRS})
 
   # Link order: static archives first, then shared

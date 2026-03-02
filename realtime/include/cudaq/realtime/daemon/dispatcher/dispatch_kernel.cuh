@@ -15,15 +15,15 @@
 /// (dispatch_kernel.cu) and is linked into libcudaq-realtime.so. This header
 /// provides declarations and inline wrappers for the launch functions.
 
-#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/nvqlink/daemon/dispatcher/kernel_types.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_modes.h"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/kernel_types.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 
 #include <cuda_runtime.h>
 #include <cstdint>
 
-namespace cudaq::nvqlink {
+namespace cudaq::realtime {
 
 //==============================================================================
 // Kernel Launch Function Declarations (with schema-driven function table)
@@ -79,4 +79,4 @@ inline void launch_dispatch_kernel_cooperative_inline(
       num_blocks, threads_per_block, stream);
 }
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::realtime

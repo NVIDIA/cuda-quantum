@@ -14,8 +14,8 @@
 /// is launched through the transport-agnostic dispatcher API via
 /// cudaq_unified_launch_fn_t + void* transport_ctx.
 
-#include "cudaq/nvqlink/daemon/dispatcher/unified_dispatch_kernel.cuh"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
 #include <cuda_runtime.h>
 #include <cstdint>
@@ -25,7 +25,7 @@
 #define DSEG_SIZE_3 28
 #define MAX_SEND_INLINE_WQE 44
 
-using namespace cudaq::nvqlink;
+using namespace cudaq::realtime;
 
 //==============================================================================
 // Device helpers -- thin wrappers around DOCA verbs calls.

@@ -42,14 +42,14 @@
 #include <arpa/inet.h>
 #include <cuda_runtime.h>
 
-#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/nvqlink/daemon/dispatcher/unified_dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "hololink_wrapper.h"
 
-namespace cudaq::nvqlink {
+namespace cudaq::realtime {
 
 //==============================================================================
 // CUDA Error Checking
@@ -173,7 +173,7 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.unified = true;
   }
 
-  config.frame_size = sizeof(cudaq::nvqlink::RPCHeader) + config.payload_size;
+  config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
 }
 
 //==============================================================================
@@ -573,4 +573,4 @@ inline void bridge_launch_dispatch_kernel(
       threads_per_block, stream);
 }
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::realtime

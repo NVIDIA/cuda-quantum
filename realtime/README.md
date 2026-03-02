@@ -15,7 +15,7 @@ It fulfills two primary responsibilities:
 
 ```bash
 # Configure, need cmake 3.28+
-cmake -G Ninja .. -DNVQLINK_BUILD_TESTS=ON
+cmake -G Ninja .. -DCUDAQ_REALTIME_BUILD_TESTS=ON
 # Build
 ninja 
 # Test
