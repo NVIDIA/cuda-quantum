@@ -21,7 +21,7 @@
 
 using json = nlohmann::json;
 
-namespace cudaq {
+namespace {
 std::string lowercaseArgument(std::string value) {
   std::transform(value.begin(), value.end(), value.begin(),
                  [](unsigned char c) { return std::tolower(c); });
@@ -47,6 +47,9 @@ std::string getEnvVar(const std::string &key, const std::string &defaultVal,
   }
   return std::string(env_var);
 }
+} // namespace
+
+namespace cudaq {
 
 /// @brief The TiiServerHelper class extends the ServerHelper class
 /// to handle interactions with the TII server for submitting and
