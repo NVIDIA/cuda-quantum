@@ -72,7 +72,9 @@ int main(int argc, char *argv[]) {
           << "  --exchange-port=N     TCP port for QP exchange (default: "
              "12345)\n"
           << "  --forward             Use Hololink forward kernel (echo) "
-             "instead of dispatch\n";
+             "instead of dispatch\n"
+          << "  --unified             Use unified dispatch kernel (RX + "
+             "dispatch + TX in one kernel)\n";
       return 0;
     }
   }

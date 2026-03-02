@@ -43,7 +43,10 @@ if(CUDA_FOUND)
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 
-  add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
+  add_library(cudaq-realtime-dispatch STATIC
+    dispatcher/dispatch_kernel.cu
+    dispatcher/unified_dispatch_kernel.cu
+  )
 
   find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
     HINTS /opt/mellanox/doca/include

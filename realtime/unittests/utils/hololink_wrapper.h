@@ -80,6 +80,10 @@ uint32_t hololink_get_qp_number(hololink_transceiver_t handle);
 uint32_t hololink_get_rkey(hololink_transceiver_t handle);
 uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle);
 
+/** Get the DOCA GPU device QP handle (doca_gpu_dev_verbs_qp*).
+ *  Needed by the unified dispatch kernel for direct DOCA verbs calls. */
+void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle);
+
 /**
  * Get the local GID for this transceiver.
  * @param handle Transceiver handle

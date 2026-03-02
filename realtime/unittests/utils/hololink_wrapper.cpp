@@ -114,6 +114,14 @@ uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle) {
   return 0;
 }
 
+void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle) {
+  if (handle) {
+    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    return impl->transceiver->get_gpu_dev_qp();
+  }
+  return nullptr;
+}
+
 int hololink_get_gid(hololink_transceiver_t handle, uint8_t *gid_out) {
   if (handle) {
     auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);

@@ -44,6 +44,7 @@
 
 #include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/nvqlink/daemon/dispatcher/unified_dispatch_kernel.cuh"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "hololink_wrapper.h"
@@ -106,6 +107,11 @@ struct BridgeConfig {
   // separate RX + dispatch + TX kernels.  Useful for baseline latency testing.
   bool forward = false;
 
+  // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
+  // RDMA TX via direct DOCA verbs calls.  Eliminates the inter-kernel flag
+  // handoff overhead of the 3-kernel path.  Regular handlers only.
+  bool unified = false;
+
   // Dispatch kernel config
   cudaq_function_entry_t *d_function_entries = nullptr; ///< GPU function table
   size_t func_count = 0;                                ///< Number of entries
@@ -163,6 +169,8 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.payload_size = std::stoul(arg.substr(15));
     else if (arg == "--forward")
       config.forward = true;
+    else if (arg == "--unified")
+      config.unified = true;
   }
 
   config.frame_size =
@@ -221,14 +229,18 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
+  // Unified mode uses Hololink's forward/symmetric ring layout but doesn't
+  // run any Hololink kernels -- the unified dispatch kernel handles RX+TX.
+  bool use_forward_ring = config.forward || config.unified;
+
   hololink_transceiver_t transceiver = hololink_create_transceiver(
       config.device.c_str(), 1, // ib_port
       config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
-      "0.0.0.0",              // deferred connection
-      config.forward ? 1 : 0, // forward (single echo kernel)
-      config.forward ? 0 : 1, // rx_only
-      config.forward ? 0 : 1  // tx_only
+      "0.0.0.0",                  // deferred connection
+      use_forward_ring ? 1 : 0,   // forward (symmetric ring layout)
+      use_forward_ring ? 0 : 1,   // rx_only
+      use_forward_ring ? 0 : 1    // tx_only
   );
 
   if (!transceiver) {
@@ -301,27 +313,33 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
+  // Transport context for unified mode (must outlive the dispatcher)
+  doca_transport_ctx unified_ctx{};
+
   if (!config.forward) {
-    int dispatch_blocks = 0;
-    cudaError_t occ_err;
-    if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
-      occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
-          &dispatch_blocks, config.threads_per_block);
-    } else {
-      occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
+    if (!config.unified) {
+      int dispatch_blocks = 0;
+      cudaError_t occ_err;
+      if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
+        occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
+            &dispatch_blocks, config.threads_per_block);
+      } else {
+        occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
+      }
+      if (occ_err != cudaSuccess) {
+        std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
+                  << cudaGetErrorString(occ_err) << std::endl;
+        return 1;
+      }
+      std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
+                << " blocks/SM" << std::endl;
     }
-    if (occ_err != cudaSuccess) {
-      std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
-                << cudaGetErrorString(occ_err) << std::endl;
-      return 1;
-    }
-    std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
-              << " blocks/SM" << std::endl;
 
     //==========================================================================
-    // [4] Wire dispatch kernel to Hololink ring buffers
+    // [4] Wire dispatch kernel
     //==========================================================================
-    std::cout << "\n[4/5] Wiring dispatch kernel..." << std::endl;
+    std::cout << "\n[4/5] Wiring dispatch kernel ("
+              << (config.unified ? "unified" : "3-kernel") << ")..." << std::endl;
 
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -346,30 +364,65 @@ inline int bridge_run(BridgeConfig &config) {
 
     cudaq_dispatcher_config_t dconfig{};
     dconfig.device_id = config.gpu_id;
-    dconfig.num_blocks = config.num_blocks;
-    dconfig.threads_per_block = config.threads_per_block;
-    dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-    dconfig.slot_size = static_cast<uint32_t>(config.page_size);
     dconfig.vp_id = 0;
-    dconfig.kernel_type = config.kernel_type;
     dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+
+    if (config.unified) {
+      dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
+      dconfig.num_blocks = 1;
+      dconfig.threads_per_block = 1;
+      dconfig.num_slots = 0;
+      dconfig.slot_size = 0;
+    } else {
+      dconfig.kernel_type = config.kernel_type;
+      dconfig.num_blocks = config.num_blocks;
+      dconfig.threads_per_block = config.threads_per_block;
+      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
+    }
 
     if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to create dispatcher" << std::endl;
       return 1;
     }
 
-    cudaq_ringbuffer_t ringbuffer{};
-    ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-    ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-    ringbuffer.rx_data = rx_ring_data;
-    ringbuffer.tx_data = tx_ring_data;
-    ringbuffer.rx_stride_sz = config.page_size;
-    ringbuffer.tx_stride_sz = config.page_size;
+    if (config.unified) {
+      // Pack DOCA transport handles into the opaque context
+      unified_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+      unified_ctx.rx_ring_data = rx_ring_data;
+      unified_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
+      unified_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+      unified_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+      unified_ctx.frame_size = config.frame_size;
 
-    if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) != CUDAQ_OK) {
-      std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-      return 1;
+      if (cudaq_dispatcher_set_unified_launch(
+              dispatcher, &cudaq_launch_unified_dispatch_kernel,
+              &unified_ctx) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set unified launch function" << std::endl;
+        return 1;
+      }
+    } else {
+      cudaq_ringbuffer_t ringbuffer{};
+      ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
+      ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+      ringbuffer.rx_data = rx_ring_data;
+      ringbuffer.tx_data = tx_ring_data;
+      ringbuffer.rx_stride_sz = config.page_size;
+      ringbuffer.tx_stride_sz = config.page_size;
+
+      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
+        return 1;
+      }
+
+      cudaq_dispatch_launch_fn_t launch_fn = config.launch_fn;
+      if (!launch_fn) {
+        launch_fn = &cudaq_launch_dispatch_kernel_regular;
+      }
+      if (cudaq_dispatcher_set_launch_fn(dispatcher, launch_fn) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set launch function" << std::endl;
+        return 1;
+      }
     }
 
     cudaq_function_table_t table{};
@@ -386,15 +439,6 @@ inline int bridge_run(BridgeConfig &config) {
       return 1;
     }
 
-    cudaq_dispatch_launch_fn_t launch_fn = config.launch_fn;
-    if (!launch_fn) {
-      launch_fn = &cudaq_launch_dispatch_kernel_regular;
-    }
-    if (cudaq_dispatcher_set_launch_fn(dispatcher, launch_fn) != CUDAQ_OK) {
-      std::cerr << "ERROR: Failed to set launch function" << std::endl;
-      return 1;
-    }
-
     if (cudaq_dispatcher_start(dispatcher) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to start dispatcher" << std::endl;
       return 1;
@@ -405,15 +449,20 @@ inline int bridge_run(BridgeConfig &config) {
   }
 
   //============================================================================
-  // [5] Launch Hololink kernels and run
+  // [5] Launch Hololink kernels (if needed) and run
   //============================================================================
-  std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
+  std::thread hololink_thread;
 
-  std::thread hololink_thread(
-      [transceiver]() { hololink_blocking_monitor(transceiver); });
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  std::cout << "  Hololink RX+TX kernels started" << std::endl;
+  if (config.unified) {
+    std::cout << "\n[5/5] Unified mode -- Hololink kernels not needed"
+              << std::endl;
+  } else {
+    std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
+    hololink_thread = std::thread(
+        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::cout << "  Hololink RX+TX kernels started" << std::endl;
+  }
 
   // Print QP info for FPGA stimulus tool
   std::cout << "\n=== Bridge Ready ===" << std::endl;
