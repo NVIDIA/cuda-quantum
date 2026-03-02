@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace cudaq::ptsbe {
+namespace cudaq::ptsbe::detail {
 
 /// @brief Noise point information extracted from circuit analysis
 ///
@@ -65,6 +65,10 @@ computeTotalTrajectories(std::span<const NoisePoint> noise_points) {
   return total;
 }
 
+} // namespace cudaq::ptsbe::detail
+
+namespace cudaq::ptsbe {
+
 /// @brief Base class for trajectory sampling strategies
 /// The sampling strategy receives processed noise information from the engine
 /// and returns a list of unique trajectories to execute.
@@ -78,7 +82,7 @@ public:
   /// @param max_trajectories Maximum number of unique trajectories to generate
   /// @return Vector of unique generated trajectories
   [[nodiscard]] virtual std::vector<cudaq::KrausTrajectory>
-  generateTrajectories(std::span<const NoisePoint> noise_points,
+  generateTrajectories(std::span<const detail::NoisePoint> noise_points,
                        std::size_t max_trajectories) const = 0;
 
   /// @brief Get a name for this strategy

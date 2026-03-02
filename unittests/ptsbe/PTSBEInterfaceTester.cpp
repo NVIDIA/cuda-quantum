@@ -8,6 +8,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/ptsbe/PTSBESampler.h"
+#include "cudaq/ptsbe/PTSBESamplerImpl.h"
+#include <type_traits>
 
 using namespace cudaq;
 using namespace cudaq::ptsbe;
@@ -23,39 +25,21 @@ struct MockPTSBESimulator {
   }
 };
 
+struct MockBatchSimulator : BatchSimulator {
+  mutable bool sampleWithPTSBE_called = false;
+
+  std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
+    sampleWithPTSBE_called = true;
+    return {};
+  }
+};
+
 struct NonPTSBESimulator {
   void execute(const PTSBatch &) {}
 };
 
-struct WrongReturnTypeSimulator {
-  cudaq::sample_result sampleWithPTSBE(const PTSBatch &batch) {
-    return cudaq::sample_result{};
-  }
-};
-
-struct WrongParameterSimulator {
-  std::vector<cudaq::sample_result> sampleWithPTSBE(int shots) { return {}; }
-};
-
-struct NonConstParameterSimulator {
-  std::vector<cudaq::sample_result> sampleWithPTSBE(PTSBatch &batch) {
-    return {};
-  }
-};
-
-struct ConstMethodSimulator {
-  std::vector<cudaq::sample_result>
-  sampleWithPTSBE(const PTSBatch &batch) const {
-    return {};
-  }
-};
-
-static_assert(PTSBECapable<MockPTSBESimulator>);
-static_assert(!PTSBECapable<NonPTSBESimulator>);
-static_assert(!PTSBECapable<WrongReturnTypeSimulator>);
-static_assert(!PTSBECapable<WrongParameterSimulator>);
-static_assert(!PTSBECapable<NonConstParameterSimulator>);
-static_assert(PTSBECapable<ConstMethodSimulator>);
+static_assert(std::is_base_of_v<BatchSimulator, MockBatchSimulator>);
+static_assert(!std::is_base_of_v<BatchSimulator, MockPTSBESimulator>);
 
 } // namespace
 
@@ -150,31 +134,26 @@ CUDAQ_TEST(PTSBEInterfaceTest, CleanTrajectory) {
   EXPECT_EQ(traj.num_shots, 500);
 }
 
-/// Test: Runtime dispatch calls sampleWithPTSBE for PTSBECapable simulators
+/// Test: Runtime dispatch calls sampleWithPTSBE for BatchSimulator implementers
 CUDAQ_TEST(PTSBEInterfaceTest, RuntimeDispatchCallsMock) {
-  auto testDispatch = []<typename Sim>(Sim &sim, const PTSBatch &batch) {
-    if constexpr (PTSBECapable<Sim>) {
-      sim.sampleWithPTSBE(batch);
-      return true;
-    } else {
-      return false;
-    }
-  };
-
-  MockPTSBESimulator ptsbe_sim;
-  NonPTSBESimulator non_ptsbe_sim;
+  MockBatchSimulator ptsbe_sim;
   PTSBatch batch;
   batch.measureQubits = {0, 1};
 
-  EXPECT_TRUE(testDispatch(ptsbe_sim, batch));
-  EXPECT_FALSE(testDispatch(non_ptsbe_sim, batch));
+  ptsbe_sim.sampleWithPTSBE(batch);
   EXPECT_TRUE(ptsbe_sim.sampleWithPTSBE_called);
+
+  constexpr bool nonPtsbeIsBatchSimulator =
+      std::is_base_of_v<BatchSimulator, NonPTSBESimulator>;
+  EXPECT_FALSE(nonPtsbeIsBatchSimulator);
 }
 
-/// Test: Concept correctly rejects wrong signatures
-CUDAQ_TEST(PTSBEInterfaceTest, ConceptRejectsWrongSignatures) {
-  EXPECT_FALSE(PTSBECapable<WrongReturnTypeSimulator>);
-  EXPECT_FALSE(PTSBECapable<WrongParameterSimulator>);
-  EXPECT_FALSE(PTSBECapable<NonConstParameterSimulator>);
-  EXPECT_TRUE(PTSBECapable<ConstMethodSimulator>);
+/// Test: BatchSimulator inheritance is the dispatch contract
+CUDAQ_TEST(PTSBEInterfaceTest, BatchSimulatorDispatchContract) {
+  constexpr bool mockBatchIsBatchSimulator =
+      std::is_base_of_v<BatchSimulator, MockBatchSimulator>;
+  constexpr bool mockPtsbeIsBatchSimulator =
+      std::is_base_of_v<BatchSimulator, MockPTSBESimulator>;
+  EXPECT_TRUE(mockBatchIsBatchSimulator);
+  EXPECT_FALSE(mockPtsbeIsBatchSimulator);
 }

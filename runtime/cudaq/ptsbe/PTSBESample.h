@@ -43,7 +43,7 @@
 #include <span>
 #include <stdexcept>
 
-namespace cudaq::ptsbe {
+namespace cudaq::ptsbe::detail {
 
 /// @brief Validate kernel eligibility for PTSBE execution
 ///
@@ -298,7 +298,7 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   std::promise<sample_result> promise;
   auto future = promise.get_future();
 
-  QuantumTask task = detail::make_copyable_function(
+  QuantumTask task = cudaq::detail::make_copyable_function(
       [p = std::move(promise), shots, kernelName, &platform, options,
        kernel = std::forward<KernelFunctor>(wrappedKernel),
        noiseCopy = std::move(noiseCopy)]() mutable {
@@ -321,6 +321,13 @@ runSamplingAsyncPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   platform.enqueueAsyncTask(qpu_id, task);
   return future;
 }
+
+} // namespace cudaq::ptsbe::detail
+
+namespace cudaq::ptsbe {
+
+/// @brief Public return type for asynchronous PTSBE sampling
+using async_sample_result = std::future<sample_result>;
 
 /// @brief Sample options for PTSBE execution
 ///
@@ -347,9 +354,9 @@ sample_result sample(const cudaq::noise_model &noise, std::size_t shots,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&noise);
 
-  sample_result result =
-      runSamplingPTSBE([&]() mutable { kernel(std::forward<Args>(args)...); },
-                       platform, kernelName, shots);
+  sample_result result = detail::runSamplingPTSBE(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots);
 
   platform.reset_noise();
   return result;
@@ -369,9 +376,9 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
 
-  sample_result result =
-      runSamplingPTSBE([&]() mutable { kernel(std::forward<Args>(args)...); },
-                       platform, kernelName, options.shots, options.ptsbe);
+  sample_result result = detail::runSamplingPTSBE(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, options.shots, options.ptsbe);
 
   platform.reset_noise();
   return result;
@@ -392,7 +399,7 @@ async_sample_result sample_async(const cudaq::noise_model &noise,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&noise);
 
-  auto future = runSamplingAsyncPTSBE(
+  auto future = detail::runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, shots);
 
@@ -413,7 +420,7 @@ async_sample_result sample_async(const sample_options &options,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
 
-  auto future = runSamplingAsyncPTSBE(
+  auto future = detail::runSamplingAsyncPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, options.shots, options.ptsbe);
 

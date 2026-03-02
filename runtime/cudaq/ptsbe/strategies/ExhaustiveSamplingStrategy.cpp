@@ -11,8 +11,8 @@
 
 namespace cudaq::ptsbe {
 
-std::vector<cudaq::KrausTrajectory> enumerateLexicographic(
-    std::span<const NoisePoint> noise_points, std::size_t limit,
+std::vector<cudaq::KrausTrajectory> detail::enumerateLexicographic(
+    std::span<const detail::NoisePoint> noise_points, std::size_t limit,
     std::span<const std::vector<std::size_t>> index_mapping) {
   std::vector<cudaq::KrausTrajectory> results;
   if (noise_points.empty())
@@ -65,11 +65,11 @@ ExhaustiveSamplingStrategy::~ExhaustiveSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
 ExhaustiveSamplingStrategy::generateTrajectories(
-    std::span<const NoisePoint> noise_points,
+    std::span<const detail::NoisePoint> noise_points,
     std::size_t max_trajectories) const {
-  std::size_t total = computeTotalTrajectories(noise_points);
-  return enumerateLexicographic(noise_points, std::min(total, max_trajectories),
-                                {});
+  std::size_t total = detail::computeTotalTrajectories(noise_points);
+  return detail::enumerateLexicographic(noise_points,
+                                        std::min(total, max_trajectories), {});
 }
 
 } // namespace cudaq::ptsbe

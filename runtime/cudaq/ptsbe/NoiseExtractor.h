@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace cudaq::ptsbe {
+namespace cudaq::ptsbe::detail {
 
 /// @brief Result of noise site extraction from a circuit
 struct NoiseExtractionResult {
@@ -51,4 +51,4 @@ struct NoiseExtractionResult {
 extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
                   bool validate_unitary_mixture = true);
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

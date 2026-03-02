@@ -23,6 +23,7 @@
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
 using namespace cudaq::ptsbe;
+using namespace cudaq::ptsbe::detail;
 
 namespace {
 

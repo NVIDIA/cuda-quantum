@@ -20,7 +20,7 @@ ConditionalSamplingStrategy::~ConditionalSamplingStrategy() = default;
 
 std::vector<cudaq::KrausTrajectory>
 ConditionalSamplingStrategy::generateTrajectories(
-    std::span<const NoisePoint> noise_points,
+    std::span<const detail::NoisePoint> noise_points,
     std::size_t max_trajectories) const {
 
   std::vector<cudaq::KrausTrajectory> results;
@@ -33,7 +33,7 @@ ConditionalSamplingStrategy::generateTrajectories(
   std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
   std::set<std::vector<std::size_t>> rejected_patterns;
 
-  std::size_t total_possible = computeTotalTrajectories(noise_points);
+  std::size_t total_possible = detail::computeTotalTrajectories(noise_points);
   std::size_t actual_target = std::min(max_trajectories, total_possible);
 
   std::size_t trajectory_id = 0;
