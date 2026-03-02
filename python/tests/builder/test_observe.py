@@ -591,13 +591,15 @@ def test_observe_kernel_exception_no_segfault():
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 
     with pytest.raises(Exception) as exception:
-        cudaq.observe(kernel, hamiltonian,
+        cudaq.observe(kernel,
+                      hamiltonian,
                       np.random.uniform(size=(3, 2)),
                       shots_count=10)
     assert "Invalid runtime list argument" in str(exception.value)
 
     with pytest.raises(Exception) as exception:
-        cudaq.observe(kernel, hamiltonian,
+        cudaq.observe(kernel,
+                      hamiltonian,
                       np.random.uniform(size=(2,)),
                       shots_count=10)
     assert "Invalid runtime list argument" in str(exception.value)
