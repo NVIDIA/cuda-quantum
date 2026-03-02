@@ -28,7 +28,7 @@ public:
   /// @return Vector of trajectories in lexicographic order (up to
   /// max_trajectories)
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
-  generateTrajectories(std::span<const NoisePoint> noise_points,
+  generateTrajectories(std::span<const detail::NoisePoint> noise_points,
                        std::size_t max_trajectories) const override;
 
   /// @brief Get strategy name
@@ -47,9 +47,11 @@ public:
 /// When index_mapping is non-empty, index_mapping[i] remaps enumeration
 /// positions to actual operator indices for noise point i (e.g. sorted by
 /// descending probability). When empty, raw indices 0..N are used.
+} // namespace cudaq::ptsbe
+
+namespace cudaq::ptsbe::detail {
 std::vector<cudaq::KrausTrajectory>
-enumerateLexicographic(std::span<const NoisePoint> noise_points,
+enumerateLexicographic(std::span<const detail::NoisePoint> noise_points,
                        std::size_t limit,
                        std::span<const std::vector<std::size_t>> index_mapping);
-
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

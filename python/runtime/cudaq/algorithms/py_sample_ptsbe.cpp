@@ -68,7 +68,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
 
   ptsbe::sample_result result;
   try {
-    result = ptsbe::runSamplingPTSBE(
+    result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
               clean_launch_module(shortName, mod, retTy, opaques);
@@ -140,7 +140,7 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
 
   // Release GIL before launching async C++ work
   py::gil_scoped_release release;
-  auto future = ptsbe::runSamplingAsyncPTSBE(
+  auto future = ptsbe::detail::runSamplingAsyncPTSBE(
       [opaques = std::move(opaques), kernelName, retTy,
        mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =

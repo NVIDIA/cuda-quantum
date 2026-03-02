@@ -29,7 +29,7 @@ public:
   /// @param max_trajectories Maximum number of unique trajectories to generate
   /// @return Vector of top-k highest-probability trajectories
   [[nodiscard]] std::vector<cudaq::KrausTrajectory>
-  generateTrajectories(std::span<const NoisePoint> noise_points,
+  generateTrajectories(std::span<const detail::NoisePoint> noise_points,
                        std::size_t max_trajectories) const override;
 
   /// @brief Get strategy name
