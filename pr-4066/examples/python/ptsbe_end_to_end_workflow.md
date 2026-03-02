@@ -194,20 +194,21 @@ pr-4066
     -   [Noisy Simulations](noisy_simulations.html){.reference
         .internal}
     -   [PTSBE End-to-End Workflow](#){.current .reference .internal}
-        -   [1. Set up the
-            environment](#1.-Set-up-the-environment){.reference
+        -   [Set up the environment](#Set-up-the-environment){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](#2.-Define-the-circuit-and-noise-model){.reference
+        -   [Define the circuit and noise
+            model](#Define-the-circuit-and-noise-model){.reference
             .internal}
-        -   [3. Run PTSBE sampling](#3.-Run-PTSBE-sampling){.reference
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE sampling](#Run-PTSBE-sampling){.reference
             .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](#5.-Return-execution-data){.reference .internal}
-        -   [6. Two API options:](#6.-Two-API-options:){.reference
+            -   [Larger circuit for execution
+                data](#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](#Inspecting-trajectories-with-execution-data){.reference
             .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1805,42 +1806,42 @@ aria-hidden="true"}](../../using/examples/operators.html "Operators"){.btn
 ::: {#PTSBE-end-to-end-workflow .section}
 # PTSBE end-to-end workflow[¶](#PTSBE-end-to-end-workflow "Permalink to this heading"){.headerlink}
 
-**PTSBE** (Pre-Trajectory Sampling with Batch Execution) is a method for
-sampling from **noisy** quantum circuits efficiently. Instead of
-simulating the full density matrix and sampling once per shot, PTSBE:
+PTSBE (Pre-Trajectory Sampling with Batch Execution) is a method for
+sampling from noisy quantum circuits efficiently. Instead of simulating
+the full density matrix and sampling once per shot, PTSBE:
 
-1.  **Traces** the kernel to get the gate sequence and qubit layout.
+1.  Traces the kernel to get the gate sequence and qubit layout.
 
-2.  **Extracts noise sites** by matching the noise model to the trace
-    (each noisy gate becomes a *noise site* with a set of Kraus
-    outcomes, e.g. I, X, Y, Z for depolarization).
+2.  Extracts noise sites by matching the noise model to the trace (each
+    noisy gate becomes a *noise site* with a set of Kraus outcomes, e.g.
+    [\\(I\\)]{.math .notranslate .nohighlight}, [\\(X\\)]{.math
+    .notranslate .nohighlight}, [\\(Y\\)]{.math .notranslate
+    .nohighlight}, [\\(Z\\)]{.math .notranslate .nohighlight} for
+    depolarization).
 
-3.  **Generates trajectories** --- each trajectory is one possible
-    *realization* of noise (one Kraus outcome per site). A **sampling
-    strategy** decides which trajectories to use (e.g. **Exhaustive**:
-    all combinations, or **Probabilistic**: sample by probability).
+3.  Generates trajectories --- each trajectory is one possible
+    *realization* of noise (one Kraus outcome per site). A *sampling
+    strategy* decides which trajectories to use (e.g. by sampling
+    trajectories proporitional to their likelihood).
 
-4.  **Allocates shots** across trajectories (e.g. **proportional** to
-    trajectory probability, or **uniform**).
+4.  Allocates shots across trajectories (e.g. by error likelihood).
 
-5.  **Runs batches** --- for each trajectory, the circuit is run as a
-    **noiseless** circuit with that trajectory's outcomes applied;
-    results are collected.
+5.  Runs batches --- for each trajectory, the circuit is run as a
+    noiseless circuit with that trajectory's outcomes applied; results
+    are collected.
 
-6.  **Aggregates** all per-trajectory counts into a single
+6.  Aggregates all per-trajectory counts into a single
     [`SampleResult`{.docutils .literal .notranslate}]{.pre}.
 
-You get the same statistics as density-matrix sampling (in the limit of
-many shots), but with the ability to batch many shots per trajectory and
-to control cost via the number of trajectories. This notebook runs the
-full workflow with a single API call: [`cudaq.ptsbe.sample()`{.docutils
-.literal .notranslate}]{.pre}.
+Given sufficient trajectory and shot samples PTSBE will be equivalent to
+standard trajectory based sampling up to sampling noise. However, it has
+the additional advantage of being able to batch many shots per
+trajectory and to control simulation cost via the number of
+trajectories. This notebook runs the full workflow with a single API
+call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 
-::: {#1.-Set-up-the-environment .section}
-## 1. Set up the environment[¶](#1.-Set-up-the-environment "Permalink to this heading"){.headerlink}
-
-Use the density-matrix simulator target (required for PTSBE). Set a
-random seed for reproducibility.
+::: {#Set-up-the-environment .section}
+## Set up the environment[¶](#Set-up-the-environment "Permalink to this heading"){.headerlink}
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
@@ -1851,27 +1852,14 @@ random seed for reproducibility.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    import cudaq
-
-    cudaq.set_target("density-matrix-cpu")
-    cudaq.set_random_seed(42)
+    import sys, os
+    _root = os.path.join(os.path.expanduser("~/Devel/cudaq-pstbe/vendor/cuda-quantum"), "build")
+    sys.path.insert(0, os.path.join(_root, "python"))
+    _build_lib = os.path.join(_root, "lib")
+    os.environ["LD_LIBRARY_PATH"] = _build_lib + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 :::
 :::
 :::
-:::
-
-::: {#2.-Define-the-circuit-and-noise-model .section}
-## 2. Define the circuit and noise model[¶](#2.-Define-the-circuit-and-noise-model "Permalink to this heading"){.headerlink}
-
-Define a kernel and attach a noise model. Each gate you add to the noise
-model becomes a **noise site** when that gate appears in the circuit.
-For **single-qubit** gates (e.g. H) use **DepolarizationChannel** with
-one qubit; for **CNOTs** pass the **qubit pair** [`[control,`{.docutils
-.literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`target]`{.docutils .literal .notranslate}]{.pre} and use
-**Depolarization2** (two-qubit depolarization). Here we use a small
-Bell-style circuit with depol on the Hadamard and on the controlled-X
-(qubit pair \[0, 1\]).
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
@@ -1882,72 +1870,31 @@ Bell-style circuit with depol on the Hadamard and on the controlled-X
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    @cudaq.kernel
-    def bell_with_noise():
-        q = cudaq.qvector(2)
-        h(q[0])
-        x.ctrl(q[0], q[1])
-        mz(q)
+    import cudaq
 
-    noise = cudaq.NoiseModel()
-    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.05))
-    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.03))
+    cudaq.set_target("qpp-cpu")
+    cudaq.set_random_seed(42)
 :::
 :::
 :::
 :::
 
-::: {#3.-Run-PTSBE-sampling .section}
-## 3. Run PTSBE sampling[¶](#3.-Run-PTSBE-sampling "Permalink to this heading"){.headerlink}
+::: {#Define-the-circuit-and-noise-model .section}
+## Define the circuit and noise model[¶](#Define-the-circuit-and-noise-model "Permalink to this heading"){.headerlink}
 
-Call [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}
-with the kernel, noise model, and shot count. Optional arguments:
+Define a kernel and attach a noise model. Each gate you add to the noise
+model becomes a noise site when that gate appears in the circuit. In
+this example, for single-qubit gates (e.g. [\\(H\\)]{.math .notranslate
+.nohighlight}) we use a [`DepolarizationChannel`{.docutils .literal
+.notranslate}]{.pre} with one qubit and for [\\(CNOT\\)]{.math
+.notranslate .nohighlight} we add the **qubit pair**
+[`[control,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`target]`{.docutils .literal .notranslate}]{.pre}
+with [`Depolarization2`{.docutils .literal .notranslate}]{.pre}
+(two-qubit depolarization channel). Here we use a small Bell-style
+circuit to demonstrate the
 
--   **sampling_strategy** --- how trajectories are chosen:
-
-    -   **ExhaustiveSamplingStrategy()**: use all possible trajectories
-        (every combination of Kraus outcomes per noise site).
-
-    -   **ProbabilisticSamplingStrategy(seed=...)**: sample trajectories
-        randomly according to their probabilities; use a seed for
-        reproducibility.
-
-    -   **OrderedSamplingStrategy()**: use the top-[\\(k\\)]{.math
-        .notranslate .nohighlight} trajectories by probability (highest
-        first), up to [`max_trajectories`{.docutils .literal
-        .notranslate}]{.pre}.
-
--   **shot_allocation** --- how shots are split across the chosen
-    trajectories:
-
-    -   **PROPORTIONAL** (default): allocate shots in proportion to each
-        trajectory's probability.
-
-    -   **UNIFORM**: give each trajectory the same number of shots.
-
-    -   **LOW_WEIGHT_BIAS**: bias more shots toward low-weight (fewer
-        errors) trajectories; optional [`bias_strength`{.docutils
-        .literal .notranslate}]{.pre} (default 2.0).
-
-    -   **HIGH_WEIGHT_BIAS**: bias more shots toward high-weight
-        trajectories; optional [`bias_strength`{.docutils .literal
-        .notranslate}]{.pre} (default 2.0). Example:
-        [`ShotAllocationStrategy(type=cudaq.ptsbe.ShotAllocationType.UNIFORM)`{.docutils
-        .literal .notranslate}]{.pre} or
-        [`ShotAllocationStrategy(type=cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`bias_strength=5.0)`{.docutils .literal
-        .notranslate}]{.pre}.
-
--   **max_trajectories**: cap the number of trajectories (useful for
-    large shot counts).
-
--   **return_execution_data** (bool): If [`True`{.docutils .literal
-    .notranslate}]{.pre}, the result includes trace instructions and
-    per-trajectory data ([`result.ptsbe_execution_data`{.docutils
-    .literal .notranslate}]{.pre}); see section 6 at the end.
-
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [3]:
@@ -1956,46 +1903,32 @@ with the kernel, noise model, and shot count. Optional arguments:
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    shots = 1000000
+    depol_1q = 0.05
+    depol_2q = 0.03
 
-    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=42)
-    result = cudaq.ptsbe.sample(
-        bell_with_noise,
-        noise_model=noise,
-        shots_count=shots,
-        sampling_strategy=strategy,
-    )
+    @cudaq.kernel
+    def bell_with_noise():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
 
-    print("PTSBE sample result:")
-    print(result)
-    print(f"Total shots: {result.get_total_shots()}")
-:::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    PTSBE sample result:
-    { 00:491822 01:7889 10:8035 11:492254 }
-
-    Total shots: 1000000
-:::
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(depol_1q))
+    noise.add_all_qubit_channel("x", cudaq.Depolarization2(depol_2q), num_controls=1)
 :::
 :::
 :::
 
-::: {#4.-Compare-with-standard-(density-matrix)-sampling .section}
-## 4. Compare with standard (density-matrix) sampling[¶](#4.-Compare-with-standard-(density-matrix)-sampling "Permalink to this heading"){.headerlink}
+::: {#Inline-noise-with-apply_noise .section}
+### Inline noise with [`apply_noise`{.docutils .literal .notranslate}]{.pre}[¶](#Inline-noise-with-apply_noise "Permalink to this heading"){.headerlink}
 
-To verify that PTSBE matches the usual noisy simulation, run standard
-[`cudaq.sample()`{.docutils .literal .notranslate}]{.pre} with the same
-kernel and noise model. With enough shots, the two outcome distributions
-should be close (see the **PTSBE accuracy validation** example for a
-Hellinger fidelity comparison).
+Instead of (or in addition to) attaching noise via a
+[`NoiseModel`{.docutils .literal .notranslate}]{.pre}, you can place
+noise at specific points in the kernel with
+[`cudaq.apply_noise`{.docutils .literal .notranslate}]{.pre}. PTSBE
+traces these calls and includes them as noise sites alongside any
+model-attached noise.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
@@ -2006,10 +1939,21 @@ Hellinger fidelity comparison).
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    result_standard = cudaq.sample(bell_with_noise, noise_model=noise, shots_count=shots)
-    print("Standard (density-matrix) sample result:")
-    print(result_standard)
-    print(f"Total shots: {result_standard.get_total_shots()}")
+    @cudaq.kernel
+    def bell_inline_noise():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cudaq.apply_noise(cudaq.DepolarizationChannel, depol_1q, q[0])
+        x.ctrl(q[0], q[1])
+        cudaq.apply_noise(cudaq.Depolarization2, depol_2q, q[0], q[1])
+        mz(q)
+
+    result_inline = cudaq.ptsbe.sample(
+        bell_inline_noise,
+        shots_count=10000,
+    )
+    print("Inline apply_noise result:")
+    print(result_inline)
 :::
 :::
 :::
@@ -2020,25 +1964,72 @@ Hellinger fidelity comparison).
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Standard (density-matrix) sample result:
-    { 00:491849 01:8033 10:8003 11:492115 }
+    Inline apply_noise result:
+    { 00:4873 01:74 10:74 11:4979 }
+:::
+:::
+:::
+:::
+:::
 
-    Total shots: 1000000
-:::
-:::
-:::
-:::
+::: {#Run-PTSBE-sampling .section}
+## Run PTSBE sampling[¶](#Run-PTSBE-sampling "Permalink to this heading"){.headerlink}
 
-::: {#5.-Return-execution-data .section}
-## 5. Return execution data[¶](#5.-Return-execution-data "Permalink to this heading"){.headerlink}
+Call [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}
+with the kernel, noise model, and shot count. This example uses
+[`OrderedSamplingStrategy`{.docutils .literal .notranslate}]{.pre} plus
+[`LOW_WEIGHT_BIAS`{.docutils .literal .notranslate}]{.pre} shot
+allocation to emphasize likely low-error trajectories with a smaller
+shot budget.
 
-Pass [`return_execution_data=True`{.docutils .literal
-.notranslate}]{.pre} to get the PTSBE execution data: the trace (gate,
-noise, measurement instructions) and the list of trajectories with their
-probabilities and shot allocations. Use
-[`result.ptsbe_execution_data`{.docutils .literal .notranslate}]{.pre}
-and [`result.has_execution_data()`{.docutils .literal
-.notranslate}]{.pre}.
+Optional arguments are:
+
+-   [`sampling_strategy`{.docutils .literal .notranslate}]{.pre} --- how
+    trajectories are chosen:
+
+    -   [`ProbabilisticSamplingStrategy(seed=...)`{.docutils .literal
+        .notranslate}]{.pre} (default): Performs Monte Carlo sampling
+        over trajectories.
+
+    -   [`ExhaustiveSamplingStrategy()`{.docutils .literal
+        .notranslate}]{.pre}: use all possible trajectories (every
+        combination of Kraus outcomes per noise site).
+
+    -   [`OrderedSamplingStrategy()`{.docutils .literal
+        .notranslate}]{.pre}: Select the top-[\\(k\\)]{.math
+        .notranslate .nohighlight} trajectories by probability (highest
+        first), up to [`max_trajectories`{.docutils .literal
+        .notranslate}]{.pre}.
+
+-   [`shot_allocation`{.docutils .literal .notranslate}]{.pre} --- how
+    shots are split across the chosen trajectories:
+
+    -   [`PROPORTIONAL`{.docutils .literal .notranslate}]{.pre}
+        (default): allocate shots in proportion to each sampled
+        trajectory's weighting.
+
+    -   [`UNIFORM`{.docutils .literal .notranslate}]{.pre}: give each
+        trajectory the same number of shots.
+
+    -   [`LOW_WEIGHT_BIAS`{.docutils .literal .notranslate}]{.pre}: bias
+        more shots toward low-weight (fewer errors) trajectories,
+        optional [`bias_strength`{.docutils .literal
+        .notranslate}]{.pre} (default 2.0).
+
+    -   [`HIGH_WEIGHT_BIAS`{.docutils .literal .notranslate}]{.pre}:
+        bias more shots toward high-weight trajectories, optional
+        [`bias_strength`{.docutils .literal .notranslate}]{.pre}
+        (default 2.0).
+
+-   [`max_trajectories`{.docutils .literal .notranslate}]{.pre}: cap the
+    number of trajectories (useful for large shot counts).
+
+-   [`return_execution_data`{.docutils .literal .notranslate}]{.pre}: If
+    [`True`{.docutils .literal .notranslate}]{.pre}, the result includes
+    trace instructions and per-trajectory data
+    ([`result.ptsbe_execution_data`{.docutils .literal
+    .notranslate}]{.pre}). This is currently an experimental API and
+    subject to change in future releases. See section 5 below.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
@@ -2049,37 +2040,52 @@ and [`result.has_execution_data()`{.docutils .literal
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    result_with_data = cudaq.ptsbe.sample(
+    shots = 10000
+    max_traj = 16
+    strategy = cudaq.ptsbe.OrderedSamplingStrategy()
+
+    def print_result(label, sample_result):
+        print(f"{label:<36} shots={sample_result.get_total_shots():>6}  counts={sample_result}")
+
+    biased_alloc = cudaq.ptsbe.ShotAllocationStrategy(
+        cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS,
+        bias_strength=3.0,
+        seed=42,
+    )
+    result_biased = cudaq.ptsbe.sample(
         bell_with_noise,
         noise_model=noise,
         shots_count=shots,
         sampling_strategy=strategy,
-        return_execution_data=True,
+        shot_allocation=biased_alloc,
+        max_trajectories=max_traj,
     )
-    assert result_with_data.has_execution_data()
-    data = result_with_data.ptsbe_execution_data
 
-    Gate = cudaq.ptsbe.TraceInstructionType.Gate
-    Noise = cudaq.ptsbe.TraceInstructionType.Noise
-    Measurement = cudaq.ptsbe.TraceInstructionType.Measurement
-    print("Execution data:")
-    print(f"  Instructions: {len(data.instructions)} total")
-    n_gate = sum(1 for i in data.instructions if i.type == Gate)
-    n_noise = sum(1 for i in data.instructions if i.type == Noise)
-    n_meas = sum(1 for i in data.instructions if i.type == Measurement)
-    print(f"    Gates: {n_gate}, Noise: {n_noise}, Measurements: {n_meas}")
-    print(f"  Trajectories: {len(data.trajectories)}")
-    total_traj_shots = sum(t.num_shots for t in data.trajectories)
-    print(f"  Sum of trajectory shots: {total_traj_shots} (expected {shots})")
-    print("  Trace instructions (first 5):")
-    for i, inst in enumerate(data.instructions[:5]):
-        print(f"    [{i}] type={inst.type}, name={inst.name}, targets={list(inst.targets)}")
-    if data.trajectories:
-        t0 = data.trajectories[0]
-        print(f"  Example trajectory: id={t0.trajectory_id}, probability={t0.probability:.6f}, num_shots={t0.num_shots}")
-        print("  Selected trajectory (kraus_selections):")
-        for sel in t0.kraus_selections:
-            print(f"    circuit_location={sel.circuit_location}, kraus_operator_index={sel.kraus_operator_index}, is_error={sel.is_error}")
+    unbiased_alloc = cudaq.ptsbe.ShotAllocationStrategy(
+        cudaq.ptsbe.ShotAllocationType.PROPORTIONAL,
+        seed=42,
+    )
+    result_unbiased = cudaq.ptsbe.sample(
+        bell_with_noise,
+        noise_model=noise,
+        shots_count=shots,
+        sampling_strategy=strategy,
+        shot_allocation=unbiased_alloc,
+        max_trajectories=max_traj,
+    )
+
+    cudaq.set_target("density-matrix-cpu")
+    result_standard = cudaq.sample(
+        bell_with_noise,
+        noise_model=noise,
+        shots_count=shots,
+    )
+    cudaq.set_target("qpp-cpu")
+
+    print(f"Comparison with same shots={shots}, max_trajectories={max_traj}")
+    print_result("PTSBE (ordered + low-weight bias)", result_biased)
+    print_result("PTSBE (ordered + proportional)", result_unbiased)
+    print_result("Density-matrix noisy sample", result_standard)
 :::
 :::
 :::
@@ -2090,50 +2096,209 @@ and [`result.has_execution_data()`{.docutils .literal
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Execution data:
-      Instructions: 6 total
-        Gates: 2, Noise: 2, Measurements: 2
-      Trajectories: 64
-      Sum of trajectory shots: 1000000 (expected 1000000)
-      Trace instructions (first 5):
-        [0] type=TraceInstructionType.Gate, name=h, targets=[0]
-        [1] type=TraceInstructionType.Noise, name=depolarization_channel, targets=[0]
-        [2] type=TraceInstructionType.Gate, name=x, targets=[1]
-        [3] type=TraceInstructionType.Noise, name=depolarization2, targets=[1, 0]
-        [4] type=TraceInstructionType.Measurement, name=mz, targets=[0]
-      Example trajectory: id=0, probability=0.921500, num_shots=921638
-      Selected trajectory (kraus_selections):
-        circuit_location=1, kraus_operator_index=0, is_error=False
-        circuit_location=3, kraus_operator_index=0, is_error=False
-    [2026-03-02 20:57:11.319] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
-:::
+    Comparison with same shots=10000, max_trajectories=16
+    PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5045 01:6 10:4 11:4945 }
+
+    PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4877 01:49 10:55 11:5019 }
+
+    Density-matrix noisy sample          shots= 10000  counts={ 00:4943 01:83 10:98 11:4876 }
 :::
 :::
 :::
 
-::: {#6.-Two-API-options: .section}
-## 6. Two API options:[¶](#6.-Two-API-options: "Permalink to this heading"){.headerlink}
+::: {#Larger-circuit-for-execution-data .section}
+### Larger circuit for execution data[¶](#Larger-circuit-for-execution-data "Permalink to this heading"){.headerlink}
 
-We have two ways to sample from a noisy circuit:
+To demonstrate PTSBE's execution data on a larger circuit, we define a
+12-qubit GHZ state with depolarization on every gate. This creates 12
+noise sites with a large trajectory space.
 
-1.  **\`\`cudaq.sample(kernel, noise_model=noise, use_ptsbe=...,
-    ...)\`\`** --- The main sample API with a **\`\`use_ptsbe\`\`**
-    option. When [`use_ptsbe=False`{.docutils .literal
-    .notranslate}]{.pre} (or omitted), sampling uses the standard
-    density-matrix path; when [`use_ptsbe=True`{.docutils .literal
-    .notranslate}]{.pre}, sampling uses the PTSBE (trajectory) path.
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [6]:
+:::
+:::
 
-2.  **\`\`cudaq.ptsbe.sample(kernel, noise_model=noise, ...)\`\`** ---
-    The dedicated PTSBE API. There is no [`use_ptsbe`{.docutils .literal
-    .notranslate}]{.pre} option; sampling always uses the PTSBE path
-    (trajectories, strategies, execution data, etc.).
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    n_qubits = 12
 
-**When to choose which:** Use **\`\`cudaq.sample\`\`** with
-[`use_ptsbe=True`{.docutils .literal .notranslate}]{.pre} when you want
-PTSBE from the main sample API (one call, one place for all sampling).
-Use **\`\`cudaq.ptsbe.sample\`\`** when you want the dedicated PTSBE API
-(explicit PTSBE entry point, no flag). Both provide the same PTSBE path
-(large shot counts, batching, trajectory strategies, execution data).
+    @cudaq.kernel
+    def ghz(n: int):
+        q = cudaq.qvector(n)
+        h(q[0])
+        for i in range(1, n):
+            x.ctrl(q[i - 1], q[i])
+        mz(q)
+
+    ghz_depol_1q = 0.01
+    ghz_depol_2q = 0.01
+
+    ghz_noise = cudaq.NoiseModel()
+    ghz_noise.add_all_qubit_channel("h", cudaq.DepolarizationChannel(ghz_depol_1q))
+    ghz_noise.add_all_qubit_channel("x", cudaq.Depolarization2(ghz_depol_2q), num_controls=1)
+:::
+:::
+:::
+:::
+:::
+
+::: {#Inspecting-trajectories-with-execution-data .section}
+## Inspecting trajectories with execution data[¶](#Inspecting-trajectories-with-execution-data "Permalink to this heading"){.headerlink}
+
+Pass [`return_execution_data=True`{.docutils .literal
+.notranslate}]{.pre} to get the PTSBE execution data via
+[`result.ptsbe_execution_data`{.docutils .literal .notranslate}]{.pre}.
+This reveals *why* PTSBE is efficient: most probability mass
+concentrates on a few low-error trajectories, so a small number of
+circuit simulations captures the bulk of the physics. The
+highest-probability trajectory (no errors at any noise site) typically
+receives the vast majority of shots, while multi-error trajectories are
+exponentially suppressed.
+
+Note: this is an experimental API and may change in future releases.
+
+::: {.nbinput .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [7]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    from collections import Counter
+
+    exec_shots = 1_000_000
+    max_traj = 256
+    result_with_data = cudaq.ptsbe.sample(
+        ghz,
+        n_qubits,
+        noise_model=ghz_noise,
+        shots_count=exec_shots,
+        max_trajectories=max_traj,
+        return_execution_data=True,
+    )
+    assert result_with_data.has_execution_data()
+    data = result_with_data.ptsbe_execution_data
+
+    trajs = sorted(data.trajectories, key=lambda t: t.probability, reverse=True)
+    print(f"Trajectories: {len(trajs)}, Total shots: {exec_shots:,}\n")
+
+    # `t.probability` is the per-shot probability mass in the full trajectory distribution.
+    print("Top 5 trajectories (highest probability):")
+    cumulative = 0
+    for rank, t in enumerate(trajs[:5], 1):
+        cumulative += t.num_shots
+        n_errors = sum(1 for s in t.kraus_selections if s.is_error)
+        p_theory = t.probability
+        p_empirical = t.num_shots / exec_shots
+        print(f"  #{rank}: p_theory={p_theory:.6f}, p_empirical={p_empirical:.6f}, "
+              f"shots={t.num_shots:,}, errors={n_errors}, "
+              f"cumulative shots={100 * cumulative / exec_shots:.1f}%")
+
+    # Lowest-probability trajectory
+    lowest = trajs[-1]
+    n_errors_low = sum(1 for s in lowest.kraus_selections if s.is_error)
+    print(f"\nLowest-probability trajectory:")
+    print(f"  prob={lowest.probability:.2e}, shots={lowest.num_shots}, errors={n_errors_low}")
+
+    noise_instructions = {i: inst for i, inst in enumerate(data.instructions)
+                          if inst.type == cudaq.ptsbe.TraceInstructionType.Noise}
+
+    def fmt_selection(sel):
+        channel = noise_instructions[sel.circuit_location]
+        label = "error" if sel.is_error else "no-error"
+        return (f"    site {sel.circuit_location} [{channel.name} on q{channel.targets}]: "
+                f"K{sel.kraus_operator_index} ({label})")
+
+    highest = trajs[0]
+    print(f"\nHighest-probability trajectory (id={highest.trajectory_id}):")
+    print(f"  prob={highest.probability:.6f}, shots={highest.num_shots:,}")
+    print(f"  Kraus selections:")
+    for sel in highest.kraus_selections:
+        print(fmt_selection(sel))
+
+    print(f"\nLowest-probability trajectory (id={lowest.trajectory_id}):")
+    print(f"  prob={lowest.probability:.2e}, shots={lowest.num_shots}")
+    print(f"  Kraus selections:")
+    for sel in lowest.kraus_selections:
+        print(fmt_selection(sel))
+
+    # Error count histogram
+    error_counts = Counter(
+        sum(1 for s in t.kraus_selections if s.is_error) for t in trajs
+    )
+    print("\nTrajectories grouped by error count:")
+    for n_err in sorted(error_counts):
+        n_traj = error_counts[n_err]
+        total = sum(t.num_shots for t in trajs
+                    if sum(1 for s in t.kraus_selections if s.is_error) == n_err)
+        print(f"  {n_err} errors: {n_traj} trajectories, "
+              f"{total:,} shots ({100 * total / exec_shots:.1f}%)")
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    Trajectories: 147, Total shots: 1,000,000
+
+    Top 5 trajectories (highest probability):
+      #1: p_theory=0.886385, p_empirical=0.888297, shots=888,297, errors=0, cumulative shots=88.8%
+      #2: p_theory=0.002984, p_empirical=0.002378, shots=2,378, errors=1, cumulative shots=89.1%
+      #3: p_theory=0.002984, p_empirical=0.002333, shots=2,333, errors=1, cumulative shots=89.3%
+      #4: p_theory=0.002984, p_empirical=0.004269, shots=4,269, errors=1, cumulative shots=89.7%
+      #5: p_theory=0.000597, p_empirical=0.000434, shots=434, errors=1, cumulative shots=89.8%
+
+    Lowest-probability trajectory:
+      prob=2.71e-10, shots=359, errors=3
+
+    Highest-probability trajectory (id=0):
+      prob=0.886385, shots=888,297
+      Kraus selections:
+        site 1 [depolarization_channel on q[0]]: K0 (no-error)
+        site 3 [depolarization2 on q[1, 0]]: K0 (no-error)
+        site 5 [depolarization2 on q[2, 1]]: K0 (no-error)
+        site 7 [depolarization2 on q[3, 2]]: K0 (no-error)
+        site 9 [depolarization2 on q[4, 3]]: K0 (no-error)
+        site 11 [depolarization2 on q[5, 4]]: K0 (no-error)
+        site 13 [depolarization2 on q[6, 5]]: K0 (no-error)
+        site 15 [depolarization2 on q[7, 6]]: K0 (no-error)
+        site 17 [depolarization2 on q[8, 7]]: K0 (no-error)
+        site 19 [depolarization2 on q[9, 8]]: K0 (no-error)
+        site 21 [depolarization2 on q[10, 9]]: K0 (no-error)
+        site 23 [depolarization2 on q[11, 10]]: K0 (no-error)
+
+    Lowest-probability trajectory (id=108):
+      prob=2.71e-10, shots=359
+      Kraus selections:
+        site 1 [depolarization_channel on q[0]]: K0 (no-error)
+        site 3 [depolarization2 on q[1, 0]]: K13 (error)
+        site 5 [depolarization2 on q[2, 1]]: K12 (error)
+        site 7 [depolarization2 on q[3, 2]]: K0 (no-error)
+        site 9 [depolarization2 on q[4, 3]]: K0 (no-error)
+        site 11 [depolarization2 on q[5, 4]]: K7 (error)
+        site 13 [depolarization2 on q[6, 5]]: K0 (no-error)
+        site 15 [depolarization2 on q[7, 6]]: K0 (no-error)
+        site 17 [depolarization2 on q[8, 7]]: K0 (no-error)
+        site 19 [depolarization2 on q[9, 8]]: K0 (no-error)
+        site 21 [depolarization2 on q[10, 9]]: K0 (no-error)
+        site 23 [depolarization2 on q[11, 10]]: K0 (no-error)
+
+    Trajectories grouped by error count:
+      0 errors: 1 trajectories, 888,297 shots (88.8%)
+      1 errors: 126 trajectories, 103,948 shots (10.4%)
+      2 errors: 19 trajectories, 7,396 shots (0.7%)
+      3 errors: 1 trajectories, 359 shots (0.0%)
+:::
+:::
+:::
 :::
 :::
 :::

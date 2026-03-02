@@ -200,23 +200,23 @@ pr-4066
     -   [PTSBE End-to-End
         Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
         .internal}
-        -   [1. Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+        -   [Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+        -   [Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
             .internal}
-        -   [3. Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
             .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-            .internal}
-        -   [6. Two API
-            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            -   [Larger circuit for execution
+                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1857,7 +1857,7 @@ explained above.
 
 <div>
 
-![aaba572b610549f083f4acc290b8c1fd](../../_images/adapt-qaoa.png){.no-scaled-link
+![3d4677b3a57b477ab5a9885611557967](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

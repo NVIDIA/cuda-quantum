@@ -200,23 +200,23 @@ pr-4066
     -   [PTSBE End-to-End
         Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
         .internal}
-        -   [1. Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+        -   [Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+        -   [Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
             .internal}
-        -   [3. Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
             .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-            .internal}
-        -   [6. Two API
-            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            -   [Larger circuit for execution
+                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -2050,7 +2050,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![bd7a07860dc34444912524a691add10f](../../_images/grovers-2D-plane.png)
+![9c1c2c81fdc344068550143fca73be45](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2265,7 +2265,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![cd672b73404643b684764854bd4790a0](../../_images/grovers-steps1-3.png)
+![5c3c1a7a3fc24fb1bb8e967935603e21](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2277,7 +2277,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![00128cb992824eb091bf3ae4e7d30943](../../_images/grovers-full-rotation.png)
+![f2cb7bb907d54b44b29cce3b24d8fde1](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

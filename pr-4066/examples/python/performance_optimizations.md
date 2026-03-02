@@ -195,23 +195,23 @@ pr-4066
         .internal}
     -   [PTSBE End-to-End
         Workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
-        -   [1. Set up the
-            environment](ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+        -   [Set up the
+            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+        -   [Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
             .internal}
-        -   [3. Run PTSBE
-            sampling](ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
             .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-            .internal}
-        -   [6. Two API
-            options:](ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1833,14 +1833,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![04856d4083f74661872ca94dc0f3b2b2](../../_images/gate-fuse1.png)
+![74ba16e6c68a41a496c89157e0bf964b](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![d3971b92720843198cd8d5dd0a2792ee](../../_images/gatefusion.png)
+![59d2e7ded57b45589c49d0695f7bb473](../../_images/gatefusion.png)
 :::
 :::
 :::
