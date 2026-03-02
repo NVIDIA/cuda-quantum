@@ -268,7 +268,7 @@ jobs:
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
                 ;;
               tii)
-                filelist="targettests/tii/*.cpp"
+                filelist="targettests/tii/*.cpp docs/sphinx/targets/python/tii.py"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
