@@ -5,32 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
 import cudaq
-
-from test_common import (
-    bell,
-    make_depol_noise,
-    ptsbe_target_setup,
-    ptsbe_target_teardown,
-)
-
-
-@pytest.fixture(autouse=True)
-def ptsbe_target():
-    ptsbe_target_setup()
-    yield
-    ptsbe_target_teardown()
-
-
-@pytest.fixture
-def depol_noise():
-    return make_depol_noise()
-
-
-@pytest.fixture
-def bell_kernel():
-    return bell
 
 
 def test_shot_allocation_uniform_sums_to_shots(depol_noise, bell_kernel):
@@ -50,7 +25,8 @@ def test_shot_allocation_uniform_sums_to_shots(depol_noise, bell_kernel):
     assert total_shots == 100
 
 
-def test_exhaustive_strategy_deterministic_with_seed(depol_noise, bell_kernel):
+def test_exhaustive_strategy_repeated_runs_preserve_shot_count(
+        depol_noise, bell_kernel):
     strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
     result1 = cudaq.ptsbe.sample(
         bell_kernel,
@@ -120,43 +96,7 @@ def test_probabilistic_strategy_different_seeds_valid(depol_noise, bell_kernel):
     assert sum(r2.count(bs) for bs in r2) == 25
 
 
-def test_ptsbe_sample_probabilistic_strategy(depol_noise, bell_kernel):
-    strategy = cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=123)
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=100,
-        sampling_strategy=strategy,
-    )
-    assert isinstance(result, cudaq.SampleResult)
-    assert len(result) > 0
-
-
-def test_ptsbe_sample_ordered_strategy(depol_noise, bell_kernel):
-    strategy = cudaq.ptsbe.OrderedSamplingStrategy()
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=100,
-        sampling_strategy=strategy,
-    )
-    assert isinstance(result, cudaq.SampleResult)
-    assert len(result) > 0
-
-
-def test_ptsbe_sample_exhaustive_strategy(depol_noise, bell_kernel):
-    strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=100,
-        sampling_strategy=strategy,
-    )
-    assert isinstance(result, cudaq.SampleResult)
-    assert len(result) > 0
-
-
-def test_ptsbe_sample_max_trajectories(depol_noise, bell_kernel):
+def test_exhaustive_strategy_with_max_trajectories(depol_noise, bell_kernel):
     strategy = cudaq.ptsbe.ExhaustiveSamplingStrategy()
     result = cudaq.ptsbe.sample(
         bell_kernel,
@@ -165,8 +105,7 @@ def test_ptsbe_sample_max_trajectories(depol_noise, bell_kernel):
         max_trajectories=50,
         sampling_strategy=strategy,
     )
-    assert isinstance(result, cudaq.SampleResult)
-    assert len(result) > 0
+    assert sum(result.count(bs) for bs in result) == 100
 
 
 def test_strategy_name_returns_string():
@@ -248,8 +187,7 @@ def test_ptsbe_sample_with_shot_allocation(depol_noise, bell_kernel):
         sampling_strategy=strategy,
         shot_allocation=alloc,
     )
-    assert isinstance(result, cudaq.SampleResult)
-    assert len(result) > 0
+    assert sum(result.count(bs) for bs in result) == 100
 
 
 def test_exhaustive_strategy_weight_equals_probability(depol_noise,
