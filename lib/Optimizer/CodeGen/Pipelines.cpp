@@ -107,8 +107,6 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());
-  if (options.appendDeprecatedVerifier)
-    cudaq::opt::addQIRProfileVerify(pm, options.target);
 }
 
 template <bool isJIT>
@@ -116,8 +114,6 @@ void createTargetCodegenPipeline(PassManager &pm, StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
-  opts.appendDeprecatedVerifier =
-      convertFields.first != "qir" && convertFields.first != "qir-full";
   opts.target = convertTo.str();
   createTargetCodegenPipeline<isJIT>(pm, opts);
 }

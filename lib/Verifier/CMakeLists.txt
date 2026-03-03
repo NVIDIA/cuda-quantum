@@ -8,6 +8,7 @@
 
 add_mlir_library(cudaq-qir-verifier
   NVQIRCalls.cpp
+  QIRLLVMIRDialect.cpp
   QIRSpec.cpp
 
   LINK_LIBS PUBLIC

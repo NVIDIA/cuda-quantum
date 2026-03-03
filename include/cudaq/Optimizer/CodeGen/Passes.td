@@ -156,19 +156,6 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   }];
 }
 
-def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the specific profile";
-  let description = [{
-    This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR specific profile.
-  }];
-
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
-}
-
 def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   let summary = "Convert quake using wire sets to a profile of QIR";
   let description = [{

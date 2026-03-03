@@ -13,6 +13,21 @@
 #include "llvm/IR/Instructions.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 
+/**
+   \file
+
+   This file implements checks for the some varied miscellaneous conformance
+   restrictions and limitations imposed on LLVM instructions as mandated by the
+   QIR Specification. This code is necessarily run on an LLVM Module containing
+   LLVM instructions.
+
+   More such checks may be added in the future.
+
+   These checks are considered \e fatal errors. If the generated code was not
+   lowered to conform to the QIR Specification, the compilation is considered to
+   have failed and corrective action (source changes) will be required.
+ */
+
 using namespace mlir;
 
 static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {

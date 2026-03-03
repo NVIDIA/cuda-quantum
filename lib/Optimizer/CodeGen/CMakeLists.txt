@@ -31,7 +31,6 @@ add_cudaq_library(OptCodeGen
   ReturnToOutputLog.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
-  VerifyQIRProfile.cpp
   WireSetsToProfileQIR.cpp
 
   DEPENDS
@@ -42,6 +41,7 @@ add_cudaq_library(OptCodeGen
     OptCodeGenPassIncGen
     OptTransformsPassIncGen
     QuakeDialect
+    cudaq-qir-verifier
     
   LINK_LIBS PUBLIC
     CCDialect
