@@ -2707,6 +2707,29 @@ def test_error_on_non_callable_type():
     assert "object is not callable" in str(e.value)
 
 
+def test_nested_kernel_definition_error():
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel(defer_compilation=False)
+        def kernel():
+
+            @cudaq.kernel
+            def inner_fct():
+                pass
+
+    assert "nested" in repr(e).lower()
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel(defer_compilation=False)
+        def kernel():
+
+            @cudaq.kernel(make_the_decorator_a_call=...)
+            def inner_fct():
+                pass
+
+
 def test_struct_list_int_member():
     """Test that list[int] members in a struct are correctly marshaled.
 
@@ -2796,6 +2819,38 @@ def test_named_reg_in_sample(capfd):
     cudaq.sample(baz)
     captured = capfd.readouterr()
     assert "WARNING" in captured.err
+
+
+@pytest.mark.skip_macos_arm64_jit
+def test_trap_fail():
+    """Tests that a recoverable run time error correctly clears the simulator"""
+
+    @cudaq.kernel
+    def unadjointable(q: cudaq.qview):
+        while True:
+            if mz(q[1]):
+                x(q[1])
+                break
+
+    @cudaq.kernel
+    def kernel_with_trap():
+        q = cudaq.qvector(2)
+        h(q)
+        cudaq.adjoint(unadjointable, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(kernel_with_trap, shots_count=1)
+
+    @cudaq.kernel
+    def simple():
+        q = cudaq.qvector(2)
+        ctrl = q.front()
+        x.ctrl(ctrl, q[1])
+
+    counts = cudaq.sample(simple)
+    print(counts)
+    assert len(counts) == 1
+    assert '00' in counts
 
 
 # leave for gdb debugging

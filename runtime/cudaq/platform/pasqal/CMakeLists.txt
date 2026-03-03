@@ -31,6 +31,7 @@ target_link_libraries(${LIBRARY_NAME}
     fmt::fmt-header-only
     cudaq 
     cudaq-platform-default
+    nvqir
 ) 
     
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)

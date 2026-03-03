@@ -263,6 +263,7 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
+    pip install pytest
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -436,7 +437,7 @@ if [ -d "$root_folder/targets" ]; then
             elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
                 skip_example=true
-            elif [ "$t" == "quantum_machines" ] || [ "$t" == "quantinuum" ] || \
+            elif [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || [ "$t" == "quantinuum" ] || \
                  [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
                  [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
                 # These targets require remote backends that are not available

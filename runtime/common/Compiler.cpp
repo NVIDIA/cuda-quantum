@@ -44,13 +44,6 @@
 
 using namespace mlir;
 
-namespace nvqir {
-// QIR helper to retrieve the output log.
-std::string_view getQirOutputLog();
-cudaq::Resources *getResourceCounts();
-bool isUsingResourceCounterSimulator();
-} // namespace nvqir
-
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
 nlohmann::json formOutputNames(const std::string &codegenTranslation,
@@ -153,9 +146,10 @@ Compiler::Compiler(ServerHelper *serverHelper,
     // emulation and a noise model has been set, do not erase the noise
     // callbacks.
     if (emulate)
-      passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
-                            std::string{noiseModel ? "false" : "true"} +
-                            " allow-early-exit=" + allowEarlyExitSetting + "}";
+      // FIXME: Noise should eventually be enabled for emulated hardware targets
+      passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=true"
+                            " allow-early-exit=" +
+                            allowEarlyExitSetting + "}";
     else
       passPipelineConfig +=
           ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
@@ -359,14 +353,15 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
+  std::unique_ptr<Resources> resourceCounts;
   if (executionContext && executionContext->name == "resource-count") {
+    resourceCounts = std::make_unique<Resources>();
     // Each pass may run in a separate thread, so we have to make sure to
     // grab this reference in this thread
-    auto resource_counts = nvqir::getResourceCounts();
     std::function<void(std::string, size_t, size_t)> f =
-        [&](std::string gate, size_t nControls, size_t count) {
+        [&resourceCounts](std::string gate, size_t nControls, size_t count) {
           CUDAQ_INFO("Appending: {}", gate);
-          resource_counts->appendInstruction(gate, nControls, count);
+          resourceCounts->appendInstruction(gate, nControls, count);
         };
     cudaq::opt::ResourceCountPreprocessOptions opt{f};
     mlir::PassManager pm(moduleOp.getContext());
@@ -520,7 +515,11 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     auto optionalJit = jitEngines.size() > iter.index()
                            ? std::optional(jitEngines[iter.index()])
                            : std::nullopt;
-    codes.emplace_back(name, codeStr, optionalJit, j, mapping_reorder_idx);
+    auto optionalResourceCounts = resourceCounts
+                                      ? std::optional(*resourceCounts.release())
+                                      : std::nullopt;
+    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
+                       mapping_reorder_idx);
   }
 
   return codes;

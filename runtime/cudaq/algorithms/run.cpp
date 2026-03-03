@@ -16,7 +16,8 @@
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, const std::string &original_name,
-    std::size_t shots, const LayoutInfoType &layoutInfo, std::size_t qpu_id) {
+    std::size_t shots, const LayoutInfoType &layoutInfo, std::size_t qpu_id,
+    bool allowCaching) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
@@ -32,6 +33,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     // In a remote simulator execution or hardware emulation environment, set
     // the `run` context name and number of iterations (shots)
     cudaq::ExecutionContext ctx("run", shots, qpu_id);
+    ctx.allowJitEngineCaching = allowCaching;
     // Launch the kernel a single time to post the 'run' request to the remote
     // server or emulation executor.
     platform.with_execution_context(ctx, std::move(kernel));
@@ -42,6 +44,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     circuitSimulator->outputLog.swap(remoteOutputLog);
   } else {
     cudaq::ExecutionContext ctx("run", 1, qpu_id);
+    ctx.allowJitEngineCaching = allowCaching;
     for (std::size_t i = 0; i < shots; ++i) {
       // Set the execution context since as noise model is attached to this
       // context.

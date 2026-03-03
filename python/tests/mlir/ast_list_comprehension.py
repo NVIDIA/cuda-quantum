@@ -1027,6 +1027,114 @@ def test_list_comprehension_expressions():
 # CHECK: return
 
 
+def test_list_comprehension_qubit_refs():
+    print("test_list_comprehension_qubit_refs:")
+
+    @cudaq.kernel
+    def kernel1():
+        qs = cudaq.qvector(3)
+        x(qs)
+        target = cudaq.qubit()
+        x.ctrl([q for q in qs], target)
+
+    out = cudaq.sample(kernel1)
+    assert len(out) == 1 and '1111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel1)
+
+    @cudaq.kernel
+    def kernel2():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in [0, 1]], target)
+
+    out = cudaq.sample(kernel2)
+    assert len(out) == 1 and '111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel2)
+
+    @cudaq.kernel
+    def kernel3():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in range(2)], target)
+
+    out = cudaq.sample(kernel3)
+    assert len(out) == 1 and '111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel3)
+
+    @cudaq.kernel
+    def kernel4():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        indices = [0, 1]
+        x.ctrl([qs[i] for i in indices], target)
+
+    out = cudaq.sample(kernel4)
+    assert len(out) == 1 and '111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel4)
+
+    @cudaq.kernel
+    def kernel5():
+        qs = cudaq.qvector(4)
+        x(qs[0])
+        x(qs[1])
+        x(qs[2])
+        cont = [0, 1, 2]
+        x.ctrl([qs[i] for i in cont], qs[3])
+
+    out = cudaq.sample(kernel5)
+    assert len(out) == 1 and '1111' in out
+    # keep after assert, such that we have no output if assert fails
+    print(kernel5)
+
+    @cudaq.kernel
+    def kernel6(qs: cudaq.qvector, indices: list[int]):
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in indices], target)
+
+    print(kernel6)
+
+
+# CHECK-LABEL: test_list_comprehension_qubit_refs:
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel1..
+# CHECK-NOT: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel2..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel3..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel4..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel6..
+# CHECK: cc.stdvec_size
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+
+
 def test_list_comprehension_failures():
     print("test_list_comprehension_failures:")
     try:
