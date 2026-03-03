@@ -22,6 +22,10 @@ std::string_view getQirOutputLog();
 void clearQirOutputLog();
 } // namespace nvqir
 
+namespace {
+class PersistJITEngine {};
+} // namespace
+
 namespace cudaq {
 
 void bindExecutionContext(py::module &mod) {
@@ -77,7 +81,8 @@ void bindExecutionContext(py::module &mod) {
       .def("__exit__", [](cudaq::ExecutionContext &ctx, py::object type,
                           py::object value, py::object traceback) {
         if (type.is_none()) {
-          // No exception, so we finalize the context and reset it
+          // Normal exit: finalize results, clean up the simulator,
+          // and reset the context (guaranteed even if finalize throws).
           auto &platform = cudaq::get_platform();
           detail::try_finally(
               [&] {
@@ -86,7 +91,15 @@ void bindExecutionContext(py::module &mod) {
               },
               detail::resetExecutionContext);
         } else {
-          // Reset, silencing any further exceptions
+          // The kernel threw. Still need to tear down the platform so
+          // the simulator doesn't carry stale state into the next run.
+          // Separate invoke_no_throw so the context reset always runs.
+          detail::invoke_no_throw([&] {
+            auto &platform = cudaq::get_platform();
+            platform.finalizeExecutionContext(ctx);
+            platform.endExecution();
+          });
+          // Always reset context, even if the above cleanup failed.
           detail::invoke_no_throw(detail::resetExecutionContext);
         }
         return false;
@@ -119,5 +132,20 @@ void bindExecutionContext(py::module &mod) {
             const std::size_t bufferSize = parser.getBufferSize();
             std::memcpy(info.ptr, origBuffer, bufferSize);
           });
+
+  py::class_<PersistJITEngine>(
+      mod, "reuse_compiler_artifacts",
+      "Within this context, CUDAQ will blindly reuse compiled objects."
+      "It is up to the user to ensure that there are never two distinct"
+      "computations launched within a single context.")
+      .def(py::init())
+      .def("__enter__",
+           [](PersistJITEngine &ctx) -> void {
+             cudaq::detail::enablePersistentJITEngine();
+           })
+      .def("__exit__", [](PersistJITEngine &ctx, py::object type,
+                          py::object value, py::object traceback) {
+        cudaq::detail::disablePersistentJITEngine();
+      });
 }
 } // namespace cudaq

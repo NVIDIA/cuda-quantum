@@ -423,15 +423,16 @@ jobs:
               exit 101
             fi
 
-            # Re-install CUDA Quantum
+            # Re-install CUDA Quantum to a custom location (no sudo, tests --installpath)
+            custom_install=/home/cudaq/cudaq-custom
             MPI_PATH=/usr/local/openmpi \
-            sudo -E bash install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m) --accept | tee install_log.txt
+            bash install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m) --accept -- --installpath $custom_install | tee install_log.txt
             if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102
             fi
 
-            . /etc/profile
+            source $HOME/.bashrc
             set +e # Allow script to keep going through errors
             sudo bash /install_sshclient.sh
             status_sum=0

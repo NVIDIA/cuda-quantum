@@ -470,3 +470,8 @@ async def get_jobs(job_id: str, request: Request):
     }
 
     return results
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

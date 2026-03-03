@@ -224,8 +224,9 @@ def test_unannotated_arg_raises_error():
         pass
 
     # This should raise an error during pre_compile
-    with pytest.raises(RuntimeError,
-                       match="must have argument type annotations"):
+    with pytest.raises(
+            RuntimeError,
+            match="Argument 'y' is missing a required type annotation"):
         cudaq.kernel(my_kernel)
 
 

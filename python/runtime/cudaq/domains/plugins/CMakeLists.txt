@@ -8,7 +8,11 @@
 
 message(STATUS "Building cudaq-pyscf plugin.")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/plugins)
-SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/..")
+if(APPLE)
+  SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/..")
+else()
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/..")
+endif()
 add_library(cudaq-pyscf SHARED PySCFDriver.cpp)
 
 if (SKBUILD)
