@@ -9,7 +9,8 @@ Furthermore, for this experiment, we need the Integrated Logic Analyzer (`ILA`)
 to keep the captured measurements. See the "Hololink IP:
 Connecting an `APB` `ILA` for Debug" section below.
 
-> **Note:** For this experiment, we recommend using NVIDIA ConnectX-7 NIC. Prior ConnectX generations may not have all the capabilities required.
+> **Note:** For this experiment, we recommend using NVIDIA ConnectX-7 NIC.
+Prior ConnectX generations may not have all the capabilities required.
 
 ## Steps to do the experiment
 
