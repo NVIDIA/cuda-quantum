@@ -17,8 +17,10 @@
 
 namespace cudaq::ptsbe {
 
+namespace {
+
 /// @brief Resolve an optional seed to a concrete value.
-static std::uint64_t resolveSeed(const std::optional<std::uint64_t> &seed) {
+std::uint64_t resolveSeed(const std::optional<std::uint64_t> &seed) {
   if (seed.has_value())
     return seed.value();
   auto global = cudaq::get_random_seed();
@@ -28,10 +30,10 @@ static std::uint64_t resolveSeed(const std::optional<std::uint64_t> &seed) {
 /// @brief Multinomial shot allocation: draw total_shots samples from
 /// trajectories weighted by the given weights, incrementing num_shots for
 /// each draw.
-static void multinomialAllocate(std::span<cudaq::KrausTrajectory> trajectories,
-                                const std::vector<double> &weights,
-                                std::size_t total_shots,
-                                const std::optional<std::uint64_t> &seed) {
+void multinomialAllocate(std::span<cudaq::KrausTrajectory> trajectories,
+                         const std::vector<double> &weights,
+                         std::size_t total_shots,
+                         const std::optional<std::uint64_t> &seed) {
   std::mt19937_64 rng(resolveSeed(seed));
   std::discrete_distribution<std::size_t> dist(weights.begin(), weights.end());
 
@@ -39,16 +41,14 @@ static void multinomialAllocate(std::span<cudaq::KrausTrajectory> trajectories,
     trajectories[dist(rng)].num_shots++;
 }
 
-static void allocateUniform(std::span<cudaq::KrausTrajectory> trajectories,
-                            std::size_t total_shots);
-static void
-allocateLowWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
-                      std::size_t total_shots, double bias_strength,
-                      const std::optional<std::uint64_t> &seed);
-static void
-allocateHighWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
-                       std::size_t total_shots, double bias_strength,
-                       const std::optional<std::uint64_t> &seed);
+void allocateUniform(std::span<cudaq::KrausTrajectory> trajectories,
+                     std::size_t total_shots);
+void allocateLowWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
+                           std::size_t total_shots, double bias_strength,
+                           const std::optional<std::uint64_t> &seed);
+void allocateHighWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
+                            std::size_t total_shots, double bias_strength,
+                            const std::optional<std::uint64_t> &seed);
 
 void allocateProportional(std::span<cudaq::KrausTrajectory> trajectories,
                           std::size_t total_shots,
@@ -129,6 +129,8 @@ void allocateHighWeightBias(std::span<cudaq::KrausTrajectory> trajectories,
 
   multinomialAllocate(trajectories, weights, total_shots, seed);
 }
+
+} // namespace
 
 void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
                    std::size_t total_shots,

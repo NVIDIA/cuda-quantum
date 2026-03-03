@@ -17,6 +17,8 @@
 #include <set>
 
 using namespace cudaq::ptsbe;
+using NoisePoint = cudaq::ptsbe::detail::NoisePoint;
+using cudaq::ptsbe::detail::computeTotalTrajectories;
 
 static cudaq::kraus_channel makeIYChannel(double pI, double pY) {
   const double sI = std::sqrt(pI);
