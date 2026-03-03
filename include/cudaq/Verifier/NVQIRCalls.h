@@ -18,4 +18,4 @@ namespace cudaq::verifier {
    valid targets for NVQIR.
  */
 mlir::LogicalResult checkNvqirCalls(mlir::ModuleOp module);
-} // namespace cudaq::verify
+} // namespace cudaq::verifier
