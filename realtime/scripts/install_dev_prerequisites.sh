@@ -41,9 +41,9 @@ if [ -x "$(command -v apt-get)" ]; then
 elif [ -x "$(command -v dnf)" ]; then
   # Find the rhel version, e.g., rhel9.2 -> rhel9
   os_name=$(cat /etc/os-release | grep -E '^ID=' | cut -d= -f2 | tr -d '"')
-  os_version=$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1)
+  os_version=$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1 | tr -d '"')
   echo "Detected OS: $os_name, version: $os_version"
-  distro=$(cat /etc/os-release | grep -E '^ID=' | cut -d= -f2 | tr -d '"')$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1)
+  distro=$(cat /etc/os-release | grep -E '^ID=' | cut -d= -f2 | tr -d '"')$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1 | tr -d '"') # e.g., rhel9
   echo "Detected distro: $distro"
   echo "[doca]
   name=DOCA Online Repo
