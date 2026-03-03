@@ -597,7 +597,6 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-operator
     cudaq-chemistry
     cudaq-pyscf
-    Python::Python
     gtest_main)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" DISCOVERY_TIMEOUT 120)
