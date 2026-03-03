@@ -264,7 +264,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       } else {
         auto canReuse = cudaq::compiler_artifact::isArtifactReusable(
             scopedRefBuffer.get(), resSize);
-        free(resBuffer);
         if (!canReuse)
           throw std::runtime_error("Detected reuse of compiler artifact with "
                                    "diverging explicit arguments.");
