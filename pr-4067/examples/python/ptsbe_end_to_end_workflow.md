@@ -2105,7 +2105,7 @@ and [`result.has_execution_data()`{.docutils .literal
       Selected trajectory (kraus_selections):
         circuit_location=1, kraus_operator_index=0, is_error=False
         circuit_location=3, kraus_operator_index=0, is_error=False
-    [2026-03-02 21:56:47.266] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
+    [2026-03-03 17:40:27.737] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 :::
 :::
 :::
