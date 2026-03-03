@@ -145,11 +145,8 @@ public:
     return status == "success" || status == "error";
   }
 
-  /// @brief Example implementation of result processing.
-  ///
-  /// The raw results from quantum hardware often need post-processing (bit
-  /// reordering, normalization, etc.) to match CUDA-Q's expectations.
-  /// This is the place to do that.
+  /// @brief Process the TII server response and convert
+  /// qubit/frequency pairs to the expected cudaq output.
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
     CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
@@ -171,7 +168,7 @@ public:
     return cudaq::sample_result{execResult};
   }
 
-  /// @brief Example implementation of polling configuration.
+  /// @brief Interval between each request to the server.
   std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override {
     return std::chrono::seconds(5);
