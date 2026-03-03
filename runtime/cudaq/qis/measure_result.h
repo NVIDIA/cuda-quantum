@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <climits>
+
 namespace cudaq {
 
 extern "C" {
@@ -23,8 +25,9 @@ private:
   /// The intrinsic measurement result
   int result = 0;
 
-  /// Unique integer for measure result identification
-  int uniqueId = -1; // unassigned
+  /// Unique integer for measure result identification.
+  /// INT_MAX means unassigned; negative values are valid
+  int uniqueId = INT_MAX;
 
 public:
   // Constructors
@@ -56,7 +59,7 @@ public:
   }
 
   friend bool operator!=(const measure_result &m1, const measure_result &m2) {
-    return static_cast<bool>(m1) != static_cast<bool>(m2);
+    return (m1.result != m2.result) || (m1.uniqueId != m2.uniqueId);
   }
   friend bool operator!=(const measure_result &m, bool b) {
     return static_cast<bool>(m) != b;

@@ -100,7 +100,8 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
 }
 
 static Value emitDiscriminate(OpBuilder &builder, Location loc, Value val) {
-  if (isa<quake::MeasureType>(val.getType()))
+  auto measTy = quake::MeasureType::get(builder.getContext());
+  if (val.getType() == measTy)
     return builder.create<quake::DiscriminateOp>(loc, builder.getI1Type(), val);
   return val;
 }
@@ -678,7 +679,8 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     }
     auto i1Type = builder.getI1Type();
     // Handle conversion of `measure_result`
-    if (isa<quake::MeasureType>(sub.getType())) {
+    auto measTy = quake::MeasureType::get(builder.getContext());
+    if (sub.getType() == measTy) {
       auto i1Val = emitDiscriminate(builder, loc, sub);
       // Convert to `int`
       if (isa<IntegerType>(castToTy))
@@ -694,13 +696,13 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
 
     // Handle conversion of `std::vector<measure_result>` to `std::vector<bool>`
     if (auto vecTy = dyn_cast<cc::StdvecType>(sub.getType()))
-      if (isa<quake::MeasureType>(vecTy.getElementType()))
+      if (vecTy.getElementType() == measTy)
         return pushValue(builder.create<quake::DiscriminateOp>(
             loc, cc::StdvecType::get(i1Type), sub));
 
     // Handle pointer to `measure_result` (from vector element access)
     if (auto ptrTy = dyn_cast<cc::PointerType>(sub.getType()))
-      if (isa<quake::MeasureType>(ptrTy.getElementType())) {
+      if (ptrTy.getElementType() == measTy) {
         auto loaded = builder.create<cc::LoadOp>(loc, sub);
         return pushValue(
             builder.create<quake::DiscriminateOp>(loc, i1Type, loaded));
@@ -2210,11 +2212,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return true;
     }
 
+    auto measTy = quake::MeasureType::get(builder.getContext());
+
     if (funcName == "toInteger" || funcName == "to_integer") {
       auto arg = args[0];
       // Insert discriminate if input is `!cc.stdvec<!quake.measure>`
       if (auto vecTy = dyn_cast<cc::StdvecType>(arg.getType())) {
-        if (isa<quake::MeasureType>(vecTy.getElementType())) {
+        if (vecTy.getElementType() == measTy) {
           auto i1Ty = builder.getI1Type();
           arg = builder.create<quake::DiscriminateOp>(
               loc, cc::StdvecType::get(i1Ty), arg);
@@ -2238,7 +2242,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto arg = args[0];
       // Insert discriminate if needed
       if (auto vecTy = dyn_cast<cc::StdvecType>(arg.getType())) {
-        if (isa<quake::MeasureType>(vecTy.getElementType())) {
+        if (vecTy.getElementType() == measTy) {
           auto i1Ty = builder.getI1Type();
           arg = builder.create<quake::DiscriminateOp>(
               loc, cc::StdvecType::get(i1Ty), arg);
@@ -3369,9 +3373,11 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     // Just load and return the value
     assert(x->getNumArgs() == 1);
     auto srcPtr = popValue();
-    if (auto ptrTy = dyn_cast<cc::PointerType>(srcPtr.getType()))
-      if (isa<quake::MeasureType>(ptrTy.getElementType()))
+    if (auto ptrTy = dyn_cast<cc::PointerType>(srcPtr.getType())) {
+      auto measTy = quake::MeasureType::get(builder.getContext());
+      if (ptrTy.getElementType() == measTy)
         return pushValue(builder.create<cc::LoadOp>(loc, srcPtr));
+    }
   }
 
   // TODO: remove this when we can handle ctors more generally.
