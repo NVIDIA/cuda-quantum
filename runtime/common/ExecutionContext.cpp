@@ -11,11 +11,22 @@
 #include <cstring>
 #include <string>
 
-namespace cudaq::detail {
-class savedCompilerArtifact {
+namespace nvqir {
+bool isUsingResourceCounterSimulator();
+} // namespace nvqir
+
+namespace {
+/// @brief Thread-local storage for the current execution context.
+thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
+} // namespace
+
+namespace cudaq {
+
+namespace compiler_artifact {
+struct SavedCompilerArtifact {
 public:
   bool hasJitEngine() const { return jitEng.has_value(); }
-  const std::optional<cudaq::JitEngine> &getJitEngine() const { return jitEng; }
+  const cudaq::JitEngine &getJitEngine() const { return jitEng.value(); }
   void setJitEngine(const cudaq::JitEngine &engine) { jitEng = engine; }
 
   void reset() {
@@ -24,19 +35,20 @@ public:
   }
 
   // We're responsible for freeing argMessageBuffer.
-  void saveLaunchInfo(std::string_view kernelName, void *argMessageBuffer,
-                      size_t size) {
+  void saveInfo(std::string_view kernelName, void *argMessageBuffer,
+                size_t size) {
+    clearArgs();
     assert(argMessageBuffer);
-    this->kernelName.assign(kernelName.data(), kernelName.size());
-    argBuff = argMessageBuffer;
     argSize = size;
+    this->kernelName = kernelName;
+    argBuff = argMessageBuffer;
   }
 
   bool isKernelSame(std::string_view kernelName) const {
     return this->kernelName == kernelName;
   }
 
-  bool isLaunchInfoSame(void *argMessageBuffer, size_t size) const {
+  bool cmpInfo(void *argMessageBuffer, size_t size) const {
     assert(argBuff && argMessageBuffer);
     if (size != argSize)
       return false;
@@ -46,31 +58,50 @@ public:
 private:
   void clearArgs() {
     if (argBuff)
-      std::free(argBuff);
-    argBuff = nullptr;
+      free(argBuff);
     argSize = 0;
   }
 
   std::optional<cudaq::JitEngine> jitEng = std::nullopt;
   std::string kernelName;
-  void *argBuff = nullptr;
+  void *argBuff;
   size_t argSize = 0;
 };
-} // namespace cudaq::detail
 
-namespace {
-
-/// @brief Thread-local storage for the current execution context.
-thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
 thread_local bool persistJITEngine = false;
-thread_local cudaq::detail::savedCompilerArtifact savedArtifact;
-} // namespace
+thread_local SavedCompilerArtifact savedArtifact;
 
-namespace nvqir {
-bool isUsingResourceCounterSimulator();
-} // namespace nvqir
+/// This will cause the JITEngine stored in the current execution context to be
+/// used for future launches until disabled by `disablePersistentJITEngine`
+void enablePersistentJITEngine() { persistJITEngine = true; }
 
-namespace cudaq {
+void disablePersistentJITEngine() {
+  persistJITEngine = false;
+  savedArtifact.reset();
+}
+
+bool isPersistingJITEngine() { return persistJITEngine; }
+
+// We're responsible for freeing argMessageBuffer
+void saveArtifactInfo(std::string_view kernelName, void *argMessageBuffer,
+                      size_t size) {
+  if (!persistJITEngine)
+    return;
+  savedArtifact.saveInfo(kernelName, argMessageBuffer, size);
+}
+
+bool isKernelSame(std::string_view kernelName) {
+  if (!persistJITEngine)
+    return false;
+  return savedArtifact.isKernelSame(kernelName);
+}
+
+bool isArtifactReusable(void *argMessageBuffer, size_t size) {
+  if (!persistJITEngine)
+    return false;
+  return savedArtifact.cmpInfo(argMessageBuffer, size);
+}
+} // namespace compiler_artifact
 
 ExecutionContext *getExecutionContext() { return currentExecutionContext; }
 
@@ -97,48 +128,18 @@ std::size_t getCurrentQpuId() {
 void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
 
-  if (currentExecutionContext && persistJITEngine &&
-      savedArtifact.hasJitEngine())
-    currentExecutionContext->jitEng = savedArtifact.getJitEngine().value();
+  if (currentExecutionContext && compiler_artifact::persistJITEngine &&
+      compiler_artifact::savedArtifact.hasJitEngine())
+    currentExecutionContext->jitEng =
+        compiler_artifact::savedArtifact.getJitEngine();
 }
 
 void detail::resetExecutionContext() {
-  if (currentExecutionContext && persistJITEngine &&
+  if (currentExecutionContext && compiler_artifact::persistJITEngine &&
       currentExecutionContext->jitEng.has_value())
-    savedArtifact.setJitEngine(currentExecutionContext->jitEng.value());
+    compiler_artifact::savedArtifact.setJitEngine(
+        currentExecutionContext->jitEng.value());
 
   currentExecutionContext = nullptr;
 }
-
-/// This will cause the JITEngine stored in the current execution context to be
-/// used for future launches until disabled by `disablePersistentJITEngine`
-void detail::enablePersistentJITEngine() { persistJITEngine = true; }
-
-void detail::disablePersistentJITEngine() {
-  persistJITEngine = false;
-  savedArtifact.reset();
-}
-
-bool detail::isPersistingJITEngine() { return persistJITEngine; }
-
-// We're responsible for freeing argMessageBuffer
-void detail::saveLaunchInfo(std::string_view kernelName, void *argMessageBuffer,
-                            size_t size) {
-  if (!persistJITEngine)
-    return;
-  savedArtifact.saveLaunchInfo(kernelName, argMessageBuffer, size);
-}
-
-bool detail::isKernelSame(std::string_view kernelName) {
-  if (!persistJITEngine)
-    return false;
-  return savedArtifact.isKernelSame(kernelName);
-}
-
-bool detail::isLaunchInfoSame(void *argMessageBuffer, size_t size) {
-  if (!persistJITEngine)
-    return false;
-  return savedArtifact.isLaunchInfoSame(argMessageBuffer, size);
-}
-
 } // namespace cudaq

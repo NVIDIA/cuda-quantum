@@ -23,7 +23,7 @@ def test_reuse():
         x(qubits.front())
         for i, qubit in enumerate(qubits.front(numQubits - 1)):
             x.ctrl(qubit, qubits[i + 1])
-    
+
     @cudaq.kernel
     def nop(numQubits: int):
         qubits = cudaq.qvector(numQubits)
@@ -42,6 +42,7 @@ def test_reuse():
         @cudaq.kernel
         def simple(numQubits: int):
             qubits = cudaq.qvector(numQubits)
+
         with pytest.raises(RuntimeError):
             res = cudaq.sample(simple, 4, shots_count=1)
 

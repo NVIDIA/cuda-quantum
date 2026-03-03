@@ -8,6 +8,7 @@
 
 #include "QPU.h"
 #include "common/ArgumentConversion.h"
+#include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/JIT.h"
@@ -65,7 +66,8 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   // If we're persisting the jit cache we need to run GKE to have access
   // to `.argsCreator` to serialize the arguments.
-  if ((resultTy && isEntryPoint) || cudaq::detail::isPersistingJITEngine()) {
+  if ((resultTy && isEntryPoint) ||
+      cudaq::compiler_artifact::isPersistingJITEngine()) {
     // If we're expecting a result, then we want to call the .thunk function so
     // that the result is properly marshaled. Add the GKE pass to generate the
     // .thunk. At this point, the kernel should have been specialized so it has
@@ -244,22 +246,26 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       jit = cudaq::createQIRJITEngine(module, "qir:");
     }
 
-    if (cudaq::detail::isPersistingJITEngine()) {
-      if (!builtJIT && !cudaq::detail::isKernelSame(name))
+    if (cudaq::compiler_artifact::isPersistingJITEngine()) {
+      if (!builtJIT && !cudaq::compiler_artifact::isKernelSame(name))
         throw std::runtime_error("Detected reuse of compiler artifact with "
-                                   "a different kernel.");
+                                 "a different kernel.");
       auto funcPtr = jit->lookupRawNameOrFail(name + ".argsCreator");
       auto argsCreator =
           reinterpret_cast<int64_t (*)(const void *, void **)>(funcPtr);
-      void *res_buffer;
-      const void *argBlock = rawArgs.data();
-      auto res_size = argsCreator(argBlock, &res_buffer);
+      void *resBuffer;
+      auto resSize = argsCreator(rawArgs.data(), &resBuffer);
+      auto deleter = [](void *ptr) { std::free(ptr); };
+      std::unique_ptr<void, decltype(deleter)> scopedRefBuffer(resBuffer,
+                                                               deleter);
       if (builtJIT) {
-        cudaq::detail::saveLaunchInfo(name, res_buffer, res_size);
+        cudaq::compiler_artifact::saveArtifactInfo(
+            name, scopedRefBuffer.release(), resSize);
       } else {
-        auto can_reuse = cudaq::detail::isLaunchInfoSame(res_buffer, res_size);
-        free(res_buffer);
-        if (!can_reuse)
+        auto canReuse = cudaq::compiler_artifact::isArtifactReusable(
+            scopedRefBuffer.get(), resSize);
+        free(resBuffer);
+        if (!canReuse)
           throw std::runtime_error("Detected reuse of compiler artifact with "
                                    "diverging explicit arguments.");
       }

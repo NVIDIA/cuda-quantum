@@ -205,14 +205,16 @@ void setExecutionContext(ExecutionContext *ctx);
 /// Use `quantum_platform::with_execution_context` instead of setting/resetting
 /// the execution context manually.
 void resetExecutionContext();
+} // namespace detail
 
+// TODO: document
+namespace compiler_artifact {
 void enablePersistentJITEngine();
 void disablePersistentJITEngine();
 bool isPersistingJITEngine();
-void saveLaunchInfo(std::string_view kernelName, void *argMessageBuffer,
-                    size_t size);
+void saveArtifactInfo(std::string_view kernelName, void *argMessageBuffer,
+                      size_t size);
 bool isKernelSame(std::string_view kernelName);
-bool isLaunchInfoSame(void *argMessageBuffer, size_t size);
-} // namespace detail
-
+bool isArtifactReusable(void *argMessageBuffer, size_t size);
+}; // namespace compiler_artifact
 } // namespace cudaq
