@@ -66,12 +66,7 @@ public:
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
 
-    // If Authentication token is not provided explicitly, it is read from the
-    // `TII_API_TOKEN` environment variable.
-    if (backendConfig.count("api_key"))
-      headers["x-api-token"] = backendConfig["api_key"];
-    else
-      headers["x-api-token"] = getEnvVar("TII_API_TOKEN", "", true);
+    headers["x-api-token"] = backendConfig["api_key"];
 
     headers["x-qibo-client-version"] = backendConfig["version"];
 
@@ -90,6 +85,10 @@ public:
     backendConfig["url"] = tii_url.ends_with("/") ? tii_url : tii_url + "/";
     if (!backendConfig.count("version"))
       backendConfig["version"] = DEFAULT_VERSION;
+    // If Authentication token is not provided explicitly, it is read from the
+    // `TII_API_TOKEN` environment variable.
+    if (!backendConfig.count("api_key"))
+      backendConfig["api_key"] = getEnvVar("TII_API_TOKEN", "", true);
     if (!backendConfig.count("verbatim"))
       backendConfig["verbatim"] = "false";
 
