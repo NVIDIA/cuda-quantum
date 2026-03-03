@@ -251,6 +251,22 @@ jobs:
         id: base-image
         run: echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
 
+      - name: Set destination image
+        id: destination-image
+        run: |
+          # hard-coded to nightly because previous job is matrixed
+          target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
+          tag_suffix="${target_image##*:}"
+          if [ "${{ github.event.inputs.push_to_NGC }}" = "true" ]; then
+            # Derive push destination from target_image: .../cuda-quantum:tag -> .../cuda-quantum-src:tag
+            repo_part="${target_image%:*}"
+            tag="${repo_part}-src:${tag_suffix}"
+          else
+            owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
+          fi
+          echo "destination_image=$tag" | tee -a $GITHUB_OUTPUT
+
       - name: Download package lists (cudaq)
         uses: actions/download-artifact@v4
         with:
@@ -364,18 +380,9 @@ jobs:
       - name: Tag and push to GHCR or NGC
         id: push
         run: |
-          docker load --input /tmp/package-sources.tar
           cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
-          target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
-          tag_suffix="${target_image##*:}"
-          if [ "${{ github.event.inputs.push_to_NGC }}" = "true" ]; then
-            # Derive push destination from target_image: .../cuda-quantum:tag -> .../cuda-quantum-src:tag
-            repo_part="${target_image%:*}"
-            tag="${repo_part}-src:${tag_suffix}"
-          else
-            owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-            tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
-          fi
+          docker load --input /tmp/package-sources.tar
+          tag="${{ steps.destination-image.outputs.destination_image }}"
           docker tag package-sources:latest "$tag"
           docker push "$tag"
           echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
