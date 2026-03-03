@@ -94,7 +94,7 @@ struct BridgeConfig {
 
   // Ring buffer sizing
   uint32_t payload_size = 8; ///< RPC payload size in bytes
-  size_t frame_size = 0;     ///< Computed: `sizeof(RPCHeader) + payload_size`
+  size_t frame_size = 0;     ///< Computed: sizeof(RPCHeader) + payload_size
   size_t page_size =
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
