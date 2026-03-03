@@ -52,6 +52,8 @@ jobs:
             cd /workspace/realtime
             # Build 
             dnf install -y cmake git
+            # Install development prerequisites (e.g., DOCA SDK for GPUNetIO)
+            bash scripts/install_dev_prerequisites.sh
             mkdir -p build && cd build
             cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/workspace/installer
             make -j$(nproc) install

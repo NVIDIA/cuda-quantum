@@ -62,6 +62,8 @@ if(CUDA_FOUND)
 
   if (NOT DOCA_GPU_INCLUDE_DIR)
     message(FATAL_ERROR "DOCA GPU include directory not found. Please set DOCA_GPU_INCLUDE_DIR to the path containing doca_gpunetio_dev_verbs_common.cuh")
+  else()
+    message(STATUS "Found DOCA GPU include directory: ${DOCA_GPU_INCLUDE_DIR}")
   endif()
 
   target_include_directories(cudaq-realtime-dispatch
