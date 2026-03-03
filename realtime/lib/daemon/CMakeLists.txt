@@ -60,6 +60,10 @@ if(CUDA_FOUND)
     HINTS /opt/mellanox/doca/include
   )
 
+  if (NOT DOCA_GPU_INCLUDE_DIR)
+    message(FATAL_ERROR "DOCA GPU include directory not found. Please set DOCA_GPU_INCLUDE_DIR to the path containing doca_gpunetio_dev_verbs_common.cuh")
+  endif()
+
   target_include_directories(cudaq-realtime-dispatch
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
