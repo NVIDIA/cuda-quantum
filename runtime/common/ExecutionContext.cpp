@@ -31,17 +31,16 @@ public:
 
   void reset() {
     jitEng.reset();
-    clearArgs();
+    argSize = 0;
   }
 
   // We're responsible for freeing argMessageBuffer.
   void saveInfo(std::string_view kernelName, void *argMessageBuffer,
                 size_t size) {
-    clearArgs();
     assert(argMessageBuffer);
     argSize = size;
     this->kernelName = kernelName;
-    argBuff = argMessageBuffer;
+    argBuff = std::unique_ptr<void, decltype(&free)>(argMessageBuffer, free);
   }
 
   bool isKernelSame(std::string_view kernelName) const {
@@ -49,22 +48,18 @@ public:
   }
 
   bool cmpInfo(void *argMessageBuffer, size_t size) const {
-    assert(argBuff && argMessageBuffer);
+    assert(argBuff.get() && argMessageBuffer);
     if (size != argSize)
       return false;
-    return memcmp(argMessageBuffer, argBuff, size) == 0;
+    return memcmp(argMessageBuffer, argBuff.get(), size) == 0;
   }
+
+  SavedCompilerArtifact() : argBuff(nullptr, free) {}
 
 private:
-  void clearArgs() {
-    if (argBuff)
-      free(argBuff);
-    argSize = 0;
-  }
-
   std::optional<cudaq::JitEngine> jitEng = std::nullopt;
   std::string kernelName;
-  void *argBuff;
+  std::unique_ptr<void, decltype(&free)> argBuff;
   size_t argSize = 0;
 };
 
