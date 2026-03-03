@@ -254,6 +254,7 @@ jobs:
       - name: Set destination image
         id: destination-image
         run: |
+          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
           # hard-coded to nightly because previous job is matrixed
           target_image="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest"
           tag_suffix="${target_image##*:}"
@@ -380,7 +381,6 @@ jobs:
       - name: Tag and push to GHCR or NGC
         id: push
         run: |
-          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
           docker load --input /tmp/package-sources.tar
           tag="${{ steps.destination-image.outputs.destination_image }}"
           docker tag package-sources:latest "$tag"
