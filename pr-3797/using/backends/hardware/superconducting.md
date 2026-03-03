@@ -2573,9 +2573,9 @@ superconducting quantum hardware. The infrastructure is orchestrated by
 ### Credential setup[¶](#credential-setup "Permalink to this heading"){.headerlink}
 
 Access to TII hardware requires user registration. New accounts can be
-requested at the [TII cloud portal](https://q-cloud.tii.ae){.reference
-.external}. Authentication is performed using an email address and
-password.
+requested at [TII's quantum computing cloud
+portal](https://q-cloud.tii.ae){.reference .external}. Authentication is
+performed using an email address and password.
 
 After the first login, users can generate personal access tokens. This
 token is used to authenticate backend requests and can be set as an

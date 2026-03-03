@@ -542,7 +542,7 @@ Credential setup
 ````````````````
 
 Access to TII hardware requires user registration.
-New accounts can be requested at the `TII cloud portal <https://q-cloud.tii.ae>`__.
+New accounts can be requested at `TII's quantum computing cloud portal <https://q-cloud.tii.ae>`__.
 Authentication is performed using an email address and password.
 
 After the first login, users can generate personal access tokens.
