@@ -40,9 +40,6 @@ if [ -x "$(command -v apt-get)" ]; then
 
 elif [ -x "$(command -v dnf)" ]; then
   # Find the rhel version, e.g., rhel9.2 -> rhel9
-  os_name=$(cat /etc/os-release | grep -E '^ID=' | cut -d= -f2 | tr -d '"')
-  os_version=$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1 | tr -d '"')
-  echo "Detected OS: $os_name, version: $os_version"
   distro=$(cat /etc/os-release | grep -E '^ID=' | cut -d= -f2 | tr -d '"')$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1 | tr -d '"') # e.g., rhel9
   echo "Detected distro: $distro"
   echo "[doca]
@@ -50,6 +47,9 @@ elif [ -x "$(command -v dnf)" ]; then
   baseurl=https://linux.mellanox.com/public/repo/doca/$DOCA_VERSION/$distro/$arch/
   enabled=1
   gpgcheck=0" > /etc/yum.repos.d/doca.repo
+  # Debug repo file
+  echo "Created DOCA repo file:"
+  cat /etc/yum.repos.d/doca.repo
   dnf clean all
   dnf -y install libdoca-sdk-gpunetio-dev
 else
