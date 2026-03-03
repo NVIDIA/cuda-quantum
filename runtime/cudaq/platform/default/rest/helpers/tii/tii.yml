@@ -35,6 +35,11 @@ target-arguments:
     type: string
     platform-arg: url
     help-string: "Specify TII API server URL."
+  - key: version
+    required: false
+    type: string
+    platform-arg: version
+    help-string: "Qibo version running on the TII server."
   - key: device
     required: true
     type: string
