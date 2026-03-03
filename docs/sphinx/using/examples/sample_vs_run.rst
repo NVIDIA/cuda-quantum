@@ -1,12 +1,10 @@
-:orphan:
-
 .. _sample-to-run-migration:
 
-Migrating Kernels from ``sample`` to ``run``
-*********************************************
+When to Use ``sample`` vs. ``run``
+===================================
 
 Introduction
-============
+---------------
 
 Starting with CUDA-Q 0.14.0, ``sample`` no longer supports kernels that branch
 on measurement results (measurement-dependent control flow). Kernels containing
@@ -19,13 +17,35 @@ This breaking change creates a clearer API separation:
 - Use ``run`` for **shot-by-shot execution** with measurement-dependent control
   flow and individual return values.
 
+
+Usage Guidelines
+----------------
+
+**Use** ``sample`` **when:**
+
+- You want aggregate measurement statistics (histograms).
+- Your kernel has no measurement-dependent control flow.
+- You only need final measurement distributions.
+- You are using the ``explicit_measurements`` option, which concatenates all
+  measurement results in execution order rather than re-measuring qubits at the
+  end of the kernel. See the :ref:`sample specification <cudaq-sample-spec>`
+  for details.
+
+**Use** ``run`` **when:**
+
+- You need shot-by-shot measurement values.
+- Your kernel has conditionals based on measurement results.
+- You want to return computed values from the kernel.
+- You need to store or analyze individual shot data.
+
+
 For the full API specification, see the :ref:`sample <cudaq-sample-spec>` and
 :ref:`run <cudaq-run-spec>` sections in the Algorithmic Primitives documentation.
-For a usage guide, see :doc:`Running your first CUDA-Q Program <basics/run_kernel>`.
+For a usage guide, see :doc:`Running your first CUDA-Q Program <../basics/run_kernel>`.
 
 
 What Still Works with ``sample``
-================================
+---------------------------------
 
 Kernels without measurement-dependent control flow continue to work exactly as
 before. This includes implicit measurements, explicit measurements without
@@ -37,26 +57,26 @@ details).
 
 .. tab:: Python
 
-    .. literalinclude:: ../examples/python/sample_to_run_migration.py
+    .. literalinclude:: ../../examples/python/sample_to_run_migration.py
         :language: python
         :start-after: [Begin Sample_Works]
         :end-before: [End Sample_Works]
 
 .. tab:: C++
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Sample_Works]
         :end-before: [End Sample_Works]
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Sample_Works_Run]
         :end-before: [End Sample_Works_Run]
 
 
 What No Longer Works
-====================
+---------------------
 
 Kernels that branch on measurement results can no longer be used with
 ``sample`` or ``sample_async``. Attempting to do so will raise a runtime error.
@@ -104,12 +124,12 @@ The error message will read:
 
 
 How to Migrate
-==============
+---------------
 
 Migrating a kernel from ``sample`` to ``run`` requires three changes.
 
 Step 1: Add a return type to the kernel
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``run`` requires kernels to return a non-void value. Instead of relying on
 implicit measurement at the end of the circuit, explicitly ``return`` the
@@ -162,7 +182,7 @@ measurement results you need.
         };
 
 Step 2: Replace ``sample`` with ``run``
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. tab:: Python
 
@@ -191,7 +211,7 @@ Step 2: Replace ``sample`` with ``run``
     number of shots.
 
 Step 3: Update result processing
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``sample`` returns a ``sample_result`` (a counts dictionary mapping bit strings
 to frequencies). ``run`` returns a list (Python) or ``std::vector`` (C++) of
@@ -200,48 +220,48 @@ you can reconstruct it from the individual results:
 
 .. tab:: Python
 
-    .. literalinclude:: ../examples/python/sample_to_run_migration.py
+    .. literalinclude:: ../../examples/python/sample_to_run_migration.py
         :language: python
         :start-after: [Begin Result_Processing]
         :end-before: [End Result_Processing]
 
 .. tab:: C++
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Result_Processing]
         :end-before: [End Result_Processing]
 
 
 Migration Examples
-==================
+----------------------
 
 Example 1: Simple conditional logic
--------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A kernel that measures one qubit and conditionally applies a gate on another.
 
 .. tab:: Python
 
-    .. literalinclude:: ../examples/python/sample_to_run_migration.py
+    .. literalinclude:: ../../examples/python/sample_to_run_migration.py
         :language: python
         :start-after: [Begin Example1]
         :end-before: [End Example1]
 
 .. tab:: C++
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Example1]
         :end-before: [End Example1]
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Example1Run]
         :end-before: [End Example1Run]
 
 Example 2: Returning multiple measurement results
----------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A kernel that performs multiple mid-circuit measurements with conditional logic
 and returns all results as a list. When returning a ``std::vector<bool>`` in
@@ -250,72 +270,51 @@ broadest target compatibility.
 
 .. tab:: Python
 
-    .. literalinclude:: ../examples/python/sample_to_run_migration.py
+    .. literalinclude:: ../../examples/python/sample_to_run_migration.py
         :language: python
         :start-after: [Begin Example2]
         :end-before: [End Example2]
 
 .. tab:: C++
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Example2]
         :end-before: [End Example2]
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Example2Run]
         :end-before: [End Example2Run]
 
 Example 3: Quantum teleportation
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Teleportation of a qubit state requires conditional corrections based on 
 Bell-basis measurements.
 
 .. tab:: Python
 
-    .. literalinclude:: ../examples/python/sample_to_run_migration.py
+    .. literalinclude:: ../../examples/python/sample_to_run_migration.py
         :language: python
         :start-after: [Begin Example3]
         :end-before: [End Example3]
 
 .. tab:: C++
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Example3]
         :end-before: [End Example3]
 
-    .. literalinclude:: ../examples/cpp/sample_to_run_migration.cpp
+    .. literalinclude:: ../../examples/cpp/sample_to_run_migration.cpp
         :language: cpp
         :start-after: [Begin Example3Run]
         :end-before: [End Example3Run]
 
 
-When to Use ``sample`` vs. ``run``
-====================================
-
-**Use** ``sample`` **when:**
-
-- You want aggregate measurement statistics (histograms).
-- Your kernel has no measurement-dependent control flow.
-- You only need final measurement distributions.
-- You are using the ``explicit_measurements`` option, which concatenates all
-  measurement results in execution order rather than re-measuring qubits at the
-  end of the kernel. See the :ref:`sample specification <cudaq-sample-spec>`
-  for details.
-
-**Use** ``run`` **when:**
-
-- You need shot-by-shot measurement values.
-- Your kernel has conditionals based on measurement results.
-- You want to return computed values from the kernel.
-- You need to store or analyze individual shot data.
-
-
 Additional Notes
-================
+-----------------
 
 - Users of ``sample_async`` with conditional-feedback kernels should migrate to
   ``run_async``. See the :ref:`run specification <cudaq-run-spec>` for the
