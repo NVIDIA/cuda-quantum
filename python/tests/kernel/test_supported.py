@@ -18,7 +18,7 @@ def test_unprocessed_ast():
         sys.modules['ast'],
         lambda v: inspect.isclass(v) and issubclass(v, ast.NodeVisitor))
     dummy_bridge = cudaq.PyASTBridge(
-        KernelSignature(arg_types=[], return_type=None))
+        KernelSignature(arg_types=[], return_type=None), None)
 
     unsupported_nodes = set()
     for _, cls in node_visitors:

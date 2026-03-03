@@ -131,8 +131,7 @@ target_include_directories(cudaq-mlir-runtime
     ${CMAKE_SOURCE_DIR}/runtime)
 
 target_link_libraries(cudaq-mlir-runtime
-  PUBLIC
-    nvqir
+  PRIVATE
     CCDialect
     QuakeDialect
     OptCodeGen
@@ -149,7 +148,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-  PRIVATE
+    cudaq-common
     CUDAQTargetConfigUtil
     cudaq-logger
 )

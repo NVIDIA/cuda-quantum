@@ -40,6 +40,8 @@ def start_server(backend: str):
             from mock_qpu.quantinuum import app
         case "quantum_machines":
             from mock_qpu.quantum_machines import app
+        case "scaleway":
+            from mock_qpu.scaleway import app
         case _:
             # <backend> is in all_backend_names() but not handled!
             raise ValueError(
@@ -48,7 +50,7 @@ def start_server(backend: str):
     cudaq.set_random_seed(13)
 
     print(f"Starting {backend} server on port {port}")
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
+    uvicorn.run(app, port=port, host="0.0.0.0", log_level="info")
 
 
 if __name__ == "__main__":

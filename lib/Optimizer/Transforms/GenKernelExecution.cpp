@@ -23,6 +23,7 @@
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
+#include <climits>
 #include <cstdlib>
 #include <cxxabi.h>
 #include <regex>
@@ -394,12 +395,13 @@ public:
                 loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
                 SmallVector<cudaq::cc::ComputePtrArg>{0});
             builder.create<cudaq::cc::StoreOp>(loc, bitVal, valPtr);
-            // Store id = -1 into the second field
-            auto negOne = builder.create<arith::ConstantIntOp>(loc, -1, 32);
+            // Store id = INT_MAX (unassigned sentinel) into the second field
+            auto intMax =
+                builder.create<arith::ConstantIntOp>(loc, INT_MAX, 32);
             auto idPtr = builder.create<cudaq::cc::ComputePtrOp>(
                 loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
                 SmallVector<cudaq::cc::ComputePtrArg>{1});
-            builder.create<cudaq::cc::StoreOp>(loc, negOne, idPtr);
+            builder.create<cudaq::cc::StoreOp>(loc, intMax, idPtr);
           } else {
             auto resPtrTy = cudaq::cc::PointerType::get(resTy);
             Value castMem = mem;

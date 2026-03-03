@@ -11,6 +11,7 @@
 #include "Timing.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <climits>
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
@@ -210,11 +211,21 @@ void cudaq::RecordLogParser::preallocateTuple() {
 
 void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
                                                  const std::string &recLabel) {
+  if (currentOutput == OutputType::RESULT) {
+    int resultVal = (recValue == "1") ? 1 : 0;
+    int uniqueId = 0;
+    if (!recLabel.empty() && recLabel != "result") {
+      try {
+        uniqueId = static_cast<int>(containerMeta.extractIndex(recLabel));
+      } catch (...) {
+        uniqueId = INT_MAX;
+      }
+    }
+    bufferHandler.addPrimitiveRecord<cudaq::measure_result>(
+        cudaq::measure_result(resultVal, uniqueId));
+    return;
+  }
   auto label = recLabel;
-  // For result type, we don't use the record label (register name) as the type
-  // annotation.
-  if (currentOutput == OutputType::RESULT)
-    label = "result";
   if (label.empty()) {
     if (currentOutput == OutputType::BOOL)
       label = "i1";
@@ -232,8 +243,17 @@ void cudaq::RecordLogParser::processArrayEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Array index out of bounds");
-  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
-  dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index, recValue);
+  if (containerMeta.arrayType == "result") {
+    int resultVal = (recValue == "1") ? 1 : 0;
+    cudaq::measure_result mr(resultVal, static_cast<int>(index));
+    bufferHandler.insertIntoArray<cudaq::measure_result>(
+        containerMeta.dataOffset, index, mr);
+  } else {
+    cudaq::details::DataHandlerBase &dh =
+        getDataHandler(containerMeta.arrayType);
+    dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index,
+                       recValue);
+  }
 }
 
 void cudaq::RecordLogParser::processTupleEntry(const std::string &recValue,

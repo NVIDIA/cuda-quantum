@@ -34,6 +34,7 @@ target_link_libraries(cudaq-rest-qpu
     fmt::fmt-header-only
     cudaq
     cudaq-platform-default
+    nvqir
     ${AWSSDK_LINK_LIBRARIES})
 
 install(TARGETS cudaq-rest-qpu DESTINATION lib)

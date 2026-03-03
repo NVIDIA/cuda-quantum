@@ -97,7 +97,7 @@ jobs:
           run: |
             set -euo pipefail
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client==28.0.0 --break-system-packages
+            python3 -m pip install iqm-client==28.0.0 qio~=0.1.33 --break-system-packages
             bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
@@ -234,7 +234,7 @@ jobs:
             python3 -m venv --system-site-packages "$VENV_DIR"
             . "$VENV_DIR/bin/activate"
 
-            pip install iqm-client==28.0.0
+            pip install iqm-client==28.0.0 qio~=0.1.33
             pip install . -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then

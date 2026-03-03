@@ -28,7 +28,7 @@ for backend-specific metadata correlation.)#")
                              "The integer measurement result (0 or 1).")
       .def_property_readonly("unique_id", &measure_result::getUniqueId,
                              "The unique identifier for this measurement "
-                             "result (-1 if unassigned).")
+                             "result (INT_MAX if unassigned).")
       .def("__bool__",
            [](const measure_result &self) { return static_cast<bool>(self); })
       .def("__int__",
