@@ -1294,6 +1294,12 @@ public:
   void measureSpinOp(const cudaq::spin_op &op) override {
     auto executionContext = cudaq::getExecutionContext();
 
+    if (nQubitsAllocated == 0) {
+      if (executionContext)
+        executionContext->expectationValue = 0.0;
+      return;
+    }
+
     flushGateQueue();
 
     if (executionContext->canHandleObserve) {
