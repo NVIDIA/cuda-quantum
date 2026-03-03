@@ -427,8 +427,23 @@ do_run() {
     tail -f /tmp/bridge.log &
     PIDS+=($!)
 
-    # Wait for bridge to print QP info
-    sleep 3
+    # Wait for bridge to print "Bridge Ready" (CUDA/DOCA init can take 5-15s)
+    local wait_elapsed=0
+    while ! grep -q "Bridge Ready" /tmp/bridge.log 2>/dev/null; do
+        if ! kill -0 "$BRIDGE_PID" 2>/dev/null; then
+            echo "ERROR: Bridge process died during startup" >&2
+            cat /tmp/bridge.log >&2
+            exit 1
+        fi
+        if (( wait_elapsed >= 30 )); then
+            echo "ERROR: Bridge did not become ready within 30s" >&2
+            cat /tmp/bridge.log >&2
+            exit 1
+        fi
+        sleep 1
+        (( wait_elapsed++ )) || true
+    done
+
     local BRIDGE_QP BRIDGE_RKEY BRIDGE_BUFFER
     BRIDGE_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
     BRIDGE_RKEY=$(grep -oP 'RKey: \K[0-9]+' /tmp/bridge.log | tail -1)
