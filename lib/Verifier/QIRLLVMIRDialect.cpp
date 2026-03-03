@@ -71,7 +71,7 @@ LogicalResult cudaq::verifier::checkQIRLLVMIRDialect(ModuleOp module,
   SmallVector<LLVM::LLVMFuncOp> funcs;
   for (auto &topLevelArtifact : module)
     if (auto func = dyn_cast<LLVM::LLVMFuncOp>(topLevelArtifact);
-        func && !func->hasAttr(cudaq::kernelAttrName))
+        func && func->hasAttr(cudaq::kernelAttrName))
       funcs.push_back(func);
 
   const bool isBaseProfile = profile.startswith("qir-base");
