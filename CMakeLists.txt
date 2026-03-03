@@ -108,11 +108,11 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
   if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
    set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR ON CACHE BOOL "Enable building the Pasqal QRMI connector.")
  else()
-   set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector.")
+   set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Disable building the Pasqal QRMI connector.")
  endif()
 
   # Keep the Pasqal QRMI connector opt-in until `libqrmi.so` is distributed.
-  set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector." FORCE)
+  set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Disable building the Pasqal QRMI connector." FORCE)
 endif()
 
 # Enable Quantum Circuits, Inc. (QCI) target by default.

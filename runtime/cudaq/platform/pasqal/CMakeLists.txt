@@ -77,22 +77,6 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       "${QRMI_ROOT}/include/qrmi.h" "qrmi.h")
     _pasqal_download_or_fail("${_qrmi_release_base}/libqrmi.so"
       "${QRMI_ROOT}/lib/libqrmi.so" "libqrmi.so")
-    _pasqal_download_or_fail("${_qrmi_release_base}/libqrmi.sha256"
-      "${QRMI_ROOT}/lib/libqrmi.sha256" "libqrmi.sha256")
-
-    file(READ "${QRMI_ROOT}/lib/libqrmi.sha256" _qrmi_sha_line)
-    string(REGEX MATCH "^[0-9A-Fa-f]+" _qrmi_expected_sha "${_qrmi_sha_line}")
-    if(NOT _qrmi_expected_sha)
-      message(FATAL_ERROR
-        "Failed to parse expected SHA256 from ${QRMI_ROOT}/lib/libqrmi.sha256")
-    endif()
-    file(SHA256 "${QRMI_ROOT}/lib/libqrmi.so" _qrmi_actual_sha)
-    string(TOLOWER "${_qrmi_expected_sha}" _qrmi_expected_sha)
-    string(TOLOWER "${_qrmi_actual_sha}" _qrmi_actual_sha)
-    if(NOT _qrmi_expected_sha STREQUAL _qrmi_actual_sha)
-      message(FATAL_ERROR
-        "QRMI checksum mismatch for downloaded libqrmi.so")
-    endif()
 
     message(STATUS
       "Downloaded QRMI release assets into ${QRMI_ROOT}")

@@ -98,57 +98,67 @@ public:
 
   QrmiTaskStatus waitForTaskTerminalStatus(
       const std::string &taskId,
-      std::chrono::seconds pollInterval = std::chrono::seconds(1)) {
+      std::chrono::seconds pollInterval = std::chrono::seconds(1),
+      std::chrono::seconds timeout(60 * 60 * 24 * 30); // default to 30 days
+      if (auto timeoutStr = getenv("CUDAQ_QRMI_TIMEOUT_SEC"))
+        timeout = std::chrono::seconds(atoi(timeoutStr));    if (timeout <= std::chrono::seconds::zero())
+
+    const auto start = std::chrono::steady_clock::now();
     QrmiTaskStatus status = QRMI_TASK_STATUS_QUEUED;
     while (true) {
-      ensureSuccess(
-          qrmi_resource_task_status(resource_.get(), taskId.c_str(), &status),
-          "qrmi_resource_task_status()");
-      if (!taskInProgress(status))
-        return status;
-      std::this_thread::sleep_for(pollInterval);
-    }
-  }
-
-  std::string taskLogs(const std::string &taskId) const {
-    char *taskLogsRaw = nullptr;
-    if (qrmi_resource_task_logs(resource_.get(), taskId.c_str(),
-                                &taskLogsRaw) != QRMI_RETURN_CODE_SUCCESS ||
-        !taskLogsRaw)
-      return {};
-
-    StringPtr taskLogs(taskLogsRaw);
-    return std::string(taskLogs.get());
-  }
-
-  std::string taskResult(const std::string &taskId) const {
-    char *taskResultRaw = nullptr;
-    ensureSuccess(qrmi_resource_task_result(resource_.get(), taskId.c_str(),
-                                            &taskResultRaw),
-                  "qrmi_resource_task_result()");
-    if (!taskResultRaw)
+    ensureSuccess(
+        qrmi_resource_task_status(resource_.get(), taskId.c_str(), &status),
+        "qrmi_resource_task_status()");
+    if (!taskInProgress(status))
+      return status;
+    if (std::chrono::steady_clock::now() - start >= timeout)
       throw std::runtime_error(
-          "qrmi_resource_task_result() returned a null payload.");
+          "QRMI task '" + taskId +
+          "' timed out while waiting for terminal status.");
+    std::this_thread::sleep_for(pollInterval);
+    }
+}
 
-    StringPtr taskResult(taskResultRaw);
-    return std::string(taskResult.get());
-  }
+std::string
+taskLogs(const std::string &taskId) const {
+  char *taskLogsRaw = nullptr;
+  if (qrmi_resource_task_logs(resource_.get(), taskId.c_str(), &taskLogsRaw) !=
+          QRMI_RETURN_CODE_SUCCESS ||
+      !taskLogsRaw)
+    return {};
 
-  void ensureTaskCompleted(const std::string &taskId,
-                           QrmiTaskStatus status) const {
-    if (status == QRMI_TASK_STATUS_COMPLETED)
-      return;
+  StringPtr taskLogs(taskLogsRaw);
+  return std::string(taskLogs.get());
+}
 
-    auto logs = taskLogs(taskId);
-    throw std::runtime_error("QRMI task '" + taskId + "' ended with status " +
-                             taskStatusAsString(status) +
-                             (logs.empty() ? "" : (": " + logs)));
-  }
+std::string taskResult(const std::string &taskId) const {
+  char *taskResultRaw = nullptr;
+  ensureSuccess(qrmi_resource_task_result(resource_.get(), taskId.c_str(),
+                                          &taskResultRaw),
+                "qrmi_resource_task_result()");
+  if (!taskResultRaw)
+    throw std::runtime_error(
+        "qrmi_resource_task_result() returned a null payload.");
+
+  StringPtr taskResult(taskResultRaw);
+  return std::string(taskResult.get());
+}
+
+void ensureTaskCompleted(const std::string &taskId,
+                         QrmiTaskStatus status) const {
+  if (status == QRMI_TASK_STATUS_COMPLETED)
+    return;
+
+  auto logs = taskLogs(taskId);
+  throw std::runtime_error("QRMI task '" + taskId + "' ended with status " +
+                           taskStatusAsString(status) +
+                           (logs.empty() ? "" : (": " + logs)));
+}
 
 private:
-  std::string backendName_;
-  ResourcePtr resource_;
-  StringPtr acquisitionToken_;
+std::string backendName_;
+ResourcePtr resource_;
+StringPtr acquisitionToken_;
 };
 
 inline bool taskInProgress(QrmiTaskStatus status) {

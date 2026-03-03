@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <utility>
 
 namespace cudaq {
 
@@ -39,11 +40,15 @@ std::vector<ServerMessage>
 PasqalQrmiServerHelper::createJobs(std::vector<KernelExecution> &circuitCodes,
                                    std::size_t shots,
                                    const std::string &backendName) {
+  if (!std::in_range<std::int32_t>(shots))
+    throw std::runtime_error("Pasqal QRMI mode requires shots <= INT32_MAX.");
+
+  const auto jobRuns = static_cast<std::int32_t>(shots);
   std::vector<ServerMessage> tasks;
   for (auto &circuitCode : circuitCodes) {
     ServerMessage message;
     message["machine"] = backendName;
-    message["job_runs"] = static_cast<std::int32_t>(shots);
+    message["job_runs"] = jobRuns;
     message["sequence"] = nlohmann::json::parse(circuitCode.code);
     tasks.push_back(std::move(message));
   }
