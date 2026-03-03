@@ -10,7 +10,7 @@ to keep the captured measurements. See the "Hololink IP:
 Connecting an `APB` `ILA` for Debug" section below.
 
 > **Note:** For this experiment, we recommend using NVIDIA ConnectX-7 NIC
-with dual QSFP ports. Prior ConnectX generations may not have all
+with dual `QSFP` ports. Prior ConnectX generations may not have all
 the capabilities required.
 
 ## Steps to do the experiment
