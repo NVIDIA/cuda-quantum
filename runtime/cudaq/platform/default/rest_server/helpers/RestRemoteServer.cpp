@@ -463,7 +463,7 @@ protected:
 
     // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
     // QIR functions)
-    if (failed(cudaq::verify::checkNvqirCalls(module)))
+    if (failed(cudaq::verifier::checkNvqirCalls(module)))
       throw std::runtime_error(
           "Failed check to verify IR compliance for NVQIR runtime.");
 

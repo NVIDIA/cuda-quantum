@@ -26,7 +26,7 @@ static void doCommonSetup(StringRef theQuake) {
   SourceMgrDiagnosticVerifierHandler verifierHandler(sourceMgr, &ctx);
   ParserConfig config(&ctx);
   auto module = parseSourceFile<ModuleOp>(sourceMgr, config);
-  EXPECT_TRUE(failed(cudaq::verify::checkNvqirCalls(module.get())));
+  EXPECT_TRUE(failed(cudaq::verifier::checkNvqirCalls(module.get())));
   EXPECT_TRUE(succeeded(verifierHandler.verify()));
 }
 

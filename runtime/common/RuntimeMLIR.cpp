@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -45,14 +46,14 @@
 
 using namespace mlir;
 
-namespace {
-llvm::StringMap<cudaq::Translation> &getTranslationRegistry() {
+static llvm::StringMap<cudaq::Translation> &getTranslationRegistry() {
   static llvm::StringMap<cudaq::Translation> translationBundle;
   return translationBundle;
 }
 
-void registerTranslation(StringRef name, StringRef description,
-                         const cudaq::TranslateFromMLIRFunction &function) {
+static void
+registerTranslation(StringRef name, StringRef description,
+                    const cudaq::TranslateFromMLIRFunction &function) {
   assert(!name.contains(':') && "name and profile only");
   auto &registry = getTranslationRegistry();
   if (registry.count(name))
@@ -62,8 +63,9 @@ void registerTranslation(StringRef name, StringRef description,
   registry[name] = cudaq::Translation(function, description);
 }
 
-void registerTranslation(StringRef name, StringRef description,
-                         const cudaq::TranslateFromMLIRFunctionExtended &f) {
+static void
+registerTranslation(StringRef name, StringRef description,
+                    const cudaq::TranslateFromMLIRFunctionExtended &f) {
   assert(!name.contains(':') && "name and profile only");
   auto &registry = getTranslationRegistry();
   if (registry.count(name))
@@ -72,7 +74,6 @@ void registerTranslation(StringRef name, StringRef description,
          "Attempting to register an empty translate <file-to-file> function");
   registry[name] = cudaq::Translation(f, description);
 }
-} // namespace
 
 cudaq::Translation &cudaq::getTranslation(StringRef name) {
   auto namePair = name.split(':');
@@ -95,12 +96,7 @@ cudaq::TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
   registerTranslation(name, description, function);
 }
 
-namespace cudaq {
-void initializeLangMLIR();
-}
-
-namespace {
-bool setupTargetTriple(llvm::Module *llvmModule) {
+static bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
   auto targetTriple = llvm::sys::getDefaultTargetTriple();
   std::string errorMessage;
@@ -128,7 +124,7 @@ bool setupTargetTriple(llvm::Module *llvmModule) {
   return true;
 }
 
-void optimizeLLVM(llvm::Module *module) {
+static void optimizeLLVM(llvm::Module *module) {
   auto optPipeline = cudaq::makeOptimizingTransformer(
       /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
@@ -143,7 +139,7 @@ void optimizeLLVM(llvm::Module *module) {
       func.removeFnAttr(llvm::Attribute::Memory);
 }
 
-void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
+static void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
   // Note that we only need to inspect QIRMeasureBody because MeasureCallConv
   // and MeasureToRegisterCallConv have already been called, so only
   // QIRMeasureBody remains.
@@ -168,63 +164,9 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
-bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
-  const auto isValidIntegerBinaryInst = [](const auto &inst) {
-    if (!llvm::isa<llvm::BinaryOperator>(inst))
-      return false;
-    const auto opCode = inst.getOpcode();
-    static const std::vector<int> integerOps = {
-        llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
-        llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
-        llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
-        llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
-        llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
-        llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
-        llvm::BinaryOperator::AShr};
-    return std::find(integerOps.begin(), integerOps.end(), opCode) !=
-           integerOps.end();
-  };
-
-  return isValidIntegerBinaryInst(inst) ||
-         llvm::isa<llvm::ICmpInst, llvm::ZExtInst, llvm::SExtInst,
-                   llvm::TruncInst, llvm::SelectInst, llvm::PHINode>(inst);
-}
-
-bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
-  const auto isValidFloatBinaryInst = [](const auto &inst) {
-    if (!llvm::isa<llvm::BinaryOperator>(inst))
-      return false;
-    const auto opCode = inst.getOpcode();
-    static const std::vector<int> floatOps = {
-        llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
-        llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv,
-        llvm::Instruction::FRem};
-    return std::find(floatOps.begin(), floatOps.end(), opCode) !=
-           floatOps.end();
-  };
-
-  return isValidFloatBinaryInst(inst) || llvm::isa<llvm::FCmpInst>(inst) ||
-         llvm::isa<llvm::FPExtInst>(inst) ||
-         llvm::isa<llvm::FPTruncInst>(inst) ||
-         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
-}
-
-bool isValidOutputCallInstruction(llvm::Instruction &inst) {
-  if (auto *call = llvm::dyn_cast<llvm::CallBase>(&inst)) {
-    auto name = call->getCalledFunction()->getName().str();
-    std::vector<const char *> outputFunctions{
-        cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRIntegerRecordOutput,
-        cudaq::opt::QIRDoubleRecordOutput, cudaq::opt::QIRTupleRecordOutput,
-        cudaq::opt::QIRArrayRecordOutput};
-    return std::find(outputFunctions.begin(), outputFunctions.end(),
-                     name.c_str()) == outputFunctions.end();
-  }
-  return false;
-}
-
 // Once a call to a function with irreversible attribute is seen, no more calls
 // to reversible functions are allowed.
-mlir::LogicalResult
+static mlir::LogicalResult
 verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
   for (llvm::Function &func : *llvmModule)
@@ -255,8 +197,8 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
 // Verify that output recording calls
 // 1) Have the nonnull attribute on any i8* parameters
 // 2) Have unique names
-mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
-                                      std::set<std::string> &outputList) {
+static mlir::LogicalResult
+verifyOutputCalls(llvm::CallBase *callInst, std::set<std::string> &outputList) {
   int iArg = 0;
   for (auto &arg : callInst->args()) {
     auto myArg = arg->getType();
@@ -306,7 +248,7 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
 }
 
 // Loop through the arguments in a call and verify that they are all constants
-mlir::LogicalResult verifyConstArguments(llvm::CallBase *callInst) {
+static mlir::LogicalResult verifyConstArguments(llvm::CallBase *callInst) {
   int iArg = 0;
   auto func = callInst ? callInst->getCalledFunction() : nullptr;
   auto funcName = func ? func->getName() : "N/A";
@@ -323,8 +265,8 @@ mlir::LogicalResult verifyConstArguments(llvm::CallBase *callInst) {
 }
 
 // Loop over the recording output functions and verify their characteristics
-mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule,
-                                                   bool isBaseProfile) {
+static mlir::LogicalResult
+verifyOutputRecordingFunctions(llvm::Module *llvmModule, bool isBaseProfile) {
   for (llvm::Function &func : *llvmModule) {
     std::set<std::string> outputList;
     for (llvm::BasicBlock &block : func)
@@ -344,7 +286,7 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule,
 }
 
 // Convert a `nullptr` or `inttoptr (i64 1 to Ptr)` into an integer
-std::size_t getArgAsInteger(llvm::Value *arg) {
+static std::size_t getArgAsInteger(llvm::Value *arg) {
   std::size_t ret = 0; // handles the nullptr case
   // Now handle the `inttoptr (i64 1 to Ptr)` case
   auto constValue = llvm::dyn_cast<llvm::Constant>(arg);
@@ -368,7 +310,8 @@ std::size_t getArgAsInteger(llvm::Value *arg) {
   } while (0)
 
 // Perform range checking on qubit and result values.
-mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
+static mlir::LogicalResult
+verifyQubitAndResultRanges(llvm::Module *llvmModule) {
   std::size_t required_num_qubits = 0;
   std::size_t required_num_results = 0;
   for (llvm::Function &func : *llvmModule) {
@@ -413,8 +356,9 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
 }
 
 /// Filter out code patterns that do not meet the accepted QIR specification.
-mlir::LogicalResult filterSpecificCodePatterns(llvm::Module *llvmModule,
-                                               cudaq::CodeGenConfig &config) {
+static mlir::LogicalResult
+filterSpecificCodePatterns(llvm::Module *llvmModule,
+                           cudaq::CodeGenConfig &config) {
   bool erasePatterns = config.outputLog;
   bool eraseStackBounding = config.eraseStackBounding;
   bool eraseResultRecordCalls = config.eraseRecordCalls;
@@ -443,63 +387,7 @@ mlir::LogicalResult filterSpecificCodePatterns(llvm::Module *llvmModule,
   return mlir::success();
 }
 
-/// Verify that only LLVM instructions allowed by the QIR specification.
-mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
-                                           cudaq::CodeGenConfig &config) {
-
-  for (llvm::Function &func : *llvmModule)
-    for (llvm::BasicBlock &block : func)
-      for (llvm::Instruction &inst : block) {
-        bool isValidBaseProfileInstruction =
-            llvm::isa<llvm::CallBase>(inst) ||
-            llvm::isa<llvm::BranchInst>(inst) ||
-            llvm::isa<llvm::ReturnInst>(inst);
-        bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
-        if (config.isBaseProfile && !isValidBaseProfileInstruction) {
-          llvm::errs() << "QIR verification error - invalid instruction found: "
-                       << inst << " (base profile)\n";
-          if (!config.allowAllInstructions)
-            return mlir::failure();
-        } else if (config.isAdaptiveProfile &&
-                   !isValidAdaptiveProfileInstruction) {
-          const bool isValidIntExtension =
-              config.integerComputations &&
-              isValidIntegerArithmeticInstruction(inst);
-
-          const bool isValidFloatExtension =
-              config.floatComputations &&
-              isValidFloatingArithmeticInstruction(inst);
-
-          const bool isValidOutputCall = isValidOutputCallInstruction(inst);
-          if (!isValidIntExtension && !isValidFloatExtension &&
-              !isValidOutputCall) {
-            llvm::errs()
-                << "QIR verification error - invalid instruction found: "
-                << inst << " (adaptive profile)\n";
-            if (!config.allowAllInstructions)
-              return mlir::failure();
-          }
-        }
-        auto call = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
-        if (call)
-          for (auto &arg : call->args()) {
-            auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
-            if (constExpr &&
-                constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
-                constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
-                constExpr->getOpcode() != llvm::Instruction::BitCast) {
-              llvm::errs()
-                  << "QIR verification error - invalid instruction found: "
-                  << *constExpr << " (call argument)\n";
-              if (!config.allowAllInstructions)
-                return mlir::failure();
-            }
-          }
-      }
-  return mlir::success();
-}
-
-mlir::LogicalResult qirProfileTranslationFunction(
+static mlir::LogicalResult qirProfileTranslationFunction(
     const std::string &qirProfile, mlir::Operation *op,
     llvm::raw_string_ostream &output, const std::string &additionalPasses,
     bool printIR, bool printIntermediateMLIR, bool printStats) {
@@ -647,7 +535,14 @@ mlir::LogicalResult qirProfileTranslationFunction(
   if (failed(verifyQubitAndResultRanges(llvmModule.get())))
     return mlir::failure();
 
-  if (failed(verifyLLVMInstructions(llvmModule.get(), config)))
+  cudaq::verifier::LLVMVerifierOptions options{
+      .isBaseProfile = config.isBaseProfile,
+      .isAdaptiveProfile = config.isAdaptiveProfile,
+      .allowAllInstructions = config.allowAllInstructions,
+      .integerComputations = config.integerComputations,
+      .floatComputations = config.floatComputations};
+  if (failed(
+          cudaq::verifier::verifyLLVMInstructions(llvmModule.get(), options)))
     return mlir::failure();
 
   // Map the LLVM Module to Bitcode that can be submitted
@@ -658,7 +553,7 @@ mlir::LogicalResult qirProfileTranslationFunction(
   return mlir::success();
 }
 
-void registerToQIRTranslation() {
+static void registerToQIRTranslation() {
 #define CREATE_QIR_REGISTRATION(_regName, _profile)                            \
   cudaq::TranslateFromMLIRRegistration _regName(                               \
       _profile, "translate from quake to " _profile,                           \
@@ -675,7 +570,7 @@ void registerToQIRTranslation() {
   CREATE_QIR_REGISTRATION(regAdaptive, "qir-adaptive");
 }
 
-void registerToOpenQASMTranslation() {
+static void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qasm2", "translate from quake to openQASM 2.0",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
@@ -706,7 +601,7 @@ void registerToOpenQASMTranslation() {
       });
 }
 
-void registerToIQMJsonTranslation() {
+static void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "iqm", "translate from quake to IQM's json format",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
@@ -737,9 +632,9 @@ void registerToIQMJsonTranslation() {
       });
 }
 
-std::once_flag mlir_init_flag;
-MLIRContext *mlirContext;
-std::unique_ptr<MLIRContext> createMLIRContext() {
+static std::once_flag mlir_init_flag;
+static MLIRContext *mlirContext;
+static std::unique_ptr<MLIRContext> createMLIRContext() {
   // Per-context initialization
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
@@ -749,7 +644,6 @@ std::unique_ptr<MLIRContext> createMLIRContext() {
   registerLLVMDialectTranslation(*context);
   return context;
 }
-} // namespace
 
 void cudaq::initializeMLIR() {
   // One-time initialization of LLVM/MLIR components

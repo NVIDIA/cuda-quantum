@@ -60,7 +60,7 @@ static bool isVerifiedFunction(StringRef name,
              goldenFuncs.end();
 }
 
-LogicalResult cudaq::verify::checkNvqirCalls(ModuleOp module) {
+LogicalResult cudaq::verifier::checkNvqirCalls(ModuleOp module) {
   // Collect functions that are defined in the module. They are golden.
   SmallVector<StringRef> goldenFuncs;
   for (auto &artifact : module)

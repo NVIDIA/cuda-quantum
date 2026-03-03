@@ -10,12 +10,19 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Target/LLVMIR/Export.h"
 
 namespace cudaq::verifier {
 
-/**
-   Verify that the MLIR module only calls functions that are within the set of
-   valid targets for NVQIR.
- */
-mlir::LogicalResult checkNvqirCalls(mlir::ModuleOp module);
-} // namespace cudaq::verify
+struct LLVMVerifierOptions {
+  bool isBaseProfile : 1;
+  bool isAdaptiveProfile : 1;
+  bool allowAllInstructions : 1;
+  bool integerComputations : 1;
+  bool floatComputations : 1;
+};
+
+/// Verify that only LLVM instructions allowed by the QIR specification.
+mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
+                                           LLVMVerifierOptions options);
+} // namespace cudaq::verifier
