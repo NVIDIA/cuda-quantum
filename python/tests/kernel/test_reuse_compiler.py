@@ -39,15 +39,15 @@ def test_reuse():
         res = cudaq.sample(simple, 4, shots_count=1)
         assert (res.count("1111") == 1)
 
+        with pytest.raises(RuntimeError):
+            res = cudaq.sample(simple, 5, shots_count=1)
+
         @cudaq.kernel
         def simple(numQubits: int):
             qubits = cudaq.qvector(numQubits)
 
         with pytest.raises(RuntimeError):
             res = cudaq.sample(simple, 4, shots_count=1)
-
-        with pytest.raises(RuntimeError):
-            res = cudaq.sample(simple, 5, shots_count=1)
 
         simple = nop
         with pytest.raises(RuntimeError):
