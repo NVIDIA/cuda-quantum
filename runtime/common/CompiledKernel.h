@@ -7,25 +7,12 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/JIT.h"
 #include "common/ThunkInterface.h"
-#include <memory>
 #include <string>
 #include <vector>
 
 namespace cudaq {
-
-class JitEngine;
-
-/// A unique_ptr with a plain function pointer as destructor, allowing
-/// type-erased ownership of forward-declared (incomplete) types.
-template <typename T>
-using OpaquePtr = std::unique_ptr<T, void (*)(T *)>;
-
-template <typename T, typename... Args>
-OpaquePtr<T> makeOpaquePtr(Args &&...args) {
-  return OpaquePtr<T>(new T(std::forward<Args>(args)...),
-                      [](T *p) { delete p; });
-}
 
 /// @brief A compiled, ready-to-execute kernel.
 ///
@@ -42,23 +29,27 @@ public:
   /// buffer as the last element of \p rawArgs.
   KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
 
+  // TODO: remove these two methods once the CompiledKernel is returned to
+  // Python.
   void (*getEntryPoint() const)();
-
-  const JitEngine &getEngine() const;
+  const JitEngine getEngine() const;
 
 private:
-  CompiledKernel(OpaquePtr<JitEngine> engine, std::string kernelName,
-                 void (*entryPoint)(), bool hasResult);
+  CompiledKernel(JitEngine engine, std::string kernelName, void (*entryPoint)(),
+                 bool hasResult);
 
-  // Use the following factory function in JIT.h to construct CompiledKernels.
+  // Use the following factory function (compiled into cudaq-mlir-runtime) to
+  // construct CompiledKernels.
   friend CompiledKernel createCompiledKernel(JitEngine engine,
                                              std::string kernelName,
                                              bool hasResult);
 
-  OpaquePtr<JitEngine> engine;
+  JitEngine engine;
   std::string name;
   void (*entryPoint)();
   bool hasResult;
 };
 
+CompiledKernel createCompiledKernel(JitEngine engine, std::string kernelName,
+                                    bool hasResult);
 } // namespace cudaq

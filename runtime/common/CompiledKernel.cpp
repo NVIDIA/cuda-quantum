@@ -10,11 +10,10 @@
 
 namespace cudaq {
 
-CompiledKernel::CompiledKernel(OpaquePtr<JitEngine> engine,
-                               std::string kernelName, void (*entryPoint)(),
-                               bool hasResult)
-    : engine(std::move(engine)), name(std::move(kernelName)),
-      entryPoint(entryPoint), hasResult(hasResult) {}
+CompiledKernel::CompiledKernel(JitEngine engine, std::string kernelName,
+                               void (*entryPoint)(), bool hasResult)
+    : engine(engine), name(std::move(kernelName)), entryPoint(entryPoint),
+      hasResult(hasResult) {}
 
 KernelThunkResultType
 CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
@@ -31,6 +30,6 @@ CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
 
 void (*CompiledKernel::getEntryPoint() const)() { return entryPoint; }
 
-const JitEngine &CompiledKernel::getEngine() const { return *engine; }
+const JitEngine CompiledKernel::getEngine() const { return engine; }
 
 } // namespace cudaq

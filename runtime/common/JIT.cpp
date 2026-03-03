@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "JIT.h"
+#include "CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -331,8 +332,8 @@ cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
   std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
   std::string entryName = hasResult ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  return cudaq::CompiledKernel(cudaq::makeOpaquePtr<JitEngine>(engine),
-                               std::move(kernelName), entryPoint, hasResult);
+  return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
+                               hasResult);
 }
 
 namespace cudaq {
