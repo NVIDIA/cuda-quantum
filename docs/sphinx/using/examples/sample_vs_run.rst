@@ -76,7 +76,7 @@ details).
 
 
 What Is Not Supported with ``sample``
----------------------
+--------------------------------------
 
 Kernels that branch on measurement results can no longer be used with
 ``sample`` or ``sample_async``. Attempting to do so will raise a runtime error.
