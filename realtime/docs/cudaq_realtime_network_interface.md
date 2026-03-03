@@ -1,23 +1,24 @@
 # CUDA-Q Realtime Network Layer Provider Interface
 
-Using the [CUDA-Q Realtime host API](cudaq_realtime_host_api.md), one can 
-build an end-to-end RPC dispatch solution, as demonstrated in the 
-Hololink RDMA example  with a simple increment RPC handler (`realtime/unittests/utils`).  
+Using the [CUDA-Q Realtime host API](cudaq_realtime_host_api.md), one can
+build an end-to-end RPC dispatch solution, as demonstrated in the
+Hololink RDMA example  with a simple increment RPC handler
+(`realtime/unittests/utils`).  
 
-In addition to building an end-to-end application based on specific networking software, 
-e.g., Hololink in the above example, we also provide a networking provider wrapper interface,
-allowing one to build a networking-agnostic application.
-
+In addition to building an end-to-end application based on specific networking software,
+e.g., Hololink in the above example, we also provide a networking provider
+wrapper interface, allowing one to build a networking-agnostic application.
 
 ## Quick Start
 
-CUDA-Q Realtime networking interface consists of a set of APIs to construct a real-time RPC dispatch solution in
-a networking-agnostic manner. These APIs are backed by a pluggable provider implementing the specific transport 
-protocol.
+CUDA-Q Realtime networking interface consists of a set of APIs to
+construct a real-time RPC dispatch solution in a networking-agnostic manner.
+These APIs are backed by a provider plugin (as a shared library)
+implementing the specific transport protocol.
 
 The basic APIs for the networking interface are:
 
-1. Create the networking 'bridge'.
+### Create the networking 'bridge'
 
 ```cpp
 /// @brief Create and initialize a transport bridge for the specified provider.
@@ -32,22 +33,23 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
                     char **argv);
 ```
 
-
-This will initialize the networking layer context. The `cudaq_realtime_transport_provider_t` 
+This will initialize the networking layer context. The `cudaq_realtime_transport_provider_t`
 enum specifies whether it is a builtin provider (e.g., Hololink) or an external one.
-For the latter, it will perform dynamic loading to retrieve the networking implementation.  
-Arguments, e.g., networking information, can also be provided to initialize the networking context.
+For the latter, it will perform dynamic loading to retrieve the
+networking implementation. Arguments, e.g., networking information, can also be provided
+to initialize the networking context.
 
-
-2. Initialize a connection to the remote peer, e.g., a FPGA.
+### Initialize a connection to the remote peer, e.g., a FPGA
 
 ```cpp
 /// @brief Connect the transport bridge.
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge);
 ```
 
-3. Retrieve the ring buffer information. This will then be used to connect the networking layer 
-to CUDA-Q realtime dispatch (`cudaq_dispatcher_set_ringbuffer`). 
+### Retrieve the ring buffer information
+
+This ring buffer will then be used to connect the networking layer
+to CUDA-Q realtime dispatch (`cudaq_dispatcher_set_ringbuffer`).
 
 ```cpp
 /// @brief Retrieve the ring buffer information for the given bridge.
@@ -56,7 +58,7 @@ cudaq_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t bridge,
                             cudaq_ringbuffer_t *out_ringbuffer);
 ```
 
-4. Start the transport layer processing loop, i.e., ready to send and receive packages.
+### Start the transport layer processing loop, i.e., ready to send and receive packages
 
 ```cpp
 /// @brief Launch the transport bridge's main processing loop (e.g. start
@@ -64,12 +66,11 @@ cudaq_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t bridge,
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge);
 ```
 
-Depending on the implementation, this could mean launching kernels/functions to 
-monitor the network stack (e.g., a socket, RDMA data, etc.) and fill up the RPC 
+Depending on the implementation, this could mean launching kernels/functions to
+monitor the network stack (e.g., a socket, RDMA data, etc.) and fill up the RPC
 header and payload accordingly as specified in the [message protocol](cudaq_realtime_message_protocol.md).
 
-
-5. Terminate the connection to the remote peer
+### Terminate the connection to the remote peer
 
 ```cpp
 /// @brief Disconnect the transport bridge (e.g. stop Hololink kernels and
@@ -77,7 +78,7 @@ header and payload accordingly as specified in the [message protocol](cudaq_real
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 ```
 
-6. Destroy the transport context
+### Destroy the transport context
 
 ```cpp
 /// @brief Destroy the transport bridge and release all associated resources.
@@ -86,14 +87,13 @@ cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 
 An example of using this wrapper interface can be found at `realtime/unittests/bridge_interface/hololink/hololink_bridge.cpp`.
 
-
 ## Extending CUDA-Q realtime with a custom networking interface
 
-
-This guide explains how to integrate a new networking provider with CUDA-Q realtime via this interface. 
-The integration process involves creating a shared library implementing the below `cudaq_realtime_bridge_interface_t`
-and provide a `cudaq_realtime_get_bridge_interface` function to retrieve a static instance of this interface.
-
+This guide explains how to integrate a new networking provider
+with CUDA-Q realtime via this interface.
+The integration process involves creating a shared library implementing
+the below `cudaq_realtime_bridge_interface_t` and provide a `cudaq_realtime_get_bridge_interface`
+function to retrieve a static instance of this interface.
 
 ```cpp
 /// @brief Interface struct for transport layer providers.  Each provider must
@@ -115,9 +115,9 @@ typedef struct {
 ```
 
 At runtime, when a `CUDAQ_PROVIDER_EXTERNAL` is requested in `cudaq_bridge_create`,
-CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB` to locate the 
-shared library implementing this interface to provide networking functionality.
-
+CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB`
+to locate the shared library implementing this interface
+to provide networking functionality.
 
 ### Example
 
@@ -229,8 +229,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
 
 A sample of a `CMakeLists.txt` configuration is also provided here for reference.
 
-
-```
+```cmake
 find_package(<your_networking_library> REQUIRED)
 
 # Create the networking interface wrapper
@@ -245,4 +244,3 @@ target_link_libraries(cudaq-realtime-bridge-provider-name
       cudaq-realtime
       <your_networking_library target>)
 ```
-
