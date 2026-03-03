@@ -182,6 +182,27 @@ pr-4055
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
             Operators](operators.html#constructing-spin-operators){.reference
@@ -211,6 +232,7 @@ pr-4055
             .internal}
         -   [Quantum Machines](#quantum-machines){.reference .internal}
         -   [QuEra Computing](#quera-computing){.reference .internal}
+        -   [Scaleway](#scaleway){.reference .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
@@ -1032,11 +1054,18 @@ pr-4055
             -   [Setting
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../backends/cloud/braket.html#submission-from-c){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
-            -   [Submission from
-                Python](../backends/cloud/braket.html#submission-from-python){.reference
+        -   [Scaleway QaaS
+            (scaleway)](../backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1741,10 +1770,9 @@ aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 ::: {#using-quantum-hardware-providers .section}
 # Using Quantum Hardware Providers[¶](#using-quantum-hardware-providers "Permalink to this heading"){.headerlink}
 
-CUDA-Q contains support for using a set of hardware providers (Amazon
-Braket, Infleqtion, IonQ, IQM, OQC, ORCA Computing, Quantinuum, and
-QuEra Computing). For more information about executing quantum kernels
-on different hardware backends, please take a look at
+CUDA-Q contains support for using a set of hardware providers. For more
+information about executing quantum kernels on different hardware
+backends, please take a look at
 [[hardware]{.doc}](../backends/hardware.html){.reference .internal}.
 
 ::: {#amazon-braket .section}
@@ -3253,11 +3281,14 @@ C++
     // ./teleport.x
     // ```
 
+    #include <array>
     #include <cudaq.h>
     #include <iostream>
 
     struct teleportation {
       auto operator()() __qpu__ {
+        std::vector<bool> results(3);
+
         // Initialize a three qubit quantum circuit
         cudaq::qvector qubits(3);
 
@@ -3273,26 +3304,44 @@ C++
         cx(qubits[0], qubits[1]);
         h(qubits[0]);
 
-        if (mz(qubits[0])) {
+        results[0] = mz(qubits[0]);
+        results[1] = mz(qubits[1]);
+
+        if (results[0]) {
           z(qubits[2]);
         }
 
-        if (mz(qubits[1])) {
+        if (results[1]) {
           x(qubits[2]);
         }
 
-        /// NOTE: If the return statement is changed to `mz(qubits)`, the program
-        /// fails. Ref: https://github.com/NVIDIA/cuda-quantum/issues/3708
-        return mz(qubits[2]);
+        results[2] = mz(qubits[2]);
+        return results;
       }
     };
 
     int main() {
-      auto results = cudaq::run(20, teleportation{});
-      std::cout << "Measurement results of the teleported qubit:\n[ ";
-      for (auto r : results)
-        std::cout << r << " ";
-      std::cout << "]\n";
+      // Note: Increase the number of shots to get closer to expected probabilities.
+      constexpr std::size_t num_shots = 25;
+      auto results = cudaq::run(num_shots, teleportation{});
+
+      std::array<std::size_t, 3> ones{};
+      for (const auto &shot : results)
+        for (std::size_t q = 0; q < 3; ++q)
+          ones[q] += static_cast<std::size_t>(shot[q]);
+
+      auto freq = [&](std::size_t q) {
+        return static_cast<double>(ones[q]) / num_shots;
+      };
+
+      // `mz[0]` and `mz[1]` are Bell measurement outcomes, so each is ~50%.
+      // Probability of measuring`mz[2]` in 1 is determined by the prepared state,
+      // which is ~4.6% for the angles above.
+      std::cout << "Results over " << num_shots << " shots:\n";
+      for (std::size_t q = 0; q < 3; ++q)
+        std::cout << "  mz[" << q << "] = 1:  " << ones[q] << " / " << num_shots
+                  << "  (" << 100.0 * freq(q) << "%)\n";
+
       return 0;
     }
 :::
@@ -3581,6 +3630,132 @@ C++
       // Evolve the system
       auto result = cudaq::evolve_async(hamiltonian, schedule, 10).get();
       result.sampling_result->dump();
+
+      return 0;
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#scaleway .section}
+[]{#scaleway-examples}
+
+## Scaleway[¶](#scaleway "Permalink to this heading"){.headerlink}
+
+The following code illustrates how to run kernels on Scaleway's
+backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+
+    # NOTE: Scaleway credentials must be set before running this program.
+    # Scaleway costs apply.
+    cudaq.set_target("scaleway", max_duration="10m")
+
+    # The default device is EMU-CUDAQ-H100, a state vector simulator running on an H100 GPU. Users may choose any of
+    # the available devices by supplying its name with the `machine` parameter.
+    # For example,
+    # ```
+    # cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100")
+    # ```
+    # To ensure we keep the same QPU session between runs, we can also specify the `deduplication_id` parameter.
+    # For example,
+    # ```
+    # cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", deduplication_id="my_unique_id_1234")
+    # ```
+    # Users may also specify QPU session duration limits with the `max_duration` and `max_idle_duration` parameters.
+    # For example,
+    # ```
+    # cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", max_duration="30m", max_idle_duration="5m")
+    # ```
+
+
+    # Create the kernel we'd like to execute
+    @cudaq.kernel
+    def kernel():
+        qvector = cudaq.qvector(2)
+        h(qvector[0])
+        x.ctrl(qvector[0], qvector[1])
+
+
+    # Execute and print out the results.
+
+    # Option A:
+    # By using the asynchronous `cudaq.sample_async`, the remaining
+    # classical code will be executed while the job is being handled
+    # by Scaleway.
+    async_results = cudaq.sample_async(kernel)
+    # ... more classical code to run ...
+
+    async_counts = async_results.get()
+    print(async_counts)
+
+    # Option B:
+    # By using the synchronous `cudaq.sample`, the execution of
+    # any remaining classical code in the file will occur only
+    # after the job has been returned from Scaleway QaaS.
+    counts = cudaq.sample(kernel)
+    print(counts)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Compile and run with:
+    // ```
+    // nvq++ --target scaleway scaleway.cpp -o out.x && ./out.x
+    // ```
+    // This will submit the job to the Scaleway QaaS state vector emulator powered
+    // by CUDA-Q (default). Alternatively, users can choose any of the available
+    // devices by specifying its name with the `--scaleway-machine`, e.g.,
+    // ```
+    // nvq++ --target scaleway --scaleway-machine \
+    // "EMU-CUDAQ-H100" scaleway.cpp -o out.x
+    // ./out.x
+    // ```
+    // Assumes a valid set of credentials have been set prior to execution.
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    // Define a simple quantum kernel to execute on Scaleway's QaaS.
+    struct ghz {
+      // Maximally entangled state between 5 qubits.
+      auto operator()() __qpu__ {
+        cudaq::qvector q(5);
+        h(q[0]);
+        for (int i = 0; i < 4; i++) {
+          x<cudaq::ctrl>(q[i], q[i + 1]);
+        }
+        mz(q);
+      }
+    };
+
+    int main() {
+      // Submit asynchronously (e.g., continue executing
+      // code in the file until the job has been returned).
+      auto future = cudaq::sample_async(ghz{});
+      // ... classical code to execute in the meantime ...
+
+      // Get the results of the read in future.
+      auto async_counts = future.get();
+      async_counts.dump();
+
+      // OR: Submit synchronously (e.g., wait for the job
+      // result to be returned before proceeding).
+      auto counts = cudaq::sample(ghz{});
+      counts.dump();
 
       return 0;
     }

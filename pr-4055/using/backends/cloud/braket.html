@@ -32,7 +32,7 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Dynamics Simulation" href="../../dynamics.html" />
+    <link rel="next" title="Scaleway Quantum as a Service" href="scaleway.html" />
     <link rel="prev" title="CUDA-Q Cloud Backends" href="../cloud.html" /> 
 </head>
 
@@ -204,6 +204,15 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment">1. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model">2. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:">6. Two API options:</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/operators.html">   Constructing Operators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
@@ -226,6 +235,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#scaleway">Scaleway</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/dynamics_examples.html">   Dynamics Examples</a><ul>
@@ -650,8 +660,13 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../cloud.html">     Cloud</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#submitting">Submitting</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="scaleway.html">     Scaleway QaaS (scaleway)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="scaleway.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scaleway.html#submitting">Submitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
 </ul>
 </li>
 </ul>
@@ -1009,7 +1024,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../cloud.html" class="btn btn-neutral float-left" title="CUDA-Q Cloud Backends" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../dynamics.html" class="btn btn-neutral float-right" title="Dynamics Simulation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="scaleway.html" class="btn btn-neutral float-right" title="Scaleway Quantum as a Service" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -1043,28 +1058,10 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 </pre></div>
 </div>
 </section>
-<section id="submission-from-c">
-<h2>Submission from C++<a class="headerlink" href="#submission-from-c" title="Permalink to this heading">¶</a></h2>
-<p>To target quantum kernel code for execution in Amazon Braket,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">braket</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.
-By default jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To execute your kernels on different device, pass the <code class="docutils literal notranslate"><span class="pre">--braket-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span><span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
-<p>To emulate the device locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-</section>
-<section id="submission-from-python">
-<h2>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h2>
+<section id="submitting">
+<h2>Submitting<a class="headerlink" href="#submitting" title="Permalink to this heading">¶</a></h2>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">)</span>
@@ -1087,6 +1084,27 @@ argument to <code class="docutils literal notranslate"><span class="pre">cudaq.s
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<p>To target quantum kernel code for execution in Amazon Braket,
+pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">braket</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.
+By default jobs are submitted to the state vector simulator, <code class="code docutils literal notranslate"><span class="pre">SV1</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>To execute your kernels on different device, pass the <code class="docutils literal notranslate"><span class="pre">--braket-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
+to specify which machine to submit quantum kernels to:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>--braket-machine<span class="w"> </span><span class="s2">&quot;arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet&quot;</span><span class="w"> </span>src.cpp<span class="w"> </span>...
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet</span></code> refers to IQM Garnet QPU.</p>
+<p>To emulate the device locally, without submitting through the cloud,
+you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+</div>
+</div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket-examples"><span class="std std-ref">Amazon Braket examples</span></a>.</p>
 </section>
 </section>
@@ -1096,7 +1114,7 @@ argument to <code class="docutils literal notranslate"><span class="pre">cudaq.s
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../cloud.html" class="btn btn-neutral float-left" title="CUDA-Q Cloud Backends" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../dynamics.html" class="btn btn-neutral float-right" title="Dynamics Simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="scaleway.html" class="btn btn-neutral float-right" title="Scaleway Quantum as a Service" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

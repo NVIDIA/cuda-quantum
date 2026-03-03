@@ -194,6 +194,27 @@ pr-4055
     -   [Noisy
         Simulations](../../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing
         Operators](../../examples/operators.html){.reference .internal}
         -   [Constructing Spin
@@ -240,6 +261,8 @@ pr-4055
             .internal}
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](../../examples/hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics
         Examples](../../examples/dynamics_examples.html){.reference
@@ -1048,10 +1071,17 @@ pr-4055
         -   [Amazon Braket (braket)](#){.current .reference .internal}
             -   [Setting Credentials](#setting-credentials){.reference
                 .internal}
-            -   [Submission from C++](#submission-from-c){.reference
+            -   [Submitting](#submitting){.reference .internal}
+        -   [Scaleway QaaS (scaleway)](scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](scaleway.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                Python](#submission-from-python){.reference .internal}
+            -   [Submitting](scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
         .internal}
@@ -1746,7 +1776,7 @@ pr-4055
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](scaleway.html "Scaleway Quantum as a Service"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1807,50 +1837,13 @@ Alternatively, users can set the following environment variables.
 :::
 :::
 
-::: {#submission-from-c .section}
-## Submission from C++[¶](#submission-from-c "Permalink to this heading"){.headerlink}
+::: {#submitting .section}
+## Submitting[¶](#submitting "Permalink to this heading"){.headerlink}
 
-To target quantum kernel code for execution in Amazon Braket, pass the
-flag [`--target`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`braket`{.docutils .literal .notranslate}]{.pre}
-to the [`nvq++`{.docutils .literal .notranslate}]{.pre} compiler. By
-default jobs are submitted to the state vector simulator, [`SV1`{.code
-.docutils .literal .notranslate}]{.pre}.
+::: {.tab-set .docutils}
+Python
 
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --target braket src.cpp
-:::
-:::
-
-To execute your kernels on different device, pass the
-[`--braket-machine`{.docutils .literal .notranslate}]{.pre} flag to the
-[`nvq++`{.docutils .literal .notranslate}]{.pre} compiler to specify
-which machine to submit quantum kernels to:
-
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
-:::
-:::
-
-where [`arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`{.docutils
-.literal .notranslate}]{.pre} refers to IQM Garnet QPU.
-
-To emulate the device locally, without submitting through the cloud, you
-can also pass the [`--emulate`{.docutils .literal .notranslate}]{.pre}
-flag to [`nvq++`{.docutils .literal .notranslate}]{.pre}.
-
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --emulate --target braket src.cpp
-:::
-:::
-:::
-
-::: {#submission-from-python .section}
-## Submission from Python[¶](#submission-from-python "Permalink to this heading"){.headerlink}
-
+::: {.tab-content .docutils}
 The target to which quantum kernels are submitted can be controlled with
 the [`cudaq.set_target()`{.docutils .literal .notranslate}]{.pre}
 function.
@@ -1897,6 +1890,49 @@ The number of shots for a kernel execution can be set through the
     cudaq.sample(kernel, shots_count=100)
 :::
 :::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+To target quantum kernel code for execution in Amazon Braket, pass the
+flag [`--target`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`braket`{.docutils .literal .notranslate}]{.pre}
+to the [`nvq++`{.docutils .literal .notranslate}]{.pre} compiler. By
+default jobs are submitted to the state vector simulator, [`SV1`{.code
+.docutils .literal .notranslate}]{.pre}.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target braket src.cpp
+:::
+:::
+
+To execute your kernels on different device, pass the
+[`--braket-machine`{.docutils .literal .notranslate}]{.pre} flag to the
+[`nvq++`{.docutils .literal .notranslate}]{.pre} compiler to specify
+which machine to submit quantum kernels to:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
+:::
+:::
+
+where [`arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`{.docutils
+.literal .notranslate}]{.pre} refers to IQM Garnet QPU.
+
+To emulate the device locally, without submitting through the cloud, you
+can also pass the [`--emulate`{.docutils .literal .notranslate}]{.pre}
+flag to [`nvq++`{.docutils .literal .notranslate}]{.pre}.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --emulate --target braket src.cpp
+:::
+:::
+:::
+:::
 
 To see a complete example, take a look at [[Amazon Braket examples]{.std
 .std-ref}](../../examples/hardware_providers.html#amazon-braket-examples){.reference
@@ -1911,7 +1947,7 @@ To see a complete example, take a look at [[Amazon Braket examples]{.std
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](scaleway.html "Scaleway Quantum as a Service"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

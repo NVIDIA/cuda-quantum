@@ -182,6 +182,27 @@ pr-4055
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
+    -   [PTSBE End-to-End
+        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [1. Set up the
+            environment](../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+            .internal}
+        -   [2. Define the circuit and noise
+            model](../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+        -   [6. Two API
+            options:](../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            .internal}
     -   [Constructing Operators](#){.current .reference .internal}
         -   [Constructing Spin
             Operators](#constructing-spin-operators){.reference
@@ -223,6 +244,8 @@ pr-4055
             .internal}
         -   [QuEra
             Computing](hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
@@ -1045,11 +1068,18 @@ pr-4055
             -   [Setting
                 Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submission from
-                C++](../backends/cloud/braket.html#submission-from-c){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
-            -   [Submission from
-                Python](../backends/cloud/braket.html#submission-from-python){.reference
+        -   [Scaleway QaaS
+            (scaleway)](../backends/cloud/scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1739,7 +1769,7 @@ pr-4055
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../examples/python/noisy_simulations.html "Noisy Simulation"){.btn
+Previous](../../examples/python/ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn
@@ -1869,7 +1899,7 @@ C++
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../examples/python/noisy_simulations.html "Noisy Simulation"){.btn
+Previous](../../examples/python/ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn
