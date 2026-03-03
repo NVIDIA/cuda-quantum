@@ -3649,7 +3649,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1233352079]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2537473501]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7775,7 +7775,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[final_expectation_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[final_expectation_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7796,7 +7796,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[final_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[final_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7807,7 +7807,8 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         evolution under a set of operators, see the [[`evolve()`{.xref
         .py .py-func .docutils .literal
         .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
-        .internal} documentation for more detail.
+        .internal} documentation for more detail. Returns None if no
+        states are available.
 
     [[intermediate_states]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.intermediate_states "Permalink to this definition"){.headerlink}
 
