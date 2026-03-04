@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "JIT.h"
+#include "CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -323,6 +324,16 @@ cudaq::JitEngine cudaq::createQIRJITEngine(mlir::ModuleOp &moduleOp,
   auto jitOrError = mlir::ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
   return JitEngine(std::move(jitOrError.get()));
+}
+
+cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
+                                                  std::string kernelName,
+                                                  bool hasResult) {
+  std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+  std::string entryName = hasResult ? kernelName + ".thunk" : fullName;
+  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
+  return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
+                               hasResult);
 }
 
 namespace cudaq {
