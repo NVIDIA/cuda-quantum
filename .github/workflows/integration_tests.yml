@@ -396,9 +396,14 @@ jobs:
                 echo "::error::Quantinuum login request failed (curl error)"
                 exit 1
               }
-
               if [ "$response" -ne 200 ]; then
                 echo "::error::Quantinuum login failed with HTTP $response"
+                exit 1
+              fi
+              if ! grep -q "myqos_oat" ~/.quantinuum_cookies.txt || \
+                 ! grep -q "myqos_id" ~/.quantinuum_cookies.txt; then
+                echo "::error::Quantinuum login succeeded (HTTP 200) but expected cookies (myqos_oat, myqos_id) were not set. Cookie jar contents:"
+                awk '{if(NF>=7){$7="REDACTED"} print}' ~/.quantinuum_cookies.txt
                 exit 1
               fi
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
@@ -710,25 +715,12 @@ jobs:
                 fi
                 ;;
 
-                scaleway)
-                  if [[ "$filename" == *.cpp ]]; then
-                    nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
-                    test_status=$?
-                    if [ $test_status -eq 0 ]; then
-                      ./a.out
-                      test_status=$?
-                      if [ $test_status -eq 0 ]; then
-                        echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                      else
-                        echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                        test_err_sum=$((test_err_sum+1))
-                      fi
-                    else
-                      echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
-                    fi
-                  elif [[ "$filename" == *.py ]]; then
-                    python3 $filename 1> /dev/null
+              scaleway)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
                     test_status=$?
                     if [ $test_status -eq 0 ]; then
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -737,10 +729,23 @@ jobs:
                       test_err_sum=$((test_err_sum+1))
                     fi
                   else
-                    echo "::warning::Unsupported file type: $filename"
-                    echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_skip_sum=$((test_skip_sum+1))
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
                   fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
                 ;;
             esac
           done

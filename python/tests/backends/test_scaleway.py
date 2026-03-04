@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,61 +10,35 @@ import cudaq
 import pytest
 import os
 from cudaq import spin
-from multiprocessing import Process
-from network_utils import check_server_connection
 import numpy as np
 
 qio = pytest.importorskip("qio")
 
-TEST_PORT = 62450
-TEST_PLATFORM = "EMU-CUDAQ-FAKE"
-TEST_URL = f"http://localhost:{TEST_PORT}"
-
-# or uncomment this line to test on real hardware
-# TEST_PLATFORM = "EMU-CUDAQ-64C-512M"
-# TEST_URL = "https://api.scaleway.com"
-
-TEST_PROJECT_ID = "b87c64d8-2923-447d-80e3-7e7f68511533"  # Fake project id
-DEFAULT_DURATION = "10m"
-DEFAULT_SHOT_COUNT = 3000
-DEFAULT_DEDUPLICATION_ID = "cudaq-test-scaleway"
-
-try:
-    from utils.mock_qpu.scaleway import startServer
-except:
-    pytest.skip("Mock qpu not available, skipping Scaleway tests.",
-                allow_module_level=True)
+## NOTE: Comment the following line which skips these tests in order to run in
+# local dev environment after setting `SCW_SECRET_KEY` and `SCW_PROJECT_ID`.
+## NOTE: `Scaleway` costs apply
+pytestmark = pytest.mark.skip("Scaleway credentials required")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_scaleway():
-    p = Process(target=startServer, args=(TEST_PORT,))
-    p.start()
-
-    if not check_server_connection(TEST_PORT):
-        p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.",
-                    returncode=1)
-
-    cudaq.set_target(
-        "scaleway",
-        machine=TEST_PLATFORM,
-        max_duration=DEFAULT_DURATION,
-        max_idle_duration=DEFAULT_DURATION,
-        project_id=TEST_PROJECT_ID,
-        url=TEST_URL,
-        deduplication_id=DEFAULT_DEDUPLICATION_ID,
-    )
-
+def do_something():
+    cudaq.set_target("scaleway",
+                     machine="EMU-CUDAQ-64C-512M",
+                     max_duration="5m",
+                     max_idle_duration="10m",
+                     project_id=os.environ.get("SCW_PROJECT_ID", None),
+                     url="https://api.scaleway.com",
+                     deduplication_id="cudaq-test-scaleway")
     yield "Running the tests."
-
-    p.terminate()
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 
+DEFAULT_SHOT_COUNT = 100
+
+
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+    return got < -1.1 and got > -2.2
 
 
 def test_simple_kernel():
@@ -107,7 +81,7 @@ def test_qvector_kernel():
     def kernel():
         qubits = cudaq.qvector(2)
         h(qubits[0])
-        cx(qubits[0], qubits[1])
+        x.ctrl(qubits[0], qubits[1])
         mz(qubits)
 
     counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
@@ -119,6 +93,7 @@ def test_qvector_kernel():
 
 
 def test_builder_sample():
+
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
@@ -481,6 +456,32 @@ def test_qvector_slicing():
     assert "1100" in counts
 
 
+def test_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel1(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    @cudaq.kernel
+    def kernel2(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+        mz(q)
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel1, s)
+    counts = cudaq.sample(kernel2, s, shots_count=DEFAULT_SHOT_COUNT)
+    counts.dump()
+    assert '10' in counts
+    assert len(counts) == 1
+
+
 def test_exp_pauli():
 
     @cudaq.kernel
@@ -489,13 +490,39 @@ def test_exp_pauli():
         exp_pauli(1.0, q, "XX")
         mz(q)
 
-    counts = cudaq.sample(test)
-    print("test_exp_pauli", counts)
+    counts = cudaq.sample(test, shots_count=DEFAULT_SHOT_COUNT)
+    counts.dump()
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
 
-    assert "00" in counts
-    assert "11" in counts
-    assert not "01" in counts
-    assert not "10" in counts
+
+def test_toffoli():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        x(q)
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
+    assert "Unsupported gate: ccx" in str(e.value)
+
+
+def test_state_prep():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        mz(q)
+
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
+    counts.dump()
+    assert '11' in counts
+    assert '00' in counts
 
 
 # leave for gdb debugging

@@ -8,95 +8,83 @@
 import pytest
 import cudaq
 
-from test_common import (
-    bell,
-    make_depol_noise,
-    ptsbe_target_setup,
-    ptsbe_target_teardown,
-)
 
-
-@pytest.fixture(autouse=True)
-def ptsbe_target():
-    ptsbe_target_setup()
-    yield
-    ptsbe_target_teardown()
+@pytest.fixture
+def execution_result(depol_noise, bell_kernel):
+    return cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=depol_noise,
+        shots_count=100,
+        return_execution_data=True,
+    )
 
 
 @pytest.fixture
-def depol_noise():
-    return make_depol_noise()
+def execution_data(execution_result):
+    return execution_result.ptsbe_execution_data
 
 
-@pytest.fixture
-def bell_kernel():
-    return bell
+def test_execution_data_available_when_requested(execution_result):
+    assert execution_result.has_execution_data()
+    assert execution_result.ptsbe_execution_data is not None
 
 
-def test_execution_data_trajectory_ids_unique(depol_noise, bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=50,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    ids = [t.trajectory_id for t in data.trajectories]
-    assert len(ids) == len(set(ids))
-
-
-def test_execution_data_instructions_non_empty(depol_noise, bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=20,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    assert len(data.instructions) > 0
-
-
-def test_execution_data_trajectory_probabilities_non_negative(
-        depol_noise, bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=40,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    for t in data.trajectories:
-        assert t.probability >= 0.0
-
-
-def test_execution_data_count_instructions_non_negative(depol_noise,
-                                                        bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=15,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
+def test_execution_data_instructions_and_counts(execution_data):
     Gate = cudaq.ptsbe.TraceInstructionType.Gate
     Noise = cudaq.ptsbe.TraceInstructionType.Noise
-    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
-    assert data.count_instructions(Gate) >= 0
-    assert data.count_instructions(Noise) >= 0
-    assert data.count_instructions(Meas) >= 0
+    Measurement = cudaq.ptsbe.TraceInstructionType.Measurement
+
+    gates = [i for i in execution_data.instructions if i.type == Gate]
+    noises = [i for i in execution_data.instructions if i.type == Noise]
+    measurements = [
+        i for i in execution_data.instructions if i.type == Measurement
+    ]
+
+    assert len(execution_data.instructions) > 0
+    assert len(gates) > 0
+    assert len(noises) > 0
+    assert len(measurements) > 0
+    assert execution_data.count_instructions(Gate) == len(gates)
+    assert execution_data.count_instructions(Noise) == len(noises)
+    assert execution_data.count_instructions(Measurement) == len(measurements)
 
 
-def test_execution_data_kraus_selections_non_empty_per_trajectory(
-        depol_noise, bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=30,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    for t in data.trajectories:
-        assert len(t.kraus_selections) > 0
+def test_execution_data_trajectories_are_well_formed(execution_data):
+    assert len(execution_data.trajectories) > 0
+    ids = [
+        trajectory.trajectory_id for trajectory in execution_data.trajectories
+    ]
+    assert len(ids) == len(set(ids))
+
+    for trajectory in execution_data.trajectories:
+        assert trajectory.probability >= 0.0
+        assert trajectory.num_shots >= 0
+        assert len(trajectory.kraus_selections) > 0
+
+        if trajectory.num_shots > 0:
+            assert isinstance(trajectory.measurement_counts, dict)
+            assert sum(
+                trajectory.measurement_counts.values()) == trajectory.num_shots
+
+        for selection in trajectory.kraus_selections:
+            assert isinstance(selection.qubits, list)
+            assert len(selection.qubits) > 0
+            assert isinstance(selection.op_name, str)
+            assert len(selection.op_name) > 0
+
+
+def test_execution_data_get_trajectory_round_trip(execution_data):
+    first = execution_data.trajectories[0]
+    found = execution_data.get_trajectory(first.trajectory_id)
+    assert found is not None
+    assert found.trajectory_id == first.trajectory_id
+    assert execution_data.get_trajectory(999999) is None
+
+
+def test_execution_data_allocated_shots_match_result(execution_result,
+                                                     execution_data):
+    assert sum(execution_result.count(bs) for bs in execution_result) == 100
+    assert sum(t.num_shots for t in execution_data.trajectories) == 100
 
 
 def test_no_execution_data_by_default(depol_noise, bell_kernel):
@@ -107,7 +95,7 @@ def test_no_execution_data_by_default(depol_noise, bell_kernel):
     assert result.ptsbe_execution_data is None
 
 
-def test_execution_data_contents(bell_kernel):
+def test_execution_data_contains_expected_gate_and_noise_entries(bell_kernel):
     noise = cudaq.NoiseModel()
     noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
     result = cudaq.ptsbe.sample(
@@ -116,14 +104,13 @@ def test_execution_data_contents(bell_kernel):
         shots_count=100,
         return_execution_data=True,
     )
-    assert result.has_execution_data()
     data = result.ptsbe_execution_data
     Gate = cudaq.ptsbe.TraceInstructionType.Gate
     Noise = cudaq.ptsbe.TraceInstructionType.Noise
-    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
+    Measurement = cudaq.ptsbe.TraceInstructionType.Measurement
     gates = [i for i in data.instructions if i.type == Gate]
     noises = [i for i in data.instructions if i.type == Noise]
-    measurements = [i for i in data.instructions if i.type == Meas]
+    measurements = [i for i in data.instructions if i.type == Measurement]
     assert len(gates) >= 2
     gate_names = [g.name for g in gates]
     assert "h" in gate_names
@@ -134,68 +121,6 @@ def test_execution_data_contents(bell_kernel):
     assert len(measurements) >= 1
     assert len(gates) + len(noises) + len(measurements) == len(
         data.instructions)
-    assert data.count_instructions(Gate) == len(gates)
-    assert data.count_instructions(Noise) == len(noises)
-    assert data.count_instructions(Meas) == len(measurements)
-
-
-def test_execution_data_trajectories(depol_noise, bell_kernel):
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=depol_noise,
-        shots_count=100,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    assert len(data.trajectories) > 0
-    for trajectory in data.trajectories:
-        assert trajectory.probability > 0.0
-        assert trajectory.num_shots >= 0
-        assert len(trajectory.kraus_selections) > 0
-    first = data.trajectories[0]
-    found = data.get_trajectory(first.trajectory_id)
-    assert found is not None
-    assert found.trajectory_id == first.trajectory_id
-    assert data.get_trajectory(999999) is None
-
-
-def test_trajectory_counts_sum_to_total_shots(bell_kernel):
-    noise = cudaq.NoiseModel()
-    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
-    shots = 100
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=noise,
-        shots_count=shots,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    assert len(data.trajectories) > 0
-    total = sum(t.num_shots for t in data.trajectories)
-    assert total == shots
-
-
-def test_trajectory_measurement_counts_populated(bell_kernel):
-    noise = cudaq.NoiseModel()
-    noise.add_channel("x", [0, 1], cudaq.Depolarization2(0.1))
-    result = cudaq.ptsbe.sample(
-        bell_kernel,
-        noise_model=noise,
-        shots_count=100,
-        return_execution_data=True,
-    )
-    data = result.ptsbe_execution_data
-    for trajectory in data.trajectories:
-        if trajectory.num_shots > 0:
-            counts = trajectory.measurement_counts
-            assert isinstance(counts, dict)
-            assert len(counts) > 0
-            assert sum(counts.values()) == trajectory.num_shots
-        for sel in trajectory.kraus_selections:
-            assert isinstance(sel.qubits, list)
-            assert len(sel.qubits) > 0
-            assert isinstance(sel.op_name, str)
-            assert len(sel.op_name) > 0
 
 
 def test_execution_data_includes_mz_noise():
@@ -217,6 +142,22 @@ def test_execution_data_includes_mz_noise():
     assert result.has_execution_data()
     data = result.ptsbe_execution_data
     Noise = cudaq.ptsbe.TraceInstructionType.Noise
-    Meas = cudaq.ptsbe.TraceInstructionType.Measurement
+    Measurement = cudaq.ptsbe.TraceInstructionType.Measurement
     assert data.count_instructions(Noise) >= 1
-    assert data.count_instructions(Meas) >= 1
+    assert data.count_instructions(Measurement) >= 1
+
+
+def test_execution_data_includes_apply_noise(kernel_with_apply_noise):
+    result = cudaq.ptsbe.sample(
+        kernel_with_apply_noise,
+        shots_count=50,
+        return_execution_data=True,
+    )
+    assert result.has_execution_data()
+    data = result.ptsbe_execution_data
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    noises = [
+        instruction for instruction in data.instructions
+        if instruction.type == Noise
+    ]
+    assert len(noises) >= 1
