@@ -382,13 +382,11 @@ jobs:
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          pip install wheel/*.whl
+          sudo -u cudaqtest pip install --user wheel/*.whl
 
       - name: Validate installation
         run: |
           install_path=/opt/cudaq-test
-          # Run C++ validation as the test user to catch any build-user path leaks.
-          # Copy validation inputs to a location the test user can access.
           workdir=$(sudo -u cudaqtest mktemp -d)
           sudo cp -R scripts docs "$workdir/"
           sudo chown -R cudaqtest "$workdir"
