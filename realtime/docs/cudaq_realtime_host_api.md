@@ -140,7 +140,7 @@ For use cases where latency is more important than transport independence, see
 [Unified Dispatch Mode](#unified-dispatch-mode) which combines all three kernels
 into one.
 
-## Unified Dispatch Mode 
+## Unified Dispatch Mode
 
 The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
 3-kernel architecture that combines RDMA receive, RPC dispatch, and RDMA transmit
@@ -148,16 +148,16 @@ into a single GPU kernel.  By eliminating the inter-kernel ring-buffer flag
 handoff between RX, dispatch, and TX kernels, the unified kernel reduces
 round-trip latency for simple (non-cooperative) RPC handlers.
 
-### Architecture 
+### Architecture
 
 In unified mode, a single GPU thread:
 
-1. Polls the DOCA completion queue (CQ) for an incoming RDMA message
+1. Polls the `DOCA` completion queue (`CQ`) for an incoming RDMA message
 2. Parses the `RPCHeader` from the receive buffer
 3. Looks up and calls the registered handler in-place
 4. Writes the `RPCResponse` header (overwriting the request header)
-5. Sends the response via DOCA BlueFlame
-6. Reposts the receive work queue entry (WQE)
+5. Sends the response via `DOCA` `BlueFlame`
+6. Re-posts the receive work queue entry (`WQE`)
 
 The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
@@ -173,9 +173,9 @@ The dispatcher host API remains transport-agnostic.  Unified mode introduces:
 - `cudaq_dispatcher_set_unified_launch()` -- wires the launch function and
     transport context to the dispatcher
 
-The transport-specific details (DOCA QP handles, memory keys, ring buffer
+The transport-specific details (`DOCA` `QP` handles, memory keys, ring buffer
 addresses) are packed into an opaque struct (`doca_transport_ctx` for the
-Hololink/DOCA implementation) and passed through the `void* transport_ctx`
+Hololink/`DOCA` implementation) and passed through the `void* transport_ctx`
 pointer.  A different transport could define its own context struct and launch
 function, and the dispatcher would manage it identically.
 
@@ -193,7 +193,7 @@ function, and the dispatcher would manage it identically.
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
 - Lowest latency for regular (non-cooperative) handlers
-- Transport-specific kernel implementation (currently DOCA/Hololink)
+- Transport-specific kernel implementation (currently `DOCA`/Hololink)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
 - Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
@@ -223,10 +223,10 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
 - `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the config may be zero
+- `num_slots` and `slot_size` in the configuration may be zero
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
-### Wiring Example (Unified Mode with Hololink) 
+### Wiring Example (Unified Mode with Hololink)
 
 ```cpp
 // Pack DOCA transport handles
