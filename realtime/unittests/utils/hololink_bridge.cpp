@@ -64,12 +64,17 @@ int main(int argc, char *argv[]) {
           << "  --remote-qp=N         Remote QP number (default: 0x2)\n"
           << "  --gpu=N               GPU device ID (default: 0)\n"
           << "  --timeout=N           Timeout in seconds (default: 60)\n"
+          << "  --payload-size=N      RPC payload size in bytes (default: 8)\n"
           << "  --page-size=N         Ring buffer slot size (default: 384)\n"
           << "  --num-pages=N         Number of ring buffer slots (default: "
              "64)\n"
           << "  --exchange-qp         Enable QP exchange protocol\n"
           << "  --exchange-port=N     TCP port for QP exchange (default: "
-             "12345)\n";
+             "12345)\n"
+          << "  --forward             Use Hololink forward kernel (echo) "
+             "instead of dispatch\n"
+          << "  --unified             Use unified dispatch kernel (RX + "
+             "dispatch + TX in one kernel)\n";
       return 0;
     }
   }
@@ -80,9 +85,6 @@ int main(int argc, char *argv[]) {
     // Parse common bridge args
     cudaq::realtime::BridgeConfig config;
     cudaq::realtime::parse_bridge_args(argc, argv, config);
-
-    // Frame size: RPCHeader + 256 bytes payload
-    config.frame_size = sizeof(cudaq::realtime::RPCHeader) + 256;
 
     std::cout << "Device: " << config.device << std::endl;
     std::cout << "Peer IP: " << config.peer_ip << std::endl;

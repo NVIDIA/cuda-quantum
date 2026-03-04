@@ -34,6 +34,7 @@ typedef void *hololink_transceiver_t;
  *
  * @param device_name IB device name (e.g., "rocep1s0f0")
  * @param ib_port IB port number
+ * @param gpu_id CUDA GPU device ID for DOCA GPUNetIO
  * @param frame_size Size of each frame (cu_frame_size)
  * @param page_size Size of each page/slot (cu_page_size)
  * @param num_pages Number of pages (ring buffer slots)
@@ -44,7 +45,7 @@ typedef void *hololink_transceiver_t;
  * @return Handle to transceiver, or NULL on failure
  */
 hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port,
+hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
                             size_t frame_size, size_t page_size,
                             unsigned num_pages, const char *peer_ip,
                             int forward, int rx_only, int tx_only);
@@ -78,6 +79,10 @@ void hololink_blocking_monitor(hololink_transceiver_t handle);
 uint32_t hololink_get_qp_number(hololink_transceiver_t handle);
 uint32_t hololink_get_rkey(hololink_transceiver_t handle);
 uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle);
+
+/** Get the DOCA GPU device QP handle (doca_gpu_dev_verbs_qp*).
+ *  Needed by the unified dispatch kernel for direct DOCA verbs calls. */
+void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle);
 
 /**
  * Get the local GID for this transceiver.
@@ -117,12 +122,6 @@ void *hololink_get_tx_ring_data_addr(hololink_transceiver_t handle);
 
 /** Get device pointer to TX ring flag array. */
 uint64_t *hololink_get_tx_ring_flag_addr(hololink_transceiver_t handle);
-
-/** Get host-accessible pointer to TX ring flag array. */
-uint64_t *hololink_get_tx_ring_flag_host_addr(hololink_transceiver_t handle);
-
-/** Get host-accessible pointer to RX ring flag array. */
-uint64_t *hololink_get_rx_ring_flag_host_addr(hololink_transceiver_t handle);
 
 /** Force eager CUDA module loading by querying kernel occupancy.
  *  Call before launching any persistent kernels.
