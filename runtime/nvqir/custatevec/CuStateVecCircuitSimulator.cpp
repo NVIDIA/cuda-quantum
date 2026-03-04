@@ -709,16 +709,21 @@ public:
 
     cudaq::ExecutionResult counts;
 
-    // We've sampled, convert the results to our ExecutionResult counts
-    for (int i = 0; i < shots; ++i) {
-      auto bitstring = std::bitset<64>(bitstrings0[i])
-                           .to_string()
-                           .erase(0, 64 - measuredBits.size());
+    // Bitstrings are sorted in ascending order.
+    // Use this to avoid O(N) string conversions.
+    for (int i = 0; i < shots;) {
+      auto val = bitstrings0[i];
+      int runLen = 1;
+      while (i + runLen < shots && bitstrings0[i + runLen] == val)
+        ++runLen;
+      auto bitstring =
+          std::bitset<64>(val).to_string().erase(0, 64 - measuredBits.size());
       std::reverse(bitstring.begin(), bitstring.end());
       if (includeSequentialData)
-        counts.appendResult(bitstring, 1);
+        counts.appendResult(bitstring, runLen);
       else
-        counts.counts[std::move(bitstring)]++;
+        counts.counts[std::move(bitstring)] += runLen;
+      i += runLen;
     }
 
     // Compute the expectation value from the counts
