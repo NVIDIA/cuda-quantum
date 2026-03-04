@@ -140,7 +140,8 @@ public:
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
     if (!getJobResponse.contains("frequencies"))
-      throw std::runtime_error("Response from the TII server does not contain the 'frequencies' key.");
+      throw std::runtime_error("Response from the TII server does not contain "
+                               "the 'frequencies' key.");
     CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
 
     // Extract measurement results from the response
