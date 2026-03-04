@@ -5,32 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
 import cudaq
-
-from test_common import (
-    bell,
-    make_depol_noise,
-    ptsbe_target_setup,
-    ptsbe_target_teardown,
-)
-
-
-@pytest.fixture(autouse=True)
-def ptsbe_target():
-    ptsbe_target_setup()
-    yield
-    ptsbe_target_teardown()
-
-
-@pytest.fixture
-def depol_noise():
-    return make_depol_noise()
-
-
-@pytest.fixture
-def bell_kernel():
-    return bell
 
 
 def test_ptsbe_result_iteration(depol_noise, bell_kernel):
@@ -81,3 +56,4 @@ def test_ptsbe_result_supports_standard_access(depol_noise, bell_kernel):
     assert isinstance(result, cudaq.SampleResult)
     reg_names = result.register_names
     assert isinstance(reg_names, list)
+    assert sum(result.count(bs) for bs in result) == 100

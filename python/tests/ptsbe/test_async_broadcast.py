@@ -6,41 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import math
-import pytest
 import cudaq
 
-from test_common import (
-    bell,
-    ptsbe_target_setup,
-    ptsbe_target_teardown,
-    rotation_kernel,
-)
 
-
-@pytest.fixture(autouse=True)
-def ptsbe_target():
-    ptsbe_target_setup()
-    yield
-    ptsbe_target_teardown()
-
-
-@pytest.fixture
-def bell_kernel():
-    return bell
-
-
-@pytest.fixture
-def rotation_kernel_fixture():
-    return rotation_kernel
-
-
-def test_ptsbe_broadcast_bit_flip_noise(rotation_kernel_fixture):
+def test_ptsbe_broadcast_bit_flip_noise(rotation_kernel):
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("ry", cudaq.BitFlipChannel(0.1))
     shots = 500
     angles = [0.0, math.pi]
     results = cudaq.ptsbe.sample(
-        rotation_kernel_fixture,
+        rotation_kernel,
         angles,
         noise_model=noise,
         shots_count=shots,
@@ -71,11 +46,11 @@ def test_ptsbe_sample_async_returns_future_like(bell_kernel):
     assert sum(result.count(bs) for bs in result) == 10
 
 
-def test_ptsbe_broadcast_single_argument(rotation_kernel_fixture):
+def test_ptsbe_broadcast_single_argument(rotation_kernel):
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.01))
     results = cudaq.ptsbe.sample(
-        rotation_kernel_fixture,
+        rotation_kernel,
         [0.0],
         noise_model=noise,
         shots_count=30,
@@ -85,12 +60,12 @@ def test_ptsbe_broadcast_single_argument(rotation_kernel_fixture):
     assert sum(results[0].count(bs) for bs in results[0]) == 30
 
 
-def test_ptsbe_broadcast_three_angles(rotation_kernel_fixture):
+def test_ptsbe_broadcast_three_angles(rotation_kernel):
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.01))
     angles = [0.0, math.pi / 2, math.pi]
     results = cudaq.ptsbe.sample(
-        rotation_kernel_fixture,
+        rotation_kernel,
         angles,
         noise_model=noise,
         shots_count=50,
@@ -109,8 +84,7 @@ def test_ptsbe_sample_async_get_consumes_future(bell_kernel):
                                       noise_model=noise,
                                       shots_count=15)
     r = future.get()
-    total = sum(r.count(bs) for bs in r)
-    assert total == 15
+    assert sum(r.count(bs) for bs in r) == 15
 
 
 def test_ptsbe_sample_async(bell_kernel):
@@ -124,19 +98,18 @@ def test_ptsbe_sample_async(bell_kernel):
                                       shots_count=shots)
     result = future.get()
     assert isinstance(result, cudaq.SampleResult)
-    total = sum(result.count(bs) for bs in result)
-    assert total == shots
+    assert sum(result.count(bs) for bs in result) == shots
     bell_counts = result.count("00") + result.count("11")
     assert bell_counts >= shots * 0.8, "Most outcomes should be 00/11"
 
 
-def test_ptsbe_broadcast(rotation_kernel_fixture):
+def test_ptsbe_broadcast(rotation_kernel):
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.01))
     shots = 50
     angles = [0.0, math.pi]
     results = cudaq.ptsbe.sample(
-        rotation_kernel_fixture,
+        rotation_kernel,
         angles,
         noise_model=noise,
         shots_count=shots,
