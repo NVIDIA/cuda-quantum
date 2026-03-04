@@ -598,13 +598,10 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncPropagatesException) {
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
   auto &platform = cudaq::get_platform();
-  platform.set_noise(&noise);
 
   auto future = runSamplingAsyncPTSBE(
       []() { throw std::runtime_error("injected async failure"); }, platform,
-      "test_kernel", 10);
-
-  platform.reset_noise();
+      "test_kernel", 10, PTSBEOptions{}, /*qpu_id=*/0, noise);
 
   try {
     future.get();
