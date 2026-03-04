@@ -197,23 +197,23 @@ pr-4058
     -   [PTSBE End-to-End
         Workflow](../../../examples/python/ptsbe_end_to_end_workflow.html){.reference
         .internal}
-        -   [1. Set up the
-            environment](../../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+        -   [Set up the
+            environment](../../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](../../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+        -   [Define the circuit and noise
+            model](../../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
             .internal}
-        -   [3. Run PTSBE
-            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
             .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](../../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-            .internal}
-        -   [6. Two API
-            options:](../../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            -   [Larger circuit for execution
+                data](../../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
     -   [Constructing
         Operators](../../examples/operators.html){.reference .internal}
@@ -261,6 +261,49 @@ pr-4058
             .internal}
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
+            .internal}
+        -   [Scaleway](../../examples/hardware_providers.html#scaleway){.reference
+            .internal}
+    -   [When to Use sample vs.
+        run](../../examples/sample_vs_run.html){.reference .internal}
+        -   [Introduction](../../examples/sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](../../examples/sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](../../examples/sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](../../examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](../../examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](../../examples/sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](../../examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](../../examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](../../examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](../../examples/sample_vs_run.html#additional-notes){.reference
             .internal}
     -   [Dynamics
         Examples](../../examples/dynamics_examples.html){.reference
@@ -1070,6 +1113,16 @@ pr-4058
             -   [Setting Credentials](#setting-credentials){.reference
                 .internal}
             -   [Submitting](#submitting){.reference .internal}
+        -   [Scaleway QaaS (scaleway)](scaleway.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](scaleway.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](scaleway.html#submitting){.reference
+                .internal}
+            -   [Manage your QPU
+                session](scaleway.html#manage-your-qpu-session){.reference
+                .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
         .internal}
@@ -1764,7 +1817,7 @@ pr-4058
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](scaleway.html "Scaleway Quantum as a Service"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1935,7 +1988,7 @@ To see a complete example, take a look at [[Amazon Braket examples]{.std
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](scaleway.html "Scaleway Quantum as a Service"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
