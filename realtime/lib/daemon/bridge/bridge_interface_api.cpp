@@ -120,17 +120,18 @@ cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {
 }
 
 // Retrieve the transport context information for the given bridge.
-cudaq_status_t
-cudaq_bridge_get_transport_context(cudaq_realtime_bridge_handle_t bridge,
-                                   cudaq_realtime_transport_context_t context_type,
-                                   void *out_context) {
+cudaq_status_t cudaq_bridge_get_transport_context(
+    cudaq_realtime_bridge_handle_t bridge,
+    cudaq_realtime_transport_context_t context_type, void *out_context) {
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in get_transport_context" << std::endl;
+    std::cerr << "ERROR: Invalid bridge handle in get_transport_context"
+              << std::endl;
     return CUDAQ_ERR_INVALID_ARG;
   }
   auto *bridge_interface = it->second;
-  return bridge_interface->get_transport_context(bridge, context_type, out_context);
+  return bridge_interface->get_transport_context(bridge, context_type,
+                                                 out_context);
 }
 
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge) {

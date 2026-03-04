@@ -13,8 +13,8 @@
 /// it through the Hololink GPU-RoCE Transceiver.  No QEC or decoder dependency.
 ///
 /// Usage:
-///   ./hololink_bridge \
-///       --device=rocep1s0f0 \
+///   ./hololink_app \
+///       --device=mlx5_1 \
 ///       --peer-ip=10.0.0.2 \
 ///       --remote-qp=0x2 \
 ///       --gpu=0 \
@@ -159,139 +159,154 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, bridge_signal_handler);
     auto &g_shutdown = bridge_shutdown_flag();
     std::cout << "=== Hololink Generic Bridge ===" << std::endl;
+    // Allocate control variables (shutdown flag)
+    void *tmp_shutdown = nullptr;
+    BRIDGE_CUDA_CHECK(
+        cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
+    void *tmp_d_shutdown = nullptr;
+    BRIDGE_CUDA_CHECK(
+        cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
+    volatile int *d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
+    volatile int *shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
 
+    // CUDA-Q realtime variables
+    uint64_t *d_stats = nullptr;
+    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
+    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
+    cudaq_function_entry_t *d_function_entries = nullptr;
+    cudaq_dispatch_manager_t *manager = nullptr;
+    cudaq_dispatcher_t *dispatcher = nullptr;
+
+    //============================================================================
+    // Parse configurations from args
+    //============================================================================
+    DispatchConfig config;
+    parse_bridge_args(argc, argv, config);
     //============================================================================
     // Set up the Hololink bridge
     //============================================================================
     cudaq_realtime_bridge_handle_t bridge_handle = nullptr;
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_create(
         &bridge_handle, CUDAQ_PROVIDER_HOLOLINK, argc, argv));
-
     std::cout << "Bridge created successfully. Connecting..." << std::endl;
 
-    std::cout << "\n Forcing CUDA module loading..." << std::endl;
-    {
-      int dispatch_blocks = 0;
+    if (!config.forward) {
+      if (!config.unified) {
+        int dispatch_blocks = 0;
+        cudaError_t occ_err;
+        if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
+          occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
+              &dispatch_blocks, config.threads_per_block);
+        } else {
+          occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
+        }
+        if (occ_err != cudaSuccess) {
+          std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
+                    << cudaGetErrorString(occ_err) << std::endl;
+          return 1;
+        }
+        std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
+                  << " blocks/SM" << std::endl;
+      }
+
+      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_connect(bridge_handle));
+
+      std::cout << "\nWiring dispatch kernel ("
+                << (config.unified ? "unified" : "3-kernel") << ")..."
+                << std::endl;
+
+      *shutdown_flag = 0;
+      int zero = 0;
+      BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
+                                   sizeof(int), cudaMemcpyHostToDevice));
+
+      // Create CUDA-Q dispatcher manager
+      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));
+      cudaq_dispatcher_config_t dconfig{};
+      dconfig.device_id = config.gpu_id;
+      dconfig.vp_id = 0;
+      dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+
+      if (config.unified) {
+        dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
+        dconfig.num_blocks = 1;
+        dconfig.threads_per_block = 1;
+        dconfig.num_slots = 0;
+        dconfig.slot_size = 0;
+      } else {
+        dconfig.kernel_type = config.kernel_type;
+        dconfig.num_blocks = config.num_blocks;
+        dconfig.threads_per_block = config.threads_per_block;
+        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
+      }
+
+      // Create dispatcher with the above config
+      HANDLE_CUDAQ_REALTIME_ERROR(
+          cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
+
+      // Transport context for unified mode (must outlive the dispatcher)
+      doca_transport_ctx unified_ctx{};
+
+      if (config.unified) {
+        std::cout << "Retrieving the DOCA transport context ..." << std::endl;
+        HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
+            bridge_handle, UNIFIED, &unified_ctx));
+        if (cudaq_dispatcher_set_unified_launch(
+                dispatcher, &cudaq_launch_unified_dispatch_kernel,
+                &unified_ctx) != CUDAQ_OK) {
+          std::cerr << "ERROR: Failed to set unified launch function"
+                    << std::endl;
+          return 1;
+        }
+      } else {
+        std::cout << "Retrieving the ring buffer ..." << std::endl;
+
+        cudaq_ringbuffer_t ringbuffer{};
+        HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
+            bridge_handle, RING_BUFFER, &ringbuffer));
+        if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
+            CUDAQ_OK) {
+          std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
+          return 1;
+        }
+
+        if (cudaq_dispatcher_set_launch_fn(
+                dispatcher, &cudaq_launch_dispatch_kernel_regular) !=
+            CUDAQ_OK) {
+          std::cerr << "ERROR: Failed to set launch function" << std::endl;
+          return 1;
+        }
+      }
+
+      // Set up the function table with the increment handler entries
+      // Populate the GPU function table with the increment handler entry
       BRIDGE_CUDA_CHECK(
-          cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1));
-      std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
-                << " blocks/SM" << std::endl;
-    }
+          cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t)));
+      setup_rpc_increment_function_table(d_function_entries);
+      // Create a function table struct to pass to the dispatcher
+      cudaq_function_table_t table{};
+      table.entries = d_function_entries;
+      table.count = 1; // Only one handler (increment)
+      // Set the function table for the dispatcher
+      HANDLE_CUDAQ_REALTIME_ERROR(
+          cudaq_dispatcher_set_function_table(dispatcher, &table));
+      // Set the control variables (shutdown flag and stats pointer) for the
+      // dispatcher
+      HANDLE_CUDAQ_REALTIME_ERROR(
+          cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats));
 
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_connect(bridge_handle));
-
-    //============================================================================
-    // Set up CUDA-Q realtime dispatch
-    //============================================================================
-    DispatchConfig config;
-    parse_bridge_args(argc, argv, config);
-
-    // Allocate control variables
-    void *tmp_shutdown = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-    volatile int *shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
-    void *tmp_d_shutdown = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-    volatile int *d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
-    *shutdown_flag = 0;
-    int zero = 0;
-    BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
-                                 sizeof(int), cudaMemcpyHostToDevice));
-
-    uint64_t *d_stats = nullptr;
-    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
-
-    // Host API wiring
-    cudaq_dispatch_manager_t *manager = nullptr;
-    cudaq_dispatcher_t *dispatcher = nullptr;
-
-    // Create CUDA-Q dispatcher manager
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));
-    cudaq_dispatcher_config_t dconfig{};
-    dconfig.device_id = config.gpu_id;
-    dconfig.vp_id = 0;
-    dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-
-    if (config.unified) {
-      dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
-      dconfig.num_blocks = 1;
-      dconfig.threads_per_block = 1;
-      dconfig.num_slots = 0;
-      dconfig.slot_size = 0;
+      // Start the dispatcher (launches the dispatch kernel)
+      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_start(dispatcher));
+      std::cout << "  Dispatch kernel launched" << std::endl;
     } else {
-      dconfig.kernel_type = config.kernel_type;
-      dconfig.num_blocks = config.num_blocks;
-      dconfig.threads_per_block = config.threads_per_block;
-      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
+      std::cout << "\n[4/5] Forward mode -- skipping dispatch kernel"
+                << std::endl;
     }
-
-    // Create dispatcher with the above config
-    HANDLE_CUDAQ_REALTIME_ERROR(
-        cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
-
-    // Transport context for unified mode (must outlive the dispatcher)
-    doca_transport_ctx unified_ctx{};
-
-    if (config.unified) {
-      std::cout << "Retrieving the DOCA transport context ..." << std::endl;
-      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
-          bridge_handle, UNIFIED, &unified_ctx));
-      if (cudaq_dispatcher_set_unified_launch(
-              dispatcher, &cudaq_launch_unified_dispatch_kernel,
-              &unified_ctx) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set unified launch function"
-                  << std::endl;
-        return 1;
-      }
-    } else {
-      std::cout << "Retrieving the ring buffer ..." << std::endl;
-
-      cudaq_ringbuffer_t ringbuffer{};
-      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
-          bridge_handle, RING_BUFFER, &ringbuffer));
-      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-        return 1;
-      }
-
-      if (cudaq_dispatcher_set_launch_fn(
-              dispatcher, &cudaq_launch_dispatch_kernel_regular) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set launch function" << std::endl;
-        return 1;
-      }
-    }
-
-    // Set up the function table with the increment handler entries
-    // Populate the GPU function table with the increment handler entry
-    cudaq_function_entry_t *d_function_entries = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t)));
-    setup_rpc_increment_function_table(d_function_entries);
-    // Create a function table struct to pass to the dispatcher
-    cudaq_function_table_t table{};
-    table.entries = d_function_entries;
-    table.count = 1; // Only one handler (increment)
-    // Set the function table for the dispatcher
-    HANDLE_CUDAQ_REALTIME_ERROR(
-        cudaq_dispatcher_set_function_table(dispatcher, &table));
-    // Set the control variables (shutdown flag and stats pointer) for the
-    // dispatcher
-    HANDLE_CUDAQ_REALTIME_ERROR(
-        cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats));
-
-    // Start the dispatcher (launches the dispatch kernel)
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_start(dispatcher));
-    std::cout << "  Dispatch kernel launched" << std::endl;
 
     // Launch Hololink kernels and run
     std::cout << "\n[5/5] Launching Hololink kernels...\n";
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_launch(bridge_handle));
-    std::cout << "  Hololink RX+TX kernels started\n";
     //============================================================================
     // Main run loop
     //============================================================================
@@ -313,7 +328,7 @@ int main(int argc, char *argv[]) {
       }
 
       // Progress report every 5 seconds
-      if (elapsed > 0 && elapsed % 5 == 0) {
+      if (!config.forward && d_stats && elapsed > 0 && elapsed % 5 == 0) {
         uint64_t processed = 0;
         cudaMemcpyAsync(&processed, d_stats, sizeof(uint64_t),
                         cudaMemcpyDeviceToHost, diag_stream);
@@ -332,19 +347,30 @@ int main(int argc, char *argv[]) {
     // Shutdown
     //============================================================================
     std::cout << "\n=== Shutting down ===" << std::endl;
+    if (!config.forward) {
+      *shutdown_flag = 1;
+      __sync_synchronize();
+      cudaq_dispatcher_stop(dispatcher);
 
+      uint64_t total_processed = 0;
+      cudaq_dispatcher_get_processed(dispatcher, &total_processed);
+      std::cout << "  Total packets processed (dispatch RX): "
+                << total_processed << std::endl;
+    }
     std::cout << "  Disconnecting bridge..." << std::endl;
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_disconnect(bridge_handle));
+    // Clean up
+    BRIDGE_CUDA_CHECK(cudaFree(d_function_entries));
+    BRIDGE_CUDA_CHECK(cudaFree(d_stats));
+    if (dispatcher)
+      cudaq_dispatcher_destroy(dispatcher);
+    if (manager)
+      cudaq_dispatch_manager_destroy(manager);
     std::cout << "  Destroying bridge..." << std::endl;
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_destroy(bridge_handle));
     std::cout << "Bridge shut down successfully." << std::endl;
-    // Clean up
-    cudaFree(d_function_entries);
-    cudaFree(d_stats);
-    cudaq_dispatcher_destroy(dispatcher);
-    cudaq_dispatch_manager_destroy(manager);
     if (shutdown_flag)
-      cudaFreeHost(const_cast<int *>(shutdown_flag));
+      BRIDGE_CUDA_CHECK(cudaFreeHost(const_cast<int *>(shutdown_flag)));
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     return 1;

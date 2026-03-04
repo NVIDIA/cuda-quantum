@@ -47,14 +47,18 @@ struct HololinkBridgeContext {
       config.page_size = config.frame_size;
     }
 
+    // Unified mode uses Hololink's forward/symmetric ring layout but doesn't
+    // run any Hololink kernels -- the unified dispatch kernel handles RX+TX.
+    bool use_forward_ring = config.forward || config.unified;
+
     transceiver = hololink_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
         config.gpu_id,            // GPU device ID
         config.frame_size, config.page_size, config.num_pages,
-        "0.0.0.0", // deferred connection
-        0,         // forward = false
-        1,         // rx_only = true
-        1          // tx_only = true
+        "0.0.0.0",                // deferred connection
+        use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
+        use_forward_ring ? 0 : 1, // rx_only
+        use_forward_ring ? 0 : 1  // tx_only
     );
   }
 };
