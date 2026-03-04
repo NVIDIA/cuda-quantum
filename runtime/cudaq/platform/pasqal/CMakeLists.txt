@@ -50,37 +50,7 @@ install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)
 add_target_config(pasqal)
 
 if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  macro(_pasqal_download_or_fail url out_path label)
-    file(DOWNLOAD "${url}" "${out_path}" STATUS _pasqal_dl_status SHOW_PROGRESS)
-    list(GET _pasqal_dl_status 0 _pasqal_dl_code)
-    if(NOT _pasqal_dl_code EQUAL 0)
-      list(GET _pasqal_dl_status 1 _pasqal_dl_error)
-      message(FATAL_ERROR
-        "Failed to download ${label} from ${url}: ${_pasqal_dl_error}")
-    endif()
-  endmacro()
-
-  set(QRMI_ROOT "" CACHE PATH "Optional prefix for a prebuilt QRMI installation")
-  set(CUDAQ_PASQAL_QRMI_FETCH_RELEASE OFF CACHE BOOL
-      "Download QRMI prebuilt artifacts from GitHub release assets")
-  set(CUDAQ_PASQAL_QRMI_RELEASE_TAG "v0.12.0" CACHE STRING
-      "QRMI release tag used when CUDAQ_PASQAL_QRMI_FETCH_RELEASE=ON")
-
-  if(CUDAQ_PASQAL_QRMI_FETCH_RELEASE AND NOT QRMI_ROOT)
-    set(QRMI_ROOT "${CMAKE_BINARY_DIR}/qrmi-${CUDAQ_PASQAL_QRMI_RELEASE_TAG}"
-        CACHE PATH "Auto-downloaded QRMI prefix" FORCE)
-    set(_qrmi_release_base
-        "https://github.com/qiskit-community/qrmi/releases/download/${CUDAQ_PASQAL_QRMI_RELEASE_TAG}")
-
-    file(MAKE_DIRECTORY "${QRMI_ROOT}/include" "${QRMI_ROOT}/lib")
-    _pasqal_download_or_fail("${_qrmi_release_base}/qrmi.h"
-      "${QRMI_ROOT}/include/qrmi.h" "qrmi.h")
-    _pasqal_download_or_fail("${_qrmi_release_base}/libqrmi.so"
-      "${QRMI_ROOT}/lib/libqrmi.so" "libqrmi.so")
-
-    message(STATUS
-      "Downloaded QRMI release assets into ${QRMI_ROOT}")
-  endif()
+  set(QRMI_ROOT "${QRMI_ROOT}" CACHE PATH "Path to QRMI installation")
 
   set(_qrmi_include_hints)
   set(_qrmi_library_hints)
@@ -102,8 +72,8 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
   if(NOT QRMI_INCLUDE_DIR OR NOT QRMI_LIBRARY)
     message(FATAL_ERROR
-      "Pasqal QRMI connector requested but prebuilt qrmi.h/libqrmi was not found. "
-      "Install QRMI first and optionally set -DQRMI_ROOT=<prefix>.")
+      "Pasqal QRMI connector requested but qrmi.h/libqrmi was not found. "
+      "Install QRMI and set -DQRMI_ROOT=<prefix> if needed.")
   endif()
 
   include(CheckCXXSourceCompiles)

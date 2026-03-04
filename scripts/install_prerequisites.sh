@@ -446,6 +446,31 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   fi
 fi
 
+# [QRMI] Needed for the Pasqal QRMI connector
+if [ -z "$(echo $exclude_prereq | grep qrmi)" ]; then
+  QRMI_INSTALL_PREFIX=${QRMI_INSTALL_PREFIX:-/usr/local}
+  qrmi_header="$QRMI_INSTALL_PREFIX/include/qrmi.h"
+  qrmi_library="$QRMI_INSTALL_PREFIX/lib64/libqrmi.so"
+  if [ ! -f "$qrmi_header" ] || [ ! -f "$qrmi_library" ]; then
+    echo "Installing QRMI C artifacts..."
+    temp_install_if_command_unknown wget wget
+    pushd "$PREREQS_BUILD_DIR"
+
+    QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
+    QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
+    qrmi_release_base="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
+
+    mkdir -p "$QRMI_INSTALL_PREFIX/include" "$QRMI_INSTALL_PREFIX/lib64"
+    wget "${qrmi_release_base}/qrmi.h" -O "$qrmi_header"
+    wget "${qrmi_release_base}/libqrmi.so" -O "$qrmi_library"
+
+    popd
+    remove_temp_installs
+  else
+    echo "QRMI already installed in $QRMI_INSTALL_PREFIX."
+  fi
+fi
+
 # [cuQuantum and cuTensor] Needed for GPU-accelerated components
 cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
@@ -475,4 +500,3 @@ fi
 # Make sure to call prepare_exit so that we properly uninstalled all helper tools,
 # and so that we are in the correct directory also when this script is sourced.
 prepare_exit && ((return 0 2>/dev/null) && return 0 || exit 0)
-
