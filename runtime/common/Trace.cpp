@@ -30,12 +30,13 @@ void cudaq::Trace::appendInstruction(std::string_view name,
 }
 
 void cudaq::Trace::appendNoiseInstruction(std::intptr_t noise_channel_key,
+                                          std::string_view channel_name,
                                           std::vector<double> params,
                                           std::vector<QuditInfo> controls,
                                           std::vector<QuditInfo> targets) {
   if (targets.empty())
     throw std::invalid_argument(
-        "appendNoiseInstruction: apply_noise must have at least one target");
+        "appendNoiseInstruction: noise channel must have at least one target");
   auto findMaxID = [](const std::vector<QuditInfo> &qudits) -> std::size_t {
     return std::max_element(qudits.cbegin(), qudits.cend(),
                             [](auto &a, auto &b) { return a.id < b.id; })
@@ -45,9 +46,9 @@ void cudaq::Trace::appendNoiseInstruction(std::intptr_t noise_channel_key,
   if (!controls.empty())
     maxID = std::max(maxID, findMaxID(controls));
   numQudits = std::max(numQudits, maxID + 1);
-  instructions.emplace_back(std::string(TRACE_APPLY_NOISE_NAME), params,
-                            std::move(controls), std::move(targets),
-                            noise_channel_key, TraceInstructionType::Noise);
+  instructions.emplace_back(channel_name, params, std::move(controls),
+                            std::move(targets), noise_channel_key,
+                            TraceInstructionType::Noise);
 }
 
 void cudaq::Trace::appendMeasurement(std::string_view name,

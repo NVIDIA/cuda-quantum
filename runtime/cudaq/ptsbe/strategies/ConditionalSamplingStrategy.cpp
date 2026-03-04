@@ -10,17 +10,16 @@
 #include <map>
 #include <set>
 
-namespace cudaq::ptsbe {
-
 /// @brief Multiplier for maximum sampling attempts relative to target
 /// trajectories.
 static constexpr std::size_t ATTEMPT_MULTIPLIER = 100;
 
-ConditionalSamplingStrategy::~ConditionalSamplingStrategy() = default;
+cudaq::ptsbe::ConditionalSamplingStrategy::~ConditionalSamplingStrategy() =
+    default;
 
 std::vector<cudaq::KrausTrajectory>
-ConditionalSamplingStrategy::generateTrajectories(
-    std::span<const detail::NoisePoint> noise_points,
+cudaq::ptsbe::ConditionalSamplingStrategy::generateTrajectories(
+    std::span<const cudaq::ptsbe::detail::NoisePoint> noise_points,
     std::size_t max_trajectories) const {
 
   std::vector<cudaq::KrausTrajectory> results;
@@ -92,5 +91,3 @@ ConditionalSamplingStrategy::generateTrajectories(
 
   return results;
 }
-
-} // namespace cudaq::ptsbe
