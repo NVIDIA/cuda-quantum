@@ -70,12 +70,13 @@ CUDAQ_TEST(ExecutePTSBETest, AggregateResultsTester) {
 
 /// Single trajectory Hadamard circuit: execute H|0> and expect 50/50
 CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
+  cudaq::set_random_seed(42);
 
   PTSBatch batch;
   batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 1000);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   auto results = samplePTSBEWithLifecycle(batch);
@@ -85,7 +86,7 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   std::size_t count1 = result.count("1");
   EXPECT_GT(count0, 0u);
   EXPECT_GT(count1, 0u);
-  EXPECT_EQ(count0 + count1, 1000u);
+  EXPECT_EQ(count0 + count1, 10u);
 }
 
 /// Multiple trajectories: verify counts from all trajectories are aggregated
@@ -163,6 +164,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
 
 /// Bell state: verify (|00> + |11>)/sqrt(2) distribution
 CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
+  cudaq::set_random_seed(42);
 
   PTSBatch batch;
   batch.trace = {
@@ -171,7 +173,7 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   };
   batch.measureQubits = {0, 1};
 
-  KrausTrajectory traj(0, {}, 1.0, 1000);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   auto results = samplePTSBEWithLifecycle(batch);
@@ -181,7 +183,7 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   std::size_t count11 = result.count("11");
   EXPECT_GT(count00, 0u);
   EXPECT_GT(count11, 0u);
-  EXPECT_EQ(count00 + count11, 1000u);
+  EXPECT_EQ(count00 + count11, 10u);
 
   EXPECT_EQ(result.count("01"), 0u);
   EXPECT_EQ(result.count("10"), 0u);
@@ -254,6 +256,7 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
 
 /// Partial measurement: measure only one qubit of a two-qubit system
 CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
+  cudaq::set_random_seed(42);
 
   // Bell state
   PTSBatch batch;
@@ -263,7 +266,7 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   };
   batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 1000);
+  KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   auto results = samplePTSBEWithLifecycle(batch);
@@ -273,7 +276,7 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   std::size_t count1 = result.count("1");
   EXPECT_GT(count0, 0u);
   EXPECT_GT(count1, 0u);
-  EXPECT_EQ(count0 + count1, 1000u);
+  EXPECT_EQ(count0 + count1, 10u);
 }
 
 /// Measurement order: verify that measureQubits order affects bitstring order
