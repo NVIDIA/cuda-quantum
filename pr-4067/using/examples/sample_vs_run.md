@@ -121,9 +121,10 @@ pr-4067
             -   [Get State
                 Asynchronous](executing_kernels.html#get-state-asynchronous){.reference
                 .internal}
-    -   [Computing Expectation Values](#){.current .reference .internal}
+    -   [Computing Expectation
+        Values](expectation_values.html){.reference .internal}
         -   [Parallelizing across Multiple
-            Processors](#parallelizing-across-multiple-processors){.reference
+            Processors](expectation_values.html#parallelizing-across-multiple-processors){.reference
             .internal}
     -   [Multi-GPU Workflows](multi_gpu_workflows.html){.reference
         .internal}
@@ -246,47 +247,38 @@ pr-4067
             .internal}
         -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
-    -   [When to Use sample vs. run](sample_vs_run.html){.reference
-        .internal}
-        -   [Introduction](sample_vs_run.html#introduction){.reference
-            .internal}
-        -   [Usage
-            Guidelines](sample_vs_run.html#usage-guidelines){.reference
-            .internal}
+    -   [When to Use sample vs. run](#){.current .reference .internal}
+        -   [Introduction](#introduction){.reference .internal}
+        -   [Usage Guidelines](#usage-guidelines){.reference .internal}
         -   [What Is Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](sample_vs_run.html#what-is-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-supported-with-sample){.reference
             .internal}
         -   [What Is Not Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-not-supported-with-sample){.reference
             .internal}
-        -   [How to
-            Migrate](sample_vs_run.html#how-to-migrate){.reference
-            .internal}
+        -   [How to Migrate](#how-to-migrate){.reference .internal}
             -   [Step 1: Add a return type to the
-                kernel](sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                kernel](#step-1-add-a-return-type-to-the-kernel){.reference
                 .internal}
             -   [Step 2: Replace [`sample`{.docutils .literal
                 .notranslate}]{.pre} with [`run`{.docutils .literal
-                .notranslate}]{.pre}](sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .notranslate}]{.pre}](#step-2-replace-sample-with-run){.reference
                 .internal}
             -   [Step 3: Update result
-                processing](sample_vs_run.html#step-3-update-result-processing){.reference
+                processing](#step-3-update-result-processing){.reference
                 .internal}
-        -   [Migration
-            Examples](sample_vs_run.html#migration-examples){.reference
+        -   [Migration Examples](#migration-examples){.reference
             .internal}
             -   [Example 1: Simple conditional
-                logic](sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                logic](#example-1-simple-conditional-logic){.reference
                 .internal}
             -   [Example 2: Returning multiple measurement
-                results](sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                results](#example-2-returning-multiple-measurement-results){.reference
                 .internal}
             -   [Example 3: Quantum
-                teleportation](sample_vs_run.html#example-3-quantum-teleportation){.reference
+                teleportation](#example-3-quantum-teleportation){.reference
                 .internal}
-        -   [Additional
-            Notes](sample_vs_run.html#additional-notes){.reference
-            .internal}
+        -   [Additional Notes](#additional-notes){.reference .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
@@ -1804,14 +1796,16 @@ pr-4067
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q by Example](examples.html)
--   Computing Expectation Values
+-   When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs.
+    [`run`{.docutils .literal .notranslate}]{.pre}
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](executing_kernels.html "Executing Kernels"){.btn .btn-neutral
-.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](multi_gpu_workflows.html "Multi-GPU Workflows"){.btn
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1820,97 +1814,90 @@ aria-hidden="true"}](multi_gpu_workflows.html "Multi-GPU Workflows"){.btn
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#computing-expectation-values .section}
-# Computing Expectation Values[¶](#computing-expectation-values "Permalink to this heading"){.headerlink}
+::: {#when-to-use-sample-vs-run .section}
+[]{#sample-to-run-migration}
 
-CUDA-Q provides generic library functions enabling one to compute
-expectation values of quantum spin operators with respect to a
-parameterized CUDA-Q kernel. Let's take a look at an example of this:
+# When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs. [`run`{.docutils .literal .notranslate}]{.pre}[¶](#when-to-use-sample-vs-run "Permalink to this heading"){.headerlink}
 
-::: {.tab-set .docutils}
-C++
+::: {#introduction .section}
+## Introduction[¶](#introduction "Permalink to this heading"){.headerlink}
 
-::: {.tab-content .docutils}
-::: {.highlight-cpp .notranslate}
-::: highlight
-    // Compile and run with:
-    // ```
-    // nvq++ expectation_values.cpp -o d2.x && ./d2.x
-    // ```
+Starting with CUDA-Q 0.14.0, [`sample`{.docutils .literal
+.notranslate}]{.pre} no longer supports kernels that branch on
+measurement results (measurement-dependent control flow). Kernels
+containing patterns such as [`if`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`mz(q):`{.docutils .literal .notranslate}]{.pre} or
+[`if`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`(result)`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`{`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`...`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`}`{.docutils .literal .notranslate}]{.pre} where
+[`result`{.docutils .literal .notranslate}]{.pre} comes from a
+measurement must now use [`run`{.docutils .literal .notranslate}]{.pre}
+instead.
 
-    #include <cudaq.h>
-    #include <cudaq/algorithm.h>
+This breaking change creates a clearer API separation:
 
-    // The example here shows a simple use case for the `cudaq::observe`
-    // function in computing expected values of provided spin_ops.
+-   Use [`sample`{.docutils .literal .notranslate}]{.pre} for
+    **aggregate measurement statistics** (counts dictionaries).
 
-    struct ansatz {
-      auto operator()(double theta) __qpu__ {
-        cudaq::qvector q(2);
-        x(q[0]);
-        ry(theta, q[1]);
-        x<cudaq::ctrl>(q[1], q[0]);
-      }
-    };
-
-    int main() {
-
-      // Build up your spin op algebraically
-      cudaq::spin_op h =
-          5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
-          2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-          .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-
-      // Observe takes the kernel, the spin_op, and the concrete
-      // parameters for the kernel
-      double energy = cudaq::observe(ansatz{}, h, .59);
-      printf("Energy is %lf\n", energy);
-      return 0;
-    }
-:::
+-   Use [`run`{.docutils .literal .notranslate}]{.pre} for
+    **shot-by-shot execution** with measurement-dependent control flow
+    and individual return values.
 :::
 
-Here we define a parameterized CUDA-Q kernel, a callable type named
-[`ansatz`{.code .docutils .literal .notranslate}]{.pre} that takes as
-input a single angle [`theta`{.code .docutils .literal
-.notranslate}]{.pre}. This angle becomes the argument of a single
-[`ry`{.code .docutils .literal .notranslate}]{.pre} rotation.
+::: {#usage-guidelines .section}
+## Usage Guidelines[¶](#usage-guidelines "Permalink to this heading"){.headerlink}
 
-In host code, we define a Hamiltonian operator via the CUDA-Q
-[`spin_op`{.code .docutils .literal .notranslate}]{.pre} type. CUDA-Q
-provides a generic function [`cudaq::observe`{.code .docutils .literal
-.notranslate}]{.pre}. This function takes as input three terms. The
-first two terms are a parameterized kernel and the [`spin_op`{.code
-.docutils .literal .notranslate}]{.pre} whose expectation value we wish
-to compute. The last term contains the runtime parameters at which we
-evaluate the parameterized kernel.
+**Use** [`sample`{.docutils .literal .notranslate}]{.pre} **when:**
 
-The return type of this function is an [`cudaq::observe_result`{.code
-.docutils .literal .notranslate}]{.pre} which contains all the data from
-the execution, but is trivially convertible to a double, resulting in
-the expectation value we are interested in.
+-   You want aggregate measurement statistics (histograms).
 
-To compile and execute this code, we run the following:
+-   Your kernel has no measurement-dependent control flow.
 
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ expectation_values.cpp -o exp_vals.x
-    ./exp_vals.x
+-   You only need final measurement distributions.
+
+-   You are using the [`explicit_measurements`{.docutils .literal
+    .notranslate}]{.pre} option, which concatenates all measurement
+    results in execution order rather than re-measuring qubits at the
+    end of the kernel. See the [[sample specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+    .internal} for details.
+
+**Use** [`run`{.docutils .literal .notranslate}]{.pre} **when:**
+
+-   You need shot-by-shot measurement values.
+
+-   Your kernel has conditionals based on measurement results.
+
+-   You want to return computed values from the kernel.
+
+-   You need to store or analyze individual shot data.
+
+For the full API specification, see the [[sample]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} and [[run]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+.internal} sections in the Algorithmic Primitives documentation. For a
+usage guide, see [[Running your first CUDA-Q
+Program]{.doc}](../basics/run_kernel.html){.reference .internal}.
 :::
-:::
-:::
-:::
 
-::: {#parallelizing-across-multiple-processors .section}
-## Parallelizing across Multiple Processors[¶](#parallelizing-across-multiple-processors "Permalink to this heading"){.headerlink}
+::: {#what-is-supported-with-sample .section}
+## What Is Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-supported-with-sample "Permalink to this heading"){.headerlink}
 
-One typical use case of [[multi-processor platforms]{.std
-.std-ref}](../backends/sims/mqpusims.html#mqpu-platform){.reference
-.internal} is to distribute the expectation value computations of a
-multi-term Hamiltonian across multiple virtual QPUs.
-
-The following shows an example using the [`nvidia-mqpu`{.code .docutils
-.literal .notranslate}]{.pre} platform:
+Kernels without measurement-dependent control flow continue to work
+exactly as before. This includes implicit measurements, explicit
+measurements without conditionals, partial qubit measurement,
+mid-circuit measurement for reset patterns, and the
+[`explicit_measurements`{.docutils .literal .notranslate}]{.pre} option
+(which concatenates all measurement results in execution order rather
+than re-measuring at the end of the kernel -- see the [[sample
+specification]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} for details).
 
 ::: {.tab-set .docutils}
 Python
@@ -1918,33 +1905,30 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    import cudaq
-    from cudaq import spin
-
-    cudaq.set_target("nvidia", option="mqpu")
-    target = cudaq.get_target()
-    num_qpus = target.num_qpus()
-    print("Number of QPUs:", num_qpus)
-
-
-    # Define spin ansatz.
     @cudaq.kernel
-    def kernel(angle: float):
-        qvector = cudaq.qvector(2)
-        x(qvector[0])
-        ry(angle, qvector[1])
-        x.ctrl(qvector[1], qvector[0])
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
 
 
-    # Define spin Hamiltonian.
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    @cudaq.kernel
+    def reset_pattern():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+        reset(q)
+        x(q)
 
-    exp_val = cudaq.observe(kernel,
-                            hamiltonian,
-                            0.59,
-                            execution=cudaq.parallel.thread).expectation()
-    print("Expectation value: ", exp_val)
+
+    print("Implicit measurements:")
+    cudaq.sample(bell).dump()
+
+    print("\nMid-circuit measurement with reset:")
+    cudaq.sample(reset_pattern).dump()
+
+    print("\nWith explicit_measurements option:")
+    cudaq.sample(reset_pattern, explicit_measurements=True).dump()
 :::
 :::
 :::
@@ -1954,50 +1938,509 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-      cudaq::spin_op h =
-          5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
-          2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-          .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+    __qpu__ void bell() {
+      cudaq::qvector q(2);
+      h(q[0]);
+      x<cudaq::ctrl>(q[0], q[1]);
+    }
 
-      // Get the quantum_platform singleton
-      auto &platform = cudaq::get_platform();
-
-      // Query the number of QPUs in the system
-      auto num_qpus = platform.num_qpus();
-      printf("Number of QPUs: %zu\n", num_qpus);
-
-      auto ansatz = [](double theta) __qpu__ {
-        cudaq::qubit q, r;
-        x(q);
-        ry(theta, r);
-        x<cudaq::ctrl>(r, q);
-      };
-
-      double result = cudaq::observe<cudaq::parallel::thread>(ansatz, h, 0.59);
-      printf("Expectation value: %lf\n", result);
+    __qpu__ void reset_pattern() {
+      cudaq::qubit q;
+      h(q);
+      mz(q);
+      reset(q);
+      x(q);
+    }
 :::
 :::
 
-One can then target the [`nvidia-mqpu`{.code .docutils .literal
-.notranslate}]{.pre} platform by executing the following commands:
-
-::: {.highlight-console .notranslate}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    nvq++ observe_mqpu.cpp -target nvidia-mqpu
-    ./a.out
+      printf("Implicit measurements:\n");
+      cudaq::sample(bell).dump();
+
+      printf("\nMid-circuit measurement with reset:\n");
+      cudaq::sample(reset_pattern).dump();
+
+      cudaq::sample_options options{.explicit_measurements = true};
+      printf("\nWith explicit_measurements option:\n");
+      cudaq::sample(options, reset_pattern).dump();
+:::
 :::
 :::
 :::
 :::
 
-In the above code snippets, since the Hamiltonian contains four
-non-identity terms, there are four quantum circuits that need to be
-executed in order to compute the expectation value of that Hamiltonian
-and given the quantum state prepared by the ansatz kernel. When the
-[`nvidia-mqpu`{.code .docutils .literal .notranslate}]{.pre} platform is
-selected, these circuits will be distributed across all available QPUs.
-The final expectation value result is computed from all QPU execution
-results.
+::: {#what-is-not-supported-with-sample .section}
+## What Is Not Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-not-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels that branch on measurement results can no longer be used with
+[`sample`{.docutils .literal .notranslate}]{.pre} or
+[`sample_async`{.docutils .literal .notranslate}]{.pre}. Attempting to
+do so will raise a runtime error.
+
+This includes both inline conditionals on measurements and conditionals
+on variables holding measurement results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:               # ERROR
+            x(q[1])
+
+    cudaq.sample(kernel)    # raises RuntimeError
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {            // ERROR
+            x(q[1]);
+        }
+    };
+
+    cudaq::sample(kernel);  // throws std::runtime_error
+:::
+:::
+:::
+:::
+
+The error message will read:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    `cudaq::sample` and `cudaq::sample_async` no longer support kernels that
+    branch on measurement results. Kernel '<name>' uses conditional feedback.
+    Use `cudaq::run` or `cudaq::run_async` instead. See CUDA-Q documentation
+    for migration guide.
+:::
+:::
+:::
+
+::: {#how-to-migrate .section}
+## How to Migrate[¶](#how-to-migrate "Permalink to this heading"){.headerlink}
+
+Migrating a kernel from [`sample`{.docutils .literal
+.notranslate}]{.pre} to [`run`{.docutils .literal .notranslate}]{.pre}
+requires three changes.
+
+::: {#step-1-add-a-return-type-to-the-kernel .section}
+### Step 1: Add a return type to the kernel[¶](#step-1-add-a-return-type-to-the-kernel "Permalink to this heading"){.headerlink}
+
+[`run`{.docutils .literal .notranslate}]{.pre} requires kernels to
+return a non-void value. Instead of relying on implicit measurement at
+the end of the circuit, explicitly [`return`{.docutils .literal
+.notranslate}]{.pre} the measurement results you need.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Before (no return type, used with sample)
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+
+    # After (returns a value, used with run)
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Before (void kernel, used with sample)
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+    };
+
+    // After (returns a value, used with run)
+    struct kernel {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
+:::
+:::
+:::
+
+::: {#step-2-replace-sample-with-run .section}
+### Step 2: Replace [`sample`{.docutils .literal .notranslate}]{.pre} with [`run`{.docutils .literal .notranslate}]{.pre}[¶](#step-2-replace-sample-with-run "Permalink to this heading"){.headerlink}
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Before
+    counts = cudaq.sample(kernel, shots_count=1000)
+
+    # After
+    results = cudaq.run(kernel, shots_count=1000)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Before
+    auto counts = cudaq::sample(1000, kernel);
+
+    // After
+    auto results = cudaq::run(1000, kernel{});
+:::
+:::
+:::
+:::
+
+::: {.admonition .note}
+Note
+
+The default [`shots_count`{.docutils .literal .notranslate}]{.pre} for
+[`run`{.docutils .literal .notranslate}]{.pre} is 100, compared to 1000
+for [`sample`{.docutils .literal .notranslate}]{.pre}. Specify
+[`shots_count`{.docutils .literal .notranslate}]{.pre} explicitly if you
+need a particular number of shots.
+:::
+:::
+
+::: {#step-3-update-result-processing .section}
+### Step 3: Update result processing[¶](#step-3-update-result-processing "Permalink to this heading"){.headerlink}
+
+[`sample`{.docutils .literal .notranslate}]{.pre} returns a
+[`sample_result`{.docutils .literal .notranslate}]{.pre} (a counts
+dictionary mapping bit strings to frequencies). [`run`{.docutils
+.literal .notranslate}]{.pre} returns a list (Python) or
+[`std::vector`{.docutils .literal .notranslate}]{.pre} (C++) of
+individual return values -- one per shot. If you need a
+counts-dictionary view, you can reconstruct it from the individual
+results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    from collections import Counter
+
+    results = cudaq.run(multi_measure, shots_count=1000)
+    counts = Counter(
+        ''.join('1' if bit else '0' for bit in result) for result in results)
+    print(dict(counts))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results = cudaq::run(1000, multi_measure{});
+      std::map<std::string, std::size_t> counts;
+      for (const auto &shot : results) {
+        std::string bits;
+        for (auto b : shot)
+          bits += b ? '1' : '0';
+        counts[bits]++;
+      }
+      for (const auto &[bits, count] : counts)
+        printf("%s : %zu\n", bits.c_str(), count);
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#migration-examples .section}
+## Migration Examples[¶](#migration-examples "Permalink to this heading"){.headerlink}
+
+::: {#example-1-simple-conditional-logic .section}
+### Example 1: Simple conditional logic[¶](#example-1-simple-conditional-logic "Permalink to this heading"){.headerlink}
+
+A kernel that measures one qubit and conditionally applies a gate on
+another.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def simple_conditional() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+
+
+    results = cudaq.run(simple_conditional, shots_count=100)
+    n_ones = sum(results)
+    print(f"Measured |1> {n_ones} out of {len(results)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct simple_conditional {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {
+          x(q[1]);
+        }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results1 = cudaq::run(100, simple_conditional{});
+      std::size_t nOnes = std::count_if(results1.begin(), results1.end(),
+                                        [](const auto &r) { return (bool)r; });
+      printf("Measured |1> %zu out of %zu shots\n", nOnes, results1.size());
+:::
+:::
+:::
+:::
+:::
+
+::: {#example-2-returning-multiple-measurement-results .section}
+### Example 2: Returning multiple measurement results[¶](#example-2-returning-multiple-measurement-results "Permalink to this heading"){.headerlink}
+
+A kernel that performs multiple mid-circuit measurements with
+conditional logic and returns all results as a list. When returning a
+[`std::vector<bool>`{.docutils .literal .notranslate}]{.pre} in C++,
+pre-allocate the result vector and assign elements individually for
+broadest target compatibility.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def multi_measure() -> list[bool]:
+        q = cudaq.qvector(3)
+        h(q)
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        if r0 and r1:
+            x(q[2])
+        r2 = mz(q[2])
+        return [r0, r1, r2]
+
+
+    results = cudaq.run(multi_measure, shots_count=100)
+    for shot in results[:5]:
+        print(''.join('1' if b else '0' for b in shot))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct multi_measure {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        h(q);
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+        if (results[0] && results[1]) {
+          x(q[2]);
+        }
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results2 = cudaq::run(100, multi_measure{});
+      for (std::size_t i = 0; i < 5 && i < results2.size(); ++i) {
+        for (auto b : results2[i])
+          printf("%d", (int)b);
+        printf("\n");
+      }
+:::
+:::
+:::
+:::
+:::
+
+::: {#example-3-quantum-teleportation .section}
+### Example 3: Quantum teleportation[¶](#example-3-quantum-teleportation "Permalink to this heading"){.headerlink}
+
+Teleportation of a qubit state requires conditional corrections based on
+Bell-basis measurements.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def teleport() -> list[bool]:
+        results = [False, False, False]
+        q = cudaq.qvector(3)
+        x(q[0])
+
+        h(q[1])
+        x.ctrl(q[1], q[2])
+
+        x.ctrl(q[0], q[1])
+        h(q[0])
+
+        results[0] = mz(q[0])
+        results[1] = mz(q[1])
+
+        if results[1]:
+            x(q[2])
+        if results[0]:
+            z(q[2])
+
+        results[2] = mz(q[2])
+        return results
+
+
+    runs = cudaq.run(teleport, shots_count=100)
+    assert all(r[2] for r in runs), "Teleportation failed"
+    print(f"Teleportation succeeded on all {len(runs)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct teleport {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        x(q[0]);
+
+        h(q[1]);
+        x<cudaq::ctrl>(q[1], q[2]);
+
+        x<cudaq::ctrl>(q[0], q[1]);
+        h(q[0]);
+
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+
+        if (results[1])
+          x(q[2]);
+        if (results[0])
+          z(q[2]);
+
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results3 = cudaq::run(100, teleport{});
+      assert(std::ranges::all_of(results3, [](const auto &r) { return r[2]; }));
+      printf("Teleportation succeeded on all %zu shots\n", results3.size());
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#additional-notes .section}
+## Additional Notes[¶](#additional-notes "Permalink to this heading"){.headerlink}
+
+-   Users of [`sample_async`{.docutils .literal .notranslate}]{.pre}
+    with conditional-feedback kernels should migrate to
+    [`run_async`{.docutils .literal .notranslate}]{.pre}. See the [[run
+    specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the asynchronous API.
+
+-   [`run`{.docutils .literal .notranslate}]{.pre} supports a variety of
+    return types including scalars, vectors/lists, and user-defined data
+    structures. See the [[run specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the complete list of supported types and their
+    requirements.
+
+-   Assigning measurement results to named variables in kernels passed
+    to [`sample`{.docutils .literal .notranslate}]{.pre} is deprecated
+    and will be removed in a future release. Use [`run`{.docutils
+    .literal .notranslate}]{.pre} to retrieve individual measurement
+    results.
 :::
 :::
 :::
@@ -2005,10 +2448,10 @@ results.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](executing_kernels.html "Executing Kernels"){.btn .btn-neutral
-.float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](multi_gpu_workflows.html "Multi-GPU Workflows"){.btn
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
