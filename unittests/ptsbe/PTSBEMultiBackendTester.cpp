@@ -46,6 +46,7 @@ struct twoQubitNoMz {
 } // namespace
 
 CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
+  cudaq::set_random_seed(42);
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
   noise.add_all_qubit_channel("cx", cudaq::depolarization2(0.01));
@@ -82,6 +83,7 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
 }
 
 CUDAQ_TEST(PTSBEMultiBackendTest, MzBitFlipFullFlip) {
+  cudaq::set_random_seed(42);
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
 
@@ -93,6 +95,7 @@ CUDAQ_TEST(PTSBEMultiBackendTest, MzBitFlipFullFlip) {
 }
 
 CUDAQ_TEST(PTSBEMultiBackendTest, ImplicitMzPerQubitNoise) {
+  cudaq::set_random_seed(42);
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
   noise.add_channel("mz", {1}, cudaq::bit_flip_channel(1.0));

@@ -687,6 +687,7 @@ CUDAQ_TEST(PTSBESampleTest, NoiseCheckSimple) {
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, SampleWithMzNoiseBitFlipFullFlip) {
+  cudaq::set_random_seed(42);
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
 
