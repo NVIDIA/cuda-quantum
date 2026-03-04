@@ -287,6 +287,8 @@ if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}/lib/llvm"
 elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}"
+elif [ -x "@LLVM_BINARY_DIR@/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="@LLVM_BINARY_DIR@"
 else
 	error_exit "Cannot find clang++ in the CUDA-Q installation. Expected it under ${install_dir}/lib/llvm/bin/ or ${install_dir}/bin/."
 fi
@@ -321,8 +323,9 @@ CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 # Set sysroot for finding system headers and libraries. This is critical on macOS
 # where a custom-built clang doesn't know the SDK location (unlike Linux where
 # system headers are in standard /usr/include paths).
-# Always detect at runtime on macOS; the build-time path is specific to the
-# build machine and goes stale on Xcode updates. Users can override via CUDAQ_SYSROOT.
+# Always detect at runtime on macOS. The build-time path is specific to the
+# build machine and goes stale on Xcode updates or between machines.
+# Users can override via CUDAQ_SYSROOT.
 if ${CUDAQ_IS_APPLE}; then
 	CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-$(xcrun --show-sdk-path 2>/dev/null || echo "")}"
 fi
