@@ -246,6 +246,26 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#tii">TII</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/sample_vs_run.html">   When to Use sample vs. run</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#usage-guidelines">Usage Guidelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#what-is-supported-with-sample">What Is Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample">What Is Not Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#how-to-migrate">How to Migrate</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel">Step 1: Add a return type to the kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run">Step 2: Replace <code class="docutils literal notranslate"><span class="pre">sample</span></code> with <code class="docutils literal notranslate"><span class="pre">run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#step-3-update-result-processing">Step 3: Update result processing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#migration-examples">Migration Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic">Example 1: Simple conditional logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results">Example 2: Returning multiple measurement results</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#example-3-quantum-teleportation">Example 3: Quantum teleportation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#additional-notes">Additional Notes</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/dynamics_examples.html">   Dynamics Examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html">   Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?">Why dynamics simulations vs. circuit simulations?</a></li>
@@ -1116,7 +1136,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="aec99c7dc8fa46c1bb72770c0223445d" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="979861a5b2594890b27360245c2e89c8" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -1164,7 +1184,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="33f976ea4eab43b2ba3f4a46856b5545" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="048e5f9788a94b398e880b27419e9b2a" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>

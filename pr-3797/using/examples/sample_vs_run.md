@@ -14,89 +14,79 @@ pr-3797
 ::: {.wy-menu .wy-menu-vertical spy="affix" role="navigation" aria-label="Navigation menu"}
 [Contents]{.caption-text}
 
--   [Quick Start](../../using/quick_start.html){.reference .internal}
-    -   [Install
-        CUDA-Q](../../using/quick_start.html#install-cuda-q){.reference
+-   [Quick Start](../quick_start.html){.reference .internal}
+    -   [Install CUDA-Q](../quick_start.html#install-cuda-q){.reference
         .internal}
     -   [Validate your
-        Installation](../../using/quick_start.html#validate-your-installation){.reference
+        Installation](../quick_start.html#validate-your-installation){.reference
         .internal}
     -   [CUDA-Q
-        Academic](../../using/quick_start.html#cuda-q-academic){.reference
+        Academic](../quick_start.html#cuda-q-academic){.reference
         .internal}
--   [Basics](../../using/basics/basics.html){.reference .internal}
+-   [Basics](../basics/basics.html){.reference .internal}
     -   [What is a CUDA-Q
-        Kernel?](../../using/basics/kernel_intro.html){.reference
-        .internal}
+        Kernel?](../basics/kernel_intro.html){.reference .internal}
     -   [Building your first CUDA-Q
-        Program](../../using/basics/build_kernel.html){.reference
-        .internal}
+        Program](../basics/build_kernel.html){.reference .internal}
     -   [Running your first CUDA-Q
-        Program](../../using/basics/run_kernel.html){.reference
-        .internal}
-        -   [Sample](../../using/basics/run_kernel.html#sample){.reference
+        Program](../basics/run_kernel.html){.reference .internal}
+        -   [Sample](../basics/run_kernel.html#sample){.reference
             .internal}
-        -   [Run](../../using/basics/run_kernel.html#run){.reference
-            .internal}
-        -   [Observe](../../using/basics/run_kernel.html#observe){.reference
+        -   [Run](../basics/run_kernel.html#run){.reference .internal}
+        -   [Observe](../basics/run_kernel.html#observe){.reference
             .internal}
         -   [Running on a
-            GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
+            GPU](../basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
-    -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
+    -   [Troubleshooting](../basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
-            Output](../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
+            Output](../basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
--   [Examples](../../using/examples/examples.html){.reference .internal}
-    -   [Introduction](../../using/examples/introduction.html){.reference
-        .internal}
-    -   [Building
-        Kernels](../../using/examples/building_kernels.html){.reference
-        .internal}
+-   [Examples](examples.html){.reference .internal}
+    -   [Introduction](introduction.html){.reference .internal}
+    -   [Building Kernels](building_kernels.html){.reference .internal}
         -   [Defining
-            Kernels](../../using/examples/building_kernels.html#defining-kernels){.reference
+            Kernels](building_kernels.html#defining-kernels){.reference
             .internal}
         -   [Initializing
-            states](../../using/examples/building_kernels.html#initializing-states){.reference
+            states](building_kernels.html#initializing-states){.reference
             .internal}
         -   [Applying
-            Gates](../../using/examples/building_kernels.html#applying-gates){.reference
+            Gates](building_kernels.html#applying-gates){.reference
             .internal}
         -   [Controlled
-            Operations](../../using/examples/building_kernels.html#controlled-operations){.reference
+            Operations](building_kernels.html#controlled-operations){.reference
             .internal}
         -   [Multi-Controlled
-            Operations](../../using/examples/building_kernels.html#multi-controlled-operations){.reference
+            Operations](building_kernels.html#multi-controlled-operations){.reference
             .internal}
         -   [Adjoint
-            Operations](../../using/examples/building_kernels.html#adjoint-operations){.reference
+            Operations](building_kernels.html#adjoint-operations){.reference
             .internal}
         -   [Custom
-            Operations](../../using/examples/building_kernels.html#custom-operations){.reference
+            Operations](building_kernels.html#custom-operations){.reference
             .internal}
         -   [Building Kernels with
-            Kernels](../../using/examples/building_kernels.html#building-kernels-with-kernels){.reference
+            Kernels](building_kernels.html#building-kernels-with-kernels){.reference
             .internal}
         -   [Parameterized
-            Kernels](../../using/examples/building_kernels.html#parameterized-kernels){.reference
+            Kernels](building_kernels.html#parameterized-kernels){.reference
             .internal}
-    -   [Quantum
-        Operations](../../using/examples/quantum_operations.html){.reference
+    -   [Quantum Operations](quantum_operations.html){.reference
         .internal}
         -   [Quantum
-            States](../../using/examples/quantum_operations.html#quantum-states){.reference
+            States](quantum_operations.html#quantum-states){.reference
             .internal}
         -   [Quantum
-            Gates](../../using/examples/quantum_operations.html#quantum-gates){.reference
+            Gates](quantum_operations.html#quantum-gates){.reference
             .internal}
-        -   [Measurements](../../using/examples/quantum_operations.html#measurements){.reference
+        -   [Measurements](quantum_operations.html#measurements){.reference
             .internal}
-    -   [Measuring
-        Kernels](../../using/examples/measuring_kernels.html){.reference
+    -   [Measuring Kernels](measuring_kernels.html){.reference
         .internal}
         -   [Mid-circuit Measurement and Conditional
-            Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
+            Logic](measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
     -   [Visualizing
         Kernels](../../examples/python/visualization.html){.reference
@@ -107,62 +97,57 @@ pr-3797
         -   [Kernel
             Visualization](../../examples/python/visualization.html#Kernel-Visualization){.reference
             .internal}
-    -   [Executing
-        Kernels](../../using/examples/executing_kernels.html){.reference
+    -   [Executing Kernels](executing_kernels.html){.reference
         .internal}
-        -   [Sample](../../using/examples/executing_kernels.html#sample){.reference
+        -   [Sample](executing_kernels.html#sample){.reference
             .internal}
             -   [Sample
-                Asynchronous](../../using/examples/executing_kernels.html#sample-asynchronous){.reference
+                Asynchronous](executing_kernels.html#sample-asynchronous){.reference
                 .internal}
-        -   [Run](../../using/examples/executing_kernels.html#run){.reference
-            .internal}
+        -   [Run](executing_kernels.html#run){.reference .internal}
             -   [Return Custom Data
-                Types](../../using/examples/executing_kernels.html#return-custom-data-types){.reference
+                Types](executing_kernels.html#return-custom-data-types){.reference
                 .internal}
             -   [Run
-                Asynchronous](../../using/examples/executing_kernels.html#run-asynchronous){.reference
+                Asynchronous](executing_kernels.html#run-asynchronous){.reference
                 .internal}
-        -   [Observe](../../using/examples/executing_kernels.html#observe){.reference
+        -   [Observe](executing_kernels.html#observe){.reference
             .internal}
             -   [Observe
-                Asynchronous](../../using/examples/executing_kernels.html#observe-asynchronous){.reference
+                Asynchronous](executing_kernels.html#observe-asynchronous){.reference
                 .internal}
-        -   [Get
-            State](../../using/examples/executing_kernels.html#get-state){.reference
+        -   [Get State](executing_kernels.html#get-state){.reference
             .internal}
             -   [Get State
-                Asynchronous](../../using/examples/executing_kernels.html#get-state-asynchronous){.reference
+                Asynchronous](executing_kernels.html#get-state-asynchronous){.reference
                 .internal}
     -   [Computing Expectation
-        Values](../../using/examples/expectation_values.html){.reference
-        .internal}
+        Values](expectation_values.html){.reference .internal}
         -   [Parallelizing across Multiple
-            Processors](../../using/examples/expectation_values.html#parallelizing-across-multiple-processors){.reference
+            Processors](expectation_values.html#parallelizing-across-multiple-processors){.reference
             .internal}
-    -   [Multi-GPU
-        Workflows](../../using/examples/multi_gpu_workflows.html){.reference
+    -   [Multi-GPU Workflows](multi_gpu_workflows.html){.reference
         .internal}
         -   [From CPU to
-            GPU](../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
+            GPU](multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
         -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
             .internal}
         -   [Parallel execution over multiple QPUs ([`mqpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
-                Terms](../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
+                Terms](multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
                 .internal}
             -   [Circuit
-                Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
+                Batching](multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
         -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -218,14 +203,12 @@ pr-3797
         -   [Inspecting trajectories with execution
             data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
-    -   [Constructing
-        Operators](../../using/examples/operators.html){.reference
-        .internal}
+    -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
-            Operators](../../using/examples/operators.html#constructing-spin-operators){.reference
+            Operators](operators.html#constructing-spin-operators){.reference
             .internal}
         -   [Pauli Words and Exponentiating Pauli
-            Words](../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words){.reference
+            Words](operators.html#pauli-words-and-exponentiating-pauli-words){.reference
             .internal}
     -   [Performance
         Optimizations](../../examples/python/performance_optimizations.html){.reference
@@ -234,86 +217,70 @@ pr-3797
             Fusion](../../examples/python/performance_optimizations.html#Gate-Fusion){.reference
             .internal}
     -   [Using Quantum Hardware
-        Providers](../../using/examples/hardware_providers.html){.reference
-        .internal}
+        Providers](hardware_providers.html){.reference .internal}
         -   [Amazon
-            Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
+            Braket](hardware_providers.html#amazon-braket){.reference
             .internal}
         -   [Anyon
-            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            Technologies](hardware_providers.html#anyon-technologies){.reference
             .internal}
-        -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
+        -   [Infleqtion](hardware_providers.html#infleqtion){.reference
             .internal}
-        -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
-            .internal}
-        -   [IQM](../../using/examples/hardware_providers.html#iqm){.reference
-            .internal}
-        -   [OQC](../../using/examples/hardware_providers.html#oqc){.reference
-            .internal}
+        -   [IonQ](hardware_providers.html#ionq){.reference .internal}
+        -   [IQM](hardware_providers.html#iqm){.reference .internal}
+        -   [OQC](hardware_providers.html#oqc){.reference .internal}
         -   [ORCA
-            Computing](../../using/examples/hardware_providers.html#orca-computing){.reference
+            Computing](hardware_providers.html#orca-computing){.reference
             .internal}
-        -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
+        -   [Pasqal](hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [Quantinuum](hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            Inc.](hardware_providers.html#quantum-circuits-inc){.reference
             .internal}
         -   [Quantum
-            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
+            Machines](hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
-            Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
+            Computing](hardware_providers.html#quera-computing){.reference
             .internal}
-        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+        -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
-        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
-            .internal}
-    -   [When to Use sample vs.
-        run](../../using/examples/sample_vs_run.html){.reference
-        .internal}
-        -   [Introduction](../../using/examples/sample_vs_run.html#introduction){.reference
-            .internal}
-        -   [Usage
-            Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
-            .internal}
+        -   [TII](hardware_providers.html#tii){.reference .internal}
+    -   [When to Use sample vs. run](#){.current .reference .internal}
+        -   [Introduction](#introduction){.reference .internal}
+        -   [Usage Guidelines](#usage-guidelines){.reference .internal}
         -   [What Is Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-supported-with-sample){.reference
             .internal}
         -   [What Is Not Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-not-supported-with-sample){.reference
             .internal}
-        -   [How to
-            Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
-            .internal}
+        -   [How to Migrate](#how-to-migrate){.reference .internal}
             -   [Step 1: Add a return type to the
-                kernel](../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                kernel](#step-1-add-a-return-type-to-the-kernel){.reference
                 .internal}
             -   [Step 2: Replace [`sample`{.docutils .literal
                 .notranslate}]{.pre} with [`run`{.docutils .literal
-                .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .notranslate}]{.pre}](#step-2-replace-sample-with-run){.reference
                 .internal}
             -   [Step 3: Update result
-                processing](../../using/examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                processing](#step-3-update-result-processing){.reference
                 .internal}
-        -   [Migration
-            Examples](../../using/examples/sample_vs_run.html#migration-examples){.reference
+        -   [Migration Examples](#migration-examples){.reference
             .internal}
             -   [Example 1: Simple conditional
-                logic](../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                logic](#example-1-simple-conditional-logic){.reference
                 .internal}
             -   [Example 2: Returning multiple measurement
-                results](../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                results](#example-2-returning-multiple-measurement-results){.reference
                 .internal}
             -   [Example 3: Quantum
-                teleportation](../../using/examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                teleportation](#example-3-quantum-teleportation){.reference
                 .internal}
-        -   [Additional
-            Notes](../../using/examples/sample_vs_run.html#additional-notes){.reference
-            .internal}
-    -   [Dynamics
-        Examples](../../using/examples/dynamics_examples.html){.reference
+        -   [Additional Notes](#additional-notes){.reference .internal}
+    -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
             Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
@@ -406,925 +373,956 @@ pr-3797
                 .internal}
             -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
                 .internal}
--   [Applications](../../using/applications.html){.reference .internal}
-    -   [Max-Cut with QAOA](#){.current .reference .internal}
+-   [Applications](../applications.html){.reference .internal}
+    -   [Max-Cut with
+        QAOA](../../applications/python/qaoa.html){.reference .internal}
     -   [Molecular docking via
-        DC-QAOA](digitized_counterdiabatic_qaoa.html){.reference
+        DC-QAOA](../../applications/python/digitized_counterdiabatic_qaoa.html){.reference
         .internal}
         -   [Setting up the Molecular Docking
-            Problem](digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
+            Problem](../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
             .internal}
         -   [CUDA-Q
-            Implementation](digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
+            Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
-        .notranslate .nohighlight} Molecule](krylov.html){.reference
+        .notranslate .nohighlight}
+        Molecule](../../applications/python/krylov.html){.reference
         .internal}
-        -   [Setup](krylov.html#Setup){.reference .internal}
+        -   [Setup](../../applications/python/krylov.html#Setup){.reference
+            .internal}
         -   [Computing the matrix
-            elements](krylov.html#Computing-the-matrix-elements){.reference
+            elements](../../applications/python/krylov.html#Computing-the-matrix-elements){.reference
             .internal}
         -   [Determining the ground state energy of the
-            subspace](krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
+            subspace](../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
     -   [Quantum-Selected Configuration Interaction
-        (QSCI)](qsci.html){.reference .internal}
+        (QSCI)](../../applications/python/qsci.html){.reference
+        .internal}
         -   [0. Problem
-            definition](qsci.html#0.-Problem-definition){.reference
+            definition](../../applications/python/qsci.html#0.-Problem-definition){.reference
             .internal}
         -   [1. Prepare an Approximate Quantum
-            State](qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            State](../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
             .internal}
         -   [2 Quantum Sampling to Select
-            Configuration](qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            Configuration](../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
             .internal}
         -   [3. Classical Diagonalization on the Selected
-            Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
         -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
+            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
             .internal}
-        -   [Reference](qsci.html#Reference){.reference .internal}
+        -   [Reference](../../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
-        Algorithm](bernstein_vazirani.html){.reference .internal}
+        Algorithm](../../applications/python/bernstein_vazirani.html){.reference
+        .internal}
         -   [Classical
-            case](bernstein_vazirani.html#Classical-case){.reference
+            case](../../applications/python/bernstein_vazirani.html#Classical-case){.reference
             .internal}
         -   [Quantum
-            case](bernstein_vazirani.html#Quantum-case){.reference
+            case](../../applications/python/bernstein_vazirani.html#Quantum-case){.reference
             .internal}
         -   [Implementing in
-            CUDA-Q](bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
+            CUDA-Q](../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
             .internal}
-    -   [Cost Minimization](cost_minimization.html){.reference
+    -   [Cost
+        Minimization](../../applications/python/cost_minimization.html){.reference
         .internal}
-    -   [Deutsch's Algorithm](deutsch_algorithm.html){.reference
+    -   [Deutsch's
+        Algorithm](../../applications/python/deutsch_algorithm.html){.reference
         .internal}
         -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](deutsch_algorithm.html#XOR-\oplus){.reference
+            .nohighlight}](../../applications/python/deutsch_algorithm.html#XOR-\oplus){.reference
             .internal}
         -   [Quantum
-            oracles](deutsch_algorithm.html#Quantum-oracles){.reference
+            oracles](../../applications/python/deutsch_algorithm.html#Quantum-oracles){.reference
             .internal}
         -   [Phase
-            oracle](deutsch_algorithm.html#Phase-oracle){.reference
+            oracle](../../applications/python/deutsch_algorithm.html#Phase-oracle){.reference
             .internal}
         -   [Quantum
-            parallelism](deutsch_algorithm.html#Quantum-parallelism){.reference
+            parallelism](../../applications/python/deutsch_algorithm.html#Quantum-parallelism){.reference
             .internal}
         -   [Deutsch's
-            Algorithm:](deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
+            Algorithm:](../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
             .internal}
     -   [Divisive Clustering With Coresets Using
-        CUDA-Q](divisive_clustering_coresets.html){.reference .internal}
+        CUDA-Q](../../applications/python/divisive_clustering_coresets.html){.reference
+        .internal}
         -   [Data
-            preprocessing](divisive_clustering_coresets.html#Data-preprocessing){.reference
+            preprocessing](../../applications/python/divisive_clustering_coresets.html#Data-preprocessing){.reference
             .internal}
         -   [Quantum
-            functions](divisive_clustering_coresets.html#Quantum-functions){.reference
+            functions](../../applications/python/divisive_clustering_coresets.html#Quantum-functions){.reference
             .internal}
         -   [Divisive Clustering
-            Function](divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
+            Function](../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
             .internal}
         -   [QAOA
-            Implementation](divisive_clustering_coresets.html#QAOA-Implementation){.reference
+            Implementation](../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation){.reference
             .internal}
         -   [Scaling simulations with
-            CUDA-Q](divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
+            CUDA-Q](../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
             .internal}
     -   [Hybrid Quantum Neural
-        Networks](hybrid_quantum_neural_networks.html){.reference
+        Networks](../../applications/python/hybrid_quantum_neural_networks.html){.reference
         .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
-        Decomposition Matrix Elements](hadamard_test.html){.reference
+        Decomposition Matrix
+        Elements](../../applications/python/hadamard_test.html){.reference
         .internal}
         -   [Numerical result as a
-            reference:](hadamard_test.html#Numerical-result-as-a-reference:){.reference
+            reference:](../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
         -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
             perform the Hadamard
-            test](hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
+            test](../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
             Hadamard
-            Test](hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test){.reference
+            Test](../../applications/python/hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test){.reference
             .internal}
             -   [Classically Diagonalize the Subspace
-                Matrix](hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
+                Matrix](../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
     -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](logical_aim_sqale.html){.reference .internal}
+        Sqale](../../applications/python/logical_aim_sqale.html){.reference
+        .internal}
         -   [Performing logical Variational Quantum Eigensolver (VQE)
             with
-            CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
+            CUDA-QX](../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
         -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
             .literal .notranslate}]{.pre}
-            encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
+            encoding](../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
-            workflow](logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
+            workflow](../../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
             .internal}
         -   [Running a CUDA-Q noisy
-            simulation](logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
+            simulation](../../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
             .internal}
         -   [Running logical AIM on Infleqtion's
-            hardware](logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
+            hardware](../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
             .internal}
     -   [Spin-Hamiltonian Simulation Using
-        CUDA-Q](hamiltonian_simulation.html){.reference .internal}
-        -   [Introduction](hamiltonian_simulation.html#Introduction){.reference
+        CUDA-Q](../../applications/python/hamiltonian_simulation.html){.reference
+        .internal}
+        -   [Introduction](../../applications/python/hamiltonian_simulation.html#Introduction){.reference
             .internal}
             -   [Heisenberg
-                Hamiltonian](hamiltonian_simulation.html#Heisenberg-Hamiltonian){.reference
+                Hamiltonian](../../applications/python/hamiltonian_simulation.html#Heisenberg-Hamiltonian){.reference
                 .internal}
             -   [Transverse Field Ising Model
-                (TFIM)](hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)){.reference
+                (TFIM)](../../applications/python/hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)){.reference
                 .internal}
             -   [Time Evolution and Trotter
-                Decomposition](hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition){.reference
+                Decomposition](../../applications/python/hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition){.reference
                 .internal}
         -   [Key
-            steps](hamiltonian_simulation.html#Key-steps){.reference
+            steps](../../applications/python/hamiltonian_simulation.html#Key-steps){.reference
             .internal}
             -   [1. Prepare initial
-                state](hamiltonian_simulation.html#1.-Prepare-initial-state){.reference
+                state](../../applications/python/hamiltonian_simulation.html#1.-Prepare-initial-state){.reference
                 .internal}
             -   [2. Hamiltonian
-                Trotterization](hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
+                Trotterization](../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
             -   [3. [`Compute`{.docutils .literal
                 .notranslate}]{.pre}` `{.docutils .literal
                 .notranslate}[`overlap`{.docutils .literal
-                .notranslate}]{.pre}](hamiltonian_simulation.html#3.-Compute-overlap){.reference
+                .notranslate}]{.pre}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
-                Hamiltonian](hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
+                Hamiltonian](../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
                 .internal}
             -   [5. Construct TFIM
-                Hamiltonian](hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian){.reference
+                Hamiltonian](../../applications/python/hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian){.reference
                 .internal}
             -   [6. Extract coefficients and Pauli
-                words](hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words){.reference
+                words](../../applications/python/hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words){.reference
                 .internal}
         -   [Main
-            code](hamiltonian_simulation.html#Main-code){.reference
+            code](../../applications/python/hamiltonian_simulation.html#Main-code){.reference
             .internal}
         -   [Visualization of probablity over
-            time](hamiltonian_simulation.html#Visualization-of-probablity-over-time){.reference
+            time](../../applications/python/hamiltonian_simulation.html#Visualization-of-probablity-over-time){.reference
             .internal}
         -   [Expectation value over
-            time:](hamiltonian_simulation.html#Expectation-value-over-time:){.reference
+            time:](../../applications/python/hamiltonian_simulation.html#Expectation-value-over-time:){.reference
             .internal}
         -   [Visualization of expectation over
-            time](hamiltonian_simulation.html#Visualization-of-expectation-over-time){.reference
+            time](../../applications/python/hamiltonian_simulation.html#Visualization-of-expectation-over-time){.reference
             .internal}
         -   [Additional
-            information](hamiltonian_simulation.html#Additional-information){.reference
+            information](../../applications/python/hamiltonian_simulation.html#Additional-information){.reference
             .internal}
         -   [Relevant
-            references](hamiltonian_simulation.html#Relevant-references){.reference
+            references](../../applications/python/hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
     -   [Quantum Fourier
-        Transform](quantum_fourier_transform.html){.reference .internal}
+        Transform](../../applications/python/quantum_fourier_transform.html){.reference
+        .internal}
         -   [Quantum Fourier Transform
-            revisited](quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
+            revisited](../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
             .internal}
-    -   [Quantum Teleporation](quantum_teleportation.html){.reference
+    -   [Quantum
+        Teleporation](../../applications/python/quantum_teleportation.html){.reference
         .internal}
         -   [Teleportation
-            explained](quantum_teleportation.html#Teleportation-explained){.reference
+            explained](../../applications/python/quantum_teleportation.html#Teleportation-explained){.reference
             .internal}
-    -   [Quantum Volume](quantum_volume.html){.reference .internal}
+    -   [Quantum
+        Volume](../../applications/python/quantum_volume.html){.reference
+        .internal}
     -   [Readout Error
-        Mitigation](readout_error_mitigation.html){.reference .internal}
+        Mitigation](../../applications/python/readout_error_mitigation.html){.reference
+        .internal}
         -   [Inverse confusion matrix from single-qubit noise
-            model](readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model){.reference
+            model](../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model){.reference
             .internal}
         -   [Inverse confusion matrix from k local confusion
-            matrices](readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices){.reference
+            matrices](../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices){.reference
             .internal}
         -   [Inverse of full confusion
-            matrix](readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
+            matrix](../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
             .internal}
     -   [Compiling Unitaries Using Diffusion
-        Models](unitary_compilation_diffusion_models.html){.reference
+        Models](../../applications/python/unitary_compilation_diffusion_models.html){.reference
         .internal}
         -   [Diffusion model
-            pipeline](unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
+            pipeline](../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
             .internal}
         -   [Setup and load
-            models](unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
+            models](../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
             .internal}
             -   [Load discrete
-                model](unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
+                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
                 .internal}
             -   [Load continuous
-                model](unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
+                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
                 .internal}
             -   [Create helper
-                functions](unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
+                functions](../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
                 .internal}
         -   [Unitary
-            compilation](unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
+            compilation](../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
             .internal}
             -   [Random
-                unitary](unitary_compilation_diffusion_models.html#Random-unitary){.reference
+                unitary](../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary){.reference
                 .internal}
             -   [Discrete
-                model](unitary_compilation_diffusion_models.html#Discrete-model){.reference
+                model](../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model){.reference
                 .internal}
             -   [Continuous
-                model](unitary_compilation_diffusion_models.html#Continuous-model){.reference
+                model](../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model){.reference
                 .internal}
             -   [Quantum Fourier
-                transform](unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
+                transform](../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
                 .internal}
             -   [XXZ-Hamiltonian
-                evolution](unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
+                evolution](../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
                 .internal}
         -   [Choosing the circuit you
-            need](unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
+            need](../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
             .internal}
     -   [VQE with gradients, active spaces, and gate
-        fusion](vqe_advanced.html){.reference .internal}
+        fusion](../../applications/python/vqe_advanced.html){.reference
+        .internal}
         -   [The Basics of
-            VQE](vqe_advanced.html#The-Basics-of-VQE){.reference
+            VQE](../../applications/python/vqe_advanced.html#The-Basics-of-VQE){.reference
             .internal}
         -   [Installing/Loading Relevant
-            Packages](vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
+            Packages](../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
             .internal}
         -   [Implementing VQE in
-            CUDA-Q](vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
+            CUDA-Q](../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
             .internal}
         -   [Parallel Parameter Shift
-            Gradients](vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
+            Gradients](../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
             .internal}
         -   [Using an Active
-            Space](vqe_advanced.html#Using-an-Active-Space){.reference
+            Space](../../applications/python/vqe_advanced.html#Using-an-Active-Space){.reference
             .internal}
         -   [Gate Fusion for Larger
-            Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
+            Circuits](../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum Transformer](quantum_transformer.html){.reference
+    -   [Quantum
+        Transformer](../../applications/python/quantum_transformer.html){.reference
         .internal}
-        -   [Installation](quantum_transformer.html#Installation){.reference
+        -   [Installation](../../applications/python/quantum_transformer.html#Installation){.reference
             .internal}
         -   [Algorithm and
-            Example](quantum_transformer.html#Algorithm-and-Example){.reference
+            Example](../../applications/python/quantum_transformer.html#Algorithm-and-Example){.reference
             .internal}
             -   [Creating the self-attention
-                circuits](quantum_transformer.html#Creating-the-self-attention-circuits){.reference
+                circuits](../../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits){.reference
                 .internal}
-        -   [Usage](quantum_transformer.html#Usage){.reference
+        -   [Usage](../../applications/python/quantum_transformer.html#Usage){.reference
             .internal}
             -   [Model
-                Training](quantum_transformer.html#Model-Training){.reference
+                Training](../../applications/python/quantum_transformer.html#Model-Training){.reference
                 .internal}
             -   [Generating
-                Molecules](quantum_transformer.html#Generating-Molecules){.reference
+                Molecules](../../applications/python/quantum_transformer.html#Generating-Molecules){.reference
                 .internal}
             -   [Attention
-                Maps](quantum_transformer.html#Attention-Maps){.reference
+                Maps](../../applications/python/quantum_transformer.html#Attention-Maps){.reference
                 .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
-        Carlo](afqmc.html){.reference .internal}
+        Carlo](../../applications/python/afqmc.html){.reference
+        .internal}
         -   [Hamiltonian preparation for
-            VQE](afqmc.html#Hamiltonian-preparation-for-VQE){.reference
+            VQE](../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE){.reference
             .internal}
         -   [Run VQE with
-            CUDA-Q](afqmc.html#Run-VQE-with-CUDA-Q){.reference
+            CUDA-Q](../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q){.reference
             .internal}
         -   [Auxiliary Field Quantum Monte Carlo
-            (AFQMC)](afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)){.reference
+            (AFQMC)](../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)){.reference
             .internal}
         -   [Preparation of the molecular
-            Hamiltonian](afqmc.html#Preparation-of-the-molecular-Hamiltonian){.reference
+            Hamiltonian](../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian){.reference
             .internal}
         -   [Preparation of the trial wave
-            function](afqmc.html#Preparation-of-the-trial-wave-function){.reference
+            function](../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function){.reference
             .internal}
         -   [Setup of the AFQMC
-            parameters](afqmc.html#Setup-of-the-AFQMC-parameters){.reference
+            parameters](../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA algorithm](adapt_qaoa.html){.reference .internal}
+    -   [ADAPT-QAOA
+        algorithm](../../applications/python/adapt_qaoa.html){.reference
+        .internal}
         -   [Simulation
-            input:](adapt_qaoa.html#Simulation-input:){.reference
+            input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
             .internal}
         -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
-            graph:](adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
+            graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
         -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](adapt_qaoa.html#Th-operator-pool-A_j:){.reference
+            .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
         -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
+            .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
-            iteration:](adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
+            iteration:](../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
             .internal}
-    -   [ADAPT-VQE algorithm](adapt_vqe.html){.reference .internal}
+    -   [ADAPT-VQE
+        algorithm](../../applications/python/adapt_vqe.html){.reference
+        .internal}
         -   [Classical
-            pre-processing](adapt_vqe.html#Classical-pre-processing){.reference
+            pre-processing](../../applications/python/adapt_vqe.html#Classical-pre-processing){.reference
             .internal}
-        -   [Jordan Wigner:](adapt_vqe.html#Jordan-Wigner:){.reference
+        -   [Jordan
+            Wigner:](../../applications/python/adapt_vqe.html#Jordan-Wigner:){.reference
             .internal}
         -   [UCCSD operator
-            pool](adapt_vqe.html#UCCSD-operator-pool){.reference
+            pool](../../applications/python/adapt_vqe.html#UCCSD-operator-pool){.reference
             .internal}
             -   [Single
-                excitation](adapt_vqe.html#Single-excitation){.reference
+                excitation](../../applications/python/adapt_vqe.html#Single-excitation){.reference
                 .internal}
             -   [Double
-                excitation](adapt_vqe.html#Double-excitation){.reference
+                excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
             [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
+            .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
-            State:](adapt_vqe.html#Reference-State:){.reference
+            State:](../../applications/python/adapt_vqe.html#Reference-State:){.reference
             .internal}
         -   [Quantum
-            kernels:](adapt_vqe.html#Quantum-kernels:){.reference
+            kernels:](../../applications/python/adapt_vqe.html#Quantum-kernels:){.reference
             .internal}
         -   [Beginning of
-            ADAPT-VQE:](adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
+            ADAPT-VQE:](../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
             .internal}
-    -   [Quantum edge detection](edge_detection.html){.reference
+    -   [Quantum edge
+        detection](../../applications/python/edge_detection.html){.reference
         .internal}
-        -   [Image](edge_detection.html#Image){.reference .internal}
+        -   [Image](../../applications/python/edge_detection.html#Image){.reference
+            .internal}
         -   [Quantum Probability Image Encoding
-            (QPIE):](edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
+            (QPIE):](../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
             .internal}
             -   [Below we show how to encode an image using QPIE in
-                cudaq.](edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
+                cudaq.](../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
                 .internal}
         -   [Flexible Representation of Quantum Images
-            (FRQI):](edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
+            (FRQI):](../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
             .internal}
             -   [Building the FRQI
-                State:](edge_detection.html#Building-the-FRQI-State:){.reference
+                State:](../../applications/python/edge_detection.html#Building-the-FRQI-State:){.reference
                 .internal}
         -   [Quantum Hadamard Edge Detection
-            (QHED)](edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
+            (QHED)](../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
             .internal}
-            -   [Post-processing](edge_detection.html#Post-processing){.reference
+            -   [Post-processing](../../applications/python/edge_detection.html#Post-processing){.reference
                 .internal}
     -   [Factoring Integers With Shor's
-        Algorithm](shors.html){.reference .internal}
-        -   [Shor's algorithm](shors.html#Shor's-algorithm){.reference
+        Algorithm](../../applications/python/shors.html){.reference
+        .internal}
+        -   [Shor's
+            algorithm](../../applications/python/shors.html#Shor's-algorithm){.reference
             .internal}
             -   [Solving the order-finding problem
-                classically](shors.html#Solving-the-order-finding-problem-classically){.reference
+                classically](../../applications/python/shors.html#Solving-the-order-finding-problem-classically){.reference
                 .internal}
             -   [Solving the order-finding problem with a quantum
-                algorithm](shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm){.reference
+                algorithm](../../applications/python/shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm){.reference
                 .internal}
             -   [Determining the order from the measurement results of
                 the phase
-                kernel](shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel){.reference
+                kernel](../../applications/python/shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel){.reference
                 .internal}
-            -   [Postscript](shors.html#Postscript){.reference
+            -   [Postscript](../../applications/python/shors.html#Postscript){.reference
                 .internal}
     -   [Generating the electronic
-        Hamiltonian](generate_fermionic_ham.html){.reference .internal}
+        Hamiltonian](../../applications/python/generate_fermionic_ham.html){.reference
+        .internal}
         -   [Second Quantized
-            formulation.](generate_fermionic_ham.html#Second-Quantized-formulation.){.reference
+            formulation.](../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.){.reference
             .internal}
             -   [Computational
-                Implementation](generate_fermionic_ham.html#Computational-Implementation){.reference
+                Implementation](../../applications/python/generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
             -   [(a) Generate the molecular Hamiltonian using Restricted
                 Hartree Fock molecular
-                orbitals](generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
+                orbitals](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
             -   [(b) Generate the molecular Hamiltonian using
                 Unrestricted Hartree Fock molecular
-                orbitals](generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                orbitals](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
             -   [(a) Generate the active space hamiltonian using RHF
                 molecular
-                orbitals.](generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                orbitals.](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
                 .internal}
             -   [(b) Generate the active space Hamiltonian using the
                 natural orbitals computed from MP2
-                simulation](generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                simulation](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
                 .internal}
             -   [(c) Generate the active space Hamiltonian computed from
                 the CASSCF molecular
-                orbitals](generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                orbitals](../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
                 .internal}
             -   [(d) Generate the electronic Hamiltonian using
-                ROHF](generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                ROHF](../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
                 .internal}
             -   [(e) Generate electronic Hamiltonian using
-                UHF](generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
+                UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's Algorithm](grovers.html){.reference .internal}
-        -   [Overview](grovers.html#Overview){.reference .internal}
-        -   [Problem](grovers.html#Problem){.reference .internal}
+    -   [Grover's
+        Algorithm](../../applications/python/grovers.html){.reference
+        .internal}
+        -   [Overview](../../applications/python/grovers.html#Overview){.reference
+            .internal}
+        -   [Problem](../../applications/python/grovers.html#Problem){.reference
+            .internal}
         -   [Structure of Grover's
-            Algorithm](grovers.html#Structure-of-Grover's-Algorithm){.reference
+            Algorithm](../../applications/python/grovers.html#Structure-of-Grover's-Algorithm){.reference
             .internal}
             -   [Step 1:
-                Preparation](grovers.html#Step-1:-Preparation){.reference
+                Preparation](../../applications/python/grovers.html#Step-1:-Preparation){.reference
                 .internal}
             -   [Good and Bad
-                States](grovers.html#Good-and-Bad-States){.reference
+                States](../../applications/python/grovers.html#Good-and-Bad-States){.reference
                 .internal}
             -   [Step 2: Oracle
-                application](grovers.html#Step-2:-Oracle-application){.reference
+                application](../../applications/python/grovers.html#Step-2:-Oracle-application){.reference
                 .internal}
             -   [Step 3: Amplitude
-                amplification](grovers.html#Step-3:-Amplitude-amplification){.reference
+                amplification](../../applications/python/grovers.html#Step-3:-Amplitude-amplification){.reference
                 .internal}
             -   [Steps 4 and 5: Iteration and
-                measurement](grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
+                measurement](../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
                 .internal}
-    -   [Quantum PageRank](quantum_pagerank.html){.reference .internal}
+    -   [Quantum
+        PageRank](../../applications/python/quantum_pagerank.html){.reference
+        .internal}
         -   [Problem
-            Definition](quantum_pagerank.html#Problem-Definition){.reference
+            Definition](../../applications/python/quantum_pagerank.html#Problem-Definition){.reference
             .internal}
         -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
+            dynamics](../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
             .internal}
         -   [Breakdown of
-            Terms](quantum_pagerank.html#Breakdown-of-Terms){.reference
+            Terms](../../applications/python/quantum_pagerank.html#Breakdown-of-Terms){.reference
             .internal}
-    -   [The UCCSD Wavefunction ansatz](uccsd_wf_ansatz.html){.reference
+    -   [The UCCSD Wavefunction
+        ansatz](../../applications/python/uccsd_wf_ansatz.html){.reference
         .internal}
         -   [What is
-            UCCSD?](uccsd_wf_ansatz.html#What-is-UCCSD?){.reference
+            UCCSD?](../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?){.reference
             .internal}
         -   [Implementation in Quantum
-            Computing](uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing){.reference
+            Computing](../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing){.reference
             .internal}
-        -   [Run VQE](uccsd_wf_ansatz.html#Run-VQE){.reference
+        -   [Run
+            VQE](../../applications/python/uccsd_wf_ansatz.html#Run-VQE){.reference
             .internal}
         -   [Challenges and
-            consideration](uccsd_wf_ansatz.html#Challenges-and-consideration){.reference
+            consideration](../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration){.reference
             .internal}
     -   [Approximate State Preparation using MPS Sequential
-        Encoding](mps_encoding.html){.reference .internal}
+        Encoding](../../applications/python/mps_encoding.html){.reference
+        .internal}
         -   [Ran's
-            approach](mps_encoding.html#Ran's-approach){.reference
+            approach](../../applications/python/mps_encoding.html#Ran's-approach){.reference
             .internal}
     -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](qm_mm_pe.html){.reference .internal}
-        -   [Key concepts:](qm_mm_pe.html#Key-concepts:){.reference
+        Framework.](../../applications/python/qm_mm_pe.html){.reference
+        .internal}
+        -   [Key
+            concepts:](../../applications/python/qm_mm_pe.html#Key-concepts:){.reference
             .internal}
         -   [PE-VQE-SCF Algorithm
-            Steps](qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
+            Steps](../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
             .internal}
             -   [Step 1: Initialize (Classical
-                pre-processing)](qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
+                pre-processing)](../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
                 .internal}
             -   [Step 2: Build the
-                Hamiltonian](qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
+                Hamiltonian](../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
                 .internal}
             -   [Step 3: Run
-                VQE](qm_mm_pe.html#Step-3:-Run-VQE){.reference
+                VQE](../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE){.reference
                 .internal}
             -   [Step 4: Update
-                Environment](qm_mm_pe.html#Step-4:-Update-Environment){.reference
+                Environment](../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment){.reference
                 .internal}
             -   [Step 5: Self-Consistency
-                Loop](qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
+                Loop](../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
                 .internal}
-            -   [Requirments:](qm_mm_pe.html#Requirments:){.reference
+            -   [Requirments:](../../applications/python/qm_mm_pe.html#Requirments:){.reference
                 .internal}
             -   [Example 1: LiH with 2 water
-                molecules.](qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
+                molecules.](../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
                 .internal}
             -   [VQE, update environment, and scf
-                loop.](qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
+                loop.](../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
                 .internal}
             -   [Example 2: NH3 with 46 water molecule using active
-                space.](qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
+                space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
-        (SKQD)](skqd.html){.reference .internal}
-        -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
+        (SKQD)](../../applications/python/skqd.html){.reference
+        .internal}
+        -   [Why
+            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
+            .internal}
         -   [Understanding Krylov
-            Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
+            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
             -   [What is a Krylov
-                Subspace?](skqd.html#What-is-a-Krylov-Subspace?){.reference
+                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
                 .internal}
             -   [The SKQD
-                Algorithm](skqd.html#The-SKQD-Algorithm){.reference
+                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
         -   [Problem Setup: 22-Qubit Heisenberg
-            Model](skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            Model](../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
             .internal}
         -   [Krylov State Generation via Repeated
-            Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
         -   [Quantum Measurements and
-            Sampling](skqd.html#Quantum-Measurements-and-Sampling){.reference
+            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
             .internal}
             -   [The Sampling
-                Process](skqd.html#The-Sampling-Process){.reference
+                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
                 .internal}
         -   [Classical Post-Processing and
-            Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
             -   [The SKQD Algorithm: Matrix Construction
-                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
                 .internal}
         -   [Results Analysis and
-            Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
+            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
             .internal}
-            -   [What to Expect:](skqd.html#What-to-Expect:){.reference
+            -   [What to
+                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
         -   [GPU Acceleration for
-            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            Postprocessing](../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
             .internal}
     -   [Entanglement Accelerates Quantum
-        Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
+        Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
         -   [2. Model
-            Definition](entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            Definition](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
             .internal}
             -   [2.1 Initial product
-                state](entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                state](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
                 .internal}
             -   [2.2 QIMF
-                Hamiltonian](entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                Hamiltonian](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
                 .internal}
             -   [2.3 First-Order Trotter Formula
-                (PF1)](entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                (PF1)](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
                 .internal}
             -   [2.4 PF1 step for the QIMF
-                partition](entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                partition](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
                 .internal}
             -   [2.5 Hamiltonian
-                helpers](entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                helpers](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
                 .internal}
         -   [3. Entanglement
-            metrics](entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            metrics](../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
             .internal}
         -   [4. Simulation
-            workflow](entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            workflow](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
             .internal}
             -   [4.1 Single-step Trotter
-                error](entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                error](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
                 .internal}
             -   [4.2 Dual trajectory
-                update](entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                update](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
                 .internal}
         -   [5. Reproducing the paper's Figure
-            1a](entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            1a](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
             .internal}
             -   [5.1 Visualising the joint
-                behaviour](entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                behaviour](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
                 .internal}
             -   [5.2 Interpreting the
-                result](entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                result](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
                 .internal}
         -   [6. References and further
-            reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
--   [Backends](../../using/backends/backends.html){.reference .internal}
-    -   [Circuit
-        Simulation](../../using/backends/simulators.html){.reference
+-   [Backends](../backends/backends.html){.reference .internal}
+    -   [Circuit Simulation](../backends/simulators.html){.reference
         .internal}
         -   [State Vector
-            Simulators](../../using/backends/sims/svsims.html){.reference
+            Simulators](../backends/sims/svsims.html){.reference
             .internal}
-            -   [CPU](../../using/backends/sims/svsims.html#cpu){.reference
+            -   [CPU](../backends/sims/svsims.html#cpu){.reference
                 .internal}
-            -   [Single-GPU](../../using/backends/sims/svsims.html#single-gpu){.reference
+            -   [Single-GPU](../backends/sims/svsims.html#single-gpu){.reference
                 .internal}
             -   [Multi-GPU
-                multi-node](../../using/backends/sims/svsims.html#multi-gpu-multi-node){.reference
+                multi-node](../backends/sims/svsims.html#multi-gpu-multi-node){.reference
                 .internal}
         -   [Tensor Network
-            Simulators](../../using/backends/sims/tnsims.html){.reference
+            Simulators](../backends/sims/tnsims.html){.reference
             .internal}
             -   [Multi-GPU
-                multi-node](../../using/backends/sims/tnsims.html#multi-gpu-multi-node){.reference
+                multi-node](../backends/sims/tnsims.html#multi-gpu-multi-node){.reference
                 .internal}
             -   [Matrix product
-                state](../../using/backends/sims/tnsims.html#matrix-product-state){.reference
+                state](../backends/sims/tnsims.html#matrix-product-state){.reference
                 .internal}
-            -   [Fermioniq](../../using/backends/sims/tnsims.html#fermioniq){.reference
+            -   [Fermioniq](../backends/sims/tnsims.html#fermioniq){.reference
                 .internal}
         -   [Multi-QPU
-            Simulators](../../using/backends/sims/mqpusims.html){.reference
+            Simulators](../backends/sims/mqpusims.html){.reference
             .internal}
             -   [Simulate Multiple QPUs in
-                Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
+                Parallel](../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
             -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+                Backends](../backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
                 .internal}
-        -   [Noisy
-            Simulators](../../using/backends/sims/noisy.html){.reference
+        -   [Noisy Simulators](../backends/sims/noisy.html){.reference
             .internal}
             -   [Trajectory Noisy
-                Simulation](../../using/backends/sims/noisy.html#trajectory-noisy-simulation){.reference
+                Simulation](../backends/sims/noisy.html#trajectory-noisy-simulation){.reference
                 .internal}
             -   [Density
-                Matrix](../../using/backends/sims/noisy.html#density-matrix){.reference
+                Matrix](../backends/sims/noisy.html#density-matrix){.reference
                 .internal}
-            -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
+            -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
         -   [Photonics
-            Simulators](../../using/backends/sims/photonics.html){.reference
+            Simulators](../backends/sims/photonics.html){.reference
             .internal}
-            -   [orca-photonics](../../using/backends/sims/photonics.html#orca-photonics){.reference
+            -   [orca-photonics](../backends/sims/photonics.html#orca-photonics){.reference
                 .internal}
-    -   [Quantum Hardware
-        (QPUs)](../../using/backends/hardware.html){.reference
+    -   [Quantum Hardware (QPUs)](../backends/hardware.html){.reference
         .internal}
         -   [Ion Trap
-            QPUs](../../using/backends/hardware/iontrap.html){.reference
+            QPUs](../backends/hardware/iontrap.html){.reference
             .internal}
-            -   [IonQ](../../using/backends/hardware/iontrap.html#ionq){.reference
+            -   [IonQ](../backends/hardware/iontrap.html#ionq){.reference
                 .internal}
-            -   [Quantinuum](../../using/backends/hardware/iontrap.html#quantinuum){.reference
+            -   [Quantinuum](../backends/hardware/iontrap.html#quantinuum){.reference
                 .internal}
         -   [Superconducting
-            QPUs](../../using/backends/hardware/superconducting.html){.reference
+            QPUs](../backends/hardware/superconducting.html){.reference
             .internal}
             -   [Anyon Technologies/Anyon
-                Computing](../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing){.reference
+                Computing](../backends/hardware/superconducting.html#anyon-technologies-anyon-computing){.reference
                 .internal}
-            -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
+            -   [IQM](../backends/hardware/superconducting.html#iqm){.reference
                 .internal}
-            -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+            -   [OQC](../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
             -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
-            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
-            QPUs](../../using/backends/hardware/neutralatom.html){.reference
+            QPUs](../backends/hardware/neutralatom.html){.reference
             .internal}
-            -   [Infleqtion](../../using/backends/hardware/neutralatom.html#infleqtion){.reference
+            -   [Infleqtion](../backends/hardware/neutralatom.html#infleqtion){.reference
                 .internal}
-            -   [Pasqal](../../using/backends/hardware/neutralatom.html#pasqal){.reference
+            -   [Pasqal](../backends/hardware/neutralatom.html#pasqal){.reference
                 .internal}
             -   [QuEra
-                Computing](../../using/backends/hardware/neutralatom.html#quera-computing){.reference
+                Computing](../backends/hardware/neutralatom.html#quera-computing){.reference
                 .internal}
         -   [Photonic
-            QPUs](../../using/backends/hardware/photonic.html){.reference
+            QPUs](../backends/hardware/photonic.html){.reference
             .internal}
             -   [ORCA
-                Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
+                Computing](../backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
         -   [Quantum Control
-            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            Systems](../backends/hardware/qcontrol.html){.reference
             .internal}
             -   [Quantum
-                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                Machines](../backends/hardware/qcontrol.html#quantum-machines){.reference
                 .internal}
     -   [Dynamics
-        Simulation](../../using/backends/dynamics_backends.html){.reference
+        Simulation](../backends/dynamics_backends.html){.reference
         .internal}
-    -   [Cloud](../../using/backends/cloud.html){.reference .internal}
+    -   [Cloud](../backends/cloud.html){.reference .internal}
         -   [Amazon Braket
-            (braket)](../../using/backends/cloud/braket.html){.reference
+            (braket)](../backends/cloud/braket.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
+                Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
-            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            (scaleway)](../backends/cloud/scaleway.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
                 .internal}
             -   [Manage your QPU
-                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
--   [Dynamics](../../using/dynamics.html){.reference .internal}
-    -   [Quick Start](../../using/dynamics.html#quick-start){.reference
+-   [Dynamics](../dynamics.html){.reference .internal}
+    -   [Quick Start](../dynamics.html#quick-start){.reference
         .internal}
-    -   [Operator](../../using/dynamics.html#operator){.reference
-        .internal}
+    -   [Operator](../dynamics.html#operator){.reference .internal}
     -   [Time-Dependent
-        Dynamics](../../using/dynamics.html#time-dependent-dynamics){.reference
+        Dynamics](../dynamics.html#time-dependent-dynamics){.reference
         .internal}
     -   [Super-operator
-        Representation](../../using/dynamics.html#super-operator-representation){.reference
+        Representation](../dynamics.html#super-operator-representation){.reference
         .internal}
     -   [Numerical
-        Integrators](../../using/dynamics.html#numerical-integrators){.reference
+        Integrators](../dynamics.html#numerical-integrators){.reference
         .internal}
-    -   [Batch
-        simulation](../../using/dynamics.html#batch-simulation){.reference
+    -   [Batch simulation](../dynamics.html#batch-simulation){.reference
         .internal}
     -   [Multi-GPU Multi-Node
-        Execution](../../using/dynamics.html#multi-gpu-multi-node-execution){.reference
+        Execution](../dynamics.html#multi-gpu-multi-node-execution){.reference
         .internal}
-    -   [Examples](../../using/dynamics.html#examples){.reference
-        .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
+    -   [Examples](../dynamics.html#examples){.reference .internal}
+-   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
+        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
         .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
+    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
         .internal}
--   [Installation](../../using/install/install.html){.reference
-    .internal}
+-   [Installation](../install/install.html){.reference .internal}
     -   [Local
-        Installation](../../using/install/local_installation.html){.reference
+        Installation](../install/local_installation.html){.reference
         .internal}
-        -   [Introduction](../../using/install/local_installation.html#introduction){.reference
+        -   [Introduction](../install/local_installation.html#introduction){.reference
             .internal}
-            -   [Docker](../../using/install/local_installation.html#docker){.reference
+            -   [Docker](../install/local_installation.html#docker){.reference
                 .internal}
             -   [Known Blackwell
-                Issues](../../using/install/local_installation.html#known-blackwell-issues){.reference
+                Issues](../install/local_installation.html#known-blackwell-issues){.reference
                 .internal}
-            -   [Singularity](../../using/install/local_installation.html#singularity){.reference
+            -   [Singularity](../install/local_installation.html#singularity){.reference
                 .internal}
             -   [Python
-                wheels](../../using/install/local_installation.html#python-wheels){.reference
+                wheels](../install/local_installation.html#python-wheels){.reference
                 .internal}
             -   [Pre-built
-                binaries](../../using/install/local_installation.html#pre-built-binaries){.reference
+                binaries](../install/local_installation.html#pre-built-binaries){.reference
                 .internal}
         -   [Development with VS
-            Code](../../using/install/local_installation.html#development-with-vs-code){.reference
+            Code](../install/local_installation.html#development-with-vs-code){.reference
             .internal}
             -   [Using a Docker
-                container](../../using/install/local_installation.html#using-a-docker-container){.reference
+                container](../install/local_installation.html#using-a-docker-container){.reference
                 .internal}
             -   [Using a Singularity
-                container](../../using/install/local_installation.html#using-a-singularity-container){.reference
+                container](../install/local_installation.html#using-a-singularity-container){.reference
                 .internal}
         -   [Connecting to a Remote
-            Host](../../using/install/local_installation.html#connecting-to-a-remote-host){.reference
+            Host](../install/local_installation.html#connecting-to-a-remote-host){.reference
             .internal}
             -   [Developing with Remote
-                Tunnels](../../using/install/local_installation.html#developing-with-remote-tunnels){.reference
+                Tunnels](../install/local_installation.html#developing-with-remote-tunnels){.reference
                 .internal}
             -   [Remote Access via
-                SSH](../../using/install/local_installation.html#remote-access-via-ssh){.reference
+                SSH](../install/local_installation.html#remote-access-via-ssh){.reference
                 .internal}
         -   [DGX
-            Cloud](../../using/install/local_installation.html#dgx-cloud){.reference
+            Cloud](../install/local_installation.html#dgx-cloud){.reference
             .internal}
             -   [Get
-                Started](../../using/install/local_installation.html#get-started){.reference
+                Started](../install/local_installation.html#get-started){.reference
                 .internal}
             -   [Use
-                JupyterLab](../../using/install/local_installation.html#use-jupyterlab){.reference
+                JupyterLab](../install/local_installation.html#use-jupyterlab){.reference
                 .internal}
             -   [Use VS
-                Code](../../using/install/local_installation.html#use-vs-code){.reference
+                Code](../install/local_installation.html#use-vs-code){.reference
                 .internal}
         -   [Additional CUDA
-            Tools](../../using/install/local_installation.html#additional-cuda-tools){.reference
+            Tools](../install/local_installation.html#additional-cuda-tools){.reference
             .internal}
             -   [Installation via
-                PyPI](../../using/install/local_installation.html#installation-via-pypi){.reference
+                PyPI](../install/local_installation.html#installation-via-pypi){.reference
                 .internal}
             -   [Installation In Container
-                Images](../../using/install/local_installation.html#installation-in-container-images){.reference
+                Images](../install/local_installation.html#installation-in-container-images){.reference
                 .internal}
             -   [Installing Pre-built
-                Binaries](../../using/install/local_installation.html#installing-pre-built-binaries){.reference
+                Binaries](../install/local_installation.html#installing-pre-built-binaries){.reference
                 .internal}
         -   [Distributed Computing with
-            MPI](../../using/install/local_installation.html#distributed-computing-with-mpi){.reference
+            MPI](../install/local_installation.html#distributed-computing-with-mpi){.reference
             .internal}
         -   [Updating
-            CUDA-Q](../../using/install/local_installation.html#updating-cuda-q){.reference
+            CUDA-Q](../install/local_installation.html#updating-cuda-q){.reference
             .internal}
         -   [Dependencies and
-            Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
+            Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
         -   [Next
-            Steps](../../using/install/local_installation.html#next-steps){.reference
+            Steps](../install/local_installation.html#next-steps){.reference
             .internal}
     -   [Data Center
-        Installation](../../using/install/data_center_install.html){.reference
+        Installation](../install/data_center_install.html){.reference
         .internal}
-        -   [Prerequisites](../../using/install/data_center_install.html#prerequisites){.reference
+        -   [Prerequisites](../install/data_center_install.html#prerequisites){.reference
             .internal}
         -   [Build
-            Dependencies](../../using/install/data_center_install.html#build-dependencies){.reference
+            Dependencies](../install/data_center_install.html#build-dependencies){.reference
             .internal}
-            -   [CUDA](../../using/install/data_center_install.html#cuda){.reference
+            -   [CUDA](../install/data_center_install.html#cuda){.reference
                 .internal}
-            -   [Toolchain](../../using/install/data_center_install.html#toolchain){.reference
+            -   [Toolchain](../install/data_center_install.html#toolchain){.reference
                 .internal}
         -   [Building
-            CUDA-Q](../../using/install/data_center_install.html#building-cuda-q){.reference
+            CUDA-Q](../install/data_center_install.html#building-cuda-q){.reference
             .internal}
         -   [Python
-            Support](../../using/install/data_center_install.html#python-support){.reference
+            Support](../install/data_center_install.html#python-support){.reference
             .internal}
         -   [C++
-            Support](../../using/install/data_center_install.html#c-support){.reference
+            Support](../install/data_center_install.html#c-support){.reference
             .internal}
         -   [Installation on the
-            Host](../../using/install/data_center_install.html#installation-on-the-host){.reference
+            Host](../install/data_center_install.html#installation-on-the-host){.reference
             .internal}
             -   [CUDA Runtime
-                Libraries](../../using/install/data_center_install.html#cuda-runtime-libraries){.reference
+                Libraries](../install/data_center_install.html#cuda-runtime-libraries){.reference
                 .internal}
-            -   [MPI](../../using/install/data_center_install.html#mpi){.reference
+            -   [MPI](../install/data_center_install.html#mpi){.reference
                 .internal}
--   [Integration](../../using/integration/integration.html){.reference
-    .internal}
+-   [Integration](../integration/integration.html){.reference .internal}
     -   [Downstream CMake
-        Integration](../../using/integration/cmake_app.html){.reference
+        Integration](../integration/cmake_app.html){.reference
         .internal}
     -   [Combining CUDA with
-        CUDA-Q](../../using/integration/cuda_gpu.html){.reference
-        .internal}
+        CUDA-Q](../integration/cuda_gpu.html){.reference .internal}
     -   [Integrating with Third-Party
-        Libraries](../../using/integration/libraries.html){.reference
-        .internal}
+        Libraries](../integration/libraries.html){.reference .internal}
         -   [Calling a CUDA-Q library from
-            C++](../../using/integration/libraries.html#calling-a-cuda-q-library-from-c){.reference
+            C++](../integration/libraries.html#calling-a-cuda-q-library-from-c){.reference
             .internal}
         -   [Calling an C++ library from
-            CUDA-Q](../../using/integration/libraries.html#calling-an-c-library-from-cuda-q){.reference
+            CUDA-Q](../integration/libraries.html#calling-an-c-library-from-cuda-q){.reference
             .internal}
         -   [Interfacing between binaries compiled with a different
-            toolchains](../../using/integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
+            toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
--   [Extending](../../using/extending/extending.html){.reference
-    .internal}
+-   [Extending](../extending/extending.html){.reference .internal}
     -   [Add a new Hardware
-        Backend](../../using/extending/backend.html){.reference
-        .internal}
-        -   [Overview](../../using/extending/backend.html#overview){.reference
+        Backend](../extending/backend.html){.reference .internal}
+        -   [Overview](../extending/backend.html#overview){.reference
             .internal}
         -   [Server Helper
-            Implementation](../../using/extending/backend.html#server-helper-implementation){.reference
+            Implementation](../extending/backend.html#server-helper-implementation){.reference
             .internal}
             -   [Directory
-                Structure](../../using/extending/backend.html#directory-structure){.reference
+                Structure](../extending/backend.html#directory-structure){.reference
                 .internal}
             -   [Server Helper
-                Class](../../using/extending/backend.html#server-helper-class){.reference
+                Class](../extending/backend.html#server-helper-class){.reference
                 .internal}
             -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
+                .notranslate}]{.pre}](../extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
-            Configuration](../../using/extending/backend.html#target-configuration){.reference
+            Configuration](../extending/backend.html#target-configuration){.reference
             .internal}
             -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
+                .notranslate}]{.pre}](../extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
-        -   [Testing](../../using/extending/backend.html#testing){.reference
+        -   [Testing](../extending/backend.html#testing){.reference
             .internal}
             -   [Unit
-                Tests](../../using/extending/backend.html#unit-tests){.reference
+                Tests](../extending/backend.html#unit-tests){.reference
                 .internal}
             -   [Mock
-                Server](../../using/extending/backend.html#mock-server){.reference
+                Server](../extending/backend.html#mock-server){.reference
                 .internal}
             -   [Python
-                Tests](../../using/extending/backend.html#python-tests){.reference
+                Tests](../extending/backend.html#python-tests){.reference
                 .internal}
             -   [Integration
-                Tests](../../using/extending/backend.html#integration-tests){.reference
+                Tests](../extending/backend.html#integration-tests){.reference
                 .internal}
-        -   [Documentation](../../using/extending/backend.html#documentation){.reference
+        -   [Documentation](../extending/backend.html#documentation){.reference
             .internal}
         -   [Example
-            Usage](../../using/extending/backend.html#example-usage){.reference
+            Usage](../extending/backend.html#example-usage){.reference
             .internal}
         -   [Code
-            Review](../../using/extending/backend.html#code-review){.reference
+            Review](../extending/backend.html#code-review){.reference
             .internal}
         -   [Maintaining a
-            Backend](../../using/extending/backend.html#maintaining-a-backend){.reference
+            Backend](../extending/backend.html#maintaining-a-backend){.reference
             .internal}
-        -   [Conclusion](../../using/extending/backend.html#conclusion){.reference
+        -   [Conclusion](../extending/backend.html#conclusion){.reference
             .internal}
     -   [Create a new NVQIR
-        Simulator](../../using/extending/nvqir_simulator.html){.reference
+        Simulator](../extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
-            .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
+            .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
-            action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
+            action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q
-        IR](../../using/extending/cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../../using/extending/mlir_pass.html){.reference
+    -   [Working with CUDA-Q IR](../extending/cudaq_ir.html){.reference
         .internal}
+    -   [Create an MLIR Pass for
+        CUDA-Q](../extending/mlir_pass.html){.reference .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -1800,16 +1798,17 @@ pr-3797
 ::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
--   [CUDA-Q Applications](../../using/applications.html)
--   Max-Cut with QAOA
+-   [CUDA-Q by Example](examples.html)
+-   When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs.
+    [`run`{.docutils .literal .notranslate}]{.pre}
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../using/applications.html "CUDA-Q Applications"){.btn
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](digitized_counterdiabatic_qaoa.html "Molecular docking via DC-QAOA"){.btn
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1818,505 +1817,633 @@ aria-hidden="true"}](digitized_counterdiabatic_qaoa.html "Molecular docking via 
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#Max-Cut-with-QAOA .section}
-# Max-Cut with QAOA[¶](#Max-Cut-with-QAOA "Permalink to this heading"){.headerlink}
+::: {#when-to-use-sample-vs-run .section}
+[]{#sample-to-run-migration}
 
-[Farhi et al.](https://arxiv.org/abs/1411.4028){.reference .external}
-introduced the quantum approximation optimization algorithm (QAOA) to
-solve optimization problems like the max cut problem. Before diving into
-the details of QAOA, we'll first define the max cut problem.
+# When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs. [`run`{.docutils .literal .notranslate}]{.pre}[¶](#when-to-use-sample-vs-run "Permalink to this heading"){.headerlink}
 
-[Max Cut](https://en.wikipedia.org/wiki/Maximum_cut){.reference
-.external} is the problem of finding a partition of a graph's nodes into
-two sets which maximizes the edges between the two sets. Although this
-problem is relatively easy to solve for graphs with few vertices, this
-problem is
-[NP-hard](https://en.wikipedia.org/wiki/NP-hardness#:~:text=7%20References-,Definition,complete%20problem%20G%20to%20H.){.reference
-.external}. The max cut problem has a wide range of applications
-including [machine
-learning](https://jmlr.org/papers/volume14/wang13a/wang13a.pdf){.reference
-.external}, [circuit
-design](https://math.mit.edu/research/highschool/primes/materials/2020/Hong-Lee-Wei.pdf){.reference
-.external} and [statistical
-physics](https://www.researchgate.net/publication/262162554_An_Application_of_Combinatorial_Optimization_to_Statistical_Physics_and_Circuit_Layout_Design){.reference
-.external}, among others. Furthermore, the QAOA algorithm presented in
-this tutorial can be adapted to other related optimization problems with
-an even wider application field including [portfolio
-optimization](https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.4.043204){.reference
-.external} and [job shop
-scheduling](https://www.sciencedirect.com/science/article/pii/S0377221723002072){.reference
-.external}, just to name a few.
+::: {#introduction .section}
+## Introduction[¶](#introduction "Permalink to this heading"){.headerlink}
 
-We take the convention that [\\(G=(V,E)\\)]{.math .notranslate
-.nohighlight} represents a graph with vertex set [\\(V\\subseteq
-\\mathbb{N}\\)]{.math .notranslate .nohighlight} and edge set
-[\\(E\\subseteq V\\times V\\)]{.math .notranslate .nohighlight}. We use
-the terms vertex and node interchangeably. For this tutorial we assume
-that the graphs are undirected (that is, [\\((u,v)\\)]{.math
-.notranslate .nohighlight} and [\\((v,u)\\)]{.math .notranslate
-.nohighlight} represent the same edge). Our graphs contain no self loops
-(i.e., for every vertex [\\(v\\)]{.math .notranslate .nohighlight},
-there is no edge [\\((v,v)\\)]{.math .notranslate .nohighlight}). A
-*cut* of the graph [\\(G\\)]{.math .notranslate .nohighlight} is a
-partition, [\\((V_0,V_1)\\)]{.math .notranslate .nohighlight}, of the
-vertex set such that every vertex of [\\(V\\)]{.math .notranslate
-.nohighlight} is a member of exactly one of [\\(V_0\\)]{.math
-.notranslate .nohighlight} or [\\(V_1\\)]{.math .notranslate
-.nohighlight} (i.e., [\\(V_0\\bigcup V_1 = V\\)]{.math .notranslate
-.nohighlight} and [\\(V_0\\bigcap V_0=\\emptyset\\)]{.math .notranslate
-.nohighlight}). The *cut value* for a partition is the sum of the edges
-with one node in [\\(V_0\\)]{.math .notranslate .nohighlight} and one
-node in [\\(V_1\\)]{.math .notranslate .nohighlight}.
+Starting with CUDA-Q 0.14.0, [`sample`{.docutils .literal
+.notranslate}]{.pre} no longer supports kernels that branch on
+measurement results (measurement-dependent control flow). Kernels
+containing patterns such as [`if`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`mz(q):`{.docutils .literal .notranslate}]{.pre} or
+[`if`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`(result)`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`{`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`...`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`}`{.docutils .literal .notranslate}]{.pre} where
+[`result`{.docutils .literal .notranslate}]{.pre} comes from a
+measurement must now use [`run`{.docutils .literal .notranslate}]{.pre}
+instead.
 
-In the images below, we illustrate two cuts of a graph with the dotted
-lines. Each of these cuts partitions the graph into two disjoint sets.
-The cut on the left is not optimal, and the cut on the right is the max
-cut. The cut on the left divides the graph into disjoint sets
-[\\(\\{1,2\\}\\)]{.math .notranslate .nohighlight} and
-[\\(\\{0,3,4\\}\\)]{.math .notranslate .nohighlight}, and that cut
-contains 3 edges. To more easily visualize the cut, we have colored the
-vertices in one set of the partition green and the vertices in the other
-set of the partition gray. The cut depicted in the diagram on the right
-divides the graph vertices into two disjoint sets
-[\\(V_0=\\{0,2\\}\\)]{.math .notranslate .nohighlight}, colored gray,
-and [\\(V_1=\\{1,3,4\\}\\)]{.math .notranslate .nohighlight}, colored
-green. The number of edges connecting vertices in the distinct sets is
-computed by
+This breaking change creates a clearer API separation:
 
-::: {.math .notranslate .nohighlight}
-\\\[\\begin{split}\\sum\_{\\substack{u \\in V_0; v\\in V_1\\\\ (u,v)
-\\in E}}1.\\end{split}\\\]
+-   Use [`sample`{.docutils .literal .notranslate}]{.pre} for
+    **aggregate measurement statistics** (counts dictionaries).
+
+-   Use [`run`{.docutils .literal .notranslate}]{.pre} for
+    **shot-by-shot execution** with measurement-dependent control flow
+    and individual return values.
 :::
 
-For the graph on the right, the number of edges in the cut (in this case
-there are [\\(5\\)]{.math .notranslate .nohighlight} edges) is maximal,
-and this value is referred to as the *max cut value*. The partitioning
-[\\((V_0,V_1)\\)]{.math .notranslate .nohighlight} --- and sometimes the
-set of edges connecting vertices in [\\(V_0\\)]{.math .notranslate
-.nohighlight} and [\\(V_1\\)]{.math .notranslate .nohighlight} --- is
-referred to as a *max cut of a graph*. Note that the max cut of a graph
-need not be unique; that is, two distinct partitions may produce the
-same cut value.
+::: {#usage-guidelines .section}
+## Usage Guidelines[¶](#usage-guidelines "Permalink to this heading"){.headerlink}
 
-![](../../_images/max-cut-illustration.png)
+**Use** [`sample`{.docutils .literal .notranslate}]{.pre} **when:**
 
-We will use bitstrings to identify vertices in each of the two
-partitions. For example using the ordering of the vertices, the
-bitstring [`01100`{.docutils .literal .notranslate}]{.pre} captures the
-partition in the image above on the left with vertices [\\(1\\)]{.math
-.notranslate .nohighlight} and [\\(2\\)]{.math .notranslate
-.nohighlight} in [\\(V_1\\)]{.math .notranslate .nohighlight}, and the
-bitstring [`01011`{.docutils .literal .notranslate}]{.pre} codes the
-partition in the image on the right with vertices [\\(1\\)]{.math
-.notranslate .nohighlight}, [\\(3\\)]{.math .notranslate .nohighlight},
-and [\\(4\\)]{.math .notranslate .nohighlight} in [\\(V_1\\)]{.math
-.notranslate .nohighlight}.
+-   You want aggregate measurement statistics (histograms).
 
-Let's code our graph data as lists of integers so that we can call these
-variables when we create the [`cudaq.kernel`{.docutils .literal
-.notranslate}]{.pre} for QAOA.
+-   Your kernel has no measurement-dependent control flow.
 
-::: {.nbinput .nblast .docutils .container}
-::: {.prompt .highlight-none .notranslate}
+-   You only need final measurement distributions.
+
+-   You are using the [`explicit_measurements`{.docutils .literal
+    .notranslate}]{.pre} option, which concatenates all measurement
+    results in execution order rather than re-measuring qubits at the
+    end of the kernel. See the [[sample specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+    .internal} for details.
+
+**Use** [`run`{.docutils .literal .notranslate}]{.pre} **when:**
+
+-   You need shot-by-shot measurement values.
+
+-   Your kernel has conditionals based on measurement results.
+
+-   You want to return computed values from the kernel.
+
+-   You need to store or analyze individual shot data.
+
+For the full API specification, see the [[sample]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} and [[run]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+.internal} sections in the Algorithmic Primitives documentation. For a
+usage guide, see [[Running your first CUDA-Q
+Program]{.doc}](../basics/run_kernel.html){.reference .internal}.
+:::
+
+::: {#what-is-supported-with-sample .section}
+## What Is Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels without measurement-dependent control flow continue to work
+exactly as before. This includes implicit measurements, explicit
+measurements without conditionals, partial qubit measurement,
+mid-circuit measurement for reset patterns, and the
+[`explicit_measurements`{.docutils .literal .notranslate}]{.pre} option
+(which concatenates all measurement results in execution order rather
+than re-measuring at the end of the kernel -- see the [[sample
+specification]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} for details).
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
 ::: highlight
-    [1]:
-:::
-:::
-
-::: {.input_area .highlight-ipython3 .notranslate}
-::: highlight
-    import numpy as np
-    import cudaq
-    from cudaq import spin
-    from typing import List
-
-    # We'll use the graph below to illustrate how QAOA can be used to
-    # solve a max cut problem
-
-    #       v1  0--------------0 v2
-    #           |              | \
-    #           |              |  \
-    #           |              |   \
-    #           |              |    \
-    #       v0  0--------------0 v3-- 0 v4
-    # The max cut solutions are 01011, 10100, 01010, 10101 .
-
-    # First we define the graph nodes (i.e., vertices) and edges as lists of integers so that they can be broadcast into
-    # a cudaq.kernel.
-    nodes: List[int] = [0, 1, 2, 3, 4]
-    edges = [[0, 1], [1, 2], [2, 3], [3, 0], [2, 4], [3, 4]]
-    edges_src: List[int] = [edges[i][0] for i in range(len(edges))]
-    edges_tgt: List[int] = [edges[i][1] for i in range(len(edges))]
-:::
-:::
-:::
-
-QAOA is a variational algortihm with a particular ansatz. QAOA is made
-up of a variational quantum circuit (i.e., a kernel that depends on a
-set of parameter values) and a classical optimizer. The aim of QAOA is
-to use the classical optimizer to identify parameter values that
-generate a quantum circuit whose expectation value for a given cost
-Hamilitonian is minimized.
-
-What distinguishes QAOA from other variational algorithms is the
-structure of the quantum circuit. For each vertex in the graph, there is
-an associated qubit in the circuit. The circuit is initialized in a
-superposition state. The remainder of the QAOA circuit is made up of
-blocks (referred to as layers). The more layers there are, the better
-the approximation the algorithm achieves.
-
-![diagram of QAOA circuit layers](../../_images/qaoa-circuit-layers.png)
-
-Each layer contains a problem kernel and a mixer kernel. The mixer
-kernel is composed of parameterized rotation gates applied to each
-qubit, depicted in green in the image above. The problem kernel encodes
-the graph edges. The image below shows an example of an graph edge
-encoded with controlled-X gates and a parameterized rotation gate.
-
-![diagram of a QAOA problem kernel for a max cut
-problem](../../_images/qaoa-problem-kernel.png)
-
-Let's implement the QAOA circuit for our max cut problem in CUDA-Q.
-
-::: {.nbinput .nblast .docutils .container}
-::: {.prompt .highlight-none .notranslate}
-::: highlight
-    [2]:
-:::
-:::
-
-::: {.input_area .highlight-ipython3 .notranslate}
-::: highlight
-    # Problem parameters
-    # The number of qubits we'll need is the same as the number of vertices in our graph
-    qubit_count: int = len(nodes)
-
-    # We can set the layer count to be any positive integer.  Larger values will create deeper circuits
-    layer_count: int = 2
-
-    # Each layer of the QAOA kernel contains 2 parameters
-    parameter_count: int = 2 * layer_count
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
 
 
     @cudaq.kernel
-    def qaoaProblem(qubit_0: cudaq.qubit, qubit_1: cudaq.qubit, alpha: float):
-        """Build the QAOA gate sequence between two qubits that represent an edge of the graph
-        Parameters
-        ----------
-        qubit_0: cudaq.qubit
-            Qubit representing the first vertex of an edge
-        qubit_1: cudaq.qubit
-            Qubit representing the second vertex of an edge
-        thetas: List[float]
-            Free variable
-
-        Returns
-        -------
-        cudaq.Kernel
-            Subcircuit of the problem kernel for Max-Cut of the graph with a given edge
-        """
-        x.ctrl(qubit_0, qubit_1)
-        rz(2.0 * alpha, qubit_1)
-        x.ctrl(qubit_0, qubit_1)
+    def reset_pattern():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+        reset(q)
+        x(q)
 
 
-    # We now define the kernel_qaoa function which will be the QAOA circuit for our graph
-    # Since the QAOA circuit for max cut depends on the structure of the graph,
-    # we'll feed in global concrete variable values into the kernel_qaoa function for the qubit_count, layer_count, edges_src, edges_tgt.
-    # The types for these variables are restricted to Quake Values (e.g. qubit, int, List[int], ...)
-    # The thetas plaeholder will be our free parameters
+    print("Implicit measurements:")
+    cudaq.sample(bell).dump()
+
+    print("\nMid-circuit measurement with reset:")
+    cudaq.sample(reset_pattern).dump()
+
+    print("\nWith explicit_measurements option:")
+    cudaq.sample(reset_pattern, explicit_measurements=True).dump()
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    __qpu__ void bell() {
+      cudaq::qvector q(2);
+      h(q[0]);
+      x<cudaq::ctrl>(q[0], q[1]);
+    }
+
+    __qpu__ void reset_pattern() {
+      cudaq::qubit q;
+      h(q);
+      mz(q);
+      reset(q);
+      x(q);
+    }
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      printf("Implicit measurements:\n");
+      cudaq::sample(bell).dump();
+
+      printf("\nMid-circuit measurement with reset:\n");
+      cudaq::sample(reset_pattern).dump();
+
+      cudaq::sample_options options{.explicit_measurements = true};
+      printf("\nWith explicit_measurements option:\n");
+      cudaq::sample(options, reset_pattern).dump();
+:::
+:::
+:::
+:::
+:::
+
+::: {#what-is-not-supported-with-sample .section}
+## What Is Not Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-not-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels that branch on measurement results can no longer be used with
+[`sample`{.docutils .literal .notranslate}]{.pre} or
+[`sample_async`{.docutils .literal .notranslate}]{.pre}. Attempting to
+do so will raise a runtime error.
+
+This includes both inline conditionals on measurements and conditionals
+on variables holding measurement results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
     @cudaq.kernel
-    def kernel_qaoa(qubit_count: int, layer_count: int, edges_src: List[int],
-                    edges_tgt: List[int], thetas: List[float]):
-        """Build the QAOA circuit for max cut of the graph with given edges and nodes
-        Parameters
-        ----------
-        qubit_count: int
-            Number of qubits in the circuit, which is the same as the number of nodes in our graph
-        layer_count : int
-            Number of layers in the QAOA kernel
-        edges_src: List[int]
-            List of the first (source) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes
-        edges_tgt: List[int]
-            List of the second (target) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes
-        thetas: List[float]
-            Free variables to be optimized
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:               # ERROR
+            x(q[1])
 
-        Returns
-        -------
-        cudaq.Kernel
-            QAOA circuit for Max-Cut for max cut of the graph with given edges and nodes
-        """
-        # Let's allocate the qubits
-        qreg = cudaq.qvector(qubit_count)
-        # And then place the qubits in superposition
-        h(qreg)
-
-        # Each layer has two components: the problem kernel and the mixer
-        for i in range(layer_count):
-            # Add the problem kernel to each layer
-            for edge in range(len(edges_src)):
-                qubitu = edges_src[edge]
-                qubitv = edges_tgt[edge]
-                qaoaProblem(qreg[qubitu], qreg[qubitv], thetas[i])
-            # Add the mixer kernel to each layer
-            for j in range(qubit_count):
-                rx(2.0 * thetas[i + layer_count], qreg[j])
+    cudaq.sample(kernel)    # raises RuntimeError
 :::
 :::
 :::
 
-As mentioned earlier, QAOA is a variational algorithm that aims to
-minimize a cost function. To apply QAOA to the max cut problem, we
-assign a binary variable [\\(z_v\\)]{.math .notranslate .nohighlight} to
-each vertex [\\(v\\)]{.math .notranslate .nohighlight}. These variables
-will take on the vales [\\(-1\\)]{.math .notranslate .nohighlight} or
-[\\(1\\)]{.math .notranslate .nohighlight}. Notice that an assignment of
-variable values corresponds to a partition of the graph. For example,
-[\\(\\bar z = \[-1, 1, -1, 1, 1\]\\)]{.math .notranslate .nohighlight}
-would partition the graph into two sets: [\\(\\{0,2\\}\\)]{.math
-.notranslate .nohighlight} and [\\(\\{1,3,4\\}.\\)]{.math .notranslate
-.nohighlight} We can compute the cut value of the graph for an
-arbirtrary assignment of variable values by the formula:
+C++
 
-::: {.math .notranslate .nohighlight}
-\\\[C(\\bar{z})= \\frac{1}{2} \\sum\_{(u,v)\\in E} (1-z_uz_v),\\\]
-:::
-
-where [\\(E\\)]{.math .notranslate .nohighlight} is the set of edges of
-our graph. Our goal is to find a variable assignment that maximizes
-[\\(C(\\bar z)\\)]{.math .notranslate .nohighlight}. Equivalently, we
-want to find a variable assignment that minimizes [\\(-C(\\bar
-z)\\)]{.math .notranslate .nohighlight}. Since QAOA identifies minimum
-values, we have reframed the max cut optimization problem from one of
-maximization to minimization. Furthermore, we can promote this equation
-to a matrix equation by replacing [\\(z_uz_v-1\\)]{.math .notranslate
-.nohighlight} with Pauli-Z operators acting on qubits associated with
-nodes [\\(u\\)]{.math .notranslate .nohighlight} and [\\(v\\)]{.math
-.notranslate .nohighlight}, respectively, and replacing 1 with the
-identity matrix. This leads to the reformulation of the problem from one
-of maximizing [\\(C(\\bar{z})\\)]{.math .notranslate .nohighlight} to
-one of minimizing the eigenvalues of
-
-::: {.math .notranslate .nohighlight}
-\\\[H= \\frac{1}{2}\\sum\_{(u,v)\\in E} (Z_uZ_v-II).\\\]
-:::
-
-We can code this Hamiltonian using the [`cudaq.spin`{.docutils .literal
-.notranslate}]{.pre} operators.
-
-::: {.nbinput .nblast .docutils .container}
-::: {.prompt .highlight-none .notranslate}
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    [3]:
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {            // ERROR
+            x(q[1]);
+        }
+    };
+
+    cudaq::sample(kernel);  // throws std::runtime_error
+:::
+:::
 :::
 :::
 
-::: {.input_area .highlight-ipython3 .notranslate}
+The error message will read:
+
+::: {.highlight-text .notranslate}
 ::: highlight
-    # The problem Hamiltonian
-    # Define a function to generate the Hamiltonian for a max cut problem using the graph
-    # with the given edges
-
-
-    def hamiltonian_max_cut(edges_src, edges_tgt):
-        """Hamiltonian for finding the max cut for the graph with given edges and nodes
-
-        Parameters
-        ----------
-        edges_src: List[int]
-            List of the first (source) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes
-        edges_tgt: List[int]
-            List of the second (target) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes
-
-        Returns
-        -------
-        cudaq.SpinOperator
-            Hamiltonian for finding the max cut of the graph with given edges
-        """
-
-        hamiltonian = 0
-
-        for edge in range(len(edges_src)):
-
-            qubitu = edges_src[edge]
-            qubitv = edges_tgt[edge]
-            # Add a term to the Hamiltonian for the edge (u,v)
-            hamiltonian += 0.5 * (spin.z(qubitu) * spin.z(qubitv) -
-                                  spin.i(qubitu) * spin.i(qubitv))
-
-        return hamiltonian
+    `cudaq::sample` and `cudaq::sample_async` no longer support kernels that
+    branch on measurement results. Kernel '<name>' uses conditional feedback.
+    Use `cudaq::run` or `cudaq::run_async` instead. See CUDA-Q documentation
+    for migration guide.
 :::
 :::
 :::
 
-To inititiate the QAOA algorithm, we need to identify initial parameters
-and specify the classical optimization routine.
+::: {#how-to-migrate .section}
+## How to Migrate[¶](#how-to-migrate "Permalink to this heading"){.headerlink}
 
-::: {.nbinput .docutils .container}
-::: {.prompt .highlight-none .notranslate}
+Migrating a kernel from [`sample`{.docutils .literal
+.notranslate}]{.pre} to [`run`{.docutils .literal .notranslate}]{.pre}
+requires three changes.
+
+::: {#step-1-add-a-return-type-to-the-kernel .section}
+### Step 1: Add a return type to the kernel[¶](#step-1-add-a-return-type-to-the-kernel "Permalink to this heading"){.headerlink}
+
+[`run`{.docutils .literal .notranslate}]{.pre} requires kernels to
+return a non-void value. Instead of relying on implicit measurement at
+the end of the circuit, explicitly [`return`{.docutils .literal
+.notranslate}]{.pre} the measurement results you need.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
 ::: highlight
-    [4]:
+    # Before (no return type, used with sample)
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+
+    # After (returns a value, used with run)
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+:::
 :::
 :::
 
-::: {.input_area .highlight-ipython3 .notranslate}
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    # Specify the optimizer and its initial parameters.
-    cudaq.set_random_seed(13)
-    optimizer = cudaq.optimizers.NelderMead()
-    np.random.seed(13)
-    optimizer.initial_parameters = np.random.uniform(-np.pi / 8, np.pi / 8,
-                                                     parameter_count)
-    print("Initial parameters = ", optimizer.initial_parameters)
+    // Before (void kernel, used with sample)
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+    };
+
+    // After (returns a value, used with run)
+    struct kernel {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
 :::
 :::
 :::
 
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
+::: {#step-2-replace-sample-with-run .section}
+### Step 2: Replace [`sample`{.docutils .literal .notranslate}]{.pre} with [`run`{.docutils .literal .notranslate}]{.pre}[¶](#step-2-replace-sample-with-run "Permalink to this heading"){.headerlink}
 
-::: {.output_area .docutils .container}
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
 ::: highlight
-    Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.2546877639814583, 0.3657985647468064]
+    # Before
+    counts = cudaq.sample(kernel, shots_count=1000)
+
+    # After
+    results = cudaq.run(kernel, shots_count=1000)
 :::
 :::
 :::
 
-We can either use the [`observe`{.docutils .literal .notranslate}]{.pre}
-primitive or the [`vqe`{.docutils .literal .notranslate}]{.pre}
-primitive to code up the optimization loop of QAOA.
+C++
 
-::: {.nbinput .docutils .container}
-::: {.prompt .highlight-none .notranslate}
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    [5]:
+    // Before
+    auto counts = cudaq::sample(1000, kernel);
+
+    // After
+    auto results = cudaq::run(1000, kernel{});
+:::
+:::
 :::
 :::
 
-::: {.input_area .highlight-ipython3 .notranslate}
+::: {.admonition .note}
+Note
+
+The default [`shots_count`{.docutils .literal .notranslate}]{.pre} for
+[`run`{.docutils .literal .notranslate}]{.pre} is 100, compared to 1000
+for [`sample`{.docutils .literal .notranslate}]{.pre}. Specify
+[`shots_count`{.docutils .literal .notranslate}]{.pre} explicitly if you
+need a particular number of shots.
+:::
+:::
+
+::: {#step-3-update-result-processing .section}
+### Step 3: Update result processing[¶](#step-3-update-result-processing "Permalink to this heading"){.headerlink}
+
+[`sample`{.docutils .literal .notranslate}]{.pre} returns a
+[`sample_result`{.docutils .literal .notranslate}]{.pre} (a counts
+dictionary mapping bit strings to frequencies). [`run`{.docutils
+.literal .notranslate}]{.pre} returns a list (Python) or
+[`std::vector`{.docutils .literal .notranslate}]{.pre} (C++) of
+individual return values -- one per shot. If you need a
+counts-dictionary view, you can reconstruct it from the individual
+results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
 ::: highlight
-    #cudaq.set_target('nvidia')
-    cudaq.set_target('qpp-cpu')
+    from collections import Counter
 
-    # Generate the Hamiltonian for our graph
-    hamiltonian = hamiltonian_max_cut(edges_src, edges_tgt)
-    print(hamiltonian)
-
-    # Define the objective, return `<state(params) | H | state(params)>`
-    # Note that in the `observe` call we list the kernel, the hamiltonian, and then the concrete global variable values of our kernel
-    # followed by the parameters to be optimized.
-
-
-    def objective(parameters):
-        return cudaq.observe(kernel_qaoa, hamiltonian, qubit_count, layer_count,
-                             edges_src, edges_tgt, parameters).expectation()
-
-
-    # Optimize!
-    optimal_expectation, optimal_parameters = optimizer.optimize(
-        dimensions=parameter_count, function=objective)
-
-    # Alternatively we can use the vqe call (just comment out the above code and uncomment the code below)
-    # optimal_expectation, optimal_parameters = cudaq.vqe(
-    #    kernel=kernel_qaoa,
-    #    spin_operator=hamiltonian,
-    #    argument_mapper=lambda parameter_vector: (qubit_count, layer_count, edges_src, edges_tgt, parameter_vector),
-    #    optimizer=optimizer,
-    #    parameter_count=parameter_count)
-
-    print('optimal_expectation =', optimal_expectation)
-    print('Therefore, the max cut value is at least ', -1 * optimal_expectation)
-    print('optimal_parameters =', optimal_parameters)
+    results = cudaq.run(multi_measure, shots_count=1000)
+    counts = Counter(
+        ''.join('1' if bit else '0' for bit in result) for result in results)
+    print(dict(counts))
 :::
 :::
 :::
 
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
+C++
 
-::: {.output_area .docutils .container}
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    [0.5+0j] IIZIZ
-    [0.5+0j] IZZII
-    [-3+0j] IIIII
-    [0.5+0j] ZZIII
-    [0.5+0j] IIIZZ
-    [0.5+0j] IIZZI
-    [0.5+0j] ZIIZI
-
-    optimal_expectation = -4.495973826282007
-    Therefore, the max cut value is at least  4.495973826282007
-    optimal_parameters = [0.51349181993727, -0.21299416361632417, 0.3250526425808945, 0.886630847343767]
+      auto results = cudaq::run(1000, multi_measure{});
+      std::map<std::string, std::size_t> counts;
+      for (const auto &shot : results) {
+        std::string bits;
+        for (auto b : shot)
+          bits += b ? '1' : '0';
+        counts[bits]++;
+      }
+      for (const auto &[bits, count] : counts)
+        printf("%s : %zu\n", bits.c_str(), count);
+:::
+:::
+:::
 :::
 :::
 :::
 
-Now that we have identified the optimal parameters, we can read out the
-partitioning(s) that gives us a max cut of the graph using the
-[`sample`{.docutils .literal .notranslate}]{.pre} primitive.
+::: {#migration-examples .section}
+## Migration Examples[¶](#migration-examples "Permalink to this heading"){.headerlink}
 
-::: {.nbinput .docutils .container}
-::: {.prompt .highlight-none .notranslate}
+::: {#example-1-simple-conditional-logic .section}
+### Example 1: Simple conditional logic[¶](#example-1-simple-conditional-logic "Permalink to this heading"){.headerlink}
+
+A kernel that measures one qubit and conditionally applies a gate on
+another.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
 ::: highlight
-    [6]:
+    @cudaq.kernel
+    def simple_conditional() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+
+
+    results = cudaq.run(simple_conditional, shots_count=100)
+    n_ones = sum(results)
+    print(f"Measured |1> {n_ones} out of {len(results)} shots")
+:::
 :::
 :::
 
-::: {.input_area .highlight-ipython3 .notranslate}
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    # Sample the circuit using the optimized parameters
-    # Since our kernel has more than one argument, we need to list the values for each of these variables in order in the `sample` call.
-    counts = cudaq.sample(kernel_qaoa, qubit_count, layer_count, edges_src,
-                          edges_tgt, optimal_parameters)
-    print(counts)
-
-    # Identify the most likely outcome from the sample
-    max_cut = max(counts, key=lambda x: counts[x])
-    print('The max cut is given by the partition: ',
-          max(counts, key=lambda x: counts[x]))
+    struct simple_conditional {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {
+          x(q[1]);
+        }
+        return mz(q[1]);
+      }
+    };
 :::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
 :::
 
-::: {.output_area .docutils .container}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    { 00000:1 00010:3 00011:4 00100:2 00101:4 00110:58 00111:7 01000:1 01001:44 01010:153 01011:156 01100:6 01101:7 01110:54 01111:5 10000:7 10001:27 10010:8 10011:4 10100:155 10101:165 10110:45 11000:4 11001:65 11010:2 11011:2 11100:5 11101:2 11110:1 11111:3 }
+      auto results1 = cudaq::run(100, simple_conditional{});
+      std::size_t nOnes = std::count_if(results1.begin(), results1.end(),
+                                        [](const auto &r) { return (bool)r; });
+      printf("Measured |1> %zu out of %zu shots\n", nOnes, results1.size());
+:::
+:::
+:::
+:::
+:::
 
-    The max cut is given by the partition:  10101
-:::
-:::
-:::
+::: {#example-2-returning-multiple-measurement-results .section}
+### Example 2: Returning multiple measurement results[¶](#example-2-returning-multiple-measurement-results "Permalink to this heading"){.headerlink}
 
-::: {.nbinput .docutils .container}
-::: {.prompt .highlight-none .notranslate}
+A kernel that performs multiple mid-circuit measurements with
+conditional logic and returns all results as a list. When returning a
+[`std::vector<bool>`{.docutils .literal .notranslate}]{.pre} in C++,
+pre-allocate the result vector and assign elements individually for
+broadest target compatibility.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
 ::: highlight
-    [7]:
+    @cudaq.kernel
+    def multi_measure() -> list[bool]:
+        q = cudaq.qvector(3)
+        h(q)
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        if r0 and r1:
+            x(q[2])
+        r2 = mz(q[2])
+        return [r0, r1, r2]
+
+
+    results = cudaq.run(multi_measure, shots_count=100)
+    for shot in results[:5]:
+        print(''.join('1' if b else '0' for b in shot))
+:::
 :::
 :::
 
-::: {.input_area .highlight-ipython3 .notranslate}
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    print(cudaq.__version__)
-:::
+    struct multi_measure {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        h(q);
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+        if (results[0] && results[1]) {
+          x(q[2]);
+        }
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
 :::
 :::
 
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
+::: {.highlight-cpp .notranslate}
 ::: highlight
-    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum e4457c69e5ed4e7061a0e40cd4b2825923cfaa00)
+      auto results2 = cudaq::run(100, multi_measure{});
+      for (std::size_t i = 0; i < 5 && i < results2.size(); ++i) {
+        for (auto b : results2[i])
+          printf("%d", (int)b);
+        printf("\n");
+      }
 :::
 :::
+:::
+:::
+:::
+
+::: {#example-3-quantum-teleportation .section}
+### Example 3: Quantum teleportation[¶](#example-3-quantum-teleportation "Permalink to this heading"){.headerlink}
+
+Teleportation of a qubit state requires conditional corrections based on
+Bell-basis measurements.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def teleport() -> list[bool]:
+        results = [False, False, False]
+        q = cudaq.qvector(3)
+        x(q[0])
+
+        h(q[1])
+        x.ctrl(q[1], q[2])
+
+        x.ctrl(q[0], q[1])
+        h(q[0])
+
+        results[0] = mz(q[0])
+        results[1] = mz(q[1])
+
+        if results[1]:
+            x(q[2])
+        if results[0]:
+            z(q[2])
+
+        results[2] = mz(q[2])
+        return results
+
+
+    runs = cudaq.run(teleport, shots_count=100)
+    assert all(r[2] for r in runs), "Teleportation failed"
+    print(f"Teleportation succeeded on all {len(runs)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct teleport {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        x(q[0]);
+
+        h(q[1]);
+        x<cudaq::ctrl>(q[1], q[2]);
+
+        x<cudaq::ctrl>(q[0], q[1]);
+        h(q[0]);
+
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+
+        if (results[1])
+          x(q[2]);
+        if (results[0])
+          z(q[2]);
+
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results3 = cudaq::run(100, teleport{});
+      assert(std::ranges::all_of(results3, [](const auto &r) { return r[2]; }));
+      printf("Teleportation succeeded on all %zu shots\n", results3.size());
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#additional-notes .section}
+## Additional Notes[¶](#additional-notes "Permalink to this heading"){.headerlink}
+
+-   Users of [`sample_async`{.docutils .literal .notranslate}]{.pre}
+    with conditional-feedback kernels should migrate to
+    [`run_async`{.docutils .literal .notranslate}]{.pre}. See the [[run
+    specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the asynchronous API.
+
+-   [`run`{.docutils .literal .notranslate}]{.pre} supports a variety of
+    return types including scalars, vectors/lists, and user-defined data
+    structures. See the [[run specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the complete list of supported types and their
+    requirements.
+
+-   Assigning measurement results to named variables in kernels passed
+    to [`sample`{.docutils .literal .notranslate}]{.pre} is deprecated
+    and will be removed in a future release. Use [`run`{.docutils
+    .literal .notranslate}]{.pre} to retrieve individual measurement
+    results.
 :::
 :::
 :::
@@ -2324,10 +2451,10 @@ partitioning(s) that gives us a max cut of the graph using the
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../using/applications.html "CUDA-Q Applications"){.btn
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](digitized_counterdiabatic_qaoa.html "Molecular docking via DC-QAOA"){.btn
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
