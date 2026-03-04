@@ -271,13 +271,6 @@ using async_sample_result = std::future<sample_result>;
 /// This preserves the full ptsbe::sample_result type (including execution
 /// data) without slicing through KernelExecutionTask.
 ///
-/// The noise model is captured by value into the async lambda so it is
-/// self-contained. Inside the lambda, the noise model is set on the
-/// platform before calling runSamplingPTSBE and reset afterwards. Because
-/// the noise model is a parameter (not read from the platform), callers
-/// do not need to set/reset noise on the platform, avoiding a race
-/// between the calling thread and the worker thread.
-///
 /// @tparam KernelFunctor Wrapped kernel functor type
 /// @param wrappedKernel Functor that invokes the quantum kernel
 /// @param platform Reference to the quantum platform
@@ -285,8 +278,8 @@ using async_sample_result = std::future<sample_result>;
 /// @param shots Number of shots for trajectory allocation
 /// @param options PTSBE configuration options
 /// @param qpu_id The QPU ID to execute on
-/// @param noise Optional noise model. Copied into the async task to ensure
-///        proper lifetime. When nullopt, executes without noise.
+/// @param noise Optional noise model. Copied into the asynchronous task to
+///        ensure proper lifetime. When absent, executes without noise.
 /// @return future resolving to ptsbe::sample_result
 /// @throws std::runtime_error if platform is remote (PTSBE is local-only)
 template <typename KernelFunctor>
