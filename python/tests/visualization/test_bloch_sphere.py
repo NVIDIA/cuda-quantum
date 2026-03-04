@@ -19,7 +19,7 @@ from contextlib import redirect_stdout
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     yield
     cudaq.__clearKernelRegistries()
 

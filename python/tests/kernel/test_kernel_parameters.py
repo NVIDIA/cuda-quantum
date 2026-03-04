@@ -18,7 +18,7 @@ from cudaq import spin
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     yield
     cudaq.__clearKernelRegistries()
 

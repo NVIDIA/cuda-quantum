@@ -13,7 +13,7 @@ from typing import Callable
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     yield
     cudaq.__clearKernelRegistries()
 

@@ -17,7 +17,7 @@ skipIfPasqalNotInstalled = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     # NOTE: Credentials can be set with environment variables
     cudaq.set_target("pasqal")
     yield "Running the tests."
