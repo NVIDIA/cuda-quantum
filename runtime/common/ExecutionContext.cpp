@@ -23,78 +23,105 @@ thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
 namespace cudaq {
 
 namespace compiler_artifact {
-struct SavedCompilerArtifact {
+class SavedCompilerArtifact {
 public:
-  bool hasJitEngine() const { return jitEng.has_value(); }
-  const cudaq::JitEngine &getJitEngine() const { return jitEng.value(); }
+  const std::optional<cudaq::JitEngine> &getJitEngine() const { return jitEng; }
   void setJitEngine(const cudaq::JitEngine &engine) { jitEng = engine; }
+
+  void checkArtifactReuse(const std::string kernelName,
+                          const std::vector<void *> &args,
+                          const cudaq::JitEngine &engine,
+                          std::function<void *()> argsCreatorThunk) {
+    if (!jitEng.has_value()) {
+      jitEng = engine;
+      this->argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
+          argsCreatorThunk());
+      this->kernelName = kernelName;
+      auto [resSize, scopedArgBuffer] = processArgs(args);
+      this->argSize = resSize;
+      this->argBuff = std::move(scopedArgBuffer);
+      return;
+    }
+
+    if (kernelName != this->kernelName)
+      throw std::runtime_error("Detected reuse of compiler artifact with "
+                               "a different kernel.");
+
+    auto [resSize, scopedArgBuffer] = processArgs(args);
+
+    auto validate = [this, resSize, &scopedArgBuffer]() {
+      if (resSize != this->argSize)
+        return false;
+      return memcmp(this->argBuff.get(), scopedArgBuffer.get(), resSize) == 0;
+    };
+
+    if (!validate())
+      throw std::runtime_error("Detected reuse of compiler artifact with "
+                               "diverging explicit arguments.");
+  }
 
   void reset() {
     jitEng.reset();
+    argsCreator = nullptr;
+    argBuff.reset();
     argSize = 0;
-  }
-
-  // We're responsible for freeing argMessageBuffer.
-  void saveInfo(std::string_view kernelName, void *argMessageBuffer,
-                size_t size) {
-    assert(argMessageBuffer);
-    argSize = size;
-    this->kernelName = kernelName;
-    argBuff = std::unique_ptr<void, decltype(&free)>(argMessageBuffer, free);
-  }
-
-  bool isKernelSame(std::string_view kernelName) const {
-    return this->kernelName == kernelName;
-  }
-
-  bool cmpInfo(void *argMessageBuffer, size_t size) const {
-    assert(argBuff.get() && argMessageBuffer);
-    if (size != argSize)
-      return false;
-    return memcmp(argMessageBuffer, argBuff.get(), size) == 0;
   }
 
   SavedCompilerArtifact() : argBuff(nullptr, free) {}
 
 private:
   std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  // This is actually going to be a pointer into the jitEng,
+  // but we have to store it explicitly due to linking issues.
+  int64_t (*argsCreator)(const void *, void **);
   std::string kernelName;
   std::unique_ptr<void, decltype(&free)> argBuff;
   size_t argSize = 0;
+
+  std::tuple<size_t, std::unique_ptr<void, decltype(&free)>>
+  processArgs(const std::vector<void *> &args) {
+    assert(jitEng.has_value());
+    void *resBuffer;
+    auto resSize = argsCreator(args.data(), &resBuffer);
+    std::unique_ptr<void, decltype(&free)> scopedArgBuffer(resBuffer, free);
+    return std::tuple(resSize, std::move(scopedArgBuffer));
+  }
 };
 
-thread_local bool persistJITEngine = false;
+thread_local bool reuseArtifact = false;
 thread_local SavedCompilerArtifact savedArtifact;
 
 /// This will cause the JITEngine stored in the current execution context to be
 /// used for future launches until disabled by `disablePersistentJITEngine`
-void enablePersistentJITEngine() { persistJITEngine = true; }
+void enablePersistentJITEngine() { reuseArtifact = true; }
 
 void disablePersistentJITEngine() {
-  persistJITEngine = false;
+  reuseArtifact = false;
   savedArtifact.reset();
 }
 
-bool isPersistingJITEngine() { return persistJITEngine; }
+bool isPersistingJITEngine() { return reuseArtifact; }
 
-// We're responsible for freeing argMessageBuffer
-void saveArtifactInfo(std::string_view kernelName, void *argMessageBuffer,
-                      size_t size) {
-  if (!persistJITEngine)
+void checkArtifactReuse(const std::string kernelName,
+                        const std::vector<void *> &args, const JitEngine &jit,
+                        std::function<void *()> argsCreatorThunk) {
+  if (!reuseArtifact)
     return;
-  savedArtifact.saveInfo(kernelName, argMessageBuffer, size);
+
+  savedArtifact.checkArtifactReuse(kernelName, args, jit, argsCreatorThunk);
 }
 
-bool isKernelSame(std::string_view kernelName) {
-  if (!persistJITEngine)
-    return false;
-  return savedArtifact.isKernelSame(kernelName);
+void saveEngineForReuse(ExecutionContext *ctx) {
+  if (reuseArtifact && ctx && ctx->jitEng.has_value())
+    savedArtifact.setJitEngine(ctx->jitEng.value());
 }
 
-bool isArtifactReusable(void *argMessageBuffer, size_t size) {
-  if (!persistJITEngine)
-    return false;
-  return savedArtifact.cmpInfo(argMessageBuffer, size);
+void reuseEngineIfPresent(ExecutionContext *ctx) {
+  if (!reuseArtifact || !ctx)
+    return;
+  auto engine = savedArtifact.getJitEngine();
+  if (engine.has_value())
+    ctx->jitEng = engine.value();
 }
 } // namespace compiler_artifact
 
@@ -123,17 +150,11 @@ std::size_t getCurrentQpuId() {
 void detail::setExecutionContext(ExecutionContext *ctx) {
   currentExecutionContext = ctx;
 
-  if (currentExecutionContext && compiler_artifact::persistJITEngine &&
-      compiler_artifact::savedArtifact.hasJitEngine())
-    currentExecutionContext->jitEng =
-        compiler_artifact::savedArtifact.getJitEngine();
+  compiler_artifact::reuseEngineIfPresent(ctx);
 }
 
 void detail::resetExecutionContext() {
-  if (currentExecutionContext && compiler_artifact::persistJITEngine &&
-      currentExecutionContext->jitEng.has_value())
-    compiler_artifact::savedArtifact.setJitEngine(
-        currentExecutionContext->jitEng.value());
+  compiler_artifact::saveEngineForReuse(currentExecutionContext);
 
   currentExecutionContext = nullptr;
 }

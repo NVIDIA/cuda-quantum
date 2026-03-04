@@ -211,11 +211,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     cudaq::KernelThunkResultType result{nullptr, 0};
 
-    bool builtJIT = false;
-
     auto jit = alreadyBuiltJITCode();
     if (!jit) {
-      builtJIT = true;
       // 1. Check that this call is sane.
       if (enablePythonCodegenDump)
         module.dump();
@@ -247,27 +244,11 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     }
 
     if (cudaq::compiler_artifact::isPersistingJITEngine()) {
-      if (!builtJIT && !cudaq::compiler_artifact::isKernelSame(name))
-        throw std::runtime_error("Detected reuse of compiler artifact with "
-                                 "a different kernel.");
-      auto funcPtr = jit->lookupRawNameOrFail(name + ".argsCreator");
-      auto argsCreator =
-          reinterpret_cast<int64_t (*)(const void *, void **)>(funcPtr);
-      void *resBuffer;
-      auto resSize = argsCreator(rawArgs.data(), &resBuffer);
-      auto deleter = [](void *ptr) { std::free(ptr); };
-      std::unique_ptr<void, decltype(deleter)> scopedRefBuffer(resBuffer,
-                                                               deleter);
-      if (builtJIT) {
-        cudaq::compiler_artifact::saveArtifactInfo(
-            name, scopedRefBuffer.release(), resSize);
-      } else {
-        auto canReuse = cudaq::compiler_artifact::isArtifactReusable(
-            scopedRefBuffer.get(), resSize);
-        if (!canReuse)
-          throw std::runtime_error("Detected reuse of compiler artifact with "
-                                   "diverging explicit arguments.");
-      }
+      auto argsCreatorThunk = [&jit, &name]() {
+        return (void *)jit->lookupRawNameOrFail(name + ".argsCreator");
+      };
+      cudaq::compiler_artifact::checkArtifactReuse(name, rawArgs, jit.value(),
+                                                   argsCreatorThunk);
     }
 
     if (resultTy) {

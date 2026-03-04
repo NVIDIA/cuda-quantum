@@ -207,14 +207,21 @@ void setExecutionContext(ExecutionContext *ctx);
 void resetExecutionContext();
 } // namespace detail
 
-// TODO: document
 namespace compiler_artifact {
+/// Saves and resuses the JITEngine across launches
+///
+/// This will exhibit undefined behavior if the launch arguments/context
+/// in any way differs from the saved launch.
 void enablePersistentJITEngine();
 void disablePersistentJITEngine();
 bool isPersistingJITEngine();
-void saveArtifactInfo(std::string_view kernelName, void *argMessageBuffer,
-                      size_t size);
-bool isKernelSame(std::string_view kernelName);
-bool isArtifactReusable(void *argMessageBuffer, size_t size);
+
+/// Checks that the compiler artifact (if present) can be reused
+/// for the given explicit launch arguments.
+///
+/// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
+void checkArtifactReuse(const std::string kernelName,
+                        const std::vector<void *> &args, const JitEngine &jit,
+                        std::function<void *()> argsCreatorThunk);
 }; // namespace compiler_artifact
 } // namespace cudaq
