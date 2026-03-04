@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
@@ -103,6 +104,8 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to " + format + " failed.");
+  if (failed(cudaq::verifier::checkQIRLLVMIRDialect(module, format)))
+    throw std::runtime_error("QIR conformance failed.");
   llvm::LLVMContext llvmContext;
   llvmContext.setOpaquePointers(false);
   std::unique_ptr<llvm::Module> llvmModule =
