@@ -121,3 +121,21 @@ def test_reuse_complex_arguments():
         assert (res.count("11") == 1)
         with pytest.raises(RuntimeError):
             cudaq.sample(apply_complex_angles, different_angles, shots_count=1)
+
+
+def test_different_launch_mode():
+    """Reuse validation should reject different launch modes"""
+
+    @cudaq.kernel
+    def simple(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
+        x(qubits.front())
+        for i, qubit in enumerate(qubits.front(numQubits - 1)):
+            x.ctrl(qubit, qubits[i + 1])
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        res = cudaq.sample(simple, 4, shots_count=1)
+        assert (res.count("1111") == 1)
+
+        with pytest.raises(RuntimeError):
+            res = cudaq.get_state(simple, 4)

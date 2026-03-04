@@ -23,11 +23,10 @@ thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
 namespace cudaq {
 
 namespace compiler_artifact {
+thread_local bool reuseArtifact = false;
+
 class SavedCompilerArtifact {
 public:
-  const std::optional<cudaq::JitEngine> &getJitEngine() const { return jitEng; }
-  void setJitEngine(const cudaq::JitEngine engine) { jitEng = engine; }
-
   void checkArtifactReuse(const std::string &kernelName,
                           const std::vector<void *> &args,
                           const cudaq::JitEngine &engine,
@@ -69,12 +68,30 @@ public:
 
   SavedCompilerArtifact() : argBuff(nullptr, free) {}
 
+  void saveEngineForReuse(ExecutionContext *ctx) {
+    if (!reuseArtifact || !ctx)
+      return;
+    jitEng = ctx->jitEng;
+    launchMode = ctx->name;
+  }
+
+  void reuseEngineIfPresent(ExecutionContext *ctx) {
+    if (!reuseArtifact || !ctx || !jitEng.has_value())
+      return;
+
+    if (launchMode != ctx->name)
+      throw std::runtime_error(
+          "Detected reuse of compiler artifact with different launch mode");
+    ctx->jitEng = jitEng.value();
+  }
+
 private:
   std::optional<cudaq::JitEngine> jitEng = std::nullopt;
   // This is actually going to be a pointer into the jitEng,
   // but we have to store it explicitly due to linking issues.
   int64_t (*argsCreator)(const void *, void **);
   std::string kernelName;
+  std::string launchMode;
   std::unique_ptr<void, decltype(&free)> argBuff;
   size_t argSize = 0;
 
@@ -88,7 +105,6 @@ private:
   }
 };
 
-thread_local bool reuseArtifact = false;
 thread_local SavedCompilerArtifact savedArtifact;
 
 /// This will cause the JITEngine stored in the current execution context to be
@@ -109,19 +125,6 @@ void checkArtifactReuse(const std::string kernelName,
     return;
 
   savedArtifact.checkArtifactReuse(kernelName, args, jit, argsCreatorThunk);
-}
-
-void saveEngineForReuse(ExecutionContext *ctx) {
-  if (reuseArtifact && ctx && ctx->jitEng.has_value())
-    savedArtifact.setJitEngine(ctx->jitEng.value());
-}
-
-void reuseEngineIfPresent(ExecutionContext *ctx) {
-  if (!reuseArtifact || !ctx)
-    return;
-  auto engine = savedArtifact.getJitEngine();
-  if (engine.has_value())
-    ctx->jitEng = engine.value();
 }
 } // namespace compiler_artifact
 
@@ -148,14 +151,12 @@ std::size_t getCurrentQpuId() {
 }
 
 void detail::setExecutionContext(ExecutionContext *ctx) {
+  compiler_artifact::savedArtifact.reuseEngineIfPresent(ctx);
   currentExecutionContext = ctx;
-
-  compiler_artifact::reuseEngineIfPresent(ctx);
 }
 
 void detail::resetExecutionContext() {
-  compiler_artifact::saveEngineForReuse(currentExecutionContext);
-
+  compiler_artifact::savedArtifact.saveEngineForReuse(currentExecutionContext);
   currentExecutionContext = nullptr;
 }
 } // namespace cudaq
