@@ -34,6 +34,11 @@ typedef enum {
 
 } cudaq_realtime_transport_provider_t;
 
+typedef enum {
+  RING_BUFFER = 0, // Ring buffer context (for Hololink provider)
+  UNIFIED = 1,     /// Unified transport context  for unified dispatch
+} cudaq_realtime_transport_context_t;
+
 /// @brief Create and initialize a transport bridge for the specified provider.
 /// For the built-in Hololink provider, this loads the Hololink shared library
 /// and initializes the transceiver with the provided `args`.  For the EXTERNAL
@@ -48,10 +53,11 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 /// @brief Destroy the transport bridge and release all associated resources.
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Retrieve the ring buffer information for the given bridge.
-cudaq_status_t
-cudaq_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t bridge,
-                            cudaq_ringbuffer_t *out_ringbuffer);
+/// @brief Retrieve the transport context for the given bridge.
+/// This could be a ring buffer or unified context.
+cudaq_status_t cudaq_bridge_get_transport_context(
+    cudaq_realtime_bridge_handle_t bridge,
+    cudaq_realtime_transport_context_t context_type, void *out_context);
 
 /// @brief Connect the transport bridge.
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge);
@@ -75,8 +81,9 @@ typedef struct {
   int version;
   cudaq_status_t (*create)(cudaq_realtime_bridge_handle_t *, int, char **);
   cudaq_status_t (*destroy)(cudaq_realtime_bridge_handle_t);
-  cudaq_status_t (*get_ringbuffer)(cudaq_realtime_bridge_handle_t,
-                                   cudaq_ringbuffer_t *);
+  cudaq_status_t (*get_transport_context)(cudaq_realtime_bridge_handle_t,
+                                          cudaq_realtime_transport_context_t,
+                                          void *);
   cudaq_status_t (*connect)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);

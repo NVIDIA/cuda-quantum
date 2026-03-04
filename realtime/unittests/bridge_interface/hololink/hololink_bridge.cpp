@@ -23,6 +23,7 @@
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
 #include <atomic>
 #include <chrono>
 #include <csignal>
@@ -59,15 +60,27 @@ struct DispatchConfig {
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
+  // Forward mode: use Hololink's built-in forward kernel (echo) instead of
+  // separate RX + dispatch + TX kernels.  Useful for baseline latency testing.
+  bool forward = false;
+
+  // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
+  // RDMA TX via direct DOCA verbs calls.  Eliminates the inter-kernel flag
+  // handoff overhead of the 3-kernel path.  Regular handlers only.
+  bool unified = false;
 };
 
-inline void parse_bridge_args(int argc, char *argv[], DispatchConfig &config) {
+void parse_bridge_args(int argc, char *argv[], DispatchConfig &config) {
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
     if (arg.find("--gpu=") == 0)
       config.gpu_id = std::stoi(arg.substr(6));
     else if (arg.find("--timeout=") == 0)
       config.timeout_sec = std::stoi(arg.substr(10));
+    else if (arg == "--forward")
+      config.forward = true;
+    else if (arg == "--unified")
+      config.unified = true;
   }
 }
 
@@ -126,12 +139,17 @@ int main(int argc, char *argv[]) {
           << "  --remote-qp=N         Remote QP number (default: 0x2)\n"
           << "  --gpu=N               GPU device ID (default: 0)\n"
           << "  --timeout=N           Timeout in seconds (default: 60)\n"
+          << "  --payload-size=N      RPC payload size in bytes (default: 8)\n"
           << "  --page-size=N         Ring buffer slot size (default: 384)\n"
           << "  --num-pages=N         Number of ring buffer slots (default: "
              "64)\n"
           << "  --exchange-qp         Enable QP exchange protocol\n"
           << "  --exchange-port=N     TCP port for QP exchange (default: "
-             "12345)\n";
+             "12345)\n"
+          << "  --forward             Use Hololink forward kernel (echo) "
+             "instead of dispatch\n"
+          << "  --unified             Use unified dispatch kernel (RX + "
+             "dispatch + TX in one kernel)\n";
       return 0;
     }
   }
@@ -161,13 +179,6 @@ int main(int argc, char *argv[]) {
     }
 
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_connect(bridge_handle));
-
-    std::cout << "Bridge connected successfully. Retrieving the ring buffer ..."
-              << std::endl;
-
-    cudaq_ringbuffer_t ringbuffer{};
-    HANDLE_CUDAQ_REALTIME_ERROR(
-        cudaq_bridge_get_ringbuffer(bridge_handle, &ringbuffer));
 
     //============================================================================
     // Set up CUDA-Q realtime dispatch
@@ -201,20 +212,59 @@ int main(int argc, char *argv[]) {
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));
     cudaq_dispatcher_config_t dconfig{};
     dconfig.device_id = config.gpu_id;
-    dconfig.num_blocks = config.num_blocks;
-    dconfig.threads_per_block = config.threads_per_block;
-    dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-    dconfig.slot_size = static_cast<uint32_t>(config.page_size);
     dconfig.vp_id = 0;
-    dconfig.kernel_type = config.kernel_type;
     dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+
+    if (config.unified) {
+      dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
+      dconfig.num_blocks = 1;
+      dconfig.threads_per_block = 1;
+      dconfig.num_slots = 0;
+      dconfig.slot_size = 0;
+    } else {
+      dconfig.kernel_type = config.kernel_type;
+      dconfig.num_blocks = config.num_blocks;
+      dconfig.threads_per_block = config.threads_per_block;
+      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
+    }
+
     // Create dispatcher with the above config
     HANDLE_CUDAQ_REALTIME_ERROR(
         cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
 
-    // Set the ring buffer retrieved from the bridge
-    HANDLE_CUDAQ_REALTIME_ERROR(
-        cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer));
+    // Transport context for unified mode (must outlive the dispatcher)
+    doca_transport_ctx unified_ctx{};
+
+    if (config.unified) {
+      std::cout << "Retrieving the DOCA transport context ..." << std::endl;
+      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
+          bridge_handle, UNIFIED, &unified_ctx));
+      if (cudaq_dispatcher_set_unified_launch(
+              dispatcher, &cudaq_launch_unified_dispatch_kernel,
+              &unified_ctx) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set unified launch function"
+                  << std::endl;
+        return 1;
+      }
+    } else {
+      std::cout << "Retrieving the ring buffer ..." << std::endl;
+
+      cudaq_ringbuffer_t ringbuffer{};
+      HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
+          bridge_handle, RING_BUFFER, &ringbuffer));
+      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
+          CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
+        return 1;
+      }
+
+      if (cudaq_dispatcher_set_launch_fn(
+              dispatcher, &cudaq_launch_dispatch_kernel_regular) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set launch function" << std::endl;
+        return 1;
+      }
+    }
 
     // Set up the function table with the increment handler entries
     // Populate the GPU function table with the increment handler entry
@@ -233,9 +283,6 @@ int main(int argc, char *argv[]) {
     // dispatcher
     HANDLE_CUDAQ_REALTIME_ERROR(
         cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats));
-    // Set the dispatch kernel launch function for the dispatcher
-    HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_set_launch_fn(
-        dispatcher, &cudaq_launch_dispatch_kernel_regular));
 
     // Start the dispatcher (launches the dispatch kernel)
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_start(dispatcher));

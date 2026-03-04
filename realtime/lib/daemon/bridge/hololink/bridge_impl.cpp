@@ -49,6 +49,7 @@ struct HololinkBridgeContext {
 
     transceiver = hololink_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
+        config.gpu_id,            // GPU device ID
         config.frame_size, config.page_size, config.num_pages,
         "0.0.0.0", // deferred connection
         0,         // forward = false
@@ -112,11 +113,11 @@ hololink_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
   return CUDAQ_OK;
 }
 
-static cudaq_status_t
-hololink_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t handle,
-                               cudaq_ringbuffer_t *out_ringbuffer) {
+static cudaq_status_t hololink_bridge_get_transport_context(
+    cudaq_realtime_bridge_handle_t handle,
+    cudaq_realtime_transport_context_t context_type, void *out_context) {
 
-  if (!handle || !out_ringbuffer)
+  if (!handle || !out_context)
     return CUDAQ_ERR_INVALID_ARG;
   HololinkBridgeContext *ctx =
       reinterpret_cast<HololinkBridgeContext *>(handle);
@@ -124,28 +125,43 @@ hololink_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t handle,
     return CUDAQ_ERR_INTERNAL;
 
   auto &transceiver = ctx->transceiver;
+  if (context_type == RING_BUFFER) {
+    cudaq_ringbuffer_t *ringbuffer =
+        reinterpret_cast<cudaq_ringbuffer_t *>(out_context);
 
-  // Ring buffer pointers
-  uint8_t *rx_ring_data =
-      reinterpret_cast<uint8_t *>(hololink_get_rx_ring_data_addr(transceiver));
-  uint64_t *rx_ring_flag = hololink_get_rx_ring_flag_addr(transceiver);
-  uint8_t *tx_ring_data =
-      reinterpret_cast<uint8_t *>(hololink_get_tx_ring_data_addr(transceiver));
-  uint64_t *tx_ring_flag = hololink_get_tx_ring_flag_addr(transceiver);
+    // Ring buffer pointers
+    uint8_t *rx_ring_data = reinterpret_cast<uint8_t *>(
+        hololink_get_rx_ring_data_addr(transceiver));
+    uint64_t *rx_ring_flag = hololink_get_rx_ring_flag_addr(transceiver);
+    uint8_t *tx_ring_data = reinterpret_cast<uint8_t *>(
+        hololink_get_tx_ring_data_addr(transceiver));
+    uint64_t *tx_ring_flag = hololink_get_tx_ring_flag_addr(transceiver);
 
-  if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
-    std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
-    return CUDAQ_ERR_INTERNAL;
+    if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
+      std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
+      return CUDAQ_ERR_INTERNAL;
+    }
+
+    ringbuffer->rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
+    ringbuffer->tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+    ringbuffer->rx_data = rx_ring_data;
+    ringbuffer->tx_data = tx_ring_data;
+    ringbuffer->rx_stride_sz = ctx->config.page_size;
+    ringbuffer->tx_stride_sz = ctx->config.page_size;
+  } else if (context_type == UNIFIED) {
+    doca_transport_ctx *doca_ctx =
+        reinterpret_cast<doca_transport_ctx *>(out_context);
+    doca_ctx->gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+    doca_ctx->rx_ring_data = reinterpret_cast<uint8_t *>(
+        hololink_get_rx_ring_data_addr(transceiver));
+    doca_ctx->rx_ring_stride_sz = hololink_get_page_size(transceiver);
+    doca_ctx->rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+    doca_ctx->rx_ring_stride_num = hololink_get_num_pages(transceiver);
+    doca_ctx->frame_size = ctx->config.frame_size;
+  } else {
+    std::cerr << "ERROR: Invalid transport context type" << std::endl;
+    return CUDAQ_ERR_INVALID_ARG;
   }
-
-  out_ringbuffer->rx_flags =
-      reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-  out_ringbuffer->tx_flags =
-      reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-  out_ringbuffer->rx_data = rx_ring_data;
-  out_ringbuffer->tx_data = tx_ring_data;
-  out_ringbuffer->rx_stride_sz = ctx->config.page_size;
-  out_ringbuffer->tx_stride_sz = ctx->config.page_size;
 
   return CUDAQ_OK;
 }
@@ -208,13 +224,18 @@ hololink_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
     return CUDAQ_ERR_INVALID_ARG;
   auto &transceiver = ctx->transceiver;
 
-  //============================================================================
-  // Launch Hololink kernels and run
-  //============================================================================
-  ctx->hololink_thread = std::make_unique<std::thread>(
-      [transceiver]() { hololink_blocking_monitor(transceiver); });
+  if (ctx->config.unified) {
+    std::cout << "\n Unified mode -- no hololink monitor thread needed"
+              << std::endl;
+  } else {
+    //============================================================================
+    // Launch Hololink kernels and run
+    //============================================================================
+    ctx->hololink_thread = std::make_unique<std::thread>(
+        [transceiver]() { hololink_blocking_monitor(transceiver); });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
   return CUDAQ_OK;
 }
 
@@ -235,7 +256,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION,
       hololink_bridge_create,
       hololink_bridge_destroy,
-      hololink_bridge_get_ringbuffer,
+      hololink_bridge_get_transport_context,
       hololink_bridge_connect,
       hololink_bridge_launch,
       hololink_bridge_disconnect,

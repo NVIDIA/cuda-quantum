@@ -46,16 +46,17 @@ to initialize the networking context.
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge);
 ```
 
-### Retrieve the ring buffer information
+### Retrieve the transport context information
 
-This ring buffer will then be used to connect the networking layer
-to CUDA-Q realtime dispatch (`cudaq_dispatcher_set_ringbuffer`).
+This context information can be either a ring buffer (for `cudaq_dispatcher_set_ringbuffer`)
+or a unified context for (`cudaq_dispatcher_set_unified_launch`).
 
 ```cpp
-/// @brief Retrieve the ring buffer information for the given bridge.
-cudaq_status_t
-cudaq_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t bridge,
-                            cudaq_ringbuffer_t *out_ringbuffer);
+/// @brief Retrieve the transport context for the given bridge.
+/// This could be a ring buffer or unified context.
+cudaq_status_t cudaq_bridge_get_transport_context(
+    cudaq_realtime_bridge_handle_t bridge,
+    cudaq_realtime_transport_context_t context_type, void *out_context);
 ```
 
 ### Start the transport layer processing loop, i.e., ready to send and receive packages
@@ -105,8 +106,9 @@ typedef struct {
   int version;
   cudaq_status_t (*create)(cudaq_realtime_bridge_handle_t *, int, char **);
   cudaq_status_t (*destroy)(cudaq_realtime_bridge_handle_t);
-  cudaq_status_t (*get_ringbuffer)(cudaq_realtime_bridge_handle_t,
-                                   cudaq_ringbuffer_t *);
+  cudaq_status_t (*get_transport_context)(cudaq_realtime_bridge_handle_t,
+                                          cudaq_realtime_transport_context_t,
+                                          void *);
   cudaq_status_t (*connect)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
@@ -163,17 +165,19 @@ provider_name_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
 }
 
 static cudaq_status_t
-provider_name_bridge_get_ringbuffer(cudaq_realtime_bridge_handle_t handle,
-                            cudaq_ringbuffer_t *out_ringbuffer) {
+provider_name_bridge_get_transport_context(
+    cudaq_realtime_bridge_handle_t handle,
+    cudaq_realtime_transport_context_t context_type, void *out_context) {
 
   if (!handle || !out_ringbuffer)
     return CUDAQ_ERR_INVALID_ARG;
   ProviderNameNetworkContext *ctx = reinterpret_cast<ProviderNameNetworkContext *>(handle);
 
-  // Populate the ring buffer fields based on your networking implementation 
-
-  out_ringbuffer->rx_flags = ...;
-  ...
+  // Populate the transport context
+  if (context_type == RING_BUFFER) {
+    out_ringbuffer->rx_flags = ...;
+    ...
+  }
 
   return CUDAQ_OK;
 }
@@ -216,7 +220,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION,
       provider_name_bridge_create,
       provider_name_bridge_destroy,
-      provider_name_bridge_get_ringbuffer,
+      provider_name_bridge_get_transport_context,
       provider_name_bridge_connect,
       provider_name_bridge_launch,
       provider_name_bridge_disconnect,
