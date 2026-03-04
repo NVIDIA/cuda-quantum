@@ -208,7 +208,7 @@ void resetExecutionContext();
 } // namespace detail
 
 namespace compiler_artifact {
-/// Saves and resuses the JITEngine across launches
+/// Saves and reuses the JITEngine across launches
 ///
 /// This will exhibit undefined behavior if the launch arguments/context
 /// in any way differs from the saved launch.
