@@ -43,54 +43,50 @@ pr-4081
         -   [Debugging and Verbose Simulation
             Output](../basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
--   [Examples](../examples/examples.html){.reference .internal}
-    -   [Introduction](../examples/introduction.html){.reference
-        .internal}
-    -   [Building Kernels](../examples/building_kernels.html){.reference
-        .internal}
+-   [Examples](examples.html){.reference .internal}
+    -   [Introduction](introduction.html){.reference .internal}
+    -   [Building Kernels](building_kernels.html){.reference .internal}
         -   [Defining
-            Kernels](../examples/building_kernels.html#defining-kernels){.reference
+            Kernels](building_kernels.html#defining-kernels){.reference
             .internal}
         -   [Initializing
-            states](../examples/building_kernels.html#initializing-states){.reference
+            states](building_kernels.html#initializing-states){.reference
             .internal}
         -   [Applying
-            Gates](../examples/building_kernels.html#applying-gates){.reference
+            Gates](building_kernels.html#applying-gates){.reference
             .internal}
         -   [Controlled
-            Operations](../examples/building_kernels.html#controlled-operations){.reference
+            Operations](building_kernels.html#controlled-operations){.reference
             .internal}
         -   [Multi-Controlled
-            Operations](../examples/building_kernels.html#multi-controlled-operations){.reference
+            Operations](building_kernels.html#multi-controlled-operations){.reference
             .internal}
         -   [Adjoint
-            Operations](../examples/building_kernels.html#adjoint-operations){.reference
+            Operations](building_kernels.html#adjoint-operations){.reference
             .internal}
         -   [Custom
-            Operations](../examples/building_kernels.html#custom-operations){.reference
+            Operations](building_kernels.html#custom-operations){.reference
             .internal}
         -   [Building Kernels with
-            Kernels](../examples/building_kernels.html#building-kernels-with-kernels){.reference
+            Kernels](building_kernels.html#building-kernels-with-kernels){.reference
             .internal}
         -   [Parameterized
-            Kernels](../examples/building_kernels.html#parameterized-kernels){.reference
+            Kernels](building_kernels.html#parameterized-kernels){.reference
             .internal}
-    -   [Quantum
-        Operations](../examples/quantum_operations.html){.reference
+    -   [Quantum Operations](quantum_operations.html){.reference
         .internal}
         -   [Quantum
-            States](../examples/quantum_operations.html#quantum-states){.reference
+            States](quantum_operations.html#quantum-states){.reference
             .internal}
         -   [Quantum
-            Gates](../examples/quantum_operations.html#quantum-gates){.reference
+            Gates](quantum_operations.html#quantum-gates){.reference
             .internal}
-        -   [Measurements](../examples/quantum_operations.html#measurements){.reference
+        -   [Measurements](quantum_operations.html#measurements){.reference
             .internal}
-    -   [Measuring
-        Kernels](../examples/measuring_kernels.html){.reference
+    -   [Measuring Kernels](measuring_kernels.html){.reference
         .internal}
         -   [Mid-circuit Measurement and Conditional
-            Logic](../examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
+            Logic](measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
     -   [Visualizing
         Kernels](../../examples/python/visualization.html){.reference
@@ -101,62 +97,57 @@ pr-4081
         -   [Kernel
             Visualization](../../examples/python/visualization.html#Kernel-Visualization){.reference
             .internal}
-    -   [Executing
-        Kernels](../examples/executing_kernels.html){.reference
+    -   [Executing Kernels](executing_kernels.html){.reference
         .internal}
-        -   [Sample](../examples/executing_kernels.html#sample){.reference
+        -   [Sample](executing_kernels.html#sample){.reference
             .internal}
             -   [Sample
-                Asynchronous](../examples/executing_kernels.html#sample-asynchronous){.reference
+                Asynchronous](executing_kernels.html#sample-asynchronous){.reference
                 .internal}
-        -   [Run](../examples/executing_kernels.html#run){.reference
-            .internal}
+        -   [Run](executing_kernels.html#run){.reference .internal}
             -   [Return Custom Data
-                Types](../examples/executing_kernels.html#return-custom-data-types){.reference
+                Types](executing_kernels.html#return-custom-data-types){.reference
                 .internal}
             -   [Run
-                Asynchronous](../examples/executing_kernels.html#run-asynchronous){.reference
+                Asynchronous](executing_kernels.html#run-asynchronous){.reference
                 .internal}
-        -   [Observe](../examples/executing_kernels.html#observe){.reference
+        -   [Observe](executing_kernels.html#observe){.reference
             .internal}
             -   [Observe
-                Asynchronous](../examples/executing_kernels.html#observe-asynchronous){.reference
+                Asynchronous](executing_kernels.html#observe-asynchronous){.reference
                 .internal}
-        -   [Get
-            State](../examples/executing_kernels.html#get-state){.reference
+        -   [Get State](executing_kernels.html#get-state){.reference
             .internal}
             -   [Get State
-                Asynchronous](../examples/executing_kernels.html#get-state-asynchronous){.reference
+                Asynchronous](executing_kernels.html#get-state-asynchronous){.reference
                 .internal}
     -   [Computing Expectation
-        Values](../examples/expectation_values.html){.reference
-        .internal}
+        Values](expectation_values.html){.reference .internal}
         -   [Parallelizing across Multiple
-            Processors](../examples/expectation_values.html#parallelizing-across-multiple-processors){.reference
+            Processors](expectation_values.html#parallelizing-across-multiple-processors){.reference
             .internal}
-    -   [Multi-GPU
-        Workflows](../examples/multi_gpu_workflows.html){.reference
+    -   [Multi-GPU Workflows](multi_gpu_workflows.html){.reference
         .internal}
         -   [From CPU to
-            GPU](../examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
+            GPU](multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
         -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
             .internal}
         -   [Parallel execution over multiple QPUs ([`mqpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
-                Terms](../examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
+                Terms](multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
                 .internal}
             -   [Circuit
-                Batching](../examples/multi_gpu_workflows.html#circuit-batching){.reference
+                Batching](multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
         -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -212,13 +203,12 @@ pr-4081
         -   [Inspecting trajectories with execution
             data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
-    -   [Constructing Operators](../examples/operators.html){.reference
-        .internal}
+    -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
-            Operators](../examples/operators.html#constructing-spin-operators){.reference
+            Operators](operators.html#constructing-spin-operators){.reference
             .internal}
         -   [Pauli Words and Exponentiating Pauli
-            Words](../examples/operators.html#pauli-words-and-exponentiating-pauli-words){.reference
+            Words](operators.html#pauli-words-and-exponentiating-pauli-words){.reference
             .internal}
     -   [Performance
         Optimizations](../../examples/python/performance_optimizations.html){.reference
@@ -227,83 +217,69 @@ pr-4081
             Fusion](../../examples/python/performance_optimizations.html#Gate-Fusion){.reference
             .internal}
     -   [Using Quantum Hardware
-        Providers](../examples/hardware_providers.html){.reference
-        .internal}
+        Providers](hardware_providers.html){.reference .internal}
         -   [Amazon
-            Braket](../examples/hardware_providers.html#amazon-braket){.reference
+            Braket](hardware_providers.html#amazon-braket){.reference
             .internal}
         -   [Anyon
-            Technologies](../examples/hardware_providers.html#anyon-technologies){.reference
+            Technologies](hardware_providers.html#anyon-technologies){.reference
             .internal}
-        -   [Infleqtion](../examples/hardware_providers.html#infleqtion){.reference
+        -   [Infleqtion](hardware_providers.html#infleqtion){.reference
             .internal}
-        -   [IonQ](../examples/hardware_providers.html#ionq){.reference
-            .internal}
-        -   [IQM](../examples/hardware_providers.html#iqm){.reference
-            .internal}
-        -   [OQC](../examples/hardware_providers.html#oqc){.reference
-            .internal}
+        -   [IonQ](hardware_providers.html#ionq){.reference .internal}
+        -   [IQM](hardware_providers.html#iqm){.reference .internal}
+        -   [OQC](hardware_providers.html#oqc){.reference .internal}
         -   [ORCA
-            Computing](../examples/hardware_providers.html#orca-computing){.reference
+            Computing](hardware_providers.html#orca-computing){.reference
             .internal}
-        -   [Pasqal](../examples/hardware_providers.html#pasqal){.reference
+        -   [Pasqal](hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../examples/hardware_providers.html#quantinuum){.reference
+        -   [Quantinuum](hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
-            Inc.](../examples/hardware_providers.html#quantum-circuits-inc){.reference
+            Inc.](hardware_providers.html#quantum-circuits-inc){.reference
             .internal}
         -   [Quantum
-            Machines](../examples/hardware_providers.html#quantum-machines){.reference
+            Machines](hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
-            Computing](../examples/hardware_providers.html#quera-computing){.reference
+            Computing](hardware_providers.html#quera-computing){.reference
             .internal}
-        -   [Scaleway](../examples/hardware_providers.html#scaleway){.reference
+        -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
-    -   [When to Use sample vs.
-        run](../examples/sample_vs_run.html){.reference .internal}
-        -   [Introduction](../examples/sample_vs_run.html#introduction){.reference
-            .internal}
-        -   [Usage
-            Guidelines](../examples/sample_vs_run.html#usage-guidelines){.reference
-            .internal}
+    -   [When to Use sample vs. run](#){.current .reference .internal}
+        -   [Introduction](#introduction){.reference .internal}
+        -   [Usage Guidelines](#usage-guidelines){.reference .internal}
         -   [What Is Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-supported-with-sample){.reference
             .internal}
         -   [What Is Not Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-not-supported-with-sample){.reference
             .internal}
-        -   [How to
-            Migrate](../examples/sample_vs_run.html#how-to-migrate){.reference
-            .internal}
+        -   [How to Migrate](#how-to-migrate){.reference .internal}
             -   [Step 1: Add a return type to the
-                kernel](../examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                kernel](#step-1-add-a-return-type-to-the-kernel){.reference
                 .internal}
             -   [Step 2: Replace [`sample`{.docutils .literal
                 .notranslate}]{.pre} with [`run`{.docutils .literal
-                .notranslate}]{.pre}](../examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .notranslate}]{.pre}](#step-2-replace-sample-with-run){.reference
                 .internal}
             -   [Step 3: Update result
-                processing](../examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                processing](#step-3-update-result-processing){.reference
                 .internal}
-        -   [Migration
-            Examples](../examples/sample_vs_run.html#migration-examples){.reference
+        -   [Migration Examples](#migration-examples){.reference
             .internal}
             -   [Example 1: Simple conditional
-                logic](../examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                logic](#example-1-simple-conditional-logic){.reference
                 .internal}
             -   [Example 2: Returning multiple measurement
-                results](../examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                results](#example-2-returning-multiple-measurement-results){.reference
                 .internal}
             -   [Example 3: Quantum
-                teleportation](../examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                teleportation](#example-3-quantum-teleportation){.reference
                 .internal}
-        -   [Additional
-            Notes](../examples/sample_vs_run.html#additional-notes){.reference
-            .internal}
-    -   [Dynamics
-        Examples](../examples/dynamics_examples.html){.reference
+        -   [Additional Notes](#additional-notes){.reference .internal}
+    -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
             Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
@@ -1156,9 +1132,12 @@ pr-4081
         Execution](../dynamics.html#multi-gpu-multi-node-execution){.reference
         .internal}
     -   [Examples](../dynamics.html#examples){.reference .internal}
--   [CUDA-QX](#){.current .reference .internal}
-    -   [CUDA-Q Solvers](#cuda-q-solvers){.reference .internal}
-    -   [CUDA-Q QEC](#cuda-q-qec){.reference .internal}
+-   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
+    -   [CUDA-Q
+        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
+        .internal}
+    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
+        .internal}
 -   [Installation](../install/install.html){.reference .internal}
     -   [Local
         Installation](../install/local_installation.html){.reference
@@ -1816,14 +1795,17 @@ pr-4081
 ::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
--   CUDA-QX
+-   [CUDA-Q by Example](examples.html)
+-   When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs.
+    [`run`{.docutils .literal .notranslate}]{.pre}
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../dynamics.html "Dynamics Simulation"){.btn .btn-neutral
-.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../install/install.html "Installation Guide"){.btn
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1832,72 +1814,633 @@ aria-hidden="true"}](../install/install.html "Installation Guide"){.btn
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#cuda-qx .section}
-[]{#cudaqx}
+::: {#when-to-use-sample-vs-run .section}
+[]{#sample-to-run-migration}
 
-# CUDA-QX[¶](#cuda-qx "Permalink to this heading"){.headerlink}
+# When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs. [`run`{.docutils .literal .notranslate}]{.pre}[¶](#when-to-use-sample-vs-run "Permalink to this heading"){.headerlink}
 
-CUDA-QX is a collection of libraries that build upon the CUDA-Q
-programming model to enable the rapid development of hybrid
-quantum-classical application code leveraging state-of-the-art CPUs,
-GPUs, and QPUs. It provides a collection of C++ libraries and Python
-packages that enable research, development, and application creation for
-use cases in quantum error correction and hybrid quantum-classical
-solvers.
+::: {#introduction .section}
+## Introduction[¶](#introduction "Permalink to this heading"){.headerlink}
 
-<figure class="align-center">
-<a href="../../_images/cudaqx.png"
-class="reference internal image-reference"><img
-src="../../_images/cudaqx.png" style="width: 500px;"
-alt="../../_images/cudaqx.png" /></a>
-</figure>
+Starting with CUDA-Q 0.14.0, [`sample`{.docutils .literal
+.notranslate}]{.pre} no longer supports kernels that branch on
+measurement results (measurement-dependent control flow). Kernels
+containing patterns such as [`if`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`mz(q):`{.docutils .literal .notranslate}]{.pre} or
+[`if`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`(result)`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`{`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`...`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`}`{.docutils .literal .notranslate}]{.pre} where
+[`result`{.docutils .literal .notranslate}]{.pre} comes from a
+measurement must now use [`run`{.docutils .literal .notranslate}]{.pre}
+instead.
 
-You can read more about CUDA-QX in the [release
-blog](https://developer.nvidia.com/blog/introducing-nvidia-cuda-qx-libraries-for-accelerated-quantum-supercomputing/){.reference
-.external} and see code examples in the [CUDA-QX
-documentation](https://nvidia.github.io/cudaqx/){.reference .external}.
+This breaking change creates a clearer API separation:
 
-::: {#cuda-q-solvers .section}
-## CUDA-Q Solvers[¶](#cuda-q-solvers "Permalink to this heading"){.headerlink}
+-   Use [`sample`{.docutils .literal .notranslate}]{.pre} for
+    **aggregate measurement statistics** (counts dictionaries).
 
-The CUDA-Q Solvers library provides high-level quantum-classical hybrid
-algorithms and supporting infrastructure for quantum chemistry and
-optimization problems. It features implementations of VQE, ADAPT-VQE,
-and supporting utilities for Hamiltonian generation and operator pool
-management.
-
-Learn more in the [CUDA-Q Solvers
-documentation](https://nvidia.github.io/cudaqx/components/solvers/introduction.html){.reference
-.external} and explore a number of detailed
-[examples](https://nvidia.github.io/cudaqx/examples_rst/solvers/examples.html){.reference
-.external}.
-
-<figure class="align-center">
-<a href="../../_images/solvers.png"
-class="reference internal image-reference"><img
-src="../../_images/solvers.png" style="width: 500px;"
-alt="../../_images/solvers.png" /></a>
-</figure>
+-   Use [`run`{.docutils .literal .notranslate}]{.pre} for
+    **shot-by-shot execution** with measurement-dependent control flow
+    and individual return values.
 :::
 
-::: {#cuda-q-qec .section}
-## CUDA-Q QEC[¶](#cuda-q-qec "Permalink to this heading"){.headerlink}
+::: {#usage-guidelines .section}
+## Usage Guidelines[¶](#usage-guidelines "Permalink to this heading"){.headerlink}
 
-The CUDA-Q QEC library provides a comprehensive framework for quantum
-error correction research and development.
+**Use** [`sample`{.docutils .literal .notranslate}]{.pre} **when:**
 
-Learn more in the [CUDA-Q QEC
-documentation](https://nvidia.github.io/cudaqx/components/qec/introduction.html){.reference
-.external} and explore a number of detailed
-[examples](https://nvidia.github.io/cudaqx/examples_rst/qec/examples.html){.reference
-.external}.
+-   You want aggregate measurement statistics (histograms).
 
-<figure class="align-center">
-<a href="../../_images/qec.png"
-class="reference internal image-reference"><img
-src="../../_images/qec.png" style="width: 400px;"
-alt="../../_images/qec.png" /></a>
-</figure>
+-   Your kernel has no measurement-dependent control flow.
+
+-   You only need final measurement distributions.
+
+-   You are using the [`explicit_measurements`{.docutils .literal
+    .notranslate}]{.pre} option, which concatenates all measurement
+    results in execution order rather than re-measuring qubits at the
+    end of the kernel. See the [[sample specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+    .internal} for details.
+
+**Use** [`run`{.docutils .literal .notranslate}]{.pre} **when:**
+
+-   You need shot-by-shot measurement values.
+
+-   Your kernel has conditionals based on measurement results.
+
+-   You want to return computed values from the kernel.
+
+-   You need to store or analyze individual shot data.
+
+For the full API specification, see the [[sample]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} and [[run]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+.internal} sections in the Algorithmic Primitives documentation. For a
+usage guide, see [[Running your first CUDA-Q
+Program]{.doc}](../basics/run_kernel.html){.reference .internal}.
+:::
+
+::: {#what-is-supported-with-sample .section}
+## What Is Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels without measurement-dependent control flow continue to work
+exactly as before. This includes implicit measurements, explicit
+measurements without conditionals, partial qubit measurement,
+mid-circuit measurement for reset patterns, and the
+[`explicit_measurements`{.docutils .literal .notranslate}]{.pre} option
+(which concatenates all measurement results in execution order rather
+than re-measuring at the end of the kernel -- see the [[sample
+specification]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} for details).
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+
+    @cudaq.kernel
+    def reset_pattern():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+        reset(q)
+        x(q)
+
+
+    print("Implicit measurements:")
+    cudaq.sample(bell).dump()
+
+    print("\nMid-circuit measurement with reset:")
+    cudaq.sample(reset_pattern).dump()
+
+    print("\nWith explicit_measurements option:")
+    cudaq.sample(reset_pattern, explicit_measurements=True).dump()
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    __qpu__ void bell() {
+      cudaq::qvector q(2);
+      h(q[0]);
+      x<cudaq::ctrl>(q[0], q[1]);
+    }
+
+    __qpu__ void reset_pattern() {
+      cudaq::qubit q;
+      h(q);
+      mz(q);
+      reset(q);
+      x(q);
+    }
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      printf("Implicit measurements:\n");
+      cudaq::sample(bell).dump();
+
+      printf("\nMid-circuit measurement with reset:\n");
+      cudaq::sample(reset_pattern).dump();
+
+      cudaq::sample_options options{.explicit_measurements = true};
+      printf("\nWith explicit_measurements option:\n");
+      cudaq::sample(options, reset_pattern).dump();
+:::
+:::
+:::
+:::
+:::
+
+::: {#what-is-not-supported-with-sample .section}
+## What Is Not Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-not-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels that branch on measurement results can no longer be used with
+[`sample`{.docutils .literal .notranslate}]{.pre} or
+[`sample_async`{.docutils .literal .notranslate}]{.pre}. Attempting to
+do so will raise a runtime error.
+
+This includes both inline conditionals on measurements and conditionals
+on variables holding measurement results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:               # ERROR
+            x(q[1])
+
+    cudaq.sample(kernel)    # raises RuntimeError
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {            // ERROR
+            x(q[1]);
+        }
+    };
+
+    cudaq::sample(kernel);  // throws std::runtime_error
+:::
+:::
+:::
+:::
+
+The error message will read:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    `cudaq::sample` and `cudaq::sample_async` no longer support kernels that
+    branch on measurement results. Kernel '<name>' uses conditional feedback.
+    Use `cudaq::run` or `cudaq::run_async` instead. See CUDA-Q documentation
+    for migration guide.
+:::
+:::
+:::
+
+::: {#how-to-migrate .section}
+## How to Migrate[¶](#how-to-migrate "Permalink to this heading"){.headerlink}
+
+Migrating a kernel from [`sample`{.docutils .literal
+.notranslate}]{.pre} to [`run`{.docutils .literal .notranslate}]{.pre}
+requires three changes.
+
+::: {#step-1-add-a-return-type-to-the-kernel .section}
+### Step 1: Add a return type to the kernel[¶](#step-1-add-a-return-type-to-the-kernel "Permalink to this heading"){.headerlink}
+
+[`run`{.docutils .literal .notranslate}]{.pre} requires kernels to
+return a non-void value. Instead of relying on implicit measurement at
+the end of the circuit, explicitly [`return`{.docutils .literal
+.notranslate}]{.pre} the measurement results you need.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Before (no return type, used with sample)
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+
+    # After (returns a value, used with run)
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Before (void kernel, used with sample)
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+    };
+
+    // After (returns a value, used with run)
+    struct kernel {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
+:::
+:::
+:::
+
+::: {#step-2-replace-sample-with-run .section}
+### Step 2: Replace [`sample`{.docutils .literal .notranslate}]{.pre} with [`run`{.docutils .literal .notranslate}]{.pre}[¶](#step-2-replace-sample-with-run "Permalink to this heading"){.headerlink}
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Before
+    counts = cudaq.sample(kernel, shots_count=1000)
+
+    # After
+    results = cudaq.run(kernel, shots_count=1000)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Before
+    auto counts = cudaq::sample(1000, kernel);
+
+    // After
+    auto results = cudaq::run(1000, kernel{});
+:::
+:::
+:::
+:::
+
+::: {.admonition .note}
+Note
+
+The default [`shots_count`{.docutils .literal .notranslate}]{.pre} for
+[`run`{.docutils .literal .notranslate}]{.pre} is 100, compared to 1000
+for [`sample`{.docutils .literal .notranslate}]{.pre}. Specify
+[`shots_count`{.docutils .literal .notranslate}]{.pre} explicitly if you
+need a particular number of shots.
+:::
+:::
+
+::: {#step-3-update-result-processing .section}
+### Step 3: Update result processing[¶](#step-3-update-result-processing "Permalink to this heading"){.headerlink}
+
+[`sample`{.docutils .literal .notranslate}]{.pre} returns a
+[`sample_result`{.docutils .literal .notranslate}]{.pre} (a counts
+dictionary mapping bit strings to frequencies). [`run`{.docutils
+.literal .notranslate}]{.pre} returns a list (Python) or
+[`std::vector`{.docutils .literal .notranslate}]{.pre} (C++) of
+individual return values -- one per shot. If you need a
+counts-dictionary view, you can reconstruct it from the individual
+results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    from collections import Counter
+
+    results = cudaq.run(multi_measure, shots_count=1000)
+    counts = Counter(
+        ''.join('1' if bit else '0' for bit in result) for result in results)
+    print(dict(counts))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results = cudaq::run(1000, multi_measure{});
+      std::map<std::string, std::size_t> counts;
+      for (const auto &shot : results) {
+        std::string bits;
+        for (auto b : shot)
+          bits += b ? '1' : '0';
+        counts[bits]++;
+      }
+      for (const auto &[bits, count] : counts)
+        printf("%s : %zu\n", bits.c_str(), count);
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#migration-examples .section}
+## Migration Examples[¶](#migration-examples "Permalink to this heading"){.headerlink}
+
+::: {#example-1-simple-conditional-logic .section}
+### Example 1: Simple conditional logic[¶](#example-1-simple-conditional-logic "Permalink to this heading"){.headerlink}
+
+A kernel that measures one qubit and conditionally applies a gate on
+another.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def simple_conditional() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+
+
+    results = cudaq.run(simple_conditional, shots_count=100)
+    n_ones = sum(results)
+    print(f"Measured |1> {n_ones} out of {len(results)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct simple_conditional {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {
+          x(q[1]);
+        }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results1 = cudaq::run(100, simple_conditional{});
+      std::size_t nOnes = std::count_if(results1.begin(), results1.end(),
+                                        [](const auto &r) { return (bool)r; });
+      printf("Measured |1> %zu out of %zu shots\n", nOnes, results1.size());
+:::
+:::
+:::
+:::
+:::
+
+::: {#example-2-returning-multiple-measurement-results .section}
+### Example 2: Returning multiple measurement results[¶](#example-2-returning-multiple-measurement-results "Permalink to this heading"){.headerlink}
+
+A kernel that performs multiple mid-circuit measurements with
+conditional logic and returns all results as a list. When returning a
+[`std::vector<bool>`{.docutils .literal .notranslate}]{.pre} in C++,
+pre-allocate the result vector and assign elements individually for
+broadest target compatibility.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def multi_measure() -> list[bool]:
+        q = cudaq.qvector(3)
+        h(q)
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        if r0 and r1:
+            x(q[2])
+        r2 = mz(q[2])
+        return [r0, r1, r2]
+
+
+    results = cudaq.run(multi_measure, shots_count=100)
+    for shot in results[:5]:
+        print(''.join('1' if b else '0' for b in shot))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct multi_measure {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        h(q);
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+        if (results[0] && results[1]) {
+          x(q[2]);
+        }
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results2 = cudaq::run(100, multi_measure{});
+      for (std::size_t i = 0; i < 5 && i < results2.size(); ++i) {
+        for (auto b : results2[i])
+          printf("%d", (int)b);
+        printf("\n");
+      }
+:::
+:::
+:::
+:::
+:::
+
+::: {#example-3-quantum-teleportation .section}
+### Example 3: Quantum teleportation[¶](#example-3-quantum-teleportation "Permalink to this heading"){.headerlink}
+
+Teleportation of a qubit state requires conditional corrections based on
+Bell-basis measurements.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def teleport() -> list[bool]:
+        results = [False, False, False]
+        q = cudaq.qvector(3)
+        x(q[0])
+
+        h(q[1])
+        x.ctrl(q[1], q[2])
+
+        x.ctrl(q[0], q[1])
+        h(q[0])
+
+        results[0] = mz(q[0])
+        results[1] = mz(q[1])
+
+        if results[1]:
+            x(q[2])
+        if results[0]:
+            z(q[2])
+
+        results[2] = mz(q[2])
+        return results
+
+
+    runs = cudaq.run(teleport, shots_count=100)
+    assert all(r[2] for r in runs), "Teleportation failed"
+    print(f"Teleportation succeeded on all {len(runs)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct teleport {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        x(q[0]);
+
+        h(q[1]);
+        x<cudaq::ctrl>(q[1], q[2]);
+
+        x<cudaq::ctrl>(q[0], q[1]);
+        h(q[0]);
+
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+
+        if (results[1])
+          x(q[2]);
+        if (results[0])
+          z(q[2]);
+
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results3 = cudaq::run(100, teleport{});
+      assert(std::ranges::all_of(results3, [](const auto &r) { return r[2]; }));
+      printf("Teleportation succeeded on all %zu shots\n", results3.size());
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#additional-notes .section}
+## Additional Notes[¶](#additional-notes "Permalink to this heading"){.headerlink}
+
+-   Users of [`sample_async`{.docutils .literal .notranslate}]{.pre}
+    with conditional-feedback kernels should migrate to
+    [`run_async`{.docutils .literal .notranslate}]{.pre}. See the [[run
+    specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the asynchronous API.
+
+-   [`run`{.docutils .literal .notranslate}]{.pre} supports a variety of
+    return types including scalars, vectors/lists, and user-defined data
+    structures. See the [[run specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the complete list of supported types and their
+    requirements.
+
+-   Assigning measurement results to named variables in kernels passed
+    to [`sample`{.docutils .literal .notranslate}]{.pre} is deprecated
+    and will be removed in a future release. Use [`run`{.docutils
+    .literal .notranslate}]{.pre} to retrieve individual measurement
+    results.
 :::
 :::
 :::
@@ -1905,10 +2448,10 @@ alt="../../_images/qec.png" /></a>
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../dynamics.html "Dynamics Simulation"){.btn .btn-neutral
-.float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../install/install.html "Installation Guide"){.btn
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
