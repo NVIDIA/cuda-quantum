@@ -103,6 +103,29 @@ def test_ptsbe_sample_async(bell_kernel):
     assert bell_counts >= shots * 0.8, "Most outcomes should be 00/11"
 
 
+def test_ptsbe_sample_async_many_no_race(bell_kernel):
+    """Fire many async tasks and verify all succeed.
+
+    Regression test for any lifetime race issues we might have with noise models.
+    """
+    shots = 20
+    trials = 50
+    futures = []
+    for _ in range(trials):
+        noise = cudaq.NoiseModel()
+        noise.add_all_qubit_channel("x",
+                                    cudaq.Depolarization2(0.01),
+                                    num_controls=1)
+        futures.append(
+            cudaq.ptsbe.sample_async(bell_kernel,
+                                     noise_model=noise,
+                                     shots_count=shots))
+    for i, f in enumerate(futures):
+        result = f.get()
+        total = sum(result.count(bs) for bs in result)
+        assert total == shots, f"Trial {i}: expected {shots} shots, got {total}"
+
+
 def test_ptsbe_broadcast(rotation_kernel):
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.01))
