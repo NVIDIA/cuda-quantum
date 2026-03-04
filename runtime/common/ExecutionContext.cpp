@@ -26,9 +26,9 @@ namespace compiler_artifact {
 class SavedCompilerArtifact {
 public:
   const std::optional<cudaq::JitEngine> &getJitEngine() const { return jitEng; }
-  void setJitEngine(const cudaq::JitEngine &engine) { jitEng = engine; }
+  void setJitEngine(const cudaq::JitEngine engine) { jitEng = engine; }
 
-  void checkArtifactReuse(const std::string kernelName,
+  void checkArtifactReuse(const std::string &kernelName,
                           const std::vector<void *> &args,
                           const cudaq::JitEngine &engine,
                           std::function<void *()> argsCreatorThunk) {
@@ -103,7 +103,7 @@ void disablePersistentJITEngine() {
 bool isPersistingJITEngine() { return reuseArtifact; }
 
 void checkArtifactReuse(const std::string kernelName,
-                        const std::vector<void *> &args, const JitEngine &jit,
+                        const std::vector<void *> &args, const JitEngine jit,
                         std::function<void *()> argsCreatorThunk) {
   if (!reuseArtifact)
     return;

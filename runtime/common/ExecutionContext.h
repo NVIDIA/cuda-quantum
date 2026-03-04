@@ -221,7 +221,7 @@ bool isPersistingJITEngine();
 ///
 /// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
 void checkArtifactReuse(const std::string kernelName,
-                        const std::vector<void *> &args, const JitEngine &jit,
+                        const std::vector<void *> &args, const JitEngine jit,
                         std::function<void *()> argsCreatorThunk);
 }; // namespace compiler_artifact
 } // namespace cudaq
