@@ -104,10 +104,6 @@ struct AsyncPTSBESampleResultImpl {
 } // namespace
 
 /// @brief Run PTSBE sampling asynchronously from Python.
-///
-/// The noise model is passed directly to runSamplingAsyncPTSBE, which
-/// copies it into the async lambda. The calling thread never sets or
-/// resets noise on the platform, avoiding a race with the worker thread.
 static AsyncPTSBESampleResultImpl
 pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
                    MlirType returnTy, std::size_t shots_count,
