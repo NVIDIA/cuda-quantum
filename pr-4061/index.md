@@ -264,6 +264,47 @@ pr-4061
             .internal}
         -   [Scaleway](using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+    -   [When to Use sample vs.
+        run](using/examples/sample_vs_run.html){.reference .internal}
+        -   [Introduction](using/examples/sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](using/examples/sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](using/examples/sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](using/examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](using/examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](using/examples/sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](using/examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](using/examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](using/examples/sample_vs_run.html#additional-notes){.reference
+            .internal}
     -   [Dynamics
         Examples](using/examples/dynamics_examples.html){.reference
         .internal}
@@ -1870,6 +1911,8 @@ and Python.
     -   [Using Quantum Hardware
         Providers](using/examples/hardware_providers.html){.reference
         .internal}
+    -   [When to Use sample vs.
+        run](using/examples/sample_vs_run.html){.reference .internal}
     -   [Dynamics
         Examples](using/examples/dynamics_examples.html){.reference
         .internal}

@@ -268,6 +268,48 @@ pr-4061
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+    -   [When to Use sample vs.
+        run](../../using/examples/sample_vs_run.html){.reference
+        .internal}
+        -   [Introduction](../../using/examples/sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](../../using/examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](../../using/examples/sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](../../using/examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](../../using/examples/sample_vs_run.html#additional-notes){.reference
+            .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
@@ -1906,7 +1948,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![eb069b2475584cb2bf05a982f2f88f64](../../_images/oracle.png){.no-scaled-link
+![549d70034f33465e94bea3d3ab3ab9a9](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2012,7 +2054,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![ec6e9dd1cee24be9be64b8a9bdc31d1c](../../_images/deutsch.png){.no-scaled-link
+![6cb1f287ff1e465191558144c52047dd](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

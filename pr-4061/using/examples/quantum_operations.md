@@ -241,6 +241,47 @@ pr-4061
             .internal}
         -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
+    -   [When to Use sample vs. run](sample_vs_run.html){.reference
+        .internal}
+        -   [Introduction](sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](sample_vs_run.html#additional-notes){.reference
+            .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings

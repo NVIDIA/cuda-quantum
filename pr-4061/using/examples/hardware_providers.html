@@ -32,7 +32,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA-Q Dynamics" href="dynamics_examples.html" />
+    <link rel="next" title="When to Use sample vs. run" href="sample_vs_run.html" />
     <link rel="prev" title="Optimizing Performance" href="../../examples/python/performance_optimizations.html" /> 
 </head>
 
@@ -240,6 +240,26 @@
 <li class="toctree-l3"><a class="reference internal" href="#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#scaleway">Scaleway</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sample_vs_run.html">   When to Use sample vs. run</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#usage-guidelines">Usage Guidelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#what-is-supported-with-sample">What Is Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#what-is-not-supported-with-sample">What Is Not Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#how-to-migrate">How to Migrate</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sample_vs_run.html#step-1-add-a-return-type-to-the-kernel">Step 1: Add a return type to the kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sample_vs_run.html#step-2-replace-sample-with-run">Step 2: Replace <code class="docutils literal notranslate"><span class="pre">sample</span></code> with <code class="docutils literal notranslate"><span class="pre">run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sample_vs_run.html#step-3-update-result-processing">Step 3: Update result processing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#migration-examples">Migration Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sample_vs_run.html#example-1-simple-conditional-logic">Example 1: Simple conditional logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sample_vs_run.html#example-2-returning-multiple-measurement-results">Example 2: Returning multiple measurement results</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sample_vs_run.html#example-3-quantum-teleportation">Example 3: Quantum teleportation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sample_vs_run.html#additional-notes">Additional Notes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics_examples.html">   Dynamics Examples</a><ul>
@@ -1027,7 +1047,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-left" title="Optimizing Performance" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="dynamics_examples.html" class="btn btn-neutral float-right" title="CUDA-Q Dynamics" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sample_vs_run.html" class="btn btn-neutral float-right" title="When to Use sample vs. run" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -2836,7 +2856,7 @@ parameters of the time bin interferometer.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-left" title="Optimizing Performance" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="dynamics_examples.html" class="btn btn-neutral float-right" title="CUDA-Q Dynamics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sample_vs_run.html" class="btn btn-neutral float-right" title="When to Use sample vs. run" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

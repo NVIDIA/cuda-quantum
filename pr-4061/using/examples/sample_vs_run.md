@@ -14,89 +14,79 @@ pr-4061
 ::: {.wy-menu .wy-menu-vertical spy="affix" role="navigation" aria-label="Navigation menu"}
 [Contents]{.caption-text}
 
--   [Quick Start](../../using/quick_start.html){.reference .internal}
-    -   [Install
-        CUDA-Q](../../using/quick_start.html#install-cuda-q){.reference
+-   [Quick Start](../quick_start.html){.reference .internal}
+    -   [Install CUDA-Q](../quick_start.html#install-cuda-q){.reference
         .internal}
     -   [Validate your
-        Installation](../../using/quick_start.html#validate-your-installation){.reference
+        Installation](../quick_start.html#validate-your-installation){.reference
         .internal}
     -   [CUDA-Q
-        Academic](../../using/quick_start.html#cuda-q-academic){.reference
+        Academic](../quick_start.html#cuda-q-academic){.reference
         .internal}
--   [Basics](../../using/basics/basics.html){.reference .internal}
+-   [Basics](../basics/basics.html){.reference .internal}
     -   [What is a CUDA-Q
-        Kernel?](../../using/basics/kernel_intro.html){.reference
-        .internal}
+        Kernel?](../basics/kernel_intro.html){.reference .internal}
     -   [Building your first CUDA-Q
-        Program](../../using/basics/build_kernel.html){.reference
-        .internal}
+        Program](../basics/build_kernel.html){.reference .internal}
     -   [Running your first CUDA-Q
-        Program](../../using/basics/run_kernel.html){.reference
-        .internal}
-        -   [Sample](../../using/basics/run_kernel.html#sample){.reference
+        Program](../basics/run_kernel.html){.reference .internal}
+        -   [Sample](../basics/run_kernel.html#sample){.reference
             .internal}
-        -   [Run](../../using/basics/run_kernel.html#run){.reference
-            .internal}
-        -   [Observe](../../using/basics/run_kernel.html#observe){.reference
+        -   [Run](../basics/run_kernel.html#run){.reference .internal}
+        -   [Observe](../basics/run_kernel.html#observe){.reference
             .internal}
         -   [Running on a
-            GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
+            GPU](../basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
-    -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
+    -   [Troubleshooting](../basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
-            Output](../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
+            Output](../basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
--   [Examples](../../using/examples/examples.html){.reference .internal}
-    -   [Introduction](../../using/examples/introduction.html){.reference
-        .internal}
-    -   [Building
-        Kernels](../../using/examples/building_kernels.html){.reference
-        .internal}
+-   [Examples](examples.html){.reference .internal}
+    -   [Introduction](introduction.html){.reference .internal}
+    -   [Building Kernels](building_kernels.html){.reference .internal}
         -   [Defining
-            Kernels](../../using/examples/building_kernels.html#defining-kernels){.reference
+            Kernels](building_kernels.html#defining-kernels){.reference
             .internal}
         -   [Initializing
-            states](../../using/examples/building_kernels.html#initializing-states){.reference
+            states](building_kernels.html#initializing-states){.reference
             .internal}
         -   [Applying
-            Gates](../../using/examples/building_kernels.html#applying-gates){.reference
+            Gates](building_kernels.html#applying-gates){.reference
             .internal}
         -   [Controlled
-            Operations](../../using/examples/building_kernels.html#controlled-operations){.reference
+            Operations](building_kernels.html#controlled-operations){.reference
             .internal}
         -   [Multi-Controlled
-            Operations](../../using/examples/building_kernels.html#multi-controlled-operations){.reference
+            Operations](building_kernels.html#multi-controlled-operations){.reference
             .internal}
         -   [Adjoint
-            Operations](../../using/examples/building_kernels.html#adjoint-operations){.reference
+            Operations](building_kernels.html#adjoint-operations){.reference
             .internal}
         -   [Custom
-            Operations](../../using/examples/building_kernels.html#custom-operations){.reference
+            Operations](building_kernels.html#custom-operations){.reference
             .internal}
         -   [Building Kernels with
-            Kernels](../../using/examples/building_kernels.html#building-kernels-with-kernels){.reference
+            Kernels](building_kernels.html#building-kernels-with-kernels){.reference
             .internal}
         -   [Parameterized
-            Kernels](../../using/examples/building_kernels.html#parameterized-kernels){.reference
+            Kernels](building_kernels.html#parameterized-kernels){.reference
             .internal}
-    -   [Quantum
-        Operations](../../using/examples/quantum_operations.html){.reference
+    -   [Quantum Operations](quantum_operations.html){.reference
         .internal}
         -   [Quantum
-            States](../../using/examples/quantum_operations.html#quantum-states){.reference
+            States](quantum_operations.html#quantum-states){.reference
             .internal}
         -   [Quantum
-            Gates](../../using/examples/quantum_operations.html#quantum-gates){.reference
+            Gates](quantum_operations.html#quantum-gates){.reference
             .internal}
-        -   [Measurements](../../using/examples/quantum_operations.html#measurements){.reference
+        -   [Measurements](quantum_operations.html#measurements){.reference
             .internal}
-    -   [Measuring
-        Kernels](../../using/examples/measuring_kernels.html){.reference
+    -   [Measuring Kernels](measuring_kernels.html){.reference
         .internal}
         -   [Mid-circuit Measurement and Conditional
-            Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
+            Logic](measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
     -   [Visualizing
         Kernels](../../examples/python/visualization.html){.reference
@@ -107,62 +97,57 @@ pr-4061
         -   [Kernel
             Visualization](../../examples/python/visualization.html#Kernel-Visualization){.reference
             .internal}
-    -   [Executing
-        Kernels](../../using/examples/executing_kernels.html){.reference
+    -   [Executing Kernels](executing_kernels.html){.reference
         .internal}
-        -   [Sample](../../using/examples/executing_kernels.html#sample){.reference
+        -   [Sample](executing_kernels.html#sample){.reference
             .internal}
             -   [Sample
-                Asynchronous](../../using/examples/executing_kernels.html#sample-asynchronous){.reference
+                Asynchronous](executing_kernels.html#sample-asynchronous){.reference
                 .internal}
-        -   [Run](../../using/examples/executing_kernels.html#run){.reference
-            .internal}
+        -   [Run](executing_kernels.html#run){.reference .internal}
             -   [Return Custom Data
-                Types](../../using/examples/executing_kernels.html#return-custom-data-types){.reference
+                Types](executing_kernels.html#return-custom-data-types){.reference
                 .internal}
             -   [Run
-                Asynchronous](../../using/examples/executing_kernels.html#run-asynchronous){.reference
+                Asynchronous](executing_kernels.html#run-asynchronous){.reference
                 .internal}
-        -   [Observe](../../using/examples/executing_kernels.html#observe){.reference
+        -   [Observe](executing_kernels.html#observe){.reference
             .internal}
             -   [Observe
-                Asynchronous](../../using/examples/executing_kernels.html#observe-asynchronous){.reference
+                Asynchronous](executing_kernels.html#observe-asynchronous){.reference
                 .internal}
-        -   [Get
-            State](../../using/examples/executing_kernels.html#get-state){.reference
+        -   [Get State](executing_kernels.html#get-state){.reference
             .internal}
             -   [Get State
-                Asynchronous](../../using/examples/executing_kernels.html#get-state-asynchronous){.reference
+                Asynchronous](executing_kernels.html#get-state-asynchronous){.reference
                 .internal}
     -   [Computing Expectation
-        Values](../../using/examples/expectation_values.html){.reference
-        .internal}
+        Values](expectation_values.html){.reference .internal}
         -   [Parallelizing across Multiple
-            Processors](../../using/examples/expectation_values.html#parallelizing-across-multiple-processors){.reference
+            Processors](expectation_values.html#parallelizing-across-multiple-processors){.reference
             .internal}
-    -   [Multi-GPU
-        Workflows](../../using/examples/multi_gpu_workflows.html){.reference
+    -   [Multi-GPU Workflows](multi_gpu_workflows.html){.reference
         .internal}
         -   [From CPU to
-            GPU](../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
+            GPU](multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
         -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
             .internal}
         -   [Parallel execution over multiple QPUs ([`mqpu`{.code
             .docutils .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
-                Terms](../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
+                Terms](multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
                 .internal}
             -   [Circuit
-                Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
+                Batching](multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
         -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -218,14 +203,12 @@ pr-4061
         -   [Inspecting trajectories with execution
             data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
-    -   [Constructing
-        Operators](../../using/examples/operators.html){.reference
-        .internal}
+    -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
-            Operators](../../using/examples/operators.html#constructing-spin-operators){.reference
+            Operators](operators.html#constructing-spin-operators){.reference
             .internal}
         -   [Pauli Words and Exponentiating Pauli
-            Words](../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words){.reference
+            Words](operators.html#pauli-words-and-exponentiating-pauli-words){.reference
             .internal}
     -   [Performance
         Optimizations](../../examples/python/performance_optimizations.html){.reference
@@ -234,84 +217,69 @@ pr-4061
             Fusion](../../examples/python/performance_optimizations.html#Gate-Fusion){.reference
             .internal}
     -   [Using Quantum Hardware
-        Providers](../../using/examples/hardware_providers.html){.reference
-        .internal}
+        Providers](hardware_providers.html){.reference .internal}
         -   [Amazon
-            Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
+            Braket](hardware_providers.html#amazon-braket){.reference
             .internal}
         -   [Anyon
-            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            Technologies](hardware_providers.html#anyon-technologies){.reference
             .internal}
-        -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
+        -   [Infleqtion](hardware_providers.html#infleqtion){.reference
             .internal}
-        -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
-            .internal}
-        -   [IQM](../../using/examples/hardware_providers.html#iqm){.reference
-            .internal}
-        -   [OQC](../../using/examples/hardware_providers.html#oqc){.reference
-            .internal}
+        -   [IonQ](hardware_providers.html#ionq){.reference .internal}
+        -   [IQM](hardware_providers.html#iqm){.reference .internal}
+        -   [OQC](hardware_providers.html#oqc){.reference .internal}
         -   [ORCA
-            Computing](../../using/examples/hardware_providers.html#orca-computing){.reference
+            Computing](hardware_providers.html#orca-computing){.reference
             .internal}
-        -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
+        -   [Pasqal](hardware_providers.html#pasqal){.reference
             .internal}
-        -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+        -   [Quantinuum](hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
-            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            Inc.](hardware_providers.html#quantum-circuits-inc){.reference
             .internal}
         -   [Quantum
-            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
+            Machines](hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
-            Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
+            Computing](hardware_providers.html#quera-computing){.reference
             .internal}
-        -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
+        -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
-    -   [When to Use sample vs.
-        run](../../using/examples/sample_vs_run.html){.reference
-        .internal}
-        -   [Introduction](../../using/examples/sample_vs_run.html#introduction){.reference
-            .internal}
-        -   [Usage
-            Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
-            .internal}
+    -   [When to Use sample vs. run](#){.current .reference .internal}
+        -   [Introduction](#introduction){.reference .internal}
+        -   [Usage Guidelines](#usage-guidelines){.reference .internal}
         -   [What Is Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-supported-with-sample){.reference
             .internal}
         -   [What Is Not Supported with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .notranslate}]{.pre}](#what-is-not-supported-with-sample){.reference
             .internal}
-        -   [How to
-            Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
-            .internal}
+        -   [How to Migrate](#how-to-migrate){.reference .internal}
             -   [Step 1: Add a return type to the
-                kernel](../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                kernel](#step-1-add-a-return-type-to-the-kernel){.reference
                 .internal}
             -   [Step 2: Replace [`sample`{.docutils .literal
                 .notranslate}]{.pre} with [`run`{.docutils .literal
-                .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .notranslate}]{.pre}](#step-2-replace-sample-with-run){.reference
                 .internal}
             -   [Step 3: Update result
-                processing](../../using/examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                processing](#step-3-update-result-processing){.reference
                 .internal}
-        -   [Migration
-            Examples](../../using/examples/sample_vs_run.html#migration-examples){.reference
+        -   [Migration Examples](#migration-examples){.reference
             .internal}
             -   [Example 1: Simple conditional
-                logic](../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                logic](#example-1-simple-conditional-logic){.reference
                 .internal}
             -   [Example 2: Returning multiple measurement
-                results](../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                results](#example-2-returning-multiple-measurement-results){.reference
                 .internal}
             -   [Example 3: Quantum
-                teleportation](../../using/examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                teleportation](#example-3-quantum-teleportation){.reference
                 .internal}
-        -   [Additional
-            Notes](../../using/examples/sample_vs_run.html#additional-notes){.reference
-            .internal}
-    -   [Dynamics
-        Examples](../../using/examples/dynamics_examples.html){.reference
+        -   [Additional Notes](#additional-notes){.reference .internal}
+    -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
             Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
@@ -404,7 +372,7 @@ pr-4061
                 .internal}
             -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
                 .internal}
--   [Applications](../../using/applications.html){.reference .internal}
+-   [Applications](../applications.html){.reference .internal}
     -   [Max-Cut with
         QAOA](../../applications/python/qaoa.html){.reference .internal}
     -   [Molecular docking via
@@ -1030,425 +998,435 @@ pr-4061
         -   [6. References and further
             reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
--   [Backends](../../using/backends/backends.html){.reference .internal}
-    -   [Circuit
-        Simulation](../../using/backends/simulators.html){.reference
+-   [Backends](../backends/backends.html){.reference .internal}
+    -   [Circuit Simulation](../backends/simulators.html){.reference
         .internal}
         -   [State Vector
-            Simulators](../../using/backends/sims/svsims.html){.reference
+            Simulators](../backends/sims/svsims.html){.reference
             .internal}
-            -   [CPU](../../using/backends/sims/svsims.html#cpu){.reference
+            -   [CPU](../backends/sims/svsims.html#cpu){.reference
                 .internal}
-            -   [Single-GPU](../../using/backends/sims/svsims.html#single-gpu){.reference
+            -   [Single-GPU](../backends/sims/svsims.html#single-gpu){.reference
                 .internal}
             -   [Multi-GPU
-                multi-node](../../using/backends/sims/svsims.html#multi-gpu-multi-node){.reference
+                multi-node](../backends/sims/svsims.html#multi-gpu-multi-node){.reference
                 .internal}
         -   [Tensor Network
-            Simulators](../../using/backends/sims/tnsims.html){.reference
+            Simulators](../backends/sims/tnsims.html){.reference
             .internal}
             -   [Multi-GPU
-                multi-node](../../using/backends/sims/tnsims.html#multi-gpu-multi-node){.reference
+                multi-node](../backends/sims/tnsims.html#multi-gpu-multi-node){.reference
                 .internal}
             -   [Matrix product
-                state](../../using/backends/sims/tnsims.html#matrix-product-state){.reference
+                state](../backends/sims/tnsims.html#matrix-product-state){.reference
                 .internal}
-            -   [Fermioniq](../../using/backends/sims/tnsims.html#fermioniq){.reference
+            -   [Fermioniq](../backends/sims/tnsims.html#fermioniq){.reference
                 .internal}
         -   [Multi-QPU
-            Simulators](../../using/backends/sims/mqpusims.html){.reference
+            Simulators](../backends/sims/mqpusims.html){.reference
             .internal}
             -   [Simulate Multiple QPUs in
-                Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
+                Parallel](../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
             -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+                Backends](../backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
                 .internal}
-        -   [Noisy
-            Simulators](../../using/backends/sims/noisy.html){.reference
+        -   [Noisy Simulators](../backends/sims/noisy.html){.reference
             .internal}
             -   [Trajectory Noisy
-                Simulation](../../using/backends/sims/noisy.html#trajectory-noisy-simulation){.reference
+                Simulation](../backends/sims/noisy.html#trajectory-noisy-simulation){.reference
                 .internal}
             -   [Density
-                Matrix](../../using/backends/sims/noisy.html#density-matrix){.reference
+                Matrix](../backends/sims/noisy.html#density-matrix){.reference
                 .internal}
-            -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
+            -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
         -   [Photonics
-            Simulators](../../using/backends/sims/photonics.html){.reference
+            Simulators](../backends/sims/photonics.html){.reference
             .internal}
-            -   [orca-photonics](../../using/backends/sims/photonics.html#orca-photonics){.reference
+            -   [orca-photonics](../backends/sims/photonics.html#orca-photonics){.reference
                 .internal}
-    -   [Quantum Hardware
-        (QPUs)](../../using/backends/hardware.html){.reference
+    -   [Quantum Hardware (QPUs)](../backends/hardware.html){.reference
         .internal}
         -   [Ion Trap
-            QPUs](../../using/backends/hardware/iontrap.html){.reference
+            QPUs](../backends/hardware/iontrap.html){.reference
             .internal}
-            -   [IonQ](../../using/backends/hardware/iontrap.html#ionq){.reference
+            -   [IonQ](../backends/hardware/iontrap.html#ionq){.reference
                 .internal}
-            -   [Quantinuum](../../using/backends/hardware/iontrap.html#quantinuum){.reference
+            -   [Quantinuum](../backends/hardware/iontrap.html#quantinuum){.reference
                 .internal}
         -   [Superconducting
-            QPUs](../../using/backends/hardware/superconducting.html){.reference
+            QPUs](../backends/hardware/superconducting.html){.reference
             .internal}
             -   [Anyon Technologies/Anyon
-                Computing](../../using/backends/hardware/superconducting.html#anyon-technologies-anyon-computing){.reference
+                Computing](../backends/hardware/superconducting.html#anyon-technologies-anyon-computing){.reference
                 .internal}
-            -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
+            -   [IQM](../backends/hardware/superconducting.html#iqm){.reference
                 .internal}
-            -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+            -   [OQC](../backends/hardware/superconducting.html#oqc){.reference
                 .internal}
             -   [Quantum Circuits,
-                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
-            QPUs](../../using/backends/hardware/neutralatom.html){.reference
+            QPUs](../backends/hardware/neutralatom.html){.reference
             .internal}
-            -   [Infleqtion](../../using/backends/hardware/neutralatom.html#infleqtion){.reference
+            -   [Infleqtion](../backends/hardware/neutralatom.html#infleqtion){.reference
                 .internal}
-            -   [Pasqal](../../using/backends/hardware/neutralatom.html#pasqal){.reference
+            -   [Pasqal](../backends/hardware/neutralatom.html#pasqal){.reference
                 .internal}
             -   [QuEra
-                Computing](../../using/backends/hardware/neutralatom.html#quera-computing){.reference
+                Computing](../backends/hardware/neutralatom.html#quera-computing){.reference
                 .internal}
         -   [Photonic
-            QPUs](../../using/backends/hardware/photonic.html){.reference
+            QPUs](../backends/hardware/photonic.html){.reference
             .internal}
             -   [ORCA
-                Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
+                Computing](../backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
         -   [Quantum Control
-            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            Systems](../backends/hardware/qcontrol.html){.reference
             .internal}
             -   [Quantum
-                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                Machines](../backends/hardware/qcontrol.html#quantum-machines){.reference
                 .internal}
     -   [Dynamics
-        Simulation](../../using/backends/dynamics_backends.html){.reference
+        Simulation](../backends/dynamics_backends.html){.reference
         .internal}
-    -   [Cloud](../../using/backends/cloud.html){.reference .internal}
+    -   [Cloud](../backends/cloud.html){.reference .internal}
         -   [Amazon Braket
-            (braket)](../../using/backends/cloud/braket.html){.reference
+            (braket)](../backends/cloud/braket.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/braket.html#setting-credentials){.reference
+                Credentials](../backends/cloud/braket.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/braket.html#submitting){.reference
+            -   [Submitting](../backends/cloud/braket.html#submitting){.reference
                 .internal}
         -   [Scaleway QaaS
-            (scaleway)](../../using/backends/cloud/scaleway.html){.reference
+            (scaleway)](../backends/cloud/scaleway.html){.reference
             .internal}
             -   [Setting
-                Credentials](../../using/backends/cloud/scaleway.html#setting-credentials){.reference
+                Credentials](../backends/cloud/scaleway.html#setting-credentials){.reference
                 .internal}
-            -   [Submitting](../../using/backends/cloud/scaleway.html#submitting){.reference
+            -   [Submitting](../backends/cloud/scaleway.html#submitting){.reference
                 .internal}
             -   [Manage your QPU
-                session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
                 .internal}
--   [Dynamics](../../using/dynamics.html){.reference .internal}
-    -   [Quick Start](../../using/dynamics.html#quick-start){.reference
+-   [Dynamics](../dynamics.html){.reference .internal}
+    -   [Quick Start](../dynamics.html#quick-start){.reference
         .internal}
-    -   [Operator](../../using/dynamics.html#operator){.reference
-        .internal}
+    -   [Operator](../dynamics.html#operator){.reference .internal}
     -   [Time-Dependent
-        Dynamics](../../using/dynamics.html#time-dependent-dynamics){.reference
+        Dynamics](../dynamics.html#time-dependent-dynamics){.reference
         .internal}
     -   [Super-operator
-        Representation](../../using/dynamics.html#super-operator-representation){.reference
+        Representation](../dynamics.html#super-operator-representation){.reference
         .internal}
     -   [Numerical
-        Integrators](../../using/dynamics.html#numerical-integrators){.reference
+        Integrators](../dynamics.html#numerical-integrators){.reference
         .internal}
-    -   [Batch
-        simulation](../../using/dynamics.html#batch-simulation){.reference
+    -   [Batch simulation](../dynamics.html#batch-simulation){.reference
         .internal}
     -   [Multi-GPU Multi-Node
-        Execution](../../using/dynamics.html#multi-gpu-multi-node-execution){.reference
+        Execution](../dynamics.html#multi-gpu-multi-node-execution){.reference
         .internal}
-    -   [Examples](../../using/dynamics.html#examples){.reference
-        .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
+    -   [Examples](../dynamics.html#examples){.reference .internal}
+-   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
+        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
         .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
+    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
         .internal}
--   [Installation](../../using/install/install.html){.reference
-    .internal}
+-   [Installation](../install/install.html){.reference .internal}
     -   [Local
-        Installation](../../using/install/local_installation.html){.reference
+        Installation](../install/local_installation.html){.reference
         .internal}
-        -   [Introduction](../../using/install/local_installation.html#introduction){.reference
+        -   [Introduction](../install/local_installation.html#introduction){.reference
             .internal}
-            -   [Docker](../../using/install/local_installation.html#docker){.reference
+            -   [Docker](../install/local_installation.html#docker){.reference
                 .internal}
             -   [Known Blackwell
-                Issues](../../using/install/local_installation.html#known-blackwell-issues){.reference
+                Issues](../install/local_installation.html#known-blackwell-issues){.reference
                 .internal}
-            -   [Singularity](../../using/install/local_installation.html#singularity){.reference
+            -   [Singularity](../install/local_installation.html#singularity){.reference
                 .internal}
             -   [Python
-                wheels](../../using/install/local_installation.html#python-wheels){.reference
+                wheels](../install/local_installation.html#python-wheels){.reference
                 .internal}
             -   [Pre-built
-                binaries](../../using/install/local_installation.html#pre-built-binaries){.reference
+                binaries](../install/local_installation.html#pre-built-binaries){.reference
                 .internal}
         -   [Development with VS
-            Code](../../using/install/local_installation.html#development-with-vs-code){.reference
+            Code](../install/local_installation.html#development-with-vs-code){.reference
             .internal}
             -   [Using a Docker
-                container](../../using/install/local_installation.html#using-a-docker-container){.reference
+                container](../install/local_installation.html#using-a-docker-container){.reference
                 .internal}
             -   [Using a Singularity
-                container](../../using/install/local_installation.html#using-a-singularity-container){.reference
+                container](../install/local_installation.html#using-a-singularity-container){.reference
                 .internal}
         -   [Connecting to a Remote
-            Host](../../using/install/local_installation.html#connecting-to-a-remote-host){.reference
+            Host](../install/local_installation.html#connecting-to-a-remote-host){.reference
             .internal}
             -   [Developing with Remote
-                Tunnels](../../using/install/local_installation.html#developing-with-remote-tunnels){.reference
+                Tunnels](../install/local_installation.html#developing-with-remote-tunnels){.reference
                 .internal}
             -   [Remote Access via
-                SSH](../../using/install/local_installation.html#remote-access-via-ssh){.reference
+                SSH](../install/local_installation.html#remote-access-via-ssh){.reference
                 .internal}
         -   [DGX
-            Cloud](../../using/install/local_installation.html#dgx-cloud){.reference
+            Cloud](../install/local_installation.html#dgx-cloud){.reference
             .internal}
             -   [Get
-                Started](../../using/install/local_installation.html#get-started){.reference
+                Started](../install/local_installation.html#get-started){.reference
                 .internal}
             -   [Use
-                JupyterLab](../../using/install/local_installation.html#use-jupyterlab){.reference
+                JupyterLab](../install/local_installation.html#use-jupyterlab){.reference
                 .internal}
             -   [Use VS
-                Code](../../using/install/local_installation.html#use-vs-code){.reference
+                Code](../install/local_installation.html#use-vs-code){.reference
                 .internal}
         -   [Additional CUDA
-            Tools](../../using/install/local_installation.html#additional-cuda-tools){.reference
+            Tools](../install/local_installation.html#additional-cuda-tools){.reference
             .internal}
             -   [Installation via
-                PyPI](../../using/install/local_installation.html#installation-via-pypi){.reference
+                PyPI](../install/local_installation.html#installation-via-pypi){.reference
                 .internal}
             -   [Installation In Container
-                Images](../../using/install/local_installation.html#installation-in-container-images){.reference
+                Images](../install/local_installation.html#installation-in-container-images){.reference
                 .internal}
             -   [Installing Pre-built
-                Binaries](../../using/install/local_installation.html#installing-pre-built-binaries){.reference
+                Binaries](../install/local_installation.html#installing-pre-built-binaries){.reference
                 .internal}
         -   [Distributed Computing with
-            MPI](../../using/install/local_installation.html#distributed-computing-with-mpi){.reference
+            MPI](../install/local_installation.html#distributed-computing-with-mpi){.reference
             .internal}
         -   [Updating
-            CUDA-Q](../../using/install/local_installation.html#updating-cuda-q){.reference
+            CUDA-Q](../install/local_installation.html#updating-cuda-q){.reference
             .internal}
         -   [Dependencies and
-            Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
+            Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
         -   [Next
-            Steps](../../using/install/local_installation.html#next-steps){.reference
+            Steps](../install/local_installation.html#next-steps){.reference
             .internal}
     -   [Data Center
-        Installation](../../using/install/data_center_install.html){.reference
+        Installation](../install/data_center_install.html){.reference
         .internal}
-        -   [Prerequisites](../../using/install/data_center_install.html#prerequisites){.reference
+        -   [Prerequisites](../install/data_center_install.html#prerequisites){.reference
             .internal}
         -   [Build
-            Dependencies](../../using/install/data_center_install.html#build-dependencies){.reference
+            Dependencies](../install/data_center_install.html#build-dependencies){.reference
             .internal}
-            -   [CUDA](../../using/install/data_center_install.html#cuda){.reference
+            -   [CUDA](../install/data_center_install.html#cuda){.reference
                 .internal}
-            -   [Toolchain](../../using/install/data_center_install.html#toolchain){.reference
+            -   [Toolchain](../install/data_center_install.html#toolchain){.reference
                 .internal}
         -   [Building
-            CUDA-Q](../../using/install/data_center_install.html#building-cuda-q){.reference
+            CUDA-Q](../install/data_center_install.html#building-cuda-q){.reference
             .internal}
         -   [Python
-            Support](../../using/install/data_center_install.html#python-support){.reference
+            Support](../install/data_center_install.html#python-support){.reference
             .internal}
         -   [C++
-            Support](../../using/install/data_center_install.html#c-support){.reference
+            Support](../install/data_center_install.html#c-support){.reference
             .internal}
         -   [Installation on the
-            Host](../../using/install/data_center_install.html#installation-on-the-host){.reference
+            Host](../install/data_center_install.html#installation-on-the-host){.reference
             .internal}
             -   [CUDA Runtime
-                Libraries](../../using/install/data_center_install.html#cuda-runtime-libraries){.reference
+                Libraries](../install/data_center_install.html#cuda-runtime-libraries){.reference
                 .internal}
-            -   [MPI](../../using/install/data_center_install.html#mpi){.reference
+            -   [MPI](../install/data_center_install.html#mpi){.reference
                 .internal}
--   [Integration](../../using/integration/integration.html){.reference
-    .internal}
+-   [Integration](../integration/integration.html){.reference .internal}
     -   [Downstream CMake
-        Integration](../../using/integration/cmake_app.html){.reference
+        Integration](../integration/cmake_app.html){.reference
         .internal}
     -   [Combining CUDA with
-        CUDA-Q](../../using/integration/cuda_gpu.html){.reference
-        .internal}
+        CUDA-Q](../integration/cuda_gpu.html){.reference .internal}
     -   [Integrating with Third-Party
-        Libraries](../../using/integration/libraries.html){.reference
-        .internal}
+        Libraries](../integration/libraries.html){.reference .internal}
         -   [Calling a CUDA-Q library from
-            C++](../../using/integration/libraries.html#calling-a-cuda-q-library-from-c){.reference
+            C++](../integration/libraries.html#calling-a-cuda-q-library-from-c){.reference
             .internal}
         -   [Calling an C++ library from
-            CUDA-Q](../../using/integration/libraries.html#calling-an-c-library-from-cuda-q){.reference
+            CUDA-Q](../integration/libraries.html#calling-an-c-library-from-cuda-q){.reference
             .internal}
         -   [Interfacing between binaries compiled with a different
-            toolchains](../../using/integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
+            toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
--   [Extending](../../using/extending/extending.html){.reference
-    .internal}
+-   [Extending](../extending/extending.html){.reference .internal}
     -   [Add a new Hardware
-        Backend](../../using/extending/backend.html){.reference
-        .internal}
-        -   [Overview](../../using/extending/backend.html#overview){.reference
+        Backend](../extending/backend.html){.reference .internal}
+        -   [Overview](../extending/backend.html#overview){.reference
             .internal}
         -   [Server Helper
-            Implementation](../../using/extending/backend.html#server-helper-implementation){.reference
+            Implementation](../extending/backend.html#server-helper-implementation){.reference
             .internal}
             -   [Directory
-                Structure](../../using/extending/backend.html#directory-structure){.reference
+                Structure](../extending/backend.html#directory-structure){.reference
                 .internal}
             -   [Server Helper
-                Class](../../using/extending/backend.html#server-helper-class){.reference
+                Class](../extending/backend.html#server-helper-class){.reference
                 .internal}
             -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
+                .notranslate}]{.pre}](../extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
-            Configuration](../../using/extending/backend.html#target-configuration){.reference
+            Configuration](../extending/backend.html#target-configuration){.reference
             .internal}
             -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
+                .notranslate}]{.pre}](../extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
-        -   [Testing](../../using/extending/backend.html#testing){.reference
+        -   [Testing](../extending/backend.html#testing){.reference
             .internal}
             -   [Unit
-                Tests](../../using/extending/backend.html#unit-tests){.reference
+                Tests](../extending/backend.html#unit-tests){.reference
                 .internal}
             -   [Mock
-                Server](../../using/extending/backend.html#mock-server){.reference
+                Server](../extending/backend.html#mock-server){.reference
                 .internal}
             -   [Python
-                Tests](../../using/extending/backend.html#python-tests){.reference
+                Tests](../extending/backend.html#python-tests){.reference
                 .internal}
             -   [Integration
-                Tests](../../using/extending/backend.html#integration-tests){.reference
+                Tests](../extending/backend.html#integration-tests){.reference
                 .internal}
-        -   [Documentation](../../using/extending/backend.html#documentation){.reference
+        -   [Documentation](../extending/backend.html#documentation){.reference
             .internal}
         -   [Example
-            Usage](../../using/extending/backend.html#example-usage){.reference
+            Usage](../extending/backend.html#example-usage){.reference
             .internal}
         -   [Code
-            Review](../../using/extending/backend.html#code-review){.reference
+            Review](../extending/backend.html#code-review){.reference
             .internal}
         -   [Maintaining a
-            Backend](../../using/extending/backend.html#maintaining-a-backend){.reference
+            Backend](../extending/backend.html#maintaining-a-backend){.reference
             .internal}
-        -   [Conclusion](../../using/extending/backend.html#conclusion){.reference
+        -   [Conclusion](../extending/backend.html#conclusion){.reference
             .internal}
     -   [Create a new NVQIR
-        Simulator](../../using/extending/nvqir_simulator.html){.reference
+        Simulator](../extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
-            .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
+            .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
-            action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
+            action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q
-        IR](../../using/extending/cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../../using/extending/mlir_pass.html){.reference
+    -   [Working with CUDA-Q IR](../extending/cudaq_ir.html){.reference
         .internal}
--   [Specifications](../index.html){.reference .internal}
-    -   [Language Specification](../cudaq.html){.reference .internal}
-        -   [1. Machine Model](machine_model.html){.reference .internal}
-        -   [2. Namespace and Standard](namespace.html){.reference
+    -   [Create an MLIR Pass for
+        CUDA-Q](../extending/mlir_pass.html){.reference .internal}
+-   [Specifications](../../specification/index.html){.reference
+    .internal}
+    -   [Language
+        Specification](../../specification/cudaq.html){.reference
+        .internal}
+        -   [1. Machine
+            Model](../../specification/cudaq/machine_model.html){.reference
             .internal}
-        -   [3. Quantum Types](types.html){.reference .internal}
+        -   [2. Namespace and
+            Standard](../../specification/cudaq/namespace.html){.reference
+            .internal}
+        -   [3. Quantum
+            Types](../../specification/cudaq/types.html){.reference
+            .internal}
             -   [3.1. [`cudaq::qudit<Levels>`{.code .docutils .literal
-                .notranslate}]{.pre}](types.html#cudaq-qudit-levels){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
                 .internal}
             -   [3.2. [`cudaq::qubit`{.code .docutils .literal
-                .notranslate}]{.pre}](types.html#cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qubit){.reference
                 .internal}
             -   [3.3. Quantum
-                Containers](types.html#quantum-containers){.reference
+                Containers](../../specification/cudaq/types.html#quantum-containers){.reference
                 .internal}
-        -   [4. Quantum Operators](operators.html){.reference .internal}
+        -   [4. Quantum
+            Operators](../../specification/cudaq/operators.html){.reference
+            .internal}
             -   [4.1. [`cudaq::spin_op`{.code .docutils .literal
-                .notranslate}]{.pre}](operators.html#cudaq-spin-op){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
                 .internal}
-        -   [5. Quantum Operations](operations.html){.reference
+        -   [5. Quantum
+            Operations](../../specification/cudaq/operations.html){.reference
             .internal}
             -   [5.1. Operations on [`cudaq::qubit`{.code .docutils
                 .literal
-                .notranslate}]{.pre}](operations.html#operations-on-cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
-        -   [6. Quantum Kernels](kernels.html){.reference .internal}
-        -   [7. Sub-circuit Synthesis](synthesis.html){.reference
+        -   [6. Quantum
+            Kernels](../../specification/cudaq/kernels.html){.reference
             .internal}
-        -   [8. Control Flow](control_flow.html){.reference .internal}
-        -   [9. Just-in-Time Kernel Creation](#){.current .reference
+        -   [7. Sub-circuit
+            Synthesis](../../specification/cudaq/synthesis.html){.reference
             .internal}
-        -   [10. Quantum Patterns](patterns.html){.reference .internal}
+        -   [8. Control
+            Flow](../../specification/cudaq/control_flow.html){.reference
+            .internal}
+        -   [9. Just-in-Time Kernel
+            Creation](../../specification/cudaq/dynamic_kernels.html){.reference
+            .internal}
+        -   [10. Quantum
+            Patterns](../../specification/cudaq/patterns.html){.reference
+            .internal}
             -   [10.1.
-                Compute-Action-Uncompute](patterns.html#compute-action-uncompute){.reference
+                Compute-Action-Uncompute](../../specification/cudaq/patterns.html#compute-action-uncompute){.reference
                 .internal}
-        -   [11. Platform](platform.html){.reference .internal}
+        -   [11.
+            Platform](../../specification/cudaq/platform.html){.reference
+            .internal}
         -   [12. Algorithmic
-            Primitives](algorithmic_primitives.html){.reference
+            Primitives](../../specification/cudaq/algorithmic_primitives.html){.reference
             .internal}
             -   [12.1. [`cudaq::sample`{.code .docutils .literal
-                .notranslate}]{.pre}](algorithmic_primitives.html#cudaq-sample){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
                 .internal}
             -   [12.2. [`cudaq::run`{.code .docutils .literal
-                .notranslate}]{.pre}](algorithmic_primitives.html#cudaq-run){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
                 .internal}
             -   [12.3. [`cudaq::observe`{.code .docutils .literal
-                .notranslate}]{.pre}](algorithmic_primitives.html#cudaq-observe){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
                 .internal}
             -   [12.4. [`cudaq::optimizer`{.code .docutils .literal
                 .notranslate}]{.pre} (deprecated, functionality moved to
                 CUDA-Q
-                libraries)](algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
+                libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
             -   [12.5. [`cudaq::gradient`{.code .docutils .literal
                 .notranslate}]{.pre} (deprecated, functionality moved to
                 CUDA-Q
-                libraries)](algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
+                libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
-        -   [13. Example Programs](examples.html){.reference .internal}
+        -   [13. Example
+            Programs](../../specification/cudaq/examples.html){.reference
+            .internal}
             -   [13.1. Hello World - Simple Bell
-                State](examples.html#hello-world-simple-bell-state){.reference
+                State](../../specification/cudaq/examples.html#hello-world-simple-bell-state){.reference
                 .internal}
             -   [13.2. GHZ State Preparation and
-                Sampling](examples.html#ghz-state-preparation-and-sampling){.reference
+                Sampling](../../specification/cudaq/examples.html#ghz-state-preparation-and-sampling){.reference
                 .internal}
             -   [13.3. Quantum Phase
-                Estimation](examples.html#quantum-phase-estimation){.reference
+                Estimation](../../specification/cudaq/examples.html#quantum-phase-estimation){.reference
                 .internal}
             -   [13.4. Deuteron Binding Energy Parameter
-                Sweep](examples.html#deuteron-binding-energy-parameter-sweep){.reference
+                Sweep](../../specification/cudaq/examples.html#deuteron-binding-energy-parameter-sweep){.reference
                 .internal}
             -   [13.5. Grover's
-                Algorithm](examples.html#grover-s-algorithm){.reference
+                Algorithm](../../specification/cudaq/examples.html#grover-s-algorithm){.reference
                 .internal}
             -   [13.6. Iterative Phase
-                Estimation](examples.html#iterative-phase-estimation){.reference
+                Estimation](../../specification/cudaq/examples.html#iterative-phase-estimation){.reference
                 .internal}
-    -   [Quake Specification](../quake-dialect.html){.reference
+    -   [Quake
+        Specification](../../specification/quake-dialect.html){.reference
         .internal}
         -   [General
-            Introduction](../quake-dialect.html#general-introduction){.reference
+            Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
-        -   [Motivation](../quake-dialect.html#motivation){.reference
+        -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -1817,16 +1795,17 @@ pr-4061
 ::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
--   [Specifications](../index.html)
--   [Language Specification](../cudaq.html)
--   [9. ]{.section-number}Just-in-Time Kernel Creation
+-   [CUDA-Q by Example](examples.html)
+-   When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs.
+    [`run`{.docutils .literal .notranslate}]{.pre}
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](control_flow.html "8. Control Flow"){.btn .btn-neutral
-.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](patterns.html "10. Common Quantum Programming Patterns"){.btn
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1835,196 +1814,633 @@ aria-hidden="true"}](patterns.html "10. Common Quantum Programming Patterns"){.b
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#just-in-time-kernel-creation .section}
-# [9. ]{.section-number}Just-in-Time Kernel Creation[¶](#just-in-time-kernel-creation "Permalink to this heading"){.headerlink}
+::: {#when-to-use-sample-vs-run .section}
+[]{#sample-to-run-migration}
 
-**\[1\]** CUDA-Q provides a set of programming abstractions for
-dynamically constructing quantum kernel code at runtime.
+# When to Use [`sample`{.docutils .literal .notranslate}]{.pre} vs. [`run`{.docutils .literal .notranslate}]{.pre}[¶](#when-to-use-sample-vs-run "Permalink to this heading"){.headerlink}
 
-**\[2\]** The callable [`cudaq::kernel_builder`{.code .docutils .literal
-.notranslate}]{.pre} abstraction facilitates the dynamic definition of
-quantum kernels that can optionally be parameterized by user-defined
-input arguments.
+::: {#introduction .section}
+## Introduction[¶](#introduction "Permalink to this heading"){.headerlink}
 
-The [`kernel_builder`{.code .docutils .literal .notranslate}]{.pre}
-takes the following structure
+Starting with CUDA-Q 0.14.0, [`sample`{.docutils .literal
+.notranslate}]{.pre} no longer supports kernels that branch on
+measurement results (measurement-dependent control flow). Kernels
+containing patterns such as [`if`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`mz(q):`{.docutils .literal .notranslate}]{.pre} or
+[`if`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`(result)`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`{`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`...`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`}`{.docutils .literal .notranslate}]{.pre} where
+[`result`{.docutils .literal .notranslate}]{.pre} comes from a
+measurement must now use [`run`{.docutils .literal .notranslate}]{.pre}
+instead.
 
-::: {.highlight-cpp .notranslate}
-::: highlight
-    namespace cudaq {
-      // Type wrapping a value in the kernel IR
-      struct Value;
-      template <typename... Args>
-      class kernel_builder {
-        private:
-          std::vector<Value> arguments;
+This breaking change creates a clearer API separation:
 
-        public:
-          std::vector<Value>& getArguments();
-          std::string name() const;
-          std::size_t getNumParams() const;
+-   Use [`sample`{.docutils .literal .notranslate}]{.pre} for
+    **aggregate measurement statistics** (counts dictionaries).
 
-          Value qalloc(std::size_t nQubits = 1);
-          Value qalloc(Value size);
-
-          void h(Value& qubit);
-          //... all other quantum operations ...
-
-          // Invoke a predefined kernel
-          template<typename OtherKernelBuilder, typename... Values>
-          void call(OtherKernelBuilder&& kernelToCall, Values&... args);
-
-          // General multi-control on a predefined kernel
-          // models cudaq::control(...)
-          template<typename OtherKernelBuilder, typename... Values>
-          void control(OtherKernelBuilder&& kernelToControl, Value& ctrl, Values&... values);
-
-          // General adjoint on a predefined kernel
-          // models cudaq::adjoint(...)
-          template<typename OtherKernelBuilder, typename... Values>
-          void adjoint(OtherKernelBuilder&& kernelToAdjoint, Values&... values);
-
-          // The constructed kernel is callable
-          void operator()(Args... args);
-          void operator()(void** argsArray);
-
-          // Enable structured bindings
-          template <std::size_t N>
-          decltype(auto) get() {
-            if constexpr (N == 0)
-              return *this;
-            else
-              return arguments[N - 1];
-          }
-      };
-    }
-
-    /// Enable structured bindings on the kernel_builder type.
-    /// auto [kernel, theta, phi] = std::make_kernel<double,double>();
-    namespace std {
-      template <typename... Args>
-      struct tuple_size<cudaq::kernel_builder<Args...>>
-        : std::integral_constant<std::size_t, sizeof...(Args) + 1> {};
-
-      template <std::size_t N, typename... Args>
-      struct tuple_element<N, cudaq::kernel_builder<Args...>> {
-        using type = std::conditional_t<N == 0, cudaq::kernel_builder<Args...>,
-                                  cudaq::QuakeValue>;
-      };
-    } // namespace std
-
-    namespace cudaq {
-      kernel_builder<> make_kernel();
-      template<typename... Args>
-      kernel_builder<Args...> make_kernel();
-    }
-:::
+-   Use [`run`{.docutils .literal .notranslate}]{.pre} for
+    **shot-by-shot execution** with measurement-dependent control flow
+    and individual return values.
 :::
 
-**\[3\]** The structure above allows one to leverage the provided
-factory functions ([`make_kernel`{.code .docutils .literal
-.notranslate}]{.pre}) to construct an empty CUDA-Q kernel with defined
-argument signature.
+::: {#usage-guidelines .section}
+## Usage Guidelines[¶](#usage-guidelines "Permalink to this heading"){.headerlink}
 
-**\[4\]** For each type in the signature, the programmer is returned a
-new [`Value`{.code .docutils .literal .notranslate}]{.pre} instance
-which can be leveraged in the construction of the kernel. The intended
-mechanism for kernel creation and argument value extraction is via
-standard C++ [structured
-bindings](https://en.cppreference.com/w/cpp/language/structured_binding){.reference
-.external}.
+**Use** [`sample`{.docutils .literal .notranslate}]{.pre} **when:**
 
-**\[5\]** Once the kernel is created, the programmer is free to build up
-the kernel expression using the exposed API. There are methods for qubit
-allocation, quantum operation invocation, control and adjoint synthesis,
-and conditional branching based on [`boolean`{.code .docutils .literal
-.notranslate}]{.pre} values.
+-   You want aggregate measurement statistics (histograms).
 
-Here is a simple example how one might build a CUDA-Q kernel
-dynamically.
+-   Your kernel has no measurement-dependent control flow.
+
+-   You only need final measurement distributions.
+
+-   You are using the [`explicit_measurements`{.docutils .literal
+    .notranslate}]{.pre} option, which concatenates all measurement
+    results in execution order rather than re-measuring qubits at the
+    end of the kernel. See the [[sample specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+    .internal} for details.
+
+**Use** [`run`{.docutils .literal .notranslate}]{.pre} **when:**
+
+-   You need shot-by-shot measurement values.
+
+-   Your kernel has conditionals based on measurement results.
+
+-   You want to return computed values from the kernel.
+
+-   You need to store or analyze individual shot data.
+
+For the full API specification, see the [[sample]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} and [[run]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+.internal} sections in the Algorithmic Primitives documentation. For a
+usage guide, see [[Running your first CUDA-Q
+Program]{.doc}](../basics/run_kernel.html){.reference .internal}.
+:::
+
+::: {#what-is-supported-with-sample .section}
+## What Is Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels without measurement-dependent control flow continue to work
+exactly as before. This includes implicit measurements, explicit
+measurements without conditionals, partial qubit measurement,
+mid-circuit measurement for reset patterns, and the
+[`explicit_measurements`{.docutils .literal .notranslate}]{.pre} option
+(which concatenates all measurement results in execution order rather
+than re-measuring at the end of the kernel -- see the [[sample
+specification]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} for details).
 
 ::: {.tab-set .docutils}
-C++
-
-::: {.tab-content .docutils}
-::: {.highlight-cpp .notranslate}
-::: highlight
-    auto kernel = cudaq::make_kernel();
-    auto qubits = kernel.qalloc(2);
-    kernel.h(qubits[0]);
-    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
-    kernel.mz(qubits);
-
-    // See algorithmic primitives section for more on sample
-    auto counts = cudaq::sample(kernel);
-:::
-:::
-:::
-
 Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(2)
-    kernel.h(qubits[0])
-    kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
-:::
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+
+    @cudaq.kernel
+    def reset_pattern():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+        reset(q)
+        x(q)
+
+
+    print("Implicit measurements:")
+    cudaq.sample(bell).dump()
+
+    print("\nMid-circuit measurement with reset:")
+    cudaq.sample(reset_pattern).dump()
+
+    print("\nWith explicit_measurements option:")
+    cudaq.sample(reset_pattern, explicit_measurements=True).dump()
 :::
 :::
 :::
 
-Here is an example demonstrating how one may build a dynamic set of
-CUDA-Q kernels for executing the standard Hadamard test.
-
-::: {.tab-set .docutils}
 C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    auto [xPrep, qubitIn] = cudaq::make_kernel<cudaq::qubit>();
-    xPrep.x(qubitIn);
+    __qpu__ void bell() {
+      cudaq::qvector q(2);
+      h(q[0]);
+      x<cudaq::ctrl>(q[0], q[1]);
+    }
 
-    // Compute <1|X|1> = 0
-    auto hadamardTest = cudaq::make_kernel();
-    auto q = hadamardTest.qalloc();
-    auto ancilla = hadamardTest.qalloc();
-    hadamardTest.call(xPrep, q);
-    hadamardTest.h(ancilla);
-    hadamardTest.control(xPrep, ancilla, q);
-    hadamardTest.h(ancilla);
-    hadamardTest.mz(ancilla);
-
-    // See algorithmic primitives section for more on sample
-    auto counts = cudaq::sample(hadamardTest);
-:::
+    __qpu__ void reset_pattern() {
+      cudaq::qubit q;
+      h(q);
+      mz(q);
+      reset(q);
+      x(q);
+    }
 :::
 :::
 
+::: {.highlight-cpp .notranslate}
+::: highlight
+      printf("Implicit measurements:\n");
+      cudaq::sample(bell).dump();
+
+      printf("\nMid-circuit measurement with reset:\n");
+      cudaq::sample(reset_pattern).dump();
+
+      cudaq::sample_options options{.explicit_measurements = true};
+      printf("\nWith explicit_measurements option:\n");
+      cudaq::sample(options, reset_pattern).dump();
+:::
+:::
+:::
+:::
+:::
+
+::: {#what-is-not-supported-with-sample .section}
+## What Is Not Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-not-supported-with-sample "Permalink to this heading"){.headerlink}
+
+Kernels that branch on measurement results can no longer be used with
+[`sample`{.docutils .literal .notranslate}]{.pre} or
+[`sample_async`{.docutils .literal .notranslate}]{.pre}. Attempting to
+do so will raise a runtime error.
+
+This includes both inline conditionals on measurements and conditionals
+on variables holding measurement results:
+
+::: {.tab-set .docutils}
 Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    xPrep, qubitIn = cudaq.make_kernel(cudaq.qubit)
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:               # ERROR
+            x(q[1])
 
-    # Compute <1|X|1> = 0
-    hadamardTest = cudaq.make_kernel()
-    q = hadamardTest.qalloc()
-    hadamardTest.call(xPrep, q)
-    hadamardTest.h(ancilla)
-    hadamardTest.control(xPrep, ancilla, q)
-    hadamardTest.h(ancilla)
-    hadamardTest.mz(ancilla)
+    cudaq.sample(kernel)    # raises RuntimeError
+:::
+:::
+:::
 
-    # See algorithmic primitives section for more on sample
-    counts = cudaq.sample(hadamardTest)
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {            // ERROR
+            x(q[1]);
+        }
+    };
+
+    cudaq::sample(kernel);  // throws std::runtime_error
 :::
 :::
 :::
+:::
+
+The error message will read:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    `cudaq::sample` and `cudaq::sample_async` no longer support kernels that
+    branch on measurement results. Kernel '<name>' uses conditional feedback.
+    Use `cudaq::run` or `cudaq::run_async` instead. See CUDA-Q documentation
+    for migration guide.
+:::
+:::
+:::
+
+::: {#how-to-migrate .section}
+## How to Migrate[¶](#how-to-migrate "Permalink to this heading"){.headerlink}
+
+Migrating a kernel from [`sample`{.docutils .literal
+.notranslate}]{.pre} to [`run`{.docutils .literal .notranslate}]{.pre}
+requires three changes.
+
+::: {#step-1-add-a-return-type-to-the-kernel .section}
+### Step 1: Add a return type to the kernel[¶](#step-1-add-a-return-type-to-the-kernel "Permalink to this heading"){.headerlink}
+
+[`run`{.docutils .literal .notranslate}]{.pre} requires kernels to
+return a non-void value. Instead of relying on implicit measurement at
+the end of the circuit, explicitly [`return`{.docutils .literal
+.notranslate}]{.pre} the measurement results you need.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Before (no return type, used with sample)
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+
+    # After (returns a value, used with run)
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Before (void kernel, used with sample)
+    auto kernel = []() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+    };
+
+    // After (returns a value, used with run)
+    struct kernel {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) { x(q[1]); }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
+:::
+:::
+:::
+
+::: {#step-2-replace-sample-with-run .section}
+### Step 2: Replace [`sample`{.docutils .literal .notranslate}]{.pre} with [`run`{.docutils .literal .notranslate}]{.pre}[¶](#step-2-replace-sample-with-run "Permalink to this heading"){.headerlink}
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Before
+    counts = cudaq.sample(kernel, shots_count=1000)
+
+    # After
+    results = cudaq.run(kernel, shots_count=1000)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Before
+    auto counts = cudaq::sample(1000, kernel);
+
+    // After
+    auto results = cudaq::run(1000, kernel{});
+:::
+:::
+:::
+:::
+
+::: {.admonition .note}
+Note
+
+The default [`shots_count`{.docutils .literal .notranslate}]{.pre} for
+[`run`{.docutils .literal .notranslate}]{.pre} is 100, compared to 1000
+for [`sample`{.docutils .literal .notranslate}]{.pre}. Specify
+[`shots_count`{.docutils .literal .notranslate}]{.pre} explicitly if you
+need a particular number of shots.
+:::
+:::
+
+::: {#step-3-update-result-processing .section}
+### Step 3: Update result processing[¶](#step-3-update-result-processing "Permalink to this heading"){.headerlink}
+
+[`sample`{.docutils .literal .notranslate}]{.pre} returns a
+[`sample_result`{.docutils .literal .notranslate}]{.pre} (a counts
+dictionary mapping bit strings to frequencies). [`run`{.docutils
+.literal .notranslate}]{.pre} returns a list (Python) or
+[`std::vector`{.docutils .literal .notranslate}]{.pre} (C++) of
+individual return values -- one per shot. If you need a
+counts-dictionary view, you can reconstruct it from the individual
+results:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    from collections import Counter
+
+    results = cudaq.run(multi_measure, shots_count=1000)
+    counts = Counter(
+        ''.join('1' if bit else '0' for bit in result) for result in results)
+    print(dict(counts))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results = cudaq::run(1000, multi_measure{});
+      std::map<std::string, std::size_t> counts;
+      for (const auto &shot : results) {
+        std::string bits;
+        for (auto b : shot)
+          bits += b ? '1' : '0';
+        counts[bits]++;
+      }
+      for (const auto &[bits, count] : counts)
+        printf("%s : %zu\n", bits.c_str(), count);
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#migration-examples .section}
+## Migration Examples[¶](#migration-examples "Permalink to this heading"){.headerlink}
+
+::: {#example-1-simple-conditional-logic .section}
+### Example 1: Simple conditional logic[¶](#example-1-simple-conditional-logic "Permalink to this heading"){.headerlink}
+
+A kernel that measures one qubit and conditionally applies a gate on
+another.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def simple_conditional() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        r = mz(q[0])
+        if r:
+            x(q[1])
+        return mz(q[1])
+
+
+    results = cudaq.run(simple_conditional, shots_count=100)
+    n_ones = sum(results)
+    print(f"Measured |1> {n_ones} out of {len(results)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct simple_conditional {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        auto r = mz(q[0]);
+        if (r) {
+          x(q[1]);
+        }
+        return mz(q[1]);
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results1 = cudaq::run(100, simple_conditional{});
+      std::size_t nOnes = std::count_if(results1.begin(), results1.end(),
+                                        [](const auto &r) { return (bool)r; });
+      printf("Measured |1> %zu out of %zu shots\n", nOnes, results1.size());
+:::
+:::
+:::
+:::
+:::
+
+::: {#example-2-returning-multiple-measurement-results .section}
+### Example 2: Returning multiple measurement results[¶](#example-2-returning-multiple-measurement-results "Permalink to this heading"){.headerlink}
+
+A kernel that performs multiple mid-circuit measurements with
+conditional logic and returns all results as a list. When returning a
+[`std::vector<bool>`{.docutils .literal .notranslate}]{.pre} in C++,
+pre-allocate the result vector and assign elements individually for
+broadest target compatibility.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def multi_measure() -> list[bool]:
+        q = cudaq.qvector(3)
+        h(q)
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        if r0 and r1:
+            x(q[2])
+        r2 = mz(q[2])
+        return [r0, r1, r2]
+
+
+    results = cudaq.run(multi_measure, shots_count=100)
+    for shot in results[:5]:
+        print(''.join('1' if b else '0' for b in shot))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct multi_measure {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        h(q);
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+        if (results[0] && results[1]) {
+          x(q[2]);
+        }
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results2 = cudaq::run(100, multi_measure{});
+      for (std::size_t i = 0; i < 5 && i < results2.size(); ++i) {
+        for (auto b : results2[i])
+          printf("%d", (int)b);
+        printf("\n");
+      }
+:::
+:::
+:::
+:::
+:::
+
+::: {#example-3-quantum-teleportation .section}
+### Example 3: Quantum teleportation[¶](#example-3-quantum-teleportation "Permalink to this heading"){.headerlink}
+
+Teleportation of a qubit state requires conditional corrections based on
+Bell-basis measurements.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    @cudaq.kernel
+    def teleport() -> list[bool]:
+        results = [False, False, False]
+        q = cudaq.qvector(3)
+        x(q[0])
+
+        h(q[1])
+        x.ctrl(q[1], q[2])
+
+        x.ctrl(q[0], q[1])
+        h(q[0])
+
+        results[0] = mz(q[0])
+        results[1] = mz(q[1])
+
+        if results[1]:
+            x(q[2])
+        if results[0]:
+            z(q[2])
+
+        results[2] = mz(q[2])
+        return results
+
+
+    runs = cudaq.run(teleport, shots_count=100)
+    assert all(r[2] for r in runs), "Teleportation failed"
+    print(f"Teleportation succeeded on all {len(runs)} shots")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    struct teleport {
+      std::vector<bool> operator()() __qpu__ {
+        std::vector<bool> results(3);
+        cudaq::qvector q(3);
+        x(q[0]);
+
+        h(q[1]);
+        x<cudaq::ctrl>(q[1], q[2]);
+
+        x<cudaq::ctrl>(q[0], q[1]);
+        h(q[0]);
+
+        results[0] = mz(q[0]);
+        results[1] = mz(q[1]);
+
+        if (results[1])
+          x(q[2]);
+        if (results[0])
+          z(q[2]);
+
+        results[2] = mz(q[2]);
+        return results;
+      }
+    };
+:::
+:::
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      auto results3 = cudaq::run(100, teleport{});
+      assert(std::ranges::all_of(results3, [](const auto &r) { return r[2]; }));
+      printf("Teleportation succeeded on all %zu shots\n", results3.size());
+:::
+:::
+:::
+:::
+:::
+:::
+
+::: {#additional-notes .section}
+## Additional Notes[¶](#additional-notes "Permalink to this heading"){.headerlink}
+
+-   Users of [`sample_async`{.docutils .literal .notranslate}]{.pre}
+    with conditional-feedback kernels should migrate to
+    [`run_async`{.docutils .literal .notranslate}]{.pre}. See the [[run
+    specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the asynchronous API.
+
+-   [`run`{.docutils .literal .notranslate}]{.pre} supports a variety of
+    return types including scalars, vectors/lists, and user-defined data
+    structures. See the [[run specification]{.std
+    .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec){.reference
+    .internal} for the complete list of supported types and their
+    requirements.
+
+-   Assigning measurement results to named variables in kernels passed
+    to [`sample`{.docutils .literal .notranslate}]{.pre} is deprecated
+    and will be removed in a future release. Use [`run`{.docutils
+    .literal .notranslate}]{.pre} to retrieve individual measurement
+    results.
 :::
 :::
 :::
@@ -2032,10 +2448,10 @@ Python
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](control_flow.html "8. Control Flow"){.btn .btn-neutral
-.float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](patterns.html "10. Common Quantum Programming Patterns"){.btn
+aria-hidden="true"}](dynamics_examples.html "CUDA-Q Dynamics"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

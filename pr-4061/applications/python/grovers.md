@@ -268,6 +268,48 @@ pr-4061
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+    -   [When to Use sample vs.
+        run](../../using/examples/sample_vs_run.html){.reference
+        .internal}
+        -   [Introduction](../../using/examples/sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](../../using/examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](../../using/examples/sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](../../using/examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](../../using/examples/sample_vs_run.html#additional-notes){.reference
+            .internal}
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
@@ -2050,7 +2092,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![74c9c6d846924cbf9d09f2d02a2af7e5](../../_images/grovers-2D-plane.png)
+![67868d218f074dcb9249dc3c5a0f3c87](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2265,7 +2307,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![a3a531072b9b40d29febd433778e73cc](../../_images/grovers-steps1-3.png)
+![7eb9d48743b5441488ce32e9c62ceb5f](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2277,7 +2319,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![54c8e3a265e0484a97ed688ae8721805](../../_images/grovers-full-rotation.png)
+![0c6ce2cbc41d43498c1bf5e9ff214885](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's
