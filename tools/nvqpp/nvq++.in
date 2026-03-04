@@ -280,7 +280,6 @@ install_dir="$(
 	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
 	pwd -P
 )"
-llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 # Locate the LLVM toolchain. The installer bundles LLVM under lib/llvm/;
 # fall back to a flat layout or the build-time LLVM directory (dev builds only).
@@ -288,8 +287,6 @@ if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}/lib/llvm"
 elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}"
-elif [ -x "@LLVM_BINARY_DIR@/bin/clang++${llvm_suffix}" ]; then
-	llvm_install_dir="@LLVM_BINARY_DIR@"
 else
 	error_exit "Cannot find clang++ in the CUDA-Q installation. Expected it under ${install_dir}/lib/llvm/bin/ or ${install_dir}/bin/."
 fi
@@ -340,16 +337,12 @@ fi
 # from the target used when building CUDA-Q, causing linker warnings about
 # version mismatches between the executable and dylibs.
 CUDAQ_MACOS_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-@CMAKE_OSX_DEPLOYMENT_TARGET@}"
-if ${CUDAQ_IS_APPLE} && [ -z "${CUDAQ_MACOS_DEPLOYMENT_TARGET}" ]; then
-	CUDAQ_MACOS_DEPLOYMENT_TARGET="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1-2)"
-fi
 LLC_FLAGS=-O2
 MACOS_VERSION_FLAG=""
 if ${CUDAQ_IS_APPLE} && [ -n "${CUDAQ_MACOS_DEPLOYMENT_TARGET}" ]; then
 	MACOS_VERSION_FLAG="-mmacosx-version-min=${CUDAQ_MACOS_DEPLOYMENT_TARGET}"
 	COMPILER_FLAGS="${COMPILER_FLAGS} ${MACOS_VERSION_FLAG}"
 	LINKER_FLAGS="${LINKER_FLAGS} ${MACOS_VERSION_FLAG}"
-	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq=${MACOS_VERSION_FLAG}"
 	# Set LLC target triple to include deployment target, ensuring object files
 	# are marked with the same version as the linked libraries.
 	LLC_ARCH=$(uname -m)
@@ -882,7 +875,7 @@ for i in ${SRCS}; do
 		NOSTDLIB_FLAG="-nostdlib"
 	fi
 
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
