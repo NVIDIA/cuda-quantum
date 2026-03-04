@@ -29,7 +29,7 @@ enum TargetFeatureFlag : unsigned {
 
 /// @brief Configuration argument type annotation
 // e.g., to support type validation.
-enum class ArgumentType { String, Int, UUID, FeatureFlag, MachineConfig };
+enum class ArgumentType { String, Int, Bool, UUID, FeatureFlag, MachineConfig };
 
 /// @brief Architecture-specific compilation settings
 // Different device architectures of a target may require customization.
