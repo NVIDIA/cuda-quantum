@@ -276,11 +276,11 @@ pr-4070
         -   [Usage
             Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
             .internal}
-        -   [What Still Works with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-still-works-with-sample){.reference
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
             .internal}
-        -   [What No Longer
-            Works](../../using/examples/sample_vs_run.html#what-no-longer-works){.reference
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to
             Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
@@ -1899,7 +1899,7 @@ explained above.
 
 <div>
 
-![c990b13183ef4c4e983b21888f3865ed](../../_images/adapt-qaoa.png){.no-scaled-link
+![374c14528234467fa9422815625ebb34](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

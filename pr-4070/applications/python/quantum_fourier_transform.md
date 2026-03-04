@@ -276,11 +276,11 @@ pr-4070
         -   [Usage
             Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
             .internal}
-        -   [What Still Works with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-still-works-with-sample){.reference
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
             .internal}
-        -   [What No Longer
-            Works](../../using/examples/sample_vs_run.html#what-no-longer-works){.reference
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to
             Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
@@ -2198,7 +2198,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 6d893af1f9ed9fc0e89ef9a1d085bd4a9bd84f17)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 44f2cde1d5aa36a97a8c4bdd8c4de042e2215af9)
 :::
 :::
 :::

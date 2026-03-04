@@ -276,11 +276,11 @@ pr-4070
         -   [Usage
             Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
             .internal}
-        -   [What Still Works with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-still-works-with-sample){.reference
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
             .internal}
-        -   [What No Longer
-            Works](../../using/examples/sample_vs_run.html#what-no-longer-works){.reference
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to
             Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
@@ -2092,7 +2092,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![11a708f986a24cc1b3ba2d21f4a1a0e8](../../_images/grovers-2D-plane.png)
+![1c053c7a1a914d8cb53cccfc9f4d1af2](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2307,7 +2307,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![1a06190761a2439a944d12244f6712c8](../../_images/grovers-steps1-3.png)
+![935b715e98e940868152e3cb00be9ecd](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2319,7 +2319,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![d5fd8b79fce64ce8992b3cc5cb35174a](../../_images/grovers-full-rotation.png)
+![0471ce05eee44b9bae41dde92174abde](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

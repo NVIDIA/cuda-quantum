@@ -248,11 +248,11 @@ pr-4070
         -   [Usage
             Guidelines](sample_vs_run.html#usage-guidelines){.reference
             .internal}
-        -   [What Still Works with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](sample_vs_run.html#what-still-works-with-sample){.reference
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](sample_vs_run.html#what-is-supported-with-sample){.reference
             .internal}
-        -   [What No Longer
-            Works](sample_vs_run.html#what-no-longer-works){.reference
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](sample_vs_run.html#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to
             Migrate](sample_vs_run.html#how-to-migrate){.reference

@@ -276,11 +276,11 @@ pr-4070
         -   [Usage
             Guidelines](../../using/examples/sample_vs_run.html#usage-guidelines){.reference
             .internal}
-        -   [What Still Works with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-still-works-with-sample){.reference
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-supported-with-sample){.reference
             .internal}
-        -   [What No Longer
-            Works](../../using/examples/sample_vs_run.html#what-no-longer-works){.reference
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to
             Migrate](../../using/examples/sample_vs_run.html#how-to-migrate){.reference
@@ -1948,7 +1948,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![b97bcf0b0010482496e163f0950924f0](../../_images/oracle.png){.no-scaled-link
+![a49ed262dd124c65a42acce2fe371a86](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2054,7 +2054,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![3e75cebf396241de85821580fd5e9f74](../../_images/deutsch.png){.no-scaled-link
+![f7632954145c495187d7b511090e7c79](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

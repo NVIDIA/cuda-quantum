@@ -44,7 +44,7 @@ For the full API specification, see the :ref:`sample <cudaq-sample-spec>` and
 For a usage guide, see :doc:`Running your first CUDA-Q Program <../basics/run_kernel>`.
 
 
-What Still Works with ``sample``
+What Is Supported with ``sample``
 ---------------------------------
 
 Kernels without measurement-dependent control flow continue to work exactly as
@@ -75,8 +75,8 @@ details).
         :end-before: [End Sample_Works_Run]
 
 
-What No Longer Works
----------------------
+What Is Not Supported with ``sample``
+--------------------------------------
 
 Kernels that branch on measurement results can no longer be used with
 ``sample`` or ``sample_async``. Attempting to do so will raise a runtime error.

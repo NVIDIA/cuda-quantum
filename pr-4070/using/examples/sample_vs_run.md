@@ -250,10 +250,11 @@ pr-4070
     -   [When to Use sample vs. run](#){.current .reference .internal}
         -   [Introduction](#introduction){.reference .internal}
         -   [Usage Guidelines](#usage-guidelines){.reference .internal}
-        -   [What Still Works with [`sample`{.docutils .literal
-            .notranslate}]{.pre}](#what-still-works-with-sample){.reference
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](#what-is-supported-with-sample){.reference
             .internal}
-        -   [What No Longer Works](#what-no-longer-works){.reference
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](#what-is-not-supported-with-sample){.reference
             .internal}
         -   [How to Migrate](#how-to-migrate){.reference .internal}
             -   [Step 1: Add a return type to the
@@ -1884,8 +1885,8 @@ usage guide, see [[Running your first CUDA-Q
 Program]{.doc}](../basics/run_kernel.html){.reference .internal}.
 :::
 
-::: {#what-still-works-with-sample .section}
-## What Still Works with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-still-works-with-sample "Permalink to this heading"){.headerlink}
+::: {#what-is-supported-with-sample .section}
+## What Is Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-supported-with-sample "Permalink to this heading"){.headerlink}
 
 Kernels without measurement-dependent control flow continue to work
 exactly as before. This includes implicit measurements, explicit
@@ -1970,8 +1971,8 @@ C++
 :::
 :::
 
-::: {#what-no-longer-works .section}
-## What No Longer Works[¶](#what-no-longer-works "Permalink to this heading"){.headerlink}
+::: {#what-is-not-supported-with-sample .section}
+## What Is Not Supported with [`sample`{.docutils .literal .notranslate}]{.pre}[¶](#what-is-not-supported-with-sample "Permalink to this heading"){.headerlink}
 
 Kernels that branch on measurement results can no longer be used with
 [`sample`{.docutils .literal .notranslate}]{.pre} or

@@ -245,8 +245,8 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   When to Use sample vs. run</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-guidelines">Usage Guidelines</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#what-still-works-with-sample">What Still Works with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#what-no-longer-works">What No Longer Works</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-is-supported-with-sample">What Is Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-is-not-supported-with-sample">What Is Not Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#how-to-migrate">How to Migrate</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#step-1-add-a-return-type-to-the-kernel">Step 1: Add a return type to the kernel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#step-2-replace-sample-with-run">Step 2: Replace <code class="docutils literal notranslate"><span class="pre">sample</span></code> with <code class="docutils literal notranslate"><span class="pre">run</span></code></a></li>
@@ -1092,8 +1092,8 @@ for details.</p></li>
 <a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-run-spec"><span class="std std-ref">run</span></a> sections in the Algorithmic Primitives documentation.
 For a usage guide, see <a class="reference internal" href="../basics/run_kernel.html"><span class="doc">Running your first CUDA-Q Program</span></a>.</p>
 </section>
-<section id="what-still-works-with-sample">
-<h2>What Still Works with <code class="docutils literal notranslate"><span class="pre">sample</span></code><a class="headerlink" href="#what-still-works-with-sample" title="Permalink to this heading">¶</a></h2>
+<section id="what-is-supported-with-sample">
+<h2>What Is Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code><a class="headerlink" href="#what-is-supported-with-sample" title="Permalink to this heading">¶</a></h2>
 <p>Kernels without measurement-dependent control flow continue to work exactly as
 before. This includes implicit measurements, explicit measurements without
 conditionals, partial qubit measurement, mid-circuit measurement for
@@ -1160,8 +1160,8 @@ details).</p>
 </div>
 </div>
 </section>
-<section id="what-no-longer-works">
-<h2>What No Longer Works<a class="headerlink" href="#what-no-longer-works" title="Permalink to this heading">¶</a></h2>
+<section id="what-is-not-supported-with-sample">
+<h2>What Is Not Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code><a class="headerlink" href="#what-is-not-supported-with-sample" title="Permalink to this heading">¶</a></h2>
 <p>Kernels that branch on measurement results can no longer be used with
 <code class="docutils literal notranslate"><span class="pre">sample</span></code> or <code class="docutils literal notranslate"><span class="pre">sample_async</span></code>. Attempting to do so will raise a runtime error.</p>
 <p>This includes both inline conditionals on measurements and conditionals on
