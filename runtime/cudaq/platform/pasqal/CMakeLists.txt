@@ -50,19 +50,20 @@ install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)
 add_target_config(pasqal)
 
 if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(QRMI_ROOT "${QRMI_ROOT}" CACHE PATH "Path to QRMI installation")
+  set(QRMI_INSTALL_PREFIX "$ENV{QRMI_INSTALL_PREFIX}" CACHE PATH
+      "Path to QRMI installation prefix")
 
   set(_qrmi_include_hints)
   set(_qrmi_library_hints)
-  if(QRMI_ROOT)
+  if(QRMI_INSTALL_PREFIX)
     list(APPEND _qrmi_include_hints
-      "${QRMI_ROOT}"
-      "${QRMI_ROOT}/include")
+      "${QRMI_INSTALL_PREFIX}"
+      "${QRMI_INSTALL_PREFIX}/include")
     list(APPEND _qrmi_library_hints
-      "${QRMI_ROOT}/lib"
-      "${QRMI_ROOT}/lib64"
-      "${QRMI_ROOT}/target/release"
-      "${QRMI_ROOT}/target/debug")
+      "${QRMI_INSTALL_PREFIX}/lib"
+      "${QRMI_INSTALL_PREFIX}/lib64"
+      "${QRMI_INSTALL_PREFIX}/target/release"
+      "${QRMI_INSTALL_PREFIX}/target/debug")
   endif()
 
   find_path(QRMI_INCLUDE_DIR qrmi.h
@@ -73,7 +74,7 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   if(NOT QRMI_INCLUDE_DIR OR NOT QRMI_LIBRARY)
     message(FATAL_ERROR
       "Pasqal QRMI connector requested but qrmi.h/libqrmi was not found. "
-      "Install QRMI and set -DQRMI_ROOT=<prefix> if needed.")
+      "Install QRMI and set QRMI_INSTALL_PREFIX=<prefix> if needed.")
   endif()
 
   include(CheckCXXSourceCompiles)

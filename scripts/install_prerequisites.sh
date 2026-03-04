@@ -447,8 +447,7 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
 fi
 
 # [QRMI] Needed for the Pasqal QRMI connector
-if [ -z "$(echo $exclude_prereq | grep qrmi)" ]; then
-  QRMI_INSTALL_PREFIX=${QRMI_INSTALL_PREFIX:-/usr/local}
+if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]; then
   qrmi_header="$QRMI_INSTALL_PREFIX/include/qrmi.h"
   qrmi_library="$QRMI_INSTALL_PREFIX/lib64/libqrmi.so"
   if [ ! -f "$qrmi_header" ] || [ ! -f "$qrmi_library" ]; then
@@ -458,11 +457,16 @@ if [ -z "$(echo $exclude_prereq | grep qrmi)" ]; then
 
     QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
     QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
+    QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
     qrmi_release_base="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
+    qrmi_archive="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz" # Note: el8 build works on Ubuntu 18.04+.
+    qrmi_unpack_dir="libqrmi-${QRMI_RELEASE_VERSION}"
 
     mkdir -p "$QRMI_INSTALL_PREFIX/include" "$QRMI_INSTALL_PREFIX/lib64"
-    wget "${qrmi_release_base}/qrmi.h" -O "$qrmi_header"
-    wget "${qrmi_release_base}/libqrmi.so" -O "$qrmi_library"
+    wget "${qrmi_release_base}/${qrmi_archive}" -O "${qrmi_archive}"
+    tar -xzf "${qrmi_archive}"
+    cp "${qrmi_unpack_dir}/qrmi.h" "$qrmi_header"
+    cp "${qrmi_unpack_dir}/libqrmi.so" "$qrmi_library"
 
     popd
     remove_temp_installs

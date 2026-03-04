@@ -627,10 +627,23 @@ jobs:
                   python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":white_check_mark: Successfully ran test: $filename  (direct execution)" >> $GITHUB_STEP_SUMMARY
                   else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":x: Test failed (failed to execute): $filename (direct execution)" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
+                  fi
+                  if [[ "$filename" == *.py ]]; then
+                    PASQAL_MACHINE_TARGET=qrmi \
+                    SLURM_JOB_QPU_RESOURCES=EMU_FREE \
+                    EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
+                    python3 "$run_file" 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed: $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
