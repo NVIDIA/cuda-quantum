@@ -42,7 +42,7 @@ elif [ -x "$(command -v dnf)" ]; then
   DOCA_FULL_VERSION=3.3.0-088000_26.01
   # Find the rhel version, e.g., rhel9.2 -> rhel9
   distro=$(cat /etc/os-release | grep -E '^ID=' | cut -d= -f2 | tr -d '"')$(cat /etc/os-release | grep -E '^VERSION_ID=' | cut -d= -f2 | cut -d. -f1 | tr -d '"') # e.g., rhel9
-  DOCA_URL=https://www.mellanox.com/downloads/DOCA/DOCA_v$DOCA_VERSION/host/doca-host-$DOCA_FULL_VERSION_$distro.$arch.rpm
+  DOCA_URL=https://www.mellanox.com/downloads/DOCA/DOCA_v$DOCA_VERSION/host/doca-host-${DOCA_FULL_VERSION}_${distro}.${arch}.rpm
   echo "DOCA_URL=${DOCA_URL}"
   # Install wget
   dnf install -y wget
