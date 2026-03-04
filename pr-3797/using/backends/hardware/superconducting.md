@@ -2647,9 +2647,10 @@ Supported parameters:
 -   [`project`{.docutils .literal .notranslate}]{.pre}: User project
     associated with the job (required).
 
--   [`verbatim`{.docutils .literal .notranslate}]{.pre}: Currently
-    unused; should be set to [`false`{.docutils .literal
-    .notranslate}]{.pre}.
+-   [`verbatim`{.docutils .literal .notranslate}]{.pre}: When set to
+    [`true`{.docutils .literal .notranslate}]{.pre} the circuit is
+    dispatched without transpilation. Defaults to [`false`{.docutils
+    .literal .notranslate}]{.pre}.
 :::
 
 ::: {#submitting-jobs .section}
