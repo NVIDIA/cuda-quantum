@@ -44,6 +44,7 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
@@ -92,7 +93,8 @@ struct BridgeConfig {
   int timeout_sec = 60;              ///< Runtime timeout in seconds
 
   // Ring buffer sizing
-  size_t frame_size = 256; ///< Minimum frame size (RPCHeader + payload)
+  uint32_t payload_size = 8; ///< RPC payload size in bytes
+  size_t frame_size = 0;     ///< Computed: `sizeof(RPCHeader) + payload_size`
   size_t page_size =
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
@@ -100,6 +102,15 @@ struct BridgeConfig {
   // QP exchange (emulator mode)
   bool exchange_qp = false;  ///< Use QP exchange protocol
   int exchange_port = 12345; ///< TCP port for QP exchange
+
+  // Forward mode: use Hololink's built-in forward kernel (echo) instead of
+  // separate RX + dispatch + TX kernels.  Useful for baseline latency testing.
+  bool forward = false;
+
+  // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
+  // RDMA TX via direct DOCA verbs calls.  Eliminates the inter-kernel flag
+  // handoff overhead of the 3-kernel path.  Regular handlers only.
+  bool unified = false;
 
   // Dispatch kernel config
   cudaq_function_entry_t *d_function_entries = nullptr; ///< GPU function table
@@ -154,7 +165,15 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.exchange_qp = true;
     else if (arg.find("--exchange-port=") == 0)
       config.exchange_port = std::stoi(arg.substr(16));
+    else if (arg.find("--payload-size=") == 0)
+      config.payload_size = std::stoul(arg.substr(15));
+    else if (arg == "--forward")
+      config.forward = true;
+    else if (arg == "--unified")
+      config.unified = true;
   }
+
+  config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
 }
 
 //==============================================================================
@@ -209,13 +228,18 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
+  // Unified mode uses Hololink's forward/symmetric ring layout but doesn't
+  // run any Hololink kernels -- the unified dispatch kernel handles RX+TX.
+  bool use_forward_ring = config.forward || config.unified;
+
   hololink_transceiver_t transceiver = hololink_create_transceiver(
       config.device.c_str(), 1, // ib_port
+      config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
-      "0.0.0.0", // deferred connection
-      0,         // forward = false
-      1,         // rx_only = true
-      1          // tx_only = true
+      "0.0.0.0",                // deferred connection
+      use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
+      use_forward_ring ? 0 : 1, // rx_only
+      use_forward_ring ? 0 : 1  // tx_only
   );
 
   if (!transceiver) {
@@ -275,128 +299,173 @@ inline int bridge_run(BridgeConfig &config) {
   // [3] Force eager CUDA module loading
   //============================================================================
   std::cout << "\n[3/5] Forcing CUDA module loading..." << std::endl;
-  {
-    int dispatch_blocks = 0;
-    cudaError_t occ_err;
-    if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
-      occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
-          &dispatch_blocks, config.threads_per_block);
-    } else {
-      occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
-    }
-    if (occ_err != cudaSuccess) {
-      std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
-                << cudaGetErrorString(occ_err) << std::endl;
-      return 1;
-    }
-    std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
-              << " blocks/SM" << std::endl;
 
-    if (!hololink_query_kernel_occupancy()) {
-      std::cerr << "ERROR: Hololink kernel occupancy query failed" << std::endl;
-      return 1;
-    }
+  if (!hololink_query_kernel_occupancy()) {
+    std::cerr << "ERROR: Hololink kernel occupancy query failed" << std::endl;
+    return 1;
   }
 
-  //============================================================================
-  // [4] Wire dispatch kernel to Hololink ring buffers
-  //============================================================================
-  std::cout << "\n[4/5] Wiring dispatch kernel..." << std::endl;
-
-  // Allocate control variables
-  void *tmp_shutdown = nullptr;
-  BRIDGE_CUDA_CHECK(
-      cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-  volatile int *shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
-  void *tmp_d_shutdown = nullptr;
-  BRIDGE_CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-  volatile int *d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
-  *shutdown_flag = 0;
-  int zero = 0;
-  BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
-                               sizeof(int), cudaMemcpyHostToDevice));
-
+  // Dispatch kernel resources (unused in forward mode)
+  volatile int *shutdown_flag = nullptr;
+  volatile int *d_shutdown_flag = nullptr;
   uint64_t *d_stats = nullptr;
-  BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-  BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
-
-  // Host API wiring
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
-  if (cudaq_dispatch_manager_create(&manager) != CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to create dispatch manager" << std::endl;
-    return 1;
-  }
+  // Transport context for unified mode (must outlive the dispatcher)
+  doca_transport_ctx unified_ctx{};
 
-  cudaq_dispatcher_config_t dconfig{};
-  dconfig.device_id = config.gpu_id;
-  dconfig.num_blocks = config.num_blocks;
-  dconfig.threads_per_block = config.threads_per_block;
-  dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-  dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-  dconfig.vp_id = 0;
-  dconfig.kernel_type = config.kernel_type;
-  dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+  if (!config.forward) {
+    if (!config.unified) {
+      int dispatch_blocks = 0;
+      cudaError_t occ_err;
+      if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
+        occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
+            &dispatch_blocks, config.threads_per_block);
+      } else {
+        occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
+      }
+      if (occ_err != cudaSuccess) {
+        std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
+                  << cudaGetErrorString(occ_err) << std::endl;
+        return 1;
+      }
+      std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
+                << " blocks/SM" << std::endl;
+    }
 
-  if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to create dispatcher" << std::endl;
-    return 1;
-  }
+    //==========================================================================
+    // [4] Wire dispatch kernel
+    //==========================================================================
+    std::cout << "\n[4/5] Wiring dispatch kernel ("
+              << (config.unified ? "unified" : "3-kernel") << ")..."
+              << std::endl;
 
-  cudaq_ringbuffer_t ringbuffer{};
-  ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-  ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-  ringbuffer.rx_data = rx_ring_data;
-  ringbuffer.tx_data = tx_ring_data;
-  ringbuffer.rx_stride_sz = config.page_size;
-  ringbuffer.tx_stride_sz = config.page_size;
+    void *tmp_shutdown = nullptr;
+    BRIDGE_CUDA_CHECK(
+        cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
+    shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
+    void *tmp_d_shutdown = nullptr;
+    BRIDGE_CUDA_CHECK(
+        cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
+    d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
+    *shutdown_flag = 0;
+    int zero = 0;
+    BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
+                                 sizeof(int), cudaMemcpyHostToDevice));
 
-  if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) != CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-    return 1;
-  }
+    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
+    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
 
-  cudaq_function_table_t table{};
-  table.entries = config.d_function_entries;
-  table.count = config.func_count;
-  if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to set function table" << std::endl;
-    return 1;
-  }
+    if (cudaq_dispatch_manager_create(&manager) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to create dispatch manager" << std::endl;
+      return 1;
+    }
 
-  if (cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats) !=
-      CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to set control" << std::endl;
-    return 1;
-  }
+    cudaq_dispatcher_config_t dconfig{};
+    dconfig.device_id = config.gpu_id;
+    dconfig.vp_id = 0;
+    dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
 
-  // Use provided launch function, or default to regular dispatch
-  cudaq_dispatch_launch_fn_t launch_fn = config.launch_fn;
-  if (!launch_fn) {
-    launch_fn = &cudaq_launch_dispatch_kernel_regular;
-  }
-  if (cudaq_dispatcher_set_launch_fn(dispatcher, launch_fn) != CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to set launch function" << std::endl;
-    return 1;
-  }
+    if (config.unified) {
+      dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
+      dconfig.num_blocks = 1;
+      dconfig.threads_per_block = 1;
+      dconfig.num_slots = 0;
+      dconfig.slot_size = 0;
+    } else {
+      dconfig.kernel_type = config.kernel_type;
+      dconfig.num_blocks = config.num_blocks;
+      dconfig.threads_per_block = config.threads_per_block;
+      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
+    }
 
-  if (cudaq_dispatcher_start(dispatcher) != CUDAQ_OK) {
-    std::cerr << "ERROR: Failed to start dispatcher" << std::endl;
-    return 1;
+    if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to create dispatcher" << std::endl;
+      return 1;
+    }
+
+    if (config.unified) {
+      // Pack DOCA transport handles into the opaque context
+      unified_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+      unified_ctx.rx_ring_data = rx_ring_data;
+      unified_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
+      unified_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+      unified_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+      unified_ctx.frame_size = config.frame_size;
+
+      if (cudaq_dispatcher_set_unified_launch(
+              dispatcher, &cudaq_launch_unified_dispatch_kernel,
+              &unified_ctx) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set unified launch function"
+                  << std::endl;
+        return 1;
+      }
+    } else {
+      cudaq_ringbuffer_t ringbuffer{};
+      ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
+      ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+      ringbuffer.rx_data = rx_ring_data;
+      ringbuffer.tx_data = tx_ring_data;
+      ringbuffer.rx_stride_sz = config.page_size;
+      ringbuffer.tx_stride_sz = config.page_size;
+
+      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
+          CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
+        return 1;
+      }
+
+      cudaq_dispatch_launch_fn_t launch_fn = config.launch_fn;
+      if (!launch_fn) {
+        launch_fn = &cudaq_launch_dispatch_kernel_regular;
+      }
+      if (cudaq_dispatcher_set_launch_fn(dispatcher, launch_fn) != CUDAQ_OK) {
+        std::cerr << "ERROR: Failed to set launch function" << std::endl;
+        return 1;
+      }
+    }
+
+    cudaq_function_table_t table{};
+    table.entries = config.d_function_entries;
+    table.count = config.func_count;
+    if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set function table" << std::endl;
+      return 1;
+    }
+
+    if (cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats) !=
+        CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set control" << std::endl;
+      return 1;
+    }
+
+    if (cudaq_dispatcher_start(dispatcher) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to start dispatcher" << std::endl;
+      return 1;
+    }
+    std::cout << "  Dispatch kernel launched" << std::endl;
+  } else {
+    std::cout << "\n[4/5] Forward mode -- skipping dispatch kernel"
+              << std::endl;
   }
-  std::cout << "  Dispatch kernel launched" << std::endl;
 
   //============================================================================
-  // [5] Launch Hololink kernels and run
+  // [5] Launch Hololink kernels (if needed) and run
   //============================================================================
-  std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
+  std::thread hololink_thread;
 
-  std::thread hololink_thread(
-      [transceiver]() { hololink_blocking_monitor(transceiver); });
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  std::cout << "  Hololink RX+TX kernels started" << std::endl;
+  if (config.unified) {
+    std::cout << "\n[5/5] Unified mode -- Hololink kernels not needed"
+              << std::endl;
+  } else {
+    std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
+    hololink_thread = std::thread(
+        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::cout << "  Hololink RX+TX kernels started" << std::endl;
+  }
 
   // Print QP info for FPGA stimulus tool
   std::cout << "\n=== Bridge Ready ===" << std::endl;
@@ -428,7 +497,7 @@ inline int bridge_run(BridgeConfig &config) {
     }
 
     // Progress report every 5 seconds
-    if (elapsed > 0 && elapsed % 5 == 0) {
+    if (!config.forward && d_stats && elapsed > 0 && elapsed % 5 == 0) {
       uint64_t processed = 0;
       cudaMemcpyAsync(&processed, d_stats, sizeof(uint64_t),
                       cudaMemcpyDeviceToHost, diag_stream);
@@ -453,20 +522,25 @@ inline int bridge_run(BridgeConfig &config) {
     diag_stream = nullptr;
   }
 
-  *shutdown_flag = 1;
-  __sync_synchronize();
-  cudaq_dispatcher_stop(dispatcher);
+  if (!config.forward) {
+    *shutdown_flag = 1;
+    __sync_synchronize();
+    cudaq_dispatcher_stop(dispatcher);
 
-  uint64_t total_processed = 0;
-  cudaq_dispatcher_get_processed(dispatcher, &total_processed);
-  std::cout << "  Total packets processed: " << total_processed << std::endl;
+    uint64_t total_processed = 0;
+    cudaq_dispatcher_get_processed(dispatcher, &total_processed);
+    std::cout << "  Total packets processed (dispatch RX): " << total_processed
+              << std::endl;
+  }
 
   hololink_close(transceiver);
   if (hololink_thread.joinable())
     hololink_thread.join();
 
-  cudaq_dispatcher_destroy(dispatcher);
-  cudaq_dispatch_manager_destroy(manager);
+  if (dispatcher)
+    cudaq_dispatcher_destroy(dispatcher);
+  if (manager)
+    cudaq_dispatch_manager_destroy(manager);
   hololink_destroy_transceiver(transceiver);
 
   if (shutdown_flag)

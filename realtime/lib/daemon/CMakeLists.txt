@@ -48,16 +48,25 @@ if(CUDA_FOUND)
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 
-  add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
+  add_library(cudaq-realtime-dispatch STATIC
+    dispatcher/dispatch_kernel.cu
+    dispatcher/unified_dispatch_kernel.cu
+  )
   set_target_properties(cudaq-realtime-dispatch
     PROPERTIES
     LINK_FLAGS_RELEASE "-Wl,--exclude-libs=ALL")
   set_target_properties(cudaq-realtime-dispatch PROPERTIES CXX_VISIBILITY_PRESET "hidden" CUDA_VISIBILITY_PRESET "hidden")
 
+  find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
+    HINTS /opt/mellanox/doca/include
+  )
+
   target_include_directories(cudaq-realtime-dispatch
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
+    PRIVATE
+      ${DOCA_GPU_INCLUDE_DIR}
   )
 
   # Link CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)

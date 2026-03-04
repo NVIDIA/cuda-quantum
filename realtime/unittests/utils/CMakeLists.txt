@@ -136,17 +136,25 @@ find_path(FMT_INCLUDE_DIR
   NO_DEFAULT_PATH)
 
 # =========================================================================== #
-# hololink_fpga_playback  (no GPU / DOCA dependency)
+# hololink_fpga_playback  (uses hololink_core for FPGA control plane)
 # =========================================================================== #
 
 add_executable(hololink_fpga_playback
   hololink_fpga_playback.cpp)
 
 target_include_directories(hololink_fpga_playback
-  PRIVATE ${CUDAQ_REALTIME_INCLUDE_DIR})
+  PRIVATE
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+    "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
+    "${CUDAToolkit_INCLUDE_DIRS}")
+
+if (FMT_INCLUDE_DIR)
+  target_include_directories(hololink_fpga_playback
+    PRIVATE "${FMT_INCLUDE_DIR}")
+endif()
 
 target_link_libraries(hololink_fpga_playback
-  PRIVATE Threads::Threads)
+  PRIVATE ${HOLOLINK_CORE_LIB} Threads::Threads)
 
 # =========================================================================== #
 # hololink_bridge  (generic increment bridge)
