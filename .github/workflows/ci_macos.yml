@@ -90,6 +90,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 180
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
 
     steps:
@@ -117,6 +119,9 @@ jobs:
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
+          # Update ninja build log to match extracted file timestamps.
+          ninja -C "$HOME/.llvm-project/build" -t restat
+
           echo "=== Restored prerequisites ==="
           du -sh ~/.local || true
           du -sh ~/.llvm-project || true
@@ -127,8 +132,6 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
@@ -154,6 +157,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 90
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
@@ -183,14 +188,15 @@ jobs:
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
+          # Update ninja build log to match extracted file timestamps
+          ninja -C "$HOME/.llvm-project/build" -t restat
+
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
 
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
@@ -270,6 +276,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 120
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
@@ -299,6 +307,9 @@ jobs:
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
+          # Update ninja build log to match extracted file timestamps
+          ninja -C "$HOME/.llvm-project/build" -t restat
+
       - name: Install dependencies
         run: |
           pip install -r requirements-dev.txt
@@ -307,8 +318,6 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
