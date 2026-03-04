@@ -368,6 +368,7 @@ toolchain
 toolchains
 toolset
 transmon
+transpilation
 transpile
 trotterization
 uccsd
