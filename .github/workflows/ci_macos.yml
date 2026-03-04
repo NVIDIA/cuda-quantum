@@ -382,7 +382,7 @@ jobs:
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          sudo -u cudaqtest pip install --user wheel/*.whl
+          sudo -u cudaqtest -H pip install --user wheel/*.whl
 
       - name: Validate installation
         run: |
