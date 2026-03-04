@@ -205,7 +205,8 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
     simulator.flushGateQueue();
 
     auto execResult =
-        simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots));
+        simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots),
+                         /*includeSequentialData=*/false);
 
     results.push_back(
         cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});

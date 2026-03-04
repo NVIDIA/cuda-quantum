@@ -647,7 +647,8 @@ public:
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     ScopedTraceWithContext(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
@@ -698,9 +699,6 @@ public:
       extraWorkspace = nullptr;
     }
 
-    std::vector<std::string> sequentialData;
-    sequentialData.reserve(shots);
-
     cudaq::ExecutionResult counts;
 
     // We've sampled, convert the results to our ExecutionResult counts
@@ -709,8 +707,10 @@ public:
                            .to_string()
                            .erase(0, 64 - measuredBits.size());
       std::reverse(bitstring.begin(), bitstring.end());
-      counts.appendResult(bitstring, 1);
-      sequentialData.push_back(std::move(bitstring));
+      if (includeSequentialData)
+        counts.appendResult(bitstring, 1);
+      else
+        counts.counts[std::move(bitstring)]++;
     }
 
     // Compute the expectation value from the counts
