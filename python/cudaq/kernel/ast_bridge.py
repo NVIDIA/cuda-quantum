@@ -194,7 +194,7 @@ class PyScopedSymbolTable(object):
         """
         Adds or updates the given symbol in the symbol table.
         Automatically adjusts the block association if the given
-        value is a function argument or an allocation at the 
+        value is a function argument or an allocation at the
         beginning of the scope.
         """
         if not self._scope:
@@ -4371,7 +4371,7 @@ class PyASTBridge(ast.NodeVisitor):
             if self.pushPointerValue:
                 self.emitFatalError(
                     "indexing into a qvector does not produce a "
-                    "modifyable value", node)
+                    "modifiable value", node)
 
             if not IntegerType.isinstance(idx.type):
                 self.emitFatalError(
