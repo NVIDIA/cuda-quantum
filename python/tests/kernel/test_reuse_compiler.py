@@ -54,3 +54,70 @@ def test_reuse():
             res = cudaq.sample(simple, 5, shots_count=1)
     res = cudaq.sample(simple, 6, shots_count=1)
     assert (res.count("000000") == 1)
+
+
+def test_reuse_no_arguments():
+    """A no-arg kernel should be reusable in artifact-reuse mode."""
+
+    @cudaq.kernel
+    def no_arg_kernel():
+        qubits = cudaq.qvector(2)
+        x(qubits[0])
+        x(qubits[1])
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        res = cudaq.sample(no_arg_kernel, shots_count=1)
+        assert (res.count("11") == 1)
+        res = cudaq.sample(no_arg_kernel, shots_count=1)
+        assert (res.count("11") == 1)
+
+
+def test_reuse_reset_after_context_exit():
+    """Disabling reuse should clear saved artifacts for a fresh session."""
+
+    @cudaq.kernel
+    def ones(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
+        for qubit in qubits:
+            x(qubit)
+
+    @cudaq.kernel
+    def zeros(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        res = cudaq.sample(ones, 4, shots_count=1)
+        assert (res.count("1111") == 1)
+
+    # A new reuse context should start from an empty saved artifact.
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        res = cudaq.sample(zeros, 4, shots_count=1)
+        assert (res.count("0000") == 1)
+        res = cudaq.sample(zeros, 4, shots_count=1)
+        assert (res.count("0000") == 1)
+
+
+def test_reuse_complex_arguments():
+    """Reuse validation should handle list arguments properly."""
+
+    @cudaq.kernel
+    def apply_complex_angles(angles: list[complex]):
+        qubits = cudaq.qvector(2)
+        rx(angles[0].real, qubits[0])
+        rx(angles[1].real, qubits[1])
+
+    angles = [complex(np.pi, 0.125), complex(np.pi, -0.25)]
+    same_angles_different_value = [complex(np.pi, 0.125), complex(np.pi, -0.25)]
+    different_angles = [complex(np.pi, 0.125), complex(0.0, -0.25)]
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        res = cudaq.sample(apply_complex_angles, angles, shots_count=1)
+        assert (res.count("11") == 1)
+        res = cudaq.sample(apply_complex_angles, angles, shots_count=1)
+        assert (res.count("11") == 1)
+        res = cudaq.sample(apply_complex_angles,
+                           same_angles_different_value,
+                           shots_count=1)
+        assert (res.count("11") == 1)
+        with pytest.raises(RuntimeError):
+            cudaq.sample(apply_complex_angles, different_angles, shots_count=1)
