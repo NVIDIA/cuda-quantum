@@ -8,6 +8,7 @@
 
 #include "QPU.h"
 #include "common/ArgumentConversion.h"
+#include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/JIT.h"
@@ -63,7 +64,10 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  if (resultTy && isEntryPoint) {
+  // If we're persisting the jit cache we need to run GKE to have access
+  // to `.argsCreator` to serialize the arguments.
+  if ((resultTy && isEntryPoint) ||
+      cudaq::compiler_artifact::isPersistingJITEngine()) {
     // If we're expecting a result, then we want to call the .thunk function so
     // that the result is properly marshaled. Add the GKE pass to generate the
     // .thunk. At this point, the kernel should have been specialized so it has
@@ -206,6 +210,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     cudaq::KernelThunkResultType result{nullptr, 0};
+
     auto jit = alreadyBuiltJITCode();
     if (!jit) {
       // 1. Check that this call is sane.
@@ -236,6 +241,14 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
       // 4. Execute the code right here, right now.
       jit = cudaq::createQIRJITEngine(module, "qir:");
+    }
+
+    if (cudaq::compiler_artifact::isPersistingJITEngine()) {
+      auto argsCreatorThunk = [&jit, &name]() {
+        return (void *)jit->lookupRawNameOrFail(name + ".argsCreator");
+      };
+      cudaq::compiler_artifact::checkArtifactReuse(name, rawArgs, jit.value(),
+                                                   argsCreatorThunk);
     }
 
     if (resultTy) {
