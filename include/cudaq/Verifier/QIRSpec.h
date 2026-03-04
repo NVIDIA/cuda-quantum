@@ -10,7 +10,10 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Target/LLVMIR/Export.h"
+
+namespace llvm {
+class Module;
+}
 
 namespace cudaq::verifier {
 

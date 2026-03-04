@@ -307,7 +307,8 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
     }
     if (auto mod = dyn_cast<ModuleOp>(module))
       if (failed(cudaq::verifier::checkQIRLLVMIRDialect(mod, profileName)))
-        return {};
+        throw std::runtime_error(
+            "[createQIRJITEngine] QIR verification failed.\n");
 
     timingScope.stop();
     engine.eraseHandler(handlerId);

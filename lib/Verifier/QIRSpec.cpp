@@ -12,6 +12,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Target/LLVMIR/Export.h"
 
 /**
    \file
@@ -73,13 +74,16 @@ static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
 
 static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
   if (auto *call = llvm::dyn_cast<llvm::CallBase>(&inst)) {
-    auto name = call->getCalledFunction()->getName().str();
+    auto *calledFunc = call->getCalledFunction();
+    if (!calledFunc)
+      return false;
+    std::string name = calledFunc->getName().str();
     std::vector<const char *> outputFunctions{
         cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRIntegerRecordOutput,
         cudaq::opt::QIRDoubleRecordOutput, cudaq::opt::QIRTupleRecordOutput,
         cudaq::opt::QIRArrayRecordOutput};
-    return std::find(outputFunctions.begin(), outputFunctions.end(),
-                     name.c_str()) == outputFunctions.end();
+    return std::find(outputFunctions.begin(), outputFunctions.end(), name) ==
+           outputFunctions.end();
   }
   return false;
 }

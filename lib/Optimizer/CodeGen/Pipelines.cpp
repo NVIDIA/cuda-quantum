@@ -22,10 +22,6 @@ struct TargetCodegenPipelineOptions
       *this, "loops-may-have-break",
       llvm::cl::desc("Enable break statements in loops."),
       llvm::cl::init(true)};
-  PassOptions::Option<bool> appendDeprecatedVerifier{
-      *this, "append-verifier",
-      llvm::cl::desc("Append the QIR verifier pipeline."),
-      llvm::cl::init(false)};
   PassOptions::Option<std::string> target{
       *this, "convert-to", llvm::cl::desc("Conversion target specifier."),
       llvm::cl::init("")};
