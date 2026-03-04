@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include <stdexcept>
 
 //===----------------------------------------------------------------------===//
 //
@@ -92,4 +93,22 @@ static constexpr const char extractDevPtr[] =
 static constexpr const char cleanupArrays[] = "__nvqpp_cleanup_arrays";
 
 static constexpr const char pythonUniqueAttrName[] = "cc.python_uniqued";
+
+/// Get the return type of a kernel FuncOp. Returns a null Type if the kernel
+/// returns void or has more than one result (unsupported).
+inline mlir::Type getReturnType(mlir::func::FuncOp funcOp) {
+  if (!funcOp)
+    return nullptr;
+
+  auto numResults = funcOp.getFunctionType().getNumResults();
+  switch (numResults) {
+  case 0:
+    return nullptr;
+  case 1:
+    return funcOp.getFunctionType().getResult(0);
+  default:
+    return nullptr;
+  }
+}
+
 } // namespace cudaq::runtime

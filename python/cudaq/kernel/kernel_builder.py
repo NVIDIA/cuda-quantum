@@ -1735,10 +1735,9 @@ class PyKernel(object):
             else:
                 processedArgs.append(arg)
 
-        retTy = NoneType.get(self.module.context)
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
-        cudaq_runtime.marshal_and_launch_module(self.name, specialized, retTy,
+        cudaq_runtime.marshal_and_launch_module(self.name, specialized,
                                                 *processedArgs)
 
     def __getattr__(self, attr_name):
