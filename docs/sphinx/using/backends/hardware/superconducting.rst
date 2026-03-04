@@ -564,7 +564,7 @@ Supported parameters:
   ``TII_API_TOKEN`` environment variable.
 - ``device``: Quantum device on which the job is executed (required).
 - ``project``: User project associated with the job (required).
-- ``verbatim``: Currently unused; should be set to ``false``.
+- ``verbatim``: When set to ``true`` the circuit isdispatched without transpilation. Defaults to ``false``.
 
 Submitting jobs
 ```````````````
