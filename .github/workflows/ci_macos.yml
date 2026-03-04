@@ -382,7 +382,8 @@ jobs:
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          sudo -u cudaqtest -H pip install --user wheel/*.whl
+          sudo -u cudaqtest -H python3 -m venv /Users/cudaqtest/venv
+          sudo -u cudaqtest -H /Users/cudaqtest/venv/bin/pip install wheel/*.whl
 
       - name: Validate installation
         run: |
@@ -391,6 +392,7 @@ jobs:
           sudo cp -R scripts docs "$workdir/"
           sudo chown -R cudaqtest "$workdir"
           sudo -u cudaqtest bash -lc "
+            source /Users/cudaqtest/venv/bin/activate
             source ${install_path}/set_env.sh
             cd ${workdir}
             bash scripts/validate_installation.sh
