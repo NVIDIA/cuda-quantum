@@ -142,8 +142,8 @@ arrays to bring a practical quantum advantage to its customers and address real-
 The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
 portal.
 
-In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
-and an active project. Please see our `cloud documentation <https://docs.pasqal.cloud/cloud/>`__ for more details if needed.
+In order to access Pasqal's devices you to sign up for an account on
+`Pasqal's cloud platform <https://portal.pasqal.cloud>`__.
 
 Although a different SDK, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
 resource for getting started with analog neutral atom quantum computing.
@@ -183,8 +183,8 @@ Alternatively, users can set the following environment variables directly.
 Pasqal via QRMI
 ```````````````
 
-CUDA-Q also provides a ``pasqal`` target for routing Pasqal
-jobs through the vendor agnostic Quantum Resource Management Interface (QRMI).
+CUDA-Q's ``pasqal`` target for routing Pasqal jobs through the vendor agnostic
+Quantum Resource Management Interface (QRMI), by specifying ``machine`` as ``qrmi``.
 This target enables integration with resource managers like Slurm for scheduling.
 Select the Pasqal backend with the ``--qpu`` option in ``sbatch`` and let QRMI
 handle submission.
