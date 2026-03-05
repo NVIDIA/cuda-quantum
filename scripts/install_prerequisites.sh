@@ -447,7 +447,7 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
 fi
 
 # [QRMI] Needed for the Pasqal QRMI connector
-if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]; then
+if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ] && [ "$(uname)" = "Linux" ]; then
   qrmi_header="$QRMI_INSTALL_PREFIX/include/qrmi.h"
   qrmi_library="$QRMI_INSTALL_PREFIX/lib64/libqrmi.so"
   if [ ! -f "$qrmi_header" ] || [ ! -f "$qrmi_library" ]; then
