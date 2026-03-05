@@ -17,7 +17,7 @@ skipIfBraketNotInstalled = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def reset_target_run_and_clear_registries():
+def reset_run_clear():
     cudaq.reset_target()
     yield
     cudaq.__clearKernelRegistries()
