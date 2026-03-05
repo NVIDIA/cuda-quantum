@@ -33,14 +33,35 @@ using namespace cudaq::realtime;
 // (prepare_receive_send, forward_bf, send_bf, receive, repost_receive).
 //==============================================================================
 
+/// Spin-poll the CQE owner bit with periodic shutdown_flag checks.  Inlines
+/// the DOCA CQ state update (fence + consumer-index advance) to avoid the
+/// double CQE read that calling poll_cq_at would cause.  Returns UINT32_MAX
+/// on shutdown; otherwise returns the stride from the CQE immediate field.
 __device__ static inline std::uint32_t
-unified_receive(struct doca_gpu_dev_verbs_cq *cq_rq, std::uint8_t *cqe,
-                std::uint32_t cqe_mask,
-                doca_gpu_dev_verbs_ticket_t ticket) {
-  doca_gpu_dev_verbs_poll_cq_at<DOCA_GPUNETIO_VERBS_RESOURCE_SHARING_MODE_GPU,
-                                DOCA_GPUNETIO_VERBS_QP_RQ>(cq_rq, ticket);
+unified_poll_receive(struct doca_gpu_dev_verbs_cq *cq_rq, std::uint8_t *cqe,
+                     std::uint32_t cqe_mask,
+                     doca_gpu_dev_verbs_ticket_t ticket,
+                     volatile int *shutdown_flag) {
   auto *cqe64 = reinterpret_cast<struct mlx5_cqe64 *>(
       cqe + ((ticket & cqe_mask) * DOCA_GPUNETIO_VERBS_CQE_SIZE));
+  std::uint32_t cqe_num = cqe_mask + 1;
+  int spin = 0;
+  std::uint8_t opown;
+  do {
+    opown = doca_gpu_dev_verbs_load_relaxed_sys_global(
+        reinterpret_cast<uint8_t *>(&cqe64->op_own));
+    if (!((opown & MLX5_CQE_OWNER_MASK) ^ !!(ticket & cqe_num)))
+      break;
+    if (++spin >= 1024) {
+      spin = 0;
+      if (*shutdown_flag)
+        return UINT32_MAX;
+    }
+  } while (true);
+  doca_gpu_dev_verbs_fence_acquire<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_SYS>();
+  doca_gpu_dev_verbs_atomic_max<std::uint64_t,
+                                DOCA_GPUNETIO_VERBS_RESOURCE_SHARING_MODE_GPU>(
+      &cq_rq->cqe_ci, ticket + 1);
   return doca_gpu_dev_verbs_bswap32(cqe64->imm_inval_pkey) & 0xFFF;
 }
 
@@ -127,9 +148,11 @@ __global__ void unified_dispatch_kernel_bf(
   std::uint64_t sq_wqe_idx = 0;
   std::uint64_t packet_count = 0;
 
-  while (!(*shutdown_flag)) {
+  while (true) {
     std::uint32_t stride =
-        unified_receive(cq_rq, cqe, cqe_mask, cq_ticket);
+        unified_poll_receive(cq_rq, cqe, cqe_mask, cq_ticket, shutdown_flag);
+    if (stride == UINT32_MAX)
+      break;
     if (stride >= ring_buf_stride_num) {
       sq_wqe_idx++;
       unified_repost_receive(qp, sq_wqe_idx);

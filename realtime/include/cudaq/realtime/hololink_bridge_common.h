@@ -234,12 +234,13 @@ inline int bridge_run(BridgeConfig &config) {
 
   hololink_transceiver_t transceiver = hololink_create_transceiver(
       config.device.c_str(), 1, // ib_port
-      config.gpu_id,            // DOCA GPU device ID
+      config.remote_qp,         // remote QP number (FPGA default: 2)
+      config.gpu_id,             // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
-      "0.0.0.0",                // deferred connection
-      use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
-      use_forward_ring ? 0 : 1, // rx_only
-      use_forward_ring ? 0 : 1  // tx_only
+      config.peer_ip.c_str(),    // immediate connection
+      use_forward_ring ? 1 : 0,  // forward (symmetric ring layout)
+      use_forward_ring ? 0 : 1,  // rx_only
+      use_forward_ring ? 0 : 1   // tx_only
   );
 
   if (!transceiver) {
@@ -247,30 +248,19 @@ inline int bridge_run(BridgeConfig &config) {
     return 1;
   }
 
+  std::cout << "  Connecting to remote QP 0x" << std::hex << config.remote_qp
+            << std::dec << " at " << config.peer_ip << "..." << std::endl;
+
   if (!hololink_start(transceiver)) {
     std::cerr << "ERROR: Failed to start Hololink transceiver" << std::endl;
     hololink_destroy_transceiver(transceiver);
     return 1;
   }
 
-  // Connect QP to remote peer
-  {
-    uint8_t remote_gid[16] = {};
-    remote_gid[10] = 0xff;
-    remote_gid[11] = 0xff;
-    inet_pton(AF_INET, config.peer_ip.c_str(), &remote_gid[12]);
+  // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  BRIDGE_CUDA_CHECK(cudaSetDevice(config.gpu_id));
 
-    std::cout << "  Connecting QP to remote QP 0x" << std::hex
-              << config.remote_qp << std::dec << " at " << config.peer_ip
-              << "..." << std::endl;
-
-    if (!hololink_reconnect_qp(transceiver, remote_gid, config.remote_qp)) {
-      std::cerr << "ERROR: Failed to connect QP to remote peer" << std::endl;
-      hololink_destroy_transceiver(transceiver);
-      return 1;
-    }
-    std::cout << "  QP connected to remote peer" << std::endl;
-  }
+  std::cout << "  QP connected to remote peer" << std::endl;
 
   uint32_t our_qp = hololink_get_qp_number(transceiver);
   uint32_t our_rkey = hololink_get_rkey(transceiver);
@@ -300,10 +290,9 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::cout << "\n[3/5] Forcing CUDA module loading..." << std::endl;
 
-  if (!hololink_query_kernel_occupancy()) {
-    std::cerr << "ERROR: Hololink kernel occupancy query failed" << std::endl;
-    return 1;
-  }
+  // Hololink kernels are already warmed up by start() (which does warmup
+  // launches for prepare_receive_send, forward, rx_only, tx_only).
+  // The dispatch kernel occupancy query below handles our own kernels.
 
   // Dispatch kernel resources (unused in forward mode)
   volatile int *shutdown_flag = nullptr;

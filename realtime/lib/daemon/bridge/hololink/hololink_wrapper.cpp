@@ -28,6 +28,8 @@
 
 #include <iostream>
 
+extern "C" cudaError_t GpuRoceTransceiverQueryOccupancy(int *, int *, int *);
+
 using namespace hololink::operators;
 
 //==============================================================================
@@ -43,15 +45,16 @@ struct HololinkTransceiverImpl {
 //==============================================================================
 
 hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
+hololink_create_transceiver(const char *device_name, int ib_port,
+                            unsigned tx_ibv_qp, int gpu_id,
                             size_t frame_size, size_t page_size,
                             unsigned num_pages, const char *peer_ip,
                             int forward, int rx_only, int tx_only) {
   try {
     auto *impl = new HololinkTransceiverImpl();
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(
-        device_name, static_cast<unsigned>(ib_port), gpu_id, frame_size,
-        page_size, num_pages, peer_ip, forward != 0, rx_only != 0,
+        device_name, static_cast<unsigned>(ib_port), tx_ibv_qp, gpu_id,
+        frame_size, page_size, num_pages, peer_ip, forward != 0, rx_only != 0,
         tx_only != 0);
     return reinterpret_cast<hololink_transceiver_t>(impl);
   } catch (const std::exception &e) {
@@ -125,30 +128,9 @@ uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle) {
 void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
-    return impl->transceiver->get_gpu_dev_qp();
+    return impl->transceiver->get_doca_gpu_dev_qp(0);
   }
   return nullptr;
-}
-
-int hololink_get_gid(hololink_transceiver_t handle, uint8_t *gid_out) {
-  if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
-    return impl->transceiver->get_gid(gid_out);
-  }
-  return 0;
-}
-
-//==============================================================================
-// Deferred QP connection
-//==============================================================================
-
-int hololink_reconnect_qp(hololink_transceiver_t handle,
-                          const uint8_t *remote_gid, uint32_t remote_qpn) {
-  if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
-    return impl->transceiver->reconnect_qp(remote_gid, remote_qpn) ? 1 : 0;
-  }
-  return 0;
 }
 
 //==============================================================================

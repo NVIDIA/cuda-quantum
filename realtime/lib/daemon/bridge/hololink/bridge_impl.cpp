@@ -53,12 +53,13 @@ struct HololinkBridgeContext {
 
     transceiver = hololink_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
-        config.gpu_id,            // GPU device ID
+        config.remote_qp,         // remote QP number
+        config.gpu_id,             // GPU device ID
         config.frame_size, config.page_size, config.num_pages,
-        "0.0.0.0",                // deferred connection
-        use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
-        use_forward_ring ? 0 : 1, // rx_only
-        use_forward_ring ? 0 : 1  // tx_only
+        config.peer_ip.c_str(),    // immediate connection
+        use_forward_ring ? 1 : 0,  // forward (symmetric ring layout)
+        use_forward_ring ? 0 : 1,  // rx_only
+        use_forward_ring ? 0 : 1   // tx_only
     );
   }
 };
@@ -100,6 +101,9 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
     delete ctx;
     return CUDAQ_ERR_INTERNAL;
   }
+
+  // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  HANDLE_CUDA_ERROR(cudaSetDevice(config.gpu_id));
 
   return CUDAQ_OK;
 }
@@ -184,28 +188,10 @@ hololink_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
   }
 
   auto &transceiver = ctx->transceiver;
-  // Connect QP to remote peer
-  {
-    uint8_t remote_gid[16] = {};
-    remote_gid[10] = 0xff;
-    remote_gid[11] = 0xff;
-    inet_pton(AF_INET, ctx->config.peer_ip.c_str(), &remote_gid[12]);
-
-    if (!hololink_reconnect_qp(transceiver, remote_gid,
-                               ctx->config.remote_qp)) {
-      std::cerr << "ERROR: Failed to connect QP to remote peer" << std::endl;
-      return CUDAQ_ERR_INTERNAL;
-    }
-  }
 
   uint32_t our_qp = hololink_get_qp_number(transceiver);
   uint32_t our_rkey = hololink_get_rkey(transceiver);
   uint64_t our_buffer = hololink_get_buffer_addr(transceiver);
-
-  if (!hololink_query_kernel_occupancy()) {
-    std::cerr << "ERROR: Hololink kernel occupancy query failed" << std::endl;
-    return CUDAQ_ERR_INTERNAL;
-  }
 
   // FIXME: Figure out a better way to share this info with the caller (e.g. via
   // output params or context struct) rather than printing to stdout. Print QP
