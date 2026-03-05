@@ -1,0 +1,12 @@
+source-sha: fe0b02f757993078abf8d7e99487c706cd7abeda
+cuda-quantum-assets-image: ghcr.io/nvidia/cuda-quantum-assets@sha256:e1a2293f3df7d76eafbecb16a33e0932d13cf579643eb98d503d764fa1be40fc
+platform-base-image: amd64/almalinux:8
+openmpi-build-cache: type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-ci-assets-openmpi-cu12-6-llvm-amd64:main
+platform: linux/amd64
+cuda-version: 12.6
+nvidia-mgpu-repo: cuda-quantum/cuquantum-mgpu.git
+nvidia-mgpu-commit: 8cf213796309fe1f8ec4633c5a252a9e9230ddfa
+
+asset-name: installer_amd64_cu12_publishing.txt
+release-id: 22736532605_installer_amd64_cu12_publishing
+artifacts-url: https://api.github.com/repos/NVIDIA/cuda-quantum/actions/runs/22733052035/artifacts
