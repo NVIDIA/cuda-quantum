@@ -2092,7 +2092,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![88601a0a889447a8b13d498fa454e3cf](../../_images/grovers-2D-plane.png)
+![f12d3dcc7278430c8ec324191cfeba54](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2307,7 +2307,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![6c4375dfb4414db6a7b5f6d64378dd6a](../../_images/grovers-steps1-3.png)
+![4644b91f90af48c4b4180954a4388d19](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2319,7 +2319,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![51cf14da2fe04a988512332ae3d88a92](../../_images/grovers-full-rotation.png)
+![67822282e46b4e3b8009f970ac5ac786](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's
