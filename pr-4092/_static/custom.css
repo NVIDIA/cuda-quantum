@@ -1,0 +1,158 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+/*******************************************************************************
+ * File: custom.css                                                            *
+ * Created Date: 16 Feb 2023                                                   *
+ * Last Modified: Wed Apr 02 2025                                              *
+ ******************************************************************************/
+
+
+.notebook-entry {
+    display: grid;
+    grid-template-areas:
+        "title image"
+        "content image";
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto 1fr;
+    gap: 20px;
+    margin-bottom: 50px;
+    padding: 20px;
+    border: 1px solid #eee;
+    background: white;
+}
+
+.notebook-title {
+    grid-area: title;
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    text-decoration: none;
+    margin: 0;
+    padding: 0 0 10px 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+}
+
+.notebook-title:hover {
+    color: #76b900;
+    text-decoration: underline;
+}
+
+.notebook-content {
+    grid-area: content;
+    padding: 0;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.notebook-image {
+    grid-area: image;
+    width: 300px;
+    height: 200px;
+    object-fit: cover;
+    justify-self: end;
+    align-self: start;
+    margin: 0;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.toctree-wrapper {
+    grid-area: link;
+    margin: 10px 0 0 0;
+    padding: 0;
+}
+
+.tag-button {
+    margin: 2px;
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    background: #f8f8f8;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.tag-button.active {
+    background-color: #76b900;
+    color: white;
+    border-color: #599400;
+    box-shadow: 0 0 5px rgba(118, 185, 0, 0.3);
+}
+
+.tag-button:hover {
+    background-color: #ecffad;
+}
+
+.filter-groups {
+    margin-bottom: 40px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.tag-filters {
+    margin-bottom: 25px;
+}
+
+.backend-group {
+    display: inline-block;
+    position: relative;
+    margin-right: 10px;
+}
+
+.backend-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 100;
+    min-width: 200px;
+}
+
+.backend-group:hover .backend-options {
+    display: block;
+}
+
+.backend-toggle {
+    position: relative;
+    padding-right: 24px;
+}
+
+.backend-toggle::after {
+    content: '▼';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+}
+
+.sub-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin: 4px 0;
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+}
+
+.sub-option:hover {
+    background-color: #f5f5f5;
+}
+
+.sub-option.active {
+    background-color: #76b900;
+    color: white;
+}
