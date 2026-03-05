@@ -89,11 +89,12 @@ jobs:
           # Unlike Linux CI which uses Docker layer caching (automatically invalidates
           # when the copied files change), macOS uses ORAS artifact caching with no
           # content-based invalidation. This hash ensures cache is rebuilt when
-          # build scripts change. Update this list if new files affect the build.
+          # build scripts or the devdeps workflow itself change (e.g. LLVM_PROJECTS).
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
+            .github/workflows/dev_environment_macos.yml \
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
@@ -175,9 +176,7 @@ jobs:
           
           # Build prerequisites with Python bindings enabled so the cmake
           # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
-          # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
-          # incremental rebuild scoped to the ~50 binding targets instead
-          # of the full 6000+ LLVM target set.
+          # wheel jobs only change Python3_EXECUTABLE
           source scripts/set_env_defaults.sh
           export LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings'
           
