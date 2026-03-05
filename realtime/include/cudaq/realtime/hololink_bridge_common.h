@@ -44,10 +44,17 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
+
+// Forward declaration of the Hololink unified dispatch launch function
+// (defined in libcudaq-realtime-bridge-hololink.so)
+extern "C" void hololink_launch_unified_dispatch(
+    void *transport_ctx, cudaq_function_entry_t *function_table,
+    size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
+    cudaStream_t stream);
 
 namespace cudaq::realtime {
 
@@ -302,7 +309,7 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatcher_t *dispatcher = nullptr;
 
   // Transport context for unified mode (must outlive the dispatcher)
-  doca_transport_ctx unified_ctx{};
+  hololink_doca_transport_ctx unified_ctx{};
 
   if (!config.forward) {
     if (!config.unified) {
@@ -385,7 +392,7 @@ inline int bridge_run(BridgeConfig &config) {
       unified_ctx.frame_size = config.frame_size;
 
       if (cudaq_dispatcher_set_unified_launch(
-              dispatcher, &cudaq_launch_unified_dispatch_kernel,
+              dispatcher, &hololink_launch_unified_dispatch,
               &unified_ctx) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set unified launch function"
                   << std::endl;

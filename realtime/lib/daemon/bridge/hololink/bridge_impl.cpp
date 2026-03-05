@@ -157,15 +157,20 @@ static cudaq_status_t hololink_bridge_get_transport_context(
     ringbuffer->rx_stride_sz = ctx->config.page_size;
     ringbuffer->tx_stride_sz = ctx->config.page_size;
   } else if (context_type == UNIFIED) {
-    doca_transport_ctx *doca_ctx =
-        reinterpret_cast<doca_transport_ctx *>(out_context);
-    doca_ctx->gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
-    doca_ctx->rx_ring_data = reinterpret_cast<uint8_t *>(
+    cudaq_unified_dispatch_ctx_t *dispatch_ctx =
+        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+
+    static hololink_doca_transport_ctx doca_ctx{};
+    doca_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+    doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
         hololink_get_rx_ring_data_addr(transceiver));
-    doca_ctx->rx_ring_stride_sz = hololink_get_page_size(transceiver);
-    doca_ctx->rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
-    doca_ctx->rx_ring_stride_num = hololink_get_num_pages(transceiver);
-    doca_ctx->frame_size = ctx->config.frame_size;
+    doca_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
+    doca_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+    doca_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+    doca_ctx.frame_size = ctx->config.frame_size;
+
+    dispatch_ctx->launch_fn = &hololink_launch_unified_dispatch;
+    dispatch_ctx->transport_ctx = &doca_ctx;
   } else {
     std::cerr << "ERROR: Invalid transport context type" << std::endl;
     return CUDAQ_ERR_INVALID_ARG;

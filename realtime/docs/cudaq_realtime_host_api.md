@@ -174,10 +174,12 @@ The dispatcher host API remains transport-agnostic.  Unified mode introduces:
     transport context to the dispatcher
 
 The transport-specific details (`DOCA` `QP` handles, memory keys, ring buffer
-addresses) are packed into an opaque struct (`doca_transport_ctx` for the
+addresses) are packed into an opaque struct (`hololink_doca_transport_ctx` for the
 Hololink/`DOCA` implementation) and passed through the `void* transport_ctx`
 pointer.  A different transport could define its own context struct and launch
-function, and the dispatcher would manage it identically.
+function, and the dispatcher would manage it identically.  The bridge returns a
+`cudaq_unified_dispatch_ctx_t` bundle containing the launch function pointer
+and the opaque transport context, keeping the dispatcher API fully transport-agnostic.
 
 ### When to Use Which Mode
 
@@ -230,7 +232,7 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 
 ```cpp
 // Pack DOCA transport handles
-doca_transport_ctx ctx;
+hololink_doca_transport_ctx ctx;
 ctx.gpu_dev_qp     = hololink_get_gpu_dev_qp(transceiver);
 ctx.rx_ring_data   = hololink_get_rx_ring_data_addr(transceiver);
 ctx.rx_ring_stride_sz  = hololink_get_page_size(transceiver);
@@ -246,7 +248,7 @@ config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
 cudaq_dispatcher_set_unified_launch(
-    dispatcher, &cudaq_launch_unified_dispatch_kernel, &ctx);
+    dispatcher, &hololink_launch_unified_dispatch, &ctx);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);

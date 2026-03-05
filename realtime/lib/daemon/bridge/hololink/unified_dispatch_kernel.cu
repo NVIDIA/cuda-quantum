@@ -7,30 +7,26 @@
  ******************************************************************************/
 
 /// @file unified_dispatch_kernel.cu
-/// @brief Single-kernel (unified) dispatch: RDMA RX + RPC dispatch + RDMA TX
-/// in one GPU kernel, using DOCA GPUNetIO verbs for lowest latency.
+/// @brief Hololink/DOCA unified dispatch: RDMA RX + RPC dispatch + RDMA TX
+/// in one GPU kernel, using Hololink's gpu_roce_transceiver.cuh device
+/// functions for WQE preparation and BlueFlame TX.
 ///
-/// This is a transport-specific implementation for DOCA/Hololink.  The kernel
-/// is launched through the transport-agnostic dispatcher API via
-/// cudaq_unified_launch_fn_t + void* transport_ctx.
+/// Compiled into libcudaq-realtime-bridge-hololink.so (transport-specific).
+/// The core libcudaq-realtime-dispatch.a no longer contains this file.
 
-#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
 #include <cuda_runtime.h>
 #include <cstdint>
-#include <doca_gpunetio_dev_verbs_twosided.cuh>
 
-#define DSEG_SIZE_2 12
-#define DSEG_SIZE_3 28
-#define MAX_SEND_INLINE_WQE 44
+#include "gpu_roce_transceiver.cuh"
 
 using namespace cudaq::realtime;
 
 //==============================================================================
-// Device helpers -- thin wrappers around DOCA verbs calls.
-// These match the patterns used by Hololink's gpu_roce_transceiver_kernel.cu
-// (prepare_receive_send, forward_bf, send_bf, receive, repost_receive).
+// Device helpers
 //==============================================================================
 
 /// Spin-poll the CQE owner bit with periodic shutdown_flag checks.  Inlines
@@ -65,15 +61,6 @@ unified_poll_receive(struct doca_gpu_dev_verbs_cq *cq_rq, std::uint8_t *cqe,
   return doca_gpu_dev_verbs_bswap32(cqe64->imm_inval_pkey) & 0xFFF;
 }
 
-__device__ static inline void
-unified_repost_receive(struct doca_gpu_dev_verbs_qp *qp,
-                       std::uint64_t rwqe_idx) {
-  doca_gpu_dev_verbs_submit<DOCA_GPUNETIO_VERBS_RESOURCE_SHARING_MODE_CTA,
-                            DOCA_GPUNETIO_VERBS_SYNC_SCOPE_CTA,
-                            DOCA_GPUNETIO_VERBS_NIC_HANDLER_GPU_SM_DB,
-                            DOCA_GPUNETIO_VERBS_QP_RQ>(qp, rwqe_idx + 1);
-}
-
 __device__ static inline const cudaq_function_entry_t *
 unified_lookup_entry(std::uint32_t function_id,
                      cudaq_function_entry_t *entries, std::size_t count) {
@@ -87,13 +74,11 @@ unified_lookup_entry(std::uint32_t function_id,
 //==============================================================================
 // Unified dispatch kernel -- single thread, single block.
 //
-// The WQE format (inline vs pointer-based) must match what Hololink's
-// prepare_receive_send kernel wrote into the hardware WQE buffer.  For
-// frame_size <= MAX_SEND_INLINE_WQE (44), inline send is used and the
-// response data is copied into the WQE; otherwise, pointer-based send.
+// Uses Hololink's prepare_send_shared / send_bf / repost_receive from
+// gpu_roce_transceiver.cuh instead of duplicating WQE manipulation code.
 //==============================================================================
 
-__global__ void unified_dispatch_kernel_bf(
+__global__ void hololink_unified_dispatch_kernel(
     struct doca_gpu_dev_verbs_qp *qp, volatile int *shutdown_flag,
     std::uint8_t *ring_buf, std::size_t ring_buf_stride_sz,
     std::uint32_t ring_buf_mkey, std::uint32_t ring_buf_stride_num,
@@ -109,40 +94,9 @@ __global__ void unified_dispatch_kernel_bf(
 
   const bool use_inline = (frame_size <= MAX_SEND_INLINE_WQE);
 
-  // Prepare WQE in shared memory -- must match the format that
-  // prepare_receive_send wrote into the hardware WQE buffer.
+  // Prepare WQE template in shared memory using Hololink's helper
   __shared__ struct doca_gpu_dev_verbs_wqe wqe_sh;
-  {
-    struct doca_gpu_dev_verbs_wqe_ctrl_seg cseg;
-    cseg.opmod_idx_opcode = doca_gpu_dev_verbs_bswap32(
-        (0u << DOCA_GPUNETIO_VERBS_WQE_IDX_SHIFT) |
-        DOCA_GPUNETIO_MLX5_OPCODE_SEND);
-    cseg.fm_ce_se = DOCA_GPUNETIO_MLX5_WQE_CTRL_CQ_ERROR_UPDATE;
-
-    if (!use_inline) {
-      cseg.qpn_ds =
-          doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 2);
-      wqe_sh.dseg1.byte_count =
-          doca_gpu_dev_verbs_bswap32(static_cast<std::uint32_t>(frame_size));
-      wqe_sh.dseg1.lkey = ring_buf_mkey;
-    } else {
-      std::uint32_t ds;
-      if (frame_size <= DSEG_SIZE_2)
-        ds = 2;
-      else if (frame_size <= DSEG_SIZE_3)
-        ds = 3;
-      else
-        ds = 4;
-      cseg.qpn_ds =
-          doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | ds);
-      wqe_sh.dseg1.byte_count = doca_gpu_dev_verbs_bswap32(
-          static_cast<std::uint32_t>(frame_size) | MLX5_INLINE_SEG);
-    }
-
-    doca_gpu_dev_verbs_store_wqe_seg(
-        reinterpret_cast<std::uint64_t *>(&wqe_sh.dseg0),
-        reinterpret_cast<std::uint64_t *>(&cseg));
-  }
+  prepare_send_shared(qp, &wqe_sh, frame_size, ring_buf_mkey);
 
   doca_gpu_dev_verbs_ticket_t cq_ticket = 0;
   std::uint64_t sq_wqe_idx = 0;
@@ -155,7 +109,7 @@ __global__ void unified_dispatch_kernel_bf(
       break;
     if (stride >= ring_buf_stride_num) {
       sq_wqe_idx++;
-      unified_repost_receive(qp, sq_wqe_idx);
+      repost_receive(qp, sq_wqe_idx);
       cq_ticket = sq_wqe_idx;
       continue;
     }
@@ -198,54 +152,20 @@ __global__ void unified_dispatch_kernel_bf(
       response->ptp_timestamp = ptp_timestamp;
     }
 
-    // --- Send response ---
-    auto wqe_idx16 = static_cast<std::uint16_t>(sq_wqe_idx);
-    wqe_sh.snd_cseg.opmod_idx_opcode = doca_gpu_dev_verbs_bswap32(
-        (static_cast<std::uint32_t>(wqe_idx16)
-         << DOCA_GPUNETIO_VERBS_WQE_IDX_SHIFT) |
-        DOCA_GPUNETIO_MLX5_OPCODE_SEND);
-
+    // Send response via Hololink's BlueFlame helper
+    auto buffer_addr =
+        static_cast<std::uint64_t>(ring_buf_stride_sz) * stride;
     if (!use_inline) {
-      wqe_sh.dseg1.addr = doca_gpu_dev_verbs_bswap64(
-          static_cast<std::uint64_t>(ring_buf_stride_sz) * stride);
+      send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(
+          qp, &wqe_sh, sq_wqe_idx, buffer_addr);
     } else {
-      // Copy response data inline into the WQE, matching the layout used
-      // by Hololink's send_bf<GPU_ROCE_MAX_FRAME_SIZE_*> templates.
-      auto *src = reinterpret_cast<std::uint32_t *>(slot);
-      if (frame_size >= 4)
-        wqe_sh.dseg1.lkey = src[0];
-      if (frame_size >= 8)
-        reinterpret_cast<std::uint32_t *>(&wqe_sh.dseg1)[2] = src[1];
-      if (frame_size >= 12)
-        reinterpret_cast<std::uint32_t *>(&wqe_sh.dseg1)[3] = src[2];
-      if (frame_size >= 16)
-        wqe_sh.dseg2.byte_count = src[3];
-      if (frame_size >= 20)
-        wqe_sh.dseg2.lkey = src[4];
-      if (frame_size >= 24)
-        reinterpret_cast<std::uint32_t *>(&wqe_sh.dseg2)[2] = src[5];
-      if (frame_size >= 28)
-        reinterpret_cast<std::uint32_t *>(&wqe_sh.dseg2)[3] = src[6];
-      if (frame_size >= 32)
-        wqe_sh.dseg3.byte_count = src[7];
-      if (frame_size >= 36)
-        wqe_sh.dseg3.lkey = src[8];
-      if (frame_size >= 40)
-        reinterpret_cast<std::uint32_t *>(&wqe_sh.dseg3)[2] = src[9];
-      if (frame_size >= 44)
-        reinterpret_cast<std::uint32_t *>(&wqe_sh.dseg3)[3] = src[10];
+      send_bf<GPU_ROCE_MAX_FRAME_SIZE_44B>(
+          qp, &wqe_sh, sq_wqe_idx,
+          reinterpret_cast<std::uint64_t>(slot));
     }
 
-    doca_gpu_dev_verbs_mark_wqes_ready<
-        DOCA_GPUNETIO_VERBS_RESOURCE_SHARING_MODE_CTA>(qp, sq_wqe_idx,
-                                                        sq_wqe_idx);
-
-    doca_gpu_dev_verbs_submit_bf<DOCA_GPUNETIO_VERBS_RESOURCE_SHARING_MODE_CTA,
-                                 DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>(
-        qp, sq_wqe_idx + 1, &wqe_sh);
-
     sq_wqe_idx++;
-    unified_repost_receive(qp, sq_wqe_idx);
+    repost_receive(qp, sq_wqe_idx);
     cq_ticket = sq_wqe_idx;
     packet_count++;
   }
@@ -257,13 +177,13 @@ __global__ void unified_dispatch_kernel_bf(
 // Host launch wrapper -- matches cudaq_unified_launch_fn_t signature.
 //==============================================================================
 
-extern "C" void cudaq_launch_unified_dispatch_kernel(
+extern "C" void hololink_launch_unified_dispatch(
     void *transport_ctx, cudaq_function_entry_t *function_table,
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream) {
-  auto *ctx = static_cast<doca_transport_ctx *>(transport_ctx);
+  auto *ctx = static_cast<hololink_doca_transport_ctx *>(transport_ctx);
 
-  unified_dispatch_kernel_bf<<<1, 1, 0, stream>>>(
+  hololink_unified_dispatch_kernel<<<1, 1, 0, stream>>>(
       static_cast<struct doca_gpu_dev_verbs_qp *>(ctx->gpu_dev_qp),
       shutdown_flag, ctx->rx_ring_data, ctx->rx_ring_stride_sz,
       ctx->rx_ring_mkey, ctx->rx_ring_stride_num, ctx->frame_size,

@@ -217,6 +217,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     PRIVATE
       rpc_increment_ft
       cudaq-realtime-dispatch
+      cudaq-realtime-bridge-hololink
       hololink_wrapper_generic
       ${GPU_ROCE_TRANSCEIVER_LIB}
       ${ROCE_RECEIVER_LIB}
