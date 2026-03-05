@@ -242,6 +242,27 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#tii">TII</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/sample_vs_run.html">   When to Use sample vs. run</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#usage-guidelines">Usage Guidelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#what-is-supported-with-sample">What Is Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#what-is-not-supported-with-sample">What Is Not Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#how-to-migrate">How to Migrate</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel">Step 1: Add a return type to the kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#step-2-replace-sample-with-run">Step 2: Replace <code class="docutils literal notranslate"><span class="pre">sample</span></code> with <code class="docutils literal notranslate"><span class="pre">run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#step-3-update-result-processing">Step 3: Update result processing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#migration-examples">Migration Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#example-1-simple-conditional-logic">Example 1: Simple conditional logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#example-2-returning-multiple-measurement-results">Example 2: Returning multiple measurement results</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/sample_vs_run.html#example-3-quantum-teleportation">Example 3: Quantum teleportation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/sample_vs_run.html#additional-notes">Additional Notes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/dynamics_examples.html">   Dynamics Examples</a><ul>
@@ -644,6 +665,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#oqc">OQC</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -1042,9 +1064,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="0e2609ed0961423f81be2dbcd8319fbe" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="6f82538b872a46439bb0803ebbff4e1b" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="7d3f8b25082a4ad383f7c8ce68543d18" src="../../_images/gatefusion.png" /></p>
+<p><img alt="17cef24e0c924a558b50a31bcd03c2c0" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

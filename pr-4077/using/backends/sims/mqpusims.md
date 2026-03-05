@@ -264,6 +264,49 @@ pr-4077
             .internal}
         -   [Scaleway](../../examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../examples/hardware_providers.html#tii){.reference
+            .internal}
+    -   [When to Use sample vs.
+        run](../../examples/sample_vs_run.html){.reference .internal}
+        -   [Introduction](../../examples/sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](../../examples/sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](../../examples/sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](../../examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](../../examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](../../examples/sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](../../examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](../../examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](../../examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](../../examples/sample_vs_run.html#additional-notes){.reference
+            .internal}
     -   [Dynamics
         Examples](../../examples/dynamics_examples.html){.reference
         .internal}
@@ -1040,6 +1083,8 @@ pr-4077
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom QPUs](../hardware/neutralatom.html){.reference
             .internal}
