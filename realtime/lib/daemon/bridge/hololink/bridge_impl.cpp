@@ -14,6 +14,17 @@
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 #include "cudaq/realtime/hololink_bridge_common.h"
 
+#include <arpa/inet.h>
+
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
+
+// Forward declaration of the Hololink-specific unified dispatch launch function
+// (defined in unified_dispatch_kernel.cu, compiled into this same library).
+extern "C" void hololink_launch_unified_dispatch(
+    void *transport_ctx, cudaq_function_entry_t *function_table,
+    size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
+    cudaStream_t stream);
+
 namespace {
 #define HANDLE_CUDA_ERROR(x)                                                   \
   {                                                                            \
@@ -30,6 +41,7 @@ struct HololinkBridgeContext {
   cudaq::realtime::BridgeConfig config;
   hololink_transceiver_t transceiver = nullptr;
   std::unique_ptr<std::thread> hololink_thread;
+  hololink_doca_transport_ctx doca_ctx{}; ///< Populated by get_transport_context(UNIFIED)
   HololinkBridgeContext(const cudaq::realtime::BridgeConfig &cfg)
       : config(cfg) {
     //============================================================================
@@ -153,15 +165,23 @@ static cudaq_status_t hololink_bridge_get_transport_context(
     ringbuffer->rx_stride_sz = ctx->config.page_size;
     ringbuffer->tx_stride_sz = ctx->config.page_size;
   } else if (context_type == UNIFIED) {
-    doca_transport_ctx *doca_ctx =
-        reinterpret_cast<doca_transport_ctx *>(out_context);
-    doca_ctx->gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
-    doca_ctx->rx_ring_data = reinterpret_cast<uint8_t *>(
+    // Populate the private DOCA transport context stored in the bridge context.
+    // The context lifetime is tied to HololinkBridgeContext, which outlives the
+    // dispatcher (caller must not destroy the bridge while the dispatcher runs).
+    ctx->doca_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+    ctx->doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
         hololink_get_rx_ring_data_addr(transceiver));
-    doca_ctx->rx_ring_stride_sz = hololink_get_page_size(transceiver);
-    doca_ctx->rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
-    doca_ctx->rx_ring_stride_num = hololink_get_num_pages(transceiver);
-    doca_ctx->frame_size = ctx->config.frame_size;
+    ctx->doca_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
+    ctx->doca_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+    ctx->doca_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+    ctx->doca_ctx.frame_size = ctx->config.frame_size;
+
+    // Return the abstract bundle: launch function + opaque context pointer.
+    // The caller sees only cudaq_unified_dispatch_ctx_t, no DOCA types.
+    cudaq_unified_dispatch_ctx_t *out =
+        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+    out->launch_fn = &hololink_launch_unified_dispatch;
+    out->transport_ctx = &ctx->doca_ctx;
   } else {
     std::cerr << "ERROR: Invalid transport context type" << std::endl;
     return CUDAQ_ERR_INVALID_ARG;

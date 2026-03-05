@@ -165,19 +165,24 @@ registers before the handler runs.
 
 ### Transport-Agnostic API, Transport-Specific Implementation
 
-The dispatcher host API remains transport-agnostic.  Unified mode introduces:
+The dispatcher host API is fully transport-agnostic.  Unified mode introduces:
 
 - `CUDAQ_KERNEL_UNIFIED` -- a new `cudaq_kernel_type_t` enum value
 - `cudaq_unified_launch_fn_t` -- a launch function type that receives an opaque
     `void* transport_ctx` instead of ring-buffer pointers
+- `cudaq_unified_dispatch_ctx_t` -- a bundled `{launch_fn, transport_ctx}` pair
+    returned by `cudaq_bridge_get_transport_context(UNIFIED)`; the caller never
+    needs to know the concrete transport type
 - `cudaq_dispatcher_set_unified_launch()` -- wires the launch function and
     transport context to the dispatcher
 
 The transport-specific details (`DOCA` `QP` handles, memory keys, ring buffer
-addresses) are packed into an opaque struct (`doca_transport_ctx` for the
-Hololink/`DOCA` implementation) and passed through the `void* transport_ctx`
-pointer.  A different transport could define its own context struct and launch
-function, and the dispatcher would manage it identically.
+addresses) are packed into a struct private to the bridge implementation and
+passed through the `void* transport_ctx` pointer.  The dispatcher library
+(`libcudaq-realtime-dispatch.a`) has no DOCA dependency; only the bridge
+library (`libcudaq-realtime-bridge-hololink.so`) includes and links DOCA.
+A different transport bridge can define its own context struct and launch
+function, and the dispatcher manages it identically.
 
 ### When to Use Which Mode
 
@@ -212,6 +217,13 @@ typedef void (*cudaq_unified_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream);
 
+// Bundled {launch_fn, transport_ctx} returned by get_transport_context(UNIFIED).
+// Keeps all transport-specific types out of the caller.
+typedef struct {
+    cudaq_unified_launch_fn_t launch_fn;
+    void *transport_ctx;
+} cudaq_unified_dispatch_ctx_t;
+
 cudaq_status_t cudaq_dispatcher_set_unified_launch(
     cudaq_dispatcher_t *dispatcher,
     cudaq_unified_launch_fn_t unified_launch_fn,
@@ -226,17 +238,15 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 - `num_slots` and `slot_size` in the configuration may be zero
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
-### Wiring Example (Unified Mode with Hololink)
+### Wiring Example (Unified Mode -- transport-agnostic caller)
+
+The bridge returns an abstract `cudaq_unified_dispatch_ctx_t`; the caller
+does not need to know which transport or kernel is used.
 
 ```cpp
-// Pack DOCA transport handles
-doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = hololink_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = hololink_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = hololink_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(hololink_get_rkey(transceiver));
-ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
-ctx.frame_size     = frame_size;
+// Retrieve the unified dispatch context from the bridge (no DOCA types needed)
+cudaq_unified_dispatch_ctx_t unified_ctx{};
+cudaq_bridge_get_transport_context(bridge_handle, UNIFIED, &unified_ctx);
 
 // Configure dispatcher for unified mode
 cudaq_dispatcher_config_t config{};
@@ -246,11 +256,16 @@ config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
 cudaq_dispatcher_set_unified_launch(
-    dispatcher, &cudaq_launch_unified_dispatch_kernel, &ctx);
+    dispatcher, unified_ctx.launch_fn, unified_ctx.transport_ctx);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
 ```
+
+The bridge implementation (e.g. `libcudaq-realtime-bridge-hololink.so`) is
+responsible for populating `unified_ctx.launch_fn` with its transport-specific
+kernel launcher and `unified_ctx.transport_ctx` with a pointer to its internal
+transport state.
 
 ## What This API Does (In One Paragraph)
 

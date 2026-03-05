@@ -23,6 +23,7 @@ endif()
 
 find_package(Threads REQUIRED)
 find_package(CUDAToolkit REQUIRED)
+enable_language(CUDA)
 
 # --------------------------------------------------------------------------- #
 # Find Hololink core library
@@ -95,6 +96,12 @@ find_library(IBVERBS_LIB NAMES ibverbs)
 
 set(DOCA_PATH "/opt/mellanox/doca")
 
+# DOCA GPU device-side headers (e.g. doca_gpunetio_dev_verbs_twosided.cuh)
+# are separate from the host-side DOCA headers searched above.
+find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_twosided.cuh
+  HINTS "${DOCA_PATH}/include"
+  NO_DEFAULT_PATH)
+
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64|amd64)")
   set(DOCA_LIB_DIR "${DOCA_PATH}/lib/x86_64-linux-gnu")
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(arm64)")
@@ -146,8 +153,17 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   message(STATUS "Building hololink_bridge interface library with the following dependencies:")
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
-  # Library implementing the hololink bridge interface
-  add_library(cudaq-realtime-bridge-hololink SHARED bridge_impl.cpp hololink_wrapper.cpp)
+  # Library implementing the hololink bridge interface.
+  # unified_dispatch_kernel.cu is compiled here (not in the transport-agnostic
+  # dispatcher) because it uses DOCA GPUNetIO verbs directly.
+  add_library(cudaq-realtime-bridge-hololink SHARED
+    bridge_impl.cpp
+    hololink_wrapper.cpp
+    unified_dispatch_kernel.cu)
+
+  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON)
 
   target_include_directories(cudaq-realtime-bridge-hololink
     PRIVATE
@@ -155,7 +171,13 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       ${CUDAQ_REALTIME_INCLUDE_DIR}
       "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
       ${DOCA_INCLUDE_DIR}
+      ${DOCA_GPU_INCLUDE_DIR}
       ${FMT_INCLUDE_DIR})
+
+  # cudadevrt is required for device-side APIs used in unified_dispatch_kernel.cu
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED)
 
   target_link_libraries(cudaq-realtime-bridge-hololink
     PRIVATE
@@ -168,6 +190,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       cudaq-realtime
       CUDA::cudart
       CUDA::cuda_driver
+      ${CUDADEVRT_LIBRARY}
       ${DOCA_VERBS_LIB}
       ${DOCA_GPUNETIO_LIB}
       ${DOCA_COMMON_LIB}
