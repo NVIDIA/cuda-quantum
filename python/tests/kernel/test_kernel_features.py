@@ -2707,6 +2707,29 @@ def test_error_on_non_callable_type():
     assert "object is not callable" in str(e.value)
 
 
+def test_nested_kernel_definition_error():
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel(defer_compilation=False)
+        def kernel():
+
+            @cudaq.kernel
+            def inner_fct():
+                pass
+
+    assert "nested" in repr(e).lower()
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel(defer_compilation=False)
+        def kernel():
+
+            @cudaq.kernel(make_the_decorator_a_call=...)
+            def inner_fct():
+                pass
+
+
 def test_struct_list_int_member():
     """Test that list[int] members in a struct are correctly marshaled.
 
@@ -2798,6 +2821,7 @@ def test_named_reg_in_sample(capfd):
     assert "WARNING" in captured.err
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_trap_fail():
     """Tests that a recoverable run time error correctly clears the simulator"""
 

@@ -17,6 +17,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
+#include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
@@ -206,6 +207,11 @@ int main(int argc, char **argv) {
   //===--------------------------------------------------------------------===//
   // Everything from here down handles the cases where code generation uses LLVM
   // to generate the code.
+
+  // Run the deprecated QIR verifier for grins.
+  if (failed(
+          cudaq::verifier::checkQIRLLVMIRDialect(module.get(), convertValue)))
+    cudaq::emitFatalError(module->getLoc(), "Code is not QIR compliant.");
 
   // Register the translation to LLVM IR with the MLIR context.
   registerLLVMDialectTranslation(*module->getContext());

@@ -77,7 +77,7 @@ def translate(kernel, *args, format="qir:0.1"):
                 f"Invalid number of arguments passed to translate. "
                 f"{suppliedArgs} given, {formals} formally declared, and "
                 f"{launchArgsReq} required.")
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
     if launchArgsReq != len(processedArgs):
         deducedArgs = len(processedArgs) - suppliedArgs
         raise RuntimeError(f"Invalid number of arguments passed to translate. "
@@ -87,5 +87,5 @@ def translate(kernel, *args, format="qir:0.1"):
              if decorator.return_type else decorator.get_none_type())
     # Arguments are resolved. Specialize this kernel and translate to the
     # selected transport layer.
-    return cudaq_runtime.translate_impl(decorator.uniqName, specMod, retTy,
+    return cudaq_runtime.translate_impl(decorator.uniqName, module, retTy,
                                         format, *processedArgs)

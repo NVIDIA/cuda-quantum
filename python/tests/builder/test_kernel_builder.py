@@ -1083,6 +1083,49 @@ def test_exp_pauli():
         kernel.exp_pauli(theta, qubits, invalidOp)
 
 
+def test_exp_pauli_register_and_qubits():
+    """Test that exp_pauli correctly concatenates a register with
+    individual qubits (regression test for operator precedence fix)."""
+    cudaq.reset_target()
+
+    # Case 1: register + individual qubit
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    q_extra = kernel.qalloc()
+    kernel.exp_pauli(1.0, qreg, q_extra, 'XXX')
+    ir = str(kernel)
+    assert 'quake.concat' in ir, \
+        "exp_pauli should concat register and individual qubits"
+
+    # Case 2: register + multiple individual qubits
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    q0 = kernel.qalloc()
+    q1 = kernel.qalloc()
+    kernel.exp_pauli(0.5, qreg, q0, q1, 'XXYY')
+    ir = str(kernel)
+    assert 'quake.concat' in ir, \
+        "exp_pauli should concat register and multiple individual qubits"
+
+    # Case 3: individual qubits only (no register) should still work
+    kernel = cudaq.make_kernel()
+    q0 = kernel.qalloc()
+    q1 = kernel.qalloc()
+    kernel.exp_pauli(1.0, q0, q1, 'XX')
+    ir = str(kernel)
+    assert 'quake.concat' in ir
+
+    # Case 4: register only (no individual qubits) should still work
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    kernel.exp_pauli(1.0, qreg, 'XX')
+    counts = cudaq.sample(kernel)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
 def test_givens_rotation_op():
     cudaq.reset_target()
     angle = 0.2
@@ -1276,6 +1319,38 @@ def test_call_kernel_deferred_compilation():
     assert "must be compiled to be used in the kernel builder" in str(e.value)
     assert "notPrecompiledKernel" in str(e.value)
     assert "or deactivate deferred compilation" in str(e.value)
+
+
+def test_apply_call_captures_from_definition_scope():
+    """
+    A kernel builder calls (via apply_call) a decorator kernel that itself
+    captures another decorator kernel from its *definition* scope.  The
+    captured inner kernel is not in scope at the apply_call call-site.
+    """
+
+    def make():
+        n_qubits = 0
+
+        @cudaq.kernel()
+        def inner(q: cudaq.qubit):
+            x(q)
+
+        @cudaq.kernel(defer_compilation=False)
+        def wrapper():
+            # capture n_qubits, resolves to n_qubits=1
+            q = cudaq.qvector(n_qubits)
+            # capture inner
+            inner(q[0])
+
+        n_qubits = 1  # this is the value that matters
+
+        return wrapper
+
+    wrapper = make()
+    # `inner` and `n_qubits` are NOT reachable from this scope.
+    builder = cudaq.make_kernel()
+    builder.apply_call(wrapper)
+    cudaq.sample(builder, shots_count=3)
 
 
 def test_sample_with_no_qubits():
