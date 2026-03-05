@@ -19,7 +19,6 @@ License at <https://github.com/llvm/llvm-project/blob/main/LICENSE.TXT>
 Eigen - various licenses, primarily MPL2 and BSD
 <https://gitlab.com/libeigen/eigen>
 
-TODO: COPYRIGHT YEAR
 The incorporated source code and its licenses can be found as a submodule on the CUDA-Q repository.
 See also <https://gitlab.com/libeigen/eigen/-/blob/master/COPYING.README>.
 
