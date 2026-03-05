@@ -9,6 +9,4 @@ Checklist:
 - [ ] I have updated the documentation accordingly.
 - [ ] I have read the CONTRIBUTING document.
 
--->
-
 ### Description
