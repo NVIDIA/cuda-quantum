@@ -51,7 +51,7 @@ jobs:
           run: |
             cd /workspace/realtime
             # Build 
-            dnf install -y cmake git
+            apt update && apt install -y cmake git
             # Install development prerequisites (e.g., DOCA SDK for GPUNetIO)
             bash scripts/install_dev_prerequisites.sh
             mkdir -p build && cd build
