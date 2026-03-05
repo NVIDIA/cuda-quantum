@@ -60,10 +60,10 @@ get_filename_component(REAL_PROJECT_BINARY_DIR "${PROJECT_BINARY_DIR}" REALPATH)
 
 if("${REAL_PROJECT_SOURCE_DIR}" STREQUAL "${REAL_PROJECT_BINARY_DIR}")
   message(FATAL_ERROR
-    "In-source builds are not permitted. You must run cmake in a separeted "
+    "In-source builds are not permitted. You must run cmake in a separated "
     "directory, e.g.:\n"
     "    mkdir build && cd build && cmake ..\n"
-    "NOTE: Remeber to clean up the source tree by deleting the files already "
+    "NOTE: Remember to clean up the source tree by deleting the files already "
     "created by CMake, e.g, CMakeCache.txt and cmake.check_cache")
 endif()
 
@@ -73,7 +73,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-# Set warnings as errors by default. 
+# Set warnings as errors by default.
 # Individual targets and the command line invocation can override this behavior.
 if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
@@ -95,7 +95,7 @@ endif()
 
 # Enable Amazon Braket backends by default.
 if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
-  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
+  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Bracket backends.")
 endif()
 
 # Enable Pasqal target by default.
@@ -118,6 +118,11 @@ endif()
 # Enable Quantum Circuits, Inc. (QCI) target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
   set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
+endif()
+
+# Enable TII target by default.
+if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
+  set(CUDAQ_ENABLE_TII_BACKEND ON CACHE BOOL "Enable building the TII target.")
 endif()
 
 # Enable Quantum Machines target by default.
@@ -185,7 +190,7 @@ if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
 endif()
 if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
-  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
+  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
 endif()
 if(NOT CUSTATEVEC_ROOT)
   SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuStateVec installation")
@@ -202,7 +207,7 @@ endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
-if(NOT OPENSSL_ROOT_DIR)	
+if(NOT OPENSSL_ROOT_DIR)
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}" CACHE PATH "Path to OpenSSL installation")
 endif()
 if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
@@ -264,9 +269,9 @@ else()
   # flat_namespace makes all symbols global, allowing shared libraries to see
   # each other's registrations. This is not a very graceful fix.
   # Alternatives might be:
-  # A. Restructuring libraries to avoid multiple symbol definitions 
+  # A. Restructuring libraries to avoid multiple symbol definitions
   #    (but this still might struggle due to how plugin systems are used).
-  # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as 
+  # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
   #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
 endif()
@@ -290,7 +295,7 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # then using -static (for exe) and -staic-pie (for linker).
   # At the time of writing, there wasn't any benefit to using those over -static.
   # When we only link libstdc++ and libgcc statically, we still have a dependency
-  # on GLIBC on the target system, but linking it statically is likely to cause issues. 
+  # on GLIBC on the target system, but linking it statically is likely to cause issues.
   # A better option might be to include the required GNU C Library and have the nvq++
   # compiler dynamically pick the newer one of the included or system one.
   # See also these posts:
@@ -299,10 +304,10 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # If the final application loads multiple dynamic libraries, and two or more
   # of those dynamic libraries are linked to different versions of the same static
   # libraries, then the different copies of those static libraries will conflict with
-  # each other. If we were to link everything statically, it is probably advisable to 
-  # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN 
+  # each other. If we were to link everything statically, it is probably advisable to
+  # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN
   # to 1, to avoid some of these issues.
-  # We don't set these configurations here, since the LLVM runtime libraries that we 
+  # We don't set these configurations here, since the LLVM runtime libraries that we
   # build from source are already configured to hide symbols and include dependencies.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
@@ -314,7 +319,7 @@ else()
   message(STATUS "CUDA Quantum static linking disabled.")
 endif()
 
-# ZLIB is required when we build LLVM with zlib support. 
+# ZLIB is required when we build LLVM with zlib support.
 # ZLIB support in LLVM is good to have e.g. for the linker,
 # since some binaries will use zlib compression to store symbols.
 find_package(ZLIB REQUIRED)
@@ -409,7 +414,7 @@ if(NOT Clang_DIR)
 endif()
 
 find_package(Clang CONFIG)
-if (NOT Clang_FOUND) 
+if (NOT Clang_FOUND)
   message(STATUS "Clang not found, turning off C++ Frontend.")
   set (CUDAQ_DISABLE_CPP_FRONTEND ON)
 endif()
@@ -523,7 +528,7 @@ execute_process(COMMAND git rev-parse --verify HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in" 
+configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
                "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
 
 # Check optional dependencies
@@ -553,7 +558,7 @@ add_subdirectory(tpls/fmt)
 cmake_policy(POP)
 include_directories(SYSTEM tpls/json/include)
 
-# Add spdlog 
+# Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)
 set(SPDLOG_FMT_EXTERNAL ON)
 set(SPDLOG_BUILD_PIC ON)
@@ -678,7 +683,7 @@ endif()
 
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)
-  
+
   # Apply specific patch to pybind11 for our documentation.
   # Only apply the patch if not already applied.
   execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
@@ -708,8 +713,8 @@ if (CUDAQ_ENABLE_PYTHON)
     message(FATAL_ERROR "Applying LTO patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
   endif()
 
-  # Regarding the use of PyBind, we need to be careful that the same STL is used for any 
-  # Python bindings generated as part of the CUDA-Q build and bindings generated for 
+  # Regarding the use of PyBind, we need to be careful that the same STL is used for any
+  # Python bindings generated as part of the CUDA-Q build and bindings generated for
   # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
@@ -721,8 +726,8 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(tpls/googletest-src)
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
-  if (CMAKE_COMPILER_IS_GNUCXX 
-    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0 
+  if (CMAKE_COMPILER_IS_GNUCXX
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0
     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
     target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
   endif()
@@ -740,7 +745,7 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   umbrella_lit_testsuite_end(check-all)
 endif()
 
-if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
+if (CUDAQ_EXTERNAL_NVQIR_SIMS)
   while(CUDAQ_EXTERNAL_NVQIR_SIMS)
     list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_OR_CONFIG_FILE)
     add_target_libs_to_wheel(${LIB_SO_OR_CONFIG_FILE})

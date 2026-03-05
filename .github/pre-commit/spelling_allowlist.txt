@@ -132,6 +132,7 @@ Superpositions
 Superstaq
 TBI
 TCP
+TII
 TableGen
 Toffoli
 Toshiko
@@ -368,6 +369,7 @@ toolchain
 toolchains
 toolset
 transmon
+transpilation
 transpile
 trotterization
 uccsd

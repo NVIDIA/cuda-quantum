@@ -261,3 +261,20 @@ The following code illustrates how to run kernels on Scaleway's backends.
 
    .. literalinclude:: ../../targets/cpp/scaleway.cpp
       :language: cpp
+
+.. _tii-examples:
+
+TII
+==================================
+
+The following code illustrates how to run kernels on TII's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/tii.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/tii.cpp
+      :language: cpp
