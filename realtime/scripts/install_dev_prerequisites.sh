@@ -27,7 +27,7 @@ if [ -x "$(command -v apt-get)" ]; then
     apt-get update && apt-get install -y --no-install-recommends curl
   fi
 
-  DOCA_VERSION=3.2.1
+  DOCA_VERSION=3.3.0
   echo "Installing DOCA version $DOCA_VERSION..."
   arch=$(uname -m)
   distro=$(. /etc/os-release && echo ${ID}${VERSION_ID}) # e.g., ubuntu24.04
