@@ -15,7 +15,6 @@
 #include <cuda_runtime.h>
 #include <cuda_device_runtime_api.h>
 #include <cstdint>
-#include <doca_gpunetio_dev_verbs_common.cuh>
 
 namespace cudaq::realtime {
 
@@ -191,7 +190,7 @@ __global__ void dispatch_kernel_device_call_only(
         while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
           ;
 
-        doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
+        __threadfence_system();
         tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
 
         rx_flags[current_slot] = 0;
@@ -255,7 +254,7 @@ __global__ void dispatch_kernel_device_call_only(
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
 
-            doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
+            __threadfence_system();
             tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 
@@ -339,7 +338,7 @@ __global__ void dispatch_kernel_with_graph(
             while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
               ;
 
-            doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
+            __threadfence_system();
             tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
           }
 #if __CUDA_ARCH__ >= 900
@@ -351,7 +350,7 @@ __global__ void dispatch_kernel_with_graph(
               graph_io_ctx->tx_flag_value =
                   reinterpret_cast<std::uint64_t>(tx_slot);
               graph_io_ctx->tx_stride_sz = tx_stride_sz;
-              doca_gpu_dev_verbs_fence_release<DOCA_GPUNETIO_VERBS_SYNC_SCOPE_GPU>();
+              __threadfence_system();
             }
 
             cudaGraphLaunch(entry->handler.graph_exec,

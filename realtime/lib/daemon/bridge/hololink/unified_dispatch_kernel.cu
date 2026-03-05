@@ -10,12 +10,13 @@
 /// @brief Single-kernel (unified) dispatch: RDMA RX + RPC dispatch + RDMA TX
 /// in one GPU kernel, using DOCA GPUNetIO verbs for lowest latency.
 ///
-/// This is a transport-specific implementation for DOCA/Hololink.  The kernel
-/// is launched through the transport-agnostic dispatcher API via
-/// cudaq_unified_launch_fn_t + void* transport_ctx.
+/// This is a Hololink/DOCA-specific implementation.  The kernel is launched
+/// through the transport-agnostic dispatcher API via cudaq_unified_launch_fn_t
+/// + void* transport_ctx.  All DOCA types are private to this translation unit.
 
-#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
 
 #include <cuda_runtime.h>
 #include <cstdint>
@@ -232,13 +233,14 @@ __global__ void unified_dispatch_kernel_bf(
 
 //==============================================================================
 // Host launch wrapper -- matches cudaq_unified_launch_fn_t signature.
+// Named hololink_launch_unified_dispatch to make the bridge ownership explicit.
 //==============================================================================
 
-extern "C" void cudaq_launch_unified_dispatch_kernel(
+extern "C" void hololink_launch_unified_dispatch(
     void *transport_ctx, cudaq_function_entry_t *function_table,
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream) {
-  auto *ctx = static_cast<doca_transport_ctx *>(transport_ctx);
+  auto *ctx = static_cast<hololink_doca_transport_ctx *>(transport_ctx);
 
   unified_dispatch_kernel_bf<<<1, 1, 0, stream>>>(
       static_cast<struct doca_gpu_dev_verbs_qp *>(ctx->gpu_dev_qp),

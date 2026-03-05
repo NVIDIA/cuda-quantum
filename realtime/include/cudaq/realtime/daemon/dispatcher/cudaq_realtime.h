@@ -145,6 +145,14 @@ typedef void (*cudaq_unified_launch_fn_t)(
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream);
 
+// Bundled launch function + opaque context returned by a bridge's
+// get_transport_context(UNIFIED) call.  The dispatcher receives these two
+// values together, keeping all transport-specific types out of the caller.
+typedef struct {
+  cudaq_unified_launch_fn_t launch_fn; ///< Bridge-provided unified launch fn
+  void *transport_ctx;                 ///< Bridge-owned opaque transport state
+} cudaq_unified_dispatch_ctx_t;
+
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
 // These functions are only available when compiled for sm_90 or higher
 #if defined(__CUDACC__) || defined(CUDA_VERSION)

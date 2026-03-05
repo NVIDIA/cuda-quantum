@@ -44,10 +44,24 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+// Forward declaration of the Hololink-specific unified dispatch launch function.
+// Defined in unified_dispatch_kernel.cu (compiled into libcudaq-realtime-bridge-hololink).
+void hololink_launch_unified_dispatch(
+    void *transport_ctx, cudaq_function_entry_t *function_table,
+    size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
+    cudaStream_t stream);
+#ifdef __cplusplus
+}
+#endif
+
 
 namespace cudaq::realtime {
 
@@ -312,8 +326,9 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
-  // Transport context for unified mode (must outlive the dispatcher)
-  doca_transport_ctx unified_ctx{};
+  // Transport context for unified mode (must outlive the dispatcher).
+  // This is a Hololink-private type; the dispatcher only sees void*.
+  hololink_doca_transport_ctx unified_doca_ctx{};
 
   if (!config.forward) {
     if (!config.unified) {
@@ -387,17 +402,17 @@ inline int bridge_run(BridgeConfig &config) {
     }
 
     if (config.unified) {
-      // Pack DOCA transport handles into the opaque context
-      unified_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
-      unified_ctx.rx_ring_data = rx_ring_data;
-      unified_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
-      unified_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
-      unified_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
-      unified_ctx.frame_size = config.frame_size;
+      // Pack Hololink/DOCA transport handles into the private context struct.
+      unified_doca_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+      unified_doca_ctx.rx_ring_data = rx_ring_data;
+      unified_doca_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
+      unified_doca_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+      unified_doca_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+      unified_doca_ctx.frame_size = config.frame_size;
 
       if (cudaq_dispatcher_set_unified_launch(
-              dispatcher, &cudaq_launch_unified_dispatch_kernel,
-              &unified_ctx) != CUDAQ_OK) {
+              dispatcher, &hololink_launch_unified_dispatch,
+              &unified_doca_ctx) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set unified launch function"
                   << std::endl;
         return 1;
