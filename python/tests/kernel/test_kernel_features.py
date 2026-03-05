@@ -20,7 +20,7 @@ from test_helpers import h2_hamiltonian_4q
 
 
 @pytest.fixture(autouse=True)
-def set_up_target():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 

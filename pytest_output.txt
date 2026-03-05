@@ -1,0 +1,999 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.0, pluggy-1.6.0 -- /home/omara/forks/cuda-quantum/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/omara/forks/cuda-quantum
+configfile: pyproject.toml
+plugins: anyio-4.12.1
+collecting ... collected 0 items / 98 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting python/tests/backends/test_IQM.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_IQM.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_IQM.py:18: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/backends/test_Infleqtion.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Infleqtion.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Infleqtion.py:9: in <module>
+    import cudaq, pytest, os
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/backends/test_IonQ.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_IonQ.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_IonQ.py:9: in <module>
+    import cudaq, pytest, os
+E   ModuleNotFoundError: No module named 'cudaq'
+__ ERROR collecting python/tests/backends/test_Ionq_LocalEmulation_kernel.py ___
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Ionq_LocalEmulation_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Ionq_LocalEmulation_kernel.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+______________ ERROR collecting python/tests/backends/test_OQC.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_OQC.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_OQC.py:15: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/backends/test_Pasqal.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Pasqal.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Pasqal.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+______________ ERROR collecting python/tests/backends/test_QCI.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_QCI.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_QCI.py:12: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/backends/test_QuEra.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_QuEra.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_QuEra.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_ ERROR collecting python/tests/backends/test_Quantinuum_LocalEmulation_builder.py _
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Quantinuum_LocalEmulation_builder.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Quantinuum_LocalEmulation_builder.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_ ERROR collecting python/tests/backends/test_Quantinuum_LocalEmulation_kernel.py _
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Quantinuum_LocalEmulation_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Quantinuum_LocalEmulation_kernel.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+______ ERROR collecting python/tests/backends/test_Quantinuum_builder.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Quantinuum_builder.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Quantinuum_builder.py:9: in <module>
+    import cudaq, pytest, os
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/backends/test_Quantinuum_kernel.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Quantinuum_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Quantinuum_kernel.py:9: in <module>
+    import cudaq, pytest, os
+E   ModuleNotFoundError: No module named 'cudaq'
+_____ ERROR collecting python/tests/backends/test_Quantinuum_ng_kernel.py ______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Quantinuum_ng_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Quantinuum_ng_kernel.py:9: in <module>
+    import cudaq, pytest, os
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/backends/test_Quantum_Machines.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_Quantum_Machines.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_Quantum_Machines.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/backends/test_braket.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_braket.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_braket.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/backends/test_pr_4039.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_pr_4039.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_pr_4039.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/backends/test_resource_counter.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_resource_counter.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_resource_counter.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/backends/test_scaleway.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_scaleway.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_scaleway.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/backends/test_scaleway_mock.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_scaleway_mock.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_scaleway_mock.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/backends/test_stim.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/backends/test_stim.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/backends/test_stim.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/builder/test_NoiseModel.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_NoiseModel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_NoiseModel.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/builder/test_cupy_integration.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_cupy_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_cupy_integration.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/builder/test_kernel_builder.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_kernel_builder.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_kernel_builder.py:18: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/builder/test_observe.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_observe.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_observe.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/builder/test_optimizer.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_optimizer.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_optimizer.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/builder/test_qalloc_init.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_qalloc_init.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_qalloc_init.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/builder/test_qalloc_init_state.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_qalloc_init_state.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_qalloc_init_state.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/builder/test_qpp_target.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_qpp_target.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_qpp_target.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/builder/test_quake_value.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_quake_value.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_quake_value.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/builder/test_sample.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_sample.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_sample.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/builder/test_state.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/builder/test_state.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/builder/test_state.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/custom/test_custom_operations.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/custom/test_custom_operations.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/custom/test_custom_operations.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/custom/test_euler_decomposition.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/custom/test_euler_decomposition.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/custom/test_euler_decomposition.py:12: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/custom/test_kak_decomposition.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/custom/test_kak_decomposition.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/custom/test_kak_decomposition.py:12: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/domains/test_chemistry.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/domains/test_chemistry.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/domains/test_chemistry.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+______________ ERROR collecting python/tests/domains/test_qnn.py _______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/domains/test_qnn.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/domains/test_qnn.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_ ERROR collecting python/tests/dynamics/integrators/test_evolve_dynamics_torch_integrators.py _
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/dynamics/integrators/test_evolve_dynamics_torch_integrators.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/dynamics/integrators/test_evolve_dynamics_torch_integrators.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/dynamics/test_evolve_dynamics.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/dynamics/test_evolve_dynamics.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/dynamics/test_evolve_dynamics.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/dynamics/test_evolve_simulators.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/dynamics/test_evolve_simulators.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/dynamics/test_evolve_simulators.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/handlers/test_photonics_kernel.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/handlers/test_photonics_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/handlers/test_photonics_kernel.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/interop/test_interop.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/interop/test_interop.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/interop/test_interop.py:9: in <module>
+    import cudaq, pytest
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/kernel/test_adjoint_operations.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_adjoint_operations.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_adjoint_operations.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/kernel/test_assignments.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_assignments.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_assignments.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/kernel/test_ast_compare.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_ast_compare.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_ast_compare.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/kernel/test_cast_kernel.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_cast_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_cast_kernel.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_control_negations.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_control_negations.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_control_negations.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/kernel/test_control_operations.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_control_operations.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_control_operations.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+______ ERROR collecting python/tests/kernel/test_deferred_compilation.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_deferred_compilation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_deferred_compilation.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____ ERROR collecting python/tests/kernel/test_direct_call_return_kernel.py ____
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_direct_call_return_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_direct_call_return_kernel.py:12: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+______ ERROR collecting python/tests/kernel/test_explicit_measurements.py ______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_explicit_measurements.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_explicit_measurements.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/kernel/test_get_unitary.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_get_unitary.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_get_unitary.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_ir_operations.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_ir_operations.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_ir_operations.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/kernel/test_kernel_call_return.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_call_return.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_call_return.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/kernel/test_kernel_complex.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_complex.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_complex.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_kernel_exp_pauli.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_exp_pauli.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_exp_pauli.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/kernel/test_kernel_features.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_features.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_features.py:16: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_kernel_float.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_float.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_float.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_kernel_parameters.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_parameters.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_parameters.py:16: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/kernel/test_kernel_qvector_init.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_qvector_init.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_qvector_init.py:12: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____ ERROR collecting python/tests/kernel/test_kernel_qvector_state_init.py ____
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_qvector_state_init.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_qvector_state_init.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_kernel_qview.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_qview.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_qview.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_kernel_return.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_return.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_return.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_kernel_shadowing.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_shadowing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_shadowing.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____ ERROR collecting python/tests/kernel/test_kernel_shift_operators.py ______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_shift_operators.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_shift_operators.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_kernel_signature.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_signature.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_signature.py:15: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_kernel_translate.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_translate.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_translate.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_kernel_uccsd.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_kernel_uccsd.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_kernel_uccsd.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/kernel/test_library_kernels.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_library_kernels.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_library_kernels.py:12: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/kernel/test_observe_kernel.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_observe_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_observe_kernel.py:15: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/kernel/test_reuse_compiler.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_reuse_compiler.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_reuse_compiler.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_run_async_kernel.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_run_async_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_run_async_kernel.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/kernel/test_run_kernel.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_run_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_run_kernel.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_sample_kernel.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_sample_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_sample_kernel.py:15: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/kernel/test_state_kernel.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_state_kernel.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_state_kernel.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/kernel/test_state_mps.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_state_mps.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_state_mps.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/kernel/test_supported.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_supported.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_supported.py:9: in <module>
+    from cudaq.kernel.ast_bridge import KernelSignature
+E   ModuleNotFoundError: No module named 'cudaq'
+________ ERROR collecting python/tests/kernel/test_target_attributes.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_target_attributes.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_target_attributes.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/kernel/test_to_integer.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_to_integer.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_to_integer.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/kernel/test_trotter.py _____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_trotter.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_trotter.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/kernel/test_unpack.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/kernel/test_unpack.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/kernel/test_unpack.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____ ERROR collecting python/tests/mlir/test_output_translate_openqasm.py _____
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/mlir/test_output_translate_openqasm.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/mlir/test_output_translate_openqasm.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/mlir/test_output_translate_qir.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/mlir/test_output_translate_qir.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/mlir/test_output_translate_qir.py:11: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/operator/test_boson_op.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/operator/test_boson_op.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/operator/test_boson_op.py:10: in <module>
+    from cudaq import boson
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/operator/test_conversions.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/operator/test_conversions.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/operator/test_conversions.py:9: in <module>
+    import cudaq, numpy as np, operator, pytest
+E   ModuleNotFoundError: No module named 'cudaq'
+__________ ERROR collecting python/tests/operator/test_fermion_op.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/operator/test_fermion_op.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/operator/test_fermion_op.py:10: in <module>
+    from cudaq import fermion
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/operator/test_matrix_op.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/operator/test_matrix_op.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/operator/test_matrix_op.py:10: in <module>
+    from cudaq import operators, boson
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/operator/test_scalar_op.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/operator/test_scalar_op.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/operator/test_scalar_op.py:10: in <module>
+    from cudaq.operators import ScalarOperator
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/operator/test_spin_op.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/operator/test_spin_op.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/operator/test_spin_op.py:10: in <module>
+    from cudaq import spin
+E   ModuleNotFoundError: No module named 'cudaq'
+____________ ERROR collecting python/tests/parallel/test_mpi_api.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/parallel/test_mpi_api.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/parallel/test_mpi_api.py:10: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/parallel/test_mpi_dynamics.py __________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/parallel/test_mpi_dynamics.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/parallel/test_mpi_dynamics.py:9: in <module>
+    import cudaq, os, pytest
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/parallel/test_mpi_mqpu.py ____________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/parallel/test_mpi_mqpu.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/parallel/test_mpi_mqpu.py:9: in <module>
+    import cudaq, os, pytest
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________ ERROR collecting python/tests/parallel/test_mqpu.py ______________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/parallel/test_mqpu.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/parallel/test_mqpu.py:14: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_____________________ ERROR collecting python/tests/ptsbe ______________________
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:174: in exec_module
+    exec(co, module.__dict__)
+python/tests/ptsbe/conftest.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_________ ERROR collecting python/tests/remote/test_remote_platform.py _________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/remote/test_remote_platform.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/remote/test_remote_platform.py:16: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+________________ ERROR collecting python/tests/test_helpers.py _________________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/test_helpers.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/test_helpers.py:8: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/utils/test_set_target_callback.py ________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/utils/test_set_target_callback.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/utils/test_set_target_callback.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+_______ ERROR collecting python/tests/visualization/test_bloch_sphere.py _______
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/visualization/test_bloch_sphere.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/visualization/test_bloch_sphere.py:13: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+___________ ERROR collecting python/tests/visualization/test_draw.py ___________
+ImportError while importing test module '/home/omara/forks/cuda-quantum/python/tests/visualization/test_draw.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+python/tests/visualization/test_draw.py:9: in <module>
+    import cudaq
+E   ModuleNotFoundError: No module named 'cudaq'
+=========================== short test summary info ============================
+ERROR python/tests/backends/test_IQM.py
+ERROR python/tests/backends/test_Infleqtion.py
+ERROR python/tests/backends/test_IonQ.py
+ERROR python/tests/backends/test_Ionq_LocalEmulation_kernel.py
+ERROR python/tests/backends/test_OQC.py
+ERROR python/tests/backends/test_Pasqal.py
+ERROR python/tests/backends/test_QCI.py
+ERROR python/tests/backends/test_QuEra.py
+ERROR python/tests/backends/test_Quantinuum_LocalEmulation_builder.py
+ERROR python/tests/backends/test_Quantinuum_LocalEmulation_kernel.py
+ERROR python/tests/backends/test_Quantinuum_builder.py
+ERROR python/tests/backends/test_Quantinuum_kernel.py
+ERROR python/tests/backends/test_Quantinuum_ng_kernel.py
+ERROR python/tests/backends/test_Quantum_Machines.py
+ERROR python/tests/backends/test_braket.py
+ERROR python/tests/backends/test_pr_4039.py
+ERROR python/tests/backends/test_resource_counter.py
+ERROR python/tests/backends/test_scaleway.py
+ERROR python/tests/backends/test_scaleway_mock.py
+ERROR python/tests/backends/test_stim.py
+ERROR python/tests/builder/test_NoiseModel.py
+ERROR python/tests/builder/test_cupy_integration.py
+ERROR python/tests/builder/test_kernel_builder.py
+ERROR python/tests/builder/test_observe.py
+ERROR python/tests/builder/test_optimizer.py
+ERROR python/tests/builder/test_qalloc_init.py
+ERROR python/tests/builder/test_qalloc_init_state.py
+ERROR python/tests/builder/test_qpp_target.py
+ERROR python/tests/builder/test_quake_value.py
+ERROR python/tests/builder/test_sample.py
+ERROR python/tests/builder/test_state.py
+ERROR python/tests/custom/test_custom_operations.py
+ERROR python/tests/custom/test_euler_decomposition.py
+ERROR python/tests/custom/test_kak_decomposition.py
+ERROR python/tests/domains/test_chemistry.py
+ERROR python/tests/domains/test_qnn.py
+ERROR python/tests/dynamics/integrators/test_evolve_dynamics_torch_integrators.py
+ERROR python/tests/dynamics/test_evolve_dynamics.py
+ERROR python/tests/dynamics/test_evolve_simulators.py
+ERROR python/tests/handlers/test_photonics_kernel.py
+ERROR python/tests/interop/test_interop.py
+ERROR python/tests/kernel/test_adjoint_operations.py
+ERROR python/tests/kernel/test_assignments.py
+ERROR python/tests/kernel/test_ast_compare.py
+ERROR python/tests/kernel/test_cast_kernel.py
+ERROR python/tests/kernel/test_control_negations.py
+ERROR python/tests/kernel/test_control_operations.py
+ERROR python/tests/kernel/test_deferred_compilation.py
+ERROR python/tests/kernel/test_direct_call_return_kernel.py
+ERROR python/tests/kernel/test_explicit_measurements.py
+ERROR python/tests/kernel/test_get_unitary.py
+ERROR python/tests/kernel/test_ir_operations.py
+ERROR python/tests/kernel/test_kernel_call_return.py
+ERROR python/tests/kernel/test_kernel_complex.py
+ERROR python/tests/kernel/test_kernel_exp_pauli.py
+ERROR python/tests/kernel/test_kernel_features.py
+ERROR python/tests/kernel/test_kernel_float.py
+ERROR python/tests/kernel/test_kernel_parameters.py
+ERROR python/tests/kernel/test_kernel_qvector_init.py
+ERROR python/tests/kernel/test_kernel_qvector_state_init.py
+ERROR python/tests/kernel/test_kernel_qview.py
+ERROR python/tests/kernel/test_kernel_return.py
+ERROR python/tests/kernel/test_kernel_shadowing.py
+ERROR python/tests/kernel/test_kernel_shift_operators.py
+pytest ./python/tests/ -v > pytest_output.txt 2>&1ERROR python/tests/kernel/test_kernel_signature.py
+ERROR python/tests/kernel/test_kernel_translate.py
+ERROR python/tests/kernel/test_kernel_uccsd.py
+ERROR python/tests/kernel/test_library_kernels.py
+ERROR python/tests/kernel/test_observe_kernel.py
+ERROR python/tests/kernel/test_reuse_compiler.py
+ERROR python/tests/kernel/test_run_async_kernel.py
+ERROR python/tests/kernel/test_run_kernel.py
+ERROR python/tests/kernel/test_sample_kernel.py
+ERROR python/tests/kernel/test_state_kernel.py
+ERROR python/tests/kernel/test_state_mps.py
+ERROR python/tests/kernel/test_supported.py
+ERROR python/tests/kernel/test_target_attributes.py
+ERROR python/tests/kernel/test_to_integer.py
+ERROR python/tests/kernel/test_trotter.py
+ERROR python/tests/kernel/test_unpack.py
+ERROR python/tests/mlir/test_output_translate_openqasm.py
+ERROR python/tests/mlir/test_output_translate_qir.py
+ERROR python/tests/operator/test_boson_op.py
+ERROR python/tests/operator/test_conversions.py
+ERROR python/tests/operator/test_fermion_op.py
+ERROR python/tests/operator/test_matrix_op.py
+ERROR python/tests/operator/test_scalar_op.py
+ERROR python/tests/operator/test_spin_op.py
+ERROR python/tests/parallel/test_mpi_api.py
+ERROR python/tests/parallel/test_mpi_dynamics.py
+ERROR python/tests/parallel/test_mpi_mqpu.py
+ERROR python/tests/parallel/test_mqpu.eary
+ERROR python/tests/ptsbe - ModuleNotFoundError: No module named 'cudaq'
+ERROR python/tests/remote/test_remote_platform.py
+ERROR python/tests/test_helpers.py
+ERROR python/tests/utils/test_set_target_callback.py
+ERROR python/tests/visualization/test_bloch_sphere.py
+ERROR python/tests/visualization/test_draw.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 98 errors during collection !!!!!!!!!!!!!!!!!!!
+============================== 98 errors in 1.86s ==============================

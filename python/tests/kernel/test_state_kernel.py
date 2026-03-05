@@ -19,7 +19,7 @@ skipIfNoGQPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def set_up_target():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 

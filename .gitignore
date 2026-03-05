@@ -105,3 +105,5 @@ apps/
 
 # Aspell (pyspelling pre-commit hook)
 dictionary.dic
+.pytest_output.txt.swp
+.pytest_output.txt
