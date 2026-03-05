@@ -88,7 +88,6 @@ jobs:
     name: Build & Test (arm64)
     needs: devdeps
     runs-on: macos-26
-    timeout-minutes: 180
     env:
       CC: clang
       CXX: clang++
@@ -118,9 +117,6 @@ jobs:
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
-
-          # Update ninja build log to match extracted file timestamps.
-          ninja -C "$HOME/.llvm-project/build" -t restat
 
           echo "=== Restored prerequisites ==="
           du -sh ~/.local || true
@@ -155,7 +151,6 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 90
     env:
       CC: clang
       CXX: clang++
@@ -188,31 +183,8 @@ jobs:
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
-          # Update ninja build log to match extracted file timestamps
-          ninja -C "$HOME/.llvm-project/build" -t restat
-
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
-
-      - name: Diagnose ninja state after cache restore
-        run: |
-          build_dir="$HOME/.llvm-project/build"
-          if [ -f "$build_dir/build.ninja" ]; then
-            echo "=== Ninja state after restat (before cmake reconfigure) ==="
-            dry_run=$(ninja -C "$build_dir" -n 2>&1 || true)
-            target_count=$(echo "$dry_run" | grep -c '^\[' || true)
-            echo "Targets that ninja wants to rebuild: $target_count"
-            if [ "$target_count" -gt 0 ]; then
-              echo "--- First 30 targets ---"
-              echo "$dry_run" | grep '^\[' | head -30
-              echo "--- Ninja explain ---"
-              ninja -C "$build_dir" -n -d explain 2>&1 | head -50 || true
-            else
-              echo "All targets up to date (restat working correctly)"
-            fi
-          else
-            echo "No build.ninja found -- fresh build expected"
-          fi
 
       - name: Build MLIR Python bindings
         run: |
@@ -221,52 +193,6 @@ jobs:
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
           bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
-
-          echo ""
-          echo "=== Post-build ninja state ==="
-          remaining=$(ninja -C "$HOME/.llvm-project/build" -n 2>&1 | grep -c '^\[' || true)
-          echo "Remaining targets after build: $remaining"
-
-      - name: Simulate cache-hit rebuild (tar round-trip test)
-        run: |
-          build_dir="$HOME/.llvm-project/build"
-
-          echo "=== Before tar: baseline ==="
-          baseline=$(ninja -C "$build_dir" -n 2>&1 | grep -c '^\[' || true)
-          echo "Stale targets (should be 0): $baseline"
-
-          echo "=== Tar round-trip ==="
-          tar -czf /tmp/llvm-test.tar.gz -C "$HOME" .llvm-project
-          rm -rf "$HOME/.llvm-project"
-          tar -xzf /tmp/llvm-test.tar.gz -C "$HOME"
-          rm /tmp/llvm-test.tar.gz
-
-          echo "=== After tar extraction (without restat) ==="
-          stale_no_restat=$(ninja -C "$build_dir" -n 2>&1 | grep -c '^\[' || true)
-          echo "Stale targets: $stale_no_restat"
-          if [ "$stale_no_restat" -gt 0 ]; then
-            echo "--- Ninja explain (first 30 lines) ---"
-            ninja -C "$build_dir" -n -d explain 2>&1 | head -30 || true
-          fi
-
-          echo "=== After restat ==="
-          ninja -C "$build_dir" -t restat
-          stale_after_restat=$(ninja -C "$build_dir" -n 2>&1 | grep -c '^\[' || true)
-          echo "Stale targets: $stale_after_restat"
-          if [ "$stale_after_restat" -gt 0 ]; then
-            echo "--- Ninja explain (first 30 lines) ---"
-            ninja -C "$build_dir" -n -d explain 2>&1 | head -30 || true
-          fi
-
-          echo "=== Summary ==="
-          echo "Baseline: $baseline | After tar (no restat): $stale_no_restat | After restat: $stale_after_restat"
-          if [ "$stale_no_restat" -eq 0 ]; then
-            echo "RESULT: tar preserves timestamps -- restat may not be needed"
-          elif [ "$stale_after_restat" -eq 0 ]; then
-            echo "RESULT: tar breaks timestamps, restat fixes it"
-          else
-            echo "RESULT: restat alone is insufficient -- investigate ninja explain output above"
-          fi
 
       - name: Build wheel
         run: |
@@ -302,7 +228,6 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -340,7 +265,6 @@ jobs:
     name: Installer (arm64)
     needs: [devdeps, metadata]
     runs-on: macos-26
-    timeout-minutes: 120
     env:
       CC: clang
       CXX: clang++
@@ -372,9 +296,6 @@ jobs:
           # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
-
-          # Update ninja build log to match extracted file timestamps
-          ninja -C "$HOME/.llvm-project/build" -t restat
 
       - name: Install dependencies
         run: |
@@ -418,7 +339,6 @@ jobs:
     name: Validate Installation (arm64)
     needs: [installer, wheel]
     runs-on: macos-26
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
