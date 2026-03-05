@@ -77,3 +77,8 @@ do
         echo "File $target/$file already exists, skipping."
     fi
 done
+
+# Done installing, print next steps
+echo "Installation complete."
+# Guide users to read the `user_guide.md` file to validate their installation.
+echo "Next steps: Please read the user guide at $target/docs/user_guide.md to validate your installation and learn how to use CUDA-Q Realtime."

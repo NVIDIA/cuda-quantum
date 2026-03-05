@@ -75,10 +75,10 @@ The bit-file for supported FPGA vendors can be found [here](FIXME:LINK_TO_BITFIL
 
 4. Run the validation scipt
 
-The validation script is located at `/opt/nvidia/cudaq/realtime/script/validate_hololink.sh`.
+The validation script is located at `/opt/nvidia/cudaq/realtime/validate.sh`.
 
 ```bash
-bash hololink_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --hololink-dir $HOLOLINK_DIR 
+bash validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --hololink-dir $HOLOLINK_DIR 
 ```
 
 > **_NOTE:_** 
