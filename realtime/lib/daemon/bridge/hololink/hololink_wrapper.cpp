@@ -12,10 +12,19 @@
 /// This file is compiled by g++ (not nvcc) to isolate Hololink's fmt
 /// dependency from CUDA translation units.
 
-#include "hololink_wrapper.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 
 // Include Hololink headers here (with Holoscan's fmt)
+// Disable deprecation warnings for Hololink headers, which may use deprecated
+// APIs
+#if (defined(__GNUC__) && !defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.hpp>
+#if (defined(__GNUC__) && !defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
 #include <iostream>
 

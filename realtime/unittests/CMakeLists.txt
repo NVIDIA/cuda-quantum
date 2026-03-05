@@ -81,4 +81,5 @@ endif()
 
 if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
   add_subdirectory(utils)
+  add_subdirectory(bridge_interface/hololink)
 endif()
