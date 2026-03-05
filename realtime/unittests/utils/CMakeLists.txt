@@ -11,8 +11,8 @@
 # These targets are gated by CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS and require
 # a pre-built hololink (holoscan-sensor-bridge) with DOCA support.
 # They are NOT CI tests -- they need FPGA hardware or an FPGA emulator.
-project(hololink_tools)
 cmake_minimum_required(VERSION 3.24)
+project(hololink_tools)
 
 if (NOT HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR)
   message(FATAL_ERROR
