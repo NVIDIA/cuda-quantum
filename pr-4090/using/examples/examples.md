@@ -247,6 +247,7 @@ pr-4090
             .internal}
         -   [Scaleway](hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](hardware_providers.html#tii){.reference .internal}
     -   [When to Use sample vs. run](sample_vs_run.html){.reference
         .internal}
         -   [Introduction](sample_vs_run.html#introduction){.reference
@@ -1076,6 +1077,8 @@ pr-4090
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../backends/hardware/neutralatom.html){.reference

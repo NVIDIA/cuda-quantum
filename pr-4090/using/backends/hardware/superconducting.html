@@ -242,6 +242,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#scaleway">Scaleway</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#tii">TII</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/sample_vs_run.html">   When to Use sample vs. run</a><ul>
@@ -664,6 +665,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oqc">OQC</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tii">TII</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -1490,6 +1492,60 @@ The environment variable <code class="docutils literal notranslate"><span class=
 <p>For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
 depend on the selected simulator.</p>
 <p>Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
+</div>
+</section>
+</section>
+<section id="tii">
+<h2>TII<a class="headerlink" href="#tii" title="Permalink to this heading">¶</a></h2>
+<p id="tii-backend">TII enables execution of CUDA-Q programs on a cloud-based simulator and superconducting quantum hardware.
+The infrastructure is orchestrated by <a class="reference external" href="https://qibo.science">Qibo</a>.</p>
+<section id="credential-setup">
+<h3>Credential setup<a class="headerlink" href="#credential-setup" title="Permalink to this heading">¶</a></h3>
+<p>Access to TII hardware requires user registration.
+New accounts can be requested at <a class="reference external" href="https://q-cloud.tii.ae">TII’s quantum computing cloud portal</a>.
+Authentication is performed using an email address and password.</p>
+<p>After the first login, users can generate personal access tokens.
+This token is used to authenticate backend requests and can be set as an environment variable
+(<code class="docutils literal notranslate"><span class="pre">TII_API_TOKEN</span></code>) for convenience.</p>
+</section>
+<section id="backend-parameters">
+<h3>Backend parameters<a class="headerlink" href="#backend-parameters" title="Permalink to this heading">¶</a></h3>
+<p>In addition to authentication, users must specify the quantum device and the project under which
+jobs will be executed.</p>
+<p>The full list of projects and devices available to the user is shown on the
+<a class="reference external" href="https://q-cloud.tii.ae/projects/">TII dashboard</a>.</p>
+<p>Supported parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">api_key</span></code>: Authentication token. If not provided explicitly, it is read from the
+<code class="docutils literal notranslate"><span class="pre">TII_API_TOKEN</span></code> environment variable.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device</span></code>: Quantum device on which the job is executed (required).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">project</span></code>: User project associated with the job (required).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verbatim</span></code>: When set to <code class="docutils literal notranslate"><span class="pre">true</span></code> the circuit is dispatched without transpilation. Defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code>.</p></li>
+</ul>
+</section>
+<section id="submitting-jobs">
+<h3>Submitting jobs<a class="headerlink" href="#submitting-jobs" title="Permalink to this heading">¶</a></h3>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<p>Before submitting a job, the TII backend must be selected using <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code>.
+The following example runs a circuit simulation using the user’s <code class="docutils literal notranslate"><span class="pre">personal</span></code> project:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tii&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;tii-sim&quot;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">&quot;personal&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the <code class="docutils literal notranslate"><span class="pre">TII_API_TOKEN</span></code> environment variable is not set, the authentication token can be
+passed directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tii&quot;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;my_authentication_token&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;tii-sim&quot;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">&quot;personal&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<p>C++ programs must first be compiled using <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
+<p>When compiling, both the target device and the project must be specified:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tii<span class="w"> </span>--tii-device<span class="w"> </span>tii-sim<span class="w"> </span>--tii-project<span class="w"> </span>personal<span class="w"> </span>main.cpp<span class="w"> </span>-o<span class="w"> </span>main.x
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">TII_API_TOKEN</span></code> environment variable must be set at runtime to authenticate the job.</p>
+</div>
 </div>
 </section>
 </section>

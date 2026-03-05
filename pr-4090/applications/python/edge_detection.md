@@ -268,6 +268,8 @@ pr-4090
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -1055,6 +1057,8 @@ pr-4090
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1900,7 +1904,7 @@ each pixel with its position
 
 <div>
 
-![87ae83fa4fec43359105d0dab9ee5b55](../../_images/pixels-img.png){.no-scaled-link
+![d42f5aff5301497ea8154f4c44f16d93](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

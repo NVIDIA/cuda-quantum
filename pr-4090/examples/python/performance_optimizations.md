@@ -259,6 +259,8 @@ pr-4090
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -1089,6 +1091,8 @@ pr-4090
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
+                .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
             .internal}
@@ -1875,14 +1879,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![583aa3a2bd704c20940bd565503df359](../../_images/gate-fuse.png)
+![eb1c184e630c43f68bfab862dd13a26a](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![9b07106a866041bb9fc1a517b163189d](../../_images/gatefusion.png)
+![e28523bee5c94ef9b8e950a999f885c7](../../_images/gatefusion.png)
 :::
 :::
 :::
