@@ -174,9 +174,13 @@ jobs:
           brew unlink gcc 2>/dev/null || true
           brew link gcc --overwrite 2>/dev/null || true
           
+          # NumPy is required by MLIR's find_package(Python3 ... NumPy)
+          pip3 install numpy --break-system-packages
+          
           # Build prerequisites with Python bindings enabled so the cmake
           # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
-          # wheel jobs only change Python3_EXECUTABLE
+          # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
+          # incremental rebuild scoped to the binding targets.
           source scripts/set_env_defaults.sh
           export LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings'
           
