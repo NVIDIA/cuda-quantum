@@ -137,7 +137,7 @@ def observe(kernel,
     elif isa_dynamic_kernel(kernel):
         decorator = mk_decorator(kernel)
     else:
-        raise RuntimeRrror(
+        raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
                                                     != len(args)):
@@ -254,7 +254,7 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     elif isa_dynamic_kernel(kernel):
         decorator = mk_decorator(kernel)
     else:
-        raise RuntimeRrror(
+        raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
                                                     != len(args)):
@@ -325,7 +325,7 @@ def observe_parallel(kernel,
     elif isa_dynamic_kernel(kernel):
         decorator = mk_decorator(kernel)
     else:
-        raise RuntimeRrror(
+        raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     shortName = decorator.uniqName
     processedArgs, module = decorator.prepare_call(*args)
