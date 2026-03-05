@@ -147,15 +147,23 @@ aggregateResults(const std::vector<cudaq::sample_result> &results) {
     return cudaq::sample_result{};
 
   cudaq::CountsDictionary aggregatedCounts;
+  std::vector<std::string> aggregatedSeqData;
   for (const auto &res : results) {
-    // Skip empty results (e.g., trajectories with zero shots).
     if (res.get_total_shots() == 0)
       continue;
 
     for (const auto &[bitstring, count] : res.to_map())
       aggregatedCounts[bitstring] += count;
+
+    auto seq = res.sequential_data();
+    if (!seq.empty())
+      aggregatedSeqData.insert(aggregatedSeqData.end(),
+                               std::make_move_iterator(seq.begin()),
+                               std::make_move_iterator(seq.end()));
   }
-  return cudaq::sample_result{cudaq::ExecutionResult{aggregatedCounts}};
+  cudaq::ExecutionResult er{aggregatedCounts};
+  er.sequentialData = std::move(aggregatedSeqData);
+  return cudaq::sample_result{std::move(er)};
 }
 
 template <typename ScalarType>
@@ -206,10 +214,12 @@ samplePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
     auto execResult =
         simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots),
-                         /*includeSequentialData=*/false);
+                         batch.includeSequentialData);
 
-    results.push_back(
-        cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});
+    cudaq::ExecutionResult er{execResult.counts};
+    if (batch.includeSequentialData)
+      er.sequentialData = std::move(execResult.sequentialData);
+    results.push_back(cudaq::sample_result{std::move(er)});
 
     if ((ti + 1) % progressInterval == 0)
       cudaq::info("[ptsbe] Trajectory progress: {}/{} ({} shots)", ti + 1,
