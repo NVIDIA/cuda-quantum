@@ -45,7 +45,7 @@ jobs:
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
           # TODO: use alma-limux8 image to make sure we use the same glibc version as the CUDA-Q installer.
-          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu22.04
+          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
