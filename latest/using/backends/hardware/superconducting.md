@@ -197,23 +197,23 @@ latest
     -   [PTSBE End-to-End
         Workflow](../../../examples/python/ptsbe_end_to_end_workflow.html){.reference
         .internal}
-        -   [1. Set up the
-            environment](../../../examples/python/ptsbe_end_to_end_workflow.html#1.-Set-up-the-environment){.reference
+        -   [Set up the
+            environment](../../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
             .internal}
-        -   [2. Define the circuit and noise
-            model](../../../examples/python/ptsbe_end_to_end_workflow.html#2.-Define-the-circuit-and-noise-model){.reference
+        -   [Define the circuit and noise
+            model](../../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
             .internal}
-        -   [3. Run PTSBE
-            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
             .internal}
-        -   [4. Compare with standard (density-matrix)
-            sampling](../../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-            .internal}
-        -   [5. Return execution
-            data](../../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-            .internal}
-        -   [6. Two API
-            options:](../../../examples/python/ptsbe_end_to_end_workflow.html#6.-Two-API-options:){.reference
+            -   [Larger circuit for execution
+                data](../../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
     -   [Constructing
         Operators](../../examples/operators.html){.reference .internal}
@@ -263,6 +263,49 @@ latest
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
             .internal}
         -   [Scaleway](../../examples/hardware_providers.html#scaleway){.reference
+            .internal}
+        -   [TII](../../examples/hardware_providers.html#tii){.reference
+            .internal}
+    -   [When to Use sample vs.
+        run](../../examples/sample_vs_run.html){.reference .internal}
+        -   [Introduction](../../examples/sample_vs_run.html#introduction){.reference
+            .internal}
+        -   [Usage
+            Guidelines](../../examples/sample_vs_run.html#usage-guidelines){.reference
+            .internal}
+        -   [What Is Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../examples/sample_vs_run.html#what-is-supported-with-sample){.reference
+            .internal}
+        -   [What Is Not Supported with [`sample`{.docutils .literal
+            .notranslate}]{.pre}](../../examples/sample_vs_run.html#what-is-not-supported-with-sample){.reference
+            .internal}
+        -   [How to
+            Migrate](../../examples/sample_vs_run.html#how-to-migrate){.reference
+            .internal}
+            -   [Step 1: Add a return type to the
+                kernel](../../examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel){.reference
+                .internal}
+            -   [Step 2: Replace [`sample`{.docutils .literal
+                .notranslate}]{.pre} with [`run`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/sample_vs_run.html#step-2-replace-sample-with-run){.reference
+                .internal}
+            -   [Step 3: Update result
+                processing](../../examples/sample_vs_run.html#step-3-update-result-processing){.reference
+                .internal}
+        -   [Migration
+            Examples](../../examples/sample_vs_run.html#migration-examples){.reference
+            .internal}
+            -   [Example 1: Simple conditional
+                logic](../../examples/sample_vs_run.html#example-1-simple-conditional-logic){.reference
+                .internal}
+            -   [Example 2: Returning multiple measurement
+                results](../../examples/sample_vs_run.html#example-2-returning-multiple-measurement-results){.reference
+                .internal}
+            -   [Example 3: Quantum
+                teleportation](../../examples/sample_vs_run.html#example-3-quantum-teleportation){.reference
+                .internal}
+        -   [Additional
+            Notes](../../examples/sample_vs_run.html#additional-notes){.reference
             .internal}
     -   [Dynamics
         Examples](../../examples/dynamics_examples.html){.reference
@@ -1039,6 +1082,7 @@ latest
             -   [OQC](#oqc){.reference .internal}
             -   [Quantum Circuits,
                 Inc.](#quantum-circuits-inc){.reference .internal}
+            -   [TII](#tii){.reference .internal}
         -   [Neutral Atom QPUs](neutralatom.html){.reference .internal}
             -   [Infleqtion](neutralatom.html#infleqtion){.reference
                 .internal}
@@ -2555,6 +2599,107 @@ Any environment variables must be set prior to setting the target or
 running "[`import`{.code .docutils .literal
 .notranslate}]{.pre}` `{.code .docutils .literal
 .notranslate}[`cudaq`{.code .docutils .literal .notranslate}]{.pre}".
+:::
+:::
+:::
+
+::: {#tii .section}
+## TII[¶](#tii "Permalink to this heading"){.headerlink}
+
+TII enables execution of CUDA-Q programs on a cloud-based simulator and
+superconducting quantum hardware. The infrastructure is orchestrated by
+[Qibo](https://qibo.science){.reference .external}.
+
+::: {#credential-setup .section}
+### Credential setup[¶](#credential-setup "Permalink to this heading"){.headerlink}
+
+Access to TII hardware requires user registration. New accounts can be
+requested at [TII's quantum computing cloud
+portal](https://q-cloud.tii.ae){.reference .external}. Authentication is
+performed using an email address and password.
+
+After the first login, users can generate personal access tokens. This
+token is used to authenticate backend requests and can be set as an
+environment variable ([`TII_API_TOKEN`{.docutils .literal
+.notranslate}]{.pre}) for convenience.
+:::
+
+::: {#backend-parameters .section}
+### Backend parameters[¶](#backend-parameters "Permalink to this heading"){.headerlink}
+
+In addition to authentication, users must specify the quantum device and
+the project under which jobs will be executed.
+
+The full list of projects and devices available to the user is shown on
+the [TII dashboard](https://q-cloud.tii.ae/projects/){.reference
+.external}.
+
+Supported parameters:
+
+-   [`api_key`{.docutils .literal .notranslate}]{.pre}: Authentication
+    token. If not provided explicitly, it is read from the
+    [`TII_API_TOKEN`{.docutils .literal .notranslate}]{.pre} environment
+    variable.
+
+-   [`device`{.docutils .literal .notranslate}]{.pre}: Quantum device on
+    which the job is executed (required).
+
+-   [`project`{.docutils .literal .notranslate}]{.pre}: User project
+    associated with the job (required).
+
+-   [`verbatim`{.docutils .literal .notranslate}]{.pre}: When set to
+    [`true`{.docutils .literal .notranslate}]{.pre} the circuit is
+    dispatched without transpilation. Defaults to [`false`{.docutils
+    .literal .notranslate}]{.pre}.
+:::
+
+::: {#submitting-jobs .section}
+### Submitting jobs[¶](#submitting-jobs "Permalink to this heading"){.headerlink}
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Before submitting a job, the TII backend must be selected using
+[`cudaq.set_target()`{.docutils .literal .notranslate}]{.pre}. The
+following example runs a circuit simulation using the user's
+[`personal`{.docutils .literal .notranslate}]{.pre} project:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target("tii", device="tii-sim", project="personal")
+:::
+:::
+
+If the [`TII_API_TOKEN`{.docutils .literal .notranslate}]{.pre}
+environment variable is not set, the authentication token can be passed
+directly:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target("tii", api_key="my_authentication_token", device="tii-sim", project="personal")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+C++ programs must first be compiled using [`nvq++`{.docutils .literal
+.notranslate}]{.pre}.
+
+When compiling, both the target device and the project must be
+specified:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target tii --tii-device tii-sim --tii-project personal main.cpp -o main.x
+:::
+:::
+
+The [`TII_API_TOKEN`{.docutils .literal .notranslate}]{.pre} environment
+variable must be set at runtime to authenticate the job.
+:::
 :::
 :::
 :::
