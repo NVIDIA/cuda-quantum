@@ -1045,7 +1045,7 @@ jobs:
           touch "$GITHUB_STEP_SUMMARY"
           chmod a+w "$GITHUB_STEP_SUMMARY"
 
-          su cudaqtest -lc "
+          su cudaqtest -ls /bin/bash -c "
             source ${install_path}/set_env.sh
             cd ${workdir}
             GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
