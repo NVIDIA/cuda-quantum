@@ -715,7 +715,7 @@ jobs:
 
               scaleway)
                 if [[ "$filename" == *.cpp ]]; then
-                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M --scaleway-deduplication-id ghci-workflow-testing
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     ./a.out
