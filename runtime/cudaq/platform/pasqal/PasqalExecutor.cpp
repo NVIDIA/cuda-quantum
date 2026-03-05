@@ -14,7 +14,7 @@
  * Why:
  *
  * The standard remote flow for backends like `pasqal` is implemented in the
- * shared `runtime/common` Executor + Future stack. Tt uses RestClient to
+ * shared `runtime/common` Executor + Future stack. It uses RestClient to
  * POST/GET job payloads and polls until terminal status before calling
  * ServerHelper::processResults().
  *
@@ -26,7 +26,7 @@
  * build payload -> start task -> poll status -> fetch result -> map to CUDA-Q
  * sample_result.
  *
- * We could have implemented a a QRMIClient at the same level as RestClient,
+ * We could have implemented a QRMIClient at the same level as RestClient,
  * which could reduce QRMI backend implementations to just building payloads
  * and parsing results, but this would be out of scope for this work.
  */
@@ -106,11 +106,12 @@ public:
           for (auto &job : jobs) {
             std::string sequence = job.at("sequence").dump();
             auto jobRuns = job.at("job_runs").get<std::int32_t>();
+            std::vector<char> sequenceBuffer(sequence.begin(), sequence.end());
+            sequenceBuffer.push_back('\0');
 
             QrmiPayload payload{};
             payload.tag = QRMI_PAYLOAD_PASQAL_CLOUD;
-            payload.PASQAL_CLOUD.sequence =
-                const_cast<char *>(sequence.c_str());
+            payload.PASQAL_CLOUD.sequence = sequenceBuffer.data();
             payload.PASQAL_CLOUD.job_runs = jobRuns;
 
             auto taskId = session.startTask(payload);

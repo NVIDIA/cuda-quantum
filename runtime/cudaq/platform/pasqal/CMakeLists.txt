@@ -50,9 +50,6 @@ install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)
 add_target_config(pasqal)
 
 if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(QRMI_INSTALL_PREFIX "$ENV{QRMI_INSTALL_PREFIX}" CACHE PATH
-      "Path to QRMI installation prefix")
-
   set(_qrmi_include_hints)
   set(_qrmi_library_hints)
   if(QRMI_INSTALL_PREFIX)
@@ -72,37 +69,40 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
                HINTS ${_qrmi_library_hints})
 
   if(NOT QRMI_INCLUDE_DIR OR NOT QRMI_LIBRARY)
-    message(FATAL_ERROR
+    message(WARNING
       "Pasqal QRMI connector requested but qrmi.h/libqrmi was not found. "
-      "Install QRMI and set QRMI_INSTALL_PREFIX=<prefix> if needed.")
+      "Install QRMI and set QRMI_INSTALL_PREFIX=<prefix> if needed; "
+      "building pasqal target without QRMI mode support.")
+  else()
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_INCLUDES "${QRMI_INCLUDE_DIR}")
+    set(_qrmi_version_check_source_lines
+      "#include <qrmi.h>"
+      "#if !defined(QRMI_VERSION) || (QRMI_VERSION < QRMI_VERSION_NUMERIC(0,12,0))"
+      "#error QRMI version must be >= 0.12.0"
+      "#endif"
+      "int main() {}")
+    string(JOIN "\n" _qrmi_version_check_source ${_qrmi_version_check_source_lines})
+    check_cxx_source_compiles("${_qrmi_version_check_source}"
+      CUDAQ_QRMI_VERSION_GTE_0_12_0)
+    unset(CMAKE_REQUIRED_INCLUDES)
+
+    if(NOT CUDAQ_QRMI_VERSION_GTE_0_12_0)
+      message(WARNING
+        "Pasqal QRMI connector requires QRMI version >= 0.12.0; "
+        "building pasqal target without QRMI mode support.")
+    else()
+      message(STATUS "Enabling Pasqal QRMI mode support in pasqal target.")
+      target_include_directories(${SERVERHELPER_LIBRARY_NAME} PRIVATE ${QRMI_INCLUDE_DIR})
+      target_link_libraries(${SERVERHELPER_LIBRARY_NAME} PRIVATE ${QRMI_LIBRARY})
+      target_compile_definitions(${SERVERHELPER_LIBRARY_NAME}
+                                PRIVATE CUDAQ_PASQAL_QRMI_ENABLED)
+
+      get_filename_component(QRMI_LIBRARY_DIR "${QRMI_LIBRARY}" DIRECTORY)
+      set_property(TARGET ${SERVERHELPER_LIBRARY_NAME} APPEND PROPERTY
+        BUILD_RPATH "${QRMI_LIBRARY_DIR}")
+      set_property(TARGET ${SERVERHELPER_LIBRARY_NAME} APPEND PROPERTY
+        INSTALL_RPATH "${QRMI_LIBRARY_DIR}")
+    endif()
   endif()
-
-  include(CheckCXXSourceCompiles)
-  set(CMAKE_REQUIRED_INCLUDES "${QRMI_INCLUDE_DIR}")
-  set(_qrmi_version_check_source_lines
-    "#include <qrmi.h>"
-    "#if !defined(QRMI_VERSION) || (QRMI_VERSION < QRMI_VERSION_NUMERIC(0,12,0))"
-    "#error QRMI version must be >= 0.12.0"
-    "#endif"
-    "int main() {}")
-  string(JOIN "\n" _qrmi_version_check_source ${_qrmi_version_check_source_lines})
-  check_cxx_source_compiles("${_qrmi_version_check_source}"
-    CUDAQ_QRMI_VERSION_GTE_0_12_0)
-  unset(CMAKE_REQUIRED_INCLUDES)
-
-  if(NOT CUDAQ_QRMI_VERSION_GTE_0_12_0)
-    message(FATAL_ERROR
-      "Pasqal QRMI connector requires QRMI version >= 0.12.0.")
-  endif()
-
-  message(STATUS "Enabling Pasqal QRMI mode support in pasqal target.")
-  target_include_directories(${SERVERHELPER_LIBRARY_NAME} PRIVATE ${QRMI_INCLUDE_DIR})
-  target_link_libraries(${SERVERHELPER_LIBRARY_NAME} PRIVATE ${QRMI_LIBRARY})
-  target_compile_definitions(${SERVERHELPER_LIBRARY_NAME}
-                             PRIVATE CUDAQ_PASQAL_QRMI_ENABLED)
-
-  get_filename_component(QRMI_LIBRARY_DIR "${QRMI_LIBRARY}" DIRECTORY)
-  set_target_properties(${SERVERHELPER_LIBRARY_NAME} PROPERTIES
-    BUILD_RPATH "${QRMI_LIBRARY_DIR}"
-  )
 endif()
