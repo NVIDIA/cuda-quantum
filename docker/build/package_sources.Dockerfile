@@ -31,6 +31,7 @@
 #   scripts/clone_tpls_from_lock.sh        - clone script
 #   NOTICE, LICENSE                          - attribution
 #   NOTICE_PIP_cudaq_cu<N>, NOTICE_PIP_cudaqx_cu<N>, NOTICE_PIP_macos_cu<N> - pip attribution per variant (from generate_pip_attribution.py)
+#   NOTICE_APT_cudaq_cu<N>, NOTICE_APT_cudaqx_cu<N> - apt attribution per variant (from generate_apt_attribution.py)
 
 ARG base_image=ubuntu:24.04
 FROM ${base_image}
@@ -86,9 +87,10 @@ COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
 COPY package-source-diff/apt_packages_cudaq.txt package-source-diff/apt_packages_cudaqx.txt package-source-diff/apt_packages_cudaqx_trimmed.txt "${SCRIPTS_DIR}"/
 COPY package-source-diff/pip_packages_cudaq.txt package-source-diff/pip_packages_cudaqx.txt package-source-diff/pip_packages_cudaqx_trimmed.txt package-source-diff/pip_packages_macos.txt package-source-diff/pip_packages_macos_trimmed.txt "${SCRIPTS_DIR}"/
 
-# Copy attribution into NOTICES folder (NOTICE_PIP_* generated per variant with CUDA version, e.g. NOTICE_PIP_cudaq_cu12)
+# Copy attribution into NOTICES folder (NOTICE_PIP_* and NOTICE_APT_* generated per variant with CUDA version, e.g. NOTICE_PIP_cudaq_cu12)
 COPY NOTICE LICENSE "${SOURCES_ROOT}/NOTICES/"
 COPY NOTICE_PIP_cudaq_cu* NOTICE_PIP_cudaqx_cu* NOTICE_PIP_macos_cu* "${SOURCES_ROOT}/NOTICES/"
+COPY NOTICE_APT_cudaq_cu* NOTICE_APT_cudaqx_cu* "${SOURCES_ROOT}/NOTICES/"
 
 # Fetch apt source, pip sdists, and clone tpls in parallel (prefix lines so logs stay readable)
 RUN apt-get update && set -o pipefail && \
