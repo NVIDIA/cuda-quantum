@@ -249,7 +249,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         if (diags.empty())
           return false;
         const auto dim = std::accumulate(
-            subspaceExtents.begin(), subspaceExtents.end(), 1,
+            subspaceExtents.begin(), subspaceExtents.end(),
+            static_cast<decltype(subspaceExtents)::value_type>(1),
             std::multiplies<decltype(subspaceExtents)::value_type>());
         if (dim < m_minDimensionDiag)
           return false;
@@ -271,8 +272,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     }
 
     const int64_t totalDim =
-        std::accumulate(subspaceExtents.begin(), subspaceExtents.end(), 1,
-                        std::multiplies<int64_t>());
+        std::accumulate(subspaceExtents.begin(), subspaceExtents.end(),
+                        int64_t{1}, std::multiplies<int64_t>());
     std::vector<std::complex<double>> tensorData;
     tensorData.reserve(totalDim * totalDim * batchSize);
     for (const auto &elementaryOp : elemOps) {
