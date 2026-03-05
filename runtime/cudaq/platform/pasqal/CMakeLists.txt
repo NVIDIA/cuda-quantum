@@ -15,11 +15,17 @@ add_library(${LIBRARY_NAME}
     PasqalRemoteRESTQPU.cpp
 )
 
+set(_serverhelper_sources
+  PasqalServerHelper.cpp
+  PasqalExecutor.cpp
+)
+if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  list(APPEND _serverhelper_sources PasqalQrmiServerHelper.cpp)
+endif()
+
 add_library(${SERVERHELPER_LIBRARY_NAME}
   SHARED
-    PasqalServerHelper.cpp
-    PasqalQrmiServerHelper.cpp
-    PasqalExecutor.cpp
+    ${_serverhelper_sources}
 )
 
 set(_pasqal_public_link_libs
