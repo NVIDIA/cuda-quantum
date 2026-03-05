@@ -17,7 +17,6 @@ import numpy as np
 def do_something():
     cudaq.set_target("density-matrix-cpu")
     yield
-    cudaq.reset_target()
 
 
 def test_evolve_async_no_intermediate_results():
