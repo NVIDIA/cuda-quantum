@@ -36,7 +36,7 @@ if [ -x "$(command -v apt-get)" ]; then
   curl https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
   echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
   apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get -y install doca-all
+  DEBIAN_FRONTEND=noninteractive apt-get -y install doca-all libdoca-sdk-gpunetio-dev
 
   # [Holoscan SDK]
   CUDA_MAJOR_VERSION=$(nvcc --version | sed -n 's/^.*release \([0-9]\+\).*$/\1/p')
