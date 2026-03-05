@@ -15,24 +15,6 @@ from .utils import __isBroadcast, __createArgumentSet
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
 
 
-class AsyncPTSBESampleResult(AsyncSampleResult):
-    """Asynchronous result for PTSBE sampling.
-
-    Extends `AsyncSampleResult` with a reference to the `noise_model` so the
-    Python object is not garbage-collected while the asynchronous C++ work is
-    in flight. The reference is released when `.get()` is called.
-    """
-
-    def __init__(self, impl, mod, noise_model):
-        super().__init__(impl, mod)
-        self._noise_model = noise_model
-
-    def get(self):
-        result = super().get()
-        self._noise_model = None
-        return result
-
-
 def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
                          max_trajectories):
     """Validate arguments common to `sample` and `sample_async`."""
@@ -185,4 +167,4 @@ def sample_async(kernel,
         max_trajectories, sampling_strategy, shot_allocation,
         return_execution_data, *processedArgs)
 
-    return AsyncPTSBESampleResult(impl, module, noise_model)
+    return AsyncSampleResult(impl, module)
