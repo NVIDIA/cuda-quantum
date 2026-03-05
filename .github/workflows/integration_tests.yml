@@ -269,7 +269,7 @@ jobs:
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
                 ;;
               scaleway)
-                filelist="targettests/scaleway/*.cpp docs/sphinx/targets/python/scaleway.py"
+                filelist="docs/sphinx/targets/cpp/scaleway.cpp docs/sphinx/targets/python/scaleway.py"
                 ;;
               tii)
                 filelist="docs/sphinx/targets/cpp/tii.cpp docs/sphinx/targets/python/tii.py"
