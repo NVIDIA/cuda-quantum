@@ -679,10 +679,10 @@ def quake_SinkOp : QuakeOp<"sink"> {
   }];
 
   let arguments = (ins
-    Arg<WireType, "wire to sink", [MemRead, MemWrite]>:$target
+    Arg<AnyQLinearType, "wire to sink", [MemRead, MemWrite]>:$target
   );
   let assemblyFormat = [{
-     $target `:` qualified(type(operands)) attr-dict
+     $target `:` type(operands) attr-dict
   }];
 }
 
@@ -823,23 +823,6 @@ def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
       attr-dict
   }];
   let hasVerifier = 1;
-}
-
-def quake_SinkCableOp : QuakeOp<"sink_cable"> {
-  let summary = "Sink a cable of quantum wires.";
-  let description = [{
-    This operation can be used as syntactic sugar for connecting a set of wire
-    values to a series of `quake.sink` operations. It can be used, possibly, to
-    declutter code by combining a long sequence of `quake.sink` operations.
-  }];
-
-  let arguments = (ins
-    Arg<CableType, "cable destroyed", [MemRead, MemWrite]>:$cable
-  );
-
-  let assemblyFormat = [{
-    $cable `:` type($cable) attr-dict
-  }];
 }
 
 //===----------------------------------------------------------------------===//
