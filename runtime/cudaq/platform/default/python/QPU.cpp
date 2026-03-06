@@ -240,6 +240,11 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
             if (isa<mlir::FloatType>(vecTy.getElementType()))
               varArgIndices.insert(idx);
     }
+    {
+      auto *execCtx = cudaq::getExecutionContext();
+      if (!execCtx || !execCtx->useParametricJit)
+        varArgIndices.clear();
+    }
     const bool hasVariationalArgs = !varArgIndices.empty();
 
     auto jit = alreadyBuiltJITCode();

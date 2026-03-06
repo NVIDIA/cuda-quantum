@@ -37,6 +37,7 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
         hasattr(a, 'shape') and len(a.shape) == 2 for a in args)
     if has_vector_args:
         ctx.allowJitEngineCaching = True
+        ctx.useParametricJit = True
     for i, a in enumerate(argSet):
         ctx.batchIteration = i
         with ctx:
