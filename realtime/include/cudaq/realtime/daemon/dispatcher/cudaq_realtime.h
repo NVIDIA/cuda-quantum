@@ -226,6 +226,14 @@ cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn);
 
+// Bundle struct returned by bridge implementations for unified dispatch.
+// Contains the bridge-provided launch function and its opaque transport state,
+// keeping the dispatcher API transport-agnostic.
+typedef struct {
+  cudaq_unified_launch_fn_t launch_fn; ///< Bridge-provided unified launch fn
+  void *transport_ctx;                 ///< Bridge-owned opaque transport state
+} cudaq_unified_dispatch_ctx_t;
+
 // Unified dispatch wiring -- pass a transport-specific launch function and
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of

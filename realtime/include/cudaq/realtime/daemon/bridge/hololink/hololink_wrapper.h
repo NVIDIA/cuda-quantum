@@ -34,21 +34,21 @@ typedef void *hololink_transceiver_t;
  *
  * @param device_name IB device name (e.g., "rocep1s0f0")
  * @param ib_port IB port number
+ * @param tx_ibv_qp Remote QP number (FPGA default: 2)
  * @param gpu_id CUDA GPU device ID for DOCA GPUNetIO
  * @param frame_size Size of each frame (cu_frame_size)
  * @param page_size Size of each page/slot (cu_page_size)
  * @param num_pages Number of pages (ring buffer slots)
- * @param peer_ip Peer IP address (use "0.0.0.0" for deferred connection)
+ * @param peer_ip Peer IP address
  * @param forward 1 to run forward (echo) kernel
  * @param rx_only 1 to run RX-only kernel
  * @param tx_only 1 to run TX-only kernel
  * @return Handle to transceiver, or NULL on failure
  */
-hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
-                            size_t frame_size, size_t page_size,
-                            unsigned num_pages, const char *peer_ip,
-                            int forward, int rx_only, int tx_only);
+hololink_transceiver_t hololink_create_transceiver(
+    const char *device_name, int ib_port, unsigned tx_ibv_qp, int gpu_id,
+    size_t frame_size, size_t page_size, unsigned num_pages,
+    const char *peer_ip, int forward, int rx_only, int tx_only);
 
 /**
  * Destroy a transceiver and free resources.
@@ -83,29 +83,6 @@ uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle);
 /** Get the DOCA GPU device QP handle (doca_gpu_dev_verbs_qp*).
  *  Needed by the unified dispatch kernel for direct DOCA verbs calls. */
 void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle);
-
-/**
- * Get the local GID for this transceiver.
- * @param handle Transceiver handle
- * @param gid_out Buffer to receive 16-byte GID
- * @return 1 on success, 0 on failure
- */
-int hololink_get_gid(hololink_transceiver_t handle, uint8_t *gid_out);
-
-//==============================================================================
-// Deferred QP connection
-//==============================================================================
-
-/**
- * Connect the QP to a remote peer (for deferred connection mode).
- * Call this after start() when peer_ip was "0.0.0.0".
- * @param handle Transceiver handle
- * @param remote_gid 16-byte remote GID
- * @param remote_qpn Remote QP number
- * @return 1 on success, 0 on failure
- */
-int hololink_reconnect_qp(hololink_transceiver_t handle,
-                          const uint8_t *remote_gid, uint32_t remote_qpn);
 
 //==============================================================================
 // Ring buffer access

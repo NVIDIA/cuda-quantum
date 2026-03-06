@@ -10,6 +10,8 @@
 /// @brief Hololink bridge interface implementation for libcudaq-realtime
 /// dispatch.
 
+#include <sstream>
+
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 #include "cudaq/realtime/hololink_bridge_common.h"
@@ -53,9 +55,10 @@ struct HololinkBridgeContext {
 
     transceiver = hololink_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
+        config.remote_qp,         // remote QP number
         config.gpu_id,            // GPU device ID
         config.frame_size, config.page_size, config.num_pages,
-        "0.0.0.0",                // deferred connection
+        config.peer_ip.c_str(),   // immediate connection
         use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
         use_forward_ring ? 0 : 1, // rx_only
         use_forward_ring ? 0 : 1  // tx_only
@@ -100,6 +103,9 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
     delete ctx;
     return CUDAQ_ERR_INTERNAL;
   }
+
+  // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  HANDLE_CUDA_ERROR(cudaSetDevice(config.gpu_id));
 
   return CUDAQ_OK;
 }
@@ -153,15 +159,20 @@ static cudaq_status_t hololink_bridge_get_transport_context(
     ringbuffer->rx_stride_sz = ctx->config.page_size;
     ringbuffer->tx_stride_sz = ctx->config.page_size;
   } else if (context_type == UNIFIED) {
-    doca_transport_ctx *doca_ctx =
-        reinterpret_cast<doca_transport_ctx *>(out_context);
-    doca_ctx->gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
-    doca_ctx->rx_ring_data = reinterpret_cast<uint8_t *>(
+    cudaq_unified_dispatch_ctx_t *dispatch_ctx =
+        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+
+    static hololink_doca_transport_ctx doca_ctx{};
+    doca_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+    doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
         hololink_get_rx_ring_data_addr(transceiver));
-    doca_ctx->rx_ring_stride_sz = hololink_get_page_size(transceiver);
-    doca_ctx->rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
-    doca_ctx->rx_ring_stride_num = hololink_get_num_pages(transceiver);
-    doca_ctx->frame_size = ctx->config.frame_size;
+    doca_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
+    doca_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
+    doca_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+    doca_ctx.frame_size = ctx->config.frame_size;
+
+    dispatch_ctx->launch_fn = &hololink_launch_unified_dispatch;
+    dispatch_ctx->transport_ctx = &doca_ctx;
   } else {
     std::cerr << "ERROR: Invalid transport context type" << std::endl;
     return CUDAQ_ERR_INVALID_ARG;
@@ -184,28 +195,10 @@ hololink_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
   }
 
   auto &transceiver = ctx->transceiver;
-  // Connect QP to remote peer
-  {
-    uint8_t remote_gid[16] = {};
-    remote_gid[10] = 0xff;
-    remote_gid[11] = 0xff;
-    inet_pton(AF_INET, ctx->config.peer_ip.c_str(), &remote_gid[12]);
-
-    if (!hololink_reconnect_qp(transceiver, remote_gid,
-                               ctx->config.remote_qp)) {
-      std::cerr << "ERROR: Failed to connect QP to remote peer" << std::endl;
-      return CUDAQ_ERR_INTERNAL;
-    }
-  }
 
   uint32_t our_qp = hololink_get_qp_number(transceiver);
   uint32_t our_rkey = hololink_get_rkey(transceiver);
   uint64_t our_buffer = hololink_get_buffer_addr(transceiver);
-
-  if (!hololink_query_kernel_occupancy()) {
-    std::cerr << "ERROR: Hololink kernel occupancy query failed" << std::endl;
-    return CUDAQ_ERR_INTERNAL;
-  }
 
   // FIXME: Figure out a better way to share this info with the caller (e.g. via
   // output params or context struct) rather than printing to stdout. Print QP
