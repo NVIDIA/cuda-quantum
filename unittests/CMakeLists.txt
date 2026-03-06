@@ -14,7 +14,7 @@ SET(CMAKE_EXE_LINKER_FLAGS "")
 SET(CMAKE_SHARED_LINKER_FLAGS "")
 
 set(CUDAQ_TEST_OMP_SLOTS 1 CACHE STRING
-  "CPU slots per OpenMP-parallel test. Set to 2 with -DCUDAQ_TEST_OMP_SLOTS=2 when OMP_NUM_THREADS=2 at test time.")
+  "CPU slots per OpenMP-parallel test.")
 
 set(CUDAQ_RUNTIME_TEST_SOURCES
   # Integration tests
