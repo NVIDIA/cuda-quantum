@@ -107,6 +107,13 @@ echo "Environment sanitized (unset: $SANITIZE_VARS)"
 # so each worker only needs 1 OMP thread for small test simulations.
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 
+# Parallel job count for snippet/example execution (xargs -P)
+if [ "$(uname)" = "Darwin" ]; then
+    parallel_jobs=$(sysctl -n hw.ncpu)
+else
+    parallel_jobs=$(nproc)
+fi
+
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
     # Try to find repo root
@@ -301,8 +308,7 @@ else
     done
 fi
 
-# Run core tests (pytest-xdist forks processes, so global state like
-# cudaq.set_target() is isolated per worker)
+# Run core tests
 echo "Running core tests."
 python3 -m pytest -v -n auto "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
@@ -364,24 +370,27 @@ else
     fi
 fi
 
-# Run snippets in docs
+# Run snippets in docs (parallel execution)
+snippet_list=$(mktemp)
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
-    if requires_unavailable_gpu_target "$ex"; then
-        continue
+    if ! requires_unavailable_gpu_target "$ex"; then
+        echo "$ex"
     fi
-    echo "Executing $ex"
-    python3 "$ex"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+done > "$snippet_list"
+if [ -s "$snippet_list" ]; then
+    xargs -P "$parallel_jobs" -I {} bash -c \
+        'echo "Executing {}"; python3 "{}" || { echo -e "\e[01;31mFailed to execute {}.\e[0m" >&2; exit 1; }' \
+        < "$snippet_list"
+    if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
     fi
-done
+fi
+[ -f "$snippet_list" ] && rm -f "$snippet_list"
 
-# Run examples
+# Run examples (pre-filter sequentially, execute in parallel)
+example_list=$(mktemp)
 for ex in $(find "$root_folder/examples" -name '*.py'); do
-    if requires_unavailable_gpu_target "$ex"; then
-        continue
-    fi
+    if requires_unavailable_gpu_target "$ex"; then continue; fi
     skip_example=false
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
@@ -394,14 +403,18 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
         fi
     done
     if ! $skip_example; then
-        echo "Executing $ex"
-        python3 "$ex"
-        if [ ! $? -eq 0 ]; then
-            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-            status_sum=$((status_sum + 1))
-        fi
+        echo "$ex"
     fi
-done
+done > "$example_list"
+if [ -s "$example_list" ]; then
+    xargs -P "$parallel_jobs" -I {} bash -c \
+        'echo "Executing {}"; python3 "{}" || { echo -e "\e[01;31mFailed to execute {}.\e[0m" >&2; exit 1; }' \
+        < "$example_list"
+    if [ $? -ne 0 ]; then
+        status_sum=$((status_sum + 1))
+    fi
+fi
+[ -f "$example_list" ] && rm -f "$example_list"
 
 snippet_count=$(find "$root_folder/snippets" -name '*.py' 2>/dev/null | wc -l)
 example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
@@ -410,19 +423,15 @@ if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
     status_sum=$((status_sum + 1))
 fi
 
-# Run target tests if target folder exists.
+# Run target tests if target folder exists (pre-filter, execute in parallel).
 if [ -d "$root_folder/targets" ]; then
+    target_list=$(mktemp)
     for ex in $(find "$root_folder/targets" -name '*.py'); do
-        if requires_unavailable_gpu_target "$ex"; then
-            continue
-        fi
+        if requires_unavailable_gpu_target "$ex"; then continue; fi
         skip_example=false
-        # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
-    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
+        explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
         for t in $explicit_targets; do
             if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
-                # Skipped because GitHub does not have the necessary authentication token
-                # to submit a (paid) job to Amazon Braket (includes QuEra).
                 echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
                 skip_example=true
             elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
@@ -443,21 +452,23 @@ if [ -d "$root_folder/targets" ]; then
             elif [ "$t" == "tii" ] || [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || \
                  [ "$t" == "quantinuum" ] || [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
                  [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
-                # These targets require remote backends that are not available
-                # in CI or local dev without explicit setup.
                 echo "Skipping $ex (remote target '$t' not available)"
                 skip_example=true
             fi
         done
         if ! $skip_example; then
-            echo "Executing $ex"
-            python3 "$ex"
-            if [ ! $? -eq 0 ]; then
-                echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-                status_sum=$((status_sum + 1))
-            fi
+            echo "$ex"
         fi
-    done
+    done > "$target_list"
+    if [ -s "$target_list" ]; then
+        xargs -P "$parallel_jobs" -I {} bash -c \
+            'echo "Executing {}"; python3 "{}" || { echo -e "\e[01;31mFailed to execute {}.\e[0m" >&2; exit 1; }' \
+            < "$target_list"
+        if [ $? -ne 0 ]; then
+            status_sum=$((status_sum + 1))
+        fi
+    fi
+    [ -f "$target_list" ] && rm -f "$target_list"
 fi
 
 # Run remote-mqpu platform test (Linux only - requires GPU and MPI)
