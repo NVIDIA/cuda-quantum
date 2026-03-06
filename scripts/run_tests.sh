@@ -45,11 +45,29 @@ if [ "$(uname)" = "Darwin" ]; then
 else
   num_jobs=$(nproc)
 fi
-echo "Running tests with $num_jobs parallel jobs"
+
+# Thread budget to avoid OpenMP oversubscription.
+# OpenMP-parallel tests (qpp, dm simulators) each use OMP_NUM_THREADS cores.
+# For ctest, the PROCESSORS property handles scheduling for a given -j $num_jobs.
+if [ -z "${OMP_NUM_THREADS:-}" ]; then
+  if [ "$num_jobs" -le 4 ]; then
+    omp_threads=1
+    parallel_jobs=$num_jobs
+  else
+    omp_threads=2
+    parallel_jobs=$((num_jobs / omp_threads))
+  fi
+  export OMP_NUM_THREADS=$omp_threads
+else
+  omp_threads=$OMP_NUM_THREADS
+  parallel_jobs=$((num_jobs / omp_threads))
+  if [ "$parallel_jobs" -lt 1 ]; then parallel_jobs=1; fi
+fi
+echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
 
 # 1. CTest
 echo "=== Running ctest ==="
-ctest --output-on-failure --test-dir "$build_dir" \
+ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
   -E "ctest-nvqpp|ctest-targettests"
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
@@ -70,7 +88,7 @@ fi
 
 # 3. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
   --param nvqpp_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 targ_status=$?
@@ -81,7 +99,7 @@ fi
 
 # 4. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
   --param nvqpp_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
   "$build_dir/python/tests/mlir"
 pymlir_status=$?
