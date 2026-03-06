@@ -78,8 +78,8 @@ static void specializeKernel(const std::string &name, ModuleOp module,
         nullary = false;
         break;
       }
-    pm.addPass(
-        cudaq::opt::createGenerateKernelExecution({.positNullary = nullary}));
+    pm.addPass(cudaq::opt::createGenerateKernelExecution(
+        {.positNullary = nullary, .ignoreHostFunction = true}));
   }
   pm.addPass(createSymbolDCEPass());
   if (enablePythonCodegenDump) {

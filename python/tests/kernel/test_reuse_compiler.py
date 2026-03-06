@@ -139,3 +139,23 @@ def test_different_launch_mode():
 
         with pytest.raises(RuntimeError):
             res = cudaq.get_state(simple, 4)
+
+
+def test_reuse_of_builder():
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(5)
+    kernel.x(qreg)
+    kernel.mz(qreg)
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        cudaq.sample(kernel, shots_count=1)
+        cudaq.sample(kernel, shots_count=1)
+
+    kernel, nQubits = cudaq.make_kernel(int)
+    qreg = kernel.qalloc(nQubits)
+    kernel.x(qreg)
+    kernel.mz(qreg)
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        cudaq.sample(kernel, 5, shots_count=1)
+        cudaq.sample(kernel, 5, shots_count=1)
