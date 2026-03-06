@@ -99,7 +99,7 @@ void quantum_platform::validateQpuId(std::size_t qpuId) const {
 
 // [remove at]: runtime refactor release
 // Deprecated: Use with_execution_context instead.
-void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
+void quantum_platform::set_exec_ctx(ExecutionContext *ctx, std::size_t qid) {
   configureExecutionContext(*ctx);
   detail::setExecutionContext(ctx);
   beginExecution();
@@ -107,7 +107,7 @@ void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
 
 // [remove at]: runtime refactor release
 // Deprecated: Use with_execution_context instead.
-void quantum_platform::reset_exec_ctx() {
+void quantum_platform::reset_exec_ctx(std::size_t qid) {
   auto *ctx = getExecutionContext();
   if (ctx == nullptr)
     return;
@@ -117,6 +117,13 @@ void quantum_platform::reset_exec_ctx() {
                         endExecution();
                         detail::resetExecutionContext();
                       });
+}
+
+// This is a workaround to provide backward ABI compatibility with cudaq_solvers
+// 0.5.0 It is not clear where this would be called from. Uncomment the assert
+// to find out
+void quantum_platform::set_current_qpu(const std::size_t device_id) {
+  // assert(false);
 }
 
 // Specify the execution context for this platform.
@@ -153,17 +160,17 @@ std::optional<QubitConnectivity> quantum_platform::connectivity() {
   return platformQPUs.front()->getConnectivity();
 }
 
-bool quantum_platform::is_simulator(std::size_t qpu_id) const {
+bool quantum_platform::is_simulator(const std::size_t qpu_id) const {
   validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isSimulator();
 }
 
-bool quantum_platform::is_remote(std::size_t qpu_id) const {
+bool quantum_platform::is_remote(const std::size_t qpu_id) {
   validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isRemote();
 }
 
-bool quantum_platform::is_emulated(std::size_t qpu_id) const {
+bool quantum_platform::is_emulated(const std::size_t qpu_id) const {
   validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isEmulated();
 }

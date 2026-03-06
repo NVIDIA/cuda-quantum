@@ -39,6 +39,8 @@ state &state::initialize(const state_data &data) {
 state::state(SimulationState *ptrToOwn)
     : internal(makeSharedSimulationState(ptrToOwn)) {}
 
+state::~state() = default;
+
 SimulationState::precision state::get_precision() const {
   return internal->getPrecision();
 }

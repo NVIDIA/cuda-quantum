@@ -77,7 +77,7 @@ public:
   // [remove at]: runtime refactor release
   [[deprecated("set_exec_ctx is deprecated - please use with_execution_context "
                "instead.")]] void
-  set_exec_ctx(ExecutionContext *ctx);
+  set_exec_ctx(ExecutionContext *ctx, std::size_t qid = 0);
 
   /// Return the current execution context
   // [remove at]: runtime refactor release
@@ -91,7 +91,9 @@ public:
   // [remove at]: runtime refactor release
   [[deprecated("reset_exec_ctx is deprecated - please use "
                "with_execution_context instead.")]] void
-  reset_exec_ctx();
+  reset_exec_ctx(std::size_t qid = 0);
+
+  void set_current_qpu(const std::size_t device_id);
 
   /// @brief Execute the given function within the given execution context.
   template <typename Callable, typename... Args>
@@ -132,7 +134,8 @@ public:
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
   /// Return whether this platform is a simulator.
-  bool is_simulator(std::size_t qpu_id = 0) const;
+  // TODO: replace const std::size_t with std::size_t
+  bool is_simulator(const std::size_t qpu_id = 0) const;
 
   /// @brief Return whether the QPU supports explicit measurements.
   bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
@@ -142,10 +145,12 @@ public:
   std::string name() const { return platformName; }
 
   /// @brief Return true if the QPU is remote.
-  bool is_remote(std::size_t qpu_id = 0) const;
+  // TODO: make is a const member function
+  bool is_remote(const std::size_t qpu_id = 0);
 
   /// @brief Return true if QPU is locally emulating a remote QPU
-  bool is_emulated(std::size_t qpu_id = 0) const;
+  // TODO: replace const std::size_t with std::size_t
+  bool is_emulated(const std::size_t qpu_id = 0) const;
 
   /// @brief Set the noise model for @p qpu_id on this platform.
   void set_noise(const noise_model *model, std::size_t qpu_id = 0);

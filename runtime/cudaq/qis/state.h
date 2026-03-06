@@ -101,7 +101,7 @@ public:
   /// @brief Copy assignment
   state &operator=(state &&other);
   /// @brief Default destructor
-  ~state() = default;
+  ~state();
 
   /// @brief Convenience function for extracting from a known vector.
   std::complex<double> operator[](std::size_t idx) const;
