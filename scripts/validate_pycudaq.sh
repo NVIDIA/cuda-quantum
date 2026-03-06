@@ -319,17 +319,15 @@ fi
 
 # Run backend tests
 echo "Running backend tests."
-for backendTest in "$root_folder/tests/backends"/*.py; do
-    python3 -m pytest -v $backendTest
-    # Exit code 5 indicates that no tests were collected,
-    # i.e. all tests in this file were skipped, which is the case
-    # for the mock server tests since they are not included.
-    status=$?
-    if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
-        echo -e "\e[01;31mPython backend test $backendTest failed with code $status.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-done
+python3 -m pytest -v "$root_folder/tests/backends"
+status=$?
+# Exit code 5 indicates that no tests were collected,
+# i.e. all tests in this file were skipped, which is the case
+# for the mock server tests since they are not included.
+if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
+    echo -e "\e[01;31mPython backend tests failed with code $status.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Run platform tests (Linux only - requires MPI)
 if $is_macos; then
