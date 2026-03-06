@@ -86,6 +86,11 @@ protected:
     else
       throw std::runtime_error("unsupported data type for state vector.");
 
+    auto &[size, ptr] = sizeAndPtr;
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[getSizeAndPtr] invalid null pointer or zero size");
+
     return sizeAndPtr;
   }
 
