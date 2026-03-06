@@ -36,8 +36,8 @@ def get_unitary(kernel, *args):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
     returnTy = (decorator.return_type
                 if decorator.return_type else decorator.get_none_type())
-    return cudaq_runtime.get_unitary_impl(decorator.uniqName, specMod, returnTy,
+    return cudaq_runtime.get_unitary_impl(decorator.uniqName, module, returnTy,
                                           *processedArgs)

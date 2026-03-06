@@ -418,13 +418,11 @@ def test_inner_kernels_state():
     @cudaq.kernel
     def kernel0():
 
-        @cudaq.kernel
         def kernel1():
             q1 = cudaq.qvector(state)
 
         kernel1()
 
-        @cudaq.kernel
         def kernel2():
             q2 = cudaq.qvector(state)
 

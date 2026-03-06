@@ -1,0 +1,63 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: "scaleway"
+description: "CUDA-Q target for Scaleway Quantum-as-a-Service."
+
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the JIT lowering pipeline
+  jit-mid-level-pipeline: "lower-to-cfg,decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  # Tell the rest-qpu that we are generating QIR.
+  codegen-emission: qasm2
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: url
+    required: false
+    type: string
+    platform-arg: url
+    help-string: "Scaleway API URL."
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the target machine to run the job."
+  - key: project-id
+    required: false
+    type: string
+    platform-arg: project_id
+    help-string: "Your Scaleway project ID."
+  - key: secret-key
+    required: false
+    type: string
+    platform-arg: secret_key
+    help-string: "Your Scaleway secret key."
+  - key: deduplication-id
+    required: false
+    type: string
+    platform-arg: deduplication_id
+    help-string: "Temporal deduplication string to identify QPU sessions and keep the same session between runs or clients."
+  - key: max-duration
+    required: false
+    type: string
+    platform-arg: max_duration
+    help-string: "Maximum duration of the QPU session before being terminated."
+  - key: max-idle-duration
+    required: false
+    type: string
+    platform-arg: max_idle_duration
+    help-string: "Maximum idle duration of the QPU session after any activity."

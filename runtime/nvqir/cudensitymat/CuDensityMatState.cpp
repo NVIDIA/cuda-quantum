@@ -116,6 +116,9 @@ CuDensityMatState::createFromData(const state_data &data) {
 std::unique_ptr<SimulationState>
 CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                         std::size_t type) {
+  if (!dataPtr || size == 0)
+    throw std::runtime_error(
+        "[createFromSizeAndPtr] invalid null pointer or zero size");
   bool isDm = false;
   if (type == cudaq::detail::variant_index<cudaq::state_data,
                                            cudaq::TensorStateData>()) {

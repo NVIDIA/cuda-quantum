@@ -1,8 +1,7 @@
 Using Quantum Hardware Providers
 -----------------------------------
 
-CUDA-Q contains support for using a set of hardware providers (Amazon Braket, 
-Infleqtion, IonQ, IQM, OQC, ORCA Computing, Quantinuum, and QuEra Computing). 
+CUDA-Q contains support for using a set of hardware providers. 
 For more information about executing quantum kernels on different hardware 
 backends, please take a look at :doc:`hardware <../backends/hardware>`.
 
@@ -243,3 +242,37 @@ The following code illustrates how to run kernels on QuEra's backends.
    .. literalinclude:: ../../targets/cpp/quera_basic.cpp
       :language: cpp
 
+
+.. _scaleway-examples:
+
+Scaleway
+==================================
+
+The following code illustrates how to run kernels on Scaleway's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/scaleway.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/scaleway.cpp
+      :language: cpp
+
+.. _tii-examples:
+
+TII
+==================================
+
+The following code illustrates how to run kernels on TII's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/tii.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/tii.cpp
+      :language: cpp

@@ -31,17 +31,22 @@ static async_sample_result sample_async_impl(
   std::string kernelName = shortName;
   auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
-  if (noise_model.has_value()) {
-    if (platform.is_remote())
-      throw std::runtime_error(
-          "Noise model is not supported on remote platforms.");
-    platform.set_noise(&noise_model.value());
-  }
+
+  // Check remote platform restriction for noise model.
+  if (noise_model.has_value() && platform.is_remote(qpu_id))
+    throw std::runtime_error(
+        "Noise model is not supported on remote platforms.");
+
   auto fnOp = getKernelFuncOp(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL
   py::gil_scoped_release release;
+
+  // Use runSamplingAsync with noise model support.
+  // The noise_model is passed by value to runSamplingAsync, which captures
+  // it in the async task to ensure proper lifetime and handles setting/
+  // resetting it to avoid dangling pointers and global state pollution.
   return details::runSamplingAsync(
       // Notes:
       // (1) no Python data access is allowed in this lambda body.
@@ -52,7 +57,8 @@ static async_sample_result sample_async_impl(
         [[maybe_unused]] auto result =
             clean_launch_module(kernelName, mod, retTy, opaques);
       }),
-      platform, kernelName, shots_count, explicit_measurements, qpu_id);
+      platform, kernelName, shots_count, explicit_measurements, qpu_id,
+      std::move(noise_model));
 }
 
 void cudaq::bindSampleAsync(py::module &mod) {
