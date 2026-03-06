@@ -361,16 +361,34 @@ jobs:
           name: pycudaq-3.12-darwin-arm64
           path: wheel/
 
-      - name: Install CUDA-Q (C++ via installer)
+      - name: Create test user
         run: |
+          sudo sysadminctl -addUser cudaqtest -password 'cudaqtest123' -admin
+          sudo mkdir -p /Users/cudaqtest
+          sudo chown cudaqtest /Users/cudaqtest
+
+      - name: Install CUDA-Q (C++ via installer to neutral path)
+        run: |
+          install_path=/opt/cudaq-test
+          sudo mkdir -p "$install_path"
+          sudo chown cudaqtest "$install_path"
           chmod +x installer/install_cuda_quantum*
-          bash installer/install_cuda_quantum* --accept -- --installpath $HOME/.cudaq
+          sudo -u cudaqtest bash installer/install_cuda_quantum* --accept -- --installpath "$install_path"
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          pip install wheel/*.whl
+          sudo -u cudaqtest -H python3 -m venv /Users/cudaqtest/venv
+          sudo -u cudaqtest -H /Users/cudaqtest/venv/bin/pip install wheel/*.whl
 
       - name: Validate installation
         run: |
-          source $HOME/.zshrc
-          bash scripts/validate_installation.sh
+          install_path=/opt/cudaq-test
+          workdir=$(sudo -u cudaqtest mktemp -d)
+          sudo cp -R scripts docs "$workdir/"
+          sudo chown -R cudaqtest "$workdir"
+          sudo -u cudaqtest bash -lc "
+            source /Users/cudaqtest/venv/bin/activate
+            source ${install_path}/set_env.sh
+            cd ${workdir}
+            bash scripts/validate_installation.sh
+          "
