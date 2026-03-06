@@ -1000,44 +1000,62 @@ jobs:
 
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
-          # The easiest is to just install it via conda.
+          # Install conda to a shared path so the non-root test user can access MPI.
           dnf install -y --nobest --setopt=install_weak_deps=False wget
-          mkdir -p ~/.miniconda3
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/.miniconda3/miniconda.sh
-          bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
-          rm -rf ~/.miniconda3/miniconda.sh
-          eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+          conda_prefix=/opt/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O /tmp/miniconda.sh
+          bash /tmp/miniconda.sh -b -u -p "$conda_prefix"
+          rm -f /tmp/miniconda.sh
+          eval "$($conda_prefix/bin/conda shell.bash hook)"
           conda install -y -c conda-forge openmpi">=5.0.7"
-
-          echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
-          echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
-          echo "export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'" >> ~/.bashrc
+          chmod -R a+rX "$conda_prefix"
 
       - name: Install and run sanity checks
         shell: bash
-        env:
-          BASH_ENV: ~/.bashrc
         run: |
+          useradd -m cudaqtest
+          install_path=/home/cudaqtest/.cudaq
+          mkdir -p "$install_path"
+          chown cudaqtest "$install_path"
+
           installer=install_cuda_quantum_cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1).x86_64
           chmod +x /tmp/install/$installer
-          /tmp/install/$installer --accept
-          rm -rf examples applications targets
-          mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets
-          rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
+          su cudaqtest -c "bash /tmp/install/$installer --accept -- --installpath $install_path"
 
-          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash -l scripts/validate_installation.sh | tee /tmp/validation.out
+          # Set up the test user's environment for MPI (RHEL conda path)
+          cat >> /home/cudaqtest/.bashrc << 'ENVEOF'
+          if [ -d /opt/miniconda3 ]; then
+            eval "$(/opt/miniconda3/bin/conda shell.bash hook)"
+            export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CONDA_PREFIX/lib"
+            export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+          fi
+          ENVEOF
+          chown cudaqtest /home/cudaqtest/.bashrc
+
+          # Copy validation inputs to the test user's workspace
+          workdir=/home/cudaqtest/validation
+          mkdir -p "$workdir"
+          cp -R docs/sphinx/examples "$workdir/examples"
+          cp -R docs/sphinx/applications "$workdir/applications"
+          cp -R docs/sphinx/targets "$workdir/targets"
+          rm -rf "$workdir/examples/python" "$workdir/applications/python" "$workdir/targets/python"
+          cp scripts/validate_installation.sh "$workdir/"
+          chown -R cudaqtest "$workdir"
+
+          touch "$GITHUB_STEP_SUMMARY"
+          chmod a+w "$GITHUB_STEP_SUMMARY"
+
+          su cudaqtest -ls /bin/bash -c "
+            source ${install_path}/set_env.sh
+            cd ${workdir}
+            GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
+            bash validate_installation.sh | tee /tmp/validation.out
+          "
 
           # Check that the tests included the nvidia-mgpu backend:
-          # Grab the first line where "Testing on nvidia target..." starts
-          # The first should be okay, since any target being tested against
-          # nvidia should be using all the options for the validation script.
           nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
-
-          # From that line, extract the block until the next "Testing on" or EOF
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
 
-          # Check if "fp32,mgpu" is present
           if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
             echo "::error::Missing tests for nvidia fp32,mgpu backend."
             echo "Observed target options:"
