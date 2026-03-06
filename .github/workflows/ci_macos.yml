@@ -88,8 +88,9 @@ jobs:
     name: Build & Test (arm64)
     needs: devdeps
     runs-on: macos-26
-    timeout-minutes: 180
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
 
     steps:
@@ -127,8 +128,6 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
@@ -152,8 +151,9 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 90
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
@@ -189,8 +189,6 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
@@ -230,7 +228,6 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -268,8 +265,9 @@ jobs:
     name: Installer (arm64)
     needs: [devdeps, metadata]
     runs-on: macos-26
-    timeout-minutes: 120
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
@@ -307,8 +305,6 @@ jobs:
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
@@ -343,7 +339,6 @@ jobs:
     name: Validate Installation (arm64)
     needs: [installer, wheel]
     runs-on: macos-26
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
