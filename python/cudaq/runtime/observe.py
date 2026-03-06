@@ -35,12 +35,14 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.setSpinOperator(spin_operator)
+        ctx.allowJitEngineCaching = True
         with ctx:
             kernel(*a)
         res = ctx.result
         results.append(
             cudaq_runtime.ObserveResult(ctx.getExpectationValue(),
                                         spin_operator, res))
+        ctx.unset_jit_engine()
     return results
 
 
