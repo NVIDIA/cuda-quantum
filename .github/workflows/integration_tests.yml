@@ -649,7 +649,7 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                   if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
-                     python3 -c "import ctypes; ctypes.CDLL('libqrmi.so')" 2>/dev/null; then
+                     [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
                     PASQAL_MACHINE_TARGET=qrmi \
                     SLURM_JOB_QPU_RESOURCES=EMU_FREE \
                     EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
