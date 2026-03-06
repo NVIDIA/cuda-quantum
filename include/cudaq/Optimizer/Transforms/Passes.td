@@ -577,7 +577,9 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Option<"deferToJIT", "deferred", "bool", /*default=*/"false",
       "Defer generating kernel execution until JIT time.">,
     Option<"positNullary", "posit-nullary", "bool", /*default=*/"false",
-      "Posit that the entry-point is nullary regardless of its signature.">
+      "Posit that the entry-point is nullary regardless of its signature.">,
+    Option<"ignoreHostFunction", "ignore-host-function", "bool", /*default=*/"false",
+      "Assume that the kernel doesn't need a host function.">
   ];
 }
 
