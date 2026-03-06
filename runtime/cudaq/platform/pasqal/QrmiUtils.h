@@ -180,9 +180,8 @@ inline std::string taskStatusAsString(QrmiTaskStatus status) {
     return "FAILED";
   case QRMI_TASK_STATUS_CANCELLED:
     return "CANCELLED";
-  default:
-    return "UNKNOWN";
   }
+  return "UNKNOWN";
 }
 
 } // namespace cudaq::qrmi
