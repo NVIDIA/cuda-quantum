@@ -20,6 +20,8 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+/// FIXME: This seems wrong to add in `cc` dialect!
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 
 using namespace mlir;
 
@@ -77,6 +79,10 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                 // we're assuming pointers are 64 bits.
                 return {8};
               })
+          .Case([](quake::MeasureType) -> std::optional<std::int32_t> {
+            // Size of `measure_result` {int result, int id} = 8 bytes
+            return {8};
+          })
           .Default({});
 
   if (rawSize)

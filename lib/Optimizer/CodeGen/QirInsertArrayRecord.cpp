@@ -31,7 +31,7 @@ using namespace mlir;
 // recording call to declare the output size and type label. This is necessary
 // for the `sample` API, which returns a vector of measurement results. The
 // call is inserted before the first result recording call. The label string
-// has the format `array<i1 x N>` where N is the total number of measurement
+// has the format `array<result x N>` where N is the total number of measurement
 // results. The generated call is: `__quantum__rt__array_record_output(N,
 // label)`.
 static LogicalResult insertArrayRecordingCall(OpBuilder &builder,
@@ -39,8 +39,8 @@ static LogicalResult insertArrayRecordingCall(OpBuilder &builder,
                                               size_t resultCount) {
   if (resultCount == 0)
     return success();
-  // Create the label string: `array<i1 x N>`
-  std::string labelStr = "array<i1 x " + std::to_string(resultCount) + ">";
+  // Create the label string
+  std::string labelStr = "array<result x " + std::to_string(resultCount) + ">";
   auto strLitTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
       builder.getContext(), builder.getI8Type(), labelStr.size() + 1));
   Value lit = builder.create<cudaq::cc::CreateStringLiteralOp>(

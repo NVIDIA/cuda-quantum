@@ -22,23 +22,22 @@ struct t1 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes
+// CHECK-SAME:                                    %[[VAL_0:.*]]: !cc.stdvec<f64>) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_12]] :
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
-// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i8>
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (i8) -> i1
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
 // CHECK:           return %[[VAL_6]] : i1
 // CHECK:         }
 // CHECK-NOT:     func.func private @_ZNKSt14_Bit_referencecvbEv() -> i1
 // clang-format on
 
 struct VectorBoolReturn {
-   std::vector<bool> operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(4);
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 
@@ -57,9 +56,9 @@ struct VectorBoolReturn {
 // clang-format on
 
 struct VectorBoolResult {
-   std::vector<bool> operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(4);
-    std::vector<bool> vec = mz(q);
+    std::vector<bool> vec = cudaq::to_bool_vector(mz(q));
     return vec;
   }
 };
