@@ -268,6 +268,8 @@ pr-4089
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -1048,6 +1050,8 @@ pr-4089
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1867,7 +1871,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![3e162a68b80a4cb6aa3a43da76ebc514](../../_images/adapt-vqe.png){.no-scaled-link
+![5b4e6d97d3ce474eb6d7181b606a2291](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>

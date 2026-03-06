@@ -268,6 +268,8 @@ pr-4089
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -1053,6 +1055,8 @@ pr-4089
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1858,7 +1862,7 @@ mutual polarization.
 
 <div>
 
-![cf8444f7a7b64f798eb2f4e2cf1fe075](../../_images/qm-mm-pe.png){.no-scaled-link
+![10551c7bef6d46d4a49f88b6946e7c12](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>
