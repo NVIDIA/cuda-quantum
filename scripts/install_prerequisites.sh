@@ -462,11 +462,31 @@ if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]
     qrmi_archive="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz" # Note: el8 build works on Ubuntu 18.04+.
     qrmi_unpack_dir="libqrmi-${QRMI_RELEASE_VERSION}"
 
+    # NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
+    #   wget -O qrmi.tar.gz "${qrmi_release_base}/${qrmi_archive}"
+    #   sha256sum qrmi.tar.gz | awk '{print $1}' 
+    QRMI_ARCHIVE_SHA256="2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746"
+
     mkdir -p "$QRMI_INSTALL_PREFIX/include" "$QRMI_INSTALL_PREFIX/lib64"
     wget "${qrmi_release_base}/${qrmi_archive}" -O "${qrmi_archive}"
+
+    if [ -x "$(command -v sha256sum)" ]; then
+      computed_sha256="$(sha256sum "${qrmi_archive}" | awk '{print $1}')"
+    else
+      computed_sha256="$(shasum -a 256 "${qrmi_archive}" | awk '{print $1}')"
+    fi
+    if [ "$computed_sha256" != "$QRMI_ARCHIVE_SHA256" ]; then
+      echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${qrmi_archive}.\e[0m" >&2
+      echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
+      echo "Got:      $computed_sha256" >&2
+      rm -f "${qrmi_archive}"
+      (return 1 2>/dev/null) && return 1 || exit 1
+    fi
+
     tar -xzf "${qrmi_archive}"
     cp "${qrmi_unpack_dir}/qrmi.h" "$qrmi_header"
     cp "${qrmi_unpack_dir}/libqrmi.so" "$qrmi_library"
+    rm -rf "${qrmi_archive}" "${qrmi_unpack_dir}"
 
     popd
     remove_temp_installs
