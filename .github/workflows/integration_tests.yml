@@ -792,6 +792,7 @@ jobs:
                   echo "::warning::Unsupported file type: $filename"
                   echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
                   test_skip_sum=$((test_skip_sum+1))
+                fi
                 ;;
             esac
           done
