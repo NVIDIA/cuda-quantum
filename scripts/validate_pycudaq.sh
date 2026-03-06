@@ -340,19 +340,15 @@ if $quick_test; then
     (return 0 2>/dev/null) && return $status_sum || exit $status_sum
 fi
 
-# Run backend tests
+# Run backend tests (single invocation with xdist; --rootdir matches upstream import layout)
 echo "Running backend tests."
-for backendTest in "$root_folder/tests/backends"/*.py; do
-    python3 -m pytest -v --rootdir "$root_folder/tests" $backendTest
-    # Exit code 5 indicates that no tests were collected,
-    # i.e. all tests in this file were skipped, which is the case
-    # for the mock server tests since they are not included.
-    status=$?
-    if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
-        echo -e "\e[01;31mPython backend test $backendTest failed with code $status.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-done
+python3 -m pytest -v -n auto --rootdir "$root_folder/tests" "$root_folder/tests/backends"
+status=$?
+# Exit code 5 indicates that no tests were collected.
+if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
+    echo -e "\e[01;31mPython backend tests failed with code $status.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Run platform tests (Linux only - requires MPI)
 if $is_macos; then
