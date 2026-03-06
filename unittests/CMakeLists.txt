@@ -13,6 +13,9 @@ set (CMAKE_CXX_FLAGS
 SET(CMAKE_EXE_LINKER_FLAGS "")
 SET(CMAKE_SHARED_LINKER_FLAGS "")
 
+set(CUDAQ_TEST_OMP_SLOTS 1 CACHE STRING
+  "CPU slots per OpenMP-parallel test. Set to 2 with -DCUDAQ_TEST_OMP_SLOTS=2 when OMP_NUM_THREADS=2 at test time.")
+
 set(CUDAQ_RUNTIME_TEST_SOURCES
   # Integration tests
   integration/adjoint_tester.cpp
@@ -78,6 +81,10 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq-builder
     gtest_main)
   set(TEST_LABELS "")
+  set(TEST_PROCESSORS 1)
+  if (${NVQIR_BACKEND} STREQUAL "qpp" OR ${NVQIR_BACKEND} STREQUAL "dm")
+    set(TEST_PROCESSORS ${CUDAQ_TEST_OMP_SLOTS})
+  endif()
   if (${NVQIR_BACKEND} STREQUAL "qpp")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_SIMULATION_SCALAR_FP64)
   endif()
@@ -113,9 +120,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     set(TEST_LABELS "gpu_required")
   endif()
   if ("${TEST_LABELS}" STREQUAL "")
-    gtest_discover_tests(${TEST_EXE_NAME} DISCOVERY_TIMEOUT 120)
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES PROCESSORS ${TEST_PROCESSORS} DISCOVERY_TIMEOUT 120)
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" DISCOVERY_TIMEOUT 120)
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" PROCESSORS ${TEST_PROCESSORS} DISCOVERY_TIMEOUT 120)
   endif()
 endmacro()
 
@@ -464,7 +471,7 @@ target_link_libraries(test_qudit
   cudaq-em-qudit
   nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_qudit DISCOVERY_TIMEOUT 120)
+gtest_discover_tests(test_qudit PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 # build the test photonics execution manager
 add_executable(test_photonics main.cpp photonics/PhotonicsTester.cpp)
@@ -478,7 +485,7 @@ target_link_libraries(test_photonics
   cudaq-em-photonics
   nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_photonics DISCOVERY_TIMEOUT 120)
+gtest_discover_tests(test_photonics PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -492,7 +499,7 @@ target_link_libraries(test_utils
   nvqir
   nvqir-qpp 
   gtest_main)
-gtest_discover_tests(test_utils DISCOVERY_TIMEOUT 120)
+gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_json_convert main.cpp common/JsonConvertTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -505,7 +512,7 @@ target_link_libraries(test_json_convert
   nvqir
   nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_json_convert DISCOVERY_TIMEOUT 120)
+gtest_discover_tests(test_json_convert PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_ptsbe main.cpp
   ptsbe/KrausSelectionTester.cpp
@@ -530,7 +537,7 @@ target_link_libraries(test_ptsbe
   nvqir-qpp
   fmt::fmt-header-only
   gtest_main)
-gtest_discover_tests(test_ptsbe)
+gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS})
 
 add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -586,6 +593,8 @@ if (MPI_CXX_FOUND)
   endif()
 
   add_test(NAME MPIApiTest COMMAND ${MPIEXEC} ${MPI_EXEC_CMD_ARGS} -np ${NUM_PROCS} ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
+  math(EXPR MPI_API_TEST_SLOTS "${NUM_PROCS} * ${CUDAQ_TEST_OMP_SLOTS}")
+  set_tests_properties(MPIApiTest PROPERTIES PROCESSORS ${MPI_API_TEST_SLOTS})
 endif()
 
 add_subdirectory(backends)
@@ -628,5 +637,5 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" DISCOVERY_TIMEOUT 120)
+    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 endif()
