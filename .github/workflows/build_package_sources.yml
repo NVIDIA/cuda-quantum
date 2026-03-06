@@ -415,7 +415,7 @@ jobs:
           tag="${{ steps.push.outputs.image_tag }}"
           tag_amd64="${{ steps.push.outputs.tag_amd64 }}"
           tag_arm64="${{ steps.push.outputs.tag_arm64 }}"
-          docker buildx imagetools create --tag "$tag" "$tag_amd64" "$tag_arm64" --push
+          docker buildx imagetools create --tag "$tag" "$tag_amd64" "$tag_arm64"
 
       - name: Summary
         run: |
