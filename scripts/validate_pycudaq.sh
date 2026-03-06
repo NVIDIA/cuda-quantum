@@ -103,6 +103,10 @@ done
 
 echo "Environment sanitized (unset: $SANITIZE_VARS)"
 
+# Limit OpenMP threads: pytest-xdist handles process-level parallelism,
+# so each worker only needs 1 OMP thread for small test simulations.
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
     # Try to find repo root
@@ -263,7 +267,7 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
-    pip install pytest
+    pip install pytest pytest-xdist
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -297,9 +301,10 @@ else
     done
 fi
 
-# Run core tests
+# Run core tests (pytest-xdist forks processes, so global state like
+# cudaq.set_target() is isolated per worker)
 echo "Running core tests."
-python3 -m pytest -v "$root_folder/tests" \
+python3 -m pytest -v -n auto "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
