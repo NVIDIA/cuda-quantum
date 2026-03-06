@@ -157,6 +157,8 @@ public:
 
   bool allowJitEngineCaching = false;
 
+  bool useParametricJit = false;
+
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.

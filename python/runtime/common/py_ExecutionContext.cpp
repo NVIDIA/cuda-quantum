@@ -48,6 +48,8 @@ void bindExecutionContext(py::module &mod) {
                      &cudaq::ExecutionContext::explicitMeasurements)
       .def_readwrite("allowJitEngineCaching",
                      &cudaq::ExecutionContext::allowJitEngineCaching)
+      .def_readwrite("useParametricJit",
+                     &cudaq::ExecutionContext::useParametricJit)
       .def_readonly("invocationResultBuffer",
                     &cudaq::ExecutionContext::invocationResultBuffer)
       .def("unset_jit_engine",
