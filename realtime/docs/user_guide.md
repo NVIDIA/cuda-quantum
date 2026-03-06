@@ -69,7 +69,7 @@ bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gp
 > - `--gpu` is the GPU device Id that we want to run the RPC callback on.
 > - `--fpga-ip` is the IP address of the `HSB` FPGA.
 > - `--bridge-ip` is the IP address of the NIC on the host machine. 
-> - `--hololink-dir` is the location of `HSB`, which contains the `build` directory from the above step.
+> - `--page-size` is the ring buffer slot size in bytes.
 
 Upon successful completion, the above validation script should print out the following:
 
