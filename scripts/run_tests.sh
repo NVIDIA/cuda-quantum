@@ -65,14 +65,36 @@ else
 fi
 echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
 
-# 1. CTest
+# Detect GPU availability for ctest label filtering
+gpu_excludes=""
+if [ "$(uname)" = "Darwin" ]; then
+  gpu_excludes="--label-exclude gpu_required"
+elif [ ! -x "$(command -v nvidia-smi)" ] || \
+     [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then
+  gpu_excludes="--label-exclude gpu_required"
+fi
+
+# 1a. CTest: CPU tests in parallel (PROCESSORS property handles scheduling)
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
-  -E "ctest-nvqpp|ctest-targettests"
+  -E "ctest-nvqpp|ctest-targettests" $gpu_excludes
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
   status_sum=$((status_sum + 1))
+fi
+
+# 1b. GPU tests: run serially to avoid GPU memory contention
+if [ -z "$gpu_excludes" ]; then
+  echo "=== Running GPU ctest (serial) ==="
+  ctest --output-on-failure --test-dir "$build_dir" -j 1 \
+    -E "ctest-nvqpp|ctest-targettests" \
+    -L "gpu_required" --label-exclude "mgpus_required"
+  gpu_ctest_status=$?
+  if [ $gpu_ctest_status -ne 0 ]; then
+    echo "::error::GPU ctest failed with status $gpu_ctest_status"
+    status_sum=$((status_sum + 1))
+  fi
 fi
 
 # 2. Main lit tests
