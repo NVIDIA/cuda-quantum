@@ -2090,8 +2090,7 @@ and [`result.has_execution_data()`{.docutils .literal
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Execution data:[2026-03-05 11:41:23.050] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
-
+    Execution data:
       Instructions: 6 total
         Gates: 2, Noise: 2, Measurements: 2
       Trajectories: 64
@@ -2106,6 +2105,7 @@ and [`result.has_execution_data()`{.docutils .literal
       Selected trajectory (kraus_selections):
         circuit_location=1, kraus_operator_index=0, is_error=False
         circuit_location=3, kraus_operator_index=0, is_error=False
+    [2026-03-06 04:12:28.217] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 :::
 :::
 :::
