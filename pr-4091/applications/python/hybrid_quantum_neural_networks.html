@@ -1064,7 +1064,7 @@
 <p>The example below highlights a hybrid quantum neural network workflow with CUDA-Q and PyTorch where both layers can GPU accelerated to maximise performance.</p>
 <p><img alt="hybrid" class="no-scaled-link" src="../../_images/hybrid.png" style="width: 600px;" /></p>
 <p>We perform binary classification on the MNIST dataset where data flows through the neural network architecture to the quantum circuit whose output is used to classify hand written digits.</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
@@ -1076,6 +1076,15 @@
 <span class="c1"># !pip install matplotlib==3.8.4 torch==2.9.1+cu126 torchvision==0.24.1+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>
+</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -1193,7 +1202,7 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
@@ -1201,6 +1210,17 @@
                                                 <span class="n">test_size</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 9.91M/9.91M [00:00&lt;00:00, 11.2MB/s]
+100%|██████████| 28.9k/28.9k [00:00&lt;00:00, 314kB/s]
+100%|██████████| 1.65M/1.65M [00:00&lt;00:00, 3.05MB/s]
+100%|██████████| 4.54k/4.54k [00:00&lt;00:00, 9.91MB/s]
+</pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -1376,7 +1396,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">y</span> <span class="o">==</span> <span class="p">(</span><span class="n">y_hat</span> <span class="o">&gt;=</span> <span class="n">classification_threshold</span><span class="p">)))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="nb">sum</span><span class="p">((</span><span class="n">y</span> <span class="o">==</span> <span class="p">(</span><span class="n">y_hat</span> <span class="o">&gt;=</span> <span class="n">classification_threshold</span><span class="p">)))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -1470,7 +1490,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f52f3f8e0830e0c78e05ed8d087ae7faf1e58c9f)
+CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum f78f6742444f7ebea67dd13758b7007cde2e2ab9)
 </pre></div></div>
 </div>
 </section>
