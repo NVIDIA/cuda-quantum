@@ -95,7 +95,7 @@ Upon successful completion, the above validation script should print out the fol
 === Shutting down ===
 ```
 
-Congratulations! You have a complete 
+Congratulations! You have successfully validated the CUDA-Q Realtime installation. 
 
 > **_NOTE:_** In the above test script, we execute a simple RPC dispatch tests, whereby
 the FPGA sends data (array of bytes) to the GPU; the GPU performs a simple increment by one 
