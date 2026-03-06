@@ -12,10 +12,19 @@
 /// This file is compiled by g++ (not nvcc) to isolate Hololink's fmt
 /// dependency from CUDA translation units.
 
-#include "hololink_wrapper.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 
 // Include Hololink headers here (with Holoscan's fmt)
+// Disable deprecation warnings for Hololink headers, which may use deprecated
+// APIs
+#if (defined(__GNUC__) && !defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.hpp>
+#if (defined(__GNUC__) && !defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
 #include <iostream>
 
@@ -27,8 +36,6 @@ using namespace hololink::operators;
 
 struct HololinkTransceiverImpl {
   std::unique_ptr<GpuRoceTransceiver> transceiver;
-  size_t page_size;
-  unsigned num_pages;
 };
 
 //==============================================================================
@@ -36,17 +43,16 @@ struct HololinkTransceiverImpl {
 //==============================================================================
 
 hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port,
+hololink_create_transceiver(const char *device_name, int ib_port, int gpu_id,
                             size_t frame_size, size_t page_size,
                             unsigned num_pages, const char *peer_ip,
                             int forward, int rx_only, int tx_only) {
   try {
     auto *impl = new HololinkTransceiverImpl();
-    impl->page_size = page_size;
-    impl->num_pages = num_pages;
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(
-        device_name, static_cast<unsigned>(ib_port), frame_size, page_size,
-        num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0);
+        device_name, static_cast<unsigned>(ib_port), gpu_id, frame_size,
+        page_size, num_pages, peer_ip, forward != 0, rx_only != 0,
+        tx_only != 0);
     return reinterpret_cast<hololink_transceiver_t>(impl);
   } catch (const std::exception &e) {
     std::cerr << "ERROR: Failed to create GpuRoceTransceiver: " << e.what()
@@ -116,6 +122,14 @@ uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle) {
   return 0;
 }
 
+void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle) {
+  if (handle) {
+    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    return impl->transceiver->get_gpu_dev_qp();
+  }
+  return nullptr;
+}
+
 int hololink_get_gid(hololink_transceiver_t handle, uint8_t *gid_out) {
   if (handle) {
     auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
@@ -173,20 +187,6 @@ uint64_t *hololink_get_tx_ring_flag_addr(hololink_transceiver_t handle) {
   return nullptr;
 }
 
-uint64_t *hololink_get_tx_ring_flag_host_addr(hololink_transceiver_t handle) {
-  if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
-    return impl->transceiver->get_tx_ring_flag_host_addr();
-  }
-  return nullptr;
-}
-
-uint64_t *hololink_get_rx_ring_flag_host_addr(hololink_transceiver_t handle) {
-  // Note: GpuRoceTransceiver does not currently expose host RX flag addr.
-  (void)handle;
-  return nullptr;
-}
-
 bool hololink_query_kernel_occupancy(void) {
   int prep = 0, rx = 0, tx = 0;
   cudaError_t err = GpuRoceTransceiverQueryOccupancy(&prep, &rx, &tx);
@@ -202,7 +202,7 @@ bool hololink_query_kernel_occupancy(void) {
 size_t hololink_get_page_size(hololink_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
-    return impl->page_size;
+    return impl->transceiver->get_rx_ring_stride_sz();
   }
   return 0;
 }
@@ -210,7 +210,7 @@ size_t hololink_get_page_size(hololink_transceiver_t handle) {
 unsigned hololink_get_num_pages(hololink_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
-    return impl->num_pages;
+    return impl->transceiver->get_rx_ring_stride_num();
   }
   return 0;
 }

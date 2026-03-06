@@ -9,11 +9,21 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatcher.h"
 
-namespace cudaq::realtime {
+#include <cuda/std/atomic>
 
-//-----------------------------------------------------------------------------
-// Helpers: function table lookup
-//-----------------------------------------------------------------------------
+using atomic_uint64_sys = cuda::std::atomic<uint64_t>;
+using atomic_int_sys = cuda::std::atomic<int>;
+
+static inline atomic_uint64_sys *as_atomic_u64(void *p) {
+  return static_cast<atomic_uint64_sys *>(p);
+}
+static inline atomic_int_sys *as_atomic_int(void *p) {
+  return static_cast<atomic_int_sys *>(p);
+}
+
+namespace {
+
+using namespace cudaq::realtime;
 
 static const cudaq_function_entry_t *
 lookup_function(cudaq_function_entry_t *table, size_t count,
@@ -26,12 +36,13 @@ lookup_function(cudaq_function_entry_t *table, size_t count,
 }
 
 static int
-find_idle_graph_worker_for_function(const HostDispatcherConfig &config,
+find_idle_graph_worker_for_function(const cudaq_host_dispatcher_config_t *config,
                                     uint32_t function_id) {
-  uint64_t mask = config.idle_mask->load(cuda::std::memory_order_acquire);
+  uint64_t mask = as_atomic_u64(config->idle_mask)->load(
+      cuda::std::memory_order_acquire);
   while (mask != 0) {
     int worker_id = __builtin_ffsll(static_cast<long long>(mask)) - 1;
-    if (config.workers[static_cast<size_t>(worker_id)].function_id ==
+    if (config->workers[static_cast<size_t>(worker_id)].function_id ==
         function_id)
       return worker_id;
     mask &= ~(1ULL << worker_id);
@@ -39,17 +50,15 @@ find_idle_graph_worker_for_function(const HostDispatcherConfig &config,
   return -1;
 }
 
-/// Result of parsing the slot when a function table is in use.
 struct ParsedSlot {
   uint32_t function_id = 0;
   const cudaq_function_entry_t *entry = nullptr;
-  bool drop = false; // true => invalid magic or unknown function_id; clear slot
-                     // and advance
+  bool drop = false;
 };
 
 static ParsedSlot
 parse_slot_with_function_table(void *slot_host,
-                               const HostDispatcherConfig &config) {
+                               const cudaq_host_dispatcher_config_t *config) {
   ParsedSlot out;
   const RPCHeader *header = static_cast<const RPCHeader *>(slot_host);
   if (header->magic != RPC_MAGIC_REQUEST) {
@@ -57,91 +66,88 @@ parse_slot_with_function_table(void *slot_host,
     return out;
   }
   out.function_id = header->function_id;
-  out.entry = lookup_function(config.function_table,
-                              config.function_table_count, out.function_id);
+  out.entry = lookup_function(config->function_table,
+                              config->function_table_count, out.function_id);
   if (!out.entry)
     out.drop = true;
   return out;
 }
 
-/// Clear rx_flag for this slot, increment stats, advance slot index.
-static void finish_slot_and_advance(const HostDispatcherConfig &config,
+static void finish_slot_and_advance(const cudaq_host_dispatcher_config_t *config,
                                     size_t &current_slot, size_t num_slots,
                                     uint64_t &packets_dispatched) {
-  config.rx_flags[current_slot].store(0, cuda::std::memory_order_release);
+  as_atomic_u64(config->rx_flags)[current_slot].store(
+      0, cuda::std::memory_order_release);
   packets_dispatched++;
-  if (config.live_dispatched)
-    config.live_dispatched->fetch_add(1, cuda::std::memory_order_relaxed);
+  if (config->live_dispatched)
+    as_atomic_u64(config->live_dispatched)
+        ->fetch_add(1, cuda::std::memory_order_relaxed);
   current_slot = (current_slot + 1) % num_slots;
 }
 
-/// Acquire a graph worker (by function_id if table in use, else any idle
-/// worker).
-static int acquire_graph_worker(const HostDispatcherConfig &config,
+static int acquire_graph_worker(const cudaq_host_dispatcher_config_t *config,
                                 bool use_function_table,
                                 const cudaq_function_entry_t *entry,
                                 uint32_t function_id) {
   if (use_function_table && entry &&
       entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
     return find_idle_graph_worker_for_function(config, function_id);
-  uint64_t mask = config.idle_mask->load(cuda::std::memory_order_acquire);
+  uint64_t mask =
+      as_atomic_u64(config->idle_mask)->load(cuda::std::memory_order_acquire);
   if (mask == 0)
     return -1;
   return __builtin_ffsll(static_cast<long long>(mask)) - 1;
 }
 
-/// Launch the graph for the given worker; set tx_flags on success or error.
-static void launch_graph_worker(const HostDispatcherConfig &config,
+static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
                                 int worker_id, void *slot_host,
                                 size_t current_slot) {
-  config.idle_mask->fetch_and(~(1ULL << worker_id),
-                              cuda::std::memory_order_release);
-  config.inflight_slot_tags[worker_id] = static_cast<int>(current_slot);
+  as_atomic_u64(config->idle_mask)
+      ->fetch_and(~(1ULL << worker_id), cuda::std::memory_order_release);
+  config->inflight_slot_tags[worker_id] = static_cast<int>(current_slot);
 
-  ptrdiff_t offset = static_cast<uint8_t *>(slot_host) - config.rx_data_host;
-  void *data_dev = static_cast<void *>(config.rx_data_dev + offset);
-  config.h_mailbox_bank[worker_id] = data_dev;
+  ptrdiff_t offset =
+      static_cast<uint8_t *>(slot_host) - config->rx_data_host;
+  void *data_dev = static_cast<void *>(config->rx_data_dev + offset);
+  config->h_mailbox_bank[worker_id] = data_dev;
   __sync_synchronize();
 
   const size_t w = static_cast<size_t>(worker_id);
-  if (config.workers[w].pre_launch_fn)
-    config.workers[w].pre_launch_fn(config.workers[w].pre_launch_data, data_dev,
-                                    config.workers[w].stream);
-  cudaError_t err =
-      cudaGraphLaunch(config.workers[w].graph_exec, config.workers[w].stream);
+  if (config->workers[w].pre_launch_fn)
+    config->workers[w].pre_launch_fn(config->workers[w].pre_launch_data,
+                                     data_dev, config->workers[w].stream);
+  cudaError_t err = cudaGraphLaunch(config->workers[w].graph_exec,
+                                    config->workers[w].stream);
 
   if (err != cudaSuccess) {
     uint64_t error_val = (uint64_t)0xDEAD << 48 | (uint64_t)err;
-    config.tx_flags[current_slot].store(error_val,
-                                        cuda::std::memory_order_release);
-    config.idle_mask->fetch_or(1ULL << worker_id,
-                               cuda::std::memory_order_release);
+    as_atomic_u64(config->tx_flags)[current_slot].store(
+        error_val, cuda::std::memory_order_release);
+    as_atomic_u64(config->idle_mask)
+        ->fetch_or(1ULL << worker_id, cuda::std::memory_order_release);
   } else {
-    if (config.workers[w].post_launch_fn)
-      config.workers[w].post_launch_fn(config.workers[w].post_launch_data,
-                                       data_dev, config.workers[w].stream);
-    // Always write IN_FLIGHT sentinel. The actual READY value is written
-    // later by the CPU worker thread or the GPU-only cudaLaunchHostFunc
-    // callback, after the graph has completed.
-    config.tx_flags[current_slot].store(0xEEEEEEEEEEEEEEEEULL,
-                                        cuda::std::memory_order_release);
+    if (config->workers[w].post_launch_fn)
+      config->workers[w].post_launch_fn(config->workers[w].post_launch_data,
+                                        data_dev, config->workers[w].stream);
+    as_atomic_u64(config->tx_flags)[current_slot].store(
+        0xEEEEEEEEEEEEEEEEULL, cuda::std::memory_order_release);
   }
 }
 
-//-----------------------------------------------------------------------------
-// Main loop
-//-----------------------------------------------------------------------------
+} // anonymous namespace
 
-void host_dispatcher_loop(const HostDispatcherConfig &config) {
+extern "C" void
+cudaq_host_dispatcher_loop(const cudaq_host_dispatcher_config_t *config) {
   size_t current_slot = 0;
-  const size_t num_slots = config.num_slots;
+  const size_t num_slots = config->num_slots;
   uint64_t packets_dispatched = 0;
   const bool use_function_table =
-      (config.function_table != nullptr && config.function_table_count > 0);
+      (config->function_table != nullptr && config->function_table_count > 0);
 
-  while (config.shutdown_flag->load(cuda::std::memory_order_acquire) == 0) {
-    uint64_t rx_value =
-        config.rx_flags[current_slot].load(cuda::std::memory_order_acquire);
+  while (as_atomic_int(config->shutdown_flag)
+             ->load(cuda::std::memory_order_acquire) == 0) {
+    uint64_t rx_value = as_atomic_u64(config->rx_flags)[current_slot].load(
+        cuda::std::memory_order_acquire);
 
     if (rx_value == 0) {
       QEC_CPU_RELAX();
@@ -156,7 +162,8 @@ void host_dispatcher_loop(const HostDispatcherConfig &config) {
     if (use_function_table) {
       ParsedSlot parsed = parse_slot_with_function_table(slot_host, config);
       if (parsed.drop) {
-        config.rx_flags[current_slot].store(0, cuda::std::memory_order_release);
+        as_atomic_u64(config->rx_flags)[current_slot].store(
+            0, cuda::std::memory_order_release);
         current_slot = (current_slot + 1) % num_slots;
         continue;
       }
@@ -164,9 +171,9 @@ void host_dispatcher_loop(const HostDispatcherConfig &config) {
       entry = parsed.entry;
     }
 
-    // Only GRAPH_LAUNCH is dispatched; HOST_CALL and DEVICE_CALL are dropped.
     if (entry && entry->dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH) {
-      config.rx_flags[current_slot].store(0, cuda::std::memory_order_release);
+      as_atomic_u64(config->rx_flags)[current_slot].store(
+          0, cuda::std::memory_order_release);
       current_slot = (current_slot + 1) % num_slots;
       continue;
     }
@@ -183,13 +190,11 @@ void host_dispatcher_loop(const HostDispatcherConfig &config) {
                             packets_dispatched);
   }
 
-  for (const auto &w : config.workers) {
-    cudaStreamSynchronize(w.stream);
+  for (size_t i = 0; i < config->num_workers; ++i) {
+    cudaStreamSynchronize(config->workers[i].stream);
   }
 
-  if (config.stats_counter) {
-    *config.stats_counter = packets_dispatched;
+  if (config->stats_counter) {
+    *config->stats_counter = packets_dispatched;
   }
 }
-
-} // namespace cudaq::realtime

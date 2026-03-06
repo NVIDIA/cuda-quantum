@@ -44,18 +44,17 @@ jobs:
         uses: ./.github/actions/run-in-docker
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
-          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          # TODO: use alma-limux8 image to make sure we use the same glibc version as the CUDA-Q installer.
+          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubi8
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
             cd /workspace/realtime
-            # Install dependencies
-            source scripts/install_dev_prerequisites.sh
             # Build 
-            apt update && apt install -y --no-install-recommends cmake git
+            dnf install -y cmake git
             mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON 
-            make -j$(nproc)
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/workspace/installer
+            make -j$(nproc) install
 
       - name: 'Tar files'
         run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
@@ -65,6 +64,14 @@ jobs:
         with:
           name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
           path: build_artifacts.tgz
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ${{ github.workspace }}/installer
           retention-days: 1
           if-no-files-found: error
 
@@ -103,3 +110,105 @@ jobs:
           apt update && apt install -y --no-install-recommends cmake 
           cd /workspace/realtime/build
           ctest -V
+
+  build_installer:
+    name: Build Installer
+    needs: build_realtime
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ubuntu:24.04
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: /realtime_assets
+
+      - name: Install tools for building installer
+        run: |
+          apt update && apt install -y makeself git
+
+      - name: Build installer
+        shell: bash
+        run: |
+          # Set install prefix to match where build_installer.sh expects it
+          export CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
+          # Run installer build script
+          bash realtime/scripts/build_installer.sh -c $(echo ${{ matrix.cuda_version }} | cut -d . -f1)
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
+          path: ${{ github.workspace }}/out
+          retention-days: 1
+          if-no-files-found: error
+
+  test_installer:
+    name: Test Installer  
+    needs: build_installer
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+        distro: ['ubuntu24.04', 'ubi9']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      # Note: in this test, we need to build a CUDA kernel (to use with CUDAQ Realtime), hence we need the CUDA toolkit, not just the runtime.
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-${{ matrix.distro }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download installer 
+        uses: actions/download-artifact@v4
+        with:
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
+          path: ./installers
+      
+      - name: Install CUDA Quantum Realtime using installer
+        shell: bash
+        run: |
+          cd ./installers
+          # Find the installer file (assuming there's only one in the directory)
+          installer_file=$(ls install_cuda_quantum_realtime_*)
+          echo "Found installer: $installer_file"
+          # Make the installer executable and run it
+          chmod +x "$installer_file"
+          ./"$installer_file" --accept
+
+      - name: Test CUDA Quantum Realtime installation
+        shell: bash
+        run: |
+          # Install cmake for building a test example that uses the installed CUDA Quantum Realtime
+          # Install cmake depending on distro
+          if [[ "${{ matrix.distro }}" == "ubi9" ]]; then
+            dnf install -y cmake
+          else
+            apt update && apt install -y --no-install-recommends cmake 
+          fi
+          # Build the test example that uses the installed CUDA Quantum Realtime
+          cd realtime/examples/gpu_dispatch
+          mkdir -p build && cd build
+          cmake .. 
+          make -j$(nproc)
+          ./dispatch_kernel

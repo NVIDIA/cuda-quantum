@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <cuda/std/atomic>
 #include <cuda_runtime.h>
 #include <cstdint>
 #include <cstring>
@@ -254,6 +255,7 @@ static constexpr std::size_t kMaxWorkers = 8;
 class HostDispatcherLoopTest : public ::testing::Test {
 protected:
   void SetUp() override {
+    std::memset(&config_, 0, sizeof(config_));
     ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &rx_flags_host_,
                                      &rx_flags_dev_, &rx_data_host_,
                                      &rx_data_dev_));
@@ -268,10 +270,10 @@ protected:
     CUDA_CHECK(cudaHostGetDevicePointer(
         reinterpret_cast<void**>(&d_mailbox_bank_), h_mailbox_bank_, 0));
 
-    idle_mask_ = new cudaq::realtime::atomic_uint64_sys(0);
-    live_dispatched_ = new cudaq::realtime::atomic_uint64_sys(0);
+    idle_mask_ = new cuda::std::atomic<uint64_t>(0);
+    live_dispatched_ = new cuda::std::atomic<uint64_t>(0);
     inflight_slot_tags_ = new int[kMaxWorkers]();
-    shutdown_flag_ = new cudaq::realtime::atomic_int_sys(0);
+    shutdown_flag_ = new cuda::std::atomic<int>(0);
     stats_counter_ = 0;
 
     function_table_ = new cudaq_function_entry_t[kMaxWorkers];
@@ -329,7 +331,7 @@ protected:
     cudaStream_t stream = nullptr;
     ASSERT_EQ(cudaStreamCreate(&stream), cudaSuccess);
 
-    cudaq::realtime::HostDispatchWorker w;
+    cudaq_host_dispatch_worker_t w;
     w.graph_exec = exec;
     w.stream = stream;
     w.function_id = function_id;
@@ -347,12 +349,8 @@ protected:
     idle_mask_->store((1ULL << workers_.size()) - 1,
                       cuda::std::memory_order_release);
 
-    config_.rx_flags =
-        reinterpret_cast<cudaq::realtime::atomic_uint64_sys*>(
-            const_cast<uint64_t*>(rx_flags_host_));
-    config_.tx_flags =
-        reinterpret_cast<cudaq::realtime::atomic_uint64_sys*>(
-            const_cast<uint64_t*>(tx_flags_host_));
+    config_.rx_flags = (void *)(uintptr_t)rx_flags_host_;
+    config_.tx_flags = (void *)(uintptr_t)tx_flags_host_;
     config_.rx_data_host = rx_data_host_;
     config_.rx_data_dev = rx_data_dev_;
     config_.tx_data_host = tx_data_host_;
@@ -361,7 +359,8 @@ protected:
     config_.h_mailbox_bank = h_mailbox_bank_;
     config_.num_slots = num_slots_;
     config_.slot_size = slot_size_;
-    config_.workers = workers_;
+    config_.workers = workers_.data();
+    config_.num_workers = workers_.size();
     config_.function_table = function_table_;
     config_.function_table_count = function_table_count_;
     config_.shutdown_flag = shutdown_flag_;
@@ -370,7 +369,9 @@ protected:
     config_.idle_mask = idle_mask_;
     config_.inflight_slot_tags = inflight_slot_tags_;
 
-    loop_thread_ = std::thread(cudaq::realtime::host_dispatcher_loop, config_);
+    loop_thread_ = std::thread([this]() {
+      cudaq_host_dispatcher_loop(&config_);
+    });
   }
 
   void WriteRpcRequest(std::size_t slot, std::uint32_t function_id,
@@ -453,20 +454,20 @@ protected:
   void** h_mailbox_bank_ = nullptr;
   void** d_mailbox_bank_ = nullptr;
 
-  cudaq::realtime::atomic_uint64_sys* idle_mask_ = nullptr;
-  cudaq::realtime::atomic_uint64_sys* live_dispatched_ = nullptr;
+  cuda::std::atomic<uint64_t>* idle_mask_ = nullptr;
+  cuda::std::atomic<uint64_t>* live_dispatched_ = nullptr;
   int* inflight_slot_tags_ = nullptr;
-  cudaq::realtime::atomic_int_sys* shutdown_flag_ = nullptr;
+  cuda::std::atomic<int>* shutdown_flag_ = nullptr;
   uint64_t stats_counter_ = 0;
   bool loop_stopped_ = false;
 
   cudaq_function_entry_t* function_table_ = nullptr;
   std::size_t function_table_count_ = 0;
-  std::vector<cudaq::realtime::HostDispatchWorker> workers_;
+  std::vector<cudaq_host_dispatch_worker_t> workers_;
   std::vector<WorkerInfo> worker_info_;
 
   cudaq_ringbuffer_t ringbuffer_{};
-  cudaq::realtime::HostDispatcherConfig config_{};
+  cudaq_host_dispatcher_config_t config_;
   std::thread loop_thread_;
 };
 

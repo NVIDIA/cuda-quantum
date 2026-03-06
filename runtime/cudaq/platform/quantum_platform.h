@@ -104,6 +104,9 @@ public:
     detail::setExecutionContext(&ctx);
     beginExecution();
 
+    // Cleanup runs after the kernel returns or throws. It finalizes results
+    // and tears down, then resets the execution context.
+    // The context reset always runs even if finalization throws.
     auto cleanup = [this, &ctx, &outerContext]() {
       detail::try_finally(
           [this, &ctx] {

@@ -10,11 +10,9 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <cuda/std/atomic>
+#include <stddef.h>
+#include <stdint.h>
 #include <cuda_runtime.h>
-#include <vector>
 
 #ifndef QEC_CPU_RELAX
 #if defined(__x86_64__)
@@ -29,27 +27,23 @@
 #endif
 #endif
 
-namespace cudaq::realtime {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-using atomic_uint64_sys = cuda::std::atomic<uint64_t>;
-using atomic_int_sys = cuda::std::atomic<int>;
-
-struct HostDispatchWorker {
+typedef struct {
   cudaGraphExec_t graph_exec;
   cudaStream_t stream;
-  uint32_t
-      function_id; // matches table entry; used to assign slot to this worker
-  void (*pre_launch_fn)(void *user_data, void *slot_dev,
-                        cudaStream_t stream) = nullptr;
-  void *pre_launch_data = nullptr;
-  void (*post_launch_fn)(void *user_data, void *slot_dev,
-                         cudaStream_t stream) = nullptr;
-  void *post_launch_data = nullptr;
-};
+  uint32_t function_id;
+  void (*pre_launch_fn)(void *user_data, void *slot_dev, cudaStream_t stream);
+  void *pre_launch_data;
+  void (*post_launch_fn)(void *user_data, void *slot_dev, cudaStream_t stream);
+  void *post_launch_data;
+} cudaq_host_dispatch_worker_t;
 
-struct HostDispatcherConfig {
-  atomic_uint64_sys *rx_flags;
-  atomic_uint64_sys *tx_flags;
+typedef struct {
+  void *rx_flags;      ///< opaque cuda::std::atomic<uint64_t>*
+  void *tx_flags;      ///< opaque cuda::std::atomic<uint64_t>*
   uint8_t *rx_data_host;
   uint8_t *rx_data_dev;
   uint8_t *tx_data_host;
@@ -58,27 +52,25 @@ struct HostDispatcherConfig {
   void **h_mailbox_bank;
   size_t num_slots;
   size_t slot_size;
-  std::vector<HostDispatchWorker> workers;
+  cudaq_host_dispatch_worker_t *workers;
+  size_t num_workers;
   /// Host-visible function table for lookup by function_id (GRAPH_LAUNCH only;
   /// others dropped).
-  cudaq_function_entry_t *function_table = nullptr;
-  size_t function_table_count = 0;
-  atomic_int_sys *shutdown_flag;
+  cudaq_function_entry_t *function_table;
+  size_t function_table_count;
+  void *shutdown_flag;     ///< opaque cuda::std::atomic<int>*
   uint64_t *stats_counter;
-  /// Optional: atomic counter incremented on each dispatch (for progress
-  /// diagnostics).
-  atomic_uint64_sys *live_dispatched = nullptr;
+  void *live_dispatched;   ///< opaque cuda::std::atomic<uint64_t>*
+  void *idle_mask;         ///< opaque cuda::std::atomic<uint64_t>*, 1=free 0=busy
+  int *inflight_slot_tags; ///< worker_id -> origin FPGA slot for tx_flags routing
+} cudaq_host_dispatcher_config_t;
 
-  /// Dynamic worker pool (graph workers only)
-  atomic_uint64_sys *idle_mask; ///< 1 = free, 0 = busy; bit index = worker_id
-  int *inflight_slot_tags;      ///< worker_id -> origin FPGA slot for tx_flags
-                                ///< routing
-};
-
-/// Run the host-side dispatcher loop. Blocks until *config.shutdown_flag
+/// Run the host-side dispatcher loop. Blocks until *config->shutdown_flag
 /// becomes non-zero. Call from a dedicated thread.
 /// Uses dynamic worker pool: allocates via idle_mask, tags with
 /// inflight_slot_tags.
-void host_dispatcher_loop(const HostDispatcherConfig &config);
+void cudaq_host_dispatcher_loop(const cudaq_host_dispatcher_config_t *config);
 
-} // namespace cudaq::realtime
+#ifdef __cplusplus
+}
+#endif

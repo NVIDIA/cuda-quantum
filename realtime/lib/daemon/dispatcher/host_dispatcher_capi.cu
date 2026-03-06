@@ -9,23 +9,26 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatcher.h"
 
+#include <cuda/std/atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <thread>
-#include <vector>
+
+using atomic_uint64_sys = cuda::std::atomic<uint64_t>;
+using atomic_int_sys = cuda::std::atomic<int>;
 
 struct cudaq_host_dispatcher_handle {
   std::thread thread;
-  std::vector<cudaq::realtime::HostDispatchWorker> workers;
-  cudaq::realtime::atomic_uint64_sys* idle_mask = nullptr;
-  int* inflight_slot_tags = nullptr;
-  void** h_mailbox_bank = nullptr;
-  bool owns_mailbox = false;
+  cudaq_host_dispatch_worker_t *workers = nullptr;
   size_t num_workers = 0;
+  atomic_uint64_sys *idle_mask = nullptr;
+  int *inflight_slot_tags = nullptr;
+  void **h_mailbox_bank = nullptr;
+  bool owns_mailbox = false;
 };
 
-static size_t count_graph_launch_workers(const cudaq_function_table_t* table) {
+static size_t count_graph_launch_workers(const cudaq_function_table_t *table) {
   size_t n = 0;
   for (uint32_t i = 0; i < table->count; ++i) {
     if (table->entries[i].dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
@@ -34,13 +37,10 @@ static size_t count_graph_launch_workers(const cudaq_function_table_t* table) {
   return n;
 }
 
-extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
-    const cudaq_ringbuffer_t* ringbuffer,
-    const cudaq_function_table_t* table,
-    const cudaq_dispatcher_config_t* config,
-    volatile int* shutdown_flag,
-    uint64_t* stats,
-    void** external_mailbox) {
+extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
+    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
+    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
+    uint64_t *stats, void **external_mailbox) {
   if (!ringbuffer || !table || !config || !shutdown_flag || !stats)
     return nullptr;
   if (!ringbuffer->rx_flags_host || !ringbuffer->tx_flags_host ||
@@ -55,20 +55,23 @@ extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
   if (num_workers == 0)
     return nullptr;
 
-  auto* handle = new (std::nothrow) cudaq_host_dispatcher_handle();
+  auto *handle = new (std::nothrow) cudaq_host_dispatcher_handle();
   if (!handle)
     return nullptr;
 
-  handle->idle_mask = new (std::nothrow) cudaq::realtime::atomic_uint64_sys(0);
+  handle->workers = new (std::nothrow) cudaq_host_dispatch_worker_t[num_workers];
+  handle->idle_mask = new (std::nothrow) atomic_uint64_sys(0);
   handle->inflight_slot_tags = new (std::nothrow) int[num_workers];
   if (external_mailbox) {
     handle->h_mailbox_bank = external_mailbox;
     handle->owns_mailbox = false;
   } else {
-    handle->h_mailbox_bank = new (std::nothrow) void*[num_workers];
+    handle->h_mailbox_bank = new (std::nothrow) void *[num_workers];
     handle->owns_mailbox = true;
   }
-  if (!handle->idle_mask || !handle->inflight_slot_tags || !handle->h_mailbox_bank) {
+  if (!handle->workers || !handle->idle_mask || !handle->inflight_slot_tags ||
+      !handle->h_mailbox_bank) {
+    delete[] handle->workers;
     delete handle->idle_mask;
     delete[] handle->inflight_slot_tags;
     if (handle->owns_mailbox)
@@ -78,37 +81,44 @@ extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
   }
 
   std::memset(handle->inflight_slot_tags, 0, num_workers * sizeof(int));
+  std::memset(handle->workers, 0,
+              num_workers * sizeof(cudaq_host_dispatch_worker_t));
 
-  handle->workers.reserve(num_workers);
+  size_t worker_idx = 0;
   for (uint32_t i = 0; i < table->count; ++i) {
     if (table->entries[i].dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH)
       continue;
     cudaStream_t stream = nullptr;
     if (cudaStreamCreate(&stream) != cudaSuccess) {
-      for (auto& w : handle->workers)
-        cudaStreamDestroy(w.stream);
+      for (size_t j = 0; j < worker_idx; ++j)
+        cudaStreamDestroy(handle->workers[j].stream);
+      delete[] handle->workers;
       delete handle->idle_mask;
       delete[] handle->inflight_slot_tags;
-      delete[] handle->h_mailbox_bank;
+      if (handle->owns_mailbox)
+        delete[] handle->h_mailbox_bank;
       delete handle;
       return nullptr;
     }
-    cudaq::realtime::HostDispatchWorker w;
-    w.graph_exec = table->entries[i].handler.graph_exec;
-    w.stream = stream;
-    w.function_id = table->entries[i].function_id;
-    handle->workers.push_back(w);
+    handle->workers[worker_idx].graph_exec =
+        table->entries[i].handler.graph_exec;
+    handle->workers[worker_idx].stream = stream;
+    handle->workers[worker_idx].function_id = table->entries[i].function_id;
+    handle->workers[worker_idx].pre_launch_fn = nullptr;
+    handle->workers[worker_idx].pre_launch_data = nullptr;
+    handle->workers[worker_idx].post_launch_fn = nullptr;
+    handle->workers[worker_idx].post_launch_data = nullptr;
+    worker_idx++;
   }
   handle->num_workers = num_workers;
 
   handle->idle_mask->store((1ULL << num_workers) - 1,
                            cuda::std::memory_order_release);
 
-  cudaq::realtime::HostDispatcherConfig host_config;
-  host_config.rx_flags =
-      (cudaq::realtime::atomic_uint64_sys*)(uintptr_t)ringbuffer->rx_flags_host;
-  host_config.tx_flags =
-      (cudaq::realtime::atomic_uint64_sys*)(uintptr_t)ringbuffer->tx_flags_host;
+  cudaq_host_dispatcher_config_t host_config;
+  std::memset(&host_config, 0, sizeof(host_config));
+  host_config.rx_flags = (void *)(uintptr_t)ringbuffer->rx_flags_host;
+  host_config.tx_flags = (void *)(uintptr_t)ringbuffer->tx_flags_host;
   host_config.rx_data_host = ringbuffer->rx_data_host;
   host_config.rx_data_dev = ringbuffer->rx_data;
   host_config.tx_data_host = ringbuffer->tx_data_host;
@@ -118,21 +128,23 @@ extern "C" cudaq_host_dispatcher_handle_t* cudaq_host_dispatcher_start_thread(
   host_config.num_slots = config->num_slots;
   host_config.slot_size = config->slot_size;
   host_config.workers = handle->workers;
+  host_config.num_workers = num_workers;
   host_config.function_table = table->entries;
   host_config.function_table_count = table->count;
-  host_config.shutdown_flag =
-      (cudaq::realtime::atomic_int_sys*)(uintptr_t)shutdown_flag;
+  host_config.shutdown_flag = (void *)(uintptr_t)shutdown_flag;
   host_config.stats_counter = stats;
   host_config.live_dispatched = nullptr;
   host_config.idle_mask = handle->idle_mask;
   host_config.inflight_slot_tags = handle->inflight_slot_tags;
 
-  handle->thread = std::thread(cudaq::realtime::host_dispatcher_loop, host_config);
+  handle->thread = std::thread(
+      [cfg = host_config]() { cudaq_host_dispatcher_loop(&cfg); });
   return handle;
 }
 
-extern "C" cudaq_status_t cudaq_host_dispatcher_release_worker(
-    cudaq_host_dispatcher_handle_t* handle, int worker_id) {
+extern "C" cudaq_status_t
+cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
+                                     int worker_id) {
   if (!handle || !handle->idle_mask)
     return CUDAQ_ERR_INVALID_ARG;
   if (worker_id < 0 || static_cast<size_t>(worker_id) >= handle->num_workers)
@@ -142,13 +154,15 @@ extern "C" cudaq_status_t cudaq_host_dispatcher_release_worker(
   return CUDAQ_OK;
 }
 
-extern "C" void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t* handle) {
+extern "C" void
+cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle) {
   if (!handle)
     return;
   if (handle->thread.joinable())
     handle->thread.join();
-  for (auto& w : handle->workers)
-    cudaStreamDestroy(w.stream);
+  for (size_t i = 0; i < handle->num_workers; ++i)
+    cudaStreamDestroy(handle->workers[i].stream);
+  delete[] handle->workers;
   delete handle->idle_mask;
   delete[] handle->inflight_slot_tags;
   if (handle->owns_mailbox)

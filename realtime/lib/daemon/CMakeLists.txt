@@ -13,8 +13,10 @@
 # and includes the GPU dispatch kernel device code.
 
 if(CUDA_FOUND)
+  set(CMAKE_INSTALL_LIBDIR lib)
   set(CUDAQ_REALTIME_SOURCES
     dispatcher/cudaq_realtime_api.cpp
+    bridge/bridge_interface_api.cpp
   )
 
   add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
@@ -33,6 +35,9 @@ if(CUDA_FOUND)
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
+  target_link_options(cudaq-realtime PRIVATE
+    "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/cudaq-realtime.map")
+  set_target_properties(cudaq-realtime PROPERTIES LINK_FLAGS_RELEASE "-s")
 
   set_target_properties(cudaq-realtime PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -45,20 +50,32 @@ if(CUDA_FOUND)
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 
-  add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
+  add_library(cudaq-realtime-dispatch STATIC
+    dispatcher/dispatch_kernel.cu
+    dispatcher/unified_dispatch_kernel.cu
+  )
+  set_target_properties(cudaq-realtime-dispatch
+    PROPERTIES
+    LINK_FLAGS_RELEASE "-Wl,--exclude-libs=ALL")
+  set_target_properties(cudaq-realtime-dispatch PROPERTIES CXX_VISIBILITY_PRESET "hidden" CUDA_VISIBILITY_PRESET "hidden")
+
+  find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
+    HINTS /opt/mellanox/doca/include
+  )
 
   target_include_directories(cudaq-realtime-dispatch
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
+    PRIVATE
+      ${DOCA_GPU_INCLUDE_DIR}
   )
 
-  # Link CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
   find_library(CUDADEVRT_LIBRARY cudadevrt
     HINTS ${CUDAToolkit_LIBRARY_DIR}
     REQUIRED
   )
-  
+
   target_link_libraries(cudaq-realtime-dispatch
     PUBLIC
       CUDA::cudart_static
@@ -107,4 +124,7 @@ if(CUDA_FOUND)
     COMPONENT realtime-lib
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
+  if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
+    add_subdirectory(bridge/hololink)
+  endif()
 endif()

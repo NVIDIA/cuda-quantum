@@ -15,9 +15,11 @@ FetchContent_Declare(
   GIT_TAG v1.17.0
   EXCLUDE_FROM_ALL
 )
-FetchContent_MakeAvailable(googletest)
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
@@ -51,7 +53,6 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDAQ_REALTIME_INCLUDE_DIR}
   )
   
-  # Find CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
   find_library(CUDADEVRT_LIBRARY cudadevrt
     HINTS ${CUDAToolkit_LIBRARY_DIR}
     REQUIRED
@@ -101,4 +102,5 @@ endif()
 
 if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
   add_subdirectory(utils)
+  add_subdirectory(bridge_interface/hololink)
 endif()

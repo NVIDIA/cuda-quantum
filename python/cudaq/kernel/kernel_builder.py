@@ -34,8 +34,7 @@ from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    recover_value_of, globalRegisteredOperations,
-                    recover_calling_module)
+                    recover_value_of, globalRegisteredOperations)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1349,6 +1348,14 @@ class PyKernel(object):
         ```
         """
         if isa_kernel_decorator(target):
+            if not target.is_compiled():
+                name = target.name
+                emitFatalError(
+                    f"Kernel '{name}' must be compiled to be used in the kernel builder. "
+                    f"Call `{name}.compile()` before initializing the kernel builder, "
+                    f"or deactivate deferred compilation:\n\n"
+                    f"    @cudaq.kernel(defer_compilation=False)\n"
+                    f"    def {name}(...): ...\n")
             target = self.resolve_callable_arg(self.insertPoint, target)
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
@@ -1361,16 +1368,11 @@ class PyKernel(object):
         Returns a `CreateLambdaOp` closure.
         """
         # Add the target kernel to the current module.
-        cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
         fulluniq = nvqppPrefix + target.uniqName
+        cudaq_runtime.updateModule(fulluniq, self.module, target.qkeModule)
         fn = recover_func_op(self.module, fulluniq)
 
         # build the closure to capture the lifted `args`
-        thisPyMod = recover_calling_module()
-        if target.defModule != thisPyMod:
-            m = target.defModule
-        else:
-            m = None
         funcTy = target.signature.get_lifted_type()
         callableTy = target.signature.get_callable_type()
         with insPt, self.loc:
@@ -1384,7 +1386,7 @@ class PyKernel(object):
                 for ba in initBlock.arguments:
                     vs.append(ba)
                 for var in target.captured_variables():
-                    v = recover_value_of(var.name, m)
+                    v = recover_value_of(var.name, target.defFrame)
                     if isa_kernel_decorator(v):
                         # The recursive step
                         v = self.resolve_callable_arg(inner, v)

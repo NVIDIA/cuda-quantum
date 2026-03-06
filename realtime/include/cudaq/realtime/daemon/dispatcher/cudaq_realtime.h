@@ -50,7 +50,8 @@ typedef enum {
 // Kernel synchronization type
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_COOPERATIVE = 1
+  CUDAQ_KERNEL_COOPERATIVE = 1,
+  CUDAQ_KERNEL_UNIFIED = 2
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
@@ -169,6 +170,16 @@ void cudaq_launch_dispatch_kernel_cooperative(
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
+// Unified dispatch launch function pointer type.
+// The unified kernel combines RDMA RX, RPC dispatch, and RDMA TX into a single
+// kernel, eliminating inter-kernel flag handoff overhead.  Transport-specific
+// details are passed via an opaque context pointer so the dispatcher API
+// remains transport-agnostic.
+typedef void (*cudaq_unified_launch_fn_t)(
+    void *transport_ctx, cudaq_function_entry_t *function_table,
+    size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
+    cudaStream_t stream);
+
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
 // These functions are only available when compiled for sm_90 or higher
 #if defined(__CUDACC__) || defined(CUDA_VERSION)
@@ -257,6 +268,14 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
 // The caller retains ownership and must free it after cudaq_dispatcher_destroy.
 cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
                                             void **h_mailbox_bank);
+// Unified dispatch wiring -- pass a transport-specific launch function and
+// an opaque context holding transport handles (e.g. DOCA QP, rkey).
+// When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
+// the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
+cudaq_status_t
+cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
+                                    cudaq_unified_launch_fn_t unified_launch_fn,
+                                    void *transport_ctx);
 
 // Start/stop
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
