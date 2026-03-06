@@ -1037,8 +1037,8 @@ public:
         auto mangledAttr = mangledNameMap.getAs<StringAttr>(funcOp.getName());
         assert(mangledAttr && "funcOp must appear in mangled name map");
         StringRef mangledName = mangledAttr.getValue();
-        bool &&hostEntryNeeded = false;
-        func::FuncOp &&hostFunc = func::FuncOp{};
+        bool hostEntryNeeded = false;
+        func::FuncOp hostFunc;
         if (!ignoreHostFunction) {
           auto hostInfo = cudaq::opt::marshal::lookupHostEntryPointFunc(
               mangledName, module, funcOp);
