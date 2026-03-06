@@ -87,5 +87,6 @@ echo "Post-installation Actions:"
 echo "1. Environment Setup: the LD_LIBRARY_PATH variable needs to contain ${target}/lib."
 echo "For example, you can run: export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${target}/lib"
 echo "2. Validation [Recommended]: Run the included validate.sh script to verify your installation is working correctly."
+echo "Alternatively, you can run the demo.sh script to run a demo application in a containerized environment that uses the installed CUDA-Q Realtime libraries."
 # Guide users to read the `user_guide.md` file to validate their installation.
 echo "Please read the user guide at $target/docs/user_guide.md to validate your installation and learn how to use CUDA-Q Realtime."

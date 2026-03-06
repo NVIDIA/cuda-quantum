@@ -105,4 +105,20 @@ We then validate the data and measure the round-trip latency then ouput the repo
 
 ## Using Docker
 
-TODO
+In the CUDA-Q Realtime installation, the `demo.sh` script will
+build a containerized environment containing neccessary dependencies
+for CUDA-Q Realtime.
+
+For example, 
+
+```bash
+bash /opt/nvidia/cudaq/realtime/demo.sh 
+```
+
+will transfer the local CUDA-Q installation into that containerized environment.
+
+Inside the container, we can then run the validation check, i.e.,
+
+```bash
+bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
+```

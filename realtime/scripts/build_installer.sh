@@ -136,6 +136,9 @@ cp "$this_file_dir/migrate_assets.sh" "$staging_dir/payload/install.sh"
 chmod a+x "$staging_dir/payload/install.sh"
 cp "$this_file_dir/validate_installer.sh" "$staging_dir/payload/validate.sh"
 chmod a+x "$staging_dir/payload/validate.sh"
+cp "$this_file_dir/demo_docker.sh" "$staging_dir/payload/demo.sh"
+chmod a+x "$staging_dir/payload/demo.sh"
+cp "$this_file_dir/demo.Dockerfile" "$staging_dir/payload/demo.Dockerfile"
 
 # Copy the `unittests/utils`, which contains a reference implementation of the hololink wrapper, 
 # which is used by the install script to verify hololink functionality.
