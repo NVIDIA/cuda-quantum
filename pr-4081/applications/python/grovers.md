@@ -268,6 +268,8 @@ pr-4081
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -1055,6 +1057,8 @@ pr-4081
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -2092,7 +2096,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![2834304d42e940d7b6ad2036f47df739](../../_images/grovers-2D-plane.png)
+![be4ac1970aa843c7b318fa8735fd87f4](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2307,7 +2311,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![1a563939236f420b8192089d5043a69c](../../_images/grovers-steps1-3.png)
+![201aca70f9ca4af6a29b5b9b902f01c5](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2319,7 +2323,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![e0c603650a3c48229309bd3392f23a44](../../_images/grovers-full-rotation.png)
+![19ae1eb5bcb54220bb2027d819080919](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

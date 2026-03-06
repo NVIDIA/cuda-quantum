@@ -243,6 +243,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#scaleway">Scaleway</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#tii">TII</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/sample_vs_run.html">   When to Use sample vs. run</a><ul>
@@ -665,6 +666,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#oqc">OQC</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -1382,7 +1384,7 @@ Generating Krylov state U^11...
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
 <p><strong>Note</strong>: Set <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> at the beginning of the notebook to enable GPU acceleration for postprocessing. The quantum circuit simulation uses the NVIDIA target in CUDA-Q regardless of this flag.</p>
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code>.</p>
-<p><img alt="3ddff9c91e1e4a0c8a7c7ad7da74ff07" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
+<p><img alt="6aea479821cc4df7ae828fe2eeb0c3ba" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>

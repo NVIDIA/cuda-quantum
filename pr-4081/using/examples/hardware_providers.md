@@ -233,6 +233,7 @@ pr-4081
         -   [Quantum Machines](#quantum-machines){.reference .internal}
         -   [QuEra Computing](#quera-computing){.reference .internal}
         -   [Scaleway](#scaleway){.reference .internal}
+        -   [TII](#tii){.reference .internal}
     -   [When to Use sample vs. run](sample_vs_run.html){.reference
         .internal}
         -   [Introduction](sample_vs_run.html#introduction){.reference
@@ -1062,6 +1063,8 @@ pr-4081
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../backends/hardware/neutralatom.html){.reference
@@ -3799,6 +3802,95 @@ C++
       counts.dump();
 
       return 0;
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#tii .section}
+[]{#tii-examples}
+
+## TII[¶](#tii "Permalink to this heading"){.headerlink}
+
+The following code illustrates how to run kernels on TII's backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+    import os
+
+    # Set the target at the beginning of the program.
+    cudaq.set_target("tii",
+                     device="tii-sim",
+                     project=os.environ.get("TII_PROJECT", None))
+
+
+    # Create the kernel.
+    @cudaq.kernel
+    def kernel():
+        qvector = cudaq.qvector(2)
+        h(qvector[0])
+        x.ctrl(qvector[0], qvector[1])
+        mz(qvector)
+
+
+    # Note: Increase shots count for better distribution of results.
+    # Using small number here for testing purposes.
+    SHOTS = 50
+
+    # Execute on synchronously on the TII cloud and print out the results.
+    counts = cudaq.sample(kernel, shots_count=SHOTS)
+    print(counts)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    //
+    // Available projects and devices are show in the dashboard:
+    // https://q-cloud.tii.ae/projects/
+    //
+    // The authentication key must be stored (or exported) as environment variable:
+    // ```
+    // export TII_API_TOKEN="your-tii-token"
+    // ```
+    //
+    // Compile and run with:
+    // ```
+    // nvq++ --target tii --tii-device tii-sim \
+    // --tii-project <tii-project-name> tii.cpp
+    // ./a.out
+    // ```
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    struct bell_state {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        x<cudaq::ctrl>(q[0], q[1]);
+        mz(q);
+      }
+    };
+
+    int main() {
+      // Increase shots count for better distribution of results.
+      // Using small number here for testing purposes.
+      constexpr std::size_t SHOTS = 50;
+      // Submit to `tii` synchronously.
+      auto result_counts = cudaq::sample(SHOTS, bell_state{});
+      result_counts.dump();
     }
 :::
 :::

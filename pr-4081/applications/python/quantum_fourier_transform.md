@@ -268,6 +268,8 @@ pr-4081
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -1056,6 +1058,8 @@ pr-4081
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -2198,7 +2202,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum d3d497a7229da24841c4b80116a3492d07db49c7)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 5b3657968af9b3fb7a5c3aecacec92eea6cb9ea4)
 :::
 :::
 :::

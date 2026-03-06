@@ -264,6 +264,8 @@ pr-4081
             .internal}
         -   [Scaleway](../../examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../examples/sample_vs_run.html){.reference .internal}
         -   [Introduction](../../examples/sample_vs_run.html#introduction){.reference
@@ -1080,6 +1082,7 @@ pr-4081
             -   [OQC](#oqc){.reference .internal}
             -   [Quantum Circuits,
                 Inc.](#quantum-circuits-inc){.reference .internal}
+            -   [TII](#tii){.reference .internal}
         -   [Neutral Atom QPUs](neutralatom.html){.reference .internal}
             -   [Infleqtion](neutralatom.html#infleqtion){.reference
                 .internal}
@@ -2596,6 +2599,107 @@ Any environment variables must be set prior to setting the target or
 running "[`import`{.code .docutils .literal
 .notranslate}]{.pre}` `{.code .docutils .literal
 .notranslate}[`cudaq`{.code .docutils .literal .notranslate}]{.pre}".
+:::
+:::
+:::
+
+::: {#tii .section}
+## TII[¶](#tii "Permalink to this heading"){.headerlink}
+
+TII enables execution of CUDA-Q programs on a cloud-based simulator and
+superconducting quantum hardware. The infrastructure is orchestrated by
+[Qibo](https://qibo.science){.reference .external}.
+
+::: {#credential-setup .section}
+### Credential setup[¶](#credential-setup "Permalink to this heading"){.headerlink}
+
+Access to TII hardware requires user registration. New accounts can be
+requested at [TII's quantum computing cloud
+portal](https://q-cloud.tii.ae){.reference .external}. Authentication is
+performed using an email address and password.
+
+After the first login, users can generate personal access tokens. This
+token is used to authenticate backend requests and can be set as an
+environment variable ([`TII_API_TOKEN`{.docutils .literal
+.notranslate}]{.pre}) for convenience.
+:::
+
+::: {#backend-parameters .section}
+### Backend parameters[¶](#backend-parameters "Permalink to this heading"){.headerlink}
+
+In addition to authentication, users must specify the quantum device and
+the project under which jobs will be executed.
+
+The full list of projects and devices available to the user is shown on
+the [TII dashboard](https://q-cloud.tii.ae/projects/){.reference
+.external}.
+
+Supported parameters:
+
+-   [`api_key`{.docutils .literal .notranslate}]{.pre}: Authentication
+    token. If not provided explicitly, it is read from the
+    [`TII_API_TOKEN`{.docutils .literal .notranslate}]{.pre} environment
+    variable.
+
+-   [`device`{.docutils .literal .notranslate}]{.pre}: Quantum device on
+    which the job is executed (required).
+
+-   [`project`{.docutils .literal .notranslate}]{.pre}: User project
+    associated with the job (required).
+
+-   [`verbatim`{.docutils .literal .notranslate}]{.pre}: When set to
+    [`true`{.docutils .literal .notranslate}]{.pre} the circuit is
+    dispatched without transpilation. Defaults to [`false`{.docutils
+    .literal .notranslate}]{.pre}.
+:::
+
+::: {#submitting-jobs .section}
+### Submitting jobs[¶](#submitting-jobs "Permalink to this heading"){.headerlink}
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Before submitting a job, the TII backend must be selected using
+[`cudaq.set_target()`{.docutils .literal .notranslate}]{.pre}. The
+following example runs a circuit simulation using the user's
+[`personal`{.docutils .literal .notranslate}]{.pre} project:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target("tii", device="tii-sim", project="personal")
+:::
+:::
+
+If the [`TII_API_TOKEN`{.docutils .literal .notranslate}]{.pre}
+environment variable is not set, the authentication token can be passed
+directly:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target("tii", api_key="my_authentication_token", device="tii-sim", project="personal")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+C++ programs must first be compiled using [`nvq++`{.docutils .literal
+.notranslate}]{.pre}.
+
+When compiling, both the target device and the project must be
+specified:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target tii --tii-device tii-sim --tii-project personal main.cpp -o main.x
+:::
+:::
+
+The [`TII_API_TOKEN`{.docutils .literal .notranslate}]{.pre} environment
+variable must be set at runtime to authenticate the job.
+:::
 :::
 :::
 :::
