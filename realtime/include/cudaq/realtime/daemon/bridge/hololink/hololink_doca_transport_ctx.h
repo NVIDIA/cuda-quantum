@@ -19,10 +19,10 @@ extern "C" {
 /// Packed by the Hololink bridge layer and passed as the opaque
 /// transport_ctx pointer through the transport-agnostic dispatcher API.
 typedef struct {
-  void *gpu_dev_qp;            ///< doca_gpu_dev_verbs_qp* handle
-  uint8_t *rx_ring_data;       ///< Device pointer to RX ring data buffer
-  size_t rx_ring_stride_sz;    ///< Stride (slot size) in the ring buffer
-  uint32_t rx_ring_mkey;       ///< Network-byte-order memory key (htobe32(rkey))
+  void *gpu_dev_qp;         ///< doca_gpu_dev_verbs_qp* handle
+  uint8_t *rx_ring_data;    ///< Device pointer to RX ring data buffer
+  size_t rx_ring_stride_sz; ///< Stride (slot size) in the ring buffer
+  uint32_t rx_ring_mkey;    ///< Network-byte-order memory key (htobe32(rkey))
   uint32_t rx_ring_stride_num; ///< Number of slots in the ring
   size_t frame_size;           ///< Actual frame/payload size within a slot
 } hololink_doca_transport_ctx;

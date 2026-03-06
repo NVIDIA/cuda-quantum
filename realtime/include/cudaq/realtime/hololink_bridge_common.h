@@ -42,9 +42,9 @@
 #include <arpa/inet.h>
 #include <cuda_runtime.h>
 
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
 
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
@@ -53,10 +53,11 @@
 // (defined in libcudaq-realtime-bridge-hololink.so).  Weak so that
 // bridge tools that only use the 3-kernel architecture don't need
 // to link the bridge-hololink library.
-extern "C" __attribute__((weak)) void hololink_launch_unified_dispatch(
-    void *transport_ctx, cudaq_function_entry_t *function_table,
-    size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
-    cudaStream_t stream);
+extern "C" __attribute__((weak)) void
+hololink_launch_unified_dispatch(void *transport_ctx,
+                                 cudaq_function_entry_t *function_table,
+                                 size_t func_count, volatile int *shutdown_flag,
+                                 uint64_t *stats, cudaStream_t stream);
 
 namespace cudaq::realtime {
 
@@ -244,12 +245,12 @@ inline int bridge_run(BridgeConfig &config) {
   hololink_transceiver_t transceiver = hololink_create_transceiver(
       config.device.c_str(), 1, // ib_port
       config.remote_qp,         // remote QP number (FPGA default: 2)
-      config.gpu_id,             // DOCA GPU device ID
+      config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
-      config.peer_ip.c_str(),    // immediate connection
-      use_forward_ring ? 1 : 0,  // forward (symmetric ring layout)
-      use_forward_ring ? 0 : 1,  // rx_only
-      use_forward_ring ? 0 : 1   // tx_only
+      config.peer_ip.c_str(),   // immediate connection
+      use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
+      use_forward_ring ? 0 : 1, // rx_only
+      use_forward_ring ? 0 : 1  // tx_only
   );
 
   if (!transceiver) {
@@ -393,9 +394,9 @@ inline int bridge_run(BridgeConfig &config) {
       unified_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
       unified_ctx.frame_size = config.frame_size;
 
-      if (cudaq_dispatcher_set_unified_launch(
-              dispatcher, &hololink_launch_unified_dispatch,
-              &unified_ctx) != CUDAQ_OK) {
+      if (cudaq_dispatcher_set_unified_launch(dispatcher,
+                                              &hololink_launch_unified_dispatch,
+                                              &unified_ctx) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set unified launch function"
                   << std::endl;
         return 1;

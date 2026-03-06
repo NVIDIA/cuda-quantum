@@ -44,12 +44,10 @@ struct HololinkTransceiverImpl {
 // Lifecycle
 //==============================================================================
 
-hololink_transceiver_t
-hololink_create_transceiver(const char *device_name, int ib_port,
-                            unsigned tx_ibv_qp, int gpu_id,
-                            size_t frame_size, size_t page_size,
-                            unsigned num_pages, const char *peer_ip,
-                            int forward, int rx_only, int tx_only) {
+hololink_transceiver_t hololink_create_transceiver(
+    const char *device_name, int ib_port, unsigned tx_ibv_qp, int gpu_id,
+    size_t frame_size, size_t page_size, unsigned num_pages,
+    const char *peer_ip, int forward, int rx_only, int tx_only) {
   try {
     auto *impl = new HololinkTransceiverImpl();
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(

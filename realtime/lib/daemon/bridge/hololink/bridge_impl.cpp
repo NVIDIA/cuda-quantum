@@ -56,12 +56,12 @@ struct HololinkBridgeContext {
     transceiver = hololink_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
         config.remote_qp,         // remote QP number
-        config.gpu_id,             // GPU device ID
+        config.gpu_id,            // GPU device ID
         config.frame_size, config.page_size, config.num_pages,
-        config.peer_ip.c_str(),    // immediate connection
-        use_forward_ring ? 1 : 0,  // forward (symmetric ring layout)
-        use_forward_ring ? 0 : 1,  // rx_only
-        use_forward_ring ? 0 : 1   // tx_only
+        config.peer_ip.c_str(),   // immediate connection
+        use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
+        use_forward_ring ? 0 : 1, // rx_only
+        use_forward_ring ? 0 : 1  // tx_only
     );
   }
 };
