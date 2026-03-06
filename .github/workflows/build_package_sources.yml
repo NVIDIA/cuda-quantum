@@ -386,26 +386,35 @@ jobs:
           owner_lower=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           tag="ghcr.io/${owner_lower}/cuda-quantum-src:${tag_suffix}"
           tag_amd64="${tag}-amd64"
+          tag_arm64="${tag}-arm64"
           docker tag package-sources:latest "$tag_amd64"
           docker push "$tag_amd64"
           echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
           echo "tag_amd64=$tag_amd64" | tee -a $GITHUB_OUTPUT
+          echo "tag_arm64=$tag_arm64" | tee -a $GITHUB_OUTPUT
 
-      - name: Create arm64 manifest from amd64 (same contents)
+      - name: Create arm64 image (copy /sources from amd64)
         run: |
-          tag="${{ steps.push.outputs.image_tag }}"
           tag_amd64="${{ steps.push.outputs.tag_amd64 }}"
-          tag_arm64="${tag}-arm64"
-          docker run --rm \
-            -v $HOME/.docker/config.json:/root/.docker/config.json:ro \
-            gcr.io/go-containerregistry/crane:latest \
-            copy --platform=linux/arm64 "$tag_amd64" "$tag_arm64"
+          tag_arm64="${{ steps.push.outputs.tag_arm64 }}"
+          base_image="${{ steps.base-image.outputs.base_image }}"
+          # Extract /sources from amd64 image
+          cid=$(docker create "$tag_amd64")
+          docker cp "$cid:/sources" ./sources-from-amd64
+          docker rm "$cid"
+          # Build arm64 image: same base, add /sources
+          cat > Dockerfile.arm64 << EOF
+          FROM ${base_image}
+          COPY sources-from-amd64 /sources
+          EOF
+          docker buildx build --platform linux/arm64 -f Dockerfile.arm64 -t "$tag_arm64" --load .
+          docker push "$tag_arm64"
 
       - name: Create and push multi-arch manifest
         run: |
           tag="${{ steps.push.outputs.image_tag }}"
           tag_amd64="${{ steps.push.outputs.tag_amd64 }}"
-          tag_arm64="${tag}-arm64"
+          tag_arm64="${{ steps.push.outputs.tag_arm64 }}"
           docker buildx imagetools create --tag "$tag" "$tag_amd64" "$tag_arm64" --push
 
       - name: Summary
