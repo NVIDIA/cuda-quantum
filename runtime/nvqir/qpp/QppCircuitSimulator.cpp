@@ -104,6 +104,9 @@ struct QppState : public cudaq::SimulationState {
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
     return std::make_unique<QppState>(Eigen::Map<qpp::ket>(
         reinterpret_cast<std::complex<double> *>(ptr), size));
   }
