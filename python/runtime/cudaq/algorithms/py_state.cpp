@@ -597,7 +597,7 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             return s[idx];
           },
           R"#(Return the `index`-th element of the state vector.
-          
+
 .. code-block:: python
 
   # Example:
@@ -636,7 +636,7 @@ index pair.
             return s.amplitude(basisState);
           },
           R"#(Return the amplitude of a state in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -650,7 +650,7 @@ index pair.
             return s.amplitude(bitStringToIntVec(bitString));
           },
           R"#(Return the amplitude of a state in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -664,7 +664,7 @@ index pair.
             return s.amplitudes(basisStates);
           },
           R"#(Return the amplitude of a list of states in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -682,7 +682,7 @@ index pair.
             return s.amplitudes(basisStates);
           },
           R"#(Return the amplitudes of a list of states in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -795,15 +795,15 @@ index pair.
           return pyGetStateQPU(shortName, module, args);
         return get_state_impl(shortName, module, retTy, args);
       },
-      "See the python documenation for get_state.");
+      "See the python documentation for get_state.");
 
   py::class_<async_state_result>(
       mod, "AsyncStateResult",
-      R"#(A data-type containing the results of a call to :func:`get_state_async`. 
-The `AsyncStateResult` models a future-like type, whose 
-:class:`State` may be returned via an invocation of the `get` method. This 
+      R"#(A data-type containing the results of a call to :func:`get_state_async`.
+The `AsyncStateResult` models a future-like type, whose
+:class:`State` may be returned via an invocation of the `get` method. This
 kicks off a wait on the current thread until the results are available.
-See `future <https://en.cppreference.com/w/cpp/thread/future>`_ 
+See `future <https://en.cppreference.com/w/cpp/thread/future>`_
 for more information on this programming pattern.)#")
       .def(
           "get", [](async_state_result &self) { return self.get(); },

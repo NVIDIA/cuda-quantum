@@ -108,4 +108,5 @@ struct TranslateFromMLIRRegistration {
 std::optional<std::string>
 getEntryPointName(mlir::OwningOpRef<mlir::ModuleOp> &module);
 
+void initializeLangMLIR();
 } // namespace cudaq
