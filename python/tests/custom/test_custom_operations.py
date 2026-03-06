@@ -12,7 +12,7 @@ import cudaq
 
 
 @pytest.fixture(autouse=True)
-def set_up_target():
+def reset_and_run():
     cudaq.reset_target()
     yield
     ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954
