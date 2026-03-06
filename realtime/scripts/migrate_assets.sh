@@ -61,8 +61,6 @@ target_quoted=$(printf '%q' "$target")
 chmod a+x "$uninstall_script"
 
 echo "Migrating assets to $target..."
-# For all files in bin/ dir, add +x permissions for the user.
-find "$target/bin" -type f -exec chmod u+x {} \;
 
 echo "Uninstall script: $uninstall_script"
 
@@ -80,6 +78,9 @@ do
         echo "File $target/$file already exists, skipping."
     fi
 done
+
+# For all files in bin/ dir, add +x permissions for the user.
+find "$target/bin" -type f -exec chmod u+x {} \;
 
 # Done installing, print next steps
 echo "Installation complete."
