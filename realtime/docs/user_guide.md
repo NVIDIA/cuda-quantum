@@ -21,7 +21,10 @@ FPGA.
 
 - CUDA-Q Realtime installer.
 
-- `HSB` source code from [GitHub](<FIXME: LINK TO HSB GitHub>)
+- [DOCA 3.3.0 installation](https://developer.nvidia.com/doca-downloads).
+
+> **_NOTE:_** DOCA is required to run the end-to-end validation with FPGA
+using the builtin `HSB` support of CUDA-Q realtime. 
 
 
 ## Setup
@@ -42,43 +45,22 @@ For example,
 
 >  **_NOTE:_** Please verify that CUDA-Q Realtime has been installed to `/opt/nvidia/cudaq/realtime`.
 
+>  **_NOTE:_** After the installation, please follow the instructed post-installation step to set the environment variable, e.g.,
+> ```bash
+>  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/cudaq/realtime/lib
+> ```
 
-2. Build Holoscan Sensor Bridge
 
-- Clone the source code from `HSB` source code from [GitHub](<FIXME: LINK TO HSB GitHub>)
-
-- Build `HSB`'s `gpu_roce_transceiver` and `hololink_core` components.
-
-```bash
-# HOLOLINK_DIR is the top-level directory of HSB source code 
-cmake -G Ninja -S "$HOLOLINK_DIR" -B build \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
-        -DHOLOLINK_BUILD_PYTHON=OFF \
-        -DHOLOLINK_BUILD_TESTS=OFF \
-        -DHOLOLINK_BUILD_TOOLS=OFF \
-        -DHOLOLINK_BUILD_EXAMPLES=OFF \
-        -DHOLOLINK_BUILD_EMULATOR=OFF
-
-cmake --build build \
-        --target gpu_roce_transceiver hololink_core
-```
-
-> **_NOTE:_**  In order to compile Holoscan Sensor Bridge from source, we need to install all of
-its dependencies (e.g., NVIDIA `nvCOMP`, `DOCA`, `Holoscan SDK`, etc.) 
->
->Please refer to `HSB` [documentation](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html) for more details.
-
-3. Load `HSB` IP bit-file to the FPGA
+2. Load `HSB` IP bit-file to the FPGA
 
 The bit-file for supported FPGA vendors can be found [here](FIXME:LINK_TO_BITFILE_LOCATION).
 
-4. Run the validation scipt
+3. Run the validation scipt
 
 The validation script is located at `/opt/nvidia/cudaq/realtime/validate.sh`.
 
 ```bash
-bash validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --hololink-dir $HOLOLINK_DIR 
+bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
 ```
 
 > **_NOTE:_** 

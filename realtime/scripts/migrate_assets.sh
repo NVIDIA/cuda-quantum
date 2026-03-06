@@ -61,6 +61,9 @@ target_quoted=$(printf '%q' "$target")
 chmod a+x "$uninstall_script"
 
 echo "Migrating assets to $target..."
+# For all files in bin/ dir, add +x permissions for the user.
+find "$target/bin" -type f -exec chmod u+x {} \;
+
 echo "Uninstall script: $uninstall_script"
 
 find . -type f -print0 | while IFS= read -r -d '' file;
@@ -80,5 +83,9 @@ done
 
 # Done installing, print next steps
 echo "Installation complete."
+echo "Post-installation Actions:"
+echo "1. Environment Setup: the LD_LIBRARY_PATH variable needs to contain ${target}/lib."
+echo "For example, you can run: export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${target}/lib"
+echo "2. Validation [Recommended]: Run the included validate.sh script to verify your installation is working correctly."
 # Guide users to read the `user_guide.md` file to validate their installation.
-echo "Next steps: Please read the user guide at $target/docs/user_guide.md to validate your installation and learn how to use CUDA-Q Realtime."
+echo "Please read the user guide at $target/docs/user_guide.md to validate your installation and learn how to use CUDA-Q Realtime."

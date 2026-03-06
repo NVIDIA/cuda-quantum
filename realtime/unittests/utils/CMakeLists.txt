@@ -184,6 +184,11 @@ endif()
 target_link_libraries(hololink_fpga_playback
   PRIVATE ${HOLOLINK_CORE_LIB} Threads::Threads)
 
+# Install this to so it's available for testing the installer
+install(TARGETS hololink_fpga_playback
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT hololink-tools)
+
 # =========================================================================== #
 # hololink_bridge  (generic increment bridge)
 # =========================================================================== #
@@ -244,6 +249,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     PRIVATE
       rpc_increment_ft
       cudaq-realtime-dispatch
+      cudaq-realtime-bridge-hololink
       hololink_wrapper_generic
       ${GPU_ROCE_TRANSCEIVER_LIB}
       ${ROCE_RECEIVER_LIB}
@@ -270,6 +276,10 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     BUILD_RPATH "${DOCA_LIB_DIR}"
     INSTALL_RPATH "${DOCA_LIB_DIR}")
 
+  # Install the bridge executable
+  install(TARGETS hololink_bridge
+          DESTINATION ${CMAKE_INSTALL_BINDIR}
+          COMPONENT hololink-tools)  
 else()
   if (NOT GPU_ROCE_TRANSCEIVER_LIB)
     message(WARNING "gpu_roce_transceiver library not found. "
@@ -295,6 +305,10 @@ if (IBVERBS_LIB)
     PRIVATE
       ${IBVERBS_LIB}
       Threads::Threads)
+  # install the emulator binary for testing the installer
+  install(TARGETS hololink_fpga_emulator
+          DESTINATION ${CMAKE_INSTALL_BINDIR}
+          COMPONENT hololink-tools)
 else()
   message(WARNING "libibverbs not found. hololink_fpga_emulator will not be built.")
 endif()
