@@ -236,8 +236,8 @@ if $is_macos; then
                 echo "Installing wheel: $wheel_file"
                 pip install --force-reinstall "$wheel_file"
             else
-                echo "No wheel found in ${extra_packages}, installing from PyPI"
-                pip install --upgrade cudaq==${cudaq_version}
+                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}. Refusing to install from PyPI when -i is set.\e[0m" >&2
+                (return 0 2>/dev/null) && return 100 || exit 100
             fi
         fi
     else
