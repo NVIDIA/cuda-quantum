@@ -489,6 +489,8 @@ int main(int argc, char *argv[]) {
         static_cast<std::int64_t>(args.control_port);
     channel_metadata["hsb_ip_version"] = static_cast<std::int64_t>(0x2501);
     channel_metadata["fpga_uuid"] = std::string("emulator");
+    channel_metadata["serial_number"] = std::string("emulator-0");
+    channel_metadata["peer_ip"] = args.hololink_ip;
     channel_metadata["vp_mask"] = static_cast<std::int64_t>(0x1);
     channel_metadata["data_plane"] = static_cast<std::int64_t>(0);
     channel_metadata["sensor"] = static_cast<std::int64_t>(0);

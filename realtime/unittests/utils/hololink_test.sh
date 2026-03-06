@@ -185,6 +185,15 @@ get_netdev() {
 # Build
 # ============================================================================
 
+detect_cuda_arch() {
+    local max_arch
+    max_arch=$(nvcc --list-gpu-arch 2>/dev/null \
+        | grep -oP 'compute_\K[0-9]+' | sort -n | tail -1)
+    if [ -n "$max_arch" ]; then
+        echo "$max_arch"
+    fi
+}
+
 do_build() {
     echo "=== Building tools ==="
 
@@ -200,11 +209,20 @@ do_build() {
         target_arch="arm64"
     fi
 
+    # Detect highest CUDA arch supported by nvcc
+    local cuda_arch
+    cuda_arch=$(detect_cuda_arch)
+    local cuda_arch_flag=""
+    if [ -n "$cuda_arch" ]; then
+        cuda_arch_flag="-DCMAKE_CUDA_ARCHITECTURES=$cuda_arch"
+        echo "  CUDA arch: $cuda_arch"
+    fi
+
     # Build hololink (only the two libraries we need)
     echo "--- Building hololink ($target_arch) ---"
     cmake -G Ninja -S "$HOLOLINK_DIR" -B "$hololink_build" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_CUDA_ARCHITECTURES=native \
+        $cuda_arch_flag \
         -DTARGET_ARCH="$target_arch" \
         -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
         -DHOLOLINK_BUILD_PYTHON=OFF \
@@ -219,6 +237,7 @@ do_build() {
     echo "--- Building cuda-quantum/realtime ---"
     cmake -G Ninja -S "$realtime_dir" -B "$realtime_build" \
         -DCMAKE_BUILD_TYPE=Release \
+        $cuda_arch_flag \
         -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON \
         -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HOLOLINK_DIR" \
         -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hololink_build"
@@ -422,7 +441,7 @@ do_run() {
     if $UNIFIED; then
         bridge_args+=(--unified)
     fi
-    "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
+    CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
     tail -f /tmp/bridge.log &

@@ -10,6 +10,8 @@
 /// @brief Hololink bridge interface implementation for libcudaq-realtime
 /// dispatch.
 
+#include <sstream>
+
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 #include "cudaq/realtime/hololink_bridge_common.h"
