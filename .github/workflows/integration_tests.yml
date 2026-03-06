@@ -715,7 +715,7 @@ jobs:
 
               scaleway)
                 if [[ "$filename" == *.cpp ]]; then
-                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M --scaleway-deduplication-id ghci-workflow-testing
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     ./a.out
@@ -776,6 +776,7 @@ jobs:
                   echo "::warning::Unsupported file type: $filename"
                   echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
                   test_skip_sum=$((test_skip_sum+1))
+                fi
                 ;;
             esac
           done
