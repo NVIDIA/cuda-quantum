@@ -89,7 +89,7 @@ Actions:
 
 Build options:
   --hololink-dir DIR     Hololink source directory
-                         (default: /workspaces/cuda-qx/hololink)
+                         (default: /workspaces/hololink)
   --cuda-quantum-dir DIR cuda-quantum source directory
                          (default: /workspaces/cuda-quantum)
   --jobs N               Parallel build jobs (default: nproc)
@@ -204,6 +204,7 @@ do_build() {
     echo "--- Building hololink ($target_arch) ---"
     cmake -G Ninja -S "$HOLOLINK_DIR" -B "$hololink_build" \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CUDA_ARCHITECTURES=native \
         -DTARGET_ARCH="$target_arch" \
         -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
         -DHOLOLINK_BUILD_PYTHON=OFF \

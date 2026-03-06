@@ -49,9 +49,11 @@
 // Hololink C wrapper (link against hololink_wrapper_bridge static library)
 #include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
 
-// Forward declaration of the Hololink unified dispatch launch function
-// (defined in libcudaq-realtime-bridge-hololink.so)
-extern "C" void hololink_launch_unified_dispatch(
+// Weak declaration of the Hololink unified dispatch launch function
+// (defined in libcudaq-realtime-bridge-hololink.so).  Weak so that
+// bridge tools that only use the 3-kernel architecture don't need
+// to link the bridge-hololink library.
+extern "C" __attribute__((weak)) void hololink_launch_unified_dispatch(
     void *transport_ctx, cudaq_function_entry_t *function_table,
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream);
