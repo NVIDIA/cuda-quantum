@@ -12,7 +12,7 @@ config:
   # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: pasqal
   # Add the pasqal-qpu library to the link list
-  link-libs: ["-lcudaq-pasqal-qpu"]
+  link-libs: ["-lcudaq-pasqal-qpu", "-lcudaq-serverhelper-pasqal"]
   # Allow evolve API in C++
   preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
   # Library mode is only for simulators, physical backends must turn this off
