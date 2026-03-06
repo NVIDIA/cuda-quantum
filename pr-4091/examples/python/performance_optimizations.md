@@ -431,8 +431,8 @@ pr-4091
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -1879,14 +1879,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![42b17df14b5b49688fcb4df2638c128b](../../_images/gate-fuse.png)
+![f023c5be73554b5ea5a940ccbcbdb223](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![ead7986fba084464b44a0a71511700c2](../../_images/gatefusion.png)
+![8a2abd70238b43479eed4123d8966d12](../../_images/gatefusion.png)
 :::
 :::
 :::

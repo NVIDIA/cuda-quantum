@@ -441,9 +441,8 @@ pr-4091
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1904,7 +1903,7 @@ each pixel with its position
 
 <div>
 
-![836671f091514450bea42c8fe8bfa455](../../_images/pixels-img.png){.no-scaled-link
+![165b258a81554ffeb7af888f0e39f378](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>
