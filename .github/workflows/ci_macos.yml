@@ -143,7 +143,7 @@ jobs:
         run: bash scripts/build_cudaq.sh -v
 
       - name: Run tests
-        run: bash scripts/run_tests.sh -v
+        run: CUDAQ_CTEST_JOBS=4 bash scripts/run_tests.sh -v
 
   # ============================================================================
   # Build Python wheels for all supported Python versions

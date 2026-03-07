@@ -98,7 +98,7 @@ jobs:
             set -euo pipefail
             cd $CUDAQ_REPO_ROOT
             python3 -m pip install iqm-client==28.0.0 qio~=0.1.33 --break-system-packages
-            bash scripts/run_tests.sh -v
+            CUDAQ_CTEST_JOBS=4 bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
         uses: ./.github/actions/run-in-docker

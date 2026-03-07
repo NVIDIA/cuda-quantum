@@ -20,11 +20,13 @@ source "$this_file_dir/set_env_defaults.sh"
 
 build_dir="build"
 verbose=""
+ctest_jobs="${CUDAQ_CTEST_JOBS:-1}"
 
-while getopts ":vB:" opt; do
+while getopts ":vB:j:" opt; do
   case $opt in
     v) verbose="-v" ;;
     B) build_dir="$OPTARG" ;;
+    j) ctest_jobs="$OPTARG" ;;
   esac
 done
 
@@ -49,11 +51,22 @@ echo "Running tests with $num_jobs parallel jobs"
 
 # 1. CTest
 echo "=== Running ctest ==="
-ctest --output-on-failure --test-dir "$build_dir" \
-  -E "ctest-nvqpp|ctest-targettests"
+ctest_args=(--output-on-failure --test-dir "$build_dir" -E "ctest-nvqpp|ctest-targettests")
+if [[ "${ctest_jobs}" =~ ^[0-9]+$ ]] && [ "${ctest_jobs}" -gt 1 ]; then
+  echo "CTEST parallel jobs: ${ctest_jobs}"
+  ctest_args+=(-j "${ctest_jobs}")
+else
+  echo "CTEST parallel jobs: 1 (set CUDAQ_CTEST_JOBS or pass -j to enable)"
+fi
+
+ctest "${ctest_args[@]}"
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
+  if [ "${ctest_jobs}" != "1" ]; then
+    echo "=== Rerunning failed ctest tests serially for diagnostics ==="
+    ctest --output-on-failure --test-dir "$build_dir" -j 1 --rerun-failed || true
+  fi
   status_sum=$((status_sum + 1))
 fi
 
