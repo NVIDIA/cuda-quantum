@@ -48,6 +48,7 @@ VERIFY=true
 HOLOLINK_DIR="/workspaces/hololink"
 CUDA_QUANTUM_DIR="/workspaces/cuda-quantum"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_DIR=""
 
 # Network defaults
 IB_DEVICE=""           # auto-detect
@@ -110,7 +111,7 @@ Run options:
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
   --control-port N       UDP control port for emulator (default: 8193)
-
+  --bin-dir DIR          Binary directory containing executables (default: None)
   --help, -h             Show this help
 EOF
 }
@@ -124,6 +125,7 @@ while [[ $# -gt 0 ]]; do
         --no-verify)        VERIFY=false ;;
         --hololink-dir)     HOLOLINK_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
+        --bin-dir)          BIN_DIR="$2"; shift ;;
         --jobs)             JOBS="$2"; shift ;;
         --device)           IB_DEVICE="$2"; shift ;;
         --bridge-ip)        BRIDGE_IP="$2"; shift ;;
@@ -371,9 +373,15 @@ do_run() {
     local build_dir="$CUDA_QUANTUM_DIR/realtime/build"
     local utils_dir="$build_dir/unittests/utils"
 
-    local bridge_bin="$utils_dir/hololink_bridge"
-    local emulator_bin="$utils_dir/hololink_fpga_emulator"
-    local playback_bin="$utils_dir/hololink_fpga_playback"
+    if [ -n "$BIN_DIR" ]; then
+        local bridge_bin="$BIN_DIR/hololink_bridge"
+        local emulator_bin="$BIN_DIR/hololink_fpga_emulator"
+        local playback_bin="$BIN_DIR/hololink_fpga_playback"
+    else
+        local bridge_bin="$utils_dir/hololink_bridge"
+        local emulator_bin="$utils_dir/hololink_fpga_emulator"
+        local playback_bin="$utils_dir/hololink_fpga_playback"
+    fi
 
     # Verify binaries exist
     for bin in "$bridge_bin"; do
@@ -526,6 +534,12 @@ do_run() {
 
 echo "=== Hololink Generic RPC Test ==="
 echo "Mode: $(if $EMULATE; then echo "emulated"; else echo "FPGA"; fi)"
+
+if [ -n "$BIN_DIR" ]; then
+   if $DO_BUILD; then
+    echo "Cannot request a build when the binary directory is provided."
+   fi 
+fi
 
 if $DO_BUILD; then
     do_build

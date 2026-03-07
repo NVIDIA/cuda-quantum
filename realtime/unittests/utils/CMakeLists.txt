@@ -11,6 +11,8 @@
 # These targets are gated by CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS and require
 # a pre-built hololink (holoscan-sensor-bridge) with DOCA support.
 # They are NOT CI tests -- they need FPGA hardware or an FPGA emulator.
+cmake_minimum_required(VERSION 3.24)
+project(hololink_tools)
 
 if (NOT HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR)
   message(FATAL_ERROR
@@ -23,6 +25,32 @@ endif()
 
 find_package(Threads REQUIRED)
 find_package(CUDAToolkit REQUIRED)
+
+if(PROJECT_IS_TOP_LEVEL)
+  message(STATUS "Building CUDA-Q Realtime Hololink test as a standalone project")
+  enable_language(CUDA)
+  set(CMAKE_CUDA_ARCHITECTURES native)
+  find_library(CUDAQ_REALTIME_LIB
+    NAMES cudaq-realtime
+  PATHS
+    "${CUDAQ_REALTIME_INSTALL_DIR}"
+    "${CUDAQ_REALTIME_ROOT_DIR}"
+    /opt/nvidia/cudaq/realtime/lib
+  NO_DEFAULT_PATH)
+
+  if (NOT CUDAQ_REALTIME_LIB)
+    message(FATAL_ERROR
+      "Could not find cudaq-realtime library. Did you install cudaq-realtime?")
+  endif()
+
+  get_filename_component(CUDAQ_REALTIME_LIB_DIR ${CUDAQ_REALTIME_LIB} DIRECTORY)
+  get_filename_component(CUDAQ_REALTIME_DIR ${CUDAQ_REALTIME_LIB_DIR} DIRECTORY)
+
+  message(STATUS "Found CUDAQ Realtime installation at ${CUDAQ_REALTIME_DIR}")
+  include_directories(${CUDAQ_REALTIME_DIR}/include)
+  link_directories(${CUDAQ_REALTIME_DIR}/lib)
+endif()
+
 
 # --------------------------------------------------------------------------- #
 # Find Hololink core library
@@ -156,6 +184,11 @@ endif()
 target_link_libraries(hololink_fpga_playback
   PRIVATE ${HOLOLINK_CORE_LIB} CUDA::cuda_driver Threads::Threads)
 
+# Install this to so it's available for testing the installer
+install(TARGETS hololink_fpga_playback
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT hololink-tools)
+
 # =========================================================================== #
 # hololink_bridge  (generic increment bridge)
 # =========================================================================== #
@@ -168,8 +201,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
   # Hololink wrapper static library (compiled by g++, isolates fmt)
-  add_library(hololink_wrapper_generic STATIC
-    ${CMAKE_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
+  add_library(hololink_wrapper_generic STATIC hololink_wrapper.cpp)
 
   target_include_directories(hololink_wrapper_generic
     PRIVATE
@@ -244,6 +276,10 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     BUILD_RPATH "${DOCA_LIB_DIR}"
     INSTALL_RPATH "${DOCA_LIB_DIR}")
 
+  # Install the bridge executable
+  install(TARGETS hololink_bridge
+          DESTINATION ${CMAKE_INSTALL_BINDIR}
+          COMPONENT hololink-tools)  
 else()
   if (NOT GPU_ROCE_TRANSCEIVER_LIB)
     message(WARNING "gpu_roce_transceiver library not found. "
@@ -269,6 +305,10 @@ if (IBVERBS_LIB)
     PRIVATE
       ${IBVERBS_LIB}
       Threads::Threads)
+  # install the emulator binary for testing the installer
+  install(TARGETS hololink_fpga_emulator
+          DESTINATION ${CMAKE_INSTALL_BINDIR}
+          COMPONENT hololink-tools)
 else()
   message(WARNING "libibverbs not found. hololink_fpga_emulator will not be built.")
 endif()
