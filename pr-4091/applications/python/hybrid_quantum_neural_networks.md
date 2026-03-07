@@ -1990,6 +1990,8 @@ output is used to classify hand written digits.
     test_size = 30  # Percentage of dataset to be used for testing.
     classification_threshold = 0.5  # Classification boundary used to measure accuracy.
     epochs = 1000  # Number of epochs to train for.
+    if device.type != 'cuda':
+        epochs = 500
 
     # Quantum parmeters.
 
@@ -2000,7 +2002,7 @@ output is used to classify hand written digits.
 :::
 :::
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [6]:
@@ -2011,20 +2013,6 @@ output is used to classify hand written digits.
 ::: highlight
     x_train, x_test, y_train, y_test = prepare_data(target_digits, sample_count,
                                                     test_size)
-:::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .stderr .docutils .container}
-::: highlight
-    100%|██████████| 9.91M/9.91M [00:00<00:00, 11.2MB/s]
-    100%|██████████| 28.9k/28.9k [00:00<00:00, 314kB/s]
-    100%|██████████| 1.65M/1.65M [00:00<00:00, 3.05MB/s]
-    100%|██████████| 4.54k/4.54k [00:00<00:00, 9.91MB/s]
 :::
 :::
 :::
@@ -2350,7 +2338,7 @@ output is used to classify hand written digits.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum f78f6742444f7ebea67dd13758b7007cde2e2ab9)
+    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 7bcee70c18c73a12a6cb4e253f12e20f1c34ddbd)
 :::
 :::
 :::

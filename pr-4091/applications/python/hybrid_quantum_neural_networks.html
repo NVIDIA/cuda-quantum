@@ -1193,6 +1193,8 @@
 <span class="n">test_size</span> <span class="o">=</span> <span class="mi">30</span>  <span class="c1"># Percentage of dataset to be used for testing.</span>
 <span class="n">classification_threshold</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># Classification boundary used to measure accuracy.</span>
 <span class="n">epochs</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Number of epochs to train for.</span>
+<span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;cuda&#39;</span><span class="p">:</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">500</span>
 
 <span class="c1"># Quantum parmeters.</span>
 
@@ -1202,7 +1204,7 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
@@ -1210,17 +1212,6 @@
                                                 <span class="n">test_size</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-100%|██████████| 9.91M/9.91M [00:00&lt;00:00, 11.2MB/s]
-100%|██████████| 28.9k/28.9k [00:00&lt;00:00, 314kB/s]
-100%|██████████| 1.65M/1.65M [00:00&lt;00:00, 3.05MB/s]
-100%|██████████| 4.54k/4.54k [00:00&lt;00:00, 9.91MB/s]
-</pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -1490,7 +1481,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum f78f6742444f7ebea67dd13758b7007cde2e2ab9)
+CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 7bcee70c18c73a12a6cb4e253f12e20f1c34ddbd)
 </pre></div></div>
 </div>
 </section>
