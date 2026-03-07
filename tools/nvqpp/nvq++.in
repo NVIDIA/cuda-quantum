@@ -280,16 +280,17 @@ install_dir="$(
 	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
 	pwd -P
 )"
-llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 # Locate the LLVM toolchain. The installer bundles LLVM under lib/llvm/;
-# fall back to a flat layout or the build-time LLVM directory.
+# fall back to a flat layout or the build-time LLVM directory (dev builds only).
 if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}/lib/llvm"
 elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="${install_dir}"
-else
+elif [ -x "@LLVM_BINARY_DIR@/bin/clang++${llvm_suffix}" ]; then
 	llvm_install_dir="@LLVM_BINARY_DIR@"
+else
+	error_exit "Cannot find clang++ in the CUDA-Q installation. Expected it under ${install_dir}/lib/llvm/bin/ or ${install_dir}/bin/."
 fi
 
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
@@ -322,10 +323,16 @@ CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 # Set sysroot for finding system headers and libraries. This is critical on macOS
 # where a custom-built clang doesn't know the SDK location (unlike Linux where
 # system headers are in standard /usr/include paths).
-CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-@CUDAQ_SYSROOT_PATH@}"
+# Always detect at runtime on macOS. The build-time path is specific to the
+# build machine and goes stale on Xcode updates or between machines.
+# Users can override via CUDAQ_SYSROOT.
+if ${CUDAQ_IS_APPLE}; then
+	CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-$(xcrun --show-sdk-path 2>/dev/null || echo "")}"
+fi
 if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
 	COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
 	LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq=-isysroot --Xcudaq=${CUDAQ_SYSROOT_PATH}"
 fi
 
 # Set macOS deployment target to match how the CUDA-Q libraries were built.
@@ -350,17 +357,19 @@ NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
 	LINKER_PATH="--ld-path=${NVQPP_LD_PATH}"
 fi
-LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install_dir}/lib/plugins -Wl,-rpath,${PWD}"
+LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${PWD}"
 
 LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 PLATFORM_TRANSPORT_LAYER="qir:0.1"
-LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
+LINKDIRS="-L${install_dir}/lib @CUDAQ_CXX_NVQPP_LINK_STR@"
 LINKLIBS="-lcudaq -lcudaq-logger -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
 if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]; then
+  LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${CUDAQ_PLUGIN_DIR}"
+  LINKDIRS="${LINKDIRS} -L${CUDAQ_PLUGIN_DIR}"
   CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*`
   for entry in $CUDAQ_PLUGIN_LIBS; do
     PLUGIN_NAME=$(basename $entry)
@@ -871,7 +880,7 @@ for i in ${SRCS}; do
 		NOSTDLIB_FLAG="-nostdlib"
 	fi
 
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
