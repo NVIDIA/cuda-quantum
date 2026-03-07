@@ -187,7 +187,7 @@ requires_unavailable_gpu_target() {
     for t in $targets; do
         case "$t" in
             nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
-                echo "Skipping $file (requires GPU target '$t')"
+                echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
         esac
