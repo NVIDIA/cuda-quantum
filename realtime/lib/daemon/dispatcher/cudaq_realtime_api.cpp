@@ -8,6 +8,7 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <new>
@@ -295,6 +296,18 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
 // Ring buffer slot helpers
 //==============================================================================
 
+static inline uint64_t atomic_load_u64(volatile uint64_t *ptr) {
+  auto *ap = reinterpret_cast<std::atomic<uint64_t> *>(
+      const_cast<uint64_t *>(ptr));
+  return ap->load(std::memory_order_acquire);
+}
+
+static inline void atomic_store_u64(volatile uint64_t *ptr, uint64_t val) {
+  auto *ap = reinterpret_cast<std::atomic<uint64_t> *>(
+      const_cast<uint64_t *>(ptr));
+  ap->store(val, std::memory_order_release);
+}
+
 cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
     const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
     const void *payload, uint32_t payload_len) {
@@ -317,15 +330,14 @@ cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
 
 void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
                                        uint32_t slot_idx) {
-  __sync_synchronize();
-  const_cast<volatile uint64_t *>(
-      rb->rx_flags_host)[slot_idx] = reinterpret_cast<uint64_t>(
-      rb->rx_data_host + slot_idx * rb->rx_stride_sz);
+  uint64_t addr = reinterpret_cast<uint64_t>(rb->rx_data_host +
+                                             slot_idx * rb->rx_stride_sz);
+  atomic_store_u64(&rb->rx_flags_host[slot_idx], addr);
 }
 
 cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
     const cudaq_ringbuffer_t *rb, uint32_t slot_idx, int *out_cuda_error) {
-  uint64_t v = rb->tx_flags_host[slot_idx];
+  uint64_t v = atomic_load_u64(&rb->tx_flags_host[slot_idx]);
   if (v == 0)
     return CUDAQ_TX_EMPTY;
   if (v == 0xEEEEEEEEEEEEEEEEULL)
@@ -340,13 +352,13 @@ cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
 
 int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
                                          uint32_t slot_idx) {
-  return rb->rx_flags_host[slot_idx] == 0 && rb->tx_flags_host[slot_idx] == 0;
+  return atomic_load_u64(&rb->rx_flags_host[slot_idx]) == 0 &&
+         atomic_load_u64(&rb->tx_flags_host[slot_idx]) == 0;
 }
 
 void cudaq_host_ringbuffer_clear_slot(const cudaq_ringbuffer_t *rb,
                                       uint32_t slot_idx) {
-  const_cast<volatile uint64_t *>(rb->tx_flags_host)[slot_idx] = 0;
-  __sync_synchronize();
+  atomic_store_u64(&rb->tx_flags_host[slot_idx], 0);
 }
 
 cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
