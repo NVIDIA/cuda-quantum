@@ -370,15 +370,15 @@ else
     fi
 fi
 
-# Run snippets in docs (parallel execution)
+# Run snippets in docs
 snippet_list=$(mktemp)
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
     if ! requires_unavailable_gpu_target "$ex"; then
-        echo "$ex"
+        printf '%s\0' "$ex"
     fi
 done > "$snippet_list"
 if [ -s "$snippet_list" ]; then
-    xargs -P "$parallel_jobs" -n 1 bash -c \
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
         'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
         < "$snippet_list"
     if [ $? -ne 0 ]; then
@@ -403,11 +403,11 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
         fi
     done
     if ! $skip_example; then
-        echo "$ex"
+        printf '%s\0' "$ex"  # don't split on spaces
     fi
 done > "$example_list"
 if [ -s "$example_list" ]; then
-    xargs -P "$parallel_jobs" -n 1 bash -c \
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
         'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
         < "$example_list"
     if [ $? -ne 0 ]; then
@@ -452,16 +452,16 @@ if [ -d "$root_folder/targets" ]; then
             elif [ "$t" == "tii" ] || [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || \
                  [ "$t" == "quantinuum" ] || [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
                  [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
-                echo "Skipping $ex (remote target '$t' not available)"
+                echo "Skipping $ex (remote target '$t' not available)" >&2
                 skip_example=true
             fi
         done
         if ! $skip_example; then
-            echo "$ex"
+            printf '%s\0' "$ex"  # don't split on spaces
         fi
     done > "$target_list"
     if [ -s "$target_list" ]; then
-        xargs -P "$parallel_jobs" -n 1 bash -c \
+        xargs -0 -P "$parallel_jobs" -n 1 bash -c \
             'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
             < "$target_list"
         if [ $? -ne 0 ]; then
