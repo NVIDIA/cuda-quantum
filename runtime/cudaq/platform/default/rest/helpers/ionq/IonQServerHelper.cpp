@@ -88,6 +88,13 @@ private:
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
+
+  /// @brief Extract the job shots URL from jobs returned by IonQ API.
+  std::string getShotsUrl(ServerMessage &jobs);
+
+  /// @brief Check if shot-wise output was requested by user and can be
+  /// extracted.
+  bool shotWiseOutputIsNeeded(ServerMessage &jobs);
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -103,6 +110,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Retrieve the noise model setting (if provided)
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
+  else if (config.find("noise_model") != config.end())
+    backendConfig["noise_model"] = config["noise_model"];
   // Retrieve the API key from the environment variables
   bool isTokenRequired = [&]() {
     auto it = config.find("emulate");
@@ -126,6 +135,12 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["sharpen"] = config["sharpen"];
   if (config.find("format") != config.end())
     backendConfig["format"] = config["format"];
+
+  // Enable memory, true by default
+  if (config.find("memory") != config.end())
+    backendConfig["memory"] = config["memory"];
+  else
+    backendConfig["memory"] = "true";
 }
 
 // Implementation of the getValueOrDefault function
@@ -351,6 +366,35 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobs[0].at("status").get<std::string>() == "completed";
 }
 
+std::string IonQServerHelper::getShotsUrl(ServerMessage &jobs) {
+  if (!keyExists("url"))
+    throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
+
+  if (!jobs.empty() && jobs[0].contains("results") &&
+      jobs[0]["results"].contains("shots") &&
+      jobs[0]["results"]["shots"].contains("url"))
+    return backendConfig.at("url") +
+           jobs[0]["results"]["shots"]["url"].get<std::string>();
+
+  return {};
+}
+
+bool IonQServerHelper::shotWiseOutputIsNeeded(ServerMessage &jobs) {
+  if (!keyExists("memory") || backendConfig["memory"] != "true")
+    return false;
+
+  if (jobs.empty())
+    return false;
+
+  auto &job = jobs[0];
+  bool isQpu = job.contains("target") &&
+               job["target"].get<std::string>() != "simulator";
+  bool hasNoise = job.contains("noise") && job["noise"].contains("model") &&
+                  job["noise"]["model"].get<std::string>() != "ideal";
+
+  return isQpu || hasNoise;
+}
+
 // Process the results from a job
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse,
@@ -381,17 +425,20 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
                info.registerName);
   }
 
+  // Convert an integer to an nQubits-length bitstring (LSB first)
+  assert(nQubits <= 64);
+  auto intToBitString = [nQubits](uint64_t val) {
+    std::string bits(nQubits, '0');
+    for (int q = 0; q < nQubits; q++)
+      bits[q] = ((val >> q) & 1) ? '1' : '0';
+    return bits;
+  };
+
   cudaq::CountsDictionary counts;
 
   // Process the results
-  assert(nQubits <= 64);
   for (const auto &element : results.items()) {
-    // Convert base-10 ASCII key to bitstring and perform endian swap
-    uint64_t s = std::stoull(element.key());
-    std::string newkey = std::bitset<64>(s).to_string();
-    std::reverse(newkey.begin(), newkey.end()); // perform endian swap
-    newkey.resize(nQubits);
-
+    std::string newkey = intToBitString(std::stoull(element.key()));
     double value = element.value().get<double>();
     std::size_t count = static_cast<std::size_t>(value * shots);
     counts[newkey] = count;
@@ -448,10 +495,60 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     execResults.emplace_back(regCounts, info.registerName);
   }
 
+  // Add shot-wise output if requested by user
+  auto shotsUrl = getShotsUrl(jobs);
+  if (shotWiseOutputIsNeeded(jobs) && !shotsUrl.empty()) {
+    try {
+      auto shotsResults = getResults(shotsUrl);
+
+      // Parse the per-shot integers into full bitstrings (all qubits)
+      std::vector<std::string> fullBitStrings;
+      fullBitStrings.reserve(shotsResults.size());
+      for (const auto &element : shotsResults.items())
+        fullBitStrings.push_back(
+            intToBitString(std::stoull(element.value().get<std::string>())));
+
+      // Populate global register sequential data (with marginal extraction
+      // if there are compiler-generated qubits to strip out)
+      if (!execResults.empty()) {
+        if (qubitNumbers.empty()) {
+          execResults[0].sequentialData = fullBitStrings;
+        } else {
+          std::vector<std::string> globalSeqData;
+          globalSeqData.reserve(fullBitStrings.size());
+          for (const auto &bs : fullBitStrings) {
+            std::string marginal;
+            marginal.reserve(qubitNumbers.size());
+            for (auto idx : qubitNumbers)
+              marginal += bs[idx];
+            globalSeqData.push_back(std::move(marginal));
+          }
+          execResults[0].sequentialData = std::move(globalSeqData);
+        }
+      }
+
+      // Populate per-register sequential data
+      std::size_t regIdx = 1;
+      for (const auto &[result, info] : output_names) {
+        if (regIdx >= execResults.size())
+          break;
+        std::vector<std::string> regSeqData;
+        regSeqData.reserve(fullBitStrings.size());
+        for (const auto &bs : fullBitStrings)
+          regSeqData.push_back(std::string{bs[info.qubitNum]});
+        execResults[regIdx].sequentialData = std::move(regSeqData);
+        regIdx++;
+      }
+    } catch (const std::exception &e) {
+      CUDAQ_INFO("Failed to retrieve shot-wise results: {}", e.what());
+    } catch (...) {
+      CUDAQ_INFO("Failed to retrieve shot-wise results (unknown error)");
+    }
+  }
+
   // Return a sample result including the global register and all individual
   // registers.
-  auto ret = cudaq::sample_result(execResults);
-  return ret;
+  return cudaq::sample_result(execResults);
 }
 
 // Get the headers for the API requests
