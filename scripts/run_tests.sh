@@ -74,10 +74,11 @@ elif [ ! -x "$(command -v nvidia-smi)" ] || \
   gpu_excludes="--label-exclude gpu_required"
 fi
 
-# 1a. CTest: CPU tests in parallel (PROCESSORS property handles scheduling)
+# 1a. CTest: CPU tests in parallel
+# Exclude lit test suites from ctest. They are run individually above/below.
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
-  -E "ctest-nvqpp|ctest-targettests" $gpu_excludes
+  -E "ctest-nvqpp|ctest-targettests|pycudaq-mlir" $gpu_excludes
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
