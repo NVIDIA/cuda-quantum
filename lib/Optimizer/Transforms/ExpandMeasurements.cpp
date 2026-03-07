@@ -18,7 +18,8 @@
 
 using namespace mlir;
 
-// Only an individual qubit measurement returns a bool.
+// After expansion, only an individual qubit measurement is valid.
+// This predicate is used by the conversion target to determine legality.
 template <typename A>
 bool usesIndividualQubit(A x) {
   return x.getType() == quake::MeasureType::get(x.getContext());
@@ -26,6 +27,16 @@ bool usesIndividualQubit(A x) {
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is
 // mx, my, or mz) to a series of individual measurements.
+// Two code paths exist based on whether discrimination is immediate or
+// deferred:
+//
+// 1. With discriminate: When user code converts measurement to bool (e.g.,
+//    `if (result)` or `bool b = result`), discriminate is emitted. We produce
+//    `!cc.stdvec<i1>`.
+//
+// 2. Without discriminate: When measurement results are used as opaque
+//    `measure_result` values, no discriminate exists. We produce
+//    `!cc.stdvec<!quake.measure>`
 template <typename A>
 class ExpandRewritePattern : public OpRewritePattern<A> {
 public:
@@ -34,86 +45,200 @@ public:
   LogicalResult matchAndRewrite(A measureOp,
                                 PatternRewriter &rewriter) const override {
     auto loc = measureOp.getLoc();
-    // 1. Determine the total number of qubits we need to measure. This
-    // determines the size of the buffer of bools to create to store the results
-    // in.
-    unsigned numQubits = 0u;
-    for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::RefType>())
-        ++numQubits;
-    Value totalToRead =
-        rewriter.template create<arith::ConstantIntOp>(loc, numQubits, 64);
+    auto ctx = rewriter.getContext();
+
+    // Step 1: Determine the total number of qubits we need to measure. This
+    // determines the size of the buffer to create to store the results in.
+    Value totalQubits = calculateTotalQubits(rewriter, loc, measureOp);
+
+    // Step 2: Determine processing mode and find discriminate op, if present
+    quake::DiscriminateOp discriminateOp = findDiscriminateUser(measureOp);
+    bool needsDiscrimination = (discriminateOp != nullptr);
+
+    // Step 3: Allocate storage buffer
+    Type storageType;
+    if (needsDiscrimination)
+      storageType = rewriter.getI8Type();
+    else
+      storageType = quake::MeasureType::get(ctx);
+    Value buffer = rewriter.template create<cudaq::cc::AllocaOp>(
+        loc, storageType, totalQubits);
+
+    // Step 4: Process all measurement targets
+    Value offset = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
+    Value increment =
+        rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
+
+    // Each target is processed sequentially, with offset tracking
+    // to ensure each measurement result lands in its correct buffer position.
+    measureAllTargets(rewriter, loc, measureOp, buffer, offset, increment,
+                      needsDiscrimination);
+
+    // Step 5: Package results into output format. The buffer becomes a stdvec,
+    // replacing either the original measurement op (non-discriminated) or the
+    // discriminate op (discriminated path).
+    finalizeResults(rewriter, loc, measureOp, buffer, totalQubits,
+                    needsDiscrimination, discriminateOp);
+
+    return success();
+  }
+
+private:
+  // Calculate how many qubits need to be measured
+  Value calculateTotalQubits(PatternRewriter &rewriter, Location loc,
+                             A measureOp) const {
     auto i64Ty = rewriter.getI64Type();
-    for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::VeqType>()) {
-        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, v);
-        totalToRead =
-            rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
+    unsigned refCount = 0u;
+    // Count individual qubit references
+    for (auto target : measureOp.getTargets())
+      if (target.getType().template isa<quake::RefType>())
+        ++refCount;
+    Value total =
+        rewriter.template create<arith::ConstantIntOp>(loc, refCount, 64);
+    // Add sizes of qubit vectors
+    for (auto target : measureOp.getTargets())
+      if (target.getType().template isa<quake::VeqType>()) {
+        Value size =
+            rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, target);
+        total = rewriter.template create<arith::AddIOp>(loc, total, size);
       }
+    return total;
+  }
 
-    // 2. Create the buffer.
-    auto i1Ty = rewriter.getI1Type();
-    auto i8Ty = rewriter.getI8Type();
-    Value buff =
-        rewriter.template create<cudaq::cc::AllocaOp>(loc, i8Ty, totalToRead);
+  // Find discriminate op if it exists for this measurement
+  quake::DiscriminateOp findDiscriminateUser(A measureOp) const {
+    for (auto *user : measureOp.getMeasOut().getUsers())
+      if (auto discOp = dyn_cast<quake::DiscriminateOp>(user))
+        return discOp;
+    return nullptr;
+  }
 
-    // 3. Measure each individual qubit and insert the result, in order, into
-    // the buffer. For registers/vectors, loop over the entire set of qubits.
-    Value buffOff = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
-    Value one = rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
-    auto measTy = quake::MeasureType::get(rewriter.getContext());
-    for (auto v : measureOp.getTargets()) {
-      if (isa<quake::RefType>(v.getType())) {
-        auto meas = rewriter.template create<A>(loc, measTy, v).getMeasOut();
-        auto bit =
-            rewriter.template create<quake::DiscriminateOp>(loc, i1Ty, meas);
-        Value addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
-            loc, cudaq::cc::PointerType::get(i8Ty), buff, buffOff);
-        auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
-            loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
-        rewriter.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
-        buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
+  // Stores a single measurement result into the buffer. The discrimination
+  // mode determines both the storage format and whether we insert a
+  // discriminate op here (eager) or preserve the raw measurement (lazy).
+  void recordMeasurement(OpBuilder &builder, Location loc, Value measResult,
+                         Value buffer, Value position,
+                         bool hasDiscriminate) const {
+    auto ctx = builder.getContext();
+
+    if (hasDiscriminate) {
+      // Convert to bit, then to byte for storage
+      auto i1Ty = builder.getI1Type();
+      auto i8Ty = builder.getI8Type();
+      auto bitResult =
+          builder.template create<quake::DiscriminateOp>(loc, i1Ty, measResult);
+      Value storageAddr = builder.template create<cudaq::cc::ComputePtrOp>(
+          loc, cudaq::cc::PointerType::get(i8Ty), buffer, position);
+      auto byteValue = builder.template create<cudaq::cc::CastOp>(
+          loc, i8Ty, bitResult, cudaq::cc::CastOpMode::Unsigned);
+      builder.template create<cudaq::cc::StoreOp>(loc, byteValue, storageAddr);
+    } else {
+      // Store measurement directly
+      auto measType = quake::MeasureType::get(ctx);
+      Value storageAddr = builder.template create<cudaq::cc::ComputePtrOp>(
+          loc, cudaq::cc::PointerType::get(measType), buffer, position);
+      builder.template create<cudaq::cc::StoreOp>(loc, measResult, storageAddr);
+    }
+  }
+
+  // Process a single qubit reference
+  void measureSingleQubit(PatternRewriter &rewriter, Location loc, Value qubit,
+                          Value &currentOffset, Value buffer, Value step,
+                          A measureOp, bool discriminate) const {
+    auto measType = quake::MeasureType::get(rewriter.getContext());
+
+    auto measurement = rewriter.template create<A>(loc, measType, qubit);
+    // Preserve register name for output recording in QIR
+    if (auto regName = measureOp.getRegisterNameAttr())
+      measurement.setRegisterName(regName);
+
+    recordMeasurement(rewriter, loc, measurement.getMeasOut(), buffer,
+                      currentOffset, discriminate);
+    currentOffset =
+        rewriter.template create<arith::AddIOp>(loc, currentOffset, step);
+  }
+
+  // Process a vector of qubits
+  void measureQubitVector(PatternRewriter &rewriter, Location loc, Value vector,
+                          Value &currentOffset, Value buffer, A measureOp,
+                          bool discriminate) const {
+    auto i64Ty = rewriter.getI64Type();
+    auto measType = quake::MeasureType::get(rewriter.getContext());
+
+    Value vectorSize =
+        rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, vector);
+
+    cudaq::opt::factory::createInvariantLoop(
+        rewriter, loc, vectorSize,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value index = block.getArgument(0);
+          Value qubit =
+              builder.template create<quake::ExtractRefOp>(loc, vector, index);
+          auto measurement = builder.template create<A>(loc, measType, qubit);
+          if (auto regName = measureOp.getRegisterNameAttr())
+            measurement.setRegisterName(regName);
+
+          // Absolute buffer position = base offset for this veq + loop index
+          Value absoluteOffset =
+              builder.template create<arith::AddIOp>(loc, index, currentOffset);
+          recordMeasurement(builder, loc, measurement.getMeasOut(), buffer,
+                            absoluteOffset, discriminate);
+        });
+
+    currentOffset =
+        rewriter.template create<arith::AddIOp>(loc, currentOffset, vectorSize);
+  }
+
+  // Measure all targets in the operation
+  void measureAllTargets(PatternRewriter &rewriter, Location loc, A measureOp,
+                         Value buffer, Value &offset, Value increment,
+                         bool discriminate) const {
+    for (auto target : measureOp.getTargets()) {
+      if (isa<quake::RefType>(target.getType())) {
+        measureSingleQubit(rewriter, loc, target, offset, buffer, increment,
+                           measureOp, discriminate);
       } else {
-        assert(isa<quake::VeqType>(v.getType()));
-        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, v);
-        cudaq::opt::factory::createInvariantLoop(
-            rewriter, loc, vecSz,
-            [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-              Value iv = block.getArgument(0);
-              Value qv =
-                  builder.template create<quake::ExtractRefOp>(loc, v, iv);
-              auto meas = builder.template create<A>(loc, measTy, qv);
-              auto bit = builder.template create<quake::DiscriminateOp>(
-                  loc, i1Ty, meas.getMeasOut());
-              if (auto registerName = measureOp.getRegisterNameAttr())
-                meas.setRegisterName(registerName);
-              Value offset =
-                  builder.template create<arith::AddIOp>(loc, iv, buffOff);
-              auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
-                  loc, cudaq::cc::PointerType::get(i8Ty), buff, offset);
-              auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
-                  loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
-              builder.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
-            });
-        buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
+        assert(isa<quake::VeqType>(target.getType()));
+        measureQubitVector(rewriter, loc, target, offset, buffer, measureOp,
+                           discriminate);
       }
     }
+  }
 
-    // 4. Use the buffer as an initialization expression and create the
-    // std::vec<bool> value.
-    auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
-    for (auto *out : measureOp.getMeasOut().getUsers())
-      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
-        auto ptrArrI1Ty =
-            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
-        auto buffCast =
-            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrI1Ty, buff);
-        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-            disc, stdvecTy, buffCast, totalToRead);
-      }
+  // Packages the buffer into a stdvec and replaces the appropriate op:
+  // - Discriminated: replaces the discriminate op (measurement op is erased)
+  // - Non-discriminated: replaces the measurement op itself
+  //
+  // The resulting stdvec type matches what downstream code expects:
+  // !cc.stdvec<i1> for booleans, !cc.stdvec<!quake.measure> for raw results.
+  void finalizeResults(PatternRewriter &rewriter, Location loc, A measureOp,
+                       Value buffer, Value count, bool hasDiscriminate,
+                       quake::DiscriminateOp discriminateOp) const {
+    auto ctx = rewriter.getContext();
 
-    rewriter.eraseOp(measureOp);
-    return success();
+    if (hasDiscriminate) {
+      // Create vector of boolean results
+      auto boolType = rewriter.getI1Type();
+      auto vecType = cudaq::cc::StdvecType::get(ctx, boolType);
+      auto arrayPtrType =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(boolType));
+      auto castedBuffer = rewriter.template create<cudaq::cc::CastOp>(
+          loc, arrayPtrType, buffer);
+
+      rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+          discriminateOp, vecType, castedBuffer, count);
+      rewriter.eraseOp(measureOp);
+    } else {
+      // Create vector of measurement results
+      auto measType = quake::MeasureType::get(ctx);
+      auto vecType = cudaq::cc::StdvecType::get(ctx, measType);
+      auto arrayPtrType =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(measType));
+      auto castedBuffer = rewriter.template create<cudaq::cc::CastOp>(
+          loc, arrayPtrType, buffer);
+      rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(measureOp, vecType,
+                                                           castedBuffer, count);
+    }
   }
 };
 

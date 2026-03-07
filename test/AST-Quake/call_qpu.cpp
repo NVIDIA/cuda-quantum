@@ -12,7 +12,7 @@
 
 std::vector<bool> func_achat(cudaq::qview<> &qv) __qpu__ {
   // measure the entire register
-  return mz(qv);
+  return cudaq::to_bool_vector(mz(qv));
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_func_achat._Z10func_achatRN5cudaq5qviewILm2EEE(
@@ -52,21 +52,21 @@ int func_shiim(cudaq::qvector<> &qv) __qpu__ {
 // CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_10]], %[[VAL_7]], %[[VAL_8]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.undef i32
-// CHECK:           %[[VAL_13:.*]]:2 = cc.loop while ((%[[VAL_14:.*]] = %[[VAL_2]], %[[VAL_15:.*]] = %[[VAL_11]]) -> (i64, i32)) {
-// CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_14]], %[[VAL_8]] : i64
-// CHECK:             cc.condition %[[VAL_16]](%[[VAL_14]], %[[VAL_15]] : i64, i32)
+// CHECK:           %[[VAL_12:.*]]:2 = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_2]], %[[VAL_14:.*]] = %[[VAL_11]]) -> (i64, i32)) {
+// CHECK:             %[[VAL_15:.*]] = arith.cmpi slt, %[[VAL_13]], %[[VAL_8]] : i64
+// CHECK:             cc.condition %[[VAL_15]](%[[VAL_13]], %[[VAL_14]] : i64, i32)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_17:.*]]: i64, %[[VAL_18:.*]]: i32):
-// CHECK:             %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_9]][%[[VAL_17]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_19]] : !cc.ptr<i8>
-// CHECK:             %[[VAL_12:.*]] = cc.cast %[[VAL_20]] : (i8) -> i1
-// CHECK:             %[[VAL_21:.*]] = cc.if(%[[VAL_12]]) -> i32 {
-// CHECK:               %[[VAL_22:.*]] = arith.addi %[[VAL_18]], %[[VAL_3]] : i32
+// CHECK:           ^bb0(%[[VAL_16:.*]]: i64, %[[VAL_17:.*]]: i32):
+// CHECK:             %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_16]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<i8>
+// CHECK:             %[[VAL_20:.*]] = cc.cast %[[VAL_19]] : (i8) -> i1
+// CHECK:             %[[VAL_21:.*]] = cc.if(%[[VAL_20]]) -> i32 {
+// CHECK:               %[[VAL_22:.*]] = arith.addi %[[VAL_17]], %[[VAL_3]] : i32
 // CHECK:               cc.continue %[[VAL_22]] : i32
 // CHECK:             } else {
-// CHECK:               cc.continue %[[VAL_18]] : i32
+// CHECK:               cc.continue %[[VAL_17]] : i32
 // CHECK:             }
-// CHECK:             cc.continue %[[VAL_17]], %[[VAL_23:.*]] : i64, i32
+// CHECK:             cc.continue %[[VAL_16]], %[[VAL_23:.*]] : i64, i32
 // CHECK:           } step {
 // CHECK:           ^bb0(%[[VAL_24:.*]]: i64, %[[VAL_25:.*]]: i32):
 // CHECK:             %[[VAL_26:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : i64
@@ -132,6 +132,7 @@ void func_arba() __qpu__ {
 // CHECK:               %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i64
 // CHECK:               cc.continue %[[VAL_19]] : i64
 // CHECK:             } {invariant}
+// CHECK:           } else {
 // CHECK:           }
 // CHECK:           %[[VAL_20:.*]] = cc.loop while ((%[[VAL_21:.*]] = %[[VAL_2]]) -> (i64)) {
 // CHECK:             %[[VAL_22:.*]] = arith.cmpi slt, %[[VAL_21]], %[[VAL_0]] : i64

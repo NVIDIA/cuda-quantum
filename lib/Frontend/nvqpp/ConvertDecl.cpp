@@ -169,6 +169,9 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::IndirectCallableType::get(fnTy));
     }
+    // Measurement result type.
+    if (name == "measure_result")
+      return pushType(quake::MeasureType::get(ctx));
     if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
       auto loc = toLocation(x);
       TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
@@ -744,6 +747,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // and if so, find the mz and tag it with the variable name
       auto elementType = vecType.getElementType();
 
+      if (auto meas = initVec.getDefiningOp<quake::MeasurementInterface>()) {
+        meas.setRegisterName(builder.getStringAttr(x->getName()));
+        return true;
+      }
+
       // Drop out if this is not an i1
       if (!elementType.isIntOrFloat() ||
           elementType.getIntOrFloatBitWidth() != 1)
@@ -781,6 +789,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
+          if (auto measureOp =
+                  result.getDefiningOp<quake::MeasurementInterface>()) {
+            measureOp.setRegisterName(builder.getStringAttr(x->getName()));
+            break;
+          }
           if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
             if (auto mzOp =
                     discr.getMeasurement().getDefiningOp<quake::MzOp>()) {
@@ -817,9 +830,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
-    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
-      mz.setRegisterName(builder.getStringAttr(x->getName()));
+  if (auto meas = initValue.getDefiningOp<quake::MeasurementInterface>())
+    meas.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {

@@ -63,8 +63,8 @@ func.func @__nvqpp__mlirgen__function_multi_vector._Z12multi_vectorv() attribute
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_4]], %[[VAL_8]]) {registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_9:.*]] = cc.address_of @cstr.72303030303100 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_11:.*]] = cc.string_literal "array<i1 x 2>" : !cc.ptr<!cc.array<i8 x 14>>
-// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_11:.*]] = cc.string_literal "array<result x 2>" : !cc.ptr<!cc.array<i8 x 18>>
+// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x 18>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__array_record_output(%[[VAL_2]], %[[VAL_12]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_5]], %[[VAL_7]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_8]], %[[VAL_10]]) {ResultIndex = 1 : i64, registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
@@ -80,8 +80,8 @@ func.func @__nvqpp__mlirgen__function_multi_vector._Z12multi_vectorv() attribute
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_2]], %[[VAL_3]]) {registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_4:.*]] = cc.address_of @cstr.72303030303000 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_6:.*]] = cc.string_literal "array<i1 x 1>" : !cc.ptr<!cc.array<i8 x 14>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.string_literal "array<result x 1>" : !cc.ptr<!cc.array<i8 x 18>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 18>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__array_record_output(%[[VAL_1]], %[[VAL_7]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_3]], %[[VAL_5]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           return
@@ -117,8 +117,8 @@ func.func @__nvqpp__mlirgen__function_multi_vector._Z12multi_vectorv() attribute
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_8]], %[[VAL_18]]) {registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_19:.*]] = cc.address_of @cstr.72303030303300 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_20:.*]] = cc.cast %[[VAL_19]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_21:.*]] = cc.string_literal "array<i1 x 4>" : !cc.ptr<!cc.array<i8 x 14>>
-// CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_21:.*]] = cc.string_literal "array<result x 4>" : !cc.ptr<!cc.array<i8 x 18>>
+// CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.array<i8 x 18>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__array_record_output(%[[VAL_4]], %[[VAL_22]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_9]], %[[VAL_11]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_12]], %[[VAL_14]]) {ResultIndex = 1 : i64, registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
