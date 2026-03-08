@@ -71,7 +71,7 @@ if $gen_cpp_coverage; then
 fi
 
 # Build project
-bash ${repo_root}/scripts/build_cudaq.sh
+bash ${repo_root}/scripts/build_cudaq.sh -- -DCUDAQ_TEST_OMP_SLOTS=2
 if [ $? -ne 0 ]; then
     echo "Build cudaq failure: $?" >&2
     exit 1

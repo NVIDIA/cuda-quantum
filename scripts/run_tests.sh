@@ -45,16 +45,57 @@ if [ "$(uname)" = "Darwin" ]; then
 else
   num_jobs=$(nproc)
 fi
-echo "Running tests with $num_jobs parallel jobs"
 
-# 1. CTest
+# Thread budget to avoid OpenMP oversubscription.
+# OpenMP-parallel tests (qpp, dm simulators) each use OMP_NUM_THREADS cores.
+# For ctest, the PROCESSORS property handles scheduling for a given -j $num_jobs.
+if [ -z "${OMP_NUM_THREADS:-}" ]; then
+  if [ "$num_jobs" -le 4 ]; then
+    omp_threads=1
+    parallel_jobs=$num_jobs
+  else
+    omp_threads=2
+    parallel_jobs=$((num_jobs / omp_threads))
+  fi
+  export OMP_NUM_THREADS=$omp_threads
+else
+  omp_threads=$OMP_NUM_THREADS
+  parallel_jobs=$((num_jobs / omp_threads))
+  if [ "$parallel_jobs" -lt 1 ]; then parallel_jobs=1; fi
+fi
+echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
+
+# Detect GPU availability for ctest label filtering
+gpu_excludes=""
+if [ "$(uname)" = "Darwin" ]; then
+  gpu_excludes="--label-exclude gpu_required"
+elif [ ! -x "$(command -v nvidia-smi)" ] || \
+     [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then
+  gpu_excludes="--label-exclude gpu_required"
+fi
+
+# 1a. CTest: CPU tests in parallel
+# Exclude lit test suites from ctest. They are run individually above/below.
 echo "=== Running ctest ==="
-ctest --output-on-failure --test-dir "$build_dir" \
-  -E "ctest-nvqpp|ctest-targettests"
+ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
+  -E "ctest-nvqpp|ctest-targettests|pycudaq-mlir" $gpu_excludes
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
   status_sum=$((status_sum + 1))
+fi
+
+# 1b. GPU tests: run serially to avoid GPU memory contention
+if [ -z "$gpu_excludes" ]; then
+  echo "=== Running GPU ctest (serial) ==="
+  ctest --output-on-failure --test-dir "$build_dir" -j 1 \
+    -E "ctest-nvqpp|ctest-targettests" \
+    -L "gpu_required" --label-exclude "mgpus_required"
+  gpu_ctest_status=$?
+  if [ $gpu_ctest_status -ne 0 ]; then
+    echo "::error::GPU ctest failed with status $gpu_ctest_status"
+    status_sum=$((status_sum + 1))
+  fi
 fi
 
 # 2. Main lit tests
@@ -70,7 +111,7 @@ fi
 
 # 3. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
   --param nvqpp_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 targ_status=$?
@@ -81,7 +122,7 @@ fi
 
 # 4. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
   --param nvqpp_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
   "$build_dir/python/tests/mlir"
 pymlir_status=$?
