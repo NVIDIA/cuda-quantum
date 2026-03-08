@@ -1385,6 +1385,10 @@ files to install into a separate folder using the command</p>
 mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets
 cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq
 
+<span class="c1"># Remove Python-dependent plugins from the C++ installer. The pyscf plugin</span>
+<span class="c1"># requires a Python runtime and is not used for the C++ workflows.</span>
+rm<span class="w"> </span>-f<span class="w"> </span>cuda_quantum_assets/cudaq/lib/plugins/libcudaq-pyscf*
+
 <span class="c1"># Bundle the complete LLVM installation in its own subtree so clang&#39;s</span>
 <span class="c1"># internal path resolution (resource dir, C++ headers, runtime libs) works</span>
 <span class="c1"># without custom fallbacks. Preserving the full install also keeps LLVM</span>
