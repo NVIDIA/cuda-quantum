@@ -67,6 +67,8 @@ fi
 
 # Run the container with the appropriate mounts and environment variables.
 # Add $ROOT/lib to LD_LIBRARY_PATH in the container to ensure it can find the CUDA-Q realtime libraries.
+# The run command is adapted from NVIDIA's holoscan-sensor-bridge 
+# (https://github.com/nvidia-holoscan/holoscan-sensor-bridge) demo script. 
 docker run \
     -it \
     --rm \

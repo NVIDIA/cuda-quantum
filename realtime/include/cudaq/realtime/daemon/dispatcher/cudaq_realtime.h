@@ -230,7 +230,7 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
 // Contains the bridge-provided launch function and its opaque transport state,
 // keeping the dispatcher API transport-agnostic.
 typedef struct {
-  cudaq_unified_launch_fn_t launch_fn; ///< Bridge-provided unified launch fn
+  cudaq_unified_launch_fn_t launch_fn; ///< Bridge-provided unified launch function
   void *transport_ctx;                 ///< Bridge-owned opaque transport state
 } cudaq_unified_dispatch_ctx_t;
 
