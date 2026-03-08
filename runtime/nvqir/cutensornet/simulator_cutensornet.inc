@@ -420,7 +420,8 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
 /// @brief Sample a subset of qubits
 template <typename ScalarType>
 cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
-    const std::vector<std::size_t> &measuredBits, const int shots) {
+    const std::vector<std::size_t> &measuredBits, const int shots,
+    bool includeSequentialData) {
   LOG_API_TIME();
   std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
@@ -449,11 +450,13 @@ cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
   }
 
   counts.expectationValue = expVal;
-  counts.sequentialData.resize(sum_counts);
-  std::size_t s = 0;
-  for (auto &kv : counts.counts)
-    for (std::size_t c = 0; c < kv.second; c++)
-      counts.sequentialData[s++] = kv.first;
+  if (includeSequentialData) {
+    counts.sequentialData.resize(sum_counts);
+    std::size_t s = 0;
+    for (auto &kv : counts.counts)
+      for (std::size_t c = 0; c < kv.second; c++)
+        counts.sequentialData[s++] = kv.first;
+  }
 
   return counts;
 }
