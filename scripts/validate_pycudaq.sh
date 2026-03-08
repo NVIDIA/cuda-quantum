@@ -232,15 +232,24 @@ if $is_macos; then
     fi
     source "$venv_dir/bin/activate"
 
-    # Install the wheel first
+    # Install cudaq. When a metapackage sdist is present in the packages
+    # directory, install via the metapackage so pip resolves the correct
+    # platform-specific wheel automatically. Otherwise fall back to
+    # direct wheel install (e.g. ci_macos.yml where only the wheel exists).
     if [ -n "${extra_packages}" ]; then
-        wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
-        if [ -n "$wheel_file" ]; then
-            echo "Installing wheel: $wheel_file"
-            pip install --force-reinstall "$wheel_file"
+        metapackage=$(ls "${extra_packages}"/cudaq-*.tar.gz 2>/dev/null | head -1)
+        if [ -n "$metapackage" ]; then
+            echo "Installing via metapackage: $metapackage"
+            pip install "cudaq==${cudaq_version}" --find-links "${extra_packages}"
         else
-            echo "No wheel found in ${extra_packages}, installing from PyPI"
-            pip install --upgrade cudaq==${cudaq_version}
+            wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
+            if [ -n "$wheel_file" ]; then
+                echo "Installing wheel: $wheel_file"
+                pip install --force-reinstall "$wheel_file"
+            else
+                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}. Refusing to install from PyPI when -i is set.\e[0m" >&2
+                (return 0 2>/dev/null) && return 100 || exit 100
+            fi
         fi
     else
         pip install --upgrade cudaq==${cudaq_version}
