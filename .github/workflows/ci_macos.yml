@@ -94,7 +94,6 @@ jobs:
     name: Build & Test (arm64)
     needs: [devdeps, metadata]
     runs-on: macos-26
-    timeout-minutes: 180
     permissions:
       contents: read
       packages: write
@@ -174,7 +173,6 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 90
     permissions:
       contents: read
       packages: write
@@ -305,7 +303,6 @@ jobs:
     name: Installer (arm64)
     needs: [devdeps, metadata]
     runs-on: macos-26
-    timeout-minutes: 120
     permissions:
       contents: read
       packages: write
