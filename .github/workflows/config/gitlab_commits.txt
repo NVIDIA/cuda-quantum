@@ -1,2 +1,2 @@
 nvidia-mgpu-repo: cuda-quantum/cuquantum-mgpu.git
-nvidia-mgpu-commit: b1a12ebd031a127d6dfc207771bcfe4311ada796
+nvidia-mgpu-commit: b06affb2e14ac8b4ce8b9f8cb058c34d2d972ab4
