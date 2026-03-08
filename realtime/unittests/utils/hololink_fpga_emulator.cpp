@@ -95,7 +95,7 @@ static constexpr uint32_t ILA_CTRL = ILA_BASE + 0x00;
 static constexpr uint32_t ILA_STATUS = ILA_BASE + 0x80;
 static constexpr uint32_t ILA_SAMPLE_ADDR = ILA_BASE + 0x84;
 static constexpr uint32_t ILA_DATA_BASE = 0x40100000;
-static constexpr int ILA_NUM_BANKS = 17;
+static constexpr int ILA_NUM_BANKS = 19;
 static constexpr int ILA_W_ADDR = 13; // log2(8192 entries)
 static constexpr int ILA_BANK_STRIDE = 1 << (ILA_W_ADDR + 2); // 32768
 
@@ -720,7 +720,7 @@ private:
   }
 
   void check_player_enable(uint32_t addr, uint32_t val) {
-    if (addr == PLAYER_ENABLE && val == 1) {
+    if (addr == PLAYER_ENABLE && (val & 1)) {
       playback_triggered_ = true;
     }
   }
@@ -770,16 +770,16 @@ static std::vector<uint8_t> reassemble_window(const RegisterFile &regs,
 //==============================================================================
 
 /// Store a correction response into the ILA capture register file.
-/// The ILA stores each sample across 17 banks of 32-bit words.
-/// Banks 0-15 = 512-bit AXI data bus (raw correction bytes).
-/// Bank 16    = control signals:
-///   bit 0 = tvalid (bit 512 of the captured word)
-///   bit 1 = tlast  (bit 513)
-///   bits [8:2] = wr_tcnt (bits 520:514, 7-bit write transaction count)
+/// The ILA stores each sample across 19 banks of 32-bit words (585 bits):
+///   Banks 0-15  = 512-bit AXI data bus (raw correction bytes)
+///   Bank 16     = control signals:
+///     bit 0 = tvalid (bit 512), bit 1 = tlast (bit 513),
+///     bits [8:2] = wr_tcnt (bits 520:514, 7-bit write transaction count)
+///   Banks 17-18 = PTP timestamp at bits [584:521] (zero in emulator)
 static void store_ila_sample(RegisterFile &regs, uint32_t sample_index,
                              const uint8_t *data, size_t data_len) {
-  // Spread the data across banks 0-15 (the 512-bit AXI data bus).
-  for (int bank = 0; bank < ILA_NUM_BANKS - 1; bank++) {
+  // Banks 0-15: 512-bit AXI data bus
+  for (int bank = 0; bank < 16; bank++) {
     uint32_t addr =
         ILA_DATA_BASE + (bank << (ILA_W_ADDR + 2)) + (sample_index * 4);
     uint32_t val = 0;
@@ -791,16 +791,22 @@ static void store_ila_sample(RegisterFile &regs, uint32_t sample_index,
     regs.write(addr, val);
   }
 
-  // Bank 16: set control signals (tvalid=1, tlast=1, wr_tcnt=1)
+  // Bank 16: control signals (tvalid=1, tlast=1, wr_tcnt=1)
   {
-    uint32_t ctrl_addr = ILA_DATA_BASE +
-                         ((ILA_NUM_BANKS - 1) << (ILA_W_ADDR + 2)) +
-                         (sample_index * 4);
+    uint32_t ctrl_addr =
+        ILA_DATA_BASE + (16 << (ILA_W_ADDR + 2)) + (sample_index * 4);
     uint32_t ctrl_val = 0;
     ctrl_val |= (1u << 0); // tvalid (bit 512)
     ctrl_val |= (1u << 1); // tlast  (bit 513)
     ctrl_val |= (1u << 2); // wr_tcnt = 1 (bits 514+, value 1 in 7-bit field)
     regs.write(ctrl_addr, ctrl_val);
+  }
+
+  // Banks 17-18: PTP timestamp placeholder (no PTP hardware in emulator)
+  for (int bank = 17; bank < ILA_NUM_BANKS; bank++) {
+    uint32_t addr =
+        ILA_DATA_BASE + (bank << (ILA_W_ADDR + 2)) + (sample_index * 4);
+    regs.write(addr, 0);
   }
 
   // Update sample count
@@ -1058,22 +1064,24 @@ int main(int argc, char *argv[]) {
     uint32_t recv_timeouts = 0;
 
     for (uint32_t window = 0; window < win_num && !g_shutdown; window++) {
-      uint32_t slot = window % num_pages;
+      uint32_t remote_slot = window % num_pages;
+      uint32_t local_slot = window % NUM_BUFFERS;
 
       // Reassemble syndrome payload from BRAM
       auto payload = reassemble_window(regs, window, cycles_per_window);
 
-      // Copy to RDMA TX buffer slot
-      uint8_t *tx_addr =
-          static_cast<uint8_t *>(tx_buffer.data()) + (slot * rdma_page_size);
+      // Copy to RDMA TX buffer slot (local buffer has NUM_BUFFERS slots)
+      uint8_t *tx_addr = static_cast<uint8_t *>(tx_buffer.data()) +
+                         (local_slot * rdma_page_size);
       size_t copy_len = std::min<size_t>(payload.size(), rdma_page_size);
       memcpy(tx_addr, payload.data(), copy_len);
 
-      // RDMA WRITE to bridge's ring buffer
-      uint64_t remote_addr = target.buffer_addr + (slot * rdma_page_size);
+      // RDMA WRITE to bridge's ring buffer (remote has num_pages slots)
+      uint64_t remote_addr =
+          target.buffer_addr + (remote_slot * rdma_page_size);
       if (!rdma.post_rdma_write_imm(qp, window, tx_addr, copy_len,
                                     tx_buffer.lkey(), remote_addr, target.rkey,
-                                    slot)) {
+                                    remote_slot)) {
         std::cerr << "ERROR: RDMA WRITE failed for window " << window
                   << std::endl;
         send_errors++;

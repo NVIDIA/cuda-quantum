@@ -182,7 +182,7 @@ if (FMT_INCLUDE_DIR)
 endif()
 
 target_link_libraries(hololink_fpga_playback
-  PRIVATE ${HOLOLINK_CORE_LIB} Threads::Threads)
+  PRIVATE ${HOLOLINK_CORE_LIB} CUDA::cuda_driver Threads::Threads)
 
 # Install this to so it's available for testing the installer
 install(TARGETS hololink_fpga_playback
