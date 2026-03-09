@@ -329,7 +329,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compare-results">5. Compare results</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
@@ -1162,8 +1162,8 @@ depend on the selected simulator.</p>
 arrays to bring a practical quantum advantage to its customers and address real-world problems.
 The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
 portal.</p>
-<p>In order to access Pasqal’s devices you need an account for <a class="reference external" href="https://portal.pasqal.cloud">Pasqal’s cloud platform</a>
-and an active project. Please see our <a class="reference external" href="https://docs.pasqal.cloud/cloud/">cloud documentation</a> for more details if needed.</p>
+<p>In order to access Pasqal’s devices you to sign up for an account on
+<a class="reference external" href="https://portal.pasqal.cloud">Pasqal’s cloud platform</a>.</p>
 <p>Although a different SDK, <a class="reference external" href="https://pulser.readthedocs.io/en/latest/">Pasqal’s Pulser library</a>, is a good
 resource for getting started with analog neutral atom quantum computing.
 For support you can also join the <a class="reference external" href="https://community.pasqal.com/">Pasqal Community</a>.</p>
@@ -1175,8 +1175,8 @@ For example from Python one can use the <a class="reference external" href="http
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
 <span class="n">sdk</span> <span class="o">=</span> <span class="n">SDK</span><span class="p">(</span>
-    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">[</span><span class="s1">&#39;PASQAL_USERNAME&#39;</span><span class="p">],</span>
-    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_PASSWORD&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_USERNAME&#39;</span><span class="p">),</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_PASSWORD&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="c1"># Ensures you will be securely prompted</span>
 <span class="p">)</span>
 
 <span class="n">token</span> <span class="o">=</span> <span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">()</span>
@@ -1190,6 +1190,17 @@ For example from Python one can use the <a class="reference external" href="http
 <span class="nb">export</span><span class="w"> </span><span class="nv">PASQAL_PROJECT_ID</span><span class="o">=</span>&lt;&gt;
 </pre></div>
 </div>
+</section>
+<section id="pasqal-via-qrmi">
+<h3>Pasqal via QRMI<a class="headerlink" href="#pasqal-via-qrmi" title="Permalink to this heading">¶</a></h3>
+<p>CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">pasqal</span></code> target for routing Pasqal jobs through the vendor agnostic
+Quantum Resource Management Interface (QRMI), by specifying <code class="docutils literal notranslate"><span class="pre">machine</span></code> as <code class="docutils literal notranslate"><span class="pre">qrmi</span></code>.
+This target enables integration with resource managers like Slurm for scheduling.
+Select the Pasqal backend with the <code class="docutils literal notranslate"><span class="pre">--qpu</span></code> option in <code class="docutils literal notranslate"><span class="pre">sbatch</span></code> and let QRMI
+handle submission.</p>
+<p>For this route, credentials and project id are read by QRMI using either
+<code class="docutils literal notranslate"><span class="pre">~/.pasqal/config</span></code> or other methods supported by your cluster’s QRMI setup.</p>
+<p>The job submission process is the same as for the <code class="docutils literal notranslate"><span class="pre">pasqal</span></code> target. For example:</p>
 </section>
 <section id="id2">
 <h3>Submitting<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>

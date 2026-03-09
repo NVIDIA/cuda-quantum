@@ -441,9 +441,8 @@ pr-4098
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1871,7 +1870,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![81cb9bfa1699440180fe0cd3a9bfc473](../../_images/adapt-vqe.png){.no-scaled-link
+![81653a9713764d9e969a4677f2a0a5de](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>

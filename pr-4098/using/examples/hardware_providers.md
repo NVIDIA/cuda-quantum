@@ -407,8 +407,8 @@ pr-4098
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -2926,6 +2926,9 @@ C++
 ## Pasqal[¶](#pasqal "Permalink to this heading"){.headerlink}
 
 The following code illustrates how to run kernels on Pasqal's backends.
+For QRMI-routed Pasqal jobs, specify [`pasqal`{.docutils .literal
+.notranslate}]{.pre} as the target; the [`machine`{.docutils .literal
+.notranslate}]{.pre} argument is supplied by QRMI at runtime.
 
 ::: {.tab-set .docutils}
 Python
@@ -2938,6 +2941,9 @@ Python
     from cudaq.dynamics import Schedule
 
     # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
+    # It uses the direct `pasqal` target with Pasqal credentials.
+    # For the QRMI-routed flow use a supported cluster and set `machine="qrmi"`
+    # (see QRMI docs).
     #
     # To obtain the authentication token for the cloud  we recommend logging in with
     # Pasqal's Python SDK. See our documentation https://docs.pasqal.com/cloud/ for more.
@@ -3023,8 +3029,10 @@ C++
     // nvq++ --target pasqal pasqal.cpp -o out.x
     // ./out.x
     // ```
-    // Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)
-    // have been set.
+    // Assumes credentials are configured either with environment variables
+    // (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).
+    // For QRMI-routed execution, see the `pasqal` notes
+    // in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"

@@ -441,9 +441,8 @@ pr-4098
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1890,13 +1889,18 @@ energy of the water molecule.
     import openfermionpyscf
     from openfermion.transforms import jordan_wigner, get_fermion_operator
 
-    import os
     import timeit
 
     import cudaq
     import matplotlib.pyplot as plt
     from scipy.optimize import minimize
     import numpy as np
+
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 :::
 :::
 :::
@@ -2108,7 +2112,6 @@ function and a selected optimizer, in this case COBYLA.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    cudaq.set_target('nvidia')
     start_time = timeit.default_timer()
     result = minimize(cost,
                       x0,
