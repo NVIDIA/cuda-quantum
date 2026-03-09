@@ -251,12 +251,18 @@ public:
 
     // 1) Factor any deallocations that are struqs or veqs of constant size. Do
     // this first to simplify preconditions for step 2.
-    if (failed(factorDeallocations()))
+    if (failed(factorDeallocations())) {
+      if (enableFailures)
+        signalPassFailure();
       return;
+    }
 
     // 2) Factor any allocations that are struqs or veqs of constant size.
-    if (failed(factorAllocations()))
+    if (failed(factorAllocations())) {
+      if (enableFailures)
+        signalPassFailure();
       return;
+    }
 
     LLVM_DEBUG(llvm::dbgs() << "Function after factoring quake alloca:\n"
                             << func << "\n\n");
