@@ -17,7 +17,7 @@ To submit to a hardware backend, you need an account with the respective provide
         Photonic QPUs <hardware/photonic.rst>
         Quantum Control Systems <hardware/qcontrol.rst>
 
-- :doc:`Aggregators <cloud>`
+- :doc:`Cloud <cloud>`
 
   - :doc:`Amazon Braket <cloud/braket>`
 
