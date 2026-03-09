@@ -1501,11 +1501,12 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 110/110 [00:00&lt;00:00, 43521.69it/s]
-100%|██████████| 19/19 [00:00&lt;00:00, 130642.26it/s]
-100%|██████████| 5/5 [00:00&lt;00:00, 83220.32it/s]
-100%|██████████| 1/1 [00:00&lt;00:00, 29330.80it/s]
-100%|██████████| 2/2 [00:00&lt;00:00, 57456.22it/s]
+100%|██████████| 110/110 [00:00&lt;00:00, 45025.22it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 19972.88it/s]
+100%|██████████| 24/24 [00:00&lt;00:00, 80530.64it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 20971.52it/s]
+100%|██████████| 3/3 [00:00&lt;00:00, 70295.60it/s]
+100%|██████████| 2/2 [00:00&lt;00:00, 48770.98it/s]
 </pre></div></div>
 </div>
 <p>The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits generally mark divisions between the least similar data.</p>
@@ -1643,7 +1644,8 @@ perform this task.</p>
                 <span class="n">rz</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[(</span><span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">number_of_qubits</span><span class="p">])</span>
                 <span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[(</span><span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">number_of_qubits</span><span class="p">])</span>
 
-            <span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">layer</span> <span class="o">+</span> <span class="n">layers</span><span class="p">],</span> <span class="n">qubits</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">):</span>
+                <span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">layer</span> <span class="o">+</span> <span class="n">layers</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">qubit</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">kernel</span>
 
@@ -1659,31 +1661,31 @@ perform this task.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-                                                                             »
-q0 : ──●──────────────────●──────────────────────────────────────────────────»
-     ╭─┴─╮╭────────────╮╭─┴─╮                                                »
-q1 : ┤ x ├┤ rz(0.8218) ├┤ x ├──●──────────────────●──────────────────────────»
-     ╰───╯╰────────────╯╰───╯╭─┴─╮╭────────────╮╭─┴─╮                        »
-q2 : ────────────────────────┤ x ├┤ rz(0.8218) ├┤ x ├──●──────────────────●──»
-                             ╰───╯╰────────────╯╰───╯╭─┴─╮╭────────────╮╭─┴─╮»
-q3 : ────────────────────────────────────────────────┤ x ├┤ rz(0.8218) ├┤ x ├»
-                                                     ╰───╯╰────────────╯╰───╯»
-q4 : ────────────────────────────────────────────────────────────────────────»
-                                                                             »
+                                                                          »
+q0 : ──●─────────────────●────────────────────────────────────────────────»
+     ╭─┴─╮╭───────────╮╭─┴─╮                                              »
+q1 : ┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●─────────────────────────»
+     ╰───╯╰───────────╯╰───╯╭─┴─╮╭───────────╮╭─┴─╮                       »
+q2 : ───────────────────────┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●──»
+                            ╰───╯╰───────────╯╰───╯╭─┴─╮╭───────────╮╭─┴─╮»
+q3 : ──────────────────────────────────────────────┤ x ├┤ rz(1.204) ├┤ x ├»
+                                                   ╰───╯╰───────────╯╰───╯»
+q4 : ─────────────────────────────────────────────────────────────────────»
+                                                                          »
 
 ################################################################################
 
-                        ╭───╮╭────────────╮╭───╮╭────────────╮
-────────────────────────┤ x ├┤ rz(0.8218) ├┤ x ├┤ rx(0.8934) ├
-                        ╰─┬─╯╰────────────╯╰─┬─╯├────────────┤
-──────────────────────────┼──────────────────┼──┤ rx(0.8934) ├
-                          │                  │  ├────────────┤
-──────────────────────────┼──────────────────┼──┤ rx(0.8934) ├
-                          │                  │  ├────────────┤
-──●──────────────────●────┼──────────────────┼──┤ rx(0.8934) ├
-╭─┴─╮╭────────────╮╭─┴─╮  │                  │  ├────────────┤
-┤ x ├┤ rz(0.8218) ├┤ x ├──●──────────────────●──┤ rx(0.8934) ├
-╰───╯╰────────────╯╰───╯                        ╰────────────╯
+                       ╭───╮╭───────────╮╭───╮╭────────────╮
+───────────────────────┤ x ├┤ rz(1.204) ├┤ x ├┤ rx(0.1425) ├
+                       ╰─┬─╯╰───────────╯╰─┬─╯├────────────┤
+─────────────────────────┼─────────────────┼──┤ rx(0.1425) ├
+                         │                 │  ├────────────┤
+─────────────────────────┼─────────────────┼──┤ rx(0.1425) ├
+                         │                 │  ├────────────┤
+──●─────────────────●────┼─────────────────┼──┤ rx(0.1425) ├
+╭─┴─╮╭───────────╮╭─┴─╮  │                 │  ├────────────┤
+┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●──┤ rx(0.1425) ├
+╰───╯╰───────────╯╰───╯                       ╰────────────╯
 
 </pre></div></div>
 </div>
@@ -1743,11 +1745,11 @@ q4 : ─────────────────────────
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 492/492 [00:00&lt;00:00, 44940.93it/s]
-100%|██████████| 24/24 [00:00&lt;00:00, 73423.26it/s]
-100%|██████████| 24/24 [00:00&lt;00:00, 146525.90it/s]
-100%|██████████| 4/4 [00:00&lt;00:00, 96978.13it/s]
-100%|██████████| 2/2 [00:00&lt;00:00, 28728.11it/s]
+100%|██████████| 474/474 [00:00&lt;00:00, 45655.17it/s]
+100%|██████████| 24/24 [00:00&lt;00:00, 120123.26it/s]
+100%|██████████| 24/24 [00:00&lt;00:00, 126144.48it/s]
+100%|██████████| 4/4 [00:00&lt;00:00, 91678.78it/s]
+100%|██████████| 4/4 [00:00&lt;00:00, 89717.73it/s]
 </pre></div></div>
 </div>
 </section>
@@ -1779,23 +1781,21 @@ divisive clustering procedure using the QAOA method, 100000 simulated shots for 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1773075846.445684] [f46691a660f5:151318:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1773075846.532609] [f46691a660f5:151318:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1773075846.532609] [f46691a660f5:151318:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773092248.301998] [f46691a660f5:24397:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773092248.391148] [f46691a660f5:24397:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773092248.391148] [f46691a660f5:24397:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|██████████████████████████████████| 14910/14910 [00:01&lt;00:00, 14360.09it/s]
-100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 56757.68it/s]
-100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 57278.45it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 144010.44it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 131328.50it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 138084.08it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 147816.88it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 96420.78it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 101680.10it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 144010.44it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 120699.40it/s]
-Total time for the execution: 28.260118355
-Total time spent on CUDA-Q: 26.26624026100001
+100%|██████████████████████████████████| 14919/14919 [00:01&lt;00:00, 13340.85it/s]
+100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 83442.79it/s]
+100%|████████████████████████████████████| 1024/1024 [00:00&lt;00:00, 34914.74it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 106184.91it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 119837.26it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 121354.18it/s]
+100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 111199.44it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 107546.26it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 124275.67it/s]
+Total time for the execution: 28.007800664999998
+Total time spent on CUDA-Q: 25.764982143999994
 </pre></div></div>
 </div>
 <p>Scaling up to N=25, the task becomes even more onerous on a CPU. Depending on your device, the simulation may not even run. Try it and feel free to interrupt after your patience has worn out.</p>
@@ -1824,27 +1824,26 @@ Total time spent on CUDA-Q: 26.26624026100001
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1773075865.387327] [f46691a660f5:151571:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1773075865.473670] [f46691a660f5:151571:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1773075865.473670] [f46691a660f5:151571:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773092266.591802] [f46691a660f5:24650:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773092266.678503] [f46691a660f5:24650:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773092266.678503] [f46691a660f5:24650:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|███████████████████████████████████| 19273/19273 [00:02&lt;00:00, 7207.92it/s]
-100%|██████████████████████████████████| 17560/17560 [00:01&lt;00:00, 14303.00it/s]
-100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 91772.81it/s]
-100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 93433.85it/s]
-100%|████████████████████████████████████| 1024/1024 [00:00&lt;00:00, 38592.92it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 96420.78it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 145257.28it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 116508.44it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 145888.83it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 139810.13it/s]
-100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 108152.88it/s]
+100%|███████████████████████████████████| 19173/19173 [00:02&lt;00:00, 7034.07it/s]
+100%|██████████████████████████████████| 23148/23148 [00:01&lt;00:00, 17444.85it/s]
+100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 58568.80it/s]
+100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 92916.39it/s]
+100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 57721.85it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 142179.80it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 132626.21it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 118987.35it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 147816.88it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 149796.57it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 136956.87it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 108240.10it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 115704.94it/s]
 100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 119837.26it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 157532.54it/s]
-100%|██████████████████████████████████████████| 4/4 [00:00&lt;00:00, 93206.76it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 121574.03it/s]
-Total time for the execution: 51.246078059000006
-Total time spent on CUDA-Q: 47.22761912600001
+Total time for the execution: 57.173644533
+Total time spent on CUDA-Q: 53.02281598200002
 </pre></div></div>
 </div>
 <p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> coreset, a single GPU (assuming A100) will run out of memory. When this happens, the GPU memory error propagates out of the quantum simulation and surfaces as a <code class="docutils literal notranslate"><span class="pre">RuntimeError:</span> <span class="pre">NLOpt</span> <span class="pre">runtime</span> <span class="pre">error:</span> <span class="pre">nlopt</span> <span class="pre">failure</span></code>, since the optimizer catches the exception from the failed objective function evaluation. Run the code below to see for yourself.</p>
@@ -1862,9 +1861,9 @@ Total time spent on CUDA-Q: 47.22761912600001
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1773075903.989225] [f46691a660f5:151875:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1773075904.076020] [f46691a660f5:151875:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1773075904.076020] [f46691a660f5:151875:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773092306.811133] [f46691a660f5:24955:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773092306.897738] [f46691a660f5:24955:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773092306.897738] [f46691a660f5:24955:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
 RuntimeError: NLOpt runtime error: nlopt failure
 </pre></div></div>
