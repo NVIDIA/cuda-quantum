@@ -329,6 +329,83 @@ jobs:
           cat tpls_commits.lock
           wc -l tpls_commits.lock || true
 
+      - name: Download CUDA-Q prerequisite sources
+        run: |
+          set -euo pipefail
+          # Generate cudaq_prereqs.lock for the current configuration
+          bash scripts/install_prerequisites.sh -l
+          cat cudaq_prereqs.lock
+
+          mkdir -p prereqs
+          while IFS= read -r line; do
+            # Skip comments and empty lines
+            [ -z "$line" ] && continue
+            case "$line" in
+              \#*) continue ;;
+            esac
+
+            name=""
+            type=""
+            url=""
+            ref=""
+
+            for kv in $line; do
+              key="${kv%%=*}"
+              val="${kv#*=}"
+              case "$key" in
+                name) name="$val" ;;
+                type) type="$val" ;;
+                url)  url="$val" ;;
+                ref)  ref="$val" ;;
+              esac
+            done
+
+            if [ -z "$name" ] || [ -z "$type" ]; then
+              echo "Skipping malformed lock entry: $line"
+              continue
+            fi
+
+            case "$type" in
+              tar)
+                fname="$(basename "$url")"
+                dest="prereqs/${name}-${fname}"
+                echo "Downloading tar archive for $name from $url -> $dest"
+                curl -L "$url" -o "$dest"
+                ;;
+              sh)
+                fname="$(basename "$url")"
+                dest="prereqs/${name}-${fname}"
+                echo "Downloading shell installer for $name from $url -> $dest"
+                curl -L "$url" -o "$dest"
+                chmod +x "$dest"
+                ;;
+              pem)
+                dest="prereqs/${name}.pem"
+                echo "Downloading PEM bundle for $name from $url -> $dest"
+                curl -L "$url" -o "$dest"
+                ;;
+              git)
+                dest_dir="prereqs/${name}"
+                echo "Cloning git repo for $name from $url (ref=${ref:-HEAD}) -> $dest_dir"
+                git clone "$url" "$dest_dir"
+                if [ -n "${ref:-}" ]; then
+                  git -C "$dest_dir" checkout "$ref"
+                fi
+                ;;
+              script)
+                # No direct URL; record the script/target so downstream tooling
+                # can resolve the concrete sources if desired.
+                echo "$line" > "prereqs/${name}.lockentry"
+                ;;
+              *)
+                echo "Unknown type '$type' in lock entry: $line"
+                ;;
+            esac
+          done < cudaq_prereqs.lock
+
+          echo "Contents of prereqs/:"
+          ls -R prereqs
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
