@@ -78,7 +78,7 @@ install_all=true
 lock_mode=false
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:ml:-:" opt; do
+while getopts ":e:t:ml-:" opt; do
   case $opt in
     e) exclude_prereq="$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')"
     ;;
@@ -123,95 +123,61 @@ if $lock_mode; then
 
   # [Toolchain] CMake and Ninja sources (compiler toolchain itself is handled
   # via install_toolchain.sh or the system toolchain and is not pinned here).
-  if $install_all && [ -z "$(echo "$exclude_prereq" | grep toolchain)" ]; then
-    if [ ! -x "$(command -v cmake)" ]; then
-      if [ "$(uname)" = "Darwin" ]; then
-        add_lock_line "cmake" \
-          "type=tar" \
-          "url=${CMAKE_MACOS_TARBALL_URL}" \
-          "version=${CMAKE_VERSION}"
-      else
-        add_lock_line "cmake" \
-          "type=sh" \
-          "url=${CMAKE_LINUX_INSTALLER_URL_BASE}$(uname -m).sh" \
-          "version=${CMAKE_VERSION}"
-      fi
-    fi
-    if [ ! -x "$(command -v ninja)" ]; then
-      add_lock_line "ninja" \
-        "type=tar" \
-        "url=${NINJA_TARBALL_URL}" \
-        "version=${NINJA_VERSION}"
-    fi
-  fi
+  # In lockfile mode, always list the toolchain sources regardless of what is
+  # currently installed or excluded.
+  add_lock_line "cmake-macos" \
+    "type=tar" \
+    "url=${CMAKE_MACOS_TARBALL_URL}" \
+    "version=${CMAKE_VERSION}"
+  add_lock_line "cmake" \
+    "type=sh" \
+    "url=${CMAKE_LINUX_INSTALLER_URL_BASE}$(uname -m).sh" \
+    "version=${CMAKE_VERSION}"
+  add_lock_line "ninja" \
+    "type=tar" \
+    "url=${NINJA_TARBALL_URL}" \
+    "version=${NINJA_VERSION}"
 
   # [Zlib / Minizip]
-  if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep zlib)" ]; then
-    add_lock_line "zlib" \
-      "type=tar" \
-      "url=${ZLIB_TARBALL_URL}" \
-      "version=${ZLIB_VERSION}"
-  fi
+  add_lock_line "zlib" \
+    "type=tar" \
+    "url=${ZLIB_TARBALL_URL}" \
+    "version=${ZLIB_VERSION}"
 
   # [BLAS]
-  if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep blas)" ]; then
-    add_lock_line "blas" \
-      "type=tar" \
-      "url=${BLAS_TARBALL_URL}" \
-      "version=${BLAS_VERSION}"
-  fi
+  add_lock_line "blas" \
+    "type=tar" \
+    "url=${BLAS_TARBALL_URL}" \
+    "version=${BLAS_VERSION}"
 
   # [OpenSSL] (and its private Perl used only for the build)
-  if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep ssl)" ]; then
-    add_lock_line "perl" \
-      "type=tar" \
-      "url=${PERL_TARBALL_URL}" \
-      "version=${PERL_VERSION}"
-    add_lock_line "openssl" \
-      "type=tar" \
-      "url=${OPENSSL_TARBALL_URL}" \
-      "version=${OPENSSL_VERSION}"
-  fi
+  add_lock_line "perl" \
+    "type=tar" \
+    "url=${PERL_TARBALL_URL}" \
+    "version=${PERL_VERSION}"
+  add_lock_line "openssl" \
+    "type=tar" \
+    "url=${OPENSSL_TARBALL_URL}" \
+    "version=${OPENSSL_VERSION}"
 
   # [CURL] (including CA bundle)
-  if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep curl)" ]; then
-    add_lock_line "cacert" \
-      "type=pem" \
-      "url=${CACERT_URL}"
-    add_lock_line "curl" \
-      "type=tar" \
-      "url=${CURL_TARBALL_URL}" \
-      "version=${CURL_VERSION}"
-  fi
+  add_lock_line "cacert" \
+    "type=pem" \
+    "url=${CACERT_URL}"
+  add_lock_line "curl" \
+    "type=tar" \
+    "url=${CURL_TARBALL_URL}" \
+    "version=${CURL_VERSION}"
 
   # [AWS SDK]
-  if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep aws)" ]; then
-    add_lock_line "aws-sdk-cpp" \
-      "type=git" \
-      "url=${AWS_SDK_CPP_URL}" \
-      "ref=${AWS_SDK_CPP_REF}"
-  fi
+  add_lock_line "aws-sdk-cpp" \
+    "type=git" \
+    "url=${AWS_SDK_CPP_URL}" \
+    "ref=${AWS_SDK_CPP_REF}"
 
-  # [cuQuantum and cuTensor] – the concrete sources are defined in configure_build.sh.
-  cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
-  cuda_version=$("$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2)
-  if [ -n "$cuda_version" ]; then
-    if [ -n "$CUQUANTUM_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep cuquantum)" ]; then
-      add_lock_line "cuquantum" \
-        "type=script" \
-        "script=configure_build.sh" \
-        "target=install-cuquantum"
-    fi
-    if [ -n "$CUTENSOR_INSTALL_PREFIX" ] && [ -z "$(echo "$exclude_prereq" | grep cutensor)" ]; then
-      add_lock_line "cutensor" \
-        "type=script" \
-        "script=configure_build.sh" \
-        "target=install-cutensor"
-    fi
-  fi
 
   echo "Prerequisites lockfile written to ${LOCK_FILE}."
-  ((return 0 2>/dev/null) && return 0 || exit 0)
+  (return 0 2>/dev/null) && return 0 || exit 0
 fi
 
 # Create a temporary directory for building source packages
