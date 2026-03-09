@@ -430,8 +430,8 @@ jobs:
             esac
           done < cudaq_prereqs.lock
 
-          echo "Contents of prereqs/:"
-          ls -R prereqs
+          echo "Contents of prereqs/ (directories only):"
+          find prereqs -type d | sort
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
