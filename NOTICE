@@ -220,3 +220,11 @@ The incorporated source code and its license can be found as a submodule on the 
 License at <https://github.com/aws/aws-sdk-cpp/blob/main/LICENSE>
 
 ----------------------------------------------------------------
+
+Quantum Resource Management Interface (QRMI) - Apache License 2.0
+<https://github.com/qiskit-community/QRMI>
+
+Copyright (c) 2025 IBM and its contributors.
+License at <https://github.com/qiskit-community/qrmi/blob/main/LICENSE.txt>
+
+----------------------------------------------------------------
