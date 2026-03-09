@@ -71,6 +71,18 @@ CACERT_SHA256_URL="${CACERT_URL}.sha256"
 AWS_SDK_CPP_URL="https://github.com/aws/aws-sdk-cpp"
 AWS_SDK_CPP_REF="1.11.454"
 
+# QRMI pre-built C artifacts for Pasqal QRMI connector
+QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
+QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
+QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
+QRMI_RELEASE_BASE="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
+QRMI_ARCHIVE="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz"
+QRMI_UNPACK_DIR="libqrmi-${QRMI_RELEASE_VERSION}"
+# NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
+#   wget -O qrmi.tar.gz "${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}"
+#   sha256sum qrmi.tar.gz | awk '{print $1}'
+QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746}
+
 # Process command line arguments
 toolchain=''
 exclude_prereq=''
@@ -174,6 +186,14 @@ if $lock_mode; then
     "type=git" \
     "url=${AWS_SDK_CPP_URL}" \
     "ref=${AWS_SDK_CPP_REF}"
+
+  # [QRMI] Pre-built C artifacts for Pasqal QRMI connector
+  # Keep this in sync with the QRMI section in the installation path below.
+  add_lock_line "qrmi" \
+    "type=tar" \
+    "url=${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}" \
+    "version=${QRMI_RELEASE_VERSION}" \
+    "sha256=${QRMI_ARCHIVE_SHA256}"
 
 
   echo "Prerequisites lockfile written to ${LOCK_FILE}."
@@ -575,38 +595,26 @@ if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]
     temp_install_if_command_unknown wget wget
     pushd "$PREREQS_BUILD_DIR"
 
-    QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
-    QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
-    QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
-    qrmi_release_base="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
-    qrmi_archive="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz" # Note: el8 build works on Ubuntu 18.04+.
-    qrmi_unpack_dir="libqrmi-${QRMI_RELEASE_VERSION}"
-
-    # NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
-    #   wget -O qrmi.tar.gz "${qrmi_release_base}/${qrmi_archive}"
-    #   sha256sum qrmi.tar.gz | awk '{print $1}' 
-    QRMI_ARCHIVE_SHA256="2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746"
-
     mkdir -p "$QRMI_INSTALL_PREFIX/include" "$QRMI_INSTALL_PREFIX/lib64"
-    wget "${qrmi_release_base}/${qrmi_archive}" -O "${qrmi_archive}"
+    wget "${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}" -O "${QRMI_ARCHIVE}"
 
     if [ -x "$(command -v sha256sum)" ]; then
-      computed_sha256="$(sha256sum "${qrmi_archive}" | awk '{print $1}')"
+      computed_sha256="$(sha256sum "${QRMI_ARCHIVE}" | awk '{print $1}')"
     else
-      computed_sha256="$(shasum -a 256 "${qrmi_archive}" | awk '{print $1}')"
+      computed_sha256="$(shasum -a 256 "${QRMI_ARCHIVE}" | awk '{print $1}')"
     fi
     if [ "$computed_sha256" != "$QRMI_ARCHIVE_SHA256" ]; then
-      echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${qrmi_archive}.\e[0m" >&2
+      echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${QRMI_ARCHIVE}.\e[0m" >&2
       echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
       echo "Got:      $computed_sha256" >&2
       rm -f "${qrmi_archive}"
       (return 1 2>/dev/null) && return 1 || exit 1
     fi
 
-    tar -xzf "${qrmi_archive}"
-    cp "${qrmi_unpack_dir}/qrmi.h" "$qrmi_header"
-    cp "${qrmi_unpack_dir}/libqrmi.so" "$qrmi_library"
-    rm -rf "${qrmi_archive}" "${qrmi_unpack_dir}"
+    tar -xzf "${QRMI_ARCHIVE}"
+    cp "${QRMI_UNPACK_DIR}/qrmi.h" "$qrmi_header"
+    cp "${QRMI_UNPACK_DIR}/libqrmi.so" "$qrmi_library"
+    rm -rf "${QRMI_ARCHIVE}" "${QRMI_UNPACK_DIR}"
 
     popd
     remove_temp_installs
