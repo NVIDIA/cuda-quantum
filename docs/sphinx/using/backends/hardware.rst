@@ -16,3 +16,9 @@ To submit to a hardware backend, you need an account with the respective provide
         Neutral Atom QPUs <hardware/neutralatom.rst>
         Photonic QPUs <hardware/photonic.rst>
         Quantum Control Systems <hardware/qcontrol.rst>
+
+- :doc:`Aggregators <cloud>`
+
+  - :doc:`Amazon Braket <cloud/braket>`
+
+  - :doc:`Scaleway QaaS <cloud/scaleway>`
