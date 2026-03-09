@@ -824,3 +824,4 @@ jobs:
     uses: ./.github/workflows/ci_macos.yml
     with:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
+      cudaq_version: ${{ inputs.create_release }}
