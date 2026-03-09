@@ -22,7 +22,7 @@
       "cell_type": "markdown",
       "metadata": {},
       "source": [
-        "### Set up the environment"
+        "### 0. Set up the environment"
       ]
     },
     {
@@ -41,7 +41,7 @@
       "cell_type": "markdown",
       "metadata": {},
       "source": [
-        "### Define the circuit and noise model\n",
+        "### 1. Define the circuit and noise model\n",
         "\n",
         "Define a kernel and attach a noise model. Each gate you add to the noise model becomes a noise site when that gate appears in the circuit. In this example, for single-qubit gates (e.g. $H$) we use a `DepolarizationChannel` with one qubit and for $CNOT$ we add the **qubit pair** `[control, target]` with `Depolarization2` (two-qubit depolarization channel). Here we use a small Bell-style circuit to demonstrate the"
       ]
@@ -71,7 +71,7 @@
       "cell_type": "markdown",
       "metadata": {},
       "source": [
-        "#### Inline noise with `apply_noise`\n",
+        "### 2. Inline noise with `apply_noise`\n",
         "\n",
         "Instead of (or in addition to) attaching noise via a `NoiseModel`, you can place noise at specific points in the kernel with `cudaq.apply_noise`. PTSBE traces these calls and includes them as noise sites alongside any model-attached noise."
       ]
@@ -114,7 +114,7 @@
       "cell_type": "markdown",
       "metadata": {},
       "source": [
-        "### Run PTSBE sampling\n",
+        "### 3. Run PTSBE sampling\n",
         "\n",
         "Call `cudaq.ptsbe.sample()` with the kernel, noise model, and shot count. This example uses `OrderedSamplingStrategy` plus `LOW_WEIGHT_BIAS` shot allocation to emphasize likely low-error trajectories with a smaller shot budget.\n",
         "\n",

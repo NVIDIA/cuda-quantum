@@ -205,23 +205,14 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe_user_guide.html">PTSBE User Guide</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#conceptual-overview">Conceptual Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#usage-tutorial">Usage Tutorial</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#trajectory-vs-shot-trade-offs">Trajectory vs Shot Trade-offs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#backend-requirements">Backend Requirements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#references">References</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
 </ul>
@@ -626,6 +617,19 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#0.-Set-up-the-environment">0. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#1.-Define-the-circuit-and-noise-model">1. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#2.-Inline-noise-with-apply_noise">2. Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 </ul>
@@ -2494,7 +2498,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">314446568</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3501893686</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>
@@ -7738,7 +7742,7 @@ allocating shots across trajectories.</p></li>
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.ptsbe.ShotAllocationStrategy.bias_strength">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bias_strength</span></span><a class="headerlink" href="#cudaq.ptsbe.ShotAllocationStrategy.bias_strength" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bias factor for weighted strategies (default 2.0).</p>
+<dd><p>Bias factor for weighted strategies. Default value is 2.0.</p>
 </dd></dl>
 
 <dl class="py property">

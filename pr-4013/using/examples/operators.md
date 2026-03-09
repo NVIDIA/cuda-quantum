@@ -184,48 +184,27 @@ pr-4013
         .internal}
     -   [Pre-Trajectory Sampling with Batch
         Execution](../ptsbe.html){.reference .internal}
-        -   [PTSBE User Guide](../ptsbe_user_guide.html){.reference
+        -   [Conceptual
+            Overview](../ptsbe.html#conceptual-overview){.reference
             .internal}
-            -   [Conceptual
-                Overview](../ptsbe_user_guide.html#conceptual-overview){.reference
-                .internal}
-            -   [When to Use
-                PTSBE](../ptsbe_user_guide.html#when-to-use-ptsbe){.reference
-                .internal}
-            -   [Quick
-                Start](../ptsbe_user_guide.html#quick-start){.reference
-                .internal}
-            -   [Usage
-                Tutorial](../ptsbe_user_guide.html#usage-tutorial){.reference
-                .internal}
-            -   [Trajectory vs Shot
-                Trade-offs](../ptsbe_user_guide.html#trajectory-vs-shot-trade-offs){.reference
-                .internal}
-            -   [Backend
-                Requirements](../ptsbe_user_guide.html#backend-requirements){.reference
-                .internal}
-            -   [References](../ptsbe_user_guide.html#references){.reference
-                .internal}
-        -   [PTSBE End-to-End
-            Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        -   [When to Use
+            PTSBE](../ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Set up the
-                environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Quick Start](../ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage Tutorial](../ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-            -   [Define the circuit and noise
-                model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-            -   [Run PTSBE
-                sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            -   [Shot Allocation
+                Strategies](../ptsbe.html#shot-allocation-strategies){.reference
                 .internal}
-            -   [4. Compare with standard (density-matrix)
-                sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-                .internal}
-            -   [5. Return execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-                .internal}
-            -   [Inspecting trajectories with execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            -   [Inspecting Execution
+                Data](../ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Constructing Operators](#){.current .reference .internal}
         -   [Constructing Spin
@@ -1031,6 +1010,33 @@ pr-4013
                 .internal}
         -   [6. References and further
             reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
+    -   [PTSBE end-to-end
+        workflow](../../applications/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [0. Set up the
+            environment](../../applications/python/ptsbe_end_to_end_workflow.html#0.-Set-up-the-environment){.reference
+            .internal}
+        -   [1. Define the circuit and noise
+            model](../../applications/python/ptsbe_end_to_end_workflow.html#1.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [2. Inline noise with [`apply_noise`{.docutils .literal
+            .notranslate}]{.pre}](../../applications/python/ptsbe_end_to_end_workflow.html#2.-Inline-noise-with-apply_noise){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../applications/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../applications/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../applications/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
 -   [Backends](../backends/backends.html){.reference .internal}
     -   [Circuit Simulation](../backends/simulators.html){.reference
@@ -1880,7 +1886,7 @@ pr-4013
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../examples/python/ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
+Previous](../ptsbe.html "Pre-Trajectory Sampling with Batch Execution (PTSBE)"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn
@@ -2010,7 +2016,7 @@ C++
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../examples/python/ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
+Previous](../ptsbe.html "Pre-Trajectory Sampling with Batch Execution (PTSBE)"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../../examples/python/performance_optimizations.html "Optimizing Performance"){.btn

@@ -199,49 +199,28 @@ pr-4013
         .internal}
     -   [Pre-Trajectory Sampling with Batch
         Execution](../../using/ptsbe.html){.reference .internal}
-        -   [PTSBE User
-            Guide](../../using/ptsbe_user_guide.html){.reference
+        -   [Conceptual
+            Overview](../../using/ptsbe.html#conceptual-overview){.reference
             .internal}
-            -   [Conceptual
-                Overview](../../using/ptsbe_user_guide.html#conceptual-overview){.reference
-                .internal}
-            -   [When to Use
-                PTSBE](../../using/ptsbe_user_guide.html#when-to-use-ptsbe){.reference
-                .internal}
-            -   [Quick
-                Start](../../using/ptsbe_user_guide.html#quick-start){.reference
-                .internal}
-            -   [Usage
-                Tutorial](../../using/ptsbe_user_guide.html#usage-tutorial){.reference
-                .internal}
-            -   [Trajectory vs Shot
-                Trade-offs](../../using/ptsbe_user_guide.html#trajectory-vs-shot-trade-offs){.reference
-                .internal}
-            -   [Backend
-                Requirements](../../using/ptsbe_user_guide.html#backend-requirements){.reference
-                .internal}
-            -   [References](../../using/ptsbe_user_guide.html#references){.reference
-                .internal}
-        -   [PTSBE End-to-End
-            Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        -   [When to Use
+            PTSBE](../../using/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Set up the
-                environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Quick Start](../../using/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-            -   [Define the circuit and noise
-                model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-            -   [Run PTSBE
-                sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            -   [Shot Allocation
+                Strategies](../../using/ptsbe.html#shot-allocation-strategies){.reference
                 .internal}
-            -   [4. Compare with standard (density-matrix)
-                sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-                .internal}
-            -   [5. Return execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-                .internal}
-            -   [Inspecting trajectories with execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            -   [Inspecting Execution
+                Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1008,6 +987,32 @@ pr-4013
                 .internal}
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
+    -   [PTSBE end-to-end
+        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [0. Set up the
+            environment](ptsbe_end_to_end_workflow.html#0.-Set-up-the-environment){.reference
+            .internal}
+        -   [1. Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#1.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [2. Inline noise with [`apply_noise`{.docutils .literal
+            .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#2.-Inline-noise-with-apply_noise){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -2163,7 +2168,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![a25219cd9a8b4a73a9e1c51929d692f1](../../_images/grovers-2D-plane.png)
+![a7647532a73e4485a5b437b7ff369dc0](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2378,7 +2383,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![c131de7873db4526a2c727f74fd25505](../../_images/grovers-steps1-3.png)
+![995c5bdd687e4eb58a7352b8031849e8](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2390,7 +2395,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![a4aa9ad3e4b54a0698573bbe143219a3](../../_images/grovers-full-rotation.png)
+![023af820ac1a4b85bc2bb476f7e62a21](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

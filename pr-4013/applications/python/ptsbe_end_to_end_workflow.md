@@ -98,12 +98,14 @@ pr-4013
         -   [Mid-circuit Measurement and Conditional
             Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
-    -   [Visualizing Kernels](visualization.html){.reference .internal}
+    -   [Visualizing
+        Kernels](../../examples/python/visualization.html){.reference
+        .internal}
         -   [Qubit
-            Visualization](visualization.html#Qubit-Visualization){.reference
+            Visualization](../../examples/python/visualization.html#Qubit-Visualization){.reference
             .internal}
         -   [Kernel
-            Visualization](visualization.html#Kernel-Visualization){.reference
+            Visualization](../../examples/python/visualization.html#Kernel-Visualization){.reference
             .internal}
     -   [Executing
         Kernels](../../using/examples/executing_kernels.html){.reference
@@ -162,79 +164,63 @@ pr-4013
             .literal
             .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
-    -   [Optimizers & Gradients](optimizers_gradients.html){.reference
+    -   [Optimizers &
+        Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
         -   [CUDA-Q Optimizer
-            Overview](optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
             -   [Gradient-Free Optimizers (no gradients
-                required):](optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
                 .internal}
             -   [Gradient-Based Optimizers (require
-                gradients):](optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
                 .internal}
         -   [1. Built-in CUDA-Q Optimizers and
-            Gradients](optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
             -   [1.1 Adam Optimizer with Parameter
-                Configuration](optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
                 .internal}
             -   [1.2 SGD (Stochastic Gradient Descent)
-                Optimizer](optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
                 .internal}
             -   [1.3 SPSA (Simultaneous Perturbation Stochastic
-                Approximation)](optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
                 .internal}
         -   [2. Third-Party
-            Optimizers](optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
             .internal}
         -   [3. Parallel Parameter Shift
-            Gradients](optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
-    -   [Noisy Simulations](noisy_simulations.html){.reference
+    -   [Noisy
+        Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
     -   [Pre-Trajectory Sampling with Batch
         Execution](../../using/ptsbe.html){.reference .internal}
-        -   [PTSBE User
-            Guide](../../using/ptsbe_user_guide.html){.reference
+        -   [Conceptual
+            Overview](../../using/ptsbe.html#conceptual-overview){.reference
             .internal}
-            -   [Conceptual
-                Overview](../../using/ptsbe_user_guide.html#conceptual-overview){.reference
-                .internal}
-            -   [When to Use
-                PTSBE](../../using/ptsbe_user_guide.html#when-to-use-ptsbe){.reference
-                .internal}
-            -   [Quick
-                Start](../../using/ptsbe_user_guide.html#quick-start){.reference
-                .internal}
-            -   [Usage
-                Tutorial](../../using/ptsbe_user_guide.html#usage-tutorial){.reference
-                .internal}
-            -   [Trajectory vs Shot
-                Trade-offs](../../using/ptsbe_user_guide.html#trajectory-vs-shot-trade-offs){.reference
-                .internal}
-            -   [Backend
-                Requirements](../../using/ptsbe_user_guide.html#backend-requirements){.reference
-                .internal}
-            -   [References](../../using/ptsbe_user_guide.html#references){.reference
-                .internal}
-        -   [PTSBE End-to-End Workflow](#){.current .reference
+        -   [When to Use
+            PTSBE](../../using/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Set up the
-                environment](#Set-up-the-environment){.reference
+        -   [Quick Start](../../using/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-            -   [Define the circuit and noise
-                model](#Define-the-circuit-and-noise-model){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-            -   [Run PTSBE sampling](#Run-PTSBE-sampling){.reference
+            -   [Shot Allocation
+                Strategies](../../using/ptsbe.html#shot-allocation-strategies){.reference
                 .internal}
-            -   [4. Compare with standard (density-matrix)
-                sampling](#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-                .internal}
-            -   [5. Return execution
-                data](#5.-Return-execution-data){.reference .internal}
-            -   [Inspecting trajectories with execution
-                data](#Inspecting-trajectories-with-execution-data){.reference
+            -   [Inspecting Execution
+                Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -246,10 +232,10 @@ pr-4013
             Words](../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words){.reference
             .internal}
     -   [Performance
-        Optimizations](performance_optimizations.html){.reference
+        Optimizations](../../examples/python/performance_optimizations.html){.reference
         .internal}
         -   [Gate
-            Fusion](performance_optimizations.html#Gate-Fusion){.reference
+            Fusion](../../examples/python/performance_optimizations.html#Gate-Fusion){.reference
             .internal}
     -   [Using Quantum Hardware
         Providers](../../using/examples/hardware_providers.html){.reference
@@ -334,716 +320,698 @@ pr-4013
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
         -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](dynamics/dynamics_intro_1.html){.reference
+            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
             .internal}
             -   [Why dynamics simulations vs. circuit
-                simulations?](dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
                 .internal}
-            -   [Functionality](dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
                 .internal}
-            -   [Performance](dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
                 .internal}
             -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Section 2 - Simulating open quantum systems with the
                 [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
             -   [Exercise 2 - Adding additional jump operators
                 [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
                 .internal}
             -   [Section 3 - Many qubits coupled to the
-                resonator](dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
                 .internal}
         -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](dynamics/dynamics_intro_2.html){.reference
+            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
             .internal}
             -   [The Landau-Zener
-                model](dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
                 .internal}
             -   [Section 1 - Implementing time dependent
-                terms](dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
                 .internal}
             -   [Section 2 - Implementing custom
-                operators](dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
                 .internal}
             -   [Section 3 - Heisenberg Model with a time-varying
                 magnetic
-                field](dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
                 .internal}
             -   [Exercise 1 - Define a time-varying magnetic
-                field](dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
                 .internal}
             -   [Exercise 2
-                (Optional)](dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
                 .internal}
         -   [Superconducting
-            Qubits](dynamics/superconducting.html){.reference .internal}
+            Qubits](../../examples/python/dynamics/superconducting.html){.reference
+            .internal}
             -   [Cavity
-                QED](dynamics/superconducting.html#Cavity-QED){.reference
+                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
                 .internal}
             -   [Cross
-                Resonance](dynamics/superconducting.html#Cross-Resonance){.reference
+                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
                 .internal}
             -   [Transmon
-                Resonator](dynamics/superconducting.html#Transmon-Resonator){.reference
+                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
                 .internal}
-        -   [Spin Qubits](dynamics/spinqubits.html){.reference
+        -   [Spin
+            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
             .internal}
             -   [Silicon Spin
-                Qubit](dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
+                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
                 .internal}
             -   [Heisenberg
-                Model](dynamics/spinqubits.html#Heisenberg-Model){.reference
+                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
                 .internal}
-        -   [Trapped Ion Qubits](dynamics/iontrap.html){.reference
+        -   [Trapped Ion
+            Qubits](../../examples/python/dynamics/iontrap.html){.reference
             .internal}
-            -   [GHZ state](dynamics/iontrap.html#GHZ-state){.reference
+            -   [GHZ
+                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
                 .internal}
-        -   [Control](dynamics/control.html){.reference .internal}
+        -   [Control](../../examples/python/dynamics/control.html){.reference
+            .internal}
             -   [Gate
-                Calibration](dynamics/control.html#Gate-Calibration){.reference
+                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
                 .internal}
-            -   [Pulse](dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](dynamics/control.html#Qubit-Control){.reference
+            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
                 .internal}
             -   [Qubit
-                Dynamics](dynamics/control.html#Qubit-Dynamics){.reference
+                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
                 .internal}
-            -   [Landau-Zenner](dynamics/control.html#Landau-Zenner){.reference
+            -   [Qubit
+                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
+                .internal}
+            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
-    -   [Max-Cut with
-        QAOA](../../applications/python/qaoa.html){.reference .internal}
+    -   [Max-Cut with QAOA](qaoa.html){.reference .internal}
     -   [Molecular docking via
-        DC-QAOA](../../applications/python/digitized_counterdiabatic_qaoa.html){.reference
+        DC-QAOA](digitized_counterdiabatic_qaoa.html){.reference
         .internal}
         -   [Setting up the Molecular Docking
-            Problem](../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
+            Problem](digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
             .internal}
         -   [CUDA-Q
-            Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
+            Implementation](digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
-        .notranslate .nohighlight}
-        Molecule](../../applications/python/krylov.html){.reference
+        .notranslate .nohighlight} Molecule](krylov.html){.reference
         .internal}
-        -   [Setup](../../applications/python/krylov.html#Setup){.reference
-            .internal}
+        -   [Setup](krylov.html#Setup){.reference .internal}
         -   [Computing the matrix
-            elements](../../applications/python/krylov.html#Computing-the-matrix-elements){.reference
+            elements](krylov.html#Computing-the-matrix-elements){.reference
             .internal}
         -   [Determining the ground state energy of the
-            subspace](../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
+            subspace](krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
     -   [Quantum-Selected Configuration Interaction
-        (QSCI)](../../applications/python/qsci.html){.reference
-        .internal}
+        (QSCI)](qsci.html){.reference .internal}
         -   [0. Problem
-            definition](../../applications/python/qsci.html#0.-Problem-definition){.reference
+            definition](qsci.html#0.-Problem-definition){.reference
             .internal}
         -   [1. Prepare an Approximate Quantum
-            State](../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            State](qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
             .internal}
         -   [2 Quantum Sampling to Select
-            Configuration](../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            Configuration](qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
             .internal}
         -   [3. Classical Diagonalization on the Selected
-            Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
         -   [5. Compare
-            results](../../applications/python/qsci.html#5.-Compare-results){.reference
-            .internal}
-        -   [Reference](../../applications/python/qsci.html#Reference){.reference
-            .internal}
+            results](qsci.html#5.-Compare-results){.reference .internal}
+        -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
-        Algorithm](../../applications/python/bernstein_vazirani.html){.reference
-        .internal}
+        Algorithm](bernstein_vazirani.html){.reference .internal}
         -   [Classical
-            case](../../applications/python/bernstein_vazirani.html#Classical-case){.reference
+            case](bernstein_vazirani.html#Classical-case){.reference
             .internal}
         -   [Quantum
-            case](../../applications/python/bernstein_vazirani.html#Quantum-case){.reference
+            case](bernstein_vazirani.html#Quantum-case){.reference
             .internal}
         -   [Implementing in
-            CUDA-Q](../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
+            CUDA-Q](bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
             .internal}
-    -   [Cost
-        Minimization](../../applications/python/cost_minimization.html){.reference
+    -   [Cost Minimization](cost_minimization.html){.reference
         .internal}
-    -   [Deutsch's
-        Algorithm](../../applications/python/deutsch_algorithm.html){.reference
+    -   [Deutsch's Algorithm](deutsch_algorithm.html){.reference
         .internal}
         -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](../../applications/python/deutsch_algorithm.html#XOR-\oplus){.reference
+            .nohighlight}](deutsch_algorithm.html#XOR-\oplus){.reference
             .internal}
         -   [Quantum
-            oracles](../../applications/python/deutsch_algorithm.html#Quantum-oracles){.reference
+            oracles](deutsch_algorithm.html#Quantum-oracles){.reference
             .internal}
         -   [Phase
-            oracle](../../applications/python/deutsch_algorithm.html#Phase-oracle){.reference
+            oracle](deutsch_algorithm.html#Phase-oracle){.reference
             .internal}
         -   [Quantum
-            parallelism](../../applications/python/deutsch_algorithm.html#Quantum-parallelism){.reference
+            parallelism](deutsch_algorithm.html#Quantum-parallelism){.reference
             .internal}
         -   [Deutsch's
-            Algorithm:](../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
+            Algorithm:](deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
             .internal}
     -   [Divisive Clustering With Coresets Using
-        CUDA-Q](../../applications/python/divisive_clustering_coresets.html){.reference
-        .internal}
+        CUDA-Q](divisive_clustering_coresets.html){.reference .internal}
         -   [Data
-            preprocessing](../../applications/python/divisive_clustering_coresets.html#Data-preprocessing){.reference
+            preprocessing](divisive_clustering_coresets.html#Data-preprocessing){.reference
             .internal}
         -   [Quantum
-            functions](../../applications/python/divisive_clustering_coresets.html#Quantum-functions){.reference
+            functions](divisive_clustering_coresets.html#Quantum-functions){.reference
             .internal}
         -   [Divisive Clustering
-            Function](../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
+            Function](divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
             .internal}
         -   [QAOA
-            Implementation](../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation){.reference
+            Implementation](divisive_clustering_coresets.html#QAOA-Implementation){.reference
             .internal}
         -   [Scaling simulations with
-            CUDA-Q](../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
+            CUDA-Q](divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
             .internal}
     -   [Hybrid Quantum Neural
-        Networks](../../applications/python/hybrid_quantum_neural_networks.html){.reference
+        Networks](hybrid_quantum_neural_networks.html){.reference
         .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
-        Decomposition Matrix
-        Elements](../../applications/python/hadamard_test.html){.reference
+        Decomposition Matrix Elements](hadamard_test.html){.reference
         .internal}
         -   [Numerical result as a
-            reference:](../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:){.reference
+            reference:](hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
         -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
             perform the Hadamard
-            test](../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
+            test](hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
             Hadamard
-            Test](../../applications/python/hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test){.reference
+            Test](hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test){.reference
             .internal}
             -   [Classically Diagonalize the Subspace
-                Matrix](../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
+                Matrix](hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
     -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](../../applications/python/logical_aim_sqale.html){.reference
-        .internal}
+        Sqale](logical_aim_sqale.html){.reference .internal}
         -   [Performing logical Variational Quantum Eigensolver (VQE)
             with
-            CUDA-QX](../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
+            CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
         -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
             .literal .notranslate}]{.pre}
-            encoding](../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
+            encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
-            workflow](../../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
+            workflow](logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
             .internal}
         -   [Running a CUDA-Q noisy
-            simulation](../../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
+            simulation](logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
             .internal}
         -   [Running logical AIM on Infleqtion's
-            hardware](../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
+            hardware](logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
             .internal}
     -   [Spin-Hamiltonian Simulation Using
-        CUDA-Q](../../applications/python/hamiltonian_simulation.html){.reference
-        .internal}
-        -   [Introduction](../../applications/python/hamiltonian_simulation.html#Introduction){.reference
+        CUDA-Q](hamiltonian_simulation.html){.reference .internal}
+        -   [Introduction](hamiltonian_simulation.html#Introduction){.reference
             .internal}
             -   [Heisenberg
-                Hamiltonian](../../applications/python/hamiltonian_simulation.html#Heisenberg-Hamiltonian){.reference
+                Hamiltonian](hamiltonian_simulation.html#Heisenberg-Hamiltonian){.reference
                 .internal}
             -   [Transverse Field Ising Model
-                (TFIM)](../../applications/python/hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)){.reference
+                (TFIM)](hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)){.reference
                 .internal}
             -   [Time Evolution and Trotter
-                Decomposition](../../applications/python/hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition){.reference
+                Decomposition](hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition){.reference
                 .internal}
         -   [Key
-            steps](../../applications/python/hamiltonian_simulation.html#Key-steps){.reference
+            steps](hamiltonian_simulation.html#Key-steps){.reference
             .internal}
             -   [1. Prepare initial
-                state](../../applications/python/hamiltonian_simulation.html#1.-Prepare-initial-state){.reference
+                state](hamiltonian_simulation.html#1.-Prepare-initial-state){.reference
                 .internal}
             -   [2. Hamiltonian
-                Trotterization](../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
+                Trotterization](hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
             -   [3. [`Compute`{.docutils .literal
                 .notranslate}]{.pre}` `{.docutils .literal
                 .notranslate}[`overlap`{.docutils .literal
-                .notranslate}]{.pre}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
+                .notranslate}]{.pre}](hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
-                Hamiltonian](../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
+                Hamiltonian](hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
                 .internal}
             -   [5. Construct TFIM
-                Hamiltonian](../../applications/python/hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian){.reference
+                Hamiltonian](hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian){.reference
                 .internal}
             -   [6. Extract coefficients and Pauli
-                words](../../applications/python/hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words){.reference
+                words](hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words){.reference
                 .internal}
         -   [Main
-            code](../../applications/python/hamiltonian_simulation.html#Main-code){.reference
+            code](hamiltonian_simulation.html#Main-code){.reference
             .internal}
         -   [Visualization of probablity over
-            time](../../applications/python/hamiltonian_simulation.html#Visualization-of-probablity-over-time){.reference
+            time](hamiltonian_simulation.html#Visualization-of-probablity-over-time){.reference
             .internal}
         -   [Expectation value over
-            time:](../../applications/python/hamiltonian_simulation.html#Expectation-value-over-time:){.reference
+            time:](hamiltonian_simulation.html#Expectation-value-over-time:){.reference
             .internal}
         -   [Visualization of expectation over
-            time](../../applications/python/hamiltonian_simulation.html#Visualization-of-expectation-over-time){.reference
+            time](hamiltonian_simulation.html#Visualization-of-expectation-over-time){.reference
             .internal}
         -   [Additional
-            information](../../applications/python/hamiltonian_simulation.html#Additional-information){.reference
+            information](hamiltonian_simulation.html#Additional-information){.reference
             .internal}
         -   [Relevant
-            references](../../applications/python/hamiltonian_simulation.html#Relevant-references){.reference
+            references](hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
     -   [Quantum Fourier
-        Transform](../../applications/python/quantum_fourier_transform.html){.reference
-        .internal}
+        Transform](quantum_fourier_transform.html){.reference .internal}
         -   [Quantum Fourier Transform
-            revisited](../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
+            revisited](quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
             .internal}
-    -   [Quantum
-        Teleporation](../../applications/python/quantum_teleportation.html){.reference
+    -   [Quantum Teleporation](quantum_teleportation.html){.reference
         .internal}
         -   [Teleportation
-            explained](../../applications/python/quantum_teleportation.html#Teleportation-explained){.reference
+            explained](quantum_teleportation.html#Teleportation-explained){.reference
             .internal}
-    -   [Quantum
-        Volume](../../applications/python/quantum_volume.html){.reference
-        .internal}
+    -   [Quantum Volume](quantum_volume.html){.reference .internal}
     -   [Readout Error
-        Mitigation](../../applications/python/readout_error_mitigation.html){.reference
-        .internal}
+        Mitigation](readout_error_mitigation.html){.reference .internal}
         -   [Inverse confusion matrix from single-qubit noise
-            model](../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model){.reference
+            model](readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model){.reference
             .internal}
         -   [Inverse confusion matrix from k local confusion
-            matrices](../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices){.reference
+            matrices](readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices){.reference
             .internal}
         -   [Inverse of full confusion
-            matrix](../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
+            matrix](readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
             .internal}
     -   [Compiling Unitaries Using Diffusion
-        Models](../../applications/python/unitary_compilation_diffusion_models.html){.reference
+        Models](unitary_compilation_diffusion_models.html){.reference
         .internal}
         -   [Diffusion model
-            pipeline](../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
+            pipeline](unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
             .internal}
         -   [Setup and load
-            models](../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
+            models](unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
             .internal}
             -   [Load discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
+                model](unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
                 .internal}
             -   [Load continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
+                model](unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
                 .internal}
             -   [Create helper
-                functions](../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
+                functions](unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
                 .internal}
         -   [Unitary
-            compilation](../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
+            compilation](unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
             .internal}
             -   [Random
-                unitary](../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary){.reference
+                unitary](unitary_compilation_diffusion_models.html#Random-unitary){.reference
                 .internal}
             -   [Discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model){.reference
+                model](unitary_compilation_diffusion_models.html#Discrete-model){.reference
                 .internal}
             -   [Continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model){.reference
+                model](unitary_compilation_diffusion_models.html#Continuous-model){.reference
                 .internal}
             -   [Quantum Fourier
-                transform](../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
+                transform](unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
                 .internal}
             -   [XXZ-Hamiltonian
-                evolution](../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
+                evolution](unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
                 .internal}
         -   [Choosing the circuit you
-            need](../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
+            need](unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
             .internal}
     -   [VQE with gradients, active spaces, and gate
-        fusion](../../applications/python/vqe_advanced.html){.reference
-        .internal}
+        fusion](vqe_advanced.html){.reference .internal}
         -   [The Basics of
-            VQE](../../applications/python/vqe_advanced.html#The-Basics-of-VQE){.reference
+            VQE](vqe_advanced.html#The-Basics-of-VQE){.reference
             .internal}
         -   [Installing/Loading Relevant
-            Packages](../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
+            Packages](vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
             .internal}
         -   [Implementing VQE in
-            CUDA-Q](../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
+            CUDA-Q](vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
             .internal}
         -   [Parallel Parameter Shift
-            Gradients](../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
+            Gradients](vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
             .internal}
         -   [Using an Active
-            Space](../../applications/python/vqe_advanced.html#Using-an-Active-Space){.reference
+            Space](vqe_advanced.html#Using-an-Active-Space){.reference
             .internal}
         -   [Gate Fusion for Larger
-            Circuits](../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
+            Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum
-        Transformer](../../applications/python/quantum_transformer.html){.reference
+    -   [Quantum Transformer](quantum_transformer.html){.reference
         .internal}
-        -   [Installation](../../applications/python/quantum_transformer.html#Installation){.reference
+        -   [Installation](quantum_transformer.html#Installation){.reference
             .internal}
         -   [Algorithm and
-            Example](../../applications/python/quantum_transformer.html#Algorithm-and-Example){.reference
+            Example](quantum_transformer.html#Algorithm-and-Example){.reference
             .internal}
             -   [Creating the self-attention
-                circuits](../../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits){.reference
+                circuits](quantum_transformer.html#Creating-the-self-attention-circuits){.reference
                 .internal}
-        -   [Usage](../../applications/python/quantum_transformer.html#Usage){.reference
+        -   [Usage](quantum_transformer.html#Usage){.reference
             .internal}
             -   [Model
-                Training](../../applications/python/quantum_transformer.html#Model-Training){.reference
+                Training](quantum_transformer.html#Model-Training){.reference
                 .internal}
             -   [Generating
-                Molecules](../../applications/python/quantum_transformer.html#Generating-Molecules){.reference
+                Molecules](quantum_transformer.html#Generating-Molecules){.reference
                 .internal}
             -   [Attention
-                Maps](../../applications/python/quantum_transformer.html#Attention-Maps){.reference
+                Maps](quantum_transformer.html#Attention-Maps){.reference
                 .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
-        Carlo](../../applications/python/afqmc.html){.reference
-        .internal}
+        Carlo](afqmc.html){.reference .internal}
         -   [Hamiltonian preparation for
-            VQE](../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE){.reference
+            VQE](afqmc.html#Hamiltonian-preparation-for-VQE){.reference
             .internal}
         -   [Run VQE with
-            CUDA-Q](../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q){.reference
+            CUDA-Q](afqmc.html#Run-VQE-with-CUDA-Q){.reference
             .internal}
         -   [Auxiliary Field Quantum Monte Carlo
-            (AFQMC)](../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)){.reference
+            (AFQMC)](afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)){.reference
             .internal}
         -   [Preparation of the molecular
-            Hamiltonian](../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian){.reference
+            Hamiltonian](afqmc.html#Preparation-of-the-molecular-Hamiltonian){.reference
             .internal}
         -   [Preparation of the trial wave
-            function](../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function){.reference
+            function](afqmc.html#Preparation-of-the-trial-wave-function){.reference
             .internal}
         -   [Setup of the AFQMC
-            parameters](../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters){.reference
+            parameters](afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA
-        algorithm](../../applications/python/adapt_qaoa.html){.reference
-        .internal}
+    -   [ADAPT-QAOA algorithm](adapt_qaoa.html){.reference .internal}
         -   [Simulation
-            input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
+            input:](adapt_qaoa.html#Simulation-input:){.reference
             .internal}
         -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
-            graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
+            graph:](adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
         -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
+            .nohighlight}:](adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
         -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
+            .nohighlight}:](adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
-            iteration:](../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
+            iteration:](adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
             .internal}
-    -   [ADAPT-VQE
-        algorithm](../../applications/python/adapt_vqe.html){.reference
-        .internal}
+    -   [ADAPT-VQE algorithm](adapt_vqe.html){.reference .internal}
         -   [Classical
-            pre-processing](../../applications/python/adapt_vqe.html#Classical-pre-processing){.reference
+            pre-processing](adapt_vqe.html#Classical-pre-processing){.reference
             .internal}
-        -   [Jordan
-            Wigner:](../../applications/python/adapt_vqe.html#Jordan-Wigner:){.reference
+        -   [Jordan Wigner:](adapt_vqe.html#Jordan-Wigner:){.reference
             .internal}
         -   [UCCSD operator
-            pool](../../applications/python/adapt_vqe.html#UCCSD-operator-pool){.reference
+            pool](adapt_vqe.html#UCCSD-operator-pool){.reference
             .internal}
             -   [Single
-                excitation](../../applications/python/adapt_vqe.html#Single-excitation){.reference
+                excitation](adapt_vqe.html#Single-excitation){.reference
                 .internal}
             -   [Double
-                excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
+                excitation](adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
             [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
+            .nohighlight}\]](adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
-            State:](../../applications/python/adapt_vqe.html#Reference-State:){.reference
+            State:](adapt_vqe.html#Reference-State:){.reference
             .internal}
         -   [Quantum
-            kernels:](../../applications/python/adapt_vqe.html#Quantum-kernels:){.reference
+            kernels:](adapt_vqe.html#Quantum-kernels:){.reference
             .internal}
         -   [Beginning of
-            ADAPT-VQE:](../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
+            ADAPT-VQE:](adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
             .internal}
-    -   [Quantum edge
-        detection](../../applications/python/edge_detection.html){.reference
+    -   [Quantum edge detection](edge_detection.html){.reference
         .internal}
-        -   [Image](../../applications/python/edge_detection.html#Image){.reference
-            .internal}
+        -   [Image](edge_detection.html#Image){.reference .internal}
         -   [Quantum Probability Image Encoding
-            (QPIE):](../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
+            (QPIE):](edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
             .internal}
             -   [Below we show how to encode an image using QPIE in
-                cudaq.](../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
+                cudaq.](edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
                 .internal}
         -   [Flexible Representation of Quantum Images
-            (FRQI):](../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
+            (FRQI):](edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
             .internal}
             -   [Building the FRQI
-                State:](../../applications/python/edge_detection.html#Building-the-FRQI-State:){.reference
+                State:](edge_detection.html#Building-the-FRQI-State:){.reference
                 .internal}
         -   [Quantum Hadamard Edge Detection
-            (QHED)](../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
+            (QHED)](edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
             .internal}
-            -   [Post-processing](../../applications/python/edge_detection.html#Post-processing){.reference
+            -   [Post-processing](edge_detection.html#Post-processing){.reference
                 .internal}
     -   [Factoring Integers With Shor's
-        Algorithm](../../applications/python/shors.html){.reference
-        .internal}
-        -   [Shor's
-            algorithm](../../applications/python/shors.html#Shor's-algorithm){.reference
+        Algorithm](shors.html){.reference .internal}
+        -   [Shor's algorithm](shors.html#Shor's-algorithm){.reference
             .internal}
             -   [Solving the order-finding problem
-                classically](../../applications/python/shors.html#Solving-the-order-finding-problem-classically){.reference
+                classically](shors.html#Solving-the-order-finding-problem-classically){.reference
                 .internal}
             -   [Solving the order-finding problem with a quantum
-                algorithm](../../applications/python/shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm){.reference
+                algorithm](shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm){.reference
                 .internal}
             -   [Determining the order from the measurement results of
                 the phase
-                kernel](../../applications/python/shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel){.reference
+                kernel](shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel){.reference
                 .internal}
-            -   [Postscript](../../applications/python/shors.html#Postscript){.reference
+            -   [Postscript](shors.html#Postscript){.reference
                 .internal}
     -   [Generating the electronic
-        Hamiltonian](../../applications/python/generate_fermionic_ham.html){.reference
-        .internal}
+        Hamiltonian](generate_fermionic_ham.html){.reference .internal}
         -   [Second Quantized
-            formulation.](../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.){.reference
+            formulation.](generate_fermionic_ham.html#Second-Quantized-formulation.){.reference
             .internal}
             -   [Computational
-                Implementation](../../applications/python/generate_fermionic_ham.html#Computational-Implementation){.reference
+                Implementation](generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
             -   [(a) Generate the molecular Hamiltonian using Restricted
                 Hartree Fock molecular
-                orbitals](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
+                orbitals](generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
             -   [(b) Generate the molecular Hamiltonian using
                 Unrestricted Hartree Fock molecular
-                orbitals](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                orbitals](generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
             -   [(a) Generate the active space hamiltonian using RHF
                 molecular
-                orbitals.](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                orbitals.](generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
                 .internal}
             -   [(b) Generate the active space Hamiltonian using the
                 natural orbitals computed from MP2
-                simulation](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                simulation](generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
                 .internal}
             -   [(c) Generate the active space Hamiltonian computed from
                 the CASSCF molecular
-                orbitals](../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                orbitals](generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
                 .internal}
             -   [(d) Generate the electronic Hamiltonian using
-                ROHF](../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                ROHF](generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
                 .internal}
             -   [(e) Generate electronic Hamiltonian using
-                UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
+                UHF](generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's
-        Algorithm](../../applications/python/grovers.html){.reference
-        .internal}
-        -   [Overview](../../applications/python/grovers.html#Overview){.reference
-            .internal}
-        -   [Problem](../../applications/python/grovers.html#Problem){.reference
-            .internal}
+    -   [Grover's Algorithm](grovers.html){.reference .internal}
+        -   [Overview](grovers.html#Overview){.reference .internal}
+        -   [Problem](grovers.html#Problem){.reference .internal}
         -   [Structure of Grover's
-            Algorithm](../../applications/python/grovers.html#Structure-of-Grover's-Algorithm){.reference
+            Algorithm](grovers.html#Structure-of-Grover's-Algorithm){.reference
             .internal}
             -   [Step 1:
-                Preparation](../../applications/python/grovers.html#Step-1:-Preparation){.reference
+                Preparation](grovers.html#Step-1:-Preparation){.reference
                 .internal}
             -   [Good and Bad
-                States](../../applications/python/grovers.html#Good-and-Bad-States){.reference
+                States](grovers.html#Good-and-Bad-States){.reference
                 .internal}
             -   [Step 2: Oracle
-                application](../../applications/python/grovers.html#Step-2:-Oracle-application){.reference
+                application](grovers.html#Step-2:-Oracle-application){.reference
                 .internal}
             -   [Step 3: Amplitude
-                amplification](../../applications/python/grovers.html#Step-3:-Amplitude-amplification){.reference
+                amplification](grovers.html#Step-3:-Amplitude-amplification){.reference
                 .internal}
             -   [Steps 4 and 5: Iteration and
-                measurement](../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
+                measurement](grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
                 .internal}
-    -   [Quantum
-        PageRank](../../applications/python/quantum_pagerank.html){.reference
-        .internal}
+    -   [Quantum PageRank](quantum_pagerank.html){.reference .internal}
         -   [Problem
-            Definition](../../applications/python/quantum_pagerank.html#Problem-Definition){.reference
+            Definition](quantum_pagerank.html#Problem-Definition){.reference
             .internal}
         -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
+            dynamics](quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
             .internal}
         -   [Breakdown of
-            Terms](../../applications/python/quantum_pagerank.html#Breakdown-of-Terms){.reference
+            Terms](quantum_pagerank.html#Breakdown-of-Terms){.reference
             .internal}
-    -   [The UCCSD Wavefunction
-        ansatz](../../applications/python/uccsd_wf_ansatz.html){.reference
+    -   [The UCCSD Wavefunction ansatz](uccsd_wf_ansatz.html){.reference
         .internal}
         -   [What is
-            UCCSD?](../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?){.reference
+            UCCSD?](uccsd_wf_ansatz.html#What-is-UCCSD?){.reference
             .internal}
         -   [Implementation in Quantum
-            Computing](../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing){.reference
+            Computing](uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing){.reference
             .internal}
-        -   [Run
-            VQE](../../applications/python/uccsd_wf_ansatz.html#Run-VQE){.reference
+        -   [Run VQE](uccsd_wf_ansatz.html#Run-VQE){.reference
             .internal}
         -   [Challenges and
-            consideration](../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration){.reference
+            consideration](uccsd_wf_ansatz.html#Challenges-and-consideration){.reference
             .internal}
     -   [Approximate State Preparation using MPS Sequential
-        Encoding](../../applications/python/mps_encoding.html){.reference
-        .internal}
+        Encoding](mps_encoding.html){.reference .internal}
         -   [Ran's
-            approach](../../applications/python/mps_encoding.html#Ran's-approach){.reference
+            approach](mps_encoding.html#Ran's-approach){.reference
             .internal}
     -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](../../applications/python/qm_mm_pe.html){.reference
-        .internal}
-        -   [Key
-            concepts:](../../applications/python/qm_mm_pe.html#Key-concepts:){.reference
+        Framework.](qm_mm_pe.html){.reference .internal}
+        -   [Key concepts:](qm_mm_pe.html#Key-concepts:){.reference
             .internal}
         -   [PE-VQE-SCF Algorithm
-            Steps](../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
+            Steps](qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
             .internal}
             -   [Step 1: Initialize (Classical
-                pre-processing)](../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
+                pre-processing)](qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
                 .internal}
             -   [Step 2: Build the
-                Hamiltonian](../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
+                Hamiltonian](qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
                 .internal}
             -   [Step 3: Run
-                VQE](../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE){.reference
+                VQE](qm_mm_pe.html#Step-3:-Run-VQE){.reference
                 .internal}
             -   [Step 4: Update
-                Environment](../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment){.reference
+                Environment](qm_mm_pe.html#Step-4:-Update-Environment){.reference
                 .internal}
             -   [Step 5: Self-Consistency
-                Loop](../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
+                Loop](qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
                 .internal}
-            -   [Requirments:](../../applications/python/qm_mm_pe.html#Requirments:){.reference
+            -   [Requirments:](qm_mm_pe.html#Requirments:){.reference
                 .internal}
             -   [Example 1: LiH with 2 water
-                molecules.](../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
+                molecules.](qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
                 .internal}
             -   [VQE, update environment, and scf
-                loop.](../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
+                loop.](qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
                 .internal}
             -   [Example 2: NH3 with 46 water molecule using active
-                space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
+                space.](qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
-        (SKQD)](../../applications/python/skqd.html){.reference
-        .internal}
-        -   [Why
-            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
-            .internal}
+        (SKQD)](skqd.html){.reference .internal}
+        -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
         -   [Understanding Krylov
-            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
+            Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
             -   [What is a Krylov
-                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
+                Subspace?](skqd.html#What-is-a-Krylov-Subspace?){.reference
                 .internal}
             -   [The SKQD
-                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
+                Algorithm](skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
         -   [Problem Setup: 22-Qubit Heisenberg
-            Model](../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            Model](skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
             .internal}
         -   [Krylov State Generation via Repeated
-            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
         -   [Quantum Measurements and
-            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
+            Sampling](skqd.html#Quantum-Measurements-and-Sampling){.reference
             .internal}
             -   [The Sampling
-                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
+                Process](skqd.html#The-Sampling-Process){.reference
                 .internal}
         -   [Classical Post-Processing and
-            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
             -   [The SKQD Algorithm: Matrix Construction
-                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
                 .internal}
         -   [Results Analysis and
-            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
+            Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
             .internal}
-            -   [What to
-                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
+            -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
         -   [GPU Acceleration for
-            Postprocessing](../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
             .internal}
     -   [Entanglement Accelerates Quantum
-        Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
+        Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
         -   [2. Model
-            Definition](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            Definition](entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
             .internal}
             -   [2.1 Initial product
-                state](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                state](entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
                 .internal}
             -   [2.2 QIMF
-                Hamiltonian](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                Hamiltonian](entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
                 .internal}
             -   [2.3 First-Order Trotter Formula
-                (PF1)](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                (PF1)](entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
                 .internal}
             -   [2.4 PF1 step for the QIMF
-                partition](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                partition](entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
                 .internal}
             -   [2.5 Hamiltonian
-                helpers](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                helpers](entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
                 .internal}
         -   [3. Entanglement
-            metrics](../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            metrics](entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
             .internal}
         -   [4. Simulation
-            workflow](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            workflow](entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
             .internal}
             -   [4.1 Single-step Trotter
-                error](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                error](entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
                 .internal}
             -   [4.2 Dual trajectory
-                update](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                update](entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
                 .internal}
         -   [5. Reproducing the paper's Figure
-            1a](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            1a](entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
             .internal}
             -   [5.1 Visualising the joint
-                behaviour](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                behaviour](entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
                 .internal}
             -   [5.2 Interpreting the
-                result](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                result](entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
                 .internal}
         -   [6. References and further
-            reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
+    -   [PTSBE end-to-end workflow](#){.current .reference .internal}
+        -   [0. Set up the
+            environment](#0.-Set-up-the-environment){.reference
+            .internal}
+        -   [1. Define the circuit and noise
+            model](#1.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [2. Inline noise with [`apply_noise`{.docutils .literal
+            .notranslate}]{.pre}](#2.-Inline-noise-with-apply_noise){.reference
+            .internal}
+        -   [3. Run PTSBE sampling](#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](#5.-Return-execution-data){.reference .internal}
+            -   [Larger circuit for execution
+                data](#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](#Inspecting-trajectories-with-execution-data){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1901,18 +1869,16 @@ pr-4013
 ::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
--   [CUDA-Q by Example](../../using/examples/examples.html)
--   [Pre-Trajectory Sampling with Batch Execution
-    (PTSBE)](../../using/ptsbe.html)
+-   [CUDA-Q Applications](../../using/applications.html)
 -   PTSBE end-to-end workflow
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../using/ptsbe_user_guide.html "Noisy Simulation with PTSBE"){.btn
+Previous](entanglement_acc_hamiltonian_simulation.html "Entanglement Accelerates Quantum Simulation"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../using/examples/operators.html "Operators"){.btn
+aria-hidden="true"}](../../using/backends/backends.html "CUDA-Q Backends"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1958,8 +1924,8 @@ trajectory and to control simulation cost via the number of
 trajectories. This notebook runs the full workflow with a single API
 call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 
-::: {#Set-up-the-environment .section}
-## Set up the environment[¶](#Set-up-the-environment "Permalink to this heading"){.headerlink}
+::: {#0.-Set-up-the-environment .section}
+## 0. Set up the environment[¶](#0.-Set-up-the-environment "Permalink to this heading"){.headerlink}
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
@@ -1979,8 +1945,8 @@ call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 :::
 :::
 
-::: {#Define-the-circuit-and-noise-model .section}
-## Define the circuit and noise model[¶](#Define-the-circuit-and-noise-model "Permalink to this heading"){.headerlink}
+::: {#1.-Define-the-circuit-and-noise-model .section}
+## 1. Define the circuit and noise model[¶](#1.-Define-the-circuit-and-noise-model "Permalink to this heading"){.headerlink}
 
 Define a kernel and attach a noise model. Each gate you add to the noise
 model becomes a noise site when that gate appears in the circuit. In
@@ -2019,9 +1985,10 @@ circuit to demonstrate the
 :::
 :::
 :::
+:::
 
-::: {#Inline-noise-with-apply_noise .section}
-### Inline noise with [`apply_noise`{.docutils .literal .notranslate}]{.pre}[¶](#Inline-noise-with-apply_noise "Permalink to this heading"){.headerlink}
+::: {#2.-Inline-noise-with-apply_noise .section}
+## 2. Inline noise with [`apply_noise`{.docutils .literal .notranslate}]{.pre}[¶](#2.-Inline-noise-with-apply_noise "Permalink to this heading"){.headerlink}
 
 Instead of (or in addition to) attaching noise via a
 [`NoiseModel`{.docutils .literal .notranslate}]{.pre}, you can place
@@ -2072,10 +2039,9 @@ model-attached noise.
 :::
 :::
 :::
-:::
 
-::: {#Run-PTSBE-sampling .section}
-## Run PTSBE sampling[¶](#Run-PTSBE-sampling "Permalink to this heading"){.headerlink}
+::: {#3.-Run-PTSBE-sampling .section}
+## 3. Run PTSBE sampling[¶](#3.-Run-PTSBE-sampling "Permalink to this heading"){.headerlink}
 
 Call [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}
 with the kernel, noise model, and shot count. This example uses
@@ -2498,10 +2464,10 @@ Note: this is an experimental API and may change in future releases.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../using/ptsbe_user_guide.html "Noisy Simulation with PTSBE"){.btn
+Previous](entanglement_acc_hamiltonian_simulation.html "Entanglement Accelerates Quantum Simulation"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../using/examples/operators.html "Operators"){.btn
+aria-hidden="true"}](../../using/backends/backends.html "CUDA-Q Backends"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

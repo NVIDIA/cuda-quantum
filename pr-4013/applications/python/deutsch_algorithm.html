@@ -208,23 +208,14 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe_user_guide.html">PTSBE User Guide</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#conceptual-overview">Conceptual Overview</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#usage-tutorial">Usage Tutorial</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#trajectory-vs-shot-trade-offs">Trajectory vs Shot Trade-offs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#backend-requirements">Backend Requirements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe_user_guide.html#references">References</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
 </ul>
@@ -629,6 +620,19 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#0.-Set-up-the-environment">0. Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#1.-Define-the-circuit-and-noise-model">1. Define the circuit and noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#2.-Inline-noise-with-apply_noise">2. Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling">3. Run PTSBE sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling">4. Compare with standard (density-matrix) sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#5.-Return-execution-data">5. Return execution data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 </ul>
@@ -1164,7 +1168,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="bd35493fc8b24964971e55eebe0a4048" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="5db1338e7bed4da7af4ed128592731bb" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -1212,7 +1216,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="bbddf3143cbc4ad6aad20c8ac5ad1d5e" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="fd9dbce9b14149058d6a2818a2638121" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>

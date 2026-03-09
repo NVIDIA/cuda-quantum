@@ -430,16 +430,16 @@ Execution (PTSBE). For a conceptual overview and usage tutorial see
 Sampling Functions
 -------------------
 
-.. autofunction:: cudaq.ptsbe::sample
+.. autofunction:: cudaq.ptsbe.sample
 
-.. autofunction:: cudaq.ptsbe::sample_async
+.. autofunction:: cudaq.ptsbe.sample_async
 
 ----
 
 Result Type
 ------------
 
-.. autoclass:: cudaq.ptsbe::PTSBESampleResult
+.. autoclass:: cudaq.ptsbe.PTSBESampleResult
     :members:
 
 ----
@@ -447,16 +447,16 @@ Result Type
 Trajectory Sampling Strategies
 --------------------------------
 
-.. autoclass:: cudaq.ptsbe::PTSSamplingStrategy
+.. autoclass:: cudaq.ptsbe.PTSSamplingStrategy
     :members:
 
-.. autoclass:: cudaq.ptsbe::ProbabilisticSamplingStrategy
+.. autoclass:: cudaq.ptsbe.ProbabilisticSamplingStrategy
     :members:
 
-.. autoclass:: cudaq.ptsbe::OrderedSamplingStrategy
+.. autoclass:: cudaq.ptsbe.OrderedSamplingStrategy
     :members:
 
-.. autoclass:: cudaq.ptsbe::ExhaustiveSamplingStrategy
+.. autoclass:: cudaq.ptsbe.ExhaustiveSamplingStrategy
     :members:
 
 ----
@@ -464,10 +464,10 @@ Trajectory Sampling Strategies
 Shot Allocation Strategy
 -------------------------
 
-.. autoclass:: cudaq.ptsbe::ShotAllocationStrategy
+.. autoclass:: cudaq.ptsbe.ShotAllocationStrategy
     :members:
 
-.. autoclass:: cudaq.ptsbe::ShotAllocationType
+.. autoclass:: cudaq.ptsbe.ShotAllocationType
     :members:
 
 ----
@@ -475,13 +475,13 @@ Shot Allocation Strategy
 Execution Data
 ---------------
 
-.. autoclass:: cudaq.ptsbe::PTSBEExecutionData
+.. autoclass:: cudaq.ptsbe.PTSBEExecutionData
     :members:
 
-.. autoclass:: cudaq.ptsbe::TraceInstruction
+.. autoclass:: cudaq.ptsbe.TraceInstruction
     :members:
 
-.. autoclass:: cudaq.ptsbe::TraceInstructionType
+.. autoclass:: cudaq.ptsbe.TraceInstructionType
     :members:
 
 ----
@@ -489,9 +489,9 @@ Execution Data
 Trajectory and Selection Types
 --------------------------------
 
-.. autoclass:: cudaq.ptsbe::KrausTrajectory
+.. autoclass:: cudaq.ptsbe.KrausTrajectory
     :members:
 
-.. autoclass:: cudaq.ptsbe::KrausSelection
+.. autoclass:: cudaq.ptsbe.KrausSelection
     :members:
 

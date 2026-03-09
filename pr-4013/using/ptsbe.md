@@ -188,49 +188,23 @@ pr-4013
         .internal}
     -   [Pre-Trajectory Sampling with Batch Execution](#){.current
         .reference .internal}
-        -   [PTSBE User Guide](ptsbe_user_guide.html){.reference
+        -   [Conceptual Overview](#conceptual-overview){.reference
             .internal}
-            -   [Conceptual
-                Overview](ptsbe_user_guide.html#conceptual-overview){.reference
-                .internal}
-            -   [When to Use
-                PTSBE](ptsbe_user_guide.html#when-to-use-ptsbe){.reference
-                .internal}
-            -   [Quick
-                Start](ptsbe_user_guide.html#quick-start){.reference
-                .internal}
-            -   [Usage
-                Tutorial](ptsbe_user_guide.html#usage-tutorial){.reference
-                .internal}
-            -   [Trajectory vs Shot
-                Trade-offs](ptsbe_user_guide.html#trajectory-vs-shot-trade-offs){.reference
-                .internal}
-            -   [Backend
-                Requirements](ptsbe_user_guide.html#backend-requirements){.reference
-                .internal}
-            -   [References](ptsbe_user_guide.html#references){.reference
-                .internal}
-        -   [PTSBE End-to-End
-            Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        -   [When to Use PTSBE](#when-to-use-ptsbe){.reference
             .internal}
-            -   [Set up the
-                environment](../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Quick Start](#quick-start){.reference .internal}
+        -   [Usage Tutorial](#usage-tutorial){.reference .internal}
+            -   [Controlling the Number of
+                Trajectories](#controlling-the-number-of-trajectories){.reference
                 .internal}
-            -   [Define the circuit and noise
-                model](../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-            -   [Run PTSBE
-                sampling](../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            -   [Shot Allocation
+                Strategies](#shot-allocation-strategies){.reference
                 .internal}
-            -   [4. Compare with standard (density-matrix)
-                sampling](../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-                .internal}
-            -   [5. Return execution
-                data](../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-                .internal}
-            -   [Inspecting trajectories with execution
-                data](../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-                .internal}
+            -   [Inspecting Execution
+                Data](#inspecting-execution-data){.reference .internal}
     -   [Constructing Operators](examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -1038,6 +1012,33 @@ pr-4013
                 .internal}
         -   [6. References and further
             reading](../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
+    -   [PTSBE end-to-end
+        workflow](../applications/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [0. Set up the
+            environment](../applications/python/ptsbe_end_to_end_workflow.html#0.-Set-up-the-environment){.reference
+            .internal}
+        -   [1. Define the circuit and noise
+            model](../applications/python/ptsbe_end_to_end_workflow.html#1.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [2. Inline noise with [`apply_noise`{.docutils .literal
+            .notranslate}]{.pre}](../applications/python/ptsbe_end_to_end_workflow.html#2.-Inline-noise-with-apply_noise){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../applications/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../applications/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../applications/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
 -   [Backends](backends/backends.html){.reference .internal}
     -   [Circuit Simulation](backends/simulators.html){.reference
@@ -1876,7 +1877,7 @@ pr-4013
 Previous](../examples/python/noisy_simulations.html "Noisy Simulation"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](ptsbe_user_guide.html "Noisy Simulation with PTSBE"){.btn
+aria-hidden="true"}](examples/operators.html "Operators"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1888,13 +1889,632 @@ aria-hidden="true"}](ptsbe_user_guide.html "Noisy Simulation with PTSBE"){.btn
 ::: {#pre-trajectory-sampling-with-batch-execution-ptsbe .section}
 # Pre-Trajectory Sampling with Batch Execution (PTSBE)[¶](#pre-trajectory-sampling-with-batch-execution-ptsbe "Permalink to this heading"){.headerlink}
 
-::: {.toctree-wrapper .compound}
-[User Guide]{.caption-text}
+Pre-Trajectory Sampling with Batch Execution (PTSBE) is a method for
+efficiently sampling noisy quantum circuits
+[\[Patti2025\]](#patti2025){#id1 .reference .internal}. It builds on
+quantum trajectory methods [\[Carmichael2007\]](#carmichael2007){#id2
+.reference .internal}, which simulate noise by stochastically selecting
+a Kraus operator at each noise site and evolving a pure statevector
+rather than the full density matrix. Traditional trajectory methods
+construct a new statevector for every measurement shot. PTSBE instead
+pre-samples a set of unique noise realizations (trajectories) and
+batches shots across them, so the number of statevector simulations
+scales with unique trajectories but not the total shots. As the noise
+pre-sampling and state post-sampling are tasks with only low-degree
+polynomial complexity, while the state construction is, in general, of
+exponential complexity, PTSBE allows us to gather noisy quantum data
+orders of magnitude quicker than traditional trajectory sampling methods
+by allowing finely-tuned batch sampling of simulated statevectors. PTSBE
+can be used to capture millions of times more noisy shot data, which can
+then be used as e.g., training data in ML tasks such as AI decoders, or
+it can be deployed proportionally, capturing the exact statistics of the
+problem while still offering a considerable speedup. In particular,
+PTSBE achieves traditional trajectory simulation accuracy at a fraction
+of the computational cost when the number of unique trajectories
+(errors) is much smaller than the total shot count
+[\[Patti2025\]](#patti2025){#id3 .reference .internal}.
 
--   [PTSBE User Guide](ptsbe_user_guide.html){.reference .internal}
--   [PTSBE End-to-End
-    Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
+::: {#conceptual-overview .section}
+## Conceptual Overview[¶](#conceptual-overview "Permalink to this heading"){.headerlink}
+
+A quantum circuit subject to noise can be described by a set of Kraus
+operators applied at each gate location. At each noise site, the
+environment selects one Kraus operator with some probability. A
+**trajectory** is one complete assignment of Kraus operators across all
+noise sites in the circuit. Its probability is the product of the
+probabilities of the chosen operators at each site.
+
+PTSBE works in three phases:
+
++------+--------------------+------------------------------------------+
+| P    | Name               | Description                              |
+| hase |                    |                                          |
++======+====================+==========================================+
+| 1    | Trajectory         | Draw *T* unique trajectories from the    |
+|      | Sampling           | full noise space using a sampling        |
+|      |                    | strategy. Each trajectory specifies      |
+|      |                    | which Kraus operator fires at every      |
+|      |                    | noise site.                              |
++------+--------------------+------------------------------------------+
+| 2    | Shot Allocation    | Distribute the total *N* shots across    |
+|      |                    | the *T* trajectories according to a shot |
+|      |                    | allocation strategy (e.g. proportional   |
+|      |                    | to trajectory probability).              |
++------+--------------------+------------------------------------------+
+| 3    | Batch Execution    | Simulate each trajectory as a pure-state |
+|      |                    | circuit. The per-trajectory measurement  |
+|      |                    | outcomes are merged into a single        |
+|      |                    | [[`SampleResult`{.xref .py .py-class     |
+|      |                    | .docutils .literal                       |
+|      |                    | .notranslate}]{.pre}](../a               |
+|      |                    | pi/languages/python_api.html#cudaq.Sampl |
+|      |                    | eResult "cudaq.SampleResult"){.reference |
+|      |                    | .internal}.                              |
++------+--------------------+------------------------------------------+
+
+Because trajectories are reused across many shots, the number of circuit
+simulations scales with the number of unique trajectories *T*, not the
+shot count *N*.
+:::
+
+::: {#when-to-use-ptsbe .section}
+## When to Use PTSBE[¶](#when-to-use-ptsbe "Permalink to this heading"){.headerlink}
+
+PTSBE is most beneficial when:
+
+-   The circuit has few distinct noise sites so the trajectory space is
+    manageable.
+
+-   A large shot count is required (1 000 -- 1 000 000+) so the reuse of
+    trajectories provides a significant speed-up.
+
+-   The shots are intended for a data-hungry downstream task that is not
+    necessarily inhibited by correlated sampling, such as training AI
+    models
+
+Benchmarks from the original paper [\[Patti2025\]](#patti2025){#id4
+.reference .internal} illustrate the potential speed-ups:
+
+-   35-qubit statevector simulation (magic state distillation): up to
+    10⁶× speedup over conventional trajectory methods, producing one
+    trillion shots on 4 NVIDIA H100 GPUs.
+
+-   85-qubit tensor network simulation (magic state distillation): 16×
+    speedup, producing one million shots.
+
+PTSBE is particularly well-suited for generating large synthetic
+datasets of noisy measurement outcomes, such as training data for
+machine-learning--based quantum error correction (QEC) decoders
+[\[Patti2025\]](#patti2025){#id5 .reference .internal}.
+
+PTSBE requires:
+
+-   A static circuit --- no mid-circuit measurements or
+    measurement-dependent conditional logic.
+
+-   A local simulator backend.
+:::
+
+::: {#quick-start .section}
+## Quick Start[¶](#quick-start "Permalink to this heading"){.headerlink}
+
+The example below simulates a two-qubit Bell circuit under depolarizing
+noise.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+    from cudaq import ptsbe
+    from utils import bell, noise
+
+    result = ptsbe.sample(bell, shots_count=10_000, noise_model=noise)
+    print(result)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    #include "cudaq/ptsbe/PTSBESample.h"
+    #include "utils.h"
+
+    int main() {
+      cudaq::ptsbe::sample_options opts;
+      opts.shots = 10000;
+      opts.noise = bell_noise_model();
+
+      auto result = cudaq::ptsbe::sample(opts, bell);
+      result.dump();
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#usage-tutorial .section}
+## Usage Tutorial[¶](#usage-tutorial "Permalink to this heading"){.headerlink}
+
+::: {#controlling-the-number-of-trajectories .section}
+### Controlling the Number of Trajectories[¶](#controlling-the-number-of-trajectories "Permalink to this heading"){.headerlink}
+
+By default, PTSBE generates up to [`shots_count`{.docutils .literal
+.notranslate}]{.pre} unique trajectories. For large shot counts set
+[`max_trajectories`{.docutils .literal .notranslate}]{.pre} to cap
+trajectory generation and gain the batching benefit:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    result = ptsbe.sample(
+        bell,
+        shots_count=100_000,
+        noise_model=noise,
+        max_trajectories=500,
+    )
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    cudaq::ptsbe::sample_options opts;
+    opts.shots = 100'000;
+    opts.noise = noise;
+    opts.ptsbe.max_trajectories = 500;
+
+    auto result = cudaq::ptsbe::sample(opts, bell);
+:::
+:::
+:::
+:::
+:::
+
+::: {#choosing-a-trajectory-sampling-strategy .section}
+### Choosing a Trajectory Sampling Strategy[¶](#choosing-a-trajectory-sampling-strategy "Permalink to this heading"){.headerlink}
+
+Four strategies control which trajectories are selected from the noise
+space.
+
+-   [[`cudaq::ptsbe::ProbabilisticSamplingStrategy`{.xref .cpp
+    .cpp-class .docutils .literal
+    .notranslate}]{.pre}](../api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe29ProbabilisticSamplingStrategyE "cudaq::ptsbe::ProbabilisticSamplingStrategy"){.reference
+    .internal} (default)
+
+-   [[`cudaq::ptsbe::OrderedSamplingStrategy`{.xref .cpp .cpp-class
+    .docutils .literal
+    .notranslate}]{.pre}](../api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe23OrderedSamplingStrategyE "cudaq::ptsbe::OrderedSamplingStrategy"){.reference
     .internal}
+
+-   [[`cudaq::ptsbe::ExhaustiveSamplingStrategy`{.xref .cpp .cpp-class
+    .docutils .literal
+    .notranslate}]{.pre}](../api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe26ExhaustiveSamplingStrategyE "cudaq::ptsbe::ExhaustiveSamplingStrategy"){.reference
+    .internal}
+
+-   [[`cudaq::ptsbe::ConditionalSamplingStrategy`{.xref .cpp .cpp-class
+    .docutils .literal
+    .notranslate}]{.pre}](../api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbe27ConditionalSamplingStrategyE "cudaq::ptsbe::ConditionalSamplingStrategy"){.reference
+    .internal}
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+    from utils import bell, noise
+
+    # Reproducible probabilistic sampling
+    result = cudaq.ptsbe.sample(
+        bell,
+        shots_count=10_000,
+        noise_model=noise,
+        sampling_strategy=cudaq.ptsbe.ProbabilisticSamplingStrategy(seed=42),
+    )
+    print(result)
+
+    # Top-100 trajectories by probability
+    result = cudaq.ptsbe.sample(
+        bell,
+        shots_count=10_000,
+        noise_model=noise,
+        max_trajectories=100,
+        sampling_strategy=cudaq.ptsbe.OrderedSamplingStrategy(),
+    )
+    print(result)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    #include "cudaq/ptsbe/PTSBESample.h"
+    #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
+    #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
+    #include "utils.h"
+
+    int main() {
+      // Reproducible probabilistic sampling
+      cudaq::ptsbe::sample_options opts;
+      opts.ptsbe.strategy =
+          std::make_shared<cudaq::ptsbe::ProbabilisticSamplingStrategy>(
+              /*seed=*/42);
+
+      // Top-100 trajectories
+      opts.ptsbe.max_trajectories = 100;
+      opts.ptsbe.strategy =
+          std::make_shared<cudaq::ptsbe::OrderedSamplingStrategy>();
+
+      auto result = cudaq::ptsbe::sample(opts, bell);
+      result.dump();
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#shot-allocation-strategies .section}
+[]{#ptsbe-shot-allocation}
+
+### Shot Allocation Strategies[¶](#shot-allocation-strategies "Permalink to this heading"){.headerlink}
+
+After trajectories are selected, shots are distributed across them:
+
+[]{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy .target}[[struct]{.pre}]{.k}[ ]{.w}[[[ShotAllocationStrategy]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE "Permalink to this definition"){.headerlink}\
+
+:   Strategy for allocating shots across selected trajectories After
+    trajectories are selected, this determines how many shots each
+    trajectory receives.
+
+    ::: {.breathe-sectiondef .docutils .container}
+    Public Functions
+
+    []{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1a1d78ba596611e52550bf1677852bcabd .target}[[[ShotAllocationStrategy]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyEv "Permalink to this definition"){.headerlink}\
+
+    :   Default constructor.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1ab9c9f13c5c31bf9852a86a30f276ff67 .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[ShotAllocationStrategy]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Type]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE "cudaq::ptsbe::ShotAllocationStrategy::Type"){.reference .internal}[ ]{.w}[[t]{.pre}]{.n .sig-param}, [[double]{.pre}]{.kt}[ ]{.w}[[bias]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[2.0]{.pre}]{.m}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[s]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy22ShotAllocationStrategyE4TypedNSt8optionalINSt8uint64_tEEE "Permalink to this definition"){.headerlink}\
+
+    :   Constructor with type.
+
+        Parameters[:]{.colon}
+
+        :   -   **t** -- Allocation strategy type
+
+            -   **bias** -- Bias strength for weighted strategies
+                (default 2.0)
+
+            -   **s** -- Random seed for multinomial sampling (default:
+                [`nullopt`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`=`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`auto`{.docutils .literal
+                .notranslate}]{.pre})
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1a660dde694ec97f64e924aca823e0cddd .target}[[enum]{.pre}]{.k}[ ]{.w}[[class]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](../api/languages/cpp_api.html#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[ptsbe]{.pre}]{.n}](../api/languages/cpp_api.html#_CPPv4N5cudaq5ptsbeE "cudaq::ptsbe"){.reference .internal}[[::]{.pre}]{.p}[[[ShotAllocationStrategy]{.pre}]{.n}](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE "cudaq::ptsbe::ShotAllocationStrategy"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[Type]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4TypeE "Permalink to this definition"){.headerlink}\
+
+:   *Values:*
+
+    []{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1a660dde694ec97f64e924aca823e0cddda990e2bcbdcbc7e83d8c3265da41c6001 .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[PROPORTIONAL]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type12PROPORTIONALE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    []{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1a660dde694ec97f64e924aca823e0cddda891f35a29c3d51d02ffd42dd6dcc69b2 .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[UNIFORM]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type7UNIFORME "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    []{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1a660dde694ec97f64e924aca823e0cddda796123ca4db2fc233467261f00a5fcfc .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[LOW_WEIGHT_BIAS]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type15LOW_WEIGHT_BIASE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    []{#structcudaq_1_1ptsbe_1_1ShotAllocationStrategy_1a660dde694ec97f64e924aca823e0cddda622f9704250e851344d3471b13a24ab2 .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[HIGH_WEIGHT_BIAS]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategy4Type16HIGH_WEIGHT_BIASE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+    from utils import bell, noise
+
+    alloc = cudaq.ptsbe.ShotAllocationStrategy(
+        cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS, bias_strength=2.0)
+
+    result = cudaq.ptsbe.sample(
+        bell,
+        shots_count=10_000,
+        noise_model=noise,
+        shot_allocation=alloc,
+    )
+    print(result)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    #include "cudaq/ptsbe/PTSBESample.h"
+    #include "cudaq/ptsbe/ShotAllocationStrategy.h"
+    #include "utils.h"
+
+    int main() {
+      cudaq::ptsbe::sample_options opts;
+      opts.ptsbe.shot_allocation = cudaq::ptsbe::ShotAllocationStrategy(
+          cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
+          /*bias=*/2.0);
+
+      auto result = cudaq::ptsbe::sample(opts, bell);
+      result.dump();
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#inspecting-execution-data .section}
+### Inspecting Execution Data[¶](#inspecting-execution-data "Permalink to this heading"){.headerlink}
+
+Set [`return_execution_data=True`{.docutils .literal
+.notranslate}]{.pre} to attach the full execution trace --- circuit
+instructions, sampled trajectories, and per-trajectory counts --- to the
+result. This API is experimental and may be subject to change in future
+releases.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+    from utils import bell, noise
+
+    result = cudaq.ptsbe.sample(
+        bell,
+        shots_count=1_000,
+        noise_model=noise,
+        return_execution_data=True,
+    )
+
+    data = result.ptsbe_execution_data
+
+    # Circuit structure
+    for inst in data.instructions:
+        print(inst.type, inst.name, inst.targets)
+
+    # Trajectory details
+    for trajectory in data.trajectories:
+        print(f"id={trajectory.trajectory_id}  p={trajectory.probability:.4f}"
+              f"  shots={trajectory.num_shots}")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    #include "cudaq/ptsbe/PTSBESample.h"
+    #include "cudaq/ptsbe/ShotAllocationStrategy.h"
+    #include "utils.h"
+    #include <cstdio>
+
+    int main() {
+      cudaq::ptsbe::sample_options opts;
+      opts.shots = 10000;
+      opts.noise = bell_noise_model();
+      opts.ptsbe.return_execution_data = true;
+
+      auto result = cudaq::ptsbe::sample(opts, bell);
+
+      if (result.has_execution_data()) {
+        const auto &data = result.execution_data();
+        for (const auto &trajectory : data.trajectories)
+          printf("id=%zu  p=%.4f  shots=%zu\n", trajectory.trajectory_id,
+                 trajectory.probability, trajectory.num_shots);
+      }
+    }
+:::
+:::
+:::
+:::
+
+::: {#trajectory-vs-shot-trade-offs .section}
+#### Trajectory vs Shot Trade-offs[¶](#trajectory-vs-shot-trade-offs "Permalink to this heading"){.headerlink}
+
+The central tension in PTSBE is between trajectory count T and shots per
+trajectory N/T.
+
+Using more trajectories covers more of the noise space and reduces bias
+in the estimated distribution, but since each trajectory is simulated
+independently the simulation cost scales linearly with T. Beyond a
+certain point there are diminishing returns: once T approaches the total
+trajectory space size, additional trajectories yield little improvement.
+
+Fewer trajectories mean each one accumulates more shots, which reduces
+shot-noise variance per trajectory and lowers wall-clock time. The risk
+is bias: if T is too small, high-probability regions of the noise space
+may be under-sampled and distort the result.
+
+Practical guidance
+
+As a rule of thumb, [`max_trajectories`{.docutils .literal
+.notranslate}]{.pre} between 100 and 10 000 covers the majority of
+practical use cases. Below 100, bias may dominate. Above 10 000, the
+simulation cost approaches that of a conventional density-matrix run.
+Useful to perform a warm-up run sweeping the number of trajectories to
+understand the convergence behavior.
+:::
+
+::: {#backend-requirements .section}
+#### Backend Requirements[¶](#backend-requirements "Permalink to this heading"){.headerlink}
+
+PTSBE requires a backend that supports trajectory-based noisy
+simulation. The supported targets are those marked with [`*`{.docutils
+.literal .notranslate}]{.pre} in the [simulator
+table](https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html){.reference
+.external}, plus [`density-matrix-cpu`{.docutils .literal
+.notranslate}]{.pre} and [`qpp-cpu`{.docutils .literal
+.notranslate}]{.pre}:
+
++------------------------+---------------------------------------------+
+| Target                 | Notes                                       |
++========================+=============================================+
+| [`nvidia`{.docutils    | Single GPU, single/double precision.        |
+| .literal               | General purpose.                            |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+| [`nvidia,`{.docutils   | Multi-GPU / multi-node. Suitable for large  |
+| .literal               | qubit counts (33+).                         |
+| .notranslat            |                                             |
+| e}]{.pre}` `{.docutils |                                             |
+| .literal               |                                             |
+| .notranslate}[`        |                                             |
+| option=mgpu`{.docutils |                                             |
+| .literal               |                                             |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+| [`nvidia,`{.docutils   | Multi-QPU asynchronous distribution across  |
+| .literal               | multiple GPUs.                              |
+| .notranslat            |                                             |
+| e}]{.pre}` `{.docutils |                                             |
+| .literal               |                                             |
+| .notranslate}[`        |                                             |
+| option=mqpu`{.docutils |                                             |
+| .literal               |                                             |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+| [`tensornet`{.docutils | Tensor network method. Exact simulation of  |
+| .literal               | shallow-depth circuits. Handles thousands   |
+| .notranslate}]{.pre}   | of qubits.                                  |
++------------------------+---------------------------------------------+
+| [`te                   | Matrix product state (approximate).         |
+| nsornet-mps`{.docutils | Efficient for square-shaped circuits.       |
+| .literal               |                                             |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+| [`                     | Combines [`mqpu`{.docutils .literal         |
+| remote-mqpu`{.docutils | .notranslate}]{.pre} with other backends    |
+| .literal               | for distributed execution.                  |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+| [`density              | CPU density matrix simulator. Recommended   |
+| -matrix-cpu`{.docutils | for small noisy circuits (\< 14 qubits) and |
+| .literal               | development/testing.                        |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+| [`qpp-cpu`{.docutils   | CPU state vector simulator. Lightweight     |
+| .literal               | option for small circuits (\< 28 qubits).   |
+| .notranslate}]{.pre}   |                                             |
++------------------------+---------------------------------------------+
+
+Set the target:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # Single GPU (most common for production)
+    cudaq.set_target("nvidia")
+
+    # CPU density matrix (development / small circuits)
+    cudaq.set_target("density-matrix-cpu")
+
+    # Multi-GPU for large circuits
+    cudaq.set_target("nvidia", option="mgpu")
+
+    # Tensor network for wide shallow circuits
+    cudaq.set_target("tensornet")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Set via CMake target or the --target flag at runtime.
+    // See backend documentation for available options.
+:::
+:::
+:::
+:::
+
+See [[CUDA-Q Backends]{.doc}](backends/backends.html){.reference
+.internal} for full details on each target including precision and qubit
+count limits.
+:::
+
+::: {#references .section}
+#### References[¶](#references "Permalink to this heading"){.headerlink}
+
+::: {.citation-list role="list"}
+::: {#carmichael2007 .citation role="doc-biblioentry"}
+[[\[]{.fn-bracket}[Carmichael2007](#id2){role="doc-backlink"}[\]]{.fn-bracket}]{.label}
+
+Carmichael, H. J. *Quantum jumps revisited: An overview of quantum
+trajectory theory.* Quantum Future From Volta and Como to the Present
+and Beyond: Proceedings of the Xth Max Born Symposium Held in Przesieka,
+Poland, 24--27 September 1997. Berlin, Heidelberg: Springer Berlin
+Heidelberg, 2007.
+[https://link.springer.com/chapter/10.1007/bfb0105336](https://link.springer.com/chapter/10.1007/bfb0105336){.reference
+.external}
+:::
+
+::: {#patti2025 .citation role="doc-biblioentry"}
+[[\[]{.fn-bracket}Patti2025[\]]{.fn-bracket}]{.label}
+[([1](#id1){role="doc-backlink"},[2](#id3){role="doc-backlink"},[3](#id4){role="doc-backlink"},[4](#id5){role="doc-backlink"})]{.backrefs}
+
+Taylor L. Patti, Thien Nguyen, Justin G. Lietz, Alexander J. McCaskey,
+Brucek Khailany, *Augmenting Simulated Noisy Quantum Data Collection by
+Orders of Magnitude Using Pre-Trajectory Sampling with Batched
+Execution.* Proceedings of the International Conference for High
+Performance Computing, Networking, Storage and Analysis. 2025.
+[https://dl.acm.org/doi/full/10.1145/3712285.3759871](https://dl.acm.org/doi/full/10.1145/3712285.3759871){.reference
+.external}
+:::
+:::
+:::
+:::
 :::
 :::
 :::
@@ -1905,7 +2525,7 @@ aria-hidden="true"}](ptsbe_user_guide.html "Noisy Simulation with PTSBE"){.btn
 Previous](../examples/python/noisy_simulations.html "Noisy Simulation"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](ptsbe_user_guide.html "Noisy Simulation with PTSBE"){.btn
+aria-hidden="true"}](examples/operators.html "Operators"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

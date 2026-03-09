@@ -199,49 +199,28 @@ pr-4013
         .internal}
     -   [Pre-Trajectory Sampling with Batch
         Execution](../../using/ptsbe.html){.reference .internal}
-        -   [PTSBE User
-            Guide](../../using/ptsbe_user_guide.html){.reference
+        -   [Conceptual
+            Overview](../../using/ptsbe.html#conceptual-overview){.reference
             .internal}
-            -   [Conceptual
-                Overview](../../using/ptsbe_user_guide.html#conceptual-overview){.reference
-                .internal}
-            -   [When to Use
-                PTSBE](../../using/ptsbe_user_guide.html#when-to-use-ptsbe){.reference
-                .internal}
-            -   [Quick
-                Start](../../using/ptsbe_user_guide.html#quick-start){.reference
-                .internal}
-            -   [Usage
-                Tutorial](../../using/ptsbe_user_guide.html#usage-tutorial){.reference
-                .internal}
-            -   [Trajectory vs Shot
-                Trade-offs](../../using/ptsbe_user_guide.html#trajectory-vs-shot-trade-offs){.reference
-                .internal}
-            -   [Backend
-                Requirements](../../using/ptsbe_user_guide.html#backend-requirements){.reference
-                .internal}
-            -   [References](../../using/ptsbe_user_guide.html#references){.reference
-                .internal}
-        -   [PTSBE End-to-End
-            Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+        -   [When to Use
+            PTSBE](../../using/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Set up the
-                environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Quick Start](../../using/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-            -   [Define the circuit and noise
-                model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-            -   [Run PTSBE
-                sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            -   [Shot Allocation
+                Strategies](../../using/ptsbe.html#shot-allocation-strategies){.reference
                 .internal}
-            -   [4. Compare with standard (density-matrix)
-                sampling](../../examples/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
-                .internal}
-            -   [5. Return execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
-                .internal}
-            -   [Inspecting trajectories with execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            -   [Inspecting Execution
+                Data](../../using/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
@@ -1056,6 +1035,33 @@ pr-4013
                 .internal}
         -   [6. References and further
             reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
+    -   [PTSBE end-to-end
+        workflow](../../applications/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [0. Set up the
+            environment](../../applications/python/ptsbe_end_to_end_workflow.html#0.-Set-up-the-environment){.reference
+            .internal}
+        -   [1. Define the circuit and noise
+            model](../../applications/python/ptsbe_end_to_end_workflow.html#1.-Define-the-circuit-and-noise-model){.reference
+            .internal}
+        -   [2. Inline noise with [`apply_noise`{.docutils .literal
+            .notranslate}]{.pre}](../../applications/python/ptsbe_end_to_end_workflow.html#2.-Inline-noise-with-apply_noise){.reference
+            .internal}
+        -   [3. Run PTSBE
+            sampling](../../applications/python/ptsbe_end_to_end_workflow.html#3.-Run-PTSBE-sampling){.reference
+            .internal}
+        -   [4. Compare with standard (density-matrix)
+            sampling](../../applications/python/ptsbe_end_to_end_workflow.html#4.-Compare-with-standard-(density-matrix)-sampling){.reference
+            .internal}
+        -   [5. Return execution
+            data](../../applications/python/ptsbe_end_to_end_workflow.html#5.-Return-execution-data){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -13667,7 +13673,7 @@ with Batch Execution (PTSBE)]{.doc}](../../using/ptsbe.html){.reference
     <!-- -->
     ```
 
-    []{#structcudaq_1_1ptsbe_1_1PTSBEOptions_1a213da9556b328b828e2b1436d59107d1 .target}[[[ShotAllocationStrategy]{.pre}]{.n}](../../using/ptsbe_user_guide.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE "cudaq::ptsbe::ShotAllocationStrategy"){.reference .internal}[ ]{.w}[[[shot_allocation]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[{]{.pre}]{.p}[[}]{.pre}]{.p}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions15shot_allocationE "Permalink to this definition"){.headerlink}\
+    []{#structcudaq_1_1ptsbe_1_1PTSBEOptions_1a213da9556b328b828e2b1436d59107d1 .target}[[[ShotAllocationStrategy]{.pre}]{.n}](../../using/ptsbe.html#_CPPv4N5cudaq5ptsbe22ShotAllocationStrategyE "cudaq::ptsbe::ShotAllocationStrategy"){.reference .internal}[ ]{.w}[[[shot_allocation]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[{]{.pre}]{.p}[[}]{.pre}]{.p}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions15shot_allocationE "Permalink to this definition"){.headerlink}\
 
     :   Strategy for allocating shots across trajectories. Defaults to
         PROPORTIONAL.
@@ -14219,7 +14225,7 @@ with Batch Execution (PTSBE)]{.doc}](../../using/ptsbe.html){.reference
 ### Shot Allocation Strategy[¶](#shot-allocation-strategy "Permalink to this heading"){.headerlink}
 
 See [[Shot Allocation Strategies]{.std
-.std-ref}](../../using/ptsbe_user_guide.html#ptsbe-shot-allocation){.reference
+.std-ref}](../../using/ptsbe.html#ptsbe-shot-allocation){.reference
 .internal} for full API details.
 :::
 
