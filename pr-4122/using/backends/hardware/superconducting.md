@@ -2702,9 +2702,9 @@ simulation capabilities (e.g., maximum number of qubits, supported
 quantum gates), depend on the selected simulator.
 
 Any environment variables must be set prior to setting the target or
-running "[`import`{.code .docutils .literal
-.notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`cudaq`{.code .docutils .literal .notranslate}]{.pre}".
+running [`import`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+.docutils .literal .notranslate}[`cudaq`{.code .docutils .literal
+.notranslate}]{.pre}.
 :::
 :::
 :::

@@ -599,4 +599,4 @@ To see a complete example of using TII's backends, please take a look at the :re
         For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
         depend on the selected simulator.  
         
-        Any environment variables must be set prior to setting the target or running "`import cudaq`".
+        Any environment variables must be set prior to setting the target or running `import cudaq`.
