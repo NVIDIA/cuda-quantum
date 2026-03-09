@@ -441,9 +441,8 @@ pr-4117
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1862,7 +1861,7 @@ mutual polarization.
 
 <div>
 
-![0bc63be22d27447fb6ea2ed8a58571a0](../../_images/qm-mm-pe.png){.no-scaled-link
+![ea3f128fb68547de8b3cac0f02ab95ce](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>

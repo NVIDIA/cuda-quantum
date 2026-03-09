@@ -329,7 +329,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compare-results">5. Compare results</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
@@ -1311,7 +1311,7 @@ you need to copy the <code class="code docutils literal notranslate"><span class
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;python-bindings;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-e<span class="w"> </span>qrmi<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang++&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/flang-new&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -1368,7 +1368,7 @@ command to build CUDA-Q:</p>
 <span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
 <span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v
+bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v<span class="w"> </span>--<span class="w"> </span>-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR<span class="o">=</span>OFF
 </pre></div>
 </div>
 <p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already

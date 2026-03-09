@@ -441,8 +441,8 @@ pr-4117
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -2041,11 +2041,9 @@ problems. The currently available Pasqal QPUs are analog quantum
 computers, and one, named Fresnel, is available through our cloud
 portal.
 
-In order to access Pasqal's devices you need an account for [Pasqal's
-cloud platform](https://portal.pasqal.cloud){.reference .external} and
-an active project. Please see our [cloud
-documentation](https://docs.pasqal.cloud/cloud/){.reference .external}
-for more details if needed.
+In order to access Pasqal's devices you to sign up for an account on
+[Pasqal's cloud platform](https://portal.pasqal.cloud){.reference
+.external}.
 
 Although a different SDK, [Pasqal's Pulser
 library](https://pulser.readthedocs.io/en/latest/){.reference
@@ -2069,8 +2067,8 @@ package](https://github.com/pasqal-io/pasqal-cloud){.reference
     import os
 
     sdk = SDK(
-        username=os.environ.get['PASQAL_USERNAME'],
-        password=os.environ.get('PASQAL_PASSWORD', None)
+        username=os.environ.get('PASQAL_USERNAME'),
+        password=os.environ.get('PASQAL_PASSWORD', None) # Ensures you will be securely prompted
     )
 
     token = sdk.user_token()
@@ -2089,6 +2087,26 @@ directly.
     export PASQAL_PROJECT_ID=<>
 :::
 :::
+:::
+
+::: {#pasqal-via-qrmi .section}
+### Pasqal via QRMI[¶](#pasqal-via-qrmi "Permalink to this heading"){.headerlink}
+
+CUDA-Q's [`pasqal`{.docutils .literal .notranslate}]{.pre} target for
+routing Pasqal jobs through the vendor agnostic Quantum Resource
+Management Interface (QRMI), by specifying [`machine`{.docutils .literal
+.notranslate}]{.pre} as [`qrmi`{.docutils .literal .notranslate}]{.pre}.
+This target enables integration with resource managers like Slurm for
+scheduling. Select the Pasqal backend with the [`--qpu`{.docutils
+.literal .notranslate}]{.pre} option in [`sbatch`{.docutils .literal
+.notranslate}]{.pre} and let QRMI handle submission.
+
+For this route, credentials and project id are read by QRMI using either
+[`~/.pasqal/config`{.docutils .literal .notranslate}]{.pre} or other
+methods supported by your cluster's QRMI setup.
+
+The job submission process is the same as for the [`pasqal`{.docutils
+.literal .notranslate}]{.pre} target. For example:
 :::
 
 ::: {#id2 .section}

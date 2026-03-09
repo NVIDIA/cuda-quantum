@@ -441,9 +441,8 @@ pr-4117
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1930,6 +1929,12 @@ variables when we create the [`cudaq.kernel`{.docutils .literal
     from cudaq import spin
     from typing import List
 
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
+
     # We'll use the graph below to illustrate how QAOA can be used to
     # solve a max cut problem
 
@@ -2197,9 +2202,6 @@ primitive to code up the optimization loop of QAOA.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    #cudaq.set_target('nvidia')
-    cudaq.set_target('qpp-cpu')
-
     # Generate the Hamiltonian for our graph
     hamiltonian = hamiltonian_max_cut(edges_src, edges_tgt)
     print(hamiltonian)
