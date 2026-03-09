@@ -310,17 +310,21 @@ static inline void atomic_store_u64(volatile uint64_t *ptr, uint64_t val) {
 
 cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
     const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
-    const void *payload, uint32_t payload_len) {
+    const void *payload, uint32_t payload_len,
+    uint32_t request_id, uint64_t ptp_timestamp) {
   if (!rb || !rb->rx_data_host)
     return CUDAQ_ERR_INVALID_ARG;
   if (CUDAQ_RPC_HEADER_SIZE + payload_len > rb->rx_stride_sz)
     return CUDAQ_ERR_INVALID_ARG;
 
   uint8_t *slot = rb->rx_data_host + slot_idx * rb->rx_stride_sz;
-  uint32_t *hdr = reinterpret_cast<uint32_t *>(slot);
-  hdr[0] = CUDAQ_RPC_MAGIC_REQUEST;
-  hdr[1] = function_id;
-  hdr[2] = payload_len;
+  uint32_t *hdr32 = reinterpret_cast<uint32_t *>(slot);
+  hdr32[0] = CUDAQ_RPC_MAGIC_REQUEST;
+  hdr32[1] = function_id;
+  hdr32[2] = payload_len;
+  hdr32[3] = request_id;
+  uint64_t *hdr64 = reinterpret_cast<uint64_t *>(slot + 16);
+  *hdr64 = ptp_timestamp;
 
   if (payload && payload_len > 0)
     std::memcpy(slot + CUDAQ_RPC_HEADER_SIZE, payload, payload_len);

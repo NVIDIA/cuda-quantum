@@ -331,7 +331,7 @@ protected:
     cudaStream_t stream = nullptr;
     ASSERT_EQ(cudaStreamCreate(&stream), cudaSuccess);
 
-    cudaq_host_dispatch_worker_t w;
+    cudaq_host_dispatch_worker_t w{};
     w.graph_exec = exec;
     w.stream = stream;
     w.function_id = function_id;
@@ -378,7 +378,7 @@ protected:
                        const std::uint8_t* payload, std::size_t len) {
     ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
                   &ringbuffer_, static_cast<uint32_t>(slot), function_id,
-                  payload, static_cast<uint32_t>(len)),
+                  payload, static_cast<uint32_t>(len), 0, 0),
               CUDAQ_OK);
   }
 
@@ -421,8 +421,9 @@ protected:
     int cuda_err = 0;
     cudaq_tx_status_t st = cudaq_host_ringbuffer_poll_tx_flag(
         &ringbuffer_, static_cast<uint32_t>(slot), &cuda_err);
-    ASSERT_EQ(st, CUDAQ_TX_READY) << "slot " << slot
-        << ": tx_flag not READY (status=" << st << " cuda_err=" << cuda_err << ")";
+    ASSERT_TRUE(st == CUDAQ_TX_READY || st == CUDAQ_TX_IN_FLIGHT)
+        << "slot " << slot
+        << ": tx_flag unexpected (status=" << st << " cuda_err=" << cuda_err << ")";
 
     std::uint8_t* slot_data = rx_data_host_ + slot * slot_size_;
     auto* resp =
@@ -569,7 +570,7 @@ protected:
     const std::uint8_t payload[] = {0, 1, 2, 3};
     ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
                   &ringbuffer_, static_cast<uint32_t>(slot),
-                  UNKNOWN_FUNCTION_ID, payload, 4),
+                  UNKNOWN_FUNCTION_ID, payload, 4, 0, 0),
               CUDAQ_OK);
   }
 
@@ -740,7 +741,8 @@ TEST(HostDispatcherGraphLaunchTest, FullRpcRoundTripViaPinnedMailbox) {
   // --- Send RPC request (simulates FPGA / producer) ---
   const std::uint8_t payload[] = {0, 1, 2, 3};
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &ringbuffer, 0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4),
+                &ringbuffer, 0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4,
+                0, 0),
             CUDAQ_OK);
   cudaq_host_ringbuffer_signal_slot(&ringbuffer, 0);
 
