@@ -423,9 +423,9 @@ jobs:
               ;;
             tii)
               echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
-              echo "::add-mask::${{ secrets.TII_AUTH_TOKEN }}"
+              echo "::add-mask::${{ secrets.TII_API_TOKEN }}"
               echo "::add-mask::${{ secrets.TII_PROJECT }}"
-              echo "TII_AUTH_TOKEN=${{ secrets.TII_AUTH_TOKEN }}" >> $GITHUB_ENV
+              echo "TII_API_TOKEN=${{ secrets.TII_API_TOKEN }}" >> $GITHUB_ENV
               echo "TII_PROJECT=${{ secrets.TII_PROJECT }}" >> $GITHUB_ENV
               ;;
           esac
