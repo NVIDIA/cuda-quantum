@@ -389,22 +389,25 @@ jobs:
               continue
             fi
 
+            # Ensure a dedicated subdirectory for each prerequisite
+            mkdir -p "prereqs/${name}"
+
             case "$type" in
               tar)
                 fname="$(basename "$url")"
-                dest="prereqs/${name}-${fname}"
+                dest="prereqs/${name}/${fname}"
                 echo "Downloading tar archive for $name from $url -> $dest"
                 curl -L "$url" -o "$dest"
                 ;;
               sh)
                 fname="$(basename "$url")"
-                dest="prereqs/${name}-${fname}"
+                dest="prereqs/${name}/${fname}"
                 echo "Downloading shell installer for $name from $url -> $dest"
                 curl -L "$url" -o "$dest"
                 chmod +x "$dest"
                 ;;
               pem)
-                dest="prereqs/${name}.pem"
+                dest="prereqs/${name}/${name}.pem"
                 echo "Downloading PEM bundle for $name from $url -> $dest"
                 curl -L "$url" -o "$dest"
                 ;;
@@ -419,7 +422,7 @@ jobs:
               script)
                 # No direct URL; record the script/target so downstream tooling
                 # can resolve the concrete sources if desired.
-                echo "$line" > "prereqs/${name}.lockentry"
+                echo "$line" > "prereqs/${name}/lockentry"
                 ;;
               *)
                 echo "Unknown type '$type' in lock entry: $line"
