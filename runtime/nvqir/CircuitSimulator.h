@@ -966,6 +966,9 @@ public:
 
   /// @brief Reset the current execution context.
   void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
+    if (nQubitsAllocated == 0 && context.name != "sample")
+      return;
+
     // Get the ExecutionContext name
     auto execContextName = context.name;
 
@@ -1045,6 +1048,11 @@ public:
 
   /// @brief Clean up state after execution ends
   void endExecution() override {
+    if (nQubitsAllocated == 0) {
+      tracker = {};
+      return;
+    }
+
     bool shouldSetToZero = cudaq::isInBatchMode() && !cudaq::isLastBatch();
 
     // Reset the state if we've deallocated all qubits.
@@ -1285,6 +1293,12 @@ public:
   // only the relative order of the target in the spin op is relevant.
   void measureSpinOp(const cudaq::spin_op &op) override {
     auto executionContext = cudaq::getExecutionContext();
+
+    if (nQubitsAllocated == 0) {
+      if (executionContext)
+        executionContext->expectationValue = 0.0;
+      return;
+    }
 
     flushGateQueue();
 

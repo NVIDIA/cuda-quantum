@@ -24,7 +24,7 @@ dependencies = [
   'cudensitymat-cu12 ~= 0.4',
   'numpy >= 1.24',
   'scipy >= 1.10.1',
-  'requests >= 2.31',
+  'requests >= 2.32.4',
   'nvidia-cublas-cu12 ~= 12.0',
   'nvidia-curand-cu12 ~= 10.3',
   'nvidia-cusparse-cu12 ~= 12.5',
@@ -76,7 +76,8 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE"
+    "-DCUDAQ_BUILD_TESTS=TRUE",
+    "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF"
 ]
 
 [tool.setuptools_scm]

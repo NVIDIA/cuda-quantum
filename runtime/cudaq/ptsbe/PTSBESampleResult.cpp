@@ -7,9 +7,22 @@
  ******************************************************************************/
 
 #include "PTSBESampleResult.h"
+#include "cudaq/runtime/logger/logger.h"
+#include <mutex>
 #include <stdexcept>
 
 namespace cudaq::ptsbe {
+namespace {
+std::once_flag ptsbeExecutionDataWarningOnce;
+
+void warnExperimentalExecutionData() {
+  std::call_once(ptsbeExecutionDataWarningOnce, []() {
+    CUDAQ_WARN(
+        "PTSBE execution data API is experimental and may change in a future "
+        "release.");
+  });
+}
+} // namespace
 
 sample_result::sample_result(cudaq::sample_result &&base)
     : cudaq::sample_result(std::move(base)) {}
@@ -27,6 +40,7 @@ const PTSBEExecutionData &sample_result::execution_data() const {
   if (!executionData_.has_value())
     throw std::runtime_error("PTSBE execution data not available. Enable with "
                              "return_execution_data=true.");
+  warnExperimentalExecutionData();
   return executionData_.value();
 }
 

@@ -108,8 +108,10 @@ QPP
 QPU
 QPUs
 QPU’s
+QRMI
 QTX
 QX
+QaaS
 Qiskit
 QuEra
 QuTiP
@@ -123,12 +125,14 @@ SLED
 SLES
 SLURM
 SVD
+Scaleway
 Sqale
 Stim
 Superpositions
 Superstaq
 TBI
 TCP
+TII
 TableGen
 Toffoli
 Toshiko
@@ -206,6 +210,7 @@ decrementing
 dendrogram
 dependence
 dependences
+deserialization
 deserialize
 destructor
 detuning
@@ -310,6 +315,7 @@ programmatically
 pybind
 qaoa
 qed
+qio
 quantize
 quantized
 qubit
@@ -363,7 +369,9 @@ toolchain
 toolchains
 toolset
 transmon
+transpilation
 transpile
+trixie
 trotterization
 uccsd
 unary
@@ -377,6 +385,7 @@ unmarshal
 unmarshalling
 unoptimized
 upvote
+url
 variadic
 variational
 vazirani

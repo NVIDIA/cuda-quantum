@@ -8,30 +8,32 @@
 
 set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
+set(TOOL_NAME "cudaq-translate")
 
-add_llvm_executable(cudaq-translate cudaq-translate.cpp)
+add_llvm_executable(${TOOL_NAME} ${TOOL_NAME}.cpp)
 
-llvm_update_compile_flags(cudaq-translate)
-target_link_libraries(cudaq-translate
+llvm_update_compile_flags(${TOOL_NAME})
+target_link_libraries(${TOOL_NAME}
   PRIVATE
-  MLIRIR
-  MLIRParser
-  MLIRPass
-  MLIRTranslateLib
-  MLIRSupport
-  MLIROptLib
-  MLIRExecutionEngine
-  MLIRTransforms
-  MLIRTargetLLVMIRExport
-  MLIRLLVMCommonConversion
-  MLIRLLVMToLLVMIRTranslation
+    MLIRIR
+    MLIRParser
+    MLIRPass
+    MLIRTranslateLib
+    MLIRSupport
+    MLIROptLib
+    MLIRExecutionEngine
+    MLIRTransforms
+    MLIRTargetLLVMIRExport
+    MLIRLLVMCommonConversion
+    MLIRLLVMToLLVMIRTranslation
 
-  CCDialect
-  OptCodeGen
-  OptTransforms
-  QuakeDialect
+    CCDialect
+    OptCodeGen
+    OptTransforms
+    QuakeDialect
+    cudaq-qir-verifier
 )
 
-mlir_check_all_link_libraries(cudaq-translate)
+mlir_check_all_link_libraries(${TOOL_NAME})
 
-install(TARGETS cudaq-translate DESTINATION bin)
+install(TARGETS ${TOOL_NAME} DESTINATION bin)

@@ -17,6 +17,8 @@
 #include <set>
 
 using namespace cudaq::ptsbe;
+using NoisePoint = cudaq::ptsbe::detail::NoisePoint;
+using cudaq::ptsbe::detail::computeTotalTrajectories;
 
 static cudaq::kraus_channel makeIYChannel(double pI, double pY) {
   const double sI = std::sqrt(pI);
@@ -577,7 +579,7 @@ TEST(ConditionalSamplingStrategyTest, FilterByErrorCount) {
     return traj.countErrors() == 1;
   };
 
-  ConditionalSamplingStrategy strategy(predicate);
+  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 2);
@@ -596,7 +598,7 @@ TEST(ConditionalSamplingStrategyTest, FilterByNoErrors) {
     return traj.countErrors() == 0;
   };
 
-  ConditionalSamplingStrategy strategy(predicate);
+  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 1);
@@ -611,7 +613,7 @@ TEST(ConditionalSamplingStrategyTest, FilterByProbabilityThreshold) {
     return traj.probability > 0.1;
   };
 
-  ConditionalSamplingStrategy strategy(predicate);
+  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 2);
@@ -628,7 +630,7 @@ TEST(ConditionalSamplingStrategyTest, FilterNonePass) {
     return traj.probability > 1.0;
   };
 
-  ConditionalSamplingStrategy strategy(predicate);
+  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 0);
@@ -639,7 +641,7 @@ TEST(ConditionalSamplingStrategyTest, FilterAllPass) {
 
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
 
-  ConditionalSamplingStrategy strategy(predicate);
+  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 4);
@@ -650,7 +652,7 @@ TEST(ConditionalSamplingStrategyTest, EarlyExit) {
 
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
 
-  ConditionalSamplingStrategy strategy(predicate);
+  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 2);
 
   EXPECT_EQ(trajectories.size(), 2);
@@ -768,7 +770,7 @@ TEST(PTSSamplingStrategyTest, PolymorphicUsage) {
   strategies.push_back(std::make_unique<ExhaustiveSamplingStrategy>());
   strategies.push_back(std::make_unique<OrderedSamplingStrategy>());
   strategies.push_back(std::make_unique<ConditionalSamplingStrategy>(
-      [](const cudaq::KrausTrajectory &) { return true; }));
+      [](const cudaq::KrausTrajectory &) { return true; }, /*seed=*/42));
 
   for (auto &strategy : strategies) {
     auto trajectories = strategy->generateTrajectories(noise_points, 5);

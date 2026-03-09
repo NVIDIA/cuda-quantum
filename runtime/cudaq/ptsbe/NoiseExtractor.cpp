@@ -9,16 +9,20 @@
 #include "NoiseExtractor.h"
 #include <sstream>
 
-namespace cudaq::ptsbe {
+namespace cudaq::ptsbe::detail {
 
-static void throwUnitaryMixtureError(const std::string &channel_name,
-                                     std::size_t trace_index) {
+namespace {
+
+void throwUnitaryMixtureError(const std::string &channel_name,
+                              std::size_t trace_index) {
   std::ostringstream msg;
   msg << "Noise channel '" << channel_name << "' at trace index " << trace_index
       << " is not a valid unitary mixture. "
          "PTSBE requires all channels to be unitary mixtures.";
   throw std::invalid_argument(msg.str());
 }
+
+} // namespace
 
 NoiseExtractionResult
 extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
@@ -55,4 +59,4 @@ extractNoiseSites(std::span<const TraceInstruction> ptsbeTrace,
   return result;
 }
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

@@ -138,6 +138,8 @@ available_backends=`\
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
+        # Full pasqal requires QRMI shared libraries and supported cluster.
+        # Generic installation validation skips it unless a dedicated environment is provided.
         if [ "${qpu}" != "remote_rest" ] \
         && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
         && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
