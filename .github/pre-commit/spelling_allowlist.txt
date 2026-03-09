@@ -52,6 +52,7 @@ Hadamards
 Hamiltonian
 Hamiltonians
 Hololink
+Holoscan
 Homebrew
 IQM
 InfiniBand
