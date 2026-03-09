@@ -25,17 +25,21 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
+#include <unordered_set>
 
 using namespace mlir;
 
-static void specializeKernel(const std::string &name, ModuleOp module,
-                             const std::vector<void *> &rawArgs,
-                             Type resultTy = {},
-                             bool enablePythonCodegenDump = false,
-                             bool isEntryPoint = true) {
+static void
+specializeKernel(const std::string &name, ModuleOp module,
+                 const std::vector<void *> &rawArgs, Type resultTy = {},
+                 bool enablePythonCodegenDump = false, bool isEntryPoint = true,
+                 const std::unordered_set<unsigned> &varArgIndices = {}) {
   PassManager pm(module.getContext());
   cudaq::opt::ArgumentConverter argCon(name, module);
-  argCon.gen(name, module, rawArgs);
+  if (varArgIndices.empty())
+    argCon.gen(name, module, rawArgs);
+  else
+    argCon.gen(rawArgs, varArgIndices);
   SmallVector<std::string> kernels;
   SmallVector<std::string> substs;
   for (auto *kInfo : argCon.getKernelSubstitutions()) {
@@ -67,8 +71,11 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   // If we're persisting the jit cache we need to run GKE to have access
   // to `.argsCreator` to serialize the arguments.
-  if ((resultTy && isEntryPoint) ||
-      cudaq::compiler_artifact::isPersistingJITEngine()) {
+  if (!varArgIndices.empty()) {
+    pm.addPass(
+        cudaq::opt::createGenerateKernelExecution({.positNullary = false}));
+  } else if ((resultTy && isEntryPoint) ||
+             cudaq::compiler_artifact::isPersistingJITEngine()) {
     // If we're expecting a result, then we want to call the .thunk function so
     // that the result is properly marshaled. Add the GKE pass to generate the
     // .thunk. At this point, the kernel should have been specialized so it has
@@ -214,6 +221,32 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     cudaq::KernelThunkResultType result{nullptr, 0};
 
+    std::unordered_set<unsigned> varArgIndices;
+    {
+      auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
+      auto mangledNameMap = module->getAttrOfType<mlir::DictionaryAttr>(
+          cudaq::runtime::mangledNameMap);
+      bool parametricCompatible = false;
+      if (funcOp && mangledNameMap)
+        if (auto attr = mangledNameMap.getAs<mlir::StringAttr>(fullName)) {
+          mlir::StringRef mn = attr.getValue();
+          parametricCompatible = mn != "BuilderKernel.EntryPoint" &&
+                                 !mn.contains("PyKernelFakeEntryPoint");
+        }
+      if (parametricCompatible)
+        for (auto [idx, argTy] :
+             llvm::enumerate(funcOp.getFunctionType().getInputs()))
+          if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
+            if (isa<mlir::FloatType>(vecTy.getElementType()))
+              varArgIndices.insert(idx);
+    }
+    {
+      auto *execCtx = cudaq::getExecutionContext();
+      if (!execCtx || !execCtx->useParametricJit)
+        varArgIndices.clear();
+    }
+    const bool hasVariationalArgs = !varArgIndices.empty();
+
     auto jit = alreadyBuiltJITCode();
     if (!jit) {
       // 1. Check that this call is sane.
@@ -239,8 +272,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       CUDAQ_INFO("Run Argument Synth.\n");
       if (enablePythonCodegenDump)
         module.dump();
-      specializeKernel(name, module, rawArgs, resultTy,
-                       enablePythonCodegenDump);
+      specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
+                       /*isEntryPoint=*/true, varArgIndices);
 
       // 4. Execute the code right here, right now.
       jit = cudaq::createQIRJITEngine(module, "qir:");
@@ -265,6 +298,16 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       void *buff = const_cast<void *>(rawArgs.back());
       result = reinterpret_cast<cudaq::KernelThunkResultType (*)(void *, bool)>(
           *funcPtr)(buff, /*client_server=*/false);
+    } else if (hasVariationalArgs) {
+      auto argsCreatorFn = reinterpret_cast<int64_t (*)(const void *, void **)>(
+          *jit->lookupRawNameOrFail(name + ".argsCreator"));
+      void *argsBuffer = nullptr;
+      argsCreatorFn(static_cast<const void *>(rawArgs.data()), &argsBuffer);
+      auto thunkFn =
+          reinterpret_cast<cudaq::KernelThunkResultType (*)(void *, bool)>(
+              *jit->lookupRawNameOrFail(name + ".thunk"));
+      thunkFn(argsBuffer, /*client_server=*/false);
+      std::free(argsBuffer);
     } else {
       jit->run(name);
     }
