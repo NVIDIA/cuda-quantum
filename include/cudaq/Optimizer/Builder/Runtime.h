@@ -101,14 +101,7 @@ inline mlir::Type getReturnType(mlir::func::FuncOp funcOp) {
     return nullptr;
 
   auto numResults = funcOp.getFunctionType().getNumResults();
-  switch (numResults) {
-  case 0:
-    return nullptr;
-  case 1:
-    return funcOp.getFunctionType().getResult(0);
-  default:
-    return nullptr;
-  }
+  return numResults == 1 ? funcOp.getFunctionType().getResult(0) : nullptr;
 }
 
 } // namespace cudaq::runtime
