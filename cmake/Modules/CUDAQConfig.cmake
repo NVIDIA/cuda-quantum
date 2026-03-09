@@ -33,7 +33,7 @@ set (CUDAQEnsmallen_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQEnsmallen REQUIRED)
 
 set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQPythonInterop REQUIRED)
+find_dependency(CUDAQPythonInterop)
 
 get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
 get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)

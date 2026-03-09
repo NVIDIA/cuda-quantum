@@ -494,6 +494,19 @@ target_link_libraries(test_utils
   gtest_main)
 gtest_discover_tests(test_utils DISCOVERY_TIMEOUT 120)
 
+add_executable(test_json_convert main.cpp common/JsonConvertTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_json_convert PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+endif()
+target_link_libraries(test_json_convert
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  nvqir
+  nvqir-qpp
+  gtest_main)
+gtest_discover_tests(test_json_convert DISCOVERY_TIMEOUT 120)
+
 add_executable(test_ptsbe main.cpp
   ptsbe/KrausSelectionTester.cpp
   ptsbe/KrausTrajectoryTester.cpp
@@ -519,6 +532,22 @@ target_link_libraries(test_ptsbe
   gtest_main)
 gtest_discover_tests(test_ptsbe)
 
+add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_nvqir_verify PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+endif()
+target_link_libraries(test_nvqir_verify
+  PRIVATE
+    cudaq
+    MLIRIR
+    MLIRMathDialect
+    MLIRParser
+    MLIRSupport
+    MLIROptLib
+    cudaq-qir-verifier
+    gtest_main)
+gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
+
 # Test for thread-local execution context storage
 add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -530,7 +559,7 @@ target_link_libraries(test_exec_ctx_thread
   cudaq
   cudaq-platform-default
   gtest_main)
-gtest_discover_tests(test_exec_ctx_thread)
+gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)

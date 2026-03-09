@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/test-int8_t_free_func.cpp"
+#include "../execution/int8_t_free_func.cpp"

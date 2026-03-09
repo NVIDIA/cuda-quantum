@@ -21,7 +21,7 @@ dependencies = [
   'astpretty ~= 3.0',
   'numpy >= 1.24',
   'scipy >= 1.10.1',
-  'requests >= 2.31',
+  'requests >= 2.32.4',
   # CUDA dependencies - excluded on macOS (CPU-only support)
   'custatevec-cu13 ~= 1.12; sys_platform != "darwin"',
   'cutensornet-cu13 ~= 2.11; sys_platform != "darwin"',
@@ -78,7 +78,8 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE"
+    "-DCUDAQ_BUILD_TESTS=TRUE",
+    "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF"
 ]
 
 # macOS: Disable symbol stripping. LLVM's JIT relies on local symbols for
