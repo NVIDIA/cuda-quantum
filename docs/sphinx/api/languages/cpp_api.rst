@@ -453,7 +453,7 @@ Result Type
 Trajectory Sampling Strategies
 --------------------------------
 
-.. doxygenstruct:: cudaq::ptsbe::NoisePoint
+.. doxygenstruct:: cudaq::ptsbe::detail::NoisePoint
     :members:
 
 .. doxygenclass:: cudaq::ptsbe::PTSSamplingStrategy

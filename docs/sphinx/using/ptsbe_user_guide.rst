@@ -78,10 +78,10 @@ PTSBE is most beneficial when:
 Benchmarks from the original paper [Patti2025]_ illustrate the potential
 speed-ups:
 
-- **35-qubit** statevector simulation (magic state distillation): up to
-  **10⁶×** speedup over conventional trajectory methods, producing one
+- 35-qubit statevector simulation (magic state distillation): up to
+  10⁶× speedup over conventional trajectory methods, producing one
   trillion shots on 4 NVIDIA H100 GPUs.
-- **85-qubit** tensor network simulation (magic state distillation): **16×**
+- 85-qubit tensor network simulation (magic state distillation): 16×
   speedup, producing one million shots.
 
 PTSBE is particularly well-suited for generating large synthetic datasets of
@@ -90,9 +90,9 @@ quantum error correction (QEC) decoders [Patti2025]_.
 
 PTSBE requires:
 
-- A **static circuit** — no mid-circuit measurements or
+- A static circuit — no mid-circuit measurements or
   measurement-dependent conditional logic.
-- A **local simulator** backend.
+- A local simulator backend.
 
 Quick Start
 ^^^^^^^^^^^^
@@ -159,16 +159,16 @@ Four strategies control which trajectories are selected from the noise space:
 
    * - Strategy
      - Description
-   * - **Probabilistic** *(default)*
+   * - Probabilistic (default)
      - Performs a statistically unbiased Monte Carlo sampling of trajectories 
        producing a representative cross-section of the noise space.
-   * - **Ordered**
+   * - Ordered
      - Selects the top-*T* highest-probability trajectories. Useful when the
        noise space is dominated by a small number of likely error patterns.
-   * - **Exhaustive**
+   * - Exhaustive
      - Enumerates every possible trajectory. Use only when the noise space is
        small (few qubits and low-weight noise).
-   * - **Conditional**
+   * - Conditional
      - Keeps only trajectories that satisfy a user-supplied predicate. Useful
        for targeted studies (e.g. only single-qubit error events). This produces
        a biased distribution.
@@ -202,16 +202,16 @@ After trajectories are selected, shots are distributed across them:
 
    * - Strategy
      - Description
-   * - **Proportional** *(default)*
+   * - Proportional (default)
      - Each trajectory receives shots proportional to its sampling strategy weight.
        It uses multinomial sampling.
-   * - **Uniform**
+   * - Uniform
      - Equal shots per trajectory regardless of weight.
-   * - **Low-weight bias**
+   * - Low-weight bias
      - Biases more shots toward trajectories with fewer errors (lower Kraus
        weight). Useful when low-error events dominate the observable of
        interest.
-   * - **High-weight bias**
+   * - High-weight bias
      - Biases more shots toward high-error trajectories. Useful for studying
        rare error events.
 
@@ -257,18 +257,18 @@ the result. This API is experimental and may be subject to change in future rele
 Trajectory vs Shot Trade-offs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The central tension in PTSBE is between **trajectory count** *T* and
-**shots per trajectory** *N/T*.
+The central tension in PTSBE is between trajectory count T and
+shots per trajectory N/T.
 
 Using more trajectories covers more of the noise space and reduces bias in the
 estimated distribution, but since each trajectory is simulated independently the
-simulation cost scales linearly with *T*. Beyond a certain point there are
-diminishing returns: once *T* approaches the total trajectory space size,
+simulation cost scales linearly with T. Beyond a certain point there are
+diminishing returns: once T approaches the total trajectory space size,
 additional trajectories yield little improvement.
 
 Fewer trajectories mean each one accumulates more shots, which reduces
 shot-noise variance per trajectory and lowers wall-clock time. The risk is
-bias: if *T* is too small, high-probability regions of the noise space may be
+bias: if T is too small, high-probability regions of the noise space may be
 under-sampled and distort the result.
 
 .. rubric:: Practical guidance
