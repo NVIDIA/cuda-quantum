@@ -166,7 +166,7 @@ struct ForwardConcatExtractPattern
     if (concatOp && extract.hasConstantIndex()) {
       // Don't run this canonicalization if any of the operands
       // to concat are of type veq.
-      auto concatQubits = concatOp.getQbits();
+      auto concatQubits = concatOp.getTargets();
       for (auto qOp : concatQubits)
         if (isa<quake::VeqType>(qOp.getType()))
           return failure();
@@ -199,9 +199,9 @@ struct ForwardConcatExtractSingleton
     if (auto concat = extract.getVeq().getDefiningOp<quake::ConcatOp>())
       if (concat.getType().getSize() == 1 && extract.hasConstantIndex() &&
           extract.getConstantIndex() == 0) {
-        assert(concat.getQbits().size() == 1 && concat.getQbits()[0]);
+        assert(concat.getTargets().size() == 1 && concat.getTargets()[0]);
         extract.getResult().replaceUsesWithIf(
-            concat.getQbits()[0], [&](OpOperand &use) {
+            concat.getTargets()[0], [&](OpOperand &use) {
               if (Operation *user = use.getOwner())
                 return isQuakeOperation(user);
               return false;
@@ -223,7 +223,7 @@ struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
     // Remove concat veq<N> -> veq<N>
     // or
     // concat ref -> ref
-    auto qubitsToConcat = concat.getQbits();
+    auto qubitsToConcat = concat.getTargets();
     if (qubitsToConcat.size() > 1)
       return failure();
 
@@ -260,7 +260,7 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
 
     // Walk the arguments and sum them, if possible.
     std::size_t sum = 0;
-    for (auto opnd : concat.getQbits()) {
+    for (auto opnd : concat.getTargets()) {
       if (auto veqTy = dyn_cast<quake::VeqType>(opnd.getType())) {
         if (!veqTy.hasSpecifiedSize())
           return failure();
@@ -276,7 +276,7 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
     auto loc = concat.getLoc();
     auto newTy = quake::VeqType::get(ctx, sum);
     Value newOp =
-        rewriter.create<quake::ConcatOp>(loc, newTy, concat.getQbits());
+        rewriter.create<quake::ConcatOp>(loc, newTy, concat.getTargets());
     auto noSizeTy = quake::VeqType::getUnsized(ctx);
     rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(concat, noSizeTy, newOp);
     return success();
