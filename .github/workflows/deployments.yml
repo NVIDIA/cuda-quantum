@@ -300,7 +300,7 @@ jobs:
 
   dispatch:
     name: Dispatch deployments
-    needs: [metadata, devdeps, wheeldeps, openmpi]
+    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
