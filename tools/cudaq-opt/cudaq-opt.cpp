@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
   // nvidia/cuda-quantum
   llvm::setBugReportMsg(cudaq::bugReportMsg);
 
+  cudaq::registerAllCLOptions();
   cudaq::registerAllPasses();
 
   // See if we have been asked to load a pass plugin,

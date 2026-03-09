@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -157,6 +157,9 @@ def VeqType : QuakeType<"Veq", "veq"> {
       std::numeric_limits<std::size_t>::max();
 
     bool hasSpecifiedSize() const { return getSize() != kDynamicSize; }
+    bool hasNonZeroSpecifiedSize() const {
+      return hasSpecifiedSize() && getSize();
+    }
     static VeqType getUnsized(mlir::MLIRContext *ctx) {
       return VeqType::get(ctx, kDynamicSize);
     }
@@ -187,6 +190,12 @@ def StruqType : QuakeType<"Struq", "struq"> {
 
   let extraClassDeclaration = [{
     std::size_t getNumMembers() const { return getMembers().size(); }
+    std::optional<std::size_t> getArity() const;
+    bool hasSpecifiedSize() const;
+    bool hasNonZeroSpecifiedSize() const {
+      auto arity = getArity();
+      return arity && *arity;
+    }
   }];
 
   let builders = [
@@ -271,8 +280,12 @@ def NonStruqRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
 def NonStruqRefType : Type<NonStruqRefTypeLike.predicate,
         "non-struct quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
-        ControlType.predicate]>, "quake quantum value types">;
-def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
-def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
+        ControlType.predicate, CableType.predicate]>,
+        "quake quantum value types">;
+def AnyQValueType : Type<AnyQValueTypeLike.predicate, "any quantum value type">;
+def AnyQLinearTypeLike : TypeConstraint<Or<[WireType.predicate,
+        CableType.predicate]>, "quake linear quantum value types">;
+def AnyQLinearType : Type<AnyQLinearTypeLike.predicate,
+        "any linear quantum value type">;
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES

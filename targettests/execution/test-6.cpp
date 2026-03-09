@@ -1,20 +1,19 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
-// RUN: nvq++ -fkernel-exec-kind=2 --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -fkernel-exec-kind=2 --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void cccx_measure_cleanup() {
+__qpu__ int cccx_measure_cleanup() {
   cudaq::qvector qubits(4);
   // Initialize
   x(qubits[0]);
@@ -42,14 +41,17 @@ __qpu__ void cccx_measure_cleanup() {
   if (result)
     z<cudaq::ctrl>(qubits[0], qubits[1]);
 
-  mz(qubits);
+    return cudaq::to_integer(mz(qubits));
 }
 
 int main() {
-  auto result = cudaq::sample(10, cccx_measure_cleanup);
-  std::cout << result.most_probable() << '\n';
-  result.dump();
+  auto result = cudaq::run(2, cccx_measure_cleanup);
+  for (auto res : result) {
+    std::cout << res << '\n';
+  }
   return 0;
 }
 
-// CHECK: 1111
+// Expected output is `1111` in binary, which is `15` in decimal
+// CHECK: 15
+// CHECK: 15

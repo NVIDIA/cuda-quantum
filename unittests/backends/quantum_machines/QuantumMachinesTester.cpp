@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,23 +7,12 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/FmtCore.h"
 #include "cudaq/algorithm.h"
 #include "math.h"
-#include <fstream>
 #include <gtest/gtest.h>
 #include <stdlib.h>
 
-std::string mockPort = "62448";
-std::string backendStringTemplate = "quantum_machines;url;http://localhost:{}";
-
 CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(3);
   kernel.h(qubit[0]);
@@ -36,12 +25,6 @@ CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
 }
 
 CUDAQ_TEST(QuantumMachinesTester, resetAndH) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(3);
   for (int i = 0; i < 3; i++) {
@@ -57,12 +40,6 @@ CUDAQ_TEST(QuantumMachinesTester, resetAndH) {
 }
 
 CUDAQ_TEST(QuantumMachinesTester, gates) {
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
   auto kernel = cudaq::make_kernel();
 
   int qubit_count = 5;
@@ -82,7 +59,6 @@ CUDAQ_TEST(QuantumMachinesTester, gates) {
 }
 
 int main(int argc, char **argv) {
-  setenv("QUANTUM_MACHINES_API_KEY", "00000000000000000000000000000000", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,7 @@
 // creating a ragged array of values. That is, for any given row, the number of
 // columns can be distinct from other rows.
 
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 

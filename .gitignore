@@ -96,3 +96,10 @@ apps/
 
 # JetBrains IDE files
 .idea
+
+# PySCF
+*.chk
+*-pyscf.log
+
+# Aspell (pyspelling pre-commit hook)
+dictionary.dic

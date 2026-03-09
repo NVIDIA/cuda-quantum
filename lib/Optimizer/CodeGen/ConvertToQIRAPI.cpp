@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -785,8 +785,8 @@ struct QmemRAIIOpRewrite : public OpConversionPattern<cudaq::codegen::RAIIOp> {
 
     Value sizeOperand;
     if (!adaptor.getAllocSize()) {
-      auto type = cast<quake::VeqType>(allocTy);
-      auto constantSize = type.getSize();
+      auto type = dyn_cast<quake::VeqType>(allocTy);
+      auto constantSize = type ? type.getSize() : 1;
       sizeOperand =
           rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
     } else {
@@ -2328,6 +2328,7 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   pm.addPass(cudaq::opt::createLowerToCG());
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
+  pm.addPass(cudaq::opt::createQirInsertArrayRecord());
   pm.addPass(createCanonicalizerPass());
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());

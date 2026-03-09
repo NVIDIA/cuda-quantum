@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -48,7 +48,8 @@ ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
         gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
         if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \
-            dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version && \
+            # Using releasever=8.9: boost packages missing from 8.10 mirrors for aarch64
+            dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 gcc-toolset-$gcc_version && \
             enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
         fi && \
         CC="$(which gcc)" && CXX="$(which g++)"; \
@@ -68,7 +69,8 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 # Build pybind11 - 
 # we should be able to use the same pybind version independent on what Python version we generate bindings for.
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
+# Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
+RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
         ninja-build cmake python3-devel \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
@@ -101,7 +103,8 @@ ENV CUDA_VERSION=${cuda_version}
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
     && dnf clean expire-cache \
-    && dnf install -y --nobest --setopt=install_weak_deps=False wget \
+    # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
+    && dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 wget \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \

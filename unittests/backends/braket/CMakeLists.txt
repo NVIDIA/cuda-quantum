@@ -1,29 +1,31 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_braket BraketTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_braket PRIVATE -Wl,--no-as-needed)
-endif()
-target_compile_definitions(test_braket PRIVATE -DNVQIR_BACKEND_NAME=braket)
-target_include_directories(test_braket PRIVATE ../..)
-target_link_libraries(test_braket
-  PRIVATE fmt::fmt-header-only 
-  cudaq-common 
-  cudaq
-  cudaq-builder
-  cudaq-mlir-runtime
-  cudaq-rest-qpu
-  cudaq-operator
-  nvqir nvqir-qpp
-  cudaq-platform-default 
-  gtest_main)
+# Mock server test
+set(BACKEND_CONFIG "braket emulate=false url=http://localhost:62445 credentials=FakeCppBraket.config")
 
+add_backend_unittest_executable(test_braket 
+  SOURCES BraketTester.cpp
+  BACKEND braket
+  BACKEND_CONFIG ${BACKEND_CONFIG}
+)
 
-configure_file("BraketStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/braket/BraketStartServerAndTest.sh" @ONLY)
-add_test(NAME braket-tests COMMAND bash BraketStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/braket/)
+configure_file(BraketStartServerAndTest.sh.in BraketStartServerAndTest.sh @ONLY)
+add_test(NAME braket-tests COMMAND bash BraketStartServerAndTest.sh test_braket WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Emulation test
+string(REPLACE "emulate=false" "emulate=true" BACKEND_CONFIG ${BACKEND_CONFIG})
+add_backend_unittest_executable(test_braket_emulation 
+  SOURCES BraketEmulationTester.cpp 
+  BACKEND braket
+  BACKEND_CONFIG ${BACKEND_CONFIG}
+)
+add_test(NAME braket-emulation-tests COMMAND bash BraketStartServerAndTest.sh test_braket_emulation WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Tests are sharing the same port
+set_tests_properties(braket-tests braket-emulation-tests PROPERTIES RESOURCE_LOCK "braket_port")

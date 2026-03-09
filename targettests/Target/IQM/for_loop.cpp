@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,7 @@
 
 #include <cudaq.h>
 
-// REQUIRES: c++20
-// RUN: nvq++ %cpp_std --target iqm --emulate %s -o %t
+// RUN: nvq++ --target iqm --emulate %s -o %t
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
 
 // CHECK: { 0:{{[0-9]+}} 1:{{[0-9]+}} }

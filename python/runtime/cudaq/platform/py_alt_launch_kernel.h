@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,64 +26,37 @@ namespace cudaq {
 /// @brief Set current architecture's data layout attribute on a module.
 void setDataLayout(MlirModule module);
 
-/// @brief Get the default callable argument handler for packing arguments.
-std::function<bool(OpaqueArguments &argData, py::object &arg)>
-getCallableArgHandler();
-
-/// @brief Get the names of callable arguments from the given kernel and
-/// arguments.
-// As we process the arguments, we also perform any extra processing required
-// for callable arguments.
-std::vector<std::string> getCallableNames(py::object &kernel, py::args &args);
-
 /// @brief Create a new OpaqueArguments pointer and pack the
 /// python arguments in it. Clients must delete the memory.
-OpaqueArguments *
-toOpaqueArgs(py::args &args, MlirModule mod, const std::string &name,
-             const std::optional<
-                 std::function<bool(OpaqueArguments &argData, py::object &arg)>>
-                 &optionalBackupHandler = std::nullopt);
+OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
+                              const std::string &name);
 
-inline std::size_t byteSize(mlir::Type ty) {
-  if (isa<mlir::ComplexType>(ty)) {
-    auto eleTy = cast<mlir::ComplexType>(ty).getElementType();
-    return 2 * cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
-  }
-  if (ty.isIntOrFloat())
-    return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
-  ty.dump();
-  throw std::runtime_error("Expected a complex, floating, or integral type");
-}
+// FIXME: Document!
+std::size_t byteSize(mlir::Type ty);
 
 /// @brief Convert raw return of kernel to python object.
-py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
-                         mlir::Type ty, char *data);
+py::object convertResult(mlir::ModuleOp module, mlir::Type ty, char *data);
 
-/// @brief Launch python kernel with arguments.
-void pyAltLaunchKernel(const std::string &name, MlirModule module,
-                       cudaq::OpaqueArguments &runtimeArgs,
-                       const std::vector<std::string> &names);
-
-/// @brief Launch python kernel with arguments.
-std::tuple<void *, std::size_t, std::int32_t, KernelThunkType>
-pyAltLaunchKernelBase(const std::string &name, MlirModule module,
-                      mlir::Type returnType,
-                      cudaq::OpaqueArguments &runtimeArgs,
-                      const std::vector<std::string> &names,
-                      std::size_t startingArgIdx = 0, bool launch = true);
-
-/// @brief Launch python kernel with arguments.
-void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
-                    mlir::ModuleOp mod, cudaq::OpaqueArguments &runtimeArgs,
-                    void *rawArgs, std::size_t size, std::uint32_t returnOffset,
-                    const std::vector<std::string> &names);
-
+/// Create python bindings for C++ code in this compilation unit.
 void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
 
-std::string getQIR(const std::string &name, MlirModule module,
-                   cudaq::OpaqueArguments &runtimeArgs,
-                   const std::string &profile);
+/// Launch the kernel \p kernelName from module \p module. \p runtimeArgs are
+/// the python arguments to the kernel. Pre-condition: all arguments must be
+/// resolved at this `callsite` \e prior to launching this module. In particular
+/// this means \p module is ready for beta reduction of callables. If the kernel
+/// has a result, it has type \p returnType. \p module must be modifiable.
+py::object marshal_and_launch_module(const std::string &kernelName,
+                                     MlirModule module, MlirType returnType,
+                                     py::args runtimeArgs);
 
-std::string getASM(const std::string &name, MlirModule module,
-                   cudaq::OpaqueArguments &runtimeArgs);
+/// Pure C++ code that launches a kernel. Argument marshaling and result
+/// unmarshalling is \e not performed.
+KernelThunkResultType clean_launch_module(const std::string &kernelName,
+                                          mlir::ModuleOp mod, mlir::Type retTy,
+                                          OpaqueArguments &args);
+
+OpaqueArguments
+marshal_arguments_for_module_launch(mlir::ModuleOp mod, py::args runtimeArgs,
+                                    mlir::func::FuncOp kernelFunc);
+
 } // namespace cudaq

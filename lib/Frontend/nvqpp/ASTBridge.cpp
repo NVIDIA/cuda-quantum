@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -602,7 +602,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   details::QuakeBridgeVisitor visitor(
       &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
       reachableFuncs, cxx_mangled_kernel_names, ci, mangler,
-      customOperationNames, tuplesAreReversed);
+      customOperationNames, allocator, tuplesAreReversed);
 
   // First generate declarations for all kernels.
   bool ok = true;

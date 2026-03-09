@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,80 +8,41 @@
 
 import ast
 import inspect
-import importlib
 import textwrap
-
-from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.dialects import cc
-from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
+from typing import Optional, Type
 
 
-class FindDepKernelsVisitor(ast.NodeVisitor):
-
-    def __init__(self, ctx):
-        self.depKernels = {}
-        self.context = ctx
-        self.kernelName = ''
-
-    def visit_FunctionDef(self, node):
-        """
-        Here we will look at this Functions arguments, if 
-        there is a Callable, we will add any seen kernel/AST with the same 
-        signature to the dependent kernels map. This enables the creation 
-        of `ModuleOps` that contain all the functions necessary to inline and 
-        synthesize callable block arguments.
-        """
-        self.kernelName = node.name
-        for arg in node.args.args:
-            annotation = arg.annotation
-            if annotation == None:
-                raise RuntimeError(
-                    'cudaq.kernel functions must have argument type annotations.'
-                )
-            if isinstance(annotation, ast.Subscript) and hasattr(
-                    annotation.value,
-                    "id") and annotation.value.id == 'Callable':
-                if not hasattr(annotation, 'slice'):
-                    raise RuntimeError(
-                        'Callable type must have signature specified.')
-
-                # This is callable, let's add all in scope kernels with
-                # the same signature
-                callableTy = mlirTypeFromAnnotation(annotation, self.context)
-                for k, v in globalKernelRegistry.items():
-                    if str(v.type) == str(
-                            cc.CallableType.getFunctionType(callableTy)):
-                        self.depKernels[k] = globalAstRegistry[k]
-
-        [self.visit(stm) for stm in node.body]
-
-    def visit_Attribute(self, node):
-        if not self.kernelName:
-            return
-        if node.attr in globalAstRegistry:
-            self.depKernels[node.attr] = globalAstRegistry[node.attr]
-        self.visit(node.value)
-
-    def visit_Name(self, node):
-        if not self.kernelName:
-            return
-        if node.id in globalAstRegistry:
-            self.depKernels[node.id] = globalAstRegistry[node.id]
-
-
-class HasReturnNodeVisitor(ast.NodeVisitor):
+class FunctionDefVisitor(ast.NodeVisitor):
     """
-    This visitor will visit the function definition and report 
-    true if that function has a return statement.
+    This visitor will visit the function definition of `kernel_name` and report 
+    type annotations and whether the function has a return statement.
     """
 
-    def __init__(self):
-        self.hasReturnNode = False
+    arg_annotations: list[(str, Type)]
+    return_annotation: Optional[Type] = None
+    has_return_statement: bool = False
+    found: bool = False
+
+    def __init__(self, kernel_name: str):
+        self.kernel_name: str = kernel_name
+        self.arg_annotations = []
 
     def visit_FunctionDef(self, node):
-        for n in node.body:
-            if isinstance(n, ast.Return) and n.value != None:
-                self.hasReturnNode = True
+        if node.name == self.kernel_name:
+            self.found = True
+            self.arg_annotations = [
+                (arg.arg, arg.annotation) for arg in node.args.args
+            ]
+            self.return_annotation = node.returns
+            self.has_return_statement = any(
+                isinstance(n, ast.Return) and n.value != None
+                for n in node.body)
+
+    def generic_visit(self, node):
+        if self.found:
+            # skip traversing the rest of the AST once found
+            return
+        super().generic_visit(node)
 
 
 class FindDepFuncsVisitor(ast.NodeVisitor):

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -39,7 +39,7 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 
 [project.optional-dependencies]
 chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py==3.12.1"  ]
-visualization = [ "qutip<5" , "matplotlib>=3.5" ]
+visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 
 [build-system]
 requires = ["setuptools", "nvidia-ml-py"]

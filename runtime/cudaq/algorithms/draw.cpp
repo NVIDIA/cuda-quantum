@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -411,6 +411,11 @@ std::vector<Layer> layers_from_trace(const Trace &trace) {
 
   std::size_t ref = 0;
   for (const auto &inst : trace) {
+    if (inst.type != cudaq::TraceInstructionType::Gate) {
+      ref += 1;
+      continue;
+    }
+
     std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
     const auto minmax_wires = std::minmax_element(begin(wires), end(wires));
     auto min_dwire = *minmax_wires.first;
@@ -448,6 +453,9 @@ boxes_from_trace(const Trace &trace) {
 
   // same iteration order as in layers_from_trace
   for (const auto &inst : trace) {
+    if (inst.type != cudaq::TraceInstructionType::Gate)
+      continue;
+
     std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
     std::sort(wires.begin(), wires.end());
 

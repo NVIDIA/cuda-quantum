@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,9 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/pauli_word_display.cpp -o %t/pauli_word_display.o && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/pauli_wordle.cpp -o %t/pauli_wordle.o && \
-// RUN: nvq++ %cpp_std --enable-mlir %t/pauli_word_display.o %t/pauli_wordle.o -o %t/pauli_wordle.out && \
+// RUN: nvq++ --enable-mlir -c %t/pauli_word_display.cpp -o %t/pauli_word_display.o && \
+// RUN: nvq++ --enable-mlir -c %t/pauli_wordle.cpp -o %t/pauli_wordle.o && \
+// RUN: nvq++ --enable-mlir %t/pauli_word_display.o %t/pauli_wordle.o -o %t/pauli_wordle.out && \
 // RUN: %t/pauli_wordle.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on

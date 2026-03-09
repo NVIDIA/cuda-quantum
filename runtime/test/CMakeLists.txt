@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,7 +12,7 @@ set(TEST_NAME test_argument_conversion)
 
 add_llvm_executable(${TEST_NAME} test_argument_conversion.cpp)
 
-target_compile_options(${TEST_NAME} PUBLIC -Wno-type-limits -fexceptions)
+target_compile_options(${TEST_NAME} PUBLIC -Wno-type-limits -fexceptions -DCUDAQ_RTTI_DISABLED)
 
 target_include_directories(${TEST_NAME}
   PUBLIC
@@ -25,6 +25,6 @@ target_link_libraries(${TEST_NAME}
   PUBLIC
     cudaq-mlir-runtime
     cudaq
-)
+    cudaq-platform-default)
 
 set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)

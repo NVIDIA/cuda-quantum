@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 from cudaq.kernel.kernel_builder import PyKernel
-from cudaq.kernel.kernel_decorator import PyKernelDecorator
+from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+from cudaq.kernel.utils import mlirTypeToPyType
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc
 
@@ -17,7 +18,7 @@ from typing import List
 
 
 def __isBroadcast(kernel, *args):
-    # kernel could be a PyKernel or PyKernelDecorator
+    # kernel could be a PyKernel or kernel decorator
     if isinstance(kernel, PyKernel):
         argTypes = kernel.mlirArgTypes
         if len(argTypes) == 0 or len(args) == 0:
@@ -37,14 +38,14 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
+        firstArgTypeIsFlatStdvec = cc.StdvecType.isinstance(argTypes[0])
         if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
+                isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
             return True
 
         if hasattr(firstArg, "shape"):
             shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsStdvec:
+            if len(shape) == 1 and not firstArgTypeIsFlatStdvec:
                 return True
 
             if len(shape) == 2:
@@ -52,8 +53,8 @@ def __isBroadcast(kernel, *args):
 
         return False
 
-    elif isinstance(kernel, PyKernelDecorator):
-        argTypes = kernel.signature
+    elif isa_kernel_decorator(kernel):
+        argTypes = kernel.arg_types()
         if len(argTypes) == 0 or len(args) == 0:
             return False
 
@@ -72,25 +73,18 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgType = next(iter(argTypes))
-        checkList = [
-            list, np.ndarray, List, List[float], List[complex], List[int]
-        ]
-        checkList.append([
-            'list', 'np.ndarray', 'List', 'List[float]', 'List[complex]',
-            'List[int]'
-        ])
-        checkList.extend([list[float], list[complex], list[int], list[bool]])
-        checkList.extend(
-            ['list[float]', 'list[complex]', 'list[int]', 'list[bool]'])
-        firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
+        firstArgTypeIsFlatStdvec = False  # whether `argTypes[0]` is a non-nested Vec
+        if cc.StdvecType.isinstance(argTypes[0]):
+            eleTy = cc.StdvecType.getElementType(argTypes[0])
+            if not cc.StdvecType.isinstance(eleTy):
+                firstArgTypeIsFlatStdvec = True
         if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
+                isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
             return True
 
         if hasattr(firstArg, "shape"):
             shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsStdvec:
+            if len(shape) == 1 and not firstArgTypeIsFlatStdvec:
                 return True
 
             if len(shape) == 2:

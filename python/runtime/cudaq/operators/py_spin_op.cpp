@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -632,6 +632,9 @@ void bindSpinOperator(py::module &mod) {
                              "freedom that the operator targets.")
       .def_property_readonly("ops_count", &spin_op_term::num_ops,
                              "Returns the number of operators in the product.")
+      .def_property_readonly(
+          "term_count", [](const spin_op_term &) { return 1; },
+          "Returns the number of terms in the operator. Always returns 1.")
       // only exists for spin operators
       .def_property_readonly(
           "qubit_count", &spin_op_term::num_qubits<spin_handler>,

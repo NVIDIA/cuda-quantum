@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -522,32 +522,33 @@ def test_cudaq_uccsd1():
         else:
             uccsd1_odd_electrons(qubits, thetas, n_electrons, n_qubits)
 
-        num_electrons = 2
-        num_qubits = 8
+    num_electrons = 2
+    num_qubits = 8
 
-        thetas = [
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
-            -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
-        ]
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
 
-        @cudaq.kernel
-        def kernel():
-            qubits = cudaq.qvector(num_qubits)
-            for i in range(num_electrons):
-                x(qubits[i])
-            uccsd1(qubits, thetas, num_electrons, num_qubits)
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(num_qubits)
+        for i in range(num_electrons):
+            x(qubits[i])
+        uccsd1(qubits, thetas, num_electrons, num_qubits)
 
-        counts = cudaq.sample(kernel, shots_count=1000)
-        assert len(counts) == 6
-        assert '00000011' in counts
-        assert '00000110' in counts
-        assert '00010010' in counts
-        assert '01000010' in counts
-        assert '10000001' in counts
-        assert '11000000' in counts
+    counts = cudaq.sample(kernel, shots_count=1000)
+
+    assert len(counts) == 6
+    assert '00000011' in counts
+    assert '00000110' in counts
+    assert '00010010' in counts
+    assert '01000010' in counts
+    assert '10000001' in counts
+    assert '11000000' in counts

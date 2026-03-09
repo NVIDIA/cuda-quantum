@@ -1,0 +1,303 @@
+# Pyspelling configuration for CUDA-Q
+# Note: Source exclusion patterns (e.g., !tpls/**) match the exclusions
+# defined in .pre-commit-config.yaml to ensure consistent behavior when
+# running spellcheck via pre-commit or directly via pyspelling.
+
+spellchecker: aspell
+matrix:
+
+- name: markdown
+  sources:
+  # Exclude third-party code (tpls/) and build artifacts
+  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md'
+  glob_flags: N|G|B
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/pre-commit/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.markdown:
+      markdown_extensions:
+      - pymdownx.superfences:
+          disable_indented_code_blocks: true
+  - pyspelling.filters.html:
+      comments: false
+      attributes:
+      - title
+      - alt
+      ignores:
+      - ':matches(code, pre)'
+      - 'code'
+      - 'pre'
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[A-Z]?[a-z]+-'
+        close: '(?=.)'
+      # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
+      - open: '(?=\S)'
+        close: '($|(?=[^a-z]))'
+        content: '\u0027s'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
+      # Ignore email addresses
+      - open: '\b[A-Za-z0-9._%+-]+@'
+        close: '[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
+- name: rst
+  sources:
+  # Exclude third-party code (tpls/) and auto-generated templates
+  - '**/*.rst|!tpls/**/*.rst|!docs/sphinx/_templates/**/*.rst'
+  glob_flags: N|G|B
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/pre-commit/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore multiline content fenced by .. spellcheck-disable and .. spellcheck-enable
+      - open: '(?s):spellcheck-disable:'
+        close: ':spellcheck-enable:'
+  - pyspelling.filters.markdown:
+      markdown_extensions:
+      - markdown.extensions.extra:
+  - pyspelling.filters.html:
+      comments: false
+      attributes:
+      - title
+      - alt
+      ignores:
+      - ':matches(code, pre)'
+      - 'code'
+      - 'pre'
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore multiline content fenced by .. spellcheck-disable and .. spellcheck-enable
+      - open: '(?s):spellcheck-disable:'
+        close: ':spellcheck-enable:'
+      # Ignore lines that start with two dots
+      - open: '^\s*\.\.'
+        close: '$'
+      # Ignore words after colon deliminated configurations
+      - open: ' {3}:[A-Za-z_-]+:'
+        close: '$'
+      # Ignore words between two colons, e.g. :maxdepth:
+      - open: '(^|\s):'
+        close: ':(\s|$)'
+        content: '[A-Za-z_-]*?'
+      # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
+      - open: '(?=\S)'
+        close: '($|(?=[^a-z]))'
+        content: '\u0027s'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[A-Z]?[a-z]+-'
+        close: '(?=.)'
+      # Ignore position denotations, e.g. "0th", "1st"
+      - open: '(^|\s)[0-9]+(st|nd|rd|th)'
+        close: '(?=.)'
+
+- name: html
+  sources:
+  # Exclude third-party code (tpls/) and auto-generated templates
+  - '**/*.html|!tpls/**/*.html|!docs/sphinx/_templates/**/*.html'
+  glob_flags: N|G|B
+  expect_match: true
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/pre-commit/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.html:
+      comments: false
+      attributes: []
+      ignores:
+      - nav
+      - code
+      - pre
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[A-Z]?[a-z]+-'
+        close: '(?=.)'
+
+- name: cxx_headers
+  sources:
+  # Exclude test directories, third-party code (tpls/), vendored nlopt, and build artifacts
+  - '**/*.h|!test/**/*.h|!targettests/**/*.h|!tpls/**/*.h|!runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src/**/*.h|!_skbuild/**/*.h|!build/**/*.h|!build_*/**/*.h'
+  glob_flags: N|G|B
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/pre-commit/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist_cxx.txt
+  pipeline:
+  - pyspelling.filters.url:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
+      - open: '\/{2}\s*namespace\s+'
+        close: '($|\s)'
+      # Ignore comments of the form `/*...*/` since they are used to annotate argument names
+      - open: '\/\*'
+        close: '\*\/'
+        content: '\S*?'
+      # Ignore end of line comments
+      - open: '(^|\s)\/\/\s'
+        close: '$'
+  - pyspelling.filters.cpp:
+      block_comments: true
+      line_comments: true
+      group_comments: true
+      strings: false
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore multiline content between three or more backticks
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
+      # Ignore multiline content fenced by \code ... \endcode
+      - open: '(?s)\\code'
+        close: '\\endcode$'
+      # Ignore content between inline backticks
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
+      # Ignore the doxygen @param (or @tparam) command and the code artifact after it.
+      - open: '[\\@](?:tparam|param)(\s+\[\w+\])?(?:\s+\S)?'
+        close: '(\s|$)'
+      # Ignore the first word after \command or @command, which is a code artifact
+      - open: '[\\@]([acep])(?:\s+\S)?'
+        close: '(\s|$)'
+      # Ignore words that start with a \ or @, e.g. @param used in doc comments
+      - open: '[\\@](\w|[\\@&\$#<>%"\.=|]|::|--|---)'
+        close: '(\s|$)'
+      # Ignore words before and after double colons
+      - open: '([a-zA-Z0-9_])*::'
+        close: '([^a-zA-Z0-9_:]|$)'
+      # Ignore words that contain any underscores, numbers, or uppercase letters
+      - open: '[a-zA-Z0-9]+([A-Z0-9_])'
+        close: '([^a-zA-Z0-9_]|$)'
+      # Ignore words that start with uppercase letters or an underscore
+      - open: '(^|\s)([A-Z]|_)'
+        close: '($|\s|-)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[A-Z]?[a-z]+-'
+        close: '(?=.)'
+
+- name: cxx_examples
+  sources:
+  - 'docs/sphinx/examples/**/*.cpp'
+  - 'docs/sphinx/applications/cpp/*.cpp'
+  - 'docs/sphinx/targets/cpp/*.cpp'
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/pre-commit/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.url:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
+      - open: '\/{2}\s*namespace\s+'
+        close: '($|\s)'
+      # Ignore comments of the form `/*...*/` since they are used to annotate argument names
+      - open: '\/\*'
+        close: '\*\/'
+        content: '\S*?'
+  - pyspelling.filters.cpp:
+      block_comments: true
+      line_comments: true
+      group_comments: true
+      strings: false
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore multiline content between three or more backticks
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
+      # Ignore content between inline backticks
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
+      # Ignore words that start with an @, e.g. @param used in doc comments
+      - open: '@\S'
+        close: '(\s|$)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[A-Z]?[a-z]+-'
+        close: '(?=.)'
+      # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
+      - open: '(?=\S)'
+        close: '($|(?=[^a-z]))'
+        content: '\u0027s'
+
+- name: python
+  sources:
+  # Exclude test directories, third-party code (tpls/), build artifacts, sphinx config,
+  # and files with f-string syntax that pyspelling's parser can't handle
+  - '**/*.py|!python/tests/**/*.py|!test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!_version.py|!docs/sphinx/conf.py|!utils/mock_qpu/qci/__init__.py|!docs/sphinx/applications/python/quantum_transformer_src/train.py'
+  glob_flags: N|G|B
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/pre-commit/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.url:
+  - pyspelling.filters.python:
+      docstrings: true
+      comments: true
+      strings: false
+      group_comments: true
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore lowercase words between two colons, e.g. :func:
+      - open: ':'
+        close: ':'
+        content: '[a-z]+?'
+      # Ignore multiline content between three or more backticks
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
+      # Ignore content between inline backticks
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
+      # Ignore words that start with uppercase letters or an underscore
+      - open: '(^|\s)([A-Z]|_)'
+        close: '($|\s|-)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[A-Z]?[a-z]+-'
+        close: '(?=.)'
+      # Ignore shebang (#!)
+      - open: '^!'
+        close: '$'

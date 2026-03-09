@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -112,14 +112,43 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             cudaq::dynamics::Context::getCurrentContext()->getHandle(),
             liouvillian, schedule);
       }))
-      .def("compute", [](PyCuDensityMatTimeStepper &self,
-                         cudaq::state &inputState, double t) {
-        std::unordered_map<std::string, std::complex<double>> params;
-        for (const auto &param : self.m_schedule.get_parameters()) {
-          params[param] = self.m_schedule.get_value_function()(param, t);
-        }
-        return self.compute(inputState, t, params);
-      });
+      .def("compute",
+           [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
+              double t) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : self.m_schedule.get_parameters()) {
+               params[param] = self.m_schedule.get_value_function()(param, t);
+             }
+             return self.compute(inputState, t, params);
+           })
+      .def("compute",
+           [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
+              double t, cudaq::state &outputState) {
+             // Compute into the provided output state
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : self.m_schedule.get_parameters()) {
+               params[param] = self.m_schedule.get_value_function()(param, t);
+             }
+
+             auto *inputSimState =
+                 cudaq::state_helper::getSimulationState(&inputState);
+             auto *castInputSimState =
+                 dynamic_cast<cudaq::CuDensityMatState *>(inputSimState);
+
+             auto *outputSimState =
+                 cudaq::state_helper::getSimulationState(&outputState);
+             auto *castOutputSimState =
+                 dynamic_cast<cudaq::CuDensityMatState *>(outputSimState);
+
+             if (!castInputSimState || !castOutputSimState)
+               throw std::runtime_error("Invalid input or output state.");
+
+             assert(castInputSimState->getBatchSize() ==
+                    castOutputSimState->getBatchSize());
+             self.computeImpl(castInputSimState->get_impl(),
+                              castOutputSimState->get_impl(), t, params,
+                              castInputSimState->getBatchSize());
+           });
 
   // System dynamics data class
   py::class_<cudaq::SystemDynamics>(m, "SystemDynamics")
@@ -176,6 +205,18 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
                 new cudaq::CuDensityMatState(castSimState.to_density_matrix()));
           }
           return state;
+        });
+  // Helper to initialize a data buffer state from an unowned device pointer.
+  // We wrap the device pointer as a `CuDensityMatState` without copying data.
+  m.def("initializeState",
+        [](int64_t deviceDataPtr, std::size_t size,
+           const std::vector<int64_t> &modeExtents, int64_t batchSize) {
+          auto *cudmState = new cudaq::CuDensityMatState(
+              size, reinterpret_cast<void *>(deviceDataPtr), /*borrowed=*/true);
+          cudmState->initialize_cudm(
+              cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+              modeExtents, batchSize);
+          return cudaq::state(cudmState);
         });
 
   // Helper to create an initial state

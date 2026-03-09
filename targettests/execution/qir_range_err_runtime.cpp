@@ -1,15 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1| if running in bash
-// RUN: nvq++ %cpp_std %s -o %t --target quantinuum --emulate && %t |& FileCheck %s
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && %t |& FileCheck %s
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ %s -o %t --target quantinuum --emulate && %t 2>&1 | FileCheck %s
+// RUN: nvq++ %s -o %t --target oqc --emulate && %t 2>&1 | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>

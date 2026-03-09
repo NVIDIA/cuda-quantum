@@ -120,6 +120,10 @@ Common
 .. doxygenclass:: cudaq::sample_result
     :members:
 
+.. _classcudaq_1_1ptsbe_1_1sample__result:
+
+**cudaq::`ptsbe`::sample_result** — Result type returned by ``ptsbe::sample()``, extending `cudaq::sample_result` with optional execution data (trace and per-trajectory info). See ``PTSBESampleResult.h`` and ``PTSBEExecutionData.h``.
+
 .. doxygenstruct:: cudaq::sample_options
     :members:
 
@@ -326,8 +330,6 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
-.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
-
 .. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
@@ -339,8 +341,6 @@ Platform
 
 .. doxygenstruct:: cudaq::RemoteCapabilities
     :members:
-
-.. doxygenclass:: cudaq::SerializedCodeExecutionContext
 
 .. doxygentypedef:: cudaq::QuantumTask
 

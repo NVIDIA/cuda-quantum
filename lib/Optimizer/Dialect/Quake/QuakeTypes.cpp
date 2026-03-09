@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -78,6 +78,34 @@ Type quake::StruqType::parse(AsmParser &parser) {
   if (parser.parseGreater())
     return {};
   return quake::StruqType::get(ctx, nameAttr, members);
+}
+
+bool quake::StruqType::hasSpecifiedSize() const {
+  for (auto ty : getMembers())
+    if (auto veqTy = llvm::dyn_cast<quake::VeqType>(ty))
+      if (!veqTy.hasSpecifiedSize())
+        return false;
+  return true;
+}
+
+std::optional<std::size_t> quake::StruqType::getArity() const {
+  if (getMembers().empty())
+    return {0};
+  std::size_t res = 0;
+  for (auto ty : getMembers()) {
+    if (ty == RefType::get(getContext())) {
+      res++;
+    } else if (auto veqTy = llvm::dyn_cast<VeqType>(ty)) {
+      if (veqTy.hasSpecifiedSize())
+        res += veqTy.getSize();
+      else
+        return std::nullopt;
+    } else {
+      // NB: This is a bug. Should not have anything but Ref and Veq types.
+      return std::nullopt;
+    }
+  }
+  return {res};
 }
 
 void quake::StruqType::print(AsmPrinter &printer) const {

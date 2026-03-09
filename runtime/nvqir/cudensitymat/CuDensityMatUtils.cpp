@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -61,8 +61,4 @@ void cudaq::dynamics::dumpPerfTrace(std::ostream &os) {
     }
   }
   g_perfMetric.clear();
-}
-
-int cudaq::dynamics::getNumRanks() {
-  return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
 }

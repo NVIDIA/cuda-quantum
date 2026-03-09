@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -665,6 +665,79 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// CallByRefOp
+//===----------------------------------------------------------------------===//
+
+// This is syntactic sugar for calling a kernel declared with quantum reference
+// types and using "mismatched" arguments of quantum value types. This verify
+// enforces all the restrictions on the call.
+LogicalResult quake::CallByRefOp::verify() {
+  // Arguments must be classical or wire types, not ref types.
+  for (auto ty : getOperandTypes())
+    if (quake::isQuantumReferenceType(ty))
+      return emitOpError("quantum reference types are not allowed");
+
+  auto fn =
+      SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, getCallee());
+  if (!fn)
+    return emitOpError("callee must be declared");
+  FunctionType asSig = fn.getFunctionType();
+
+  // Arity of callee's signature must be equal to number of arguments provided.
+  if (getOperands().size() != asSig.getInputs().size())
+    return emitOpError("number of arguments must be consistent");
+
+  // Signature of callee must not contain quantum value types.
+  for (auto ty : asSig.getResults())
+    if (quake::isQuantumValueType(ty))
+      return emitOpError(
+          "quantum value types are not allowed in callee results");
+  for (auto ty : asSig.getInputs())
+    if (quake::isQuantumValueType(ty))
+      return emitOpError(
+          "quantum value types are not allowed in callee inputs");
+
+  // The first n results are the formal results and they must match.
+  const std::size_t formalResultsSize = asSig.getResults().size();
+  if (formalResultsSize)
+    for (auto [ty1, ty2] : llvm::zip(getResultTypes(), asSig.getResults()))
+      if (ty1 != ty2)
+        return emitOpError("result types must match");
+
+  // - Each wire type argument should match/promote to `as_signature`
+  //   . The next output type in the results exactly
+  //   . The arity of a ref type argument in the `as_signature` function type.
+  // - Each classical argument should match exactly.
+  SmallVector<Type> myResultTypes{getResultTypes().begin(),
+                                  getResultTypes().end()};
+  for (auto iter :
+       llvm::enumerate(llvm::zip(getOperandTypes(), asSig.getInputs()))) {
+    auto i = iter.index();
+    auto [operTy, sigTy] = iter.value();
+    if (quake::isQuantumValueType(operTy)) {
+      if (!quake::isQuantumReferenceType(sigTy))
+        return emitOpError("argument #" + std::to_string(i) +
+                           " must be a quantum type");
+      if (quake::isConstantQuantumRefType(sigTy) &&
+          quake::getWireCount(operTy) != quake::getAllocationSize(sigTy))
+        return emitOpError("argument #" + std::to_string(i) +
+                           " must match in size");
+      if (operTy != myResultTypes[formalResultsSize + i])
+        return emitOpError("result quantum value type #" +
+                           std::to_string(formalResultsSize + i) +
+                           " must match argument value type #" +
+                           std::to_string(i));
+    } else {
+      if (operTy != sigTy)
+        return emitOpError("argument #" + std::to_string(i) +
+                           " has incorrect type");
+    }
+  }
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // Measurements (MxOp, MyOp, MzOp)
 //===----------------------------------------------------------------------===//
 
@@ -733,9 +806,29 @@ LogicalResult quake::BundleCableOp::verify() {
   return success();
 }
 
-LogicalResult quake::TerminateCableOp::verify() {
+LogicalResult quake::SplitCableOp::verify() {
   if (getResults().size() != getCable().getType().getSize())
     return emitOpError("the bundle type size must equal the coarity.");
+  return success();
+}
+
+LogicalResult quake::LeftTeeOp::verify() {
+  if (!getCable().getType().getSize())
+    return emitOpError("cannot remove a wire from an empty bundle.");
+  if (getIndex() >= getCable().getType().getSize())
+    return emitOpError("index into the bundle is out of bounds.");
+  if (getCableOut().getType().getSize() != getCable().getType().getSize() - 1)
+    return emitOpError("the bundle result type size must equal the size of the "
+                       "bundle argument - 1.");
+  return success();
+}
+
+LogicalResult quake::RightTeeOp::verify() {
+  if (getIndex() > getCable().getType().getSize())
+    return emitOpError("index into the bundle is out of bounds.");
+  if (getCableOut().getType().getSize() != getCable().getType().getSize() + 1)
+    return emitOpError("the bundle result type size must equal the size of "
+                       "the bundle argument + 1.");
   return success();
 }
 

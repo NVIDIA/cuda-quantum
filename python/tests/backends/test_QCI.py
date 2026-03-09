@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -26,12 +26,12 @@ port = 62449
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.9
+    return got < -1.1 and got > -2.2
 
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    cudaq.set_random_seed(42)
+    cudaq.set_random_seed(13)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -104,18 +104,18 @@ def test_observe():
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
     # Run the observe task on synchronously
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=200)
+    res = cudaq.observe(ansatz, hamiltonian, .59)
     assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
     assert assert_close(res.expectation())
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59)
     futureAsString = str(future)
 
     # Later you can come back and read it in
@@ -152,44 +152,6 @@ def test_u3_ctrl_decomposition():
     cudaq.sample(kernel, shots_count=10)
 
 
-def test_state_preparation():
-
-    @cudaq.kernel
-    def kernel(vec: list[complex]):
-        qubits = cudaq.qvector(vec)
-        mz(qubits)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-        mz(qubits)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
 def test_state_synthesis():
 
     @cudaq.kernel
@@ -207,6 +169,21 @@ def test_state_synthesis():
     counts = cudaq.sample(kernel, s)
     assert '11' in counts
     assert len(counts) == 1
+
+
+def test_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+        mz(qubits)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 def test_exp_pauli():

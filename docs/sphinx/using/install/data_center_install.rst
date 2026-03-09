@@ -317,7 +317,7 @@ To easily migrate the built binaries to the host system, we recommend creating a
 `makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
 files to install into a separate folder using the command
 
-.. literalinclude:: ../../../../docker/release/installer.Dockerfile
+.. literalinclude:: ../../../../scripts/build_installer.sh
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumAssets]
@@ -330,7 +330,7 @@ You can then create a self-extracting archive with the command
     ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
         cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
-        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
+        bash install.sh
 
 Installation on the Host
 ++++++++++++++++++++++++++++++++++++

@@ -1,0 +1,92 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --kernel-execution %s | FileCheck %s
+
+// CHECK:   llvm.mlir.global external constant @lambda.main.canHaveMultiple.lambdaName("main::$_1\00") {addr_space = 0 : i32}
+// CHECK:   llvm.mlir.global external constant @lambda.main.test.lambdaName("main::$_0\00") {addr_space = 0 : i32}
+// CHECK: %[[VAL_0:.*]] = llvm.mlir.addressof @lambda.main.test.lambdaName : !llvm.ptr<array<10 x i8>>
+// CHECK-NEXT: %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr<array<10 x i8>>) -> !llvm.ptr<i8>
+// CHECK: llvm.call @cudaqRegisterLambdaName(%[[VAL_1]], %{{.*}}) : (!llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHaveMultiple = "_ZZ4mainENK3$_1clEv", __nvqpp__mlirgen__lambda.main.test = "_ZZ4mainENK3$_0clEv"}} {
+  func.func @__nvqpp__mlirgen__lambda.main.test() attributes {"cudaq-entrypoint", no_this} {
+    %c2_i32 = arith.constant 2 : i32
+    %0 = arith.extsi %c2_i32 : i32 to i64
+    %1 = quake.alloca !quake.veq<?>[%0 : i64]
+    %c0_i32 = arith.constant 0 : i32
+    %2 = arith.extsi %c0_i32 : i32 to i64
+    %3 = quake.extract_ref %1[%2] : (!quake.veq<?>,i64) -> !quake.ref
+    quake.h %3 : (!quake.ref) -> ()
+    %c0_i32_0 = arith.constant 0 : i32
+    %4 = arith.extsi %c0_i32_0 : i32 to i64
+    %5 = quake.extract_ref %1[%4] : (!quake.veq<?>, i64) -> !quake.ref
+    %16 = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
+    %alloca = cc.alloca i1
+    %6 = quake.discriminate %16 : (!quake.measure) -> i1
+    cc.store %6, %alloca : !cc.ptr<i1>
+    %7 = cc.load %alloca : !cc.ptr<i1>
+    cc.if(%7) {
+      cc.scope {
+        %c1_i32_1 = arith.constant 1 : i32
+        %11 = arith.extsi %c1_i32_1 : i32 to i64
+        %12 = quake.extract_ref %1[%11] : (!quake.veq<?>,i64) -> !quake.ref
+        quake.x %12 : (!quake.ref) -> ()
+      }
+    }
+    %c1_i32 = arith.constant 1 : i32
+    %8 = arith.extsi %c1_i32 : i32 to i64
+    %9 = quake.extract_ref %1[%8] : (!quake.veq<?>,i64) -> !quake.ref
+    quake.mz %9 : (!quake.ref) -> !quake.measure
+    return
+  }
+
+  func.func @_ZZ4mainENK3$_0clEv() {
+    return
+  }
+
+// CHECK: %[[VAL_3:.*]] = llvm.mlir.addressof @lambda.main.canHaveMultiple.lambdaName : !llvm.ptr<array<10 x i8>>
+// CHECK-NEXT: %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!llvm.ptr<array<10 x i8>>) -> !llvm.ptr<i8>
+// CHECK: llvm.call @cudaqRegisterLambdaName(%[[VAL_4]], %{{.*}}) : (!llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
+
+  func.func @__nvqpp__mlirgen__lambda.main.canHaveMultiple() attributes {"cudaq-entrypoint", no_this} {
+    %c2_i32 = arith.constant 2 : i32
+    %0 = arith.extsi %c2_i32 : i32 to i64
+    %1 = quake.alloca !quake.veq<?>[%0 : i64]
+    %c0_i32 = arith.constant 0 : i32
+    %2 = arith.extsi %c0_i32 : i32 to i64
+    %3 = quake.extract_ref %1[%2] : (!quake.veq<?>,i64) -> !quake.ref
+    quake.h %3 : (!quake.ref) -> ()
+    %c0_i32_0 = arith.constant 0 : i32
+    %4 = arith.extsi %c0_i32_0 : i32 to i64
+    %5 = quake.extract_ref %1[%4] : (!quake.veq<?>,i64) -> !quake.ref
+    %16 = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
+    %6 = quake.discriminate %16 : (!quake.measure) -> i1
+    %alloca = cc.alloca i1
+    cc.store %6, %alloca : !cc.ptr<i1>
+    %7 = cc.load %alloca : !cc.ptr<i1>
+    cc.if(%7) {
+      cc.scope {
+        %c1_i32_1 = arith.constant 1 : i32
+        %11 = arith.extsi %c1_i32_1 : i32 to i64
+        %12 = quake.extract_ref %1[%11] : (!quake.veq<?>, i64) -> !quake.ref
+        quake.x %12 : (!quake.ref) -> ()
+      }
+    }
+    %c1_i32 = arith.constant 1 : i32
+    %8 = arith.extsi %c1_i32 : i32 to i64
+    %9 = quake.extract_ref %1[%8] : (!quake.veq<?>,i64) -> !quake.ref
+    quake.mz %9 : (!quake.ref) -> !quake.measure
+    return
+  }
+
+
+  func.func @_ZZ4mainENK3$_1clEv() {
+    return
+  }
+}

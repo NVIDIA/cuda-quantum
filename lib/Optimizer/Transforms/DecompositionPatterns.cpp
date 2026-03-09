@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -336,7 +336,8 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 
 // TODO: The decomposition patterns "SToR1", "TToR1", "R1ToU3", "U3ToRotations"
 // can handle arbitrary number of controls, but currently metadata cannot
-// capture this. The pattern types therefore only advertise them for 0 controls.
+// capture this. The pattern types therefore only advertise them for a fixed
+// number of controls (1 for "SToR1" and "TToR1", 0 for the rest).
 
 //===----------------------------------------------------------------------===//
 // HOp decompositions
@@ -531,7 +532,10 @@ struct ExpPauliDecomposition
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
-    rewriter.create<quake::RzOp>(loc, ValueRange{theta}, ValueRange{},
+    // Note: `Rz(theta)` = `exp(-i*theta/2 Z)`
+    Value negTwoTheta = rewriter.create<arith::MulFOp>(
+        loc, createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
+    rewriter.create<quake::RzOp>(loc, ValueRange{negTwoTheta}, ValueRange{},
                                  ValueRange{qubitSupport.back()});
 
     std::reverse(toReverse.begin(), toReverse.end());
@@ -794,7 +798,7 @@ struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToR1, "s", "r1");
+REGISTER_DECOMPOSITION_PATTERN(SToR1, "s(1)", "r1(1)");
 
 //===----------------------------------------------------------------------===//
 // TOp decompositions
@@ -875,7 +879,7 @@ struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToR1, "t", "r1");
+REGISTER_DECOMPOSITION_PATTERN(TToR1, "t(1)", "r1(1)");
 
 //===----------------------------------------------------------------------===//
 // XOp decompositions

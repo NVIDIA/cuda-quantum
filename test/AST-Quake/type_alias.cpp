@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
 #include <cstddef>
@@ -54,7 +54,7 @@ __qpu__ big kernel3(big arg) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel3._Z7kernel3e(
-// CHECK-SAME:      %[[VAL_0:.*]]: f[[TY:[1280]+]]{{.*}}) -> f[[TY]]
+// CHECK-SAME:      %[[VAL_0:.*]]: f[[TY:(64|80|128)]]{{.*}}) -> f[[TY]]
 // CHECK:           %[[VAL_1:.*]] = cc.alloca f[[TY]]
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<f[[TY]]>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref

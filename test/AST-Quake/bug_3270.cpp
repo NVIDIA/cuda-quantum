@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --expand-measurements --classical-optimization-pipeline | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --expand-measurements --classical-optimization-pipeline | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

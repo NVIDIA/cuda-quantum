@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,3 +12,4 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
 endif()
 add_subdirectory(Optimizer)
 add_subdirectory(Support)
+add_subdirectory(Verifier)

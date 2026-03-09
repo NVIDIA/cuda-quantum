@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,8 +9,8 @@
 #include "py_runtime_target.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "cudaq/platform.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include <functional>
 #include <pybind11/functional.h>
@@ -81,7 +81,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
   py::enum_<simulation_precision>(
       mod, "SimulationPrecision",
-      "Enumeration describing the precision of the underyling simulation.")
+      "Enumeration describing the precision of the underlying simulation.")
       .value("fp32", simulation_precision::fp32)
       .value("fp64", simulation_precision::fp64);
 

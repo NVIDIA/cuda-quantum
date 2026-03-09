@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,21 +11,36 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
-add_library(${LIBRARY_NAME} 
-         SHARED cudaq.cpp 
-                target_control.cpp
-                algorithms/draw.cpp
-                algorithms/evolve.cpp
-                algorithms/schedule.cpp
-                platform/qpu_state.cpp
-                platform/quantum_platform.cpp
-                qis/execution_manager_c_api.cpp
-                qis/execution_manager.cpp
-                qis/remote_state.cpp
-                qis/state.cpp
-                utils/cudaq_utils.cpp
-                utils/matrix.cpp
-                distributed/mpi_plugin.cpp)
+add_library(${LIBRARY_NAME}
+  SHARED
+    cudaq.cpp
+    target_control.cpp
+    algorithms/draw.cpp
+    algorithms/evolve.cpp
+    algorithms/run.cpp
+    algorithms/schedule.cpp
+    platform/common/QuantumExecutionQueue.cpp
+    platform/qpu.cpp
+    platform/qpu_state.cpp
+    platform/quantum_platform.cpp
+    qis/execution_manager_c_api.cpp
+    qis/execution_manager.cpp
+    qis/remote_state.cpp
+    qis/state.cpp
+    utils/cudaq_utils.cpp
+    distributed/mpi_plugin.cpp
+    ptsbe/PTSBEExecutionData.cpp
+    ptsbe/PTSBESample.cpp
+    ptsbe/PTSBESampleResult.cpp
+    ptsbe/PTSBESampler.cpp
+    ptsbe/ShotAllocationStrategy.cpp
+    ptsbe/TrajectoryDeduplication.cpp
+    ptsbe/strategies/ProbabilisticSamplingStrategy.cpp
+    ptsbe/strategies/ExhaustiveSamplingStrategy.cpp
+    ptsbe/strategies/OrderedSamplingStrategy.cpp
+    ptsbe/strategies/ConditionalSamplingStrategy.cpp
+    ptsbe/NoiseExtractor.cpp
+)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
@@ -38,11 +53,23 @@ if (CUDA_FOUND)
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
             $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only CUDA::cudart_static CUDAQTargetConfigUtil)
+    PUBLIC
+      dl
+      cudaq-operator
+      cudaq-common
+      cudaq-nlopt
+      cudaq-ensmallen
+      MLIRIR
+    PRIVATE
+      nvqir
+      cudaq-logger
+      fmt::fmt-header-only
+      CUDA::cudart_static
+      CUDAQTargetConfigUtil
+  )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
 else()
@@ -50,11 +77,22 @@ else()
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only CUDAQTargetConfigUtil)
+    PUBLIC
+      dl
+      cudaq-operator
+      cudaq-common
+      cudaq-nlopt
+      cudaq-ensmallen
+      MLIRIR
+    PRIVATE
+      nvqir
+      cudaq-logger
+      fmt::fmt-header-only
+      CUDAQTargetConfigUtil
+  )
 endif()
 
 add_subdirectory(qis/managers)
@@ -63,6 +101,7 @@ add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
 add_subdirectory(operators)
+add_subdirectory(ptsbe)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 
