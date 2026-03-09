@@ -188,9 +188,9 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
            "CUDA-Q's global random seed.")
       .def_readwrite("type", &ptsbe::ShotAllocationStrategy::type,
                      "The allocation strategy type.")
-      .def_readwrite("bias_strength",
-                     &ptsbe::ShotAllocationStrategy::bias_strength,
-                     "Bias factor for weighted strategies. Default value is 2.0.");
+      .def_readwrite(
+          "bias_strength", &ptsbe::ShotAllocationStrategy::bias_strength,
+          "Bias factor for weighted strategies. Default value is 2.0.");
 
   // Concrete strategies
   py::class_<ptsbe::ProbabilisticSamplingStrategy, ptsbe::PTSSamplingStrategy,
