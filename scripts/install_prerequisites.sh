@@ -566,6 +566,57 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   fi
 fi
 
+# [QRMI] Needed for the Pasqal QRMI connector
+if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ] && [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ]; then
+  qrmi_header="$QRMI_INSTALL_PREFIX/include/qrmi.h"
+  qrmi_library="$QRMI_INSTALL_PREFIX/lib64/libqrmi.so"
+  if [ ! -f "$qrmi_header" ] || [ ! -f "$qrmi_library" ]; then
+    echo "Installing QRMI C artifacts..."
+    temp_install_if_command_unknown wget wget
+    pushd "$PREREQS_BUILD_DIR"
+
+    QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
+    QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
+    QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
+    qrmi_release_base="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
+    qrmi_archive="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz" # Note: el8 build works on Ubuntu 18.04+.
+    qrmi_unpack_dir="libqrmi-${QRMI_RELEASE_VERSION}"
+
+    # NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
+    #   wget -O qrmi.tar.gz "${qrmi_release_base}/${qrmi_archive}"
+    #   sha256sum qrmi.tar.gz | awk '{print $1}' 
+    QRMI_ARCHIVE_SHA256="2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746"
+
+    mkdir -p "$QRMI_INSTALL_PREFIX/include" "$QRMI_INSTALL_PREFIX/lib64"
+    wget "${qrmi_release_base}/${qrmi_archive}" -O "${qrmi_archive}"
+
+    if [ -x "$(command -v sha256sum)" ]; then
+      computed_sha256="$(sha256sum "${qrmi_archive}" | awk '{print $1}')"
+    else
+      computed_sha256="$(shasum -a 256 "${qrmi_archive}" | awk '{print $1}')"
+    fi
+    if [ "$computed_sha256" != "$QRMI_ARCHIVE_SHA256" ]; then
+      echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${qrmi_archive}.\e[0m" >&2
+      echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
+      echo "Got:      $computed_sha256" >&2
+      rm -f "${qrmi_archive}"
+      (return 1 2>/dev/null) && return 1 || exit 1
+    fi
+
+    tar -xzf "${qrmi_archive}"
+    cp "${qrmi_unpack_dir}/qrmi.h" "$qrmi_header"
+    cp "${qrmi_unpack_dir}/libqrmi.so" "$qrmi_library"
+    rm -rf "${qrmi_archive}" "${qrmi_unpack_dir}"
+
+    popd
+    remove_temp_installs
+  else
+    echo "QRMI already installed in $QRMI_INSTALL_PREFIX."
+  fi
+elif [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]; then
+  echo "Skipping QRMI C artifacts install (supported only on Linux x86_64)."
+fi
+
 # [cuQuantum and cuTensor] Needed for GPU-accelerated components
 cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
@@ -595,4 +646,3 @@ fi
 # Make sure to call prepare_exit so that we properly uninstalled all helper tools,
 # and so that we are in the correct directory also when this script is sourced.
 prepare_exit && ((return 0 2>/dev/null) && return 0 || exit 0)
-
