@@ -23,6 +23,7 @@
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
 using namespace cudaq::ptsbe;
+using namespace cudaq::ptsbe::detail;
 
 namespace {
 
@@ -597,13 +598,10 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncPropagatesException) {
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
   auto &platform = cudaq::get_platform();
-  platform.set_noise(&noise);
 
   auto future = runSamplingAsyncPTSBE(
       []() { throw std::runtime_error("injected async failure"); }, platform,
-      "test_kernel", 10);
-
-  platform.reset_noise();
+      "test_kernel", 10, PTSBEOptions{}, /*qpu_id=*/0, noise);
 
   try {
     future.get();
@@ -686,6 +684,7 @@ CUDAQ_TEST(PTSBESampleTest, NoiseCheckSimple) {
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, SampleWithMzNoiseBitFlipFullFlip) {
+  cudaq::set_random_seed(42);
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(1.0));
 

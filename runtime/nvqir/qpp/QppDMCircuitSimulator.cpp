@@ -135,6 +135,9 @@ struct QppDmState : public cudaq::SimulationState {
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
     // This is state vector data (1D array), convert it to density matrix: rho =
     // |psi><psi|
     auto *stateData =

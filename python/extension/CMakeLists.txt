@@ -113,6 +113,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    CUDAQTargetConfigUtil
    cudaq-python-interop
    cudaq-platform-default
+   cudaq-qir-verifier
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 

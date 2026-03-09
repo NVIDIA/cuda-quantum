@@ -3,7 +3,7 @@
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -147,7 +147,7 @@ def sample_async(kernel,
       return_execution_data (bool): Include execution data in the result.
 
     Returns:
-      ``AsyncSampleResult``: A future whose ``.get()`` returns the
+      ``AsyncPTSBESampleResult``: A future whose ``.get()`` returns the
           ``SampleResult``.
 
     Raises:
@@ -167,6 +167,4 @@ def sample_async(kernel,
         max_trajectories, sampling_strategy, shot_allocation,
         return_execution_data, *processedArgs)
 
-    result = AsyncSampleResult(impl, module)
-    result._noise_model = noise_model  # prevent GC until .get() is called
-    return result
+    return AsyncSampleResult(impl, module)

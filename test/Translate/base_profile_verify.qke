@@ -28,4 +28,4 @@ func.func private @_ZSt4sqrtIiEN9__gnu_cxx11__enable_ifIXsr12__is_integerIT_EE7_
 func.func private @acos(f64) -> f64
 
 // CHECK: unexpected call in QIR base profile
-// CHECK: unexpected call in QIR base profile
+// CHECK: Code is not QIR compliant
