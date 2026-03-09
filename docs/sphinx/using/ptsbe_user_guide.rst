@@ -191,29 +191,17 @@ Four strategies control which trajectories are selected from the noise space:
 
 
 
+.. _ptsbe-shot-allocation:
+
 Shot Allocation Strategies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After trajectories are selected, shots are distributed across them:
 
-.. list-table::
-   :widths: 25 75
-   :header-rows: 1
+.. doxygenstruct:: cudaq::ptsbe::ShotAllocationStrategy
+    :members:
 
-   * - Strategy
-     - Description
-   * - Proportional (default)
-     - Each trajectory receives shots proportional to its sampling strategy weight.
-       It uses multinomial sampling.
-   * - Uniform
-     - Equal shots per trajectory regardless of weight.
-   * - Low-weight bias
-     - Biases more shots toward trajectories with fewer errors (lower Kraus
-       weight). Useful when low-error events dominate the observable of
-       interest.
-   * - High-weight bias
-     - Biases more shots toward high-error trajectories. Useful for studying
-       rare error events.
+.. doxygenenum:: cudaq::ptsbe::ShotAllocationStrategy::Type
 
 .. tab:: Python
 

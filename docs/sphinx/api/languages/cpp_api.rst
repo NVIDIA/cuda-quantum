@@ -478,10 +478,7 @@ Trajectory Sampling Strategies
 Shot Allocation Strategy
 -------------------------
 
-.. doxygenstruct:: cudaq::ptsbe::ShotAllocationStrategy
-    :members:
-
-.. doxygenenum:: cudaq::ptsbe::ShotAllocationStrategy::Type
+See :ref:`ptsbe-shot-allocation` for full API details.
 
 ----
 
