@@ -37,6 +37,7 @@ target_include_directories(hololink_app
 target_link_libraries(hololink_app
   PRIVATE
     cudaq-realtime-dispatch
+    cudaq-realtime-bridge-hololink
     cudaq-realtime)
 
 # Find the rpc_increment_ft target built (device code for the increment function table) and link it to the app.

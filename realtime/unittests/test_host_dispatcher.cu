@@ -741,8 +741,7 @@ TEST(HostDispatcherGraphLaunchTest, FullRpcRoundTripViaPinnedMailbox) {
   // --- Send RPC request (simulates FPGA / producer) ---
   const std::uint8_t payload[] = {0, 1, 2, 3};
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &ringbuffer, 0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4,
-                0, 0),
+                &ringbuffer, 0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 0, 0),
             CUDAQ_OK);
   cudaq_host_ringbuffer_signal_slot(&ringbuffer, 0);
 

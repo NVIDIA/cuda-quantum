@@ -48,6 +48,7 @@ VERIFY=true
 HOLOLINK_DIR="/workspaces/hololink"
 CUDA_QUANTUM_DIR="/workspaces/cuda-quantum"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_DIR=""
 
 # Network defaults
 IB_DEVICE=""           # auto-detect
@@ -89,7 +90,7 @@ Actions:
 
 Build options:
   --hololink-dir DIR     Hololink source directory
-                         (default: /workspaces/cuda-qx/hololink)
+                         (default: /workspaces/hololink)
   --cuda-quantum-dir DIR cuda-quantum source directory
                          (default: /workspaces/cuda-quantum)
   --jobs N               Parallel build jobs (default: nproc)
@@ -110,7 +111,7 @@ Run options:
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
   --control-port N       UDP control port for emulator (default: 8193)
-
+  --bin-dir DIR          Binary directory containing executables (default: None)
   --help, -h             Show this help
 EOF
 }
@@ -124,6 +125,7 @@ while [[ $# -gt 0 ]]; do
         --no-verify)        VERIFY=false ;;
         --hololink-dir)     HOLOLINK_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
+        --bin-dir)          BIN_DIR="$2"; shift ;;
         --jobs)             JOBS="$2"; shift ;;
         --device)           IB_DEVICE="$2"; shift ;;
         --bridge-ip)        BRIDGE_IP="$2"; shift ;;
@@ -185,6 +187,15 @@ get_netdev() {
 # Build
 # ============================================================================
 
+detect_cuda_arch() {
+    local max_arch
+    max_arch=$(nvcc --list-gpu-arch 2>/dev/null \
+        | grep -oP 'compute_\K[0-9]+' | sort -n | tail -1)
+    if [ -n "$max_arch" ]; then
+        echo "$max_arch"
+    fi
+}
+
 do_build() {
     echo "=== Building tools ==="
 
@@ -200,10 +211,20 @@ do_build() {
         target_arch="arm64"
     fi
 
+    # Detect highest CUDA arch supported by nvcc
+    local cuda_arch
+    cuda_arch=$(detect_cuda_arch)
+    local cuda_arch_flag=""
+    if [ -n "$cuda_arch" ]; then
+        cuda_arch_flag="-DCMAKE_CUDA_ARCHITECTURES=$cuda_arch"
+        echo "  CUDA arch: $cuda_arch"
+    fi
+
     # Build hololink (only the two libraries we need)
     echo "--- Building hololink ($target_arch) ---"
     cmake -G Ninja -S "$HOLOLINK_DIR" -B "$hololink_build" \
         -DCMAKE_BUILD_TYPE=Release \
+        $cuda_arch_flag \
         -DTARGET_ARCH="$target_arch" \
         -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
         -DHOLOLINK_BUILD_PYTHON=OFF \
@@ -218,6 +239,7 @@ do_build() {
     echo "--- Building cuda-quantum/realtime ---"
     cmake -G Ninja -S "$realtime_dir" -B "$realtime_build" \
         -DCMAKE_BUILD_TYPE=Release \
+        $cuda_arch_flag \
         -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON \
         -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HOLOLINK_DIR" \
         -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hololink_build"
@@ -351,9 +373,15 @@ do_run() {
     local build_dir="$CUDA_QUANTUM_DIR/realtime/build"
     local utils_dir="$build_dir/unittests/utils"
 
-    local bridge_bin="$utils_dir/hololink_bridge"
-    local emulator_bin="$utils_dir/hololink_fpga_emulator"
-    local playback_bin="$utils_dir/hololink_fpga_playback"
+    if [ -n "$BIN_DIR" ]; then
+        local bridge_bin="$BIN_DIR/hololink_bridge"
+        local emulator_bin="$BIN_DIR/hololink_fpga_emulator"
+        local playback_bin="$BIN_DIR/hololink_fpga_playback"
+    else
+        local bridge_bin="$utils_dir/hololink_bridge"
+        local emulator_bin="$utils_dir/hololink_fpga_emulator"
+        local playback_bin="$utils_dir/hololink_fpga_playback"
+    fi
 
     # Verify binaries exist
     for bin in "$bridge_bin"; do
@@ -421,7 +449,7 @@ do_run() {
     if $UNIFIED; then
         bridge_args+=(--unified)
     fi
-    "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
+    CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
     tail -f /tmp/bridge.log &
@@ -506,6 +534,12 @@ do_run() {
 
 echo "=== Hololink Generic RPC Test ==="
 echo "Mode: $(if $EMULATE; then echo "emulated"; else echo "FPGA"; fi)"
+
+if [ -n "$BIN_DIR" ]; then
+   if $DO_BUILD; then
+    echo "Cannot request a build when the binary directory is provided."
+   fi 
+fi
 
 if $DO_BUILD; then
     do_build

@@ -21,9 +21,9 @@
 ///       --timeout=60
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/unified_dispatch_kernel.cuh"
 #include <atomic>
 #include <chrono>
 #include <csignal>
@@ -246,15 +246,15 @@ int main(int argc, char *argv[]) {
           cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
 
       // Transport context for unified mode (must outlive the dispatcher)
-      doca_transport_ctx unified_ctx{};
+      cudaq_unified_dispatch_ctx_t unified_dispatch{};
 
       if (config.unified) {
-        std::cout << "Retrieving the DOCA transport context ..." << std::endl;
+        std::cout << "Retrieving the unified dispatch context ..." << std::endl;
         HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
-            bridge_handle, UNIFIED, &unified_ctx));
+            bridge_handle, UNIFIED, &unified_dispatch));
         if (cudaq_dispatcher_set_unified_launch(
-                dispatcher, &cudaq_launch_unified_dispatch_kernel,
-                &unified_ctx) != CUDAQ_OK) {
+                dispatcher, unified_dispatch.launch_fn,
+                unified_dispatch.transport_ctx) != CUDAQ_OK) {
           std::cerr << "ERROR: Failed to set unified launch function"
                     << std::endl;
           return 1;

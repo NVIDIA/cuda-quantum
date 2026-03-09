@@ -12,26 +12,29 @@ between FPGA and CPU-GPU systems.
 enabling system integrators to achieve few-microsecond
 data round trips between FPGA and GPU.
 
-> [!WARNING]
-> This library is currently in early access / alpha stage
-> and will continue to rapidly evolve as we build interactively with collaborators.
-
-Please refer to the specifications for the [message protocol](docs/cudaq_realtime_message_protocol.md)
-and [realtime host API](docs/cudaq_realtime_host_api.md) for more information.
-
-> [!NOTE]
-> While the library is in early access, instructions to reproduce the FPGA-GPU latency
-> round trip on third party systems can be found at [docs/nvqlink_latency_demo.md](docs/nvqlink_latency_demo.md).
-
 ## Getting Started
 
-```bash
-# Configure, need cmake 3.28+
-cmake -G Ninja .. -DCUDAQ_REALTIME_BUILD_TESTS=ON
-# Build
-ninja 
-# Test
-ctest 
-```
+To learn more about how to work with CUDA-Q Realtime,
+please take a look at the [user guide](docs/user_guide.md).
 
-Check out the tests in the `unittests` folder for examples.
+If you would like to install the latest iteration under development in this
+repository and/or add your own modifications, take a look at [these
+instructions](docs/building.md) about building CUDA-Q Realtime from source.
+
+## Specifications
+
+The following specifications for the CUDA-Q Realtime message protocol
+and host API are available:
+
+- [Message protocol](docs/cudaq_realtime_message_protocol.md)
+
+- [Realtime host API](docs/cudaq_realtime_host_api.md)
+
+## Feedback
+
+Please let us know your feedback and ideas for the CUDA-Q platform in the
+[Discussions][cuda_quantum_discussions] tab of this repository, or file an
+[issue][cuda_quantum_issues].
+
+[cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
+[cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues

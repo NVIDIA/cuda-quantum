@@ -134,6 +134,25 @@ mkdir -p "$staging_dir/payload"
 cp -a "$install_dir/." "$staging_dir/payload/"
 cp "$this_file_dir/migrate_assets.sh" "$staging_dir/payload/install.sh"
 chmod a+x "$staging_dir/payload/install.sh"
+cp "$this_file_dir/validate_installer.sh" "$staging_dir/payload/validate.sh"
+chmod a+x "$staging_dir/payload/validate.sh"
+cp "$this_file_dir/demo_docker.sh" "$staging_dir/payload/demo.sh"
+chmod a+x "$staging_dir/payload/demo.sh"
+cp "$this_file_dir/demo.Dockerfile" "$staging_dir/payload/demo.Dockerfile"
+
+# Copy the `unittests/utils`, which contains a reference implementation of the hololink wrapper, 
+# which is used by the install script to verify hololink functionality.
+# Also, resolve any symlinks in the utils directory to avoid issues with makeself.
+if [ -d "$this_file_dir/../unittests/utils" ]; then
+  mkdir -p "$staging_dir/payload/utils"
+  cp -aL "$this_file_dir/../unittests/utils/." "$staging_dir/payload/utils/"
+fi
+
+# Copy all the docs, which contains the README and validation instructions.
+if [ -d "$this_file_dir/../docs" ]; then
+  mkdir -p "$staging_dir/payload/docs"
+  cp -a "$this_file_dir/../docs/." "$staging_dir/payload/docs/"
+fi
 
 # Default installation target 
 default_target='/opt/nvidia/cudaq/realtime'

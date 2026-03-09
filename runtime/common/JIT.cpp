@@ -16,6 +16,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
@@ -44,6 +45,8 @@
 #include <tuple>
 
 #define DEBUG_TYPE "cudaq-qpud"
+
+using namespace mlir;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq::createWrappedKernel(std::string_view irString,
@@ -113,7 +116,7 @@ cudaq::createWrappedKernel(std::string_view irString,
   if (mangledKernelNames.first.empty() || mangledKernelNames.second.empty())
     throw std::runtime_error("Failed to locate symbols from the IR");
 
-  mlir::ExecutionEngine::setupTargetTriple(llvmModule.get());
+  ExecutionEngine::setupTargetTriple(llvmModule.get());
   auto dataLayout = llvmModule->getDataLayout();
 
   // Create the object layer
@@ -158,44 +161,44 @@ cudaq::createWrappedKernel(std::string_view irString,
 }
 
 namespace {
-void insertSetupAndCleanupOperations(mlir::Operation *module) {
-  mlir::OpBuilder modBuilder(module);
+void insertSetupAndCleanupOperations(Operation *module) {
+  OpBuilder modBuilder(module);
   auto *context = module->getContext();
   auto arrayQubitTy = cudaq::opt::getArrayType(context);
-  auto voidTy = mlir::LLVM::LLVMVoidType::get(context);
+  auto voidTy = LLVM::LLVMVoidType::get(context);
   auto boolTy = modBuilder.getI1Type();
-  mlir::FlatSymbolRefAttr allocateSymbol =
+  FlatSymbolRefAttr allocateSymbol =
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRArrayQubitAllocateArray, arrayQubitTy,
-          {modBuilder.getI64Type()}, mlir::dyn_cast<mlir::ModuleOp>(module));
-  mlir::FlatSymbolRefAttr releaseSymbol =
+          {modBuilder.getI64Type()}, dyn_cast<ModuleOp>(module));
+  FlatSymbolRefAttr releaseSymbol =
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRArrayQubitReleaseArray, {voidTy}, {arrayQubitTy},
-          mlir::dyn_cast<mlir::ModuleOp>(module));
-  mlir::FlatSymbolRefAttr isDynamicSymbol =
+          dyn_cast<ModuleOp>(module));
+  FlatSymbolRefAttr isDynamicSymbol =
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRisDynamicQubitManagement, {boolTy}, {},
-          mlir::dyn_cast<mlir::ModuleOp>(module));
-  mlir::FlatSymbolRefAttr setDynamicSymbol =
+          dyn_cast<ModuleOp>(module));
+  FlatSymbolRefAttr setDynamicSymbol =
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRsetDynamicQubitManagement, {voidTy}, {boolTy},
-          mlir::dyn_cast<mlir::ModuleOp>(module));
-  mlir::FlatSymbolRefAttr clearResultMapsSymbol =
+          dyn_cast<ModuleOp>(module));
+  FlatSymbolRefAttr clearResultMapsSymbol =
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRClearResultMaps, {voidTy}, {},
-          mlir::dyn_cast<mlir::ModuleOp>(module));
+          dyn_cast<ModuleOp>(module));
 
   // Iterate through all operations in the ModuleOp
-  mlir::SmallVector<mlir::LLVM::LLVMFuncOp> funcs;
-  module->walk([&](mlir::LLVM::LLVMFuncOp func) { funcs.push_back(func); });
+  SmallVector<LLVM::LLVMFuncOp> funcs;
+  module->walk([&](LLVM::LLVMFuncOp func) { funcs.push_back(func); });
   for (auto &func : funcs) {
     if (!func->hasAttr(cudaq::entryPointAttrName))
       continue;
     std::int64_t num_qubits = -1;
-    if (auto requiredQubits = func->getAttrOfType<mlir::StringAttr>(
+    if (auto requiredQubits = func->getAttrOfType<StringAttr>(
             cudaq::opt::qir0_1::RequiredQubitsAttrName))
       requiredQubits.strref().getAsInteger(10, num_qubits);
-    else if (auto requiredQubits = func->getAttrOfType<mlir::StringAttr>(
+    else if (auto requiredQubits = func->getAttrOfType<StringAttr>(
                  cudaq::opt::qir1_0::RequiredQubitsAttrName))
       requiredQubits.strref().getAsInteger(10, num_qubits);
 
@@ -203,42 +206,38 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
     if (blocks.size() < 1 || num_qubits < 0)
       continue;
 
-    mlir::Block &block = *blocks.begin();
-    mlir::OpBuilder builder(&block, block.begin());
+    Block &block = *blocks.begin();
+    OpBuilder builder(&block, block.begin());
     auto loc = builder.getUnknownLoc();
 
-    auto origMode = builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{boolTy}, isDynamicSymbol, mlir::ValueRange{});
+    auto origMode = builder.create<LLVM::CallOp>(loc, TypeRange{boolTy},
+                                                 isDynamicSymbol, ValueRange{});
 
     auto numQubitsVal =
         cudaq::opt::factory::genLlvmI64Constant(loc, builder, num_qubits);
-    auto falseVal = builder.create<mlir::LLVM::ConstantOp>(
+    auto falseVal = builder.create<LLVM::ConstantOp>(
         loc, boolTy, builder.getI16IntegerAttr(false));
 
-    auto qubitAlloc = builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{arrayQubitTy}, allocateSymbol,
-        mlir::ValueRange{numQubitsVal.getResult()});
-    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
-                                       setDynamicSymbol,
-                                       mlir::ValueRange{falseVal.getResult()});
+    auto qubitAlloc = builder.create<LLVM::CallOp>(
+        loc, TypeRange{arrayQubitTy}, allocateSymbol,
+        ValueRange{numQubitsVal.getResult()});
+    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, setDynamicSymbol,
+                                 ValueRange{falseVal.getResult()});
 
     // At the end of the function, deallocate the qubits and restore the
     // simulator state.
     builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
-    builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{voidTy}, releaseSymbol,
-        mlir::ValueRange{qubitAlloc.getResult()});
-    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
-                                       setDynamicSymbol,
-                                       mlir::ValueRange{origMode.getResult()});
-    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
-                                       clearResultMapsSymbol,
-                                       mlir::ValueRange{});
+    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, releaseSymbol,
+                                 ValueRange{qubitAlloc.getResult()});
+    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, setDynamicSymbol,
+                                 ValueRange{origMode.getResult()});
+    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, clearResultMapsSymbol,
+                                 ValueRange{});
   }
 }
 } // namespace
 
-cudaq::JitEngine cudaq::createQIRJITEngine(mlir::ModuleOp &moduleOp,
+cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
                                            llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
@@ -246,34 +245,37 @@ cudaq::JitEngine cudaq::createQIRJITEngine(mlir::ModuleOp &moduleOp,
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
-  mlir::ExecutionEngineOptions opts;
+  ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
   opts.llvmModuleBuilder =
       [convertTo = convertTo.str()](
-          mlir::Operation *module,
+          Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "createQIRJITEngine::llvmModuleBuilder");
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
-    mlir::PassManager pm(context);
+    PassManager pm(context);
 
     bool containsWireSet =
         module
-            ->walk<mlir::WalkOrder::PreOrder>([](quake::WireSetOp wireSetOp) {
-              return mlir::WalkResult::interrupt();
+            ->walk<WalkOrder::PreOrder>([](quake::WireSetOp wireSetOp) {
+              return WalkResult::interrupt();
             })
             .wasInterrupted();
 
     // Even though we're not lowering all the way to a real QIR profile for
     // this emulated path, we need to pass in `convertTo` to mimic the
     // non-emulated path.
-    if (containsWireSet)
-      cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
-    else
+    std::string profileName;
+    if (containsWireSet) {
+      profileName = convertTo;
+      cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
+    } else {
       cudaq::opt::addAOTPipelineConvertToQIR(pm);
+    }
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
@@ -283,26 +285,31 @@ cudaq::JitEngine cudaq::createQIRJITEngine(mlir::ModuleOp &moduleOp,
     }
 
     std::string error_msg;
-    mlir::DiagnosticEngine &engine = context->getDiagEngine();
-    auto handlerId = engine.registerHandler(
-        [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
-          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+    DiagnosticEngine &engine = context->getDiagEngine();
+    auto handlerId =
+        engine.registerHandler([&error_msg](Diagnostic &diag) -> LogicalResult {
+          if (diag.getSeverity() == DiagnosticSeverity::Error) {
             error_msg += diag.str();
-            return mlir::failure(false);
+            return failure(false);
           }
-          return mlir::failure();
+          return failure();
         });
 
-    mlir::DefaultTimingManager tm;
+    DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (mlir::failed(pm.run(module))) {
+    if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
       throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "
                                "remote emulation failed.\n" +
                                error_msg);
     }
+    if (auto mod = dyn_cast<ModuleOp>(module))
+      if (failed(cudaq::verifier::checkQIRLLVMIRDialect(mod, profileName)))
+        throw std::runtime_error(
+            "[createQIRJITEngine] QIR verification failed.\n");
+
     timingScope.stop();
     engine.eraseHandler(handlerId);
 
@@ -316,19 +323,18 @@ cudaq::JitEngine cudaq::createQIRJITEngine(mlir::ModuleOp &moduleOp,
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to LLVM IR failed.");
 
-    mlir::ExecutionEngine::setupTargetTriple(llvmModule.get());
+    ExecutionEngine::setupTargetTriple(llvmModule.get());
     return llvmModule;
   };
 
-  auto jitOrError = mlir::ExecutionEngine::create(moduleOp, opts);
+  auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
   return JitEngine(std::move(jitOrError.get()));
 }
 
-namespace cudaq {
-class JitEngine::Impl {
+class cudaq::JitEngine::Impl {
 public:
-  Impl(std::unique_ptr<mlir::ExecutionEngine> jitEngine)
+  Impl(std::unique_ptr<ExecutionEngine> jitEngine)
       : jitEngine(std::move(jitEngine)) {}
   void run(const std::string &kernelName) const {
     auto funcPtr = lookupRawNameOrFail(
@@ -349,20 +355,19 @@ public:
   }
 
 private:
-  std::unique_ptr<mlir::ExecutionEngine> jitEngine;
+  std::unique_ptr<ExecutionEngine> jitEngine;
 };
 
-JitEngine::JitEngine(std::unique_ptr<mlir::ExecutionEngine> jitEngine)
+cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
     : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
 
-void JitEngine::run(const std::string &kernelName) const {
+void cudaq::JitEngine::run(const std::string &kernelName) const {
   return impl->run(kernelName);
 }
 
-std::size_t JitEngine::getKey() const { return impl->getKey(); }
+std::size_t cudaq::JitEngine::getKey() const { return impl->getKey(); }
 
-void (*JitEngine::lookupRawNameOrFail(const std::string &kernelName) const)() {
+void (*cudaq::JitEngine::lookupRawNameOrFail(const std::string &kernelName)
+          const)() {
   return impl->lookupRawNameOrFail(kernelName);
 }
-
-} // namespace cudaq

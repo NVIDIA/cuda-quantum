@@ -146,15 +146,33 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   message(STATUS "Building hololink_bridge interface library with the following dependencies:")
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
-  # Library implementing the hololink bridge interface
-  add_library(cudaq-realtime-bridge-hololink SHARED bridge_impl.cpp hololink_wrapper.cpp)
+  find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
+    HINTS /opt/mellanox/doca/include
+  )
+
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED
+  )
+
+  # Library implementing the hololink bridge interface (includes unified kernel)
+  add_library(cudaq-realtime-bridge-hololink SHARED
+    bridge_impl.cpp
+    hololink_wrapper.cpp
+    unified_dispatch_kernel.cu)
+
+  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON)
 
   target_include_directories(cudaq-realtime-bridge-hololink
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
       ${CUDAQ_REALTIME_INCLUDE_DIR}
       "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
+      "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src/hololink/operators/gpu_roce_transceiver"
       ${DOCA_INCLUDE_DIR}
+      ${DOCA_GPU_INCLUDE_DIR}
       ${FMT_INCLUDE_DIR})
 
   target_link_libraries(cudaq-realtime-bridge-hololink
@@ -168,12 +186,16 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       cudaq-realtime
       CUDA::cudart
       CUDA::cuda_driver
+      ${CUDADEVRT_LIBRARY}
       ${DOCA_VERBS_LIB}
       ${DOCA_GPUNETIO_LIB}
       ${DOCA_COMMON_LIB}
       ${IBVERBS_LIB}
       Threads::Threads
       ${CMAKE_DL_LIBS})
+
+  target_link_options(cudaq-realtime-bridge-hololink PRIVATE
+    "LINKER:--allow-multiple-definition")
 
   if (holoscan_FOUND)
     target_link_libraries(cudaq-realtime-bridge-hololink PRIVATE holoscan::core)

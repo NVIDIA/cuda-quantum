@@ -48,6 +48,8 @@ void bindExecutionContext(py::module &mod) {
                      &cudaq::ExecutionContext::explicitMeasurements)
       .def_readwrite("allowJitEngineCaching",
                      &cudaq::ExecutionContext::allowJitEngineCaching)
+      .def_readwrite("useParametricJit",
+                     &cudaq::ExecutionContext::useParametricJit)
       .def_readonly("invocationResultBuffer",
                     &cudaq::ExecutionContext::invocationResultBuffer)
       .def("unset_jit_engine",
@@ -141,11 +143,11 @@ void bindExecutionContext(py::module &mod) {
       .def(py::init())
       .def("__enter__",
            [](PersistJITEngine &ctx) -> void {
-             cudaq::detail::enablePersistentJITEngine();
+             cudaq::compiler_artifact::enablePersistentJITEngine();
            })
       .def("__exit__", [](PersistJITEngine &ctx, py::object type,
                           py::object value, py::object traceback) {
-        cudaq::detail::disablePersistentJITEngine();
+        cudaq::compiler_artifact::disablePersistentJITEngine();
       });
 }
 } // namespace cudaq

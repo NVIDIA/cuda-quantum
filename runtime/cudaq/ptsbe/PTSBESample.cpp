@@ -19,7 +19,7 @@
 #include <span>
 #include <unordered_map>
 
-namespace cudaq::ptsbe {
+namespace cudaq::ptsbe::detail {
 
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx) {
@@ -109,8 +109,7 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
     if (!channel.empty()) {
       if (!channel.is_unitary_mixture())
         channel.generateUnitaryParameters();
-      result.push_back({TraceInstructionType::Noise,
-                        std::string(cudaq::TRACE_APPLY_NOISE_NAME), targets,
+      result.push_back({TraceInstructionType::Noise, inst.name, targets,
                         controls, inst.params, std::move(channel)});
     }
     return;
@@ -252,4 +251,4 @@ PTSBatch buildPTSBatchFromTrace(PTSBETrace &&trace, const PTSBEOptions &options,
   return batch;
 }
 
-} // namespace cudaq::ptsbe
+} // namespace cudaq::ptsbe::detail

@@ -162,27 +162,21 @@ function move_artifacts {
 
     find . -type f -print0 | while IFS= read -r -d '' file;
     do 
-        if [ ! -f "$2/$file" ]; 
-        then 
-            echo -e "\tadding file $2/$file"
-            mkdir -p "$(dirname "$2/$file")" -m 755 # need x permissions to see content
-            mv "$file" "$2/$file"
-            echo '  echo -e "\tremoving file '$2/$file'"' >> "$remove_assets"
-            echo "  rm $2/$file" >> "$remove_assets"
-            echo '  rmdir -p "'$(dirname "$2/$file")'" 2> /dev/null || true' >> "$remove_assets"
-            chmod a+rX "$2/$file" # add x permissions only for executables
-        fi
+        echo -e "\tadding file $2/$file"
+        mkdir -p "$(dirname "$2/$file")" -m 755
+        mv "$file" "$2/$file"
+        echo '  echo -e "\tremoving file '$2/$file'"' >> "$remove_assets"
+        echo "  rm $2/$file" >> "$remove_assets"
+        echo '  rmdir -p "'$(dirname "$2/$file")'" 2> /dev/null || true' >> "$remove_assets"
+        chmod a+rX "$2/$file"
     done
     for symlink in $(find_symlinks .); do
-        if [ ! -f "$2/$symlink" ]; 
-        then
-            echo -e "\tadding symbolic link $2/$symlink"
-            mkdir -p "$(dirname "$2/$symlink")" -m 755 # need x permissions to see content
-            mv "$symlink" "$2/$symlink"
-            echo '  echo -e "\tremoving symbolic link '$2/$symlink'"' >> "$remove_assets"
-            echo "  rm $2/$symlink" >> "$remove_assets"
-            echo '  rmdir -p "'$(dirname "$2/$symlink")'" 2> /dev/null || true' >> "$remove_assets"
-        fi
+        echo -e "\tadding symbolic link $2/$symlink"
+        mkdir -p "$(dirname "$2/$symlink")" -m 755
+        mv "$symlink" "$2/$symlink"
+        echo '  echo -e "\tremoving symbolic link '$2/$symlink'"' >> "$remove_assets"
+        echo "  rm $2/$symlink" >> "$remove_assets"
+        echo '  rmdir -p "'$(dirname "$2/$symlink")'" 2> /dev/null || true' >> "$remove_assets"
     done
     for symlink in $(find_symlinks "$2"); do
         if [ ! -e "$symlink" ]; then

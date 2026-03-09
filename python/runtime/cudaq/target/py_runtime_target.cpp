@@ -81,7 +81,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
   py::enum_<simulation_precision>(
       mod, "SimulationPrecision",
-      "Enumeration describing the precision of the underyling simulation.")
+      "Enumeration describing the precision of the underlying simulation.")
       .value("fp32", simulation_precision::fp32)
       .value("fp64", simulation_precision::fp64);
 

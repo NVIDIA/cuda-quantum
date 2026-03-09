@@ -268,6 +268,15 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
 // The caller retains ownership and must free it after cudaq_dispatcher_destroy.
 cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
                                             void **h_mailbox_bank);
+// Bundle struct returned by bridge implementations for unified dispatch.
+// Contains the bridge-provided launch function and its opaque transport state,
+// keeping the dispatcher API transport-agnostic.
+typedef struct {
+  cudaq_unified_launch_fn_t
+      launch_fn;       ///< Bridge-provided unified launch function
+  void *transport_ctx; ///< Bridge-owned opaque transport state
+} cudaq_unified_dispatch_ctx_t;
+
 // Unified dispatch wiring -- pass a transport-specific launch function and
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
@@ -324,7 +333,8 @@ cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
 // payload_len must satisfy CUDAQ_RPC_HEADER_SIZE + payload_len <= rx_stride_sz.
 cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
     const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
-    const void *payload, uint32_t payload_len);
+    const void *payload, uint32_t payload_len,
+    uint32_t request_id, uint64_t ptp_timestamp);
 
 // Signal that slot `slot_idx` has data ready for the dispatcher.
 // Stores the host address of the slot into rx_flags_host[slot_idx].
