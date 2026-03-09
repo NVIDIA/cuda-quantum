@@ -179,7 +179,8 @@ def get_QAOA_circuit(number_of_qubits, circuit_depth):
                 rz(2.0 * thetas[layer], qubits[(qubit + 1) % number_of_qubits])
                 cx(qubits[qubit], qubits[(qubit + 1) % number_of_qubits])
 
-            rx(2.0 * thetas[layer + layers], qubits)
+            for qubit in range(number_of_qubits):
+                rx(2.0 * thetas[layer + layers], qubits[qubit])
 
     return kernel
 
