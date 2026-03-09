@@ -124,7 +124,7 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.setup.outputs.platforms }}
-          push: false # FIXME
+          push: true
 
       - name: Install Cosign
         if: inputs.sign_image && steps.config.outputs.push_to_ngc != 'true'
