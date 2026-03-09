@@ -27,6 +27,7 @@ on:
           - qci
           - quantinuum
           - scaleway
+          - tii
       single_test_name:
         type: string
         required: false
@@ -190,7 +191,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "scaleway"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -269,6 +270,9 @@ jobs:
                 ;;
               scaleway)
                 filelist="targettests/scaleway/*.cpp docs/sphinx/targets/python/scaleway.py"
+                ;;
+              tii)
+                filelist="docs/sphinx/targets/cpp/tii.cpp docs/sphinx/targets/python/tii.py"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
@@ -416,6 +420,13 @@ jobs:
               echo "::add-mask::${{ secrets.SCW_SECRET_KEY }}"
               echo "SCW_PROJECT_ID=${{ secrets.SCW_PROJECT_ID }}" >> $GITHUB_ENV
               echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
+              ;;
+            tii)
+              echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.TII_API_TOKEN }}"
+              echo "::add-mask::${{ secrets.TII_PROJECT }}"
+              echo "TII_API_TOKEN=${{ secrets.TII_API_TOKEN }}" >> $GITHUB_ENV
+              echo "TII_PROJECT=${{ secrets.TII_PROJECT }}" >> $GITHUB_ENV
               ;;
           esac
         shell: bash
@@ -632,10 +643,26 @@ jobs:
                   python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":white_check_mark: Successfully ran test: $filename  (direct execution)" >> $GITHUB_STEP_SUMMARY
                   else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":x: Test failed (failed to execute): $filename (direct execution)" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
+                  fi
+                  if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
+                     [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
+                    PASQAL_MACHINE_TARGET=qrmi \
+                    SLURM_JOB_QPU_RESOURCES=EMU_FREE \
+                    EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
+                    python3 "$filename" 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":information_source: Skipped QRMI test for $filename (QRMI not available in this build)" >> $GITHUB_STEP_SUMMARY
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -704,7 +731,40 @@ jobs:
 
               scaleway)
                 if [[ "$filename" == *.cpp ]]; then
-                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M --scaleway-deduplication-id ghci-workflow-testing
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              tii)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target tii --tii-device tii-sim --tii-project ${{ secrets.TII_PROJECT }}
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     ./a.out

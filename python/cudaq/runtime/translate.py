@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.kernel.kernel_builder import isa_dynamic_kernel
 
 
 def translate(kernel, *args, format="qir:0.1"):

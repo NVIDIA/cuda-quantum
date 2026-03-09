@@ -30,17 +30,24 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
+    ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
+    ctx.totalIterations = N
+    ctx.setSpinOperator(spin_operator)
+    has_vector_args = isa_kernel_decorator(kernel) and any(
+        hasattr(a, 'shape') and len(a.shape) == 2 for a in args)
+    if has_vector_args:
+        ctx.allowJitEngineCaching = True
+        ctx.useParametricJit = True
     for i, a in enumerate(argSet):
-        ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
-        ctx.totalIterations = N
         ctx.batchIteration = i
-        ctx.setSpinOperator(spin_operator)
         with ctx:
             kernel(*a)
         res = ctx.result
         results.append(
             cudaq_runtime.ObserveResult(ctx.getExpectationValue(),
                                         spin_operator, res))
+    if has_vector_args:
+        ctx.unset_jit_engine()
     return results
 
 
@@ -137,7 +144,7 @@ def observe(kernel,
     elif isa_dynamic_kernel(kernel):
         decorator = mk_decorator(kernel)
     else:
-        raise RuntimeRrror(
+        raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
                                                     != len(args)):
@@ -254,7 +261,7 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     elif isa_dynamic_kernel(kernel):
         decorator = mk_decorator(kernel)
     else:
-        raise RuntimeRrror(
+        raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
                                                     != len(args)):
@@ -323,7 +330,7 @@ def observe_parallel(kernel,
     elif isa_dynamic_kernel(kernel):
         decorator = mk_decorator(kernel)
     else:
-        raise RuntimeRrror(
+        raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     shortName = decorator.uniqName
     processedArgs, module = decorator.prepare_call(*args)

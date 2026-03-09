@@ -183,7 +183,7 @@ void cudaq::bindObserveAsync(py::module &mod) {
   py::class_<parallel::mpi>(
       parallelSubmodule, "mpi",
       "Type indicating that the :func:`observe` function should distribute its "
-      "expectation value computations accross available MPI ranks and GPUs for "
+      "expectation value computations across available MPI ranks and GPUs for "
       "each term.");
   py::class_<parallel::thread>(
       parallelSubmodule, "thread",

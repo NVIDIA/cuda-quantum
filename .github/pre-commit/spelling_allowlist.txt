@@ -108,6 +108,7 @@ QPP
 QPU
 QPUs
 QPU’s
+QRMI
 QTX
 QX
 QaaS
@@ -131,6 +132,7 @@ Superpositions
 Superstaq
 TBI
 TCP
+TII
 TableGen
 Toffoli
 Toshiko
@@ -367,7 +369,9 @@ toolchain
 toolchains
 toolset
 transmon
+transpilation
 transpile
+trixie
 trotterization
 uccsd
 unary
@@ -381,6 +385,7 @@ unmarshal
 unmarshalling
 unoptimized
 upvote
+url
 variadic
 variational
 vazirani
