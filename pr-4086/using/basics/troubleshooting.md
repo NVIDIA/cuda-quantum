@@ -257,6 +257,8 @@ pr-4086
             .internal}
         -   [Scaleway](../examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../examples/sample_vs_run.html){.reference .internal}
         -   [Introduction](../examples/sample_vs_run.html#introduction){.reference
@@ -431,8 +433,8 @@ pr-4086
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -1087,6 +1089,8 @@ pr-4086
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../backends/hardware/neutralatom.html){.reference

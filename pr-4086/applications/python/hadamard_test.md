@@ -268,6 +268,8 @@ pr-4086
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -439,9 +441,8 @@ pr-4086
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1056,6 +1057,8 @@ pr-4086
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1951,7 +1954,7 @@ The state vectors can be accessed using the [`get_state`{.docutils
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [2]:
 :::
 :::
 
@@ -1972,9 +1975,15 @@ The state vectors can be accessed using the [`get_state`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Psi state:  SV: [(0.707107,0), (0,0), (0.707107,0), (0,0)]
+    Psi state:  (0.707107,0)
+    (0,0)
+    (0.707107,0)
+    (0,0)
 
-    Phi state:  SV: [(0,0), (1,0), (0,0), (0,0)]
+    Phi state:  (0,0)
+    (1,0)
+    (0,0)
+    (0,0)
 :::
 :::
 :::
@@ -2116,9 +2125,9 @@ expectation value and the standard error towards the numerical result.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    { 0:85281 1:14719 }
+    { 0:85509 1:14491 }
 
-    Observable QC:  0.70562 + - 0.0015844563982640861
+    Observable QC:  0.71018 + - 0.0015742369065677502
     Numerical result 0.7071067690849304
 :::
 :::
@@ -2204,7 +2213,7 @@ is specified and the number of GPUs available is determined.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [7]:
 :::
 :::
 
@@ -2231,7 +2240,7 @@ is specified and the number of GPUs available is determined.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Number of QPUs: 5
+    Number of QPUs: 1
 :::
 :::
 :::
@@ -2300,21 +2309,21 @@ processed to produce the eigenvalues.
 ::: {.output_area .docutils .container}
 ::: highlight
     0
-    { 0:49865 1:50135 }
+    { 0:49880 1:50120 }
 
-    QKSD Matrix Element:  -0.0027 + - 0.0022360598270171573
+    QKSD Matrix Element:  -0.0024 + - 0.002236061537614741
     1
-    { 0:49796 1:50204 }
+    { 0:50111 1:49889 }
 
-    QKSD Matrix Element:  -0.00408 + - 0.002236049366181346
+    QKSD Matrix Element:  0.00222 + - 0.0022360624673742903
     2
-    { 0:49695 1:50305 }
+    { 0:50127 1:49873 }
 
-    QKSD Matrix Element:  -0.0061 + - 0.002236026375068058
+    QKSD Matrix Element:  0.00254 + - 0.0022360607643800738
     3
-    { 0:49972 1:50028 }
+    { 0:49832 1:50168 }
 
-    QKSD Matrix Element:  -0.00056 + - 0.002236067626884303
+    QKSD Matrix Element:  -0.00336 + - 0.0022360553553076455
 :::
 :::
 :::
@@ -2363,13 +2372,13 @@ non-orthogonal states.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [[-0.0027  -0.00408]
-     [-0.0061  -0.00056]]
+    [[-0.0024   0.00222]
+     [ 0.00254 -0.00336]]
     Eigenvalues:
-    [-0.00782313  0.00456313]
+    [-0.00546496 -0.00029504]
     Eigenvector:
-    [[-0.76575845  0.64312829]
-     [-0.64312829 -0.76575845]]
+    [[-0.63808707 -0.76996421]
+     [ 0.76996421 -0.63808707]]
 :::
 :::
 :::

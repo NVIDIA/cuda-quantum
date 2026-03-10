@@ -268,6 +268,8 @@ pr-4086
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -439,9 +441,8 @@ pr-4086
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1056,6 +1057,8 @@ pr-4086
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1827,7 +1830,7 @@ We perform binary classification on the MNIST dataset where data flows
 through the neural network architecture to the quantum circuit whose
 output is used to classify hand written digits.
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [1]:
@@ -1842,6 +1845,17 @@ output is used to classify hand written digits.
 
     # Use this line if using GPU, change CUDA version according to your system (e.g. cu126, cu128, or cu130)
     # !pip install matplotlib==3.8.4 torch==2.9.1+cu126 torchvision==0.24.1+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
 :::
 :::
 :::
@@ -1890,11 +1904,13 @@ output is used to classify hand written digits.
 ::: highlight
     # Set CUDAQ and PyTorch to run on either CPU or GPU.
 
-    device = torch.device('cpu')
-    cudaq.set_target("qpp-cpu")
-
-    #cudaq.set_target("nvidia")
-    #device = torch.device("cuda:0")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+        device = torch.device("cuda:0")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
+        device = torch.device('cpu')
 :::
 :::
 :::
@@ -1974,6 +1990,8 @@ output is used to classify hand written digits.
     test_size = 30  # Percentage of dataset to be used for testing.
     classification_threshold = 0.5  # Classification boundary used to measure accuracy.
     epochs = 1000  # Number of epochs to train for.
+    if device.type != 'cuda':
+        epochs = 500
 
     # Quantum parmeters.
 
@@ -2204,7 +2222,7 @@ output is used to classify hand written digits.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     def accuracy_score(y, y_hat):
-        return sum((y == (y_hat >= classification_threshold))) / len(y)
+        return (sum((y == (y_hat >= classification_threshold))) / len(y)).item()
 :::
 :::
 :::
@@ -2320,7 +2338,7 @@ output is used to classify hand written digits.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f52f3f8e0830e0c78e05ed8d087ae7faf1e58c9f)
+    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 7bcee70c18c73a12a6cb4e253f12e20f1c34ddbd)
 :::
 :::
 :::

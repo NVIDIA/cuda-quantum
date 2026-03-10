@@ -233,6 +233,7 @@ pr-4086
         -   [Quantum Machines](#quantum-machines){.reference .internal}
         -   [QuEra Computing](#quera-computing){.reference .internal}
         -   [Scaleway](#scaleway){.reference .internal}
+        -   [TII](#tii){.reference .internal}
     -   [When to Use sample vs. run](sample_vs_run.html){.reference
         .internal}
         -   [Introduction](sample_vs_run.html#introduction){.reference
@@ -406,8 +407,8 @@ pr-4086
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -1062,6 +1063,8 @@ pr-4086
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../backends/hardware/neutralatom.html){.reference
@@ -2923,6 +2926,9 @@ C++
 ## Pasqal[¶](#pasqal "Permalink to this heading"){.headerlink}
 
 The following code illustrates how to run kernels on Pasqal's backends.
+For QRMI-routed Pasqal jobs, specify [`pasqal`{.docutils .literal
+.notranslate}]{.pre} as the target; the [`machine`{.docutils .literal
+.notranslate}]{.pre} argument is supplied by QRMI at runtime.
 
 ::: {.tab-set .docutils}
 Python
@@ -2935,6 +2941,9 @@ Python
     from cudaq.dynamics import Schedule
 
     # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
+    # It uses the direct `pasqal` target with Pasqal credentials.
+    # For the QRMI-routed flow use a supported cluster and set `machine="qrmi"`
+    # (see QRMI docs).
     #
     # To obtain the authentication token for the cloud  we recommend logging in with
     # Pasqal's Python SDK. See our documentation https://docs.pasqal.com/cloud/ for more.
@@ -3020,8 +3029,10 @@ C++
     // nvq++ --target pasqal pasqal.cpp -o out.x
     // ./out.x
     // ```
-    // Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)
-    // have been set.
+    // Assumes credentials are configured either with environment variables
+    // (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).
+    // For QRMI-routed execution, see the `pasqal` notes
+    // in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
@@ -3799,6 +3810,95 @@ C++
       counts.dump();
 
       return 0;
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#tii .section}
+[]{#tii-examples}
+
+## TII[¶](#tii "Permalink to this heading"){.headerlink}
+
+The following code illustrates how to run kernels on TII's backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+    import os
+
+    # Set the target at the beginning of the program.
+    cudaq.set_target("tii",
+                     device="tii-sim",
+                     project=os.environ.get("TII_PROJECT", None))
+
+
+    # Create the kernel.
+    @cudaq.kernel
+    def kernel():
+        qvector = cudaq.qvector(2)
+        h(qvector[0])
+        x.ctrl(qvector[0], qvector[1])
+        mz(qvector)
+
+
+    # Note: Increase shots count for better distribution of results.
+    # Using small number here for testing purposes.
+    SHOTS = 50
+
+    # Execute on synchronously on the TII cloud and print out the results.
+    counts = cudaq.sample(kernel, shots_count=SHOTS)
+    print(counts)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    //
+    // Available projects and devices are show in the dashboard:
+    // https://q-cloud.tii.ae/projects/
+    //
+    // The authentication key must be stored (or exported) as environment variable:
+    // ```
+    // export TII_API_TOKEN="your-tii-token"
+    // ```
+    //
+    // Compile and run with:
+    // ```
+    // nvq++ --target tii --tii-device tii-sim \
+    // --tii-project <tii-project-name> tii.cpp
+    // ./a.out
+    // ```
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    struct bell_state {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        x<cudaq::ctrl>(q[0], q[1]);
+        mz(q);
+      }
+    };
+
+    int main() {
+      // Increase shots count for better distribution of results.
+      // Using small number here for testing purposes.
+      constexpr std::size_t SHOTS = 50;
+      // Submit to `tii` synchronously.
+      auto result_counts = cudaq::sample(SHOTS, bell_state{});
+      result_counts.dump();
     }
 :::
 :::

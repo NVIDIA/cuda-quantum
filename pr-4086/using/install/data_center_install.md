@@ -261,6 +261,8 @@ pr-4086
             .internal}
         -   [Scaleway](../examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../examples/sample_vs_run.html){.reference .internal}
         -   [Introduction](../examples/sample_vs_run.html#introduction){.reference
@@ -435,8 +437,8 @@ pr-4086
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -1091,6 +1093,8 @@ pr-4086
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../backends/hardware/neutralatom.html){.reference
@@ -2210,7 +2214,7 @@ following command to build the CUDA-Q Python wheel:
 ::: {.highlight-bash .notranslate}
 ::: highlight
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
-    bash scripts/install_prerequisites.sh -t llvm && \
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
@@ -2299,7 +2303,7 @@ following command to build CUDA-Q:
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v
+    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF
 :::
 :::
 
@@ -2323,6 +2327,10 @@ command
     # everything and no hardcoded absolute paths are needed.
     mkdir -p cuda_quantum_assets
     cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
+
+    # Remove Python-dependent plugins from the C++ installer. The pyscf plugin
+    # requires a Python runtime and is not used for the C++ workflows.
+    rm -f cuda_quantum_assets/cudaq/lib/plugins/libcudaq-pyscf*
 
     # Bundle the complete LLVM installation in its own subtree so clang's
     # internal path resolution (resource dir, C++ headers, runtime libs) works

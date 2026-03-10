@@ -268,6 +268,8 @@ pr-4086
             .internal}
         -   [Scaleway](../../using/examples/hardware_providers.html#scaleway){.reference
             .internal}
+        -   [TII](../../using/examples/hardware_providers.html#tii){.reference
+            .internal}
     -   [When to Use sample vs.
         run](../../using/examples/sample_vs_run.html){.reference
         .internal}
@@ -439,9 +441,8 @@ pr-4086
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -1055,6 +1056,8 @@ pr-4086
                 .internal}
             -   [Quantum Circuits,
                 Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
+                .internal}
+            -   [TII](../../using/backends/hardware/superconducting.html#tii){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1837,7 +1840,7 @@ system. The algorithm consists of two parts:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [12]:
+    [1]:
 :::
 :::
 
@@ -1863,7 +1866,7 @@ system. The algorithm consists of two parts:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [2]:
 :::
 :::
 
@@ -1889,7 +1892,11 @@ system. The algorithm consists of two parts:
 
     from ipie.config import config
 
-    cudaq.set_target("nvidia")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
 
     # Ipie has recently added GPU support however this remains a bit tricky to use as it requires manual installation of several packages.
     # Once this is streamlined, we can set the GPU option to True in the tutorial.
@@ -1912,7 +1919,7 @@ structure is given in the file imported below.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [3]:
 :::
 :::
 
@@ -1940,7 +1947,7 @@ structure is given in the file imported below.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [15]:
+    [4]:
 :::
 :::
 
@@ -1964,13 +1971,13 @@ structure is given in the file imported below.
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [15]:
+    [4]:
 :::
 :::
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    -224.34048064812245
+    -224.34048064812268
 :::
 :::
 :::
@@ -1998,7 +2005,7 @@ a\_{q}\^\\dagger \\hat a\_{s}\\hat a\_{r} \\tag{1}\\\]
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [16]:
+    [5]:
 :::
 :::
 
@@ -2042,7 +2049,7 @@ be used in the classical AFQMC computation as an initial guess.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [17]:
+    [6]:
 :::
 :::
 
@@ -2087,7 +2094,7 @@ be used in the classical AFQMC computation as an initial guess.
     # Num Params: 16
     # Qubits: 18
     # N_layers: 1
-    # Energy after the VQE: -224.39455094949878
+    # Energy after the VQE: -224.39453699035025
 :::
 :::
 :::
@@ -2182,7 +2189,7 @@ that supports both CPUs and GPUs and requires the following steps:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [18]:
+    [7]:
 :::
 :::
 
@@ -2228,7 +2235,7 @@ that supports both CPUs and GPUs and requires the following steps:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [19]:
+    [8]:
 :::
 :::
 
@@ -2265,7 +2272,7 @@ the total number of AFQMC iterations [`num_blocks`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [20]:
+    [9]:
 :::
 :::
 
@@ -2302,17 +2309,17 @@ the total number of AFQMC iterations [`num_blocks`{.docutils .literal
 ::: highlight
     # random seed is 96264512
                 Block                   Weight            WeightFactor            HybridEnergy                  ENumer                  EDenom                  ETotal                  E1Body                  E2Body
-                    0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2439413574858248e+04  1.0000000000000000e+02 -2.2439413574858250e+02 -3.7639365205439407e+02  1.5199951630581157e+02
-                    1   4.2258301041774035e+02  1.4118669731586463e+03 -1.1708882854710750e+02 -2.2474916437261574e+04  1.0000000000000000e+02 -2.2474916437261575e+02 -3.7647296651452950e+02  1.5172380214191386e+02
-                    2   1.0031504281308401e+02  3.8297737898314341e+02 -1.1739924259761827e+02 -2.2490532145733003e+04  9.9999999999999986e+01 -2.2490532145733007e+02 -3.7651477069597922e+02  1.5160944923864918e+02
-                    3   9.9899212120920296e+01  1.0007733169797531e+02 -1.1733630843942882e+02 -2.2497023748199670e+04  9.9999999999999986e+01 -2.2497023748199675e+02 -3.7660510012883196e+02  1.5163486264683516e+02
-                    4   1.0009065798675080e+02  1.0004728284850617e+02 -1.1745681184714668e+02 -2.2496787246373897e+04  1.0000000000000001e+02 -2.2496787246373893e+02 -3.7676975956887520e+02  1.5180188710513633e+02
-                    5   9.9997283679139173e+01  1.0010516558962367e+02 -1.1749487126104539e+02 -2.2503896183474415e+04  1.0000000000000001e+02 -2.2503896183474413e+02 -3.7664507184180695e+02  1.5160611000706268e+02
-                    6   1.0011617434070206e+02  1.0018130110278446e+02 -1.1766576516987034e+02 -2.2514130031354973e+04  1.0000000000000003e+02 -2.2514130031354966e+02 -3.7662478860477643e+02  1.5148348829122685e+02
-                    7   9.9932111671046385e+01  9.9917484318648320e+01 -1.1761313306634769e+02 -2.2516961022020205e+04  1.0000000000000000e+02 -2.2516961022020206e+02 -3.7661715794903222e+02  1.5144754772883010e+02
-                    8   9.9903333135890790e+01  9.9912269122680755e+01 -1.1757680866079117e+02 -2.2518386081760287e+04  9.9999999999999986e+01 -2.2518386081760292e+02 -3.7676432976591940e+02  1.5158046894831654e+02
-                    9   1.0012009650415450e+02  1.0012104365758209e+02 -1.1776314652530120e+02 -2.2513280621097532e+04  1.0000000000000000e+02 -2.2513280621097533e+02 -3.7678702690105990e+02  1.5165422069008449e+02
-                   10   9.9637195525722973e+01  9.9239451881972172e+01 -1.1746129307287680e+02 -2.2518449097868390e+04  1.0000000000000000e+02 -2.2518449097868390e+02 -3.7689240664007951e+02  1.5170791566139565e+02
+                    0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2439508600587662e+04  1.0000000000000000e+02 -2.2439508600587664e+02 -3.7639365207102333e+02  1.5199856606514666e+02
+                    1   4.2257056483540680e+02  1.4118069021027802e+03 -1.1708693041911519e+02 -2.2474996636792086e+04  1.0000000000000000e+02 -2.2474996636792088e+02 -3.7647319974320789e+02  1.5172323337528707e+02
+                    2   1.0031477304650311e+02  3.8296193043358181e+02 -1.1739718565992376e+02 -2.2490598976544803e+04  1.0000000000000000e+02 -2.2490598976544803e+02 -3.7651529453780955e+02  1.5160930477236158e+02
+                    3   9.9899069244275523e+01  1.0007683865659165e+02 -1.1733421170204294e+02 -2.2497093535653130e+04  9.9999999999999986e+01 -2.2497093535653136e+02 -3.7660556251095613e+02  1.5163462715442475e+02
+                    4   1.0009053912662398e+02  1.0004689248382901e+02 -1.1745467967836868e+02 -2.2496851740853570e+04  1.0000000000000001e+02 -2.2496851740853566e+02 -3.7677033675853681e+02  1.5180181935000121e+02
+                    5   9.9997252340375638e+01  1.0010501097562071e+02 -1.1749279331833796e+02 -2.2503958046591404e+04  1.0000000000000000e+02 -2.2503958046591404e+02 -3.7664566538980034e+02  1.5160608492388630e+02
+                    6   1.0011587922408398e+02  1.0018079748584451e+02 -1.1766351406966876e+02 -2.2514170340022600e+04  1.0000000000000001e+02 -2.2514170340022596e+02 -3.7662567666476224e+02  1.5148397326453633e+02
+                    7   9.9931815987329159e+01  9.9916747721404647e+01 -1.1761065926981941e+02 -2.2517005364646804e+04  1.0000000000000000e+02 -2.2517005364646803e+02 -3.7661792399494180e+02  1.5144787034847369e+02
+                    8   9.9903303729090240e+01  9.9912226290917729e+01 -1.1757442061417670e+02 -2.2518386757775326e+04  9.9999999999999986e+01 -2.2518386757775332e+02 -3.7676538247523837e+02  1.5158151489748514e+02
+                    9   1.0011958041774147e+02  1.0012012496437015e+02 -1.1776042000332971e+02 -2.2513320955662537e+04  9.9999999999999986e+01 -2.2513320955662542e+02 -3.7678749021253810e+02  1.5165428065591271e+02
+                   10   9.9637479319398665e+01  9.9239880452225833e+01 -1.1745892832071745e+02 -2.2518486392115545e+04  1.0000000000000000e+02 -2.2518486392115545e+02 -3.7689296595539395e+02  1.5170810203423866e+02
 :::
 :::
 :::
@@ -2320,7 +2327,7 @@ the total number of AFQMC iterations [`num_blocks`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [21]:
+    [10]:
 :::
 :::
 
@@ -2346,13 +2353,13 @@ the total number of AFQMC iterations [`num_blocks`{.docutils .literal
 ::: {.nboutput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [21]:
+    [10]:
 :::
 :::
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    <matplotlib.legend.Legend at 0x7e4df2da63e0>
+    <matplotlib.legend.Legend at 0x79af5871de20>
 :::
 :::
 :::
@@ -2369,7 +2376,7 @@ the total number of AFQMC iterations [`num_blocks`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [22]:
+    [11]:
 :::
 :::
 
@@ -2386,7 +2393,7 @@ the total number of AFQMC iterations [`num_blocks`{.docutils .literal
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version 0.9.0-rc2 (https://github.com/NVIDIA/cuda-quantum 61c2ecfe1cfd7fa2ad6cbf192c300180a89c75f0)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 03d503c8eab430b4e2cd6882778467e1c3a5b27b)
 :::
 :::
 :::
