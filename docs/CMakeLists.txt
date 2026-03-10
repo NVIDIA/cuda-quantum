@@ -66,11 +66,11 @@ add_nvqpp_test(FirstObserve using/first_observe.cpp SOURCE_DIR ${CMAKE_CURRENT_S
 add_nvqpp_test(FirstSample using/first_sample.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 add_nvqpp_test(Timing using/time.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp APPLICATION_ARGS "10")
 
-set(PTSBE_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/using/examples/ptsbe)
-add_nvqpp_test(PTSBE_BellDepol bell_circuit_under_depol_noise.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
-add_nvqpp_test(PTSBE_InspectData inspect_execution_data.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
-add_nvqpp_test(PTSBE_SamplingStrategies sampling_strategies.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
-add_nvqpp_test(PTSBE_ShotAllocation shot_allocation.cpp SOURCE_DIR ${PTSBE_SNIPPET_DIR})
+set(PTSBE_CPP_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/using/examples/ptsbe)
+add_nvqpp_test(PTSBE_BellDepol bell_circuit_under_depol_noise.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_InspectData inspect_execution_data.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_SamplingStrategies sampling_strategies.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_ShotAllocation shot_allocation.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
 
 if (CUDENSITYMAT_ROOT AND CUDA_FOUND) 
   add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
@@ -142,6 +142,13 @@ if (CUDAQ_ENABLE_PYTHON)
   endfunction()
 
   add_pycudaq_test(Intro intro.py)
+
+  set(PTSBE_PY_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python/using/examples/ptsbe)
+  add_pycudaq_test(PTSBE_BellDepol bell_circuit_under_depol_noise.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+  add_pycudaq_test(PTSBE_InspectData inspect_execution_data.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+  add_pycudaq_test(PTSBE_SamplingStrategies sampling_strategies.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+  add_pycudaq_test(PTSBE_ShotAllocation shot_allocation.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     add_pycudaq_test(EvolveDynamicsStateBatching using/backends/dynamics_state_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
