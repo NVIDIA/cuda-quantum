@@ -72,9 +72,9 @@ def ensure_not_recursive(method):
 
 class DecoratorCapture:
 
-    def __init__(self, decorator, values):
+    def __init__(self, decorator):
         self.decorator = decorator
-        self.resolved = values
+        self.resolved = decorator.resolve_captured_arguments()
 
     def __str__(self):
         self.decorator.name + " -> " + str(self.resolved)
@@ -642,8 +642,7 @@ class PyKernelDecorator(object):
 
     def process_argument(self, arg, arg_type):
         if isa_kernel_decorator(arg):
-            captured_args = arg.resolve_captured_arguments()
-            return DecoratorCapture(arg, captured_args)
+            return DecoratorCapture(arg)
 
         arg = self.convertStringsToPauli(arg)
         mlirType = mlirTypeFromPyType(type(arg),

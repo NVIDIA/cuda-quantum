@@ -80,5 +80,12 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF"
 ]
 
+# Linux x86_64: enable Pasqal QRMI connector
+[[tool.scikit-build.overrides]]
+if.platform-system = "linux"
+if.platform-machine = "x86_64"
+inherit.cmake.args = "append"
+cmake.args = ["-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON"]
+
 [tool.setuptools_scm]
 write_to = "_version.py"
