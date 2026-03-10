@@ -608,9 +608,8 @@ class PyKernelDecorator(object):
 
         processed_args, module = self.prepare_call(*args)
 
-        mlirTy = self.handle_call_results()
         result = cudaq_runtime.marshal_and_launch_module(
-            self.uniqName, module, mlirTy, *processed_args)
+            self.uniqName, module, *processed_args)
         return result
 
     def beta_reduction(self, isEntryPoint, *args):
@@ -626,9 +625,8 @@ class PyKernelDecorator(object):
         kernels in a functional composition.
         """
         processed_args, module = self.prepare_call(*args, allow_no_args=True)
-        mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName, module,
-                                                       mlirTy, isEntryPoint,
+                                                       isEntryPoint,
                                                        *processed_args)
 
     def delete_cache_execution_engine(self, key):

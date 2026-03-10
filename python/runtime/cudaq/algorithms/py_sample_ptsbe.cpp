@@ -36,8 +36,7 @@ using namespace cudaq;
 /// (cudaq.ptsbe.sample) and passed here as positional parameters.
 static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
-              MlirType returnTy, std::size_t shots_count,
-              noise_model noiseModel,
+              std::size_t shots_count, noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
               py::object sampling_strategy, py::object shot_allocation_obj,
               bool return_execution_data, py::args runtimeArgs) {
@@ -58,7 +57,6 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
-  auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
 
   platform.set_noise(&noiseModel);
@@ -71,7 +69,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
-              clean_launch_module(shortName, mod, retTy, opaques);
+              clean_launch_module(shortName, mod, opaques);
         },
         platform, shortName, shots_count, ptsbe_options);
   } catch (const std::exception &e) {
@@ -106,8 +104,7 @@ struct AsyncPTSBESampleResultImpl {
 /// @brief Run PTSBE sampling asynchronously from Python.
 static AsyncPTSBESampleResultImpl
 pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
-                   MlirType returnTy, std::size_t shots_count,
-                   noise_model &noiseModel,
+                   std::size_t shots_count, noise_model &noiseModel,
                    std::optional<std::size_t> max_trajectories,
                    py::object sampling_strategy, py::object shot_allocation_obj,
                    bool return_execution_data, py::args runtimeArgs) {
@@ -126,7 +123,6 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
-  auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
 
   auto fnOp = getKernelFuncOp(mod, shortName);
@@ -137,10 +133,9 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   // Release GIL before launching async C++ work
   py::gil_scoped_release release;
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
-      [opaques = std::move(opaques), kernelName, retTy,
-       mod = mod.clone()]() mutable {
+      [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, retTy, opaques);
+            clean_launch_module(kernelName, mod, opaques);
       },
       platform, kernelName, shots_count, ptsbe_options, /*qpu_id=*/0,
       noiseModel));

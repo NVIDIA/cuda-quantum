@@ -206,10 +206,9 @@ static void cacheJITForPerformance(cudaq::JitEngine jit) {
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::KernelThunkResultType launchModule(const std::string &name,
-                                            ModuleOp module,
-                                            const std::vector<void *> &rawArgs,
-                                            Type resultTy) override {
+  cudaq::KernelThunkResultType
+  launchModule(const std::string &name, ModuleOp module,
+               const std::vector<void *> &rawArgs) override {
     // In this launch scenario, we have a ModuleOp that has the entry-point
     // kernel, but needs to be merged with anything else it may call. The
     // merging of modules mirrors the late binding and dynamic scoping of the
@@ -221,13 +220,17 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
     cudaq::KernelThunkResultType result{nullptr, 0};
 
+    auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
+    if (!funcOp)
+      throw std::runtime_error("no kernel named " + name + " found in module");
+    Type resultTy = cudaq::runtime::getReturnType(funcOp);
+
     std::unordered_set<unsigned> varArgIndices;
     {
-      auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
       auto mangledNameMap = module->getAttrOfType<mlir::DictionaryAttr>(
           cudaq::runtime::mangledNameMap);
       bool parametricCompatible = false;
-      if (funcOp && mangledNameMap)
+      if (mangledNameMap)
         if (auto attr = mangledNameMap.getAs<mlir::StringAttr>(fullName)) {
           mlir::StringRef mn = attr.getValue();
           parametricCompatible = mn != "BuilderKernel.EntryPoint" &&
@@ -252,10 +255,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       // 1. Check that this call is sane.
       if (enablePythonCodegenDump)
         module.dump();
-      auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
-      if (!funcOp)
-        throw std::runtime_error("no kernel named " + name +
-                                 " found in module");
 
       // 2. Merge other modules (e.g., if there are device kernel calls).
       cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
@@ -317,7 +316,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
   }
 
   void *specializeModule(const std::string &name, ModuleOp module,
-                         const std::vector<void *> &rawArgs, Type resultTy,
+                         const std::vector<void *> &rawArgs,
                          std::optional<cudaq::JitEngine> &cachedEngine,
                          bool isEntryPoint) override {
     // In this launch scenario, we have a ModuleOp that has the entry-point
@@ -335,6 +334,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
     if (!funcOp)
       throw std::runtime_error("no kernel named " + name + " found in module");
+    Type resultTy = cudaq::runtime::getReturnType(funcOp);
 
     // 2. Merge other modules (e.g., if there are device kernel calls).
     cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
