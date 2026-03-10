@@ -2076,6 +2076,10 @@ console](https://console.scaleway.com/qaas/sessions){.reference
     curl -X POST -H "X-Auth-Token: $SCW_SECRET_KEY" -H "Content-Type: application/json" "https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate"
 :::
 :::
+
+To see a complete example, take a look at [[Scaleway QaaS examples]{.std
+.std-ref}](../../examples/hardware_providers.html#scaleway-examples){.reference
+.internal}.
 :::
 :::
 :::

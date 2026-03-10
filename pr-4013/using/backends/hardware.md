@@ -1934,6 +1934,13 @@ alt="../../_images/qpus.png" /></a>
         Machines](hardware/qcontrol.html#quantum-machines){.reference
         .internal}
 :::
+
+-   [[Cloud]{.doc}](cloud.html){.reference .internal}
+
+    -   [[Amazon Braket]{.doc}](cloud/braket.html){.reference .internal}
+
+    -   [[Scaleway QaaS]{.doc}](cloud/scaleway.html){.reference
+        .internal}
 :::
 :::
 :::
