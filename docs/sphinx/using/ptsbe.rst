@@ -273,9 +273,6 @@ plus ``density-matrix-cpu`` and ``qpp-cpu``:
        Handles thousands of qubits.
    * - ``tensornet-mps``
      - Matrix product state (approximate). Efficient for square-shaped circuits.
-   * - ``density-matrix-cpu``
-     - CPU density matrix simulator. Can be used for small noisy circuits
-       (< 14 qubits) and development/testing.
    * - ``qpp-cpu``
      - CPU state vector simulator. Lightweight option for small circuits
        (< 28 qubits).
