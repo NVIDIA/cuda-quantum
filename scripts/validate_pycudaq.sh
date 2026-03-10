@@ -205,7 +205,8 @@ if [ -n "${extra_packages}" ]; then
 fi
 
 if $is_macos; then
-    # macOS: use venv (simpler, no conda ToS issues, no MPI needed for CPU-only)
+    # macOS: extract install commands from README markers, matching the Linux
+    # pattern.
     venv_dir="$HOME/.venv/cudaq-validation"
 
     if $fresh_venv && [ -d "$venv_dir" ]; then
@@ -213,36 +214,32 @@ if $is_macos; then
         rm -rf "$venv_dir"
     fi
 
-    if [ -d "$venv_dir" ]; then
-        echo "Reusing existing venv at $venv_dir (use -F to start fresh)"
-    else
-        echo "Creating venv at $venv_dir"
-        python3 -m venv "$venv_dir"
+    macos_script="$(awk '/(Begin macos install)/{flag=1;next}/(End macos install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')"
+    if [ -z "$macos_script" ]; then
+        echo -e "\e[01;31mNo macOS install instructions found in $readme_file (missing Begin/End macos install markers).\e[0m" >&2
+        (return 0 2>/dev/null) && return 100 || exit 100
     fi
-    source "$venv_dir/bin/activate"
 
-    # Install cudaq. When a metapackage sdist is present in the packages
-    # directory, install via the metapackage so pip resolves the correct
-    # platform-specific wheel automatically. Otherwise fall back to
-    # direct wheel install (e.g. ci_macos.yml where only the wheel exists).
-    if [ -n "${extra_packages}" ]; then
-        metapackage=$(ls "${extra_packages}"/cudaq-*.tar.gz 2>/dev/null | head -1)
-        if [ -n "$metapackage" ]; then
-            echo "Installing via metapackage: $metapackage"
-            pip install "cudaq==${cudaq_version}" --find-links "${extra_packages}"
-        else
-            wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
-            if [ -n "$wheel_file" ]; then
-                echo "Installing wheel: $wheel_file"
-                pip install --force-reinstall "$wheel_file"
-            else
-                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}. Refusing to install from PyPI when -i is set.\e[0m" >&2
-                (return 0 2>/dev/null) && return 100 || exit 100
-            fi
-        fi
-    else
-        pip install --upgrade cudaq==${cudaq_version}
+    # Build the pip install replacement. When a local packages dir is provided
+    # (-i), use --force-reinstall so the local wheel takes precedence even if
+    # the same version is already installed.
+    pip_install_replacement="pip install --force-reinstall cudaq==${cudaq_version} ${pip_extra_arg}"
+    if [ -z "${extra_packages}" ]; then
+        pip_install_replacement="pip install cudaq==${cudaq_version}"
     fi
+
+    while IFS= read -r line; do
+        # Redirect venv creation into the CI-managed venv_dir
+        line=$(echo "$line" | sed -E "s|python3 -m venv [^ ]+|python3 -m venv $venv_dir|g")
+        line=$(echo "$line" | sed -E "s|source [^ ]+/bin/activate|source $venv_dir/bin/activate|g")
+        # Replace 'pip install cudaq' with versioned install + local wheel path
+        line=$(echo "$line" | sed -E 's/\$\{\{\s*[^}]+\s*\}\}/cudaq/g')
+        line=$(echo "$line" | sed -E "s|pip install cudaq|${pip_install_replacement}|g")
+        if [ -n "$(echo $line | tr -d '[:space:]')" ]; then
+            echo "+ $line"
+            eval "$line"
+        fi
+    done <<<"$macos_script"
 
     # Install test/dev dependencies (pytest, etc.)
     echo "Installing dev/test dependencies..."
@@ -250,6 +247,10 @@ if $is_macos; then
 else
     # Linux: full conda setup with CUDA and MPI
     conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')"
+    if [ -z "$conda_script" ]; then
+        echo -e "\e[01;31mNo conda install instructions found in $readme_file (missing Begin/End conda install markers).\e[0m" >&2
+        (return 0 2>/dev/null) && return 100 || exit 100
+    fi
 
     while IFS= read -r line; do
         line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")

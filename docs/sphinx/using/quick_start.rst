@@ -36,8 +36,8 @@ Install CUDA-Q
 
 .. note::
 
-    If you are using CUDA 12.8 on Blackwell, you may need to install additional
-    dependencies to use the python wheels.
+    **Linux only**: If you are using CUDA 12.8 on Blackwell, you may need to install
+    additional dependencies to use the python wheels.
     See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
 
 Once you completed the installation, please follow the instructions
@@ -127,6 +127,12 @@ should be observed around 500 times each.
       nvq++ program.cpp -o program.x && ./program.x
 
 If you have an NVIDIA GPU the program uses GPU acceleration by default.
+
+.. note::
+
+    GPU-accelerated targets (``nvidia``, ``nvidia-fp64``, etc.) are not available
+    on macOS. macOS users can skip this section and proceed to :doc:`Basics <basics/basics>`.
+
 To confirm that this works as expected and to see the effects of GPU acceleration, you can 
 increase the numbers of qubits the program uses to 28 and
 compare the time to execute the program on the 
