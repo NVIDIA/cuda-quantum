@@ -100,7 +100,8 @@ endif()
 find_package(Threads REQUIRED)
 
 # Enable static linking of the C++ standard library to avoid dependency issues when distributing the library.
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 add_subdirectory(lib)
 
