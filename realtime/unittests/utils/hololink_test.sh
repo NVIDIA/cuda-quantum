@@ -233,7 +233,7 @@ do_build() {
         -DHOLOLINK_BUILD_EXAMPLES=OFF \
         -DHOLOLINK_BUILD_EMULATOR=OFF
     cmake --build "$hololink_build" -j"$JOBS" \
-        --target gpu_roce_transceiver hololink_core
+        --target roce_receiver gpu_roce_transceiver hololink_core
 
     # Build cuda-quantum/realtime with hololink tools enabled
     echo "--- Building cuda-quantum/realtime ---"
