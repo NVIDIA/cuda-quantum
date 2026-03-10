@@ -266,7 +266,14 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         members.push_back(rewriter.create<cudaq::cc::StdvecInitOp>(
             loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
       } else if (auto a = dyn_cast<IntegerAttr>(attr)) {
-        members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+        if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
+          APFloat floatVal(floatTy.getFloatSemantics(), a.getValue());
+          auto floatAttr = FloatAttr::get(floatTy, floatVal);
+          members.push_back(
+              rewriter.create<arith::ConstantOp>(loc, floatAttr, floatTy));
+        } else {
+          members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+        }
       } else if (auto a = dyn_cast<FloatAttr>(attr)) {
         members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
       } else {

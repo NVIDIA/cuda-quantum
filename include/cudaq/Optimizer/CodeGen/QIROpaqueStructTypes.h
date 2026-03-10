@@ -11,6 +11,7 @@
 /// This file provides the opaque struct types to be used with the obsolete LLVM
 /// typed pointer type.
 
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 
