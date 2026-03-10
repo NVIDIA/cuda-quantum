@@ -126,7 +126,7 @@ should be observed around 500 times each.
 
       nvq++ program.cpp -o program.x && ./program.x
 
-On Linux with an NVIDIA GPU, the program uses GPU acceleration by default.
+If you have an NVIDIA GPU the program uses GPU acceleration by default.
 
 .. note::
 
