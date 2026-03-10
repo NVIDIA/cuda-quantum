@@ -126,12 +126,12 @@ should be observed around 500 times each.
 
       nvq++ program.cpp -o program.x && ./program.x
 
-If you have an NVIDIA GPU the program uses GPU acceleration by default.
+On Linux with an NVIDIA GPU, the program uses GPU acceleration by default.
 
 .. note::
 
-    GPU-accelerated targets (``nvidia``, ``nvidia-fp64``, etc.) are not available
-    on macOS. macOS users can skip this section and proceed to :doc:`Basics <basics/basics>`.
+    GPU-accelerated targets (``nvidia``, ``nvidia-fp64``, etc.) are available on
+    Linux only. macOS users can skip this section and proceed to :doc:`Basics <basics/basics>`.
 
 To confirm that this works as expected and to see the effects of GPU acceleration, you can 
 increase the numbers of qubits the program uses to 28 and
