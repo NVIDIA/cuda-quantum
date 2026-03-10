@@ -35,6 +35,11 @@ on:
         description: Build and include macOS wheels and installer.
         required: false
         default: true
+      run_publishing_after:
+        type: boolean
+        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        required: false
+        default: true
   workflow_run:
     workflows:
       - PR merged
@@ -161,6 +166,17 @@ jobs:
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
+
+      - name: Upload publishing flag
+        if: github.event_name == 'workflow_dispatch'
+        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
+      - name: Upload publishing_requested artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: publishing_requested
+          path: publishing_requested.txt
+          retention-days: 1
 
       - name: Checkout repository
         uses: actions/checkout@v6
