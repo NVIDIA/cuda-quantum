@@ -9,6 +9,9 @@ on:
   push:
     branches:
       - "pull-request/[0-9]+"
+  paths:
+      - realtime/** # Only trigger on changes to the realtime directory
+      - .github/** # Also trigger on changes to GitHub workflows
   merge_group:
     types: 
       - checks_requested
