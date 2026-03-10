@@ -416,7 +416,7 @@ PTSBE
 
 The ``cudaq::ptsbe`` namespace implements Pre-Trajectory Sampling with Batch
 Execution (PTSBE). For a conceptual overview and usage tutorial see
-:doc:`../../using/ptsbe`.
+:doc:`../../using/examples/ptsbe`.
 
 .. doxygennamespace:: cudaq::ptsbe
     :desc-only:

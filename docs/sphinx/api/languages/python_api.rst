@@ -425,7 +425,7 @@ PTSBE Submodule
 
 The ``cudaq.ptsbe`` submodule implements Pre-Trajectory Sampling with Batch
 Execution (PTSBE). For a conceptual overview and usage tutorial see
-:doc:`../../using/ptsbe`.
+:doc:`../../using/examples/ptsbe`.
 
 Sampling Functions
 -------------------
