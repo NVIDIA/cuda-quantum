@@ -78,8 +78,8 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
   // Parse common bridge args
   cudaq::realtime::parse_bridge_args(argc, argv, config);
 
-  // Frame size: RPCHeader + 256 bytes payload
-  config.frame_size = sizeof(cudaq::realtime::RPCHeader) + 256;
+  // Frame size: RPCHeader + payload size
+  config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
 
   // Create and initialize the bridge context (including the Hololink
   // transceiver)
