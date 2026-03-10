@@ -145,7 +145,9 @@ public:
           }();
           if (!lowInt)
             return failure();
-          for (auto *subUser : subveq->getUsers())
+          SmallVector<Operation *> subUsers{subveq->getUsers().begin(),
+                                            subveq->getUsers().end()};
+          for (auto *subUser : subUsers)
             if (failed(rewriteOpAndUsers(subUser, *lowInt)))
               return failure();
           rewriter.eraseOp(subveq);
