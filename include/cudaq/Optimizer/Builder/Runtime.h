@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include <stdexcept>
 
 //===----------------------------------------------------------------------===//
 //
