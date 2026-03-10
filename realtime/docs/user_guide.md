@@ -55,7 +55,7 @@ Please refer to this [section](#using-docker) for instructions.
 2. Load `HSB` IP bit-file to the FPGA
 
     The bit-file for supported FPGA vendors
-    can be found [here](FIXME:LINK_TO_BITFILE_LOCATION).
+    can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/).
 
 3. Run the validation script
 
