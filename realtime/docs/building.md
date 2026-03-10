@@ -67,7 +67,7 @@ cmake -G Ninja -S "$HOLOLINK_DIR" -B build \
         -DHOLOLINK_BUILD_EMULATOR=OFF
 
 cmake --build build \
-        --target gpu_roce_transceiver hololink_core
+        --target roce_receiver gpu_roce_transceiver hololink_core
 ```
 
 > **_NOTE:_**  In order to compile Holoscan Sensor Bridge from source,
