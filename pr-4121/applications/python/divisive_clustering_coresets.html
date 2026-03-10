@@ -1501,12 +1501,12 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 110/110 [00:00&lt;00:00, 45025.22it/s]
-100%|██████████| 1/1 [00:00&lt;00:00, 19972.88it/s]
-100%|██████████| 24/24 [00:00&lt;00:00, 80530.64it/s]
-100%|██████████| 1/1 [00:00&lt;00:00, 20971.52it/s]
-100%|██████████| 3/3 [00:00&lt;00:00, 70295.60it/s]
-100%|██████████| 2/2 [00:00&lt;00:00, 48770.98it/s]
+100%|██████████| 114/114 [00:00&lt;00:00, 41226.99it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 29127.11it/s]
+100%|██████████| 23/23 [00:00&lt;00:00, 78049.35it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 28532.68it/s]
+100%|██████████| 3/3 [00:00&lt;00:00, 58525.17it/s]
+100%|██████████| 2/2 [00:00&lt;00:00, 55188.21it/s]
 </pre></div></div>
 </div>
 <p>The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits generally mark divisions between the least similar data.</p>
@@ -1644,8 +1644,7 @@ perform this task.</p>
                 <span class="n">rz</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[(</span><span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">number_of_qubits</span><span class="p">])</span>
                 <span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[(</span><span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">number_of_qubits</span><span class="p">])</span>
 
-            <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">):</span>
-                <span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">layer</span> <span class="o">+</span> <span class="n">layers</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">qubit</span><span class="p">])</span>
+            <span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">layer</span> <span class="o">+</span> <span class="n">layers</span><span class="p">],</span> <span class="n">qubits</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">kernel</span>
 
@@ -1745,11 +1744,10 @@ q4 : ─────────────────────────
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 474/474 [00:00&lt;00:00, 45655.17it/s]
-100%|██████████| 24/24 [00:00&lt;00:00, 120123.26it/s]
-100%|██████████| 24/24 [00:00&lt;00:00, 126144.48it/s]
-100%|██████████| 4/4 [00:00&lt;00:00, 91678.78it/s]
-100%|██████████| 4/4 [00:00&lt;00:00, 89717.73it/s]
+100%|██████████| 473/473 [00:00&lt;00:00, 42833.21it/s]
+100%|██████████| 15/15 [00:00&lt;00:00, 97090.37it/s]
+100%|██████████| 12/12 [00:00&lt;00:00, 148910.20it/s]
+100%|██████████| 12/12 [00:00&lt;00:00, 153450.15it/s]
 </pre></div></div>
 </div>
 </section>
@@ -1781,21 +1779,21 @@ divisive clustering procedure using the QAOA method, 100000 simulated shots for 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1773092248.301998] [f46691a660f5:24397:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1773092248.391148] [f46691a660f5:24397:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1773092248.391148] [f46691a660f5:24397:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773105393.065186] [f46691a660f5:79232:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773105393.156726] [f46691a660f5:79232:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773105393.156726] [f46691a660f5:79232:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|██████████████████████████████████| 14919/14919 [00:01&lt;00:00, 13340.85it/s]
-100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 83442.79it/s]
-100%|████████████████████████████████████| 1024/1024 [00:00&lt;00:00, 34914.74it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 106184.91it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 119837.26it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 121354.18it/s]
-100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 111199.44it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 107546.26it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 124275.67it/s]
-Total time for the execution: 28.007800664999998
-Total time spent on CUDA-Q: 25.764982143999994
+100%|██████████████████████████████████| 14866/14866 [00:01&lt;00:00, 11524.80it/s]
+100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 46777.31it/s]
+100%|██████████████████████████████████████| 128/128 [00:00&lt;00:00, 73173.08it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 135847.90it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 134217.73it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 145257.28it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 149796.57it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 114912.44it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 113359.57it/s]
+Total time for the execution: 24.384913350000005
+Total time spent on CUDA-Q: 22.876361590000005
 </pre></div></div>
 </div>
 <p>Scaling up to N=25, the task becomes even more onerous on a CPU. Depending on your device, the simulation may not even run. Try it and feel free to interrupt after your patience has worn out.</p>
@@ -1824,26 +1822,27 @@ Total time spent on CUDA-Q: 25.764982143999994
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1773092266.591802] [f46691a660f5:24650:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1773092266.678503] [f46691a660f5:24650:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1773092266.678503] [f46691a660f5:24650:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773105410.584339] [f46691a660f5:79483:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773105410.670883] [f46691a660f5:79483:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773105410.670883] [f46691a660f5:79483:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|███████████████████████████████████| 19173/19173 [00:02&lt;00:00, 7034.07it/s]
-100%|██████████████████████████████████| 23148/23148 [00:01&lt;00:00, 17444.85it/s]
-100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 58568.80it/s]
-100%|████████████████████████████████████████| 64/64 [00:00&lt;00:00, 92916.39it/s]
-100%|██████████████████████████████████████| 256/256 [00:00&lt;00:00, 57721.85it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 142179.80it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 132626.21it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 118987.35it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 147816.88it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 149796.57it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 136956.87it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 108240.10it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 115704.94it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 119837.26it/s]
-Total time for the execution: 57.173644533
-Total time spent on CUDA-Q: 53.02281598200002
+100%|███████████████████████████████████| 19122/19122 [00:02&lt;00:00, 7393.67it/s]
+100%|████████████████████████████████████| 9597/9597 [00:00&lt;00:00, 20794.02it/s]
+100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 47107.33it/s]
+100%|██████████████████████████████████████| 250/250 [00:00&lt;00:00, 57339.97it/s]
+100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 114422.62it/s]
+100%|████████████████████████████████████████| 32/32 [00:00&lt;00:00, 99200.09it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 130055.94it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 141579.88it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 138368.79it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 111107.39it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 106861.25it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 121574.03it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 114912.44it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 104206.31it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 111107.39it/s]
+Total time for the execution: 52.869397943
+Total time spent on CUDA-Q: 48.594538112
 </pre></div></div>
 </div>
 <p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> coreset, a single GPU (assuming A100) will run out of memory. When this happens, the GPU memory error propagates out of the quantum simulation and surfaces as a <code class="docutils literal notranslate"><span class="pre">RuntimeError:</span> <span class="pre">NLOpt</span> <span class="pre">runtime</span> <span class="pre">error:</span> <span class="pre">nlopt</span> <span class="pre">failure</span></code>, since the optimizer catches the exception from the failed objective function evaluation. Run the code below to see for yourself.</p>
@@ -1861,9 +1860,9 @@ Total time spent on CUDA-Q: 53.02281598200002
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1773092306.811133] [f46691a660f5:24955:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1773092306.897738] [f46691a660f5:24955:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1773092306.897738] [f46691a660f5:24955:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773105448.213156] [f46691a660f5:79783:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773105448.299988] [f46691a660f5:79783:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773105448.299988] [f46691a660f5:79783:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
 RuntimeError: NLOpt runtime error: nlopt failure
 </pre></div></div>
