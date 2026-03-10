@@ -39,7 +39,7 @@ on:
         type: boolean
         description: When this deployment completes successfully, automatically trigger the Publishing workflow.
         required: false
-        default: true
+        default: false
   workflow_run:
     workflows:
       - PR merged
