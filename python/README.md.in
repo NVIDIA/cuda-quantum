@@ -42,8 +42,7 @@ ${{ deprecation_notice }}
  installation. Different CUDA-Q binary distributions may conflict with each
  other causing issues.
 
-For platform-specific instructions see [Linux](#linux-gpu-acceleration-and-multi-gpu) |
-and [macOS](#macos-apple-silicon).
+For platform-specific instructions see [Linux](#linux-gpu-acceleration-and-multi-gpu) | [macOS](#macos-apple-silicon).
 
 ### Linux: GPU-Acceleration and Multi-GPU
 
