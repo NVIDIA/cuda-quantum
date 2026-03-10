@@ -1969,7 +1969,7 @@ explained above.
 
 <div>
 
-![c6d131d7beb94e4aa11886c0fc324d7a](../../_images/adapt-qaoa.png){.no-scaled-link
+![7826238205a942b58067753d192a3981](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

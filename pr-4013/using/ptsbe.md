@@ -2352,19 +2352,15 @@ C++
 ::: {#trajectory-vs-shot-trade-offs .section}
 #### Trajectory vs Shot Trade-offs[¶](#trajectory-vs-shot-trade-offs "Permalink to this heading"){.headerlink}
 
-The central tension in PTSBE is between trajectory count T and shots per
-trajectory N/T.
+The central tension in PTSBE is between trajectory count *T* and shots
+per trajectory *N/T*.
 
 Using more trajectories covers more of the noise space and reduces bias
 in the estimated distribution, but since each trajectory is simulated
-independently the simulation cost scales linearly with T. Beyond a
-certain point there are diminishing returns: once T approaches the total
-trajectory space size, additional trajectories yield little improvement.
+independently the simulation cost scales linearly with *T*.
 
 Fewer trajectories mean each one accumulates more shots, which reduces
-shot-noise variance per trajectory and lowers wall-clock time. The risk
-is bias: if T is too small, high-probability regions of the noise space
-may be under-sampled and distort the result.
+shot-noise variance per trajectory and lowers wall-clock time.
 
 Practical guidance
 
@@ -2423,12 +2419,7 @@ table](https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.ht
 | .literal               |                                             |
 | .notranslate}]{.pre}   |                                             |
 +------------------------+---------------------------------------------+
-| [`                     | Combines [`mqpu`{.docutils .literal         |
-| remote-mqpu`{.docutils | .notranslate}]{.pre} with other backends    |
-| .literal               | for distributed execution.                  |
-| .notranslate}]{.pre}   |                                             |
-+------------------------+---------------------------------------------+
-| [`density              | CPU density matrix simulator. Recommended   |
+| [`density              | CPU density matrix simulator. Can be used   |
 | -matrix-cpu`{.docutils | for small noisy circuits (\< 14 qubits) and |
 | .literal               | development/testing.                        |
 | .notranslate}]{.pre}   |                                             |
@@ -2449,7 +2440,7 @@ Python
     # Single GPU (most common for production)
     cudaq.set_target("nvidia")
 
-    # CPU density matrix (development / small circuits)
+    # CPU density matrix
     cudaq.set_target("density-matrix-cpu")
 
     # Multi-GPU for large circuits

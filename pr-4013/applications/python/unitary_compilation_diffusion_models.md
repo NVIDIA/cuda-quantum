@@ -1887,10 +1887,16 @@ This tutorial is based on the work presented in
 >
 > </div>
 
-and \> ["Quantum circuit synthesis with diffusion models", Florian
-Fürrutter, Gorka Muñoz-Gil & Hans J. Briegel , Nat. Mach. Intell. 6,
-515--524 (2024)](https://doi.org/10.1038/s42256-024-00831-9){.reference
-.external}.
+and
+
+> <div>
+>
+> ["Quantum circuit synthesis with diffusion models", Florian Fürrutter,
+> Gorka Muñoz-Gil & Hans J. Briegel , Nat. Mach. Intell. 6, 515--524
+> (2024)](https://doi.org/10.1038/s42256-024-00831-9){.reference
+> .external}.
+>
+> </div>
 
 Quantum computing relies on efficiently translating quantum operations
 into viable physical realizations on existing quantum hardware.
@@ -1968,10 +1974,8 @@ more about the practical implementation of diffusion models we recommend
 .external}.
 
 In the following, we will use [`cudaq`{.docutils .literal
-.notranslate}]{.pre} and [`` `genQC ``{.docutils .literal
-.notranslate}]{.pre}
-\<[https://github.com/FlorianFuerrutter/genQC](https://github.com/FlorianFuerrutter/genQC){.reference
-.external}\>\`\_\_ to perform all these steps and go from a desired
+.notranslate}]{.pre} and [`genQC`{.docutils .literal
+.notranslate}]{.pre} to perform all these steps and go from a desired
 unitary matrix [\\(U\\)]{.math .notranslate .nohighlight} to a quantum
 circuit that we can execute using CUDA-Q.
 
@@ -2006,7 +2010,7 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    !pip install genQC==0.2.3 huggingface-hub==0.36.0 torch --break-system-packages -q
+    !pip install --no-compile genQC==0.2.5 -q
 :::
 :::
 :::
@@ -2054,7 +2058,8 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    device = util.infer_torch_device() # Use CUDA if we have a GPU
+     # Use CUDA if we have a GPU available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
 :::
 :::
@@ -2066,14 +2071,13 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [INFO]: Cuda device has a capability of 8.6 (>= 8), allowing tf32 matmul.
     cuda
 :::
 :::
 :::
 
 In this tutorial, we will use a small and a large pre-trained diffusion
-model (up to \~300M parameters). We only run the large model if we have
+model (up to \~150M parameters). We only run the large model if we have
 a GPU available, such we have a reasonable computation time of the
 notebook for CPU-only machines.
 
@@ -2294,7 +2298,7 @@ changed in principle, as they are sample hyperparameters.
 
 Next, we load pre-trained model weights for a discrete-continuous model
 directly from [Hugging Face:
-Floki00/cirdit_multimodal_compile_3to5qubit](https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit){.reference
+Floki00/cirdit_multimodal_compile_3to5qubit_v1.1](https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit_v1.1){.reference
 .external} and setup the DM pipeline. For details of the model, we refer
 to the paper [Fürrutter et al.,
 2025](https://doi.org/10.48550/arXiv.2506.01666){.reference .external}.
@@ -2311,8 +2315,35 @@ gates.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     cont_pipeline = MultimodalDiffusionPipeline_ParametrizedCompilation.from_pretrained(
-        repo_id="Floki00/cirdit_multimodal_compile_3to5qubit", # Download model from Hugging Face
+        repo_id="Floki00/cirdit_multimodal_compile_3to5qubit_v1.1", # Download model from Hugging Face
         device=device)
+:::
+:::
+:::
+
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    [INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors` onto device: cuda.
+    [INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors).
+    [INFO]: Creating `UnitaryTextEncoder` with `unitary_downscale_factor=4` and `encoding_ch=640`.
+    [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT` instantiated from given `config` on cuda.
+    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/model.safetensors` onto device: cuda.
+:::
+:::
+:::
+
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .stderr .docutils .container}
+::: highlight
+    Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+    WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
 :::
 :::
 :::
@@ -2323,11 +2354,6 @@ gates.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/f6e276513d6d26d48bd5a8dbde09efdfc212ce7d/beta_schedule_learned_linear.safetensors` onto device: cuda.
-    [INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/f6e276513d6d26d48bd5a8dbde09efdfc212ce7d/beta_schedule_learned_linear.safetensors).
-    [INFO]: Creating `UnitaryTextEncoder` with `unitary_downscale_factor=4` and `encoding_ch=640`.
-    [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT` instantiated from given `config` on cuda.
-    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/f6e276513d6d26d48bd5a8dbde09efdfc212ce7d/model.safetensors` onto device: cuda.
     [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT`. Freeze model: True
     [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given `config` on cuda.
     [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Found no key `save_type` in `config`. No state dict loaded.
@@ -2335,7 +2361,7 @@ gates.
     [INFO]: provided `unique_class_values` ([-3, -2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), enforcing `num_clrs=len(unique_class_values)=12`.
     [INFO]: Created `nn.Embedding` with a total of 14 vectors in a 16 dimensional space.
     [INFO]: `genQC.models.embedding.rotational_preset_embedder.RotationalMultimodialPresetEmbedderTiny` instantiated from given `config` on cuda.
-    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/f6e276513d6d26d48bd5a8dbde09efdfc212ce7d/embedder.safetensors` onto device: cuda.
+    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/embedder.safetensors` onto device: cuda.
     [INFO]: `genQC.models.embedding.rotational_preset_embedder.RotationalMultimodialPresetEmbedderTiny`. Freeze model: True
 :::
 :::
@@ -2448,9 +2474,9 @@ performed from the trained model.
     cont_pipeline.scheduler.set_timesteps(timesteps)
     cont_pipeline.scheduler_w.set_timesteps(timesteps)
 
-    cont_pipeline.lambda_h = 1.1
-    cont_pipeline.lambda_w = 0.4
-    cont_pipeline.g_h = 0.4
+    cont_pipeline.lambda_h = 1.0
+    cont_pipeline.lambda_w = 0.35
+    cont_pipeline.g_h = 0.3
     cont_pipeline.g_w = 0.1
 :::
 :::
@@ -2462,8 +2488,8 @@ performed from the trained model.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/f6e276513d6d26d48bd5a8dbde09efdfc212ce7d/beta_schedule_learned_linear.safetensors` onto device: cuda.
-    [INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/f6e276513d6d26d48bd5a8dbde09efdfc212ce7d/beta_schedule_learned_linear.safetensors).
+    [INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors` onto device: cuda.
+    [INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors).
 :::
 :::
 :::
@@ -2773,31 +2799,30 @@ Next, we plot the best three circuits in the following cell.
 ::: {.output_area .docutils .container}
 ::: highlight
     Circuit has an infidelity of 3.4e-08.
-         ╭───╮╭───╮        ╭───╮╭───╮
-    q0 : ┤ x ├┤ z ├─────●──┤ z ├┤ z ├──●──
-         ╰─┬─╯╰───╯   ╭─┴─╮├───┤╰───╯╭─┴─╮
-    q1 : ──●────────╳─┤ x ├┤ z ├─────┤ x ├
-           │  ╭───╮ │ ╰─┬─╯╰───╯     ╰─┬─╯
-    q2 : ──●──┤ h ├─╳───●──────────────●──
+         ╭───╮                          ╭───╮
+    q0 : ┤ x ├──╳───╳──╳───●─────────●──┤ z ├
+         ╰─┬─╯  │   │  │ ╭─┴─╮╭───╮╭─┴─╮╰───╯
+    q1 : ──●────╳───┼──╳─┤ x ├┤ z ├┤ x ├─────
+           │  ╭───╮ │    ╰─┬─╯╰───╯╰─┬─╯
+    q2 : ──●──┤ h ├─╳──────●─────────●───────
               ╰───╯
 
     Circuit has an infidelity of 3.4e-08.
-            ╭───╮╭───╮
-    q0 : ───┤ x ├┤ z ├──●─────────●──
-            ╰─┬─╯├───┤╭─┴─╮╭───╮╭─┴─╮
-    q1 : ─╳───●──┤ h ├┤ x ├┤ z ├┤ x ├
-          │   │  ╰───╯╰─┬─╯╰───╯╰─┬─╯
-    q2 : ─╳───●─────────●─────────●──
-
+         ╭───╮╭───╮
+    q0 : ┤ x ├┤ z ├───────●─────────●───────
+         ╰─┬─╯╰───╯╭───╮╭─┴─╮╭───╮╭─┴─╮
+    q1 : ──●────╳──┤ h ├┤ x ├┤ z ├┤ x ├─────
+           │    │  ├───┤╰─┬─╯╰───╯╰─┬─╯╭───╮
+    q2 : ──●────╳──┤ z ├──●─────────●──┤ z ├
+                   ╰───╯               ╰───╯
 
     Circuit has an infidelity of 3.4e-08.
-         ╭───╮             ╭───╮
-    q0 : ┤ x ├──────────●──┤ z ├──●───────
-         ╰─┬─╯   ╭───╮╭─┴─╮├───┤╭─┴─╮
-    q1 : ──●───╳─┤ h ├┤ x ├┤ z ├┤ x ├─────
-           │   │ ├───┤╰─┬─╯╰───╯╰─┬─╯╭───╮
-    q2 : ──●───╳─┤ z ├──●─────────●──┤ z ├
-                 ╰───╯               ╰───╯
+         ╭───╮╭───╮
+    q0 : ┤ x ├┤ z ├───────●─────────●──
+         ╰─┬─╯╰───╯╭───╮╭─┴─╮╭───╮╭─┴─╮
+    q1 : ──●────╳──┤ h ├┤ x ├┤ z ├┤ x ├
+           │    │  ╰───╯╰─┬─╯╰───╯╰─┬─╯
+    q2 : ──●────╳─────────●─────────●──
 :::
 :::
 :::
@@ -2900,32 +2925,31 @@ Next, we plot the best three circuits in the following cell.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 2.6e-05.
-         ╭───╮
-    q0 : ┤ x ├────●─────────────●────────●────●────●──
-         ╰─┬─╯  ╭─┴─╮           │      ╭─┴─╮  │  ╭─┴─╮
-    q1 : ──●────┤ x ├────╳──────┼──────┤ x ├──┼──┤ x ├
-           │  ╭─┴───┴──╮ │ ╭────┴─────╮╰───╯╭─┴─╮╰───╯
-    q2 : ──●──┤ ry(11) ├─╳─┤ r1(3.15) ├─────┤ x ├─────
-              ╰────────╯   ╰──────────╯     ╰───╯
+    Circuit has an infidelity of 8.9e-05.
+         ╭───╮                          ╭───────────╮
+    q0 : ┤ x ├──────●────────●───────●──┤ rz(3.139) ├
+         ╰─┬─╯╭─────┴─────╮  │     ╭─┴─╮╰───────────╯
+    q1 : ──●──┤ r1(9.421) ├──┼───╳─┤ x ├─────────────
+           │  ├───────────┤╭─┴─╮ │ ╰───╯
+    q2 : ──●──┤ ry(11.01) ├┤ x ├─╳───────────────────
+              ╰───────────╯╰───╯
 
-    Circuit has an infidelity of 3.2e-05.
+    Circuit has an infidelity of 1.3e-04.
          ╭───╮
-    q0 : ┤ x ├──────────────────────●────────●────────●────────●──
-         ╰─┬─╯   ╭───────────╮      │        │        │        │
-    q1 : ──●───╳─┤ ry(11.01) ├──────┼────────┼────────┼────────┼──
-           │   │ ╰───────────╯╭─────┴─────╮╭─┴─╮╭─────┴─────╮╭─┴─╮
-    q2 : ──●───╳──────────────┤ r1(6.279) ├┤ x ├┤ r1(3.139) ├┤ x ├
-                              ╰───────────╯╰───╯╰───────────╯╰───╯
+    q0 : ┤ x ├──────●───────────●────────●───────●────●──
+         ╰─┬─╯    ╭─┴─╮    ╭────┴─────╮  │       │  ╭─┴─╮
+    q1 : ──●──────┤ x ├────┤ r1(9.44) ├──┼───╳───┼──┤ x ├
+           │  ╭───┴───┴───╮╰──────────╯╭─┴─╮ │ ╭─┴─╮╰───╯
+    q2 : ──●──┤ ry(11.01) ├────────────┤ x ├─╳─┤ x ├─────
+              ╰───────────╯            ╰───╯   ╰───╯
 
-    Circuit has an infidelity of 3.5e-05.
+    Circuit has an infidelity of 1.6e-04.
          ╭───╮
-    q0 : ┤ x ├─────●──────────────────●────────●──
-         ╰─┬─╯     │  ╭────────╮      │        │
-    q1 : ──●───╳───┼──┤ ry(11) ├──────┼────────┼──
-           │   │ ╭─┴─╮╰────────╯╭─────┴─────╮╭─┴─╮
-    q2 : ──●───╳─┤ x ├──────────┤ r1(3.131) ├┤ x ├
-                 ╰───╯          ╰───────────╯╰───╯
+    q0 : ┤ x ├──●────────●────────●──────────────────
+         ╰─┬─╯╭─┴─╮╭─────┴─────╮╭─┴─╮   ╭───────────╮
+    q1 : ──●──┤ x ├┤ r1(9.436) ├┤ x ├─╳─┤ ry(11.02) ├
+           │  ╰───╯╰───────────╯╰───╯ │ ╰───────────╯
+    q2 : ──●──────────────────────────╳──────────────
 :::
 :::
 :::
@@ -2988,32 +3012,32 @@ changes.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 1.2e-04.
+    Circuit has an infidelity of 1.6e-04.
          ╭───╮
-    q0 : ┤ x ├──────●───────────────────────────●────────●──
-         ╰─┬─╯    ╭─┴─╮         ╭───╮           │        │
-    q1 : ──●──────┤ x ├──────●──┤ x ├──●────────┼────────┼──
-           │  ╭───┴───┴───╮╭─┴─╮╰─┬─╯╭─┴─╮╭─────┴─────╮╭─┴─╮
-    q2 : ──●──┤ ry(10.99) ├┤ x ├──●──┤ x ├┤ r1(3.167) ├┤ x ├
-              ╰───────────╯╰───╯     ╰───╯╰───────────╯╰───╯
+    q0 : ┤ x ├──────●────────────●─────────────●────────────
+         ╰─┬─╯    ╭─┴─╮    ╭─────┴─────╮╭───╮╭─┴─╮     ╭───╮
+    q1 : ──●──────┤ x ├────┤ r1(3.168) ├┤ x ├┤ x ├──●──┤ x ├
+           │  ╭───┴───┴───╮╰───────────╯╰─┬─╯╰───╯╭─┴─╮╰─┬─╯
+    q2 : ──●──┤ ry(11.01) ├───────────────●───────┤ x ├──●──
+              ╰───────────╯                       ╰───╯
 
-    Circuit has an infidelity of 1.9e-04.
-         ╭───╮    ╭───╮         ╭───╮╭───────────╮
-    q0 : ┤ x ├────┤ h ├─────────┤ x ├┤ ry(10.97) ├─────
-         ╰─┬─╯    ╰───╯         ╰─┬─╯╰───┬───┬───╯
-    q1 : ──●─────────────────●────●──────┤ x ├──────●──
-           │  ╭───────────╮╭─┴─╮         ╰─┬─╯    ╭─┴─╮
-    q2 : ──●──┤ ry(10.99) ├┤ x ├───────────●──────┤ x ├
-              ╰───────────╯╰───╯                  ╰───╯
+    Circuit has an infidelity of 2.4e-04.
+         ╭───╮    ╭───╮    ╭───╮╭───────────╮
+    q0 : ┤ x ├────┤ h ├────┤ x ├┤ ry(10.97) ├──────────
+         ╰─┬─╯    ╰───╯    ╰─┬─╯╰───┬───┬───╯     ╭───╮
+    q1 : ──●─────────────────●──────┤ x ├──────●──┤ x ├
+           │  ╭───────────╮         ╰─┬─╯    ╭─┴─╮╰─┬─╯
+    q2 : ──●──┤ ry(11.01) ├───────────●──────┤ x ├──●──
+              ╰───────────╯                  ╰───╯
 
-    Circuit has an infidelity of 2.7e-04.
-         ╭───╮  ╭───╮                  ╭───╮╭───────────╮
-    q0 : ┤ x ├──┤ h ├──────────────────┤ x ├┤ ry(10.96) ├
-         ╰─┬─╯  ╰───╯   ╭───╮     ╭───╮╰─┬─╯╰───────────╯
-    q1 : ──●────────────┤ x ├──●──┤ x ├──┼───────────────
-           │  ╭────────╮╰─┬─╯╭─┴─╮╰─┬─╯  │
-    q2 : ──●──┤ ry(11) ├──●──┤ x ├──●────●───────────────
-              ╰────────╯     ╰───╯
+    Circuit has an infidelity of 2.8e-04.
+         ╭───╮
+    q0 : ┤ x ├──────●─────────────────●─────────────●───────
+         ╰─┬─╯    ╭─┴─╮         ╭─────┴─────╮╭───╮  │
+    q1 : ──●──────┤ x ├──────●──┤ r1(3.179) ├┤ x ├──┼────●──
+           │  ╭───┴───┴───╮╭─┴─╮╰───────────╯╰─┬─╯╭─┴─╮╭─┴─╮
+    q2 : ──●──┤ ry(11.01) ├┤ x ├───────────────●──┤ x ├┤ x ├
+              ╰───────────╯╰───╯                  ╰───╯╰───╯
 :::
 :::
 :::
@@ -3092,7 +3116,7 @@ As before, we sample and plot the best circuits
                                               U=U,
                                               prompt=prompt,
                                               num_of_qubits=num_of_qubits,
-                                              samples=64,
+                                              samples=128,
                                               discrete_model=False)
 :::
 :::
@@ -3118,51 +3142,51 @@ As before, we sample and plot the best circuits
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 1.6e-02.
-            ╭───╮                                                            »
-    q0 : ─╳─┤ h ├──────●────────────●────────────●───────────────────────────»
-          │ ╰───╯      │            │            │                           »
-    q1 : ─┼────────────┼────────────┼────────────┼─────────────────●───────╳─»
-          │            │      ╭─────┴─────╮      │      ╭───╮╭─────┴─────╮ │ »
-    q2 : ─┼────────────┼──────┤ r1(1.617) ├──────┼──────┤ h ├┤ r1(1.687) ├─╳─»
-          │      ╭─────┴─────╮╰───────────╯╭─────┴─────╮╰───╯╰───────────╯   »
-    q3 : ─╳──────┤ r1(7.899) ├─────────────┤ r1(11.38) ├─────────────────────»
-                 ╰───────────╯             ╰───────────╯                     »
+    Circuit has an infidelity of 2.5e-02.
+                                                                               »
+    q0 : ───────────────────────────────────────────────────────────────●──────»
+                                           ╭───╮╭───╮             ╭─────┴─────╮»
+    q1 : ───────────────────╳──────────────┤ x ├┤ h ├──────●──────┤ r1(1.076) ├»
+                            │              ╰─┬─╯╰───╯╭─────┴─────╮╰───┬───┬───╯»
+    q2 : ───────────●───────╳───────●────────●───────┤ r1(4.595) ├────┤ h ├────»
+         ╭───╮╭─────┴─────╮   ╭─────┴─────╮          ╰───────────╯    ╰───╯    »
+    q3 : ┤ h ├┤ r1(7.854) ├───┤ r1(7.343) ├────────────────────────────────────»
+         ╰───╯╰───────────╯   ╰───────────╯                                    »
 
     ################################################################################
 
 
-    ──────●────────────────────────────────────────────
+    ──────●───────╳──────
+          │       │
+    ──────┼───────┼──────
+    ╭─────┴─────╮ │
+    ┤ r1(7.848) ├─┼──────
+    ╰───────────╯ │ ╭───╮
+    ──────────────╳─┤ h ├
+                    ╰───╯
+
+    Circuit has an infidelity of 2.5e-02.
+                                                                               »
+    q0 : ──────────────────────────────────────────────────╳───────●───────────»
+                                                           │       │           »
+    q1 : ───────────────────────╳───────●──────────────────┼───────┼───────────»
+                          ╭───╮ │ ╭─────┴─────╮            │ ╭─────┴─────╮╭───╮»
+    q2 : ──────────●──────┤ h ├─╳─┤ r1(1.551) ├─────●──────┼─┤ r1(3.866) ├┤ h ├»
+         ╭───╮╭────┴─────╮╰───╯   ╰───────────╯╭────┴────╮ │ ╰───────────╯╰───╯»
+    q3 : ┤ h ├┤ r1(7.89) ├─────────────────────┤ r1(9.6) ├─╳───────────────────»
+         ╰───╯╰──────────╯                     ╰─────────╯                     »
+
+    ################################################################################
+
+
+    ───────────────────────────────
+
+    ──────●────────────────────────
           │
-    ──────┼──────────────────●─────────────────────────
-    ╭─────┴──────╮╭───╮      │
-    ┤ r1(0.8472) ├┤ h ├──────┼─────────────●───────────
-    ╰────────────╯╰───╯╭─────┴──────╮╭─────┴─────╮╭───╮
-    ───────────────────┤ r1(0.9613) ├┤ r1(7.672) ├┤ h ├
-                       ╰────────────╯╰───────────╯╰───╯
-
-    Circuit has an infidelity of 4.5e-02.
-                                                                              »
-    q0 : ────────────────────────╳───────●────────────────────────────────────»
-                                 │ ╭─────┴──────╮                             »
-    q1 : ────────────────────────┼─┤ r1(0.8751) ├──────●────────────────────╳─»
-                           ╭───╮ │ ╰────────────╯╭─────┴─────╮              │ »
-    q2 : ───────────●──────┤ h ├─┼───────────────┤ r1(7.991) ├──────●───────╳─»
-         ╭───╮╭─────┴─────╮╰───╯ │               ╰───────────╯╭─────┴─────╮   »
-    q3 : ┤ h ├┤ r1(1.796) ├──────╳────────────────────────────┤ r1(7.399) ├───»
-         ╰───╯╰───────────╯                                   ╰───────────╯   »
-
-    ################################################################################
-
-
-    ───────────────────────
-
-    ───────────────────────
-    ╭───╮
-    ┤ h ├──────●───────────
-    ╰───╯╭─────┴─────╮╭───╮
-    ─────┤ r1(1.437) ├┤ h ├
-         ╰───────────╯╰───╯
+    ──────┼────────────●───────────
+    ╭─────┴─────╮╭─────┴─────╮╭───╮
+    ┤ r1(7.365) ├┤ r1(1.616) ├┤ h ├
+    ╰───────────╯╰───────────╯╰───╯
 :::
 :::
 :::
@@ -3255,7 +3279,7 @@ As before, we sample and plot the best circuits
                                               U=U,
                                               prompt=prompt,
                                               num_of_qubits=num_of_qubits,
-                                              samples=64,
+                                              samples=128,
                                               discrete_model=False)
 :::
 :::
@@ -3281,32 +3305,32 @@ As before, we sample and plot the best circuits
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 3.5e-02.
+    Circuit has an infidelity of 2.7e-02.
          ╭───────────╮
-    q0 : ┤ rx(12.43) ├────────────────────────────────────────────
-         ╰───┬───┬───╯                          ╭───╮
-    q1 : ────┤ x ├──────────●───────────────────┤ x ├─────────────
-             ╰─┬─╯    ╭─────┴─────╮╭───────────╮╰─┬─╯╭───────────╮
-    q2 : ──────●──────┤ r1(12.51) ├┤ rx(12.38) ├──●──┤ rx(12.47) ├
-                      ╰───────────╯╰───────────╯     ╰───────────╯
+    q0 : ┤ rx(12.45) ├─────────────────────────────────
+         ╰───────────╯     ╭───╮             ╭───╮
+    q1 : ───────────────●──┤ h ├──────●──────┤ h ├──●──
+         ╭───────────╮╭─┴─╮╰───╯╭─────┴─────╮╰───╯╭─┴─╮
+    q2 : ┤ rx(12.41) ├┤ x ├─────┤ r1(12.27) ├─────┤ x ├
+         ╰───────────╯╰───╯     ╰───────────╯     ╰───╯
 
-    Circuit has an infidelity of 3.6e-02.
-         ╭───────────╮
-    q0 : ┤ rx(12.42) ├────────────────────────────
-         ╰───┬───┬───╯                       ╭───╮
-    q1 : ────┤ x ├───────────────●───────────┤ x ├
-             ╰─┬─╯    ╭───╮╭─────┴─────╮╭───╮╰─┬─╯
-    q2 : ──────●──────┤ h ├┤ r1(12.44) ├┤ h ├──●──
-                      ╰───╯╰───────────╯╰───╯
+    Circuit has an infidelity of 3.0e-02.
 
-    Circuit has an infidelity of 3.6e-02.
+    q0 : ─────────────────────────────────────────────
+              ╭───╮             ╭───╮
+    q1 : ──●──┤ h ├──────●──────┤ h ├──●──────────────
+         ╭─┴─╮╰───╯╭─────┴─────╮╰───╯╭─┴─╮╭──────────╮
+    q2 : ┤ x ├─────┤ r1(12.29) ├─────┤ x ├┤ rx(12.4) ├
+         ╰───╯     ╰───────────╯     ╰───╯╰──────────╯
+
+    Circuit has an infidelity of 3.3e-02.
          ╭───────────╮
-    q0 : ┤ rx(12.44) ├──────────────────────────
-         ╰───────────╯╭───────────╮╭───╮
-    q1 : ──────●──────┤ rx(12.41) ├┤ x ├──●───╳─
-             ╭─┴─╮    ├───────────┤╰─┬─╯╭─┴─╮ │
-    q2 : ────┤ x ├────┤ rx(12.43) ├──●──┤ x ├─╳─
-             ╰───╯    ╰───────────╯     ╰───╯
+    q0 : ┤ rx(12.44) ├──────────────────────────────────────────────
+         ├───────────┤╭───╮                                    ╭───╮
+    q1 : ┤ rz(12.52) ├┤ x ├────────────────────────●───────────┤ x ├
+         ╰───────────╯╰─┬─╯╭───╮╭───────────╮╭─────┴─────╮╭───╮╰─┬─╯
+    q2 : ───────────────●──┤ h ├┤ rz(12.39) ├┤ r1(6.183) ├┤ h ├──●──
+                           ╰───╯╰───────────╯╰───────────╯╰───╯
 :::
 :::
 :::
@@ -3409,7 +3433,7 @@ circuits.
 :::
 :::
 
-As we see above, we now have around 15 kernels that compile the desired
+As we see above, we now have multiple kernels that compile the desired
 unitary! This is particularly valuable when dealing with hardware
 constraints, where, for instance, we might want to avoid using certain
 qubits or specific gates. One practical example is finding the circuit
@@ -3486,13 +3510,13 @@ number of [`cx`{.docutils .literal .notranslate}]{.pre} gates:
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    The model generated 14 distinct circuits with infidelity < 0.01.
-    These circuits have this number of cx gates: [0, 2, 1, 0, 2, 3, 2, 2, 1, 2, 2, 1, 1, 1]
+    The model generated 56 distinct circuits with infidelity < 0.01.
+    These circuits have this number of cx gates: [0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 2, 1, 2, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 2, 0, 0, 1, 1, 1, 2, 0, 1, 0, 1, 1, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 2, 1, 0]
 :::
 :::
 :::
 
-As we can see, the diffusion model (DM) uses 0 to 3 CNOT gates to
+As we can see, the diffusion model (DM) uses 0 to 2 CNOT gates to
 compile the unitary. We can now print a few of these circuits to select
 the one that best suits our needs, or to study whether there are any
 interesting patterns the model employs for this specific unitary.
@@ -3538,31 +3562,31 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 ::: {.output_area .docutils .container}
 ::: highlight
     Generated circuit with 0 cx:
-         ╭───╮                     ╭───────────╮
-    q0 : ┤ x ├──────────────●──────┤ rz(3.132) ├
-         ╰─┬─╯              │      ├───────────┤
-    q1 : ──●────────╳───────┼──────┤ rz(9.378) ├
-           │  ╭───╮ │ ╭─────┴─────╮╰───────────╯
-    q2 : ──●──┤ h ├─╳─┤ r1(3.084) ├─────────────
-              ╰───╯   ╰───────────╯
+         ╭───╮                              ╭──────────╮
+    q0 : ┤ x ├───────────────────────●──────┤ rz(9.39) ├
+         ╰─┬─╯   ╭───────╮╭───╮      │      ╰──────────╯
+    q1 : ──●───╳─┤ rx(3) ├┤ h ├──────┼──────────────────
+           │   │ ╰───────╯╰───╯╭─────┴─────╮
+    q2 : ──●───╳───────────────┤ r1(9.437) ├────────────
+                               ╰───────────╯
 
     Generated circuit with 0 cx:
-         ╭───╮╭───────────╮╭───╮
-    q0 : ┤ x ├┤ ry(1.563) ├┤ h ├──────●─────────
-         ╰─┬─╯╰───────────╯╰───╯╭─────┴─────╮
-    q1 : ──●────────────────────┤ r1(3.135) ├─╳─
-           │   ╭────────╮       ╰───────────╯ │
-    q2 : ──●───┤ ry(11) ├─────────────────────╳─
-               ╰────────╯
+         ╭───╮                                  ╭───────────╮
+    q0 : ┤ x ├───────────────────────────●──────┤ rz(3.146) ├
+         ╰─┬─╯                           │      ├───────────┤
+    q1 : ──●─────────────────────╳───────┼──────┤ rz(3.083) ├
+           │  ╭───────────╮╭───╮ │ ╭─────┴─────╮╰───────────╯
+    q2 : ──●──┤ rx(6.304) ├┤ h ├─╳─┤ r1(3.084) ├─────────────
+              ╰───────────╯╰───╯   ╰───────────╯
 
-    Generated circuit with 1 cx:
-         ╭───╮    ╭───╮       ╭───╮╭───────────╮
-    q0 : ┤ x ├────┤ h ├───────┤ x ├┤ ry(4.687) ├
-         ╰─┬─╯    ╰───╯       ╰─┬─╯╰───────────╯
-    q1 : ──●────────────────╳───┼───────────────
-           │  ╭───────────╮ │   │
-    q2 : ──●──┤ ry(4.727) ├─╳───●───────────────
-              ╰───────────╯
+    Generated circuit with 0 cx:
+         ╭───╮╭───────────╮
+    q0 : ┤ x ├┤ rz(3.147) ├──────●────────────────────────
+         ╰─┬─╯╰───────────╯      │      ╭───╮╭───────────╮
+    q1 : ──●────────╳────────────┼──────┤ h ├┤ rz(9.304) ├
+           │        │      ╭─────┴─────╮╰───╯╰───────────╯
+    q2 : ──●────────╳──────┤ r1(9.438) ├──────────────────
+                           ╰───────────╯
 :::
 :::
 :::
@@ -3588,8 +3612,8 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum e66d09ba4a4a41b3a3c997223e47f9b21e699952)
-    genQC Version 0.2.3
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 6967da4da1a4615bfba77c04fdb95c0164e0baad)
+    genQC Version 0.2.5
 :::
 :::
 :::

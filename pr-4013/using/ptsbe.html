@@ -1459,17 +1459,13 @@ the result. This API is experimental and may be subject to change in future rele
 </div>
 <section id="trajectory-vs-shot-trade-offs">
 <h4>Trajectory vs Shot Trade-offs<a class="headerlink" href="#trajectory-vs-shot-trade-offs" title="Permalink to this heading">¶</a></h4>
-<p>The central tension in PTSBE is between trajectory count T and
-shots per trajectory N/T.</p>
+<p>The central tension in PTSBE is between trajectory count <em>T</em> and
+shots per trajectory <em>N/T</em>.</p>
 <p>Using more trajectories covers more of the noise space and reduces bias in the
 estimated distribution, but since each trajectory is simulated independently the
-simulation cost scales linearly with T. Beyond a certain point there are
-diminishing returns: once T approaches the total trajectory space size,
-additional trajectories yield little improvement.</p>
+simulation cost scales linearly with <em>T</em>.</p>
 <p>Fewer trajectories mean each one accumulates more shots, which reduces
-shot-noise variance per trajectory and lowers wall-clock time. The risk is
-bias: if T is too small, high-probability regions of the noise space may be
-under-sampled and distort the result.</p>
+shot-noise variance per trajectory and lowers wall-clock time.</p>
 <p class="rubric">Practical guidance</p>
 <p>As a rule of thumb, <code class="docutils literal notranslate"><span class="pre">max_trajectories</span></code> between 100 and 10 000 covers the
 majority of practical use cases. Below 100, bias may dominate. Above 10 000,
@@ -1510,14 +1506,11 @@ Handles thousands of qubits.</p></td>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tensornet-mps</span></code></p></td>
 <td><p>Matrix product state (approximate). Efficient for square-shaped circuits.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">remote-mqpu</span></code></p></td>
-<td><p>Combines <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> with other backends for distributed execution.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code></p></td>
-<td><p>CPU density matrix simulator. Recommended for small noisy circuits
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code></p></td>
+<td><p>CPU density matrix simulator. Can be used for small noisy circuits
 (&lt; 14 qubits) and development/testing.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">qpp-cpu</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">qpp-cpu</span></code></p></td>
 <td><p>CPU state vector simulator. Lightweight option for small circuits
 (&lt; 28 qubits).</p></td>
 </tr>
@@ -1529,7 +1522,7 @@ Handles thousands of qubits.</p></td>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Single GPU (most common for production)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 
-<span class="c1"># CPU density matrix (development / small circuits)</span>
+<span class="c1"># CPU density matrix</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
 
 <span class="c1"># Multi-GPU for large circuits</span>
