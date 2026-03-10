@@ -96,9 +96,8 @@ to set them every time you launch a new shell, we recommend adding them to
 
 ### macOS
 
-As Cuda-Q does not support CUDA on macOS 
-we recommend installing in a virtual environment
-instead of using `conda`:
+GPU-acceleration is not available on macOS, so a virtual environment
+is all you need:
 
 [//]: # (Begin macos install)
 
@@ -109,9 +108,6 @@ pip install cudaq
 ```
 
 [//]: # (End macos install)
-
-No additional setup is needed. GPU-acceleration and multi-GPU
-simulation are available on Linux only.
 
 [//]: # (End complete install)
 
