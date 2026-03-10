@@ -97,7 +97,8 @@ to set them every time you launch a new shell, we recommend adding them to
 ### macOS
 
 As Cuda-Q does not support CUDA on macOS 
-we recommend installing in a virtual environment:
+we recommend installing in a virtual environment
+instead of using `conda`:
 
 [//]: # (Begin macos install)
 
