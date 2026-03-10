@@ -230,19 +230,15 @@ the result. This API is experimental and may be subject to change in future rele
 Trajectory vs Shot Trade-offs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The central tension in PTSBE is between trajectory count T and
-shots per trajectory N/T.
+The central tension in PTSBE is between trajectory count *T* and
+shots per trajectory *N/T*.
 
 Using more trajectories covers more of the noise space and reduces bias in the
 estimated distribution, but since each trajectory is simulated independently the
-simulation cost scales linearly with T. Beyond a certain point there are
-diminishing returns: once T approaches the total trajectory space size,
-additional trajectories yield little improvement.
+simulation cost scales linearly with *T*.
 
 Fewer trajectories mean each one accumulates more shots, which reduces
-shot-noise variance per trajectory and lowers wall-clock time. The risk is
-bias: if T is too small, high-probability regions of the noise space may be
-under-sampled and distort the result.
+shot-noise variance per trajectory and lowers wall-clock time.
 
 .. rubric:: Practical guidance
 
@@ -277,10 +273,8 @@ plus ``density-matrix-cpu`` and ``qpp-cpu``:
        Handles thousands of qubits.
    * - ``tensornet-mps``
      - Matrix product state (approximate). Efficient for square-shaped circuits.
-   * - ``remote-mqpu``
-     - Combines ``mqpu`` with other backends for distributed execution.
    * - ``density-matrix-cpu``
-     - CPU density matrix simulator. Recommended for small noisy circuits
+     - CPU density matrix simulator. Can be used for small noisy circuits
        (< 14 qubits) and development/testing.
    * - ``qpp-cpu``
      - CPU state vector simulator. Lightweight option for small circuits
@@ -295,7 +289,7 @@ Set the target:
       # Single GPU (most common for production)
       cudaq.set_target("nvidia")
 
-      # CPU density matrix (development / small circuits)
+      # CPU density matrix
       cudaq.set_target("density-matrix-cpu")
 
       # Multi-GPU for large circuits
