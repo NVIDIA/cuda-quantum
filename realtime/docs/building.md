@@ -45,15 +45,25 @@ for realtime coprocessing between FPGA and GPU systems.
 
 ### Hardware Requirements
 
-- NVIDIA ConnectX-7
+- NVIDIA ConnectX-7/BlueField
 
 - FPGA
+
+### Software Requirements
+
+- `DOCA` version 3.3 with `gpunetio`
+
+Please refer to [the download page](https://developer.nvidia.com/doca-downloads)
+to install `DOCA` for your system.
+
+> **_NOTE:_** Please make sure `doca-sdk-gpunetio` is installed along with `doca-all`.
 
 ### Build Holoscan Sensor Bridge
 
 To build CUDA-Q Realtime with `HSB`, first, one needs to compile the `HSB` code.
 
-After cloning `HSB` from [GitHub](<FIXME: LINK TO HSB GitHub>), build it with
+After cloning `HSB` from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA),
+build it with
 
 ```bash
 # HOLOLINK_DIR is the top-level directory of HSB source code 
@@ -102,7 +112,7 @@ To run the end-to-end RPC dispatch testing between FPGA and GPU
 using CUDA-Q Realtime and Holoscan Sensor Bridge,
 
 - Load the `HSB` bit-file into the FPGA.
-The bit-file can be obtained from [here](<FIXME: WHERE TO GET THE BITFILE>).
+The bit-file can be obtained from [here](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA).
 
 - Run the test script (at `cuda-quantum/realtime/unittests/utils/hololink_test.sh`).
 For example,

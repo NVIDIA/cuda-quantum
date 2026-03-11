@@ -107,16 +107,17 @@ find_path(DOCA_INCLUDE_DIR doca_verbs.h
   PATHS ${DOCA_PATH}/include
   NO_DEFAULT_PATH)
 
+# RHEL may have DOCA libraries under ${DOCA_PATH}/lib64  
 find_library(DOCA_VERBS_LIB doca_verbs
-  PATHS ${DOCA_LIB_DIR}
+  PATHS ${DOCA_LIB_DIR} ${DOCA_PATH}/lib/ ${DOCA_PATH}/lib64/
   NO_DEFAULT_PATH)
 
 find_library(DOCA_GPUNETIO_LIB doca_gpunetio
-  PATHS ${DOCA_LIB_DIR}
+  PATHS ${DOCA_LIB_DIR} ${DOCA_PATH}/lib/ ${DOCA_PATH}/lib64/
   NO_DEFAULT_PATH)
 
 find_library(DOCA_COMMON_LIB doca_common
-  PATHS ${DOCA_LIB_DIR}
+  PATHS ${DOCA_LIB_DIR} ${DOCA_PATH}/lib/ ${DOCA_PATH}/lib64/
   NO_DEFAULT_PATH)
 
 # --------------------------------------------------------------------------- #

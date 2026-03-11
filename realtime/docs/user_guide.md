@@ -9,7 +9,7 @@ CUDA-Q Realtime, including connectivity to a
 
 ### Hardware Components
 
-- A host system with NVIDIA GPU and ConnectX-7 NIC.
+- A host system with NVIDIA GPU and ConnectX-7/BlueField NIC.
 
 - A FPGA, programmed with `HSB` IP and connected to the NIC.
 
@@ -20,10 +20,17 @@ may not have all the required capabilities.
 
 - CUDA-Q Realtime installer.
 
-- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads).
+- CUDA Runtime (12+)
+
+- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads)
+with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
 using the builtin `HSB` support of CUDA-Q realtime.
+
+<!--- -->
+
+> **_NOTE:_** Please make sure `doca-sdk-gpunetio` is installed along with `doca-all`.
 
 ## Setup
 
@@ -55,7 +62,7 @@ Please refer to this [section](#using-docker) for instructions.
 2. Load `HSB` IP bit-file to the FPGA
 
     The bit-file for supported FPGA vendors
-    can be found [here](FIXME:LINK_TO_BITFILE_LOCATION).
+    can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/).
 
 3. Run the validation script
 
@@ -127,3 +134,16 @@ Inside the container, we can then run the validation check, i.e.,
 ```bash
 bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
 ```
+
+### Manual Installation in Docker Container
+
+1. Launch your container with networking and GPU support.
+
+    For example, `--net host --gpus all` should be used to launch the container.
+
+2. Install CUDA runtime.
+
+3. Install [`DOCA`](https://developer.nvidia.com/doca-downloads)
+with `gpunetio` (`doca-sdk-gpunetio`) support.
+
+4. Download and install CUDA-Q Installer as described in the [setup](#setup) section.

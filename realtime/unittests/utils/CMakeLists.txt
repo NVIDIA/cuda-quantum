@@ -107,16 +107,17 @@ find_path(DOCA_INCLUDE_DIR doca_verbs.h
   PATHS ${DOCA_PATH}/include
   NO_DEFAULT_PATH)
 
+# RHEL may have DOCA libraries under ${DOCA_PATH}/lib64  
 find_library(DOCA_VERBS_LIB doca_verbs
-  PATHS ${DOCA_LIB_DIR}
+  PATHS ${DOCA_LIB_DIR} ${DOCA_PATH}/lib/ ${DOCA_PATH}/lib64/
   NO_DEFAULT_PATH)
 
 find_library(DOCA_GPUNETIO_LIB doca_gpunetio
-  PATHS ${DOCA_LIB_DIR}
+  PATHS ${DOCA_LIB_DIR} ${DOCA_PATH}/lib/ ${DOCA_PATH}/lib64/
   NO_DEFAULT_PATH)
 
 find_library(DOCA_COMMON_LIB doca_common
-  PATHS ${DOCA_LIB_DIR}
+  PATHS ${DOCA_LIB_DIR} ${DOCA_PATH}/lib/ ${DOCA_PATH}/lib64/
   NO_DEFAULT_PATH)
 
 # --------------------------------------------------------------------------- #
@@ -155,6 +156,11 @@ endif()
 
 target_link_libraries(hololink_fpga_playback
   PRIVATE ${HOLOLINK_CORE_LIB} CUDA::cuda_driver Threads::Threads)
+
+# Install this to so it's available for testing the installer
+install(TARGETS hololink_fpga_playback
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT hololink-tools)
 
 # =========================================================================== #
 # hololink_bridge  (generic increment bridge)
@@ -244,6 +250,10 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     BUILD_RPATH "${DOCA_LIB_DIR}"
     INSTALL_RPATH "${DOCA_LIB_DIR}")
 
+  # Install the bridge executable
+  install(TARGETS hololink_bridge
+          DESTINATION ${CMAKE_INSTALL_BINDIR}
+          COMPONENT hololink-tools)  
 else()
   if (NOT GPU_ROCE_TRANSCEIVER_LIB)
     message(WARNING "gpu_roce_transceiver library not found. "
@@ -269,6 +279,10 @@ if (IBVERBS_LIB)
     PRIVATE
       ${IBVERBS_LIB}
       Threads::Threads)
+  # install the emulator binary for testing the installer
+  install(TARGETS hololink_fpga_emulator
+          DESTINATION ${CMAKE_INSTALL_BINDIR}
+          COMPONENT hololink-tools)
 else()
   message(WARNING "libibverbs not found. hololink_fpga_emulator will not be built.")
 endif()

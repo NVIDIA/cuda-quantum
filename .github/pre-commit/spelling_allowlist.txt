@@ -10,6 +10,7 @@ AquSim
 Asynchronous
 BFGS
 Bloch
+BlueField
 Braket
 CLA
 CLI
