@@ -195,7 +195,6 @@ if $lock_mode; then
     "version=${QRMI_RELEASE_VERSION}" \
     "sha256=${QRMI_ARCHIVE_SHA256}"
 
-
   echo "Prerequisites lockfile written to ${LOCK_FILE}."
   (return 0 2>/dev/null) && return 0 || exit 0
 fi
