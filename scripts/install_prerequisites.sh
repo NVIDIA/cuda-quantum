@@ -8,12 +8,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Usage: 
-# This script builds and installs a minimal set of dependencies needed to build 
-# CUDA-Q from source. 
+# Usage:
+# This script builds and installs a minimal set of dependencies needed to build
+# CUDA-Q from source.
 #
-# Usage: 
+# Usage:
 # bash install_prerequisites.sh
+#   -e <name>     Exclude a prerequisite (e.g. zlib, llvm, blas, ssl, curl, aws, cuquantum, cutensor, toolchain)
+#   -t <name>     Select toolchain (e.g. gcc12, llvm)
+#   -m            Only install libraries for which an *_INSTALL_PREFIX is defined
+#   -l            Generate a prerequisites lock file and exit (no installation)
+#
+# When the -l flag is used, a lock file named cudaq_prereqs.lock (or the path
+# given via the PREREQS_LOCK_FILE environment variable) is generated that
+# enumerates the source locations for all prerequisites that would be installed
+# for the current configuration. This can be used to pre-download sources in
+# controlled build environments.
 #
 # For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
 # library is not found in the location defined by the corresponding environment variable
@@ -31,19 +41,52 @@
 # is passed or the corresponding commands already exist. If the commands already 
 # exist, compatibility or versions won't be validated.
 
+# Centralized version / source definitions used by both installation and lockfile
+# generation. Keeping these here avoids duplication between code paths.
+CMAKE_VERSION=3.26.4
+CMAKE_MACOS_TARBALL_URL="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-macos-universal.tar.gz"
+CMAKE_LINUX_INSTALLER_URL_BASE="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-"
+
+NINJA_VERSION=1.11.1
+NINJA_TARBALL_URL="https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz"
+
+ZLIB_VERSION=1.3.1
+ZLIB_TARBALL_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
+
+BLAS_VERSION=3.11.0
+BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
+
+PERL_VERSION=5.38.2
+PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
+
+OPENSSL_VERSION=3.5.1
+OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+
+CURL_VERSION=8.5.0
+CURL_VERSION_UNDERSCORE=curl-8_5_0
+CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
+CACERT_URL="https://curl.se/ca/cacert.pem"
+CACERT_SHA256_URL="${CACERT_URL}.sha256"
+
+AWS_SDK_CPP_URL="https://github.com/aws/aws-sdk-cpp"
+AWS_SDK_CPP_REF="1.11.454"
+
 # Process command line arguments
 toolchain=''
 exclude_prereq=''
 install_all=true
+lock_mode=false
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:ml:-:" opt; do
+while getopts ":e:t:ml-:" opt; do
   case $opt in
     e) exclude_prereq="$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')"
     ;;
     t) toolchain="$OPTARG"
     ;;
     m) install_all=false
+    ;;
+    l) lock_mode=true
     ;;
     :) echo "Option -$OPTARG requires an argument."
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -58,6 +101,83 @@ OPTIND=$__optind__
 # Set default install prefix environment variables (only when install_all is true)
 if $install_all; then
   source "$(dirname "${BASH_SOURCE[0]}")/set_env_defaults.sh"
+fi
+
+# If requested, generate a lock file describing all source archives / repositories
+# that would be used to build the prerequisites, then exit without installing.
+if $lock_mode; then
+  LOCK_FILE="${PREREQS_LOCK_FILE:-cudaq_prereqs.lock}"
+
+  # Helper to append one entry to the lock file in a simple key=value format.
+  function add_lock_line {
+    local name="$1"; shift
+    echo "name=${name} $*" >> "$LOCK_FILE"
+  }
+
+  # Initialize / truncate the lock file and add a short header.
+  {
+    echo "# CUDA-Q prerequisites lockfile"
+    echo "# Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    echo "# Format: name=<id> key=value ..."
+  } > "$LOCK_FILE"
+
+  # [Toolchain] CMake and Ninja sources (compiler toolchain itself is handled
+  # via install_toolchain.sh or the system toolchain and is not pinned here).
+  # In lockfile mode, always list the toolchain sources regardless of what is
+  # currently installed or excluded.
+  add_lock_line "cmake-macos" \
+    "type=tar" \
+    "url=${CMAKE_MACOS_TARBALL_URL}" \
+    "version=${CMAKE_VERSION}"
+  add_lock_line "cmake" \
+    "type=sh" \
+    "url=${CMAKE_LINUX_INSTALLER_URL_BASE}$(uname -m).sh" \
+    "version=${CMAKE_VERSION}"
+  add_lock_line "ninja" \
+    "type=tar" \
+    "url=${NINJA_TARBALL_URL}" \
+    "version=${NINJA_VERSION}"
+
+  # [Zlib / Minizip]
+  add_lock_line "zlib" \
+    "type=tar" \
+    "url=${ZLIB_TARBALL_URL}" \
+    "version=${ZLIB_VERSION}"
+
+  # [BLAS]
+  add_lock_line "blas" \
+    "type=tar" \
+    "url=${BLAS_TARBALL_URL}" \
+    "version=${BLAS_VERSION}"
+
+  # [OpenSSL] (and its private Perl used only for the build)
+  add_lock_line "perl" \
+    "type=tar" \
+    "url=${PERL_TARBALL_URL}" \
+    "version=${PERL_VERSION}"
+  add_lock_line "openssl" \
+    "type=tar" \
+    "url=${OPENSSL_TARBALL_URL}" \
+    "version=${OPENSSL_VERSION}"
+
+  # [CURL] (including CA bundle)
+  add_lock_line "cacert" \
+    "type=pem" \
+    "url=${CACERT_URL}"
+  add_lock_line "curl" \
+    "type=tar" \
+    "url=${CURL_TARBALL_URL}" \
+    "version=${CURL_VERSION}"
+
+  # [AWS SDK]
+  add_lock_line "aws-sdk-cpp" \
+    "type=git" \
+    "url=${AWS_SDK_CPP_URL}" \
+    "ref=${AWS_SDK_CPP_REF}"
+
+
+  echo "Prerequisites lockfile written to ${LOCK_FILE}."
+  (return 0 2>/dev/null) && return 0 || exit 0
 fi
 
 # Create a temporary directory for building source packages
@@ -141,12 +261,12 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     pushd "$PREREQS_BUILD_DIR"
     if [ "$(uname)" = "Darwin" ]; then
       cmake_arch="$(uname -m)"
-      wget "https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-macos-universal.tar.gz" -O cmake.tar.gz
+      wget "${CMAKE_MACOS_TARBALL_URL}" -O cmake.tar.gz
       tar -xzf cmake.tar.gz
-      mv cmake-3.26.4-macos-universal/CMake.app/Contents/bin/* $HOME/.local/bin/
-      mv cmake-3.26.4-macos-universal/CMake.app/Contents/share/* $HOME/.local/share/
+      mv "cmake-${CMAKE_VERSION}-macos-universal/CMake.app/Contents/bin/"* "$HOME/.local/bin/"
+      mv "cmake-${CMAKE_VERSION}-macos-universal/CMake.app/Contents/share/"* "$HOME/.local/share/"
     else
-      wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
+      wget "${CMAKE_LINUX_INSTALLER_URL_BASE}$(uname -m).sh" -O cmake-install.sh
       bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
     fi
     popd
@@ -160,8 +280,8 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 
     # The pre-built binary for Linux on GitHub is built for x86_64 only,
     # see also https://github.com/ninja-build/ninja/issues/2284.
-    wget https://github.com/ninja-build/ninja/archive/refs/tags/v1.11.1.tar.gz
-    tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
+    wget "${NINJA_TARBALL_URL}"
+    tar -xzvf "v${NINJA_VERSION}.tar.gz" && cd "ninja-${NINJA_VERSION}"
     if [ "$(uname)" = "Darwin" ]; then
       cmake -B build
     else
@@ -199,8 +319,8 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
 
     pushd "$PREREQS_BUILD_DIR"
 
-    wget -O zlib-1.3.1.tar.gz https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
-    tar -xzf zlib-1.3.1.tar.gz && cd zlib-1.3.1
+    wget -O "zlib-${ZLIB_VERSION}.tar.gz" "${ZLIB_TARBALL_URL}"
+    tar -xzf "zlib-${ZLIB_VERSION}.tar.gz" && cd "zlib-${ZLIB_VERSION}"
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
@@ -263,8 +383,8 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     pushd "$PREREQS_BUILD_DIR"
 
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
-    wget http://www.netlib.org/blas/blas-3.11.0.tgz
-    tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
+    wget "${BLAS_TARBALL_URL}"
+    tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
     make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
@@ -289,8 +409,8 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     # Not all perl installations include all necessary modules.
     # To facilitate a consistent build across platforms and to minimize dependencies,
     # we just use our own perl version for the OpenSSL build.
-    wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
-    tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
+    wget "${PERL_TARBALL_URL}"
+    tar -xzf "perl-${PERL_VERSION}.tar.gz" && cd "perl-${PERL_VERSION}"
     ./Configure -des -Dcc="$CC" -Dprefix="$PREREQS_BUILD_DIR/perl5"
     make CC="$CC" && make install
     cd ..
@@ -304,8 +424,8 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
       fi
     fi
 
-    wget https://www.openssl.org/source/openssl-3.5.1.tar.gz
-    tar -xf openssl-3.5.1.tar.gz && cd openssl-3.5.1
+    wget "${OPENSSL_TARBALL_URL}"
+    tar -xf "openssl-${OPENSSL_VERSION}.tar.gz" && cd "openssl-${OPENSSL_VERSION}"
     CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
     "$PREREQS_BUILD_DIR/perl5/bin/perl" Configure no-shared \
       --prefix="$OPENSSL_INSTALL_PREFIX" zlib \
@@ -338,8 +458,8 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     # downloaded from https://curl.se/ca/cacert.pem. For more information, see
     # - https://curl.se/docs/sslcerts.html
     # - https://curl.se/docs/caextract.html
-    wget https://curl.se/ca/cacert.pem
-    wget https://curl.se/ca/cacert.pem.sha256
+    wget "${CACERT_URL}"
+    wget "${CACERT_SHA256_URL}"
     if [ -x "$(command -v sha256sum)" ]; then
       computed_sha256="$(sha256sum cacert.pem)"
     else
@@ -363,8 +483,8 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     # This allows CMake's find_package(CURL) to use config mode, which correctly encodes
     # full paths to dependencies (OpenSSL, zlib) and avoids pkg-config issues where
     # -lssl/-lcrypto resolve to the wrong system libraries on macOS.
-    wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
-    tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
+    wget "${CURL_TARBALL_URL}"
+    tar -xzvf "curl-${CURL_VERSION}.tar.gz" && cd "curl-${CURL_VERSION}"
     cmake -G Ninja -B build \
       -DCMAKE_C_COMPILER="$CC" \
       -DCMAKE_C_FLAGS="-fPIC" \
@@ -414,8 +534,8 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
     pushd "$PREREQS_BUILD_DIR"
 
     aws_service_components='braket s3-crt sts'
-    git clone --filter=tree:0 https://github.com/aws/aws-sdk-cpp aws-sdk-cpp
-    cd aws-sdk-cpp && git checkout 1.11.454 && git submodule update --init --recursive
+    git clone --filter=tree:0 "${AWS_SDK_CPP_URL}" aws-sdk-cpp
+    cd aws-sdk-cpp && git checkout "${AWS_SDK_CPP_REF}" && git submodule update --init --recursive
 
     # FIXME: CUDAQ VERSION?
     mkdir build && cd build

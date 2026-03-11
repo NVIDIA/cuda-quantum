@@ -63,6 +63,8 @@ protected:
   std::mt19937 randomEngine;
   bool ownsDeviceVector = true;
 
+  uint32_t maxGridDimY = 65535;
+
   /// @brief Generate a vector of random values
   std::vector<double> randomValues(uint64_t num_samples, double max_value) {
     std::vector<double> rs;
@@ -245,7 +247,7 @@ protected:
           "CuStateVecCircuitSimulator::addQubitsToState kronprod");
       // Compute the kronecker product
       nvqir::kronprod<CudaDataType>(
-          n_blocks, threads_per_block, previousStateDimension,
+          maxGridDimY, threads_per_block, previousStateDimension,
           deviceStateVector, (1UL << count), otherState, newDeviceStateVector);
       HANDLE_CUDA_ERROR(cudaGetLastError());
     }
@@ -292,7 +294,7 @@ protected:
           "CuStateVecCircuitSimulator::addQubitsToState kronprod");
       // Compute the kronecker product
       nvqir::kronprod<CudaDataType>(
-          n_blocks, threads_per_block, previousStateDimension,
+          maxGridDimY, threads_per_block, previousStateDimension,
           deviceStateVector, (1UL << in_state.getNumQubits()),
           casted->getDevicePointer(), newDeviceStateVector);
       HANDLE_CUDA_ERROR(cudaGetLastError());
@@ -405,6 +407,12 @@ public:
 
     HANDLE_CUDA_ERROR(cudaFree(0));
     randomEngine = std::mt19937(randomDevice());
+
+    int dev;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
+    cudaDeviceProp prop;
+    HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, dev));
+    maxGridDimY = static_cast<uint32_t>(prop.maxGridSize[1]);
   }
 
   /// The destructor

@@ -18,11 +18,9 @@ using namespace cudaq;
 
 /// Compute the unitary of this kernel module.
 static py::array get_unitary_impl(const std::string &shortName,
-                                  MlirModule module, MlirType returnTy,
-                                  py::args args) {
-  // Uses the same pattern as py_draw.
+                                  MlirModule module, py::args args) {
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, returnTy, args);
+    return cudaq::marshal_and_launch_module(shortName, module, args);
   };
 
   // Return as numpy array (dim, dim), complex128
