@@ -93,7 +93,7 @@ if $gen_cpp_coverage; then
     use_llvm_cov=true
 
     # Run tests (C++ Unittests)
-    python3 -m pip install iqm-client==28.0.0
+    python3 -m pip install iqm-client==28.0.0 --break-system-packages
     ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-nvqpp -E ctest-targettests
     ctest_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
@@ -180,13 +180,12 @@ if $gen_cpp_coverage; then
 fi
 
 if $gen_py_coverage; then
-    # Use a venv to avoid PEP 668 externally-managed-environment when installing pytest-cov
     venv_dir=${repo_root}/build/venv-coverage
+    python3 -mpip install iqm_client==16.1 -vvv --break-system-packages
     python3 -m venv "$venv_dir"
     # shellcheck source=/dev/null
     . "${venv_dir}/bin/activate"
     pip install pytest-cov
-    pip install iqm_client==16.1 -vvv
     rm -rf ${repo_root}/_skbuild
     pip install . -vvv
     mkdir -p ${repo_root}/build/pycoverage
