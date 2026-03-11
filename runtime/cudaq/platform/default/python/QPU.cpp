@@ -327,6 +327,11 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     auto jit = cudaq::createQIRJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
+    auto argsCreatorThunk = [&jit, &name]() {
+      return (void *)jit.lookupRawNameOrFail(name + ".argsCreator");
+    };
+    cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
+                                           argsCreatorThunk);
 
     // FIXME: actually handle results
     // 4. Execute the code right here, right now.
