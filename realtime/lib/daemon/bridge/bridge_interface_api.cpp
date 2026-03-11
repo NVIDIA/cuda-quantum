@@ -17,6 +17,7 @@
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include <dlfcn.h>
 #include <iostream>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 namespace {
