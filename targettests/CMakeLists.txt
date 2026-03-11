@@ -43,6 +43,7 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
     cudaq-quake
     fixup-linkage
     nvq++
+    cudaq-runtime
     ${test_cudaq_libraries}
   )
 endif()
