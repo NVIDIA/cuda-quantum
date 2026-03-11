@@ -647,6 +647,8 @@ jobs:
 
   cudaq_realtime_installers:
     name: CUDA-Q Realtime installer
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    needs: assets
     permissions:
       contents: read
       packages: read
