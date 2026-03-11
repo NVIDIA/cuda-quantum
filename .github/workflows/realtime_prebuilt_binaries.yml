@@ -30,8 +30,8 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu32') || 'linux-amd64-cpu32' }}
     permissions:
       contents: read
-      packages: write
-      id-token: write
+      packages: read
+      id-token: read
     outputs:
       image_hash: ghcr.io/nvidia/cuda-quantum-realtime-assets-${{ inputs.platform }}-cu${{ inputs.cuda_version }}
       artifact_name: cuda-quantum-realtime-assets-${{ inputs.platform }}-cu${{ inputs.cuda_version }}

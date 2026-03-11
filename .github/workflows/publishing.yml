@@ -652,7 +652,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-      id-token: write
+      id-token: read
     strategy:
       matrix:
         platform: [amd64, arm64]
