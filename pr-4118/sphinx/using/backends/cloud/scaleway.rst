@@ -133,3 +133,6 @@ or do it by calling the Scaleway's QaaS API:
 
     # Terminate the session
     curl -X POST -H "X-Auth-Token: $SCW_SECRET_KEY" -H "Content-Type: application/json" "https://api.scaleway.com/qaas/v1alpha1/sessions/{session_id}/terminate"
+
+
+To see a complete example, take a look at :ref:`Scaleway QaaS examples <scaleway-examples>`.
