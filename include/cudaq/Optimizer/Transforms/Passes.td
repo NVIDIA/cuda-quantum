@@ -120,7 +120,7 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
     "mlir::cf::ControlFlowDialect"];
 }
 
-def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
+def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -260,7 +260,8 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   }];
 }
 
-def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
+def ResourceCountPreprocess :
+    Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
   let summary = "Performs preprocessing to optimize for resource counter.";
   let description = [{
     This pass performs preprocessing to optimize the code for the resource
@@ -311,7 +312,7 @@ def DeadStoreRemoval : Pass<"dead-store-removal"> {
   }];
 }
 
-def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
+def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
     This pass decomposes quantum operations by iteratively applying rewrite
@@ -938,8 +939,8 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
   ];
 }
 
-def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
-                                        "mlir::func::FuncOp"> {
+def MultiControlDecomposition :
+    Pass<"multicontrol-decomposition", "mlir::func::FuncOp"> {
   let summary = "Break down multi-control quantum operations.";
   let description = [{
     This pass decomposes multi-control quantum operations. The decompostion
@@ -1092,12 +1093,13 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
-def QuakePropagateMetadata : Pass<"quake-propagate-metadata", "mlir::ModuleOp"> {
+def QuakePropagateMetadata :
+    Pass<"quake-propagate-metadata", "mlir::ModuleOp"> {
   let summary = "Propagate metadata from callees to callers when needed.";
   let description = [{
-   This pass propagates function metadata attributes added by `quake-add-metadata`
-   pass, such as `qubitMeasurementFeedback`, to all the callers of the function.
-   This makes sure the attributes are not missing after inlining.
+   Propagates function metadata attributes added by `quake-add-metadata` pass,
+   such as `qubitMeasurementFeedback`, to all the callers of the function. This
+   insures these attributes are not missing after inlining.
   }];
 }
 
@@ -1120,17 +1122,26 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     where the wire cannot be wrapped uniquely. In those cases, this
     transformation will take no action and leave the IR (partially) with wire
     type values.
+
+    Note that, it is entirely possible for quake to obtain a cyclic structure
+    and otherwise reuse values of type `wire`. In the general case, there is
+    not necessarily a way to recover a DAG from a graph with arbitrary cycles.
+    However, if we assume the quake code fully enumerates a finite set of wires
+    (which is currently true by construction), it is theoretically possible to
+    use cloning to recover such a finite DAG representation. This pass does not,
+    however, attempt to perform such heroics.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
-def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::FuncOp"> {
-  let summary =
-    "Replace `quake.init_state` instructions with call to the kernel generating the state";
+def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
+    "mlir::func::FuncOp"> {
+  let summary = "Replace `init_state` operations with calls to a kernel.";
   let description = [{
-    This optimization replaces `quake.init_state`, `quake.get_number_of_qubits`,
-    and `quake.materialize_state` operations invoked on state pointers during
-    argument synthesis for quantum devices.
+    Replaces `quake.init_state`, `quake.get_number_of_qubits`, and
+    `quake.materialize_state` operations invoked on state pointers during
+    argument synthesis for quantum devices with appropriate calls to support
+    routines and/or kernels to build the state.
 
     Before this optimization, argument synthesis for state pointers for quantum
     devices substituted a state created from the `quake.materialize_state`
@@ -1383,13 +1394,17 @@ def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
   }];
 }
 
-def QubitResetBeforeReuse : Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
-  let summary = "Add qubit reset and conditional initialization after measurement if qubit is to be reused.";
+def QubitResetBeforeReuse :
+    Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
+  let summary = "After measurement of a ref, add reset (and initialization).";
   let description = [{
-   This pass adds qubit reset and conditionally applies an X gate if the measurement result is 1 
-   to initialize qubit into the correct state after measurement. This is only activated when the measured qubit
-   is to be reused.
-   Note: if the measurement is already accompanied by a reset, we won't add any extra reset.
+   Adds a `quake.reset` and conditionally applies an X gate if the measurement
+   result is 1 to initialize the reference back into the just measured state
+   afterward. This is only activated when the measured reference is to be
+   reused.
+   
+   Note: if the measurement is already accompanied by a reset, this pass does
+   not add any additional operations.
   }];
 
 }
