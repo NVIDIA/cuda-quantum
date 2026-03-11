@@ -73,7 +73,7 @@ static bool usesAreConvertible(quake::AllocaOp alloc) {
 }
 
 namespace {
-class AllocaPat : public OpRewritePattern<quake::AllocaOp> {
+class AllocaPattern : public OpRewritePattern<quake::AllocaOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -87,9 +87,6 @@ public:
     // 0. Check necessary preconditions hold.
     if (!allocaOfVeqStruq(allocOp) || allocaOfUnspecifiedSize(allocOp) ||
         allocOp.hasInitializedState())
-      return failure();
-
-    if (isa<quake::VeqType>(allocOp.getType()) && !usesAreConvertible(allocOp))
       return failure();
 
     if (auto stqTy = dyn_cast<quake::StruqType>(allocOp.getType())) {
@@ -120,17 +117,24 @@ public:
     auto *ctx = rewriter.getContext();
     auto refTy = quake::RefType::get(ctx);
 
-    // 1. Split the aggregate veq into a sequence of distinct alloca of ref.
+    // Split the aggregate veq into a sequence of distinct alloca of ref.
     for (std::size_t i = 0; i < size; ++i)
       newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
 
-    // 2. Visit all users and replace them accordingly.
-    if (failed(rewriteOpAndUsers(allocOp, 0, rewriter, size, newAllocs)))
-      return failure();
-
-    // 3. Remove the original alloca operation.
-    rewriter.eraseOp(allocOp);
-
+    if (usesAreConvertible(allocOp)) {
+      // Visit all users and replace them accordingly.
+      if (failed(rewriteOpAndUsers(allocOp, 0, rewriter, size, newAllocs)))
+        return failure();
+      // Remove the original alloca operation.
+      rewriter.eraseOp(allocOp);
+    } else {
+      // Uses are more complex so just concat the refs together.
+      SmallVector<Value> theRefs;
+      std::for_each(newAllocs.begin(), newAllocs.end(), [&](quake::AllocaOp a) {
+        theRefs.push_back(a.getResult());
+      });
+      rewriter.replaceOpWithNewOp<quake::ConcatOp>(allocOp, veqTy, theRefs);
+    }
     return success();
   }
 
@@ -185,7 +189,7 @@ public:
   }
 };
 
-class DeallocPat : public OpRewritePattern<quake::DeallocOp> {
+class DeallocPattern : public OpRewritePattern<quake::DeallocOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -279,7 +283,7 @@ public:
     auto *ctx = &getContext();
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<DeallocPat>(ctx);
+    patterns.insert<DeallocPattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       return failure();
     return success();
@@ -289,7 +293,7 @@ public:
     auto *ctx = &getContext();
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<AllocaPat>(ctx);
+    patterns.insert<AllocaPattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       return failure();
     return success();
