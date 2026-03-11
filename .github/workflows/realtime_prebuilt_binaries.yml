@@ -31,7 +31,6 @@ jobs:
     permissions:
       contents: read
       packages: read
-      id-token: read
     outputs:
       image_hash: ghcr.io/nvidia/cuda-quantum-realtime-assets-${{ inputs.platform }}-cu${{ inputs.cuda_version }}
       artifact_name: cuda-quantum-realtime-assets-${{ inputs.platform }}-cu${{ inputs.cuda_version }}
