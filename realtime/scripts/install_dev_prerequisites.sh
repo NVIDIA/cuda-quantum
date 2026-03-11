@@ -17,12 +17,18 @@
 
 
 if [ -x "$(command -v apt-get)" ]; then
+  CUDA_MAJOR_VERSION=$(nvcc --version | sed -n 's/^.*release \([0-9]\+\).*$/\1/p')
+  if [ -z "$CUDA_MAJOR_VERSION" ]; then
+    echo "Could not determine CUDA version from nvcc. Is the CUDA toolkit installed?" >&2
+    echo "CUDA-Q Realtime requires CUDA toolkit to be installed." >&2
+    exit 1
+  fi
+  
   # [libibverbs]
   echo "Installing libibverbs..."
   apt-get update && apt-get install -y --no-install-recommends libibverbs-dev
 
   # [DOCA Host]
-
   if [ ! -x "$(command -v curl)" ]; then
     apt-get update && apt-get install -y --no-install-recommends curl
   fi
@@ -42,11 +48,6 @@ if [ -x "$(command -v apt-get)" ]; then
   DEBIAN_FRONTEND=noninteractive apt-get -y install doca-all libdoca-sdk-gpunetio-dev
 
   # [Holoscan SDK]
-  CUDA_MAJOR_VERSION=$(nvcc --version | sed -n 's/^.*release \([0-9]\+\).*$/\1/p')
-  if [ -z "$CUDA_MAJOR_VERSION" ]; then
-    echo "Could not determine CUDA version from nvcc. Is the CUDA toolkit installed?" >&2
-    exit 1
-  fi
   apt-get update && apt-get install -y --no-install-recommends holoscan-cuda-$CUDA_MAJOR_VERSION
 
 elif [ -x "$(command -v dnf)" ]; then

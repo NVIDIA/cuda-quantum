@@ -134,3 +134,16 @@ Inside the container, we can then run the validation check, i.e.,
 ```bash
 bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
 ```
+
+### Manual Installation in Docker Container
+
+1. Launch your container with networking and GPU support.
+
+    For example, `--net host --gpus all` should be used to launch the container.
+
+2. Install CUDA runtime.
+
+3. Install [`DOCA`](https://developer.nvidia.com/doca-downloads)
+with `gpunetio` (`doca-sdk-gpunetio`) support.
+
+4. Download and install CUDA-Q Installer as described in the [setup](#setup) section.
