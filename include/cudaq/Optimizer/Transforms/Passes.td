@@ -24,7 +24,9 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
     the kernel.
 
   }];
-  let dependentDialects = ["quake::QuakeDialect", "mlir::cf::ControlFlowDialect"];
+  
+  let dependentDialects = ["quake::QuakeDialect",
+    "mlir::cf::ControlFlowDialect"];
 }
 
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
@@ -236,6 +238,7 @@ def CombineQuantumAllocations :
     If the function contains deallocations, these are combined as well. The
     combined deallocation will be added to each exit block.
   }];
+
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
@@ -260,10 +263,10 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
 def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
   let summary = "Performs preprocessing to optimize for resource counter.";
   let description = [{
-    This pass performs preprocessing to optimize the code for the resource counter
-    by removing as many invariant gates as possible during compilation, with the aim
-    of reducing the program size for further compilation, and speeding up resource
-    counting by the simulator at runtime.
+    This pass performs preprocessing to optimize the code for the resource
+    counter by removing as many invariant gates as possible during compilation,
+    with the aim of reducing the program size for further compilation, and
+    speeding up resource counting by the simulator at runtime.
 
     For example, in the following program:
 
@@ -277,36 +280,27 @@ def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::Fun
       }
     ```
 
-    The initial `h(q[0])` will always be run once, so we can pre count it and remove it.
-    Similarly, it is trivial to see that the loop will run 10 times, so we can pre count
-    `y(q[i])` ten times as well. However, because `x(q[i])` is gated by `mz(q[i])`, it is
-    not invariant, so it will remain and be counted during simulation.
+    The initial `h(q[0])` will always be run once, so we can precount it and
+    remove it. Similarly, it is trivial to see that the loop will run 10 times,
+    so we can pre count `y(q[i])` ten times as well. However, because `x(q[i])`
+    is gated by `mz(q[i])`, it is not invariant, so it will remain and be
+    counted during simulation.
 
     Currently, the detection of "invariance" is purposefully dumb.
 
-    This preprocessing path may interfere with detecting downstream optimizations, as
-    preprocessed gates are counted and removed early in the pipeline.
+    This preprocessing path may interfere with detecting downstream
+    optimizations, as preprocessed gates are counted and removed early in the
+    pipeline.
   }];
 
   let options = [
-    Option<"countGate", "count-gate", "std::function<void(std::string,size_t,size_t)>",
-           /*default=*/"[](std::string str,size_t nControls, size_t count){}",
-           "Closure that will handle gate counts">,
-    Option<"dumpPreprocessed", "dump-preprocessed", "bool",
-           /*default=*/"false",
-           "Dump preprocessed gates instead of counting them (useful for testing)">,
+    Option<"countGate", "count-gate",
+      "std::function<void(std::string,size_t,size_t)>",
+      /*default=*/"[](std::string str,size_t nControls, size_t count){}",
+      "Closure that will handle gate counts">,
+    Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
+      "Dump preprocessed gates instead of counting them (useful for testing)">,
   ];
-}
-
-def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
-  let summary = "Move measurements as late as possible";
-
-  let description = [{
-    Move measurements as late as possible. This is useful for a Base Profile
-    QIR program.
-  }];
-
-  let constructor = "cudaq::opt::createDelayMeasurementsPass()";
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
