@@ -45,9 +45,18 @@ for realtime coprocessing between FPGA and GPU systems.
 
 ### Hardware Requirements
 
-- NVIDIA ConnectX-7
+- NVIDIA ConnectX-7/BlueField
 
 - FPGA
+
+### Software Requirements
+
+- `DOCA` version 3.3 with `gpunetio`
+
+Please refer to [the download page](https://developer.nvidia.com/doca-downloads) to install `DOCA` 
+for your system.
+
+> **_NOTE:_** Please make sure `doca-sdk-gpunetio` is installed along with `doca-all`.
 
 ### Build Holoscan Sensor Bridge
 

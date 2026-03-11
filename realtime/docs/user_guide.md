@@ -9,7 +9,7 @@ CUDA-Q Realtime, including connectivity to a
 
 ### Hardware Components
 
-- A host system with NVIDIA GPU and ConnectX-7 NIC.
+- A host system with NVIDIA GPU and ConnectX-7/BlueField NIC.
 
 - A FPGA, programmed with `HSB` IP and connected to the NIC.
 
@@ -20,10 +20,17 @@ may not have all the required capabilities.
 
 - CUDA-Q Realtime installer.
 
-- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads).
+- CUDA Runtime (12+)
+
+- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads)
+with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
 using the builtin `HSB` support of CUDA-Q realtime.
+
+<!--- -->
+
+> **_NOTE:_** Please make sure `doca-sdk-gpunetio` is installed along with `doca-all`.
 
 ## Setup
 
