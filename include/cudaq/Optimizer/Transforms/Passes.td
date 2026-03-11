@@ -25,7 +25,8 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
 
   }];
   
-  let dependentDialects = ["mlir::cf::ControlFlowDialect"];
+  let dependentDialects = ["quake::QuakeDialect",
+    "mlir::cf::ControlFlowDialect"];
 }
 
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
@@ -237,6 +238,8 @@ def CombineQuantumAllocations :
     If the function contains deallocations, these are combined as well. The
     combined deallocation will be added to each exit block.
   }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
