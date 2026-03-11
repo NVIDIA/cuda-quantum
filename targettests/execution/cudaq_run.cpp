@@ -93,13 +93,13 @@ auto struct_test = []() __qpu__ {
 __qpu__ auto return_mz() {
   cudaq::qubit q;
   h(q);
-  return mz(q);
+  return static_cast<bool>(mz(q));
 }
 
 __qpu__ auto return_vector_mz() {
   cudaq::qvector q(3);
   x(q);
-  return mz(q);
+  return cudaq::to_bool_vector(mz(q));
 }
 
 int main() {

@@ -31,14 +31,14 @@ __qpu__ void reset_pattern() {
 
 // [Begin Example1]
 struct simple_conditional {
-  auto operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(2);
     h(q[0]);
     auto r = mz(q[0]);
     if (r) {
       x(q[1]);
     }
-    return mz(q[1]);
+    return cudaq::to_bool_vector(mz(q[1]));
   }
 };
 // [End Example1]

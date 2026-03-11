@@ -22,6 +22,7 @@ struct ak2 {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
 // CHECK-SAME: () -> !cc.stdvec<!quake.measure> attributes
+// CHECK-NOT: cudaq-entrypoint
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 8 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64

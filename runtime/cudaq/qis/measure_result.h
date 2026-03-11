@@ -21,35 +21,30 @@ bool __nvqpp__MeasureResultBoolConversion(int);
 /// implicitly cast to a boolean (likely in the case of conditional feedback),
 /// and affect the simulation accordingly.
 class measure_result {
-private:
-  /// The intrinsic measurement result
-  int result = 0;
+public:
+  /// The intrinsic measurement value
+  int value = 0;
 
   /// Unique integer for measure result identification.
   /// INT_MAX means unassigned; negative values are valid
-  int uniqueId = INT_MAX;
+  int unique_id = INT_MAX;
 
-public:
   // Constructors
   measure_result() = default;
-  measure_result(int res) : result(res) {}
-  measure_result(int res, int id) : result(res), uniqueId(id) {}
-
-  // Accessors
-  int getResult() const { return result; }
-  int getUniqueId() const { return uniqueId; }
+  measure_result(int val) : value(val) {}
+  measure_result(int val, int id) : value(val), unique_id(id) {}
 
   // Operator overloads for conversions and comparisons
 #ifdef CUDAQ_LIBRARY_MODE
-  operator bool() const { return __nvqpp__MeasureResultBoolConversion(result); }
+  operator bool() const { return __nvqpp__MeasureResultBoolConversion(value); }
 #else
-  operator bool() const { return result == 1; }
+  operator bool() const { return value == 1; }
 #endif
-  explicit operator int() const { return result; }
-  explicit operator double() const { return static_cast<double>(result); }
+  explicit operator int() const { return value; }
+  explicit operator double() const { return static_cast<double>(value); }
 
   friend bool operator==(const measure_result &m1, const measure_result &m2) {
-    return (m1.result == m2.result) && (m1.uniqueId == m2.uniqueId);
+    return (m1.value == m2.value) && (m1.unique_id == m2.unique_id);
   }
   friend bool operator==(const measure_result &m, bool b) {
     return static_cast<bool>(m) == b;
@@ -59,7 +54,7 @@ public:
   }
 
   friend bool operator!=(const measure_result &m1, const measure_result &m2) {
-    return (m1.result != m2.result) || (m1.uniqueId != m2.uniqueId);
+    return (m1.value != m2.value) || (m1.unique_id != m2.unique_id);
   }
   friend bool operator!=(const measure_result &m, bool b) {
     return static_cast<bool>(m) != b;

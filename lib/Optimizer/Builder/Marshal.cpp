@@ -764,7 +764,7 @@ bool cudaq::opt::marshal::hasLegalType(FunctionType funTy) {
     if (quake::isQuantumType(ty))
       return false;
   for (auto ty : funTy.getResults())
-    if (quake::isQuantumType(ty))
+    if (quake::isQuantumType(ty) || isa<quake::MeasureType>(ty))
       return false;
   return true;
 }

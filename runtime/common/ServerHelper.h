@@ -207,7 +207,7 @@ public:
       std::string bitString;
       bitString.reserve(count);
       for (std::size_t j = 0; j < count; ++j)
-        bitString += (begin[j].getResult() ? '1' : '0');
+        bitString += (begin[j].value ? '1' : '0');
       // Global register results
       globalCounts[bitString]++;
       globalSequentialData.push_back(std::move(bitString));

@@ -23,7 +23,6 @@
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
-#include <climits>
 #include <cstdlib>
 #include <cxxabi.h>
 #include <regex>
@@ -380,35 +379,12 @@ public:
           auto mem = builder.create<cudaq::cc::ComputePtrOp>(
               loc, memTy, castOp,
               SmallVector<cudaq::cc::ComputePtrArg>{offset + o});
-          Value resultVal = call.getResult(o);
-          auto resTy = resultVal.getType();
-          if (isa<quake::MeasureType>(resTy)) {
-            // Discriminate: !quake.measure -> i1
-            auto i1Val = builder.create<quake::DiscriminateOp>(
-                loc, builder.getI1Type(), resultVal);
-            // Cast i1 -> i32 for the value field
-            auto bitVal = builder.create<cudaq::cc::CastOp>(
-                loc, builder.getI32Type(), i1Val,
-                cudaq::cc::CastOpMode::Unsigned);
-            // Store value into the first field
-            auto valPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
-                SmallVector<cudaq::cc::ComputePtrArg>{0});
-            builder.create<cudaq::cc::StoreOp>(loc, bitVal, valPtr);
-            // Store id = INT_MAX (unassigned sentinel) into the second field
-            auto intMax =
-                builder.create<arith::ConstantIntOp>(loc, INT_MAX, 32);
-            auto idPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, cudaq::cc::PointerType::get(builder.getI32Type()), mem,
-                SmallVector<cudaq::cc::ComputePtrArg>{1});
-            builder.create<cudaq::cc::StoreOp>(loc, intMax, idPtr);
-          } else {
-            auto resPtrTy = cudaq::cc::PointerType::get(resTy);
-            Value castMem = mem;
-            if (resPtrTy != mem.getType())
-              castMem = builder.create<cudaq::cc::CastOp>(loc, resPtrTy, mem);
-            builder.create<cudaq::cc::StoreOp>(loc, resultVal, castMem);
-          }
+          auto resTy = call.getResult(o).getType();
+          auto resPtrTy = cudaq::cc::PointerType::get(resTy);
+          Value castMem = mem;
+          if (resPtrTy != mem.getType())
+            castMem = builder.create<cudaq::cc::CastOp>(loc, resPtrTy, mem);
+          builder.create<cudaq::cc::StoreOp>(loc, call.getResult(o), castMem);
         }
       }
     }
@@ -695,11 +671,7 @@ public:
         Value arg0 = hostFuncEntryBlock->getArguments().front();
         if (auto spanTy =
                 dyn_cast<cudaq::cc::SpanLikeType>(devFuncTy.getResult(0))) {
-          auto bufferMemberTy =
-              cast<cudaq::cc::StructType>(structTy.getMember(offset));
-          auto elePtrTy =
-              cast<cudaq::cc::PointerType>(bufferMemberTy.getMember(0));
-          auto eleTy = elePtrTy.getElementType();
+          auto eleTy = spanTy.getElementType();
           auto ptrTy = cudaq::cc::PointerType::get(eleTy);
           auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(
               loc, cudaq::cc::PointerType::get(ptrTy), launchResult,
@@ -970,18 +942,8 @@ public:
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
           SmallVector<Attribute> resultTys;
-          auto containsMeasureTy = [](Type ty) {
-            if (isa<quake::MeasureType>(ty))
-              return true;
-            if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty))
-              return isa<quake::MeasureType>(vecTy.getElementType());
-            return false;
-          };
           for (auto rt : epKern.getFunctionType().getResults())
-            resultTys.emplace_back(TypeAttr::get(
-                containsMeasureTy(rt)
-                    ? cudaq::opt::factory::convertToHostSideType(rt, module)
-                    : rt));
+            resultTys.emplace_back(TypeAttr::get(rt));
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);
@@ -1075,38 +1037,17 @@ public:
         auto mangledAttr = mangledNameMap.getAs<StringAttr>(funcOp.getName());
         assert(mangledAttr && "funcOp must appear in mangled name map");
         StringRef mangledName = mangledAttr.getValue();
-        bool hostEntryNeeded = false;
-        func::FuncOp hostFunc;
-        if (!ignoreHostFunction) {
-          auto hostInfo = cudaq::opt::marshal::lookupHostEntryPointFunc(
-              mangledName, module, funcOp);
-          hostEntryNeeded = hostInfo.first;
-          hostFunc = hostInfo.second;
-        }
-
+        auto [hostEntryNeeded, hostFunc] =
+            cudaq::opt::marshal::lookupHostEntryPointFunc(mangledName, module,
+                                                          funcOp);
         FunctionType hostFuncTy;
         const bool hasThisPtr = !funcOp->hasAttr("no_this");
         if (hostEntryNeeded) {
-          if (!hostFunc) {
+          if (hostFunc) {
+            hostFuncTy = hostFunc.getFunctionType();
+          } else {
             // Fatal error was already raised in lookupHostEntryPointFunc().
             return;
-          }
-          hostFuncTy = hostFunc.getFunctionType();
-          // Only override the host function type when the device function
-          // returns MeasureType (directly or in a vector), to resolve
-          // !quake.measure → i32 and prevent QIR from converting it.
-          bool hasMeasureReturn =
-              llvm::any_of(funcTy.getResults(), [](Type ty) {
-                if (isa<quake::MeasureType>(ty))
-                  return true;
-                if (auto spanTy = dyn_cast<cudaq::cc::SpanLikeType>(ty))
-                  return isa<quake::MeasureType>(spanTy.getElementType());
-                return false;
-              });
-          if (hasMeasureReturn) {
-            hostFuncTy = cudaq::opt::factory::toHostSideFuncType(
-                funcTy, hasThisPtr, module);
-            hostFunc.setFunctionType(hostFuncTy);
           }
         } else {
           // Autogenerate an assumed host side function signature for the
