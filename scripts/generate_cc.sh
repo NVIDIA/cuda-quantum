@@ -181,7 +181,7 @@ fi
 
 if $gen_py_coverage; then
     venv_dir=${repo_root}/build/venv-coverage
-    python3 -mpip install iqm_client==16.1 -vvv --break-system-packages
+    python3 -m pip install iqm_client==16.1 -vvv --break-system-packages
     python3 -m venv "$venv_dir"
     # shellcheck source=/dev/null
     . "${venv_dir}/bin/activate"
