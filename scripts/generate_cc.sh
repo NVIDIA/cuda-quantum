@@ -180,10 +180,14 @@ if $gen_cpp_coverage; then
 fi
 
 if $gen_py_coverage; then
+    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    apt install -y python${PY_VER}-venv
+ 
+    # Needs to be installed outside of venv
+    python3 -m pip install iqm-client==28.0.0 --break-system-packages
+
     venv_dir=${repo_root}/build/venv-coverage
-    python3 -m pip install iqm_client==16.1 -vvv --break-system-packages
     python3 -m venv "$venv_dir"
-    # shellcheck source=/dev/null
     . "${venv_dir}/bin/activate"
     pip install pytest-cov
     rm -rf ${repo_root}/_skbuild
