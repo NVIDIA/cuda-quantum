@@ -2614,26 +2614,19 @@ class PyASTBridge(ast.NodeVisitor):
                         self.module, deviceModuleName)
                     if maybeDeviceKernel != None:
                         [kernelName, code] = maybeDeviceKernel
-                        # TODO: Is there a nicer way to get the type from the C++ side?
-                        otherKernel = Module.parse(code, context=self.ctx)
-                        for op in otherKernel.body.operations:
-                            name = str(
-                                op.name).removeprefix('"').removesuffix('"')
-                            if name == kernelName:
-                                funcTy = FunctionType(
-                                    TypeAttr(
-                                        op.attributes['function_type']).value)
-                                callableTy = cc.CallableType.get(
-                                    self.ctx, funcTy.inputs, funcTy.results)
-                                callee = cudaq_runtime.appendKernelArgument(
-                                    self.kernelFuncOp, callableTy)
-                                self.signature.add_linked_kernel_capture(
-                                    deviceModuleName, callableTy)
-                                self.symbolTable[deviceModuleName] = callee
-                                res = processDecoratorCall(deviceModuleName)
-                                if res is not None:
-                                    self.pushValue(res)
-                                return
+                        qkeModule = Module.parse(code, context=self.ctx)
+                        signature = KernelSignature.parse_from_mlir(
+                            qkeModule, kernelName)
+                        callableTy = signature.get_callable_type()
+                        callee = cudaq_runtime.appendKernelArgument(
+                            self.kernelFuncOp, callableTy)
+                        self.signature.add_linked_kernel_capture(
+                            deviceModuleName, callableTy)
+                        self.symbolTable[deviceModuleName] = callee
+                        res = processDecoratorCall(deviceModuleName)
+                        if res is not None:
+                            self.pushValue(res)
+                        return
 
         if isinstance(node.func, ast.Name):
             symName = (node.func.id if node.func.id in self.symbolTable else

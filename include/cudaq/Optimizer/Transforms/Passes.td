@@ -494,6 +494,11 @@ def FactorQuantumAllocations :
     will be replaced with a series of deallocations.
   }];
   let dependentDialects = ["quake::QuakeDialect"];
+
+  let options = [
+    Option<"enableFailures", "enable-failures", "bool", /*default=*/"false",
+      "Enable pass to raise errors when factoring fails (default=false).">
+  ];
 }
 
 def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
