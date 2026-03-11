@@ -90,6 +90,7 @@ OpenSUSE
 Ou
 POSIX
 PSIRT
+PTSBE
 Pasqal
 Pauli
 Paulis
