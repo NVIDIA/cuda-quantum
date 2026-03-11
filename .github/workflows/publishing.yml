@@ -645,6 +645,28 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  cudaq_realtime_installers:
+    name: CUDA-Q Realtime installer
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    uses: ./.github/workflows/realtime_prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ matrix.platform }}
+      cuda_version: ${{ matrix.cuda_version }}
+
   cudaq_wheels:
     name: CUDA-Q Python wheels
     if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
@@ -1394,7 +1416,7 @@ jobs:
 
   create_release:
     name: CUDA-Q Release
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, metapackage_validation_macos]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, metapackage_validation_macos, cudaq_realtime_installers]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -1420,6 +1442,12 @@ jobs:
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: metapackages
+
+      - name: Download CUDA-Q Realtime installer
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'install_cuda_quantum_realtime_*'
+          path: installers
 
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
@@ -1468,7 +1496,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, image_validation, installer_validation, metapackage_validation_conda, metapackage_validation_macos, wheel_validation_piponly, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, cudaq_realtime_installers, image_validation, installer_validation, metapackage_validation_conda, metapackage_validation_macos, wheel_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
