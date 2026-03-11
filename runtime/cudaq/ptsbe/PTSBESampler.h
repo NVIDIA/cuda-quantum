@@ -31,6 +31,10 @@ struct PTSBatch {
   /// only which is a limitation of the current PTSBE implementation.
   std::vector<std::size_t> measureQubits;
 
+  /// @brief Populate per-shot sequential bitstring data on the result. When
+  /// false (default), only aggregated counts are produced.
+  bool includeSequentialData = false;
+
   /// @brief Calculate total shots across all trajectories
   std::size_t totalShots() const;
 };
@@ -53,7 +57,8 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 /// Caller must have set up ExecutionContext and allocated qubits
 /// on the simulator before calling this function.
 ///
-/// @param batch PTSBatch with trace, trajectories, and measureQubits
+/// @param batch PTSBatch with trace, trajectories, measureQubits, and
+///        includeSequentialData flag
 /// @return Per-trajectory sample results
 /// @throws std::runtime_error if simulator cast fails or contract violated
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
@@ -67,7 +72,7 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 /// 4. Calls samplePTSBE for precision dispatch and trajectory execution
 /// 5. Deallocates qubits and resets context
 ///
-/// @param batch PTSBE specification
+/// @param batch PTSBE specification (includes includeSequentialData flag)
 /// @param contextType ExecutionContext type (default: `"ptsbe-sample"`).
 /// @return Per-trajectory sample results
 /// @throws std::runtime_error if simulator cast fails or gate conversion fails

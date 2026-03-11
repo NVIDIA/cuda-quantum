@@ -39,12 +39,14 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
               std::size_t shots_count, noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
               py::object sampling_strategy, py::object shot_allocation_obj,
-              bool return_execution_data, py::args runtimeArgs) {
+              bool return_execution_data, bool include_sequential_data,
+              py::args runtimeArgs) {
   if (shots_count == 0)
     return ptsbe::sample_result();
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
+  ptsbe_options.include_sequential_data = include_sequential_data;
   ptsbe_options.max_trajectories = max_trajectories;
 
   if (!sampling_strategy.is_none())
@@ -107,10 +109,12 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
                    std::size_t shots_count, noise_model &noiseModel,
                    std::optional<std::size_t> max_trajectories,
                    py::object sampling_strategy, py::object shot_allocation_obj,
-                   bool return_execution_data, py::args runtimeArgs) {
+                   bool return_execution_data, bool include_sequential_data,
+                   py::args runtimeArgs) {
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
+  ptsbe_options.include_sequential_data = include_sequential_data;
   ptsbe_options.max_trajectories = max_trajectories;
 
   if (!sampling_strategy.is_none())
@@ -396,6 +400,7 @@ Args:
   sampling_strategy: Sampling strategy or None for default (probabilistic).
   shot_allocation: Shot allocation strategy or None for default (proportional).
   return_execution_data: Whether to include execution data in the result.
+  include_sequential_data: Whether to populate per-shot sequential data.
   *arguments: The kernel arguments.
 
 Returns:

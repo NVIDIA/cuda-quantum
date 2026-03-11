@@ -59,7 +59,8 @@ public:
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     throw std::runtime_error("Can't sample from resource counter simulator!");
   }
 
