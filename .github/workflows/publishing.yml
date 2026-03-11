@@ -653,9 +653,6 @@ jobs:
       contents: read
       packages: read
       id-token: write
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -668,6 +665,7 @@ jobs:
     with:
       platform: ${{ matrix.platform }}
       cuda_version: ${{ matrix.cuda_version }}
+      environment: ghcr-deployment
 
   cudaq_wheels:
     name: CUDA-Q Python wheels
