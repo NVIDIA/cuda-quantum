@@ -157,8 +157,9 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
 
     transformed_ints = xp.empty((n_basis, n_terms), dtype=xp.int64)
     for start in range(0, n_basis, 4096):
-        transformed_ints[start:start + 4096] = (
-            transformed_states[start:start + 4096].astype(xp.int64) @ powers_of_2)
+        transformed_ints[start:start +
+                         4096] = (transformed_states[start:start + 4096].astype(
+                             xp.int64) @ powers_of_2)
     del transformed_states
 
     # STEP 5: Find matching basis states using sorted search
