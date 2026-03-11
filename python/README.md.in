@@ -42,9 +42,10 @@ ${{ deprecation_notice }}
  installation. Different CUDA-Q binary distributions may conflict with each
  other causing issues.
 
-For platform-specific instructions see [Linux](#linux-gpu-acceleration-and-multi-gpu) | [macOS](#macos-apple-silicon).
+Platform-specific instructions: [Linux](#linux-gpu) | [macOS](#macos)
 
-### Linux: GPU-Acceleration and Multi-GPU
+<a id="linux-gpu"></a>
+**Linux: GPU-Acceleration and Multi-GPU**
 
 If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.
@@ -94,7 +95,8 @@ to set them every time you launch a new shell, we recommend adding them to
 `~/.profile` (create the file if it does not exist), and to `~/.bash_profile` or
 `~/.bash_login` if such a file exists.
 
-### macOS
+<a id="macos"></a>
+**macOS**
 
 GPU-acceleration is not available on macOS, so a virtual environment
 is all you need:
