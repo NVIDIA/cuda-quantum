@@ -3403,13 +3403,23 @@ class PyASTBridge(ast.NodeVisitor):
                                         if isinstance(lst, ast.List):
                                             listScalar = lst.elts
 
-                                if listScalar != None:
+                                if isinstance(arrNode, ast.Name):
+                                    captured = recover_value_of_or_none(
+                                        arrNode.id, self.defFrame)
+                                    if isinstance(captured, (list, np.ndarray)):
+                                        listScalar = captured
+
+                                if listScalar is not None:
                                     size = len(listScalar)
                                     numQubits = np.log2(size)
                                     if not numQubits.is_integer():
                                         self.emitFatalError(
                                             "Invalid input state size for "
                                             "qvector init (not a power of 2)",
+                                            node)
+                                    if int(numQubits) > 10:
+                                        self.emitFatalError(
+                                            f"State vector initialization with more than 10 qubits is not supported. Requested {int(numQubits)} qubits.",
                                             node)
 
                             check_vector_init()
