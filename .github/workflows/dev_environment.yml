@@ -274,7 +274,7 @@ jobs:
           local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
 
           # Smaller, faster-to-pull registry caches: zstd compresses better than gzip and decompresses quickly.
-          registry_cache_export_opts=",mode=max,compression=zstd,compression-level=15,force-compression=true,oci-mediatypes=true"
+          registry_cache_export_opts=",mode=max,compression=zstd,compression-level=15,oci-mediatypes=true"
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
