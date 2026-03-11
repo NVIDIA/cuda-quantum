@@ -220,11 +220,24 @@ if $is_macos; then
         (return 0 2>/dev/null) && return 100 || exit 100
     fi
 
-    # Build the pip install replacement. When a local packages dir is provided
-    # (-i), use --force-reinstall so the local wheel takes precedence even if
-    # the same version is already installed.
-    pip_install_replacement="pip install --force-reinstall cudaq==${cudaq_version} ${pip_extra_arg}"
-    if [ -z "${extra_packages}" ]; then
+    # Build the pip install replacement for the README's "pip install cudaq".
+    # When a local packages dir is provided (-i), install the wheel file
+    # directly since the wheel's distribution name (cuda_quantum) differs
+    # from the metapackage name (cudaq).
+    if [ -n "${extra_packages}" ]; then
+        metapackage=$(ls "${extra_packages}"/cudaq-*.tar.gz 2>/dev/null | head -1)
+        if [ -n "$metapackage" ]; then
+            pip_install_replacement="pip install --force-reinstall cudaq==${cudaq_version} --find-links ${extra_packages}"
+        else
+            wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
+            if [ -n "$wheel_file" ]; then
+                pip_install_replacement="pip install --force-reinstall $wheel_file"
+            else
+                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}.\e[0m" >&2
+                (return 0 2>/dev/null) && return 100 || exit 100
+            fi
+        fi
+    else
         pip_install_replacement="pip install cudaq==${cudaq_version}"
     fi
 
