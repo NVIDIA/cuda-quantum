@@ -130,6 +130,8 @@ if $gen_cpp_coverage; then
             -e '/Linking CXX executable/s/^.*Linking CXX executable //p' ${repo_root}/build/logs/ninja_output.txt))
         objects=""
         for item in "${binarys[@]}"; do
+            # Static libraries (.a) often produce malformed coverage data; only use shared libs and executables
+            [[ "$item" == *.a ]] && continue
             objects+="-object ${repo_root}/build/$item "
         done
 
@@ -178,20 +180,26 @@ if $gen_cpp_coverage; then
 fi
 
 if $gen_py_coverage; then
+    # Use a venv to avoid PEP 668 externally-managed-environment when installing pytest-cov
+    venv_dir=${repo_root}/build/venv-coverage
+    python3 -m venv "$venv_dir"
+    # shellcheck source=/dev/null
+    . "${venv_dir}/bin/activate"
     pip install pytest-cov
-    pip install iqm_client==16.1 --user -vvv
+    pip install iqm_client==16.1 -vvv
     rm -rf ${repo_root}/_skbuild
-    pip install . --user -vvv
+    pip install . -vvv
+    mkdir -p ${repo_root}/build/pycoverage
     if $is_codecov_format; then
-        python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
     else
-        python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
     fi
     for backendTest in python/tests/backends/*.py; do
         if $is_codecov_format; then
-            python3 -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+            python -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
         else
-            python3 -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+            python -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
         fi
         pytest_status=$?
         if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
