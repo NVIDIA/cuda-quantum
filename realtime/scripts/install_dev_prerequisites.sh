@@ -10,7 +10,7 @@
 
 # Usage: 
 # This script builds and installs a minimal set of dependencies needed to build 
-# CUDA-Q realtime from source. 
+# CUDA-Q realtime from source with DOCA/HSB support. 
 #
 # Usage: 
 # bash install_dev_prerequisites.sh
@@ -50,7 +50,7 @@ if [ -x "$(command -v apt-get)" ]; then
   apt-get update && apt-get install -y --no-install-recommends holoscan-cuda-$CUDA_MAJOR_VERSION
 
 elif [ -x "$(command -v dnf)" ]; then
-  echo "TODO: Support RHEL." >&2
+  echo "RHEL is not supported. Please install DOCA and Holoscan SDK manually." >&2
 else
   echo "No supported package manager detected." >&2
 fi

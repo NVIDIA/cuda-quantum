@@ -53,8 +53,8 @@ for realtime coprocessing between FPGA and GPU systems.
 
 - `DOCA` version 3.3 with `gpunetio`
 
-Please refer to [the download page](https://developer.nvidia.com/doca-downloads) to install `DOCA` 
-for your system.
+Please refer to [the download page](https://developer.nvidia.com/doca-downloads)
+to install `DOCA` for your system.
 
 > **_NOTE:_** Please make sure `doca-sdk-gpunetio` is installed along with `doca-all`.
 
