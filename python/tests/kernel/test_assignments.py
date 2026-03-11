@@ -849,6 +849,7 @@ def test_list_of_dataclass_update_failures():
     # kernel-internal deep copy and list mutation still produce wrong results
     # intermittently on that configuration. Disabling until root cause is
     # identified.
+    # See https://github.com/NVIDIA/cuda-quantum/issues/3923
     @cudaq.kernel
     def test11(t: MyTuple, size: int) -> list[int]:
         l = [t.copy(deep=True) for _ in range(size)]
