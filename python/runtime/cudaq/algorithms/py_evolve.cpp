@@ -60,10 +60,8 @@ pyEvolve(state initial_state, py::object kernel,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
         valueArgument(*argData, &state);
-        auto *ctx = kernelMod->getContext();
-        auto retTy = mlir::NoneType::get(ctx);
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, kernelMod, retTy, *argData);
+            clean_launch_module(kernelName, kernelMod, *argData);
         delete argData;
       },
       spin_ops, shots_count);
@@ -93,10 +91,8 @@ pyEvolve(state initial_state, std::vector<py::object> kernels,
     launchFcts.push_back([kernelMod, kernelName](state state) mutable {
       auto *argData = new cudaq::OpaqueArguments();
       valueArgument(*argData, &state);
-      auto *ctx = kernelMod->getContext();
-      auto retTy = mlir::NoneType::get(ctx);
       [[maybe_unused]] auto result =
-          clean_launch_module(kernelName, kernelMod, retTy, *argData);
+          clean_launch_module(kernelName, kernelMod, *argData);
       delete argData;
     });
   }
@@ -143,10 +139,8 @@ pyEvolveAsync(state initial_state, py::object kernel,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
         valueArgument(*argData, &state);
-        auto *ctx = kernelMod->getContext();
-        auto retTy = mlir::NoneType::get(ctx);
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, kernelMod, retTy, *argData);
+            clean_launch_module(kernelName, kernelMod, *argData);
         delete argData;
       },
       spin_ops, qpu_id, noise_model, shots_count);
@@ -179,10 +173,8 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
         [kernelMod = std::move(kernelMod), kernelName](state state) mutable {
           cudaq::OpaqueArguments argData;
           valueArgument(argData, &state);
-          auto *ctx = kernelMod->getContext();
-          auto retTy = mlir::NoneType::get(ctx);
           [[maybe_unused]] auto result =
-              clean_launch_module(kernelName, kernelMod, retTy, argData);
+              clean_launch_module(kernelName, kernelMod, argData);
         });
   }
 

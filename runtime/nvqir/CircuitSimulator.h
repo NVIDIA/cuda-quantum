@@ -391,7 +391,8 @@ public:
   /// @brief Sample the current multi-qubit state on the given qubit indices
   /// over a certain number of shots
   virtual cudaq::ExecutionResult
-  sample(const std::vector<std::size_t> &qubitIdxs, const int shots) = 0;
+  sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
+         bool includeSequentialData = true) = 0;
 
   /// @brief Return the name of this CircuitSimulator
   virtual std::string name() const = 0;

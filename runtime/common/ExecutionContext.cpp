@@ -27,18 +27,29 @@ thread_local bool reuseArtifact = false;
 
 class SavedCompilerArtifact {
 public:
+  void saveArtifact(const std::string &kernelName,
+                    const std::vector<void *> &args,
+                    const cudaq::JitEngine &engine,
+                    std::function<void *()> argsCreatorThunk) {
+    if (jitEng.has_value()) {
+      throw std::runtime_error(
+          "Attempted to overwrite saved compiler artifact.");
+    }
+    jitEng = engine;
+    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
+        argsCreatorThunk());
+    this->kernelName = kernelName;
+    auto [resSize, scopedArgBuffer] = processArgs(args);
+    argSize = resSize;
+    argBuff = std::move(scopedArgBuffer);
+  }
+
   void checkArtifactReuse(const std::string &kernelName,
                           const std::vector<void *> &args,
                           const cudaq::JitEngine &engine,
                           std::function<void *()> argsCreatorThunk) {
     if (!jitEng.has_value()) {
-      jitEng = engine;
-      this->argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-          argsCreatorThunk());
-      this->kernelName = kernelName;
-      auto [resSize, scopedArgBuffer] = processArgs(args);
-      this->argSize = resSize;
-      this->argBuff = std::move(scopedArgBuffer);
+      saveArtifact(kernelName, args, engine, argsCreatorThunk);
       return;
     }
 
@@ -125,6 +136,15 @@ void checkArtifactReuse(const std::string kernelName,
     return;
 
   savedArtifact.checkArtifactReuse(kernelName, args, jit, argsCreatorThunk);
+}
+
+void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
+                  const JitEngine jit,
+                  std::function<void *()> argsCreatorThunk) {
+  if (!reuseArtifact)
+    return;
+
+  savedArtifact.saveArtifact(kernelName, args, jit, argsCreatorThunk);
 }
 } // namespace compiler_artifact
 

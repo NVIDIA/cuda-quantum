@@ -291,10 +291,9 @@ public:
     return {};
   }
 
-  KernelThunkResultType launchModule(const std::string &kernelName,
-                                     mlir::ModuleOp module,
-                                     const std::vector<void *> &rawArgs,
-                                     mlir::Type resTy) override {
+  KernelThunkResultType
+  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
 
     auto executionContext = cudaq::getExecutionContext();
@@ -314,7 +313,7 @@ public:
   }
 
   void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         const std::vector<void *> &rawArgs,
                          std::optional<cudaq::JitEngine> &cachedEngine,
                          bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
