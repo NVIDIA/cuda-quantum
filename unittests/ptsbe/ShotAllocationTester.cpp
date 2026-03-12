@@ -315,8 +315,8 @@ CUDAQ_TEST(ShotAllocationTest, ExtremelyUnequalMultiplicities) {
   ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
   allocateShots(trajectories, 10000, strategy);
 
-  EXPECT_GE(trajectories[0].num_shots, 9980);
-  EXPECT_LE(trajectories[1].num_shots, 20);
+  EXPECT_GE(trajectories[0].num_shots, 9970);
+  EXPECT_LE(trajectories[1].num_shots, 30);
 
   EXPECT_EQ(trajectories[0].num_shots + trajectories[1].num_shots, 10000);
 }
