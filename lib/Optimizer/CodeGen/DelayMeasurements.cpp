@@ -7,8 +7,13 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_DELAYMEASUREMENTS
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "delay-measurements"
 
@@ -23,7 +28,7 @@ namespace {
 /// qubit early in the program and then performs quantum operations on other
 /// qubits later in the program.
 struct DelayMeasurementsPass
-    : public cudaq::opt::DelayMeasurementsBase<DelayMeasurementsPass> {
+    : public cudaq::opt::impl::DelayMeasurementsBase<DelayMeasurementsPass> {
   using DelayMeasurementsBase::DelayMeasurementsBase;
 
   void runOnOperation() override {
@@ -104,7 +109,3 @@ struct DelayMeasurementsPass
   }
 };
 } // namespace
-
-std::unique_ptr<Pass> cudaq::opt::createDelayMeasurementsPass() {
-  return std::make_unique<DelayMeasurementsPass>();
-}
