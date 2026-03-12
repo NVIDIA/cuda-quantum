@@ -9,7 +9,7 @@
 # This file builds an image that contains a CUDA-Q installation and all necessary runtime 
 # dependencies for using CUDA-Q.
 #
-# This image requires specifing an image as argument that contains a CUDA-Q installation
+# This image requires specifying an image as argument that contains a CUDA-Q installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
 # A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.
@@ -117,7 +117,11 @@ RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
 ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
-ADD ./docs/sphinx/applications/ /home/cudaq/applications/
+# Issue: https://github.com/NVIDIA/cuda-quantum/issues/4148
+COPY --exclude=python/quantum_transformer.ipynb \
+     --exclude=python/quantum_transformer_src \
+     --exclude=python/logical_aim_sqale.ipynb \
+     ./docs/sphinx/applications/ /home/cudaq/applications/
 ADD ./docs/sphinx/targets/ /home/cudaq/targets/
 ADD ./docker/release/README.md /home/cudaq/README.md
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
