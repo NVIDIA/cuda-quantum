@@ -8,13 +8,11 @@
 """Functions to convert Qiskit circuits and OpenQASM files to CUDA-Q kernels.
 
 This module provides interoperability between Qiskit and CUDA-Q,
-allowing users to convert Qiskit QuantumCircuit objects and OpenQASM
+allowing users to convert Qiskit `QuantumCircuit` objects and OpenQASM
 files into CUDA-Q kernels for simulation and execution.
 
 Note:
-    This module requires ``qiskit`` to be installed separately::
-
-        pip install qiskit
+    This module requires ``qiskit`` to be installed.
 """
 
 import numpy as np
@@ -46,7 +44,7 @@ def from_qasm(qasm_file):
     by first parsing it with Qiskit and then converting the resulting circuit.
 
     Args:
-        qasm_file: Path to the OpenQASM file as a string.
+        `qasm_file`: Path to the OpenQASM file as a string.
 
     Returns:
         A CUDA-Q kernel equivalent to the OpenQASM circuit.
@@ -55,12 +53,6 @@ def from_qasm(qasm_file):
         ImportError: If Qiskit is not installed.
         FileNotFoundError: If the QASM file does not exist.
         RuntimeError: If the QASM file cannot be parsed.
-
-    Example:
-        .. code-block:: python
-
-            kernel = cudaq.contrib.from_qasm('/path/to/circuit.qasm')
-            result = cudaq.sample(kernel)
     """
     QuantumCircuit = _try_import_qiskit()
     try:
@@ -75,13 +67,13 @@ def from_qasm(qasm_file):
 
 
 def from_qiskit(qiskit_circuit):
-    """Create a CUDA-Q kernel from a Qiskit QuantumCircuit.
+    """Create a CUDA-Q kernel from a Qiskit `QuantumCircuit`.
 
-    This function converts a Qiskit QuantumCircuit to an equivalent CUDA-Q
+    This function converts a Qiskit `QuantumCircuit` to an equivalent CUDA-Q
     kernel by mapping Qiskit gates to their CUDA-Q counterparts.
 
     Args:
-        qiskit_circuit: A `Qiskit.QuantumCircuit` instance.
+        `qiskit_circuit`: A `Qiskit.QuantumCircuit` instance.
 
     Returns:
         A CUDA-Q kernel equivalent to the input Qiskit circuit.
@@ -91,26 +83,14 @@ def from_qiskit(qiskit_circuit):
         ValueError: If the circuit contains unsupported gates.
 
     Supported gates:
-        - Single qubit: h, x, y, z, s, t, sdg, tdg, id (identity)
-        - Two qubit: cx, cy, cz, ch, swap, rxx, rzz
-        - Three qubit: ccx (Toffoli)
-        - Parametric: rx, ry, rz, r1, u3, u, p (phase)
-        - Controlled parametric: crx, cry, crz
-        - Special: sx, sxdg (sqrt-X and adjoint), barrier, measure
-
-    Example:
-        .. code-block:: python
-
-            from qiskit import QuantumCircuit
-
-            qc = QuantumCircuit(2)
-            qc.h(0)
-            qc.cx(0, 1)
-
-            kernel = cudaq.contrib.from_qiskit(qc)
-            result = cudaq.sample(kernel)
+        - Single qubit: `h`, `x`, `y`, `z`, `s`, `t`, `sdg`, `tdg`, `id` (identity)
+        - Two qubit: `cx`, `cy`, `cz`, `ch`, `swap`, `rxx`, `rzz`
+        - Three qubit: `ccx` (Toffoli)
+        - Parametric: `rx`, `ry`, `rz`, `r1`, `u3`, `u`, `p` (phase)
+        - Controlled parametric: `crx`, `cry`, `crz`
+        - Special: `sx`, `sxdg`, barrier, measure
     """
-    # Ensure qiskit is available (validates input type indirectly)
+    # Ensure Qiskit is available (validates input type indirectly)
     _try_import_qiskit()
 
     kernel = make_kernel()
@@ -164,7 +144,7 @@ def from_qiskit(qiskit_circuit):
             kernel.rz(params[0], qubits[q_indices[0]])
             kernel.cx(qubits[q_indices[0]], qubits[q_indices[1]])
 
-        # Toffoli gate (3-qubit) - use cx with list of controls
+        # Toffoli gate (3-qubit) - use `cx` with list of controls
         elif op_name == 'ccx':
             kernel.cx([qubits[q_indices[0]], qubits[q_indices[1]]],
                       qubits[q_indices[2]])
@@ -188,12 +168,11 @@ def from_qiskit(qiskit_circuit):
         elif op_name == 'crz':
             kernel.crz(params[0], qubits[q_indices[0]], qubits[q_indices[1]])
 
-        # U3 gate: U3(theta, phi, lambda) = Rz(lambda) Ry(theta) Rz(phi)
-        # Note: Qiskit U3 params are (theta, phi, lambda)
+        # U3 gate: `U3(theta, phi, lambda) = Rz(lambda) Ry(theta) Rz(phi)`
         elif op_name == 'u3' or op_name == 'u':
             kernel.u3(params[0], params[1], params[2], qubits[q_indices[0]])
 
-        # sqrt-X gate decomposition
+        # `sqrt-X` gate decomposition
         elif op_name == 'sx':
             kernel.r1(np.pi / 4, qubits[q_indices[0]])
             kernel.x(qubits[q_indices[0]])
