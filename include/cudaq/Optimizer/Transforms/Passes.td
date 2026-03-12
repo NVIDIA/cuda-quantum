@@ -160,6 +160,19 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
+def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
+  let summary = "Perform the rough-in cabling for value semantics conversion.";
+  let description = [{
+    Some higher-level aspects of the IR, such as function calls, may not be
+    obviously reducible to quake's value semantics form. This can impede other
+    passes and analyses.
+
+    This prerequisite pass will "rough-in" cabling abstractions, which are part
+    of value semantics to reduce the switching cost of having both value and
+    reference semantics present at the same time in the IR.
+  }];
+}
+
 def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
   let summary = "Check calls between quantum kernels have been inlined.";
   let description = [{
