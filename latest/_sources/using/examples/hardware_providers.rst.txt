@@ -160,6 +160,8 @@ Pasqal
 ==================================
 
 The following code illustrates how to run kernels on Pasqal's backends.
+For QRMI-routed Pasqal jobs, specify ``pasqal`` as the target; the ``machine``
+argument is supplied by QRMI at runtime.
 
 .. tab:: Python
 

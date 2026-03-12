@@ -204,17 +204,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/operators.html">   Constructing Operators</a><ul>
@@ -329,7 +329,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compare-results">5. Compare results</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
@@ -619,6 +619,19 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -883,6 +896,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/python_api.html">Python API</a><ul>
@@ -986,6 +1009,15 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
 </ul>
@@ -1311,7 +1343,7 @@ you need to copy the <code class="code docutils literal notranslate"><span class
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;python-bindings;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-e<span class="w"> </span>qrmi<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang++&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/flang-new&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -1368,7 +1400,7 @@ command to build CUDA-Q:</p>
 <span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
 <span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v
+bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v<span class="w"> </span>--<span class="w"> </span>-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR<span class="o">=</span>OFF
 </pre></div>
 </div>
 <p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already
@@ -1384,6 +1416,10 @@ files to install into a separate folder using the command</p>
 <span class="c1"># everything and no hardcoded absolute paths are needed.</span>
 mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets
 cp<span class="w"> </span>-a<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets/cudaq
+
+<span class="c1"># Remove Python-dependent plugins from the C++ installer. The pyscf plugin</span>
+<span class="c1"># requires a Python runtime and is not used for the C++ workflows.</span>
+rm<span class="w"> </span>-f<span class="w"> </span>cuda_quantum_assets/cudaq/lib/plugins/libcudaq-pyscf*
 
 <span class="c1"># Bundle the complete LLVM installation in its own subtree so clang&#39;s</span>
 <span class="c1"># internal path resolution (resource dir, C++ headers, runtime libs) works</span>

@@ -197,27 +197,33 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../../using/examples/ptsbe.html){.reference
         .internal}
-        -   [Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Conceptual
+            Overview](../../using/examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick
+            Start](../../using/examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -441,9 +447,8 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -986,6 +991,26 @@ latest
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [Set up the
+            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1455,6 +1480,28 @@ latest
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1711,6 +1758,27 @@ latest
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1831,7 +1899,7 @@ We perform binary classification on the MNIST dataset where data flows
 through the neural network architecture to the quantum circuit whose
 output is used to classify hand written digits.
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [1]:
@@ -1846,6 +1914,17 @@ output is used to classify hand written digits.
 
     # Use this line if using GPU, change CUDA version according to your system (e.g. cu126, cu128, or cu130)
     # !pip install matplotlib==3.8.4 torch==2.9.1+cu126 torchvision==0.24.1+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
 :::
 :::
 :::
@@ -1894,11 +1973,13 @@ output is used to classify hand written digits.
 ::: highlight
     # Set CUDAQ and PyTorch to run on either CPU or GPU.
 
-    device = torch.device('cpu')
-    cudaq.set_target("qpp-cpu")
-
-    #cudaq.set_target("nvidia")
-    #device = torch.device("cuda:0")
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+        device = torch.device("cuda:0")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
+        device = torch.device('cpu')
 :::
 :::
 :::
@@ -1978,6 +2059,8 @@ output is used to classify hand written digits.
     test_size = 30  # Percentage of dataset to be used for testing.
     classification_threshold = 0.5  # Classification boundary used to measure accuracy.
     epochs = 1000  # Number of epochs to train for.
+    if device.type != 'cuda':
+        epochs = 500
 
     # Quantum parmeters.
 
@@ -2208,7 +2291,7 @@ output is used to classify hand written digits.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     def accuracy_score(y, y_hat):
-        return sum((y == (y_hat >= classification_threshold))) / len(y)
+        return (sum((y == (y_hat >= classification_threshold))) / len(y)).item()
 :::
 :::
 :::
@@ -2324,7 +2407,7 @@ output is used to classify hand written digits.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f52f3f8e0830e0c78e05ed8d087ae7faf1e58c9f)
+    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 7bcee70c18c73a12a6cb4e253f12e20f1c34ddbd)
 :::
 :::
 :::

@@ -206,17 +206,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/operators.html">   Constructing Operators</a><ul>
@@ -331,7 +331,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compare-results">5. Compare results</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
@@ -621,6 +621,19 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
@@ -885,6 +898,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/languages/python_api.html">Python API</a><ul>
@@ -988,6 +1011,15 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
 </ul>
@@ -1485,14 +1517,6 @@ requested shot count is collected, at the cost of increased execution time.</p>
 </div>
 <p>To see a complete example of using Quantum Circuits’ backends, please take a look at the
 <a class="reference internal" href="../../examples/hardware_providers.html#quantum-circuits-examples"><span class="std std-ref">Quantum Circuits examples</span></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>In local emulation mode (<code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag set to <code class="docutils literal notranslate"><span class="pre">True</span></code>), the program will be executed on the <a class="reference internal" href="../sims/svsims.html#default-simulator"><span class="std std-ref">default simulator</span></a>.
-The environment variable <code class="docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> can be used to change the emulation simulator.</p>
-<p>For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
-depend on the selected simulator.</p>
-<p>Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
-</div>
 </section>
 </section>
 <section id="tii">
@@ -1546,6 +1570,15 @@ passed directly:</p>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">TII_API_TOKEN</span></code> environment variable must be set at runtime to authenticate the job.</p>
 </div>
+</div>
+<p>To see a complete example of using TII’s backends, please take a look at the <a class="reference internal" href="../../examples/hardware_providers.html#tii-examples"><span class="std std-ref">TII examples</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In local emulation mode (<code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag set to <code class="docutils literal notranslate"><span class="pre">True</span></code>), the program will be executed on the <a class="reference internal" href="../sims/svsims.html#default-simulator"><span class="std std-ref">default simulator</span></a>.
+The environment variable <code class="docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> can be used to change the emulation simulator.</p>
+<p>For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
+depend on the selected simulator.</p>
+<p>Any environment variables must be set prior to setting the target or running <code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>.</p>
 </div>
 </section>
 </section>

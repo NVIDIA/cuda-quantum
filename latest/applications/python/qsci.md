@@ -197,27 +197,33 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../../using/examples/ptsbe.html){.reference
         .internal}
-        -   [Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Conceptual
+            Overview](../../using/examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick
+            Start](../../using/examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -440,7 +446,7 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare results](#5.-Compuare-results){.reference
+        -   [5. Compare results](#5.-Compare-results){.reference
             .internal}
         -   [Reference](#Reference){.reference .internal}
     -   [Bernstein-Vazirani
@@ -985,6 +991,26 @@ latest
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [Set up the
+            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1454,6 +1480,28 @@ latest
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1710,6 +1758,27 @@ latest
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1922,6 +1991,24 @@ ground state wavefunction on a quantum computer.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
+    else:
+        print("CUDA or GPU support is unavailable. Running with CPU simulator. Performance may be significantly reduced.")
+        cudaq.set_target("qpp-cpu")
+:::
+:::
+:::
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [5]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
     import numpy as np
 
 
@@ -1939,29 +2026,24 @@ ground state wavefunction on a quantum computer.
 
     parameter_count = cudaq.kernels.uccsd_num_parameters(electron_count, num_qubits)
 
-
-    from scipy.optimize import minimize
-
-
-    # Define a function to minimize
-    def cost(thetas: list[float]):
-        exp_val = cudaq.observe(kernel, hamiltonian, thetas).expectation()
-        return exp_val
-
-
     exp_vals = []
 
 
-    def callback(xk):
-        exp_vals.append(cost(xk))
+    def cost(thetas: list[float]):
+        exp_val = cudaq.observe(kernel, hamiltonian, thetas).expectation()
+        exp_vals.append(exp_val)
+        return exp_val
 
 
-    # Initial variational parameters.
+    # Initial variational parameters
     np.random.seed(15)
-    x0 = np.random.normal(0, np.pi, parameter_count)
+    x0 = np.clip(np.random.normal(0, np.pi, parameter_count), -np.pi, np.pi)
 
-    # Use the scipy optimizer to minimize the function of interest
-    vqe_result = minimize(cost, x0)
+    optimizer = cudaq.optimizers.COBYLA()
+    optimizer.max_iterations = 300
+    optimizer.initial_parameters = x0.tolist()
+
+    energy, opt_params = optimizer.optimize(parameter_count, cost)
 :::
 :::
 :::
@@ -1976,13 +2058,13 @@ correspond to Slater determinants (electronic configurations).
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [6]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    sample_result = cudaq.sample(kernel, vqe_result.x)
+    sample_result = cudaq.sample(kernel, opt_params)
     print(sample_result)
 :::
 :::
@@ -1994,7 +2076,7 @@ correspond to Slater determinants (electronic configurations).
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    { 00001111:2 00011011:12 00011110:18 00100111:27 00101101:25 00110011:2 00110110:22 00111001:193 01011010:13 01101100:23 01110010:2 10000111:34 10001101:115 10010011:18 10010110:5 10011100:11 10100101:40 10110001:4 11000011:170 11001001:16 11001100:8 11010010:46 11011000:137 11100001:7 11100100:28 11110000:22 }
+    { 11110000:1000 }
 :::
 :::
 :::
@@ -2010,7 +2092,7 @@ energy estimates.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [7]:
 :::
 :::
 
@@ -2073,7 +2155,7 @@ energy estimates.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [8]:
 :::
 :::
 
@@ -2105,19 +2187,24 @@ energy estimates.
     truncated_hamiltonian = scipy.sparse.coo_array(
         (values, (row_ids, column_ids)), shape=(subspace_dimension, subspace_dimension)
     )
-    eigvals, _ = scipy.sparse.linalg.eigsh(truncated_hamiltonian, 1, which="SA")
+
+    # eigsh requires k < N; fall back to dense solver for small subspaces
+    if subspace_dimension > 1:
+        eigvals, _ = scipy.sparse.linalg.eigsh(truncated_hamiltonian, 1, which="SA")
+    else:
+        eigvals = scipy.linalg.eigh(truncated_hamiltonian.toarray(), eigvals_only=True)
 :::
 :::
 :::
 :::
 
-::: {#5.-Compuare-results .section}
-## 5. Compuare results[¶](#5.-Compuare-results "Permalink to this heading"){.headerlink}
+::: {#5.-Compare-results .section}
+## 5. Compare results[¶](#5.-Compare-results "Permalink to this heading"){.headerlink}
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [9]:
 :::
 :::
 
@@ -2132,13 +2219,13 @@ energy estimates.
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [9]:
 :::
 :::
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    -2.1318697852134716
+    -2.1019517013583533
 :::
 :::
 :::
@@ -2146,7 +2233,7 @@ energy estimates.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [10]:
 :::
 :::
 
@@ -2161,13 +2248,13 @@ energy estimates.
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [10]:
 :::
 :::
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    -2.143554580446029
+    -2.14355458044603
 :::
 :::
 :::

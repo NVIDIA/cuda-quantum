@@ -196,27 +196,32 @@ latest
     -   [Noisy
         Simulations](../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
-        .internal}
-        -   [Set up the
-            environment](../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../using/examples/ptsbe.html){.reference .internal}
+        -   [Conceptual
+            Overview](../using/examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick
+            Start](../using/examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../using/examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing
         Operators](../using/examples/operators.html){.reference
         .internal}
@@ -442,8 +447,8 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -1027,6 +1032,27 @@ latest
         -   [6. References and further
             reading](../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](../applications/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [Set up the
+            environment](../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../using/backends/simulators.html){.reference
@@ -1487,6 +1513,27 @@ latest
             .internal}
         -   [Namespaces](languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](languages/cpp_api.html#ptsbe){.reference .internal}
+            -   [Sampling
+                Functions](languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](languages/python_api.html){.reference .internal}
         -   [Program
             Construction](languages/python_api.html#program-construction){.reference
@@ -1741,6 +1788,27 @@ latest
             .internal}
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](languages/python_api.html#cudaq.orca.sample){.reference
+                .internal}
+        -   [PTSBE
+            Submodule](languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
     -   [Quantum Operations](default_ops.html){.reference .internal}
         -   [Unitary Operations on

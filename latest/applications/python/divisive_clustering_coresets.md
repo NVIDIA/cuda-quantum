@@ -197,27 +197,33 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../../using/examples/ptsbe.html){.reference
         .internal}
-        -   [Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Conceptual
+            Overview](../../using/examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick
+            Start](../../using/examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -441,9 +447,8 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -984,6 +989,26 @@ latest
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [Set up the
+            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1453,6 +1478,28 @@ latest
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1709,6 +1756,27 @@ latest
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1876,7 +1944,7 @@ understand similarities in the data points.
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Install the relevant packages.
-    %pip install networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
+    %pip install mpi4py networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
 :::
 :::
 :::
@@ -2474,11 +2542,12 @@ the source code.
 
 ::: {.output_area .stderr .docutils .container}
 ::: highlight
-    100%|██████████| 100/100 [00:00<00:00, 42379.55it/s]
-    100%|██████████| 1/1 [00:00<00:00, 27776.85it/s]
-    100%|██████████| 21/21 [00:00<00:00, 78643.20it/s]
-    100%|██████████| 3/3 [00:00<00:00, 24385.49it/s]
-    100%|██████████| 4/4 [00:00<00:00, 78766.27it/s]
+    100%|██████████| 114/114 [00:00<00:00, 41226.99it/s]
+    100%|██████████| 1/1 [00:00<00:00, 29127.11it/s]
+    100%|██████████| 23/23 [00:00<00:00, 78049.35it/s]
+    100%|██████████| 1/1 [00:00<00:00, 28532.68it/s]
+    100%|██████████| 3/3 [00:00<00:00, 58525.17it/s]
+    100%|██████████| 2/2 [00:00<00:00, 55188.21it/s]
 :::
 :::
 :::
@@ -2730,45 +2799,31 @@ to be changed as is done below.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-                                                                    »
-    q0 : ──●─────────────────────●──────────────────────────────────»
-         ╭─┴─╮╭───────────────╮╭─┴─╮                                »
-    q1 : ┤ x ├┤ rz(0.0002127) ├┤ x ├──●─────────────────────●───────»
-         ╰───╯╰───────────────╯╰───╯╭─┴─╮╭───────────────╮╭─┴─╮     »
-    q2 : ───────────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├──●──»
-                                    ╰───╯╰───────────────╯╰───╯╭─┴─╮»
-    q3 : ──────────────────────────────────────────────────────┤ x ├»
-                                                               ╰───╯»
-    q4 : ───────────────────────────────────────────────────────────»
-                                                                    »
+                                                                              »
+    q0 : ──●─────────────────●────────────────────────────────────────────────»
+         ╭─┴─╮╭───────────╮╭─┴─╮                                              »
+    q1 : ┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●─────────────────────────»
+         ╰───╯╰───────────╯╰───╯╭─┴─╮╭───────────╮╭─┴─╮                       »
+    q2 : ───────────────────────┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●──»
+                                ╰───╯╰───────────╯╰───╯╭─┴─╮╭───────────╮╭─┴─╮»
+    q3 : ──────────────────────────────────────────────┤ x ├┤ rz(1.204) ├┤ x ├»
+                                                       ╰───╯╰───────────╯╰───╯»
+    q4 : ─────────────────────────────────────────────────────────────────────»
+                                                                              »
 
     ################################################################################
 
-                                                     ╭───╮╭───────────────╮╭───╮»
-    ─────────────────────────────────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├»
-                                                     ╰─┬─╯╰───────────────╯╰─┬─╯»
-    ───────────────────────────────────────────────────┼─────────────────────┼──»
-                                                       │                     │  »
-    ───────────────────●───────────────────────────────┼─────────────────────┼──»
-    ╭───────────────╮╭─┴─╮                             │                     │  »
-    ┤ rz(0.0002127) ├┤ x ├──●─────────────────────●────┼─────────────────────┼──»
-    ╰───────────────╯╰───╯╭─┴─╮╭───────────────╮╭─┴─╮  │                     │  »
-    ──────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├──●─────────────────────●──»
-                          ╰───╯╰───────────────╯╰───╯                           »
-
-    ################################################################################
-
-    ╭───────────╮
-    ┤ rx(1.127) ├
-    ├───────────┤
-    ┤ rx(1.127) ├
-    ├───────────┤
-    ┤ rx(1.127) ├
-    ├───────────┤
-    ┤ rx(1.127) ├
-    ├───────────┤
-    ┤ rx(1.127) ├
-    ╰───────────╯
+                           ╭───╮╭───────────╮╭───╮╭────────────╮
+    ───────────────────────┤ x ├┤ rz(1.204) ├┤ x ├┤ rx(0.1425) ├
+                           ╰─┬─╯╰───────────╯╰─┬─╯├────────────┤
+    ─────────────────────────┼─────────────────┼──┤ rx(0.1425) ├
+                             │                 │  ├────────────┤
+    ─────────────────────────┼─────────────────┼──┤ rx(0.1425) ├
+                             │                 │  ├────────────┤
+    ──●─────────────────●────┼─────────────────┼──┤ rx(0.1425) ├
+    ╭─┴─╮╭───────────╮╭─┴─╮  │                 │  ├────────────┤
+    ┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●──┤ rx(0.1425) ├
+    ╰───╯╰───────────╯╰───╯                       ╰────────────╯
 :::
 :::
 :::
@@ -2842,11 +2897,10 @@ to be changed as is done below.
 
 ::: {.output_area .stderr .docutils .container}
 ::: highlight
-    100%|██████████| 480/480 [00:00<00:00, 44895.88it/s]
-    100%|██████████| 48/48 [00:00<00:00, 111600.11it/s]
+    100%|██████████| 473/473 [00:00<00:00, 42833.21it/s]
+    100%|██████████| 15/15 [00:00<00:00, 97090.37it/s]
     100%|██████████| 12/12 [00:00<00:00, 148910.20it/s]
-    100%|██████████| 4/4 [00:00<00:00, 98112.37it/s]
-    100%|██████████| 4/4 [00:00<00:00, 53261.00it/s]
+    100%|██████████| 12/12 [00:00<00:00, 153450.15it/s]
 :::
 :::
 :::
@@ -2906,21 +2960,21 @@ Now try the N=18 example on the GPU backend ([`nvidia`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [1771611064.714571] [fb5fb776d150:85711:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-    [1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-    [1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+    [1773105393.065186] [f46691a660f5:79232:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+    [1773105393.156726] [f46691a660f5:79232:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+    [1773105393.156726] [f46691a660f5:79232:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
     Using BFL2 method to generate coresets
-    100%|██████████████████████████████████| 14842/14842 [00:01<00:00, 14617.13it/s]
-    100%|██████████████████████████████████████| 128/128 [00:00<00:00, 73183.06it/s]
-    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 46867.32it/s]
-    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 147168.56it/s]
-    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 144010.44it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 142481.66it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 134756.76it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 122461.43it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 117323.19it/s]
-    Total time for the execution: 25.115535654
-    Total time spent on CUDA-Q: 22.706712142
+    100%|██████████████████████████████████| 14866/14866 [00:01<00:00, 11524.80it/s]
+    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 46777.31it/s]
+    100%|██████████████████████████████████████| 128/128 [00:00<00:00, 73173.08it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 135847.90it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 134217.73it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 145257.28it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 149796.57it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 114912.44it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 113359.57it/s]
+    Total time for the execution: 24.384913350000005
+    Total time spent on CUDA-Q: 22.876361590000005
 :::
 :::
 :::
@@ -2968,33 +3022,47 @@ N=25 can still easily be completed by a single GPU.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [1771611081.663407] [fb5fb776d150:85963:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-    [1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-    [1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+    [1773105410.584339] [f46691a660f5:79483:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+    [1773105410.670883] [f46691a660f5:79483:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+    [1773105410.670883] [f46691a660f5:79483:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
     Using BFL2 method to generate coresets
-    100%|███████████████████████████████████| 19169/19169 [00:02<00:00, 7340.95it/s]
-    100%|████████████████████████████████████| 9699/9699 [00:00<00:00, 20903.20it/s]
-    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 46408.62it/s]
-    100%|██████████████████████████████████████| 250/250 [00:00<00:00, 57152.45it/s]
-    100%|███████████████████████████████████████| 32/32 [00:00<00:00, 111015.49it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 141579.88it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 143089.26it/s]
-    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 139810.13it/s]
-    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 127826.41it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 118987.35it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 114130.72it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 118987.35it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 120699.40it/s]
-    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 116508.44it/s]
-    Total time for the execution: 52.755354396
-    Total time spent on CUDA-Q: 48.283614136999994
+    100%|███████████████████████████████████| 19122/19122 [00:02<00:00, 7393.67it/s]
+    100%|████████████████████████████████████| 9597/9597 [00:00<00:00, 20794.02it/s]
+    100%|██████████████████████████████████████| 511/511 [00:00<00:00, 47107.33it/s]
+    100%|██████████████████████████████████████| 250/250 [00:00<00:00, 57339.97it/s]
+    100%|███████████████████████████████████████| 32/32 [00:00<00:00, 114422.62it/s]
+    100%|████████████████████████████████████████| 32/32 [00:00<00:00, 99200.09it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 130055.94it/s]
+    100%|█████████████████████████████████████████| 8/8 [00:00<00:00, 141579.88it/s]
+    100%|███████████████████████████████████████| 16/16 [00:00<00:00, 138368.79it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 111107.39it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 106861.25it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 121574.03it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 114912.44it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 104206.31it/s]
+    100%|█████████████████████████████████████████| 4/4 [00:00<00:00, 111107.39it/s]
+    Total time for the execution: 52.869397943
+    Total time spent on CUDA-Q: 48.594538112
 :::
 :::
 :::
 
 If we want to push the simulation to an [\\(N=34\\)]{.math .notranslate
 .nohighlight} coreset, a single GPU (assuming A100) will run out of
-memory. Run the code below to see for yourself.
+memory. When this happens, the GPU memory error propagates out of the
+quantum simulation and surfaces as a [`RuntimeError:`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`NLOpt`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`runtime`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`error:`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`nlopt`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`failure`{.docutils .literal .notranslate}]{.pre}, since
+the optimizer catches the exception from the failed objective function
+evaluation. Run the code below to see for yourself.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
@@ -3017,9 +3085,9 @@ memory. Run the code below to see for yourself.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [1771611118.898043] [fb5fb776d150:86265:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-    [1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-    [1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+    [1773105448.213156] [f46691a660f5:79783:0]     ucp_context.c:1321 UCX  WARN  transports 'rc','gdr_copy' are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+    [1773105448.299988] [f46691a660f5:79783:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+    [1773105448.299988] [f46691a660f5:79783:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
     Using BFL2 method to generate coresets
     RuntimeError: NLOpt runtime error: nlopt failure
 :::

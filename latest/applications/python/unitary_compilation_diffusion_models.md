@@ -197,27 +197,33 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../../using/examples/ptsbe.html){.reference
         .internal}
-        -   [Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Conceptual
+            Overview](../../using/examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick
+            Start](../../using/examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -441,9 +447,8 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -975,6 +980,26 @@ latest
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [Set up the
+            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1444,6 +1469,28 @@ latest
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1700,6 +1747,27 @@ latest
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1821,10 +1889,16 @@ This tutorial is based on the work presented in
 >
 > </div>
 
-and \> ["Quantum circuit synthesis with diffusion models", Florian
-Fürrutter, Gorka Muñoz-Gil & Hans J. Briegel , Nat. Mach. Intell. 6,
-515--524 (2024)](https://doi.org/10.1038/s42256-024-00831-9){.reference
-.external}.
+and
+
+> <div>
+>
+> ["Quantum circuit synthesis with diffusion models", Florian Fürrutter,
+> Gorka Muñoz-Gil & Hans J. Briegel , Nat. Mach. Intell. 6, 515--524
+> (2024)](https://doi.org/10.1038/s42256-024-00831-9){.reference
+> .external}.
+>
+> </div>
 
 Quantum computing relies on efficiently translating quantum operations
 into viable physical realizations on existing quantum hardware.
@@ -1902,10 +1976,8 @@ more about the practical implementation of diffusion models we recommend
 .external}.
 
 In the following, we will use [`cudaq`{.docutils .literal
-.notranslate}]{.pre} and [`` `genQC ``{.docutils .literal
-.notranslate}]{.pre}
-\<[https://github.com/FlorianFuerrutter/genQC](https://github.com/FlorianFuerrutter/genQC){.reference
-.external}\>\`\_\_ to perform all these steps and go from a desired
+.notranslate}]{.pre} and [`genQC`{.docutils .literal
+.notranslate}]{.pre} to perform all these steps and go from a desired
 unitary matrix [\\(U\\)]{.math .notranslate .nohighlight} to a quantum
 circuit that we can execute using CUDA-Q.
 
@@ -1934,13 +2006,13 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    !pip install genQC==0.2.3 huggingface-hub==0.36.0 torch --break-system-packages -q
+    !pip install --no-compile genQC==0.2.5 -q
 :::
 :::
 :::
@@ -1948,11 +2020,11 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [2]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     import cudaq
     import torch
@@ -1982,13 +2054,14 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [3]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    device = util.infer_torch_device() # Use CUDA if we have a GPU
+     # Use CUDA if we have a GPU available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
 :::
 :::
@@ -2000,25 +2073,24 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [INFO]: Cuda device has a capability of 8.6 (>= 8), allowing tf32 matmul.
     cuda
 :::
 :::
 :::
 
 In this tutorial, we will use a small and a large pre-trained diffusion
-model (up to \~300M parameters). We only run the large model if we have
+model (up to \~150M parameters). We only run the large model if we have
 a GPU available, such we have a reasonable computation time of the
 notebook for CPU-only machines.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [4]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Flag to only run large model if GPU available
     RUN_LARGE_MODEL = ( device == torch.device("cuda") )
@@ -2043,11 +2115,11 @@ We set a fixed seed for reproducibility.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [5]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # We set a seed to pytorch, numpy and python.
     # Note: This will also set deterministic cuda algorithms, possibly at the cost of reduced performance!
@@ -2062,11 +2134,11 @@ For evaluation, we also need to specify the [`cudaq`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [6]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     simulator = Simulator(CircuitBackendType.CUDAQ,
                           target='qpp-cpu')  # Target for cudaq, note that cpu is faster for low qubit kernels
@@ -2086,18 +2158,34 @@ to the paper [Fürrutter et al.,
 Note that this model is only trained on 3 qubit unitaries up to 12
 gates.
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [7]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     discrete_pipeline = DiffusionPipeline.from_pretrained(
                 repo_id="Floki00/qc_unitary_3qubit", # Download model from Hugging Face
                 device=device)
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    [INFO]: `genQC.models.unet_qc.QC_Compilation_UNet` instantiated from given `config` on cuda.
+    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--qc_unitary_3qubit/snapshots/e12810ea65a9a88832fadd34834894e8174658a5/model.pt` onto device: cuda.
+    [INFO]: `genQC.models.unet_qc.QC_Compilation_UNet`. Freeze model: True
+    [INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given `config` on cuda.
+    [INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Found no key `save_type` in `config`. No state dict loaded.
+    [INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Freeze model: True
 :::
 :::
 :::
@@ -2107,11 +2195,11 @@ The loaded discrete model is trained with the discrete gate set:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [8]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     discrete_pipeline.gate_pool
 :::
@@ -2119,7 +2207,10 @@ The loaded discrete model is trained with the discrete gate set:
 :::
 
 ::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [8]:
+:::
 :::
 
 ::: {.output_area .docutils .container}
@@ -2137,11 +2228,11 @@ generated by the model.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [9]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     discrete_vocabulary = {g:i+1 for i, g in enumerate(discrete_pipeline.gate_pool)}
     discrete_tokenizer  = CircuitTokenizer(discrete_vocabulary)
@@ -2151,7 +2242,10 @@ generated by the model.
 :::
 
 ::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [9]:
+:::
 :::
 
 ::: {.output_area .docutils .container}
@@ -2167,11 +2261,11 @@ depend on the pre-trained model.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [10]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # These parameters are specific to our pre-trained model.
     discrete_system_size   = 3
@@ -2188,11 +2282,11 @@ changed in principle, as they are sample hyperparameters.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [11]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     timesteps = 40
     discrete_pipeline.scheduler.set_timesteps(timesteps)
@@ -2206,25 +2300,71 @@ changed in principle, as they are sample hyperparameters.
 
 Next, we load pre-trained model weights for a discrete-continuous model
 directly from [Hugging Face:
-Floki00/cirdit_multimodal_compile_3to5qubit](https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit){.reference
+Floki00/cirdit_multimodal_compile_3to5qubit_v1.1](https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit_v1.1){.reference
 .external} and setup the DM pipeline. For details of the model, we refer
 to the paper [Fürrutter et al.,
 2025](https://doi.org/10.48550/arXiv.2506.01666){.reference .external}.
 Note that this model is trained on 3 to 5 qubit unitaries up to 32
 gates.
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [12]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     cont_pipeline = MultimodalDiffusionPipeline_ParametrizedCompilation.from_pretrained(
-        repo_id="Floki00/cirdit_multimodal_compile_3to5qubit", # Download model from Hugging Face
+        repo_id="Floki00/cirdit_multimodal_compile_3to5qubit_v1.1", # Download model from Hugging Face
         device=device)
+:::
+:::
+:::
+
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    [INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors` onto device: cuda.
+    [INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors).
+    [INFO]: Creating `UnitaryTextEncoder` with `unitary_downscale_factor=4` and `encoding_ch=640`.
+    [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT` instantiated from given `config` on cuda.
+    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/model.safetensors` onto device: cuda.
+:::
+:::
+:::
+
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .stderr .docutils .container}
+::: highlight
+    Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+    WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT`. Freeze model: True
+    [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given `config` on cuda.
+    [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Found no key `save_type` in `config`. No state dict loaded.
+    [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Freeze model: True
+    [INFO]: provided `unique_class_values` ([-3, -2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), enforcing `num_clrs=len(unique_class_values)=12`.
+    [INFO]: Created `nn.Embedding` with a total of 14 vectors in a 16 dimensional space.
+    [INFO]: `genQC.models.embedding.rotational_preset_embedder.RotationalMultimodialPresetEmbedderTiny` instantiated from given `config` on cuda.
+    [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/embedder.safetensors` onto device: cuda.
+    [INFO]: `genQC.models.embedding.rotational_preset_embedder.RotationalMultimodialPresetEmbedderTiny`. Freeze model: True
 :::
 :::
 :::
@@ -2235,11 +2375,11 @@ gate set:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [13]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     cont_pipeline.gate_pool
 :::
@@ -2247,7 +2387,10 @@ gate set:
 :::
 
 ::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [13]:
+:::
 :::
 
 ::: {.output_area .docutils .container}
@@ -2265,11 +2408,11 @@ generated by the model.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [14]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     cont_vocabulary = {g:i+1 for i, g in enumerate(cont_pipeline.gate_pool)}
     cont_tokenizer  = CircuitTokenizer(cont_vocabulary)
@@ -2279,7 +2422,10 @@ generated by the model.
 :::
 
 ::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [14]:
+:::
 :::
 
 ::: {.output_area .docutils .container}
@@ -2295,11 +2441,11 @@ fixed and depend on the pre-trained model.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [15]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # These parameters are specific to our pre-trained model.
     cont_system_size   = 5
@@ -2314,14 +2460,14 @@ Again, we setup diffusion model inference parameters. These
 hyperparameters can be changed at will, as they define how sampling is
 performed from the trained model.
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [16]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     cont_pipeline.scheduler   = DPMScheduler.from_scheduler(cont_pipeline.scheduler)
     cont_pipeline.scheduler_w = DPMScheduler.from_scheduler(cont_pipeline.scheduler_w)
@@ -2330,10 +2476,22 @@ performed from the trained model.
     cont_pipeline.scheduler.set_timesteps(timesteps)
     cont_pipeline.scheduler_w.set_timesteps(timesteps)
 
-    cont_pipeline.lambda_h = 1.1
-    cont_pipeline.lambda_w = 0.4
-    cont_pipeline.g_h = 0.4
+    cont_pipeline.lambda_h = 1.0
+    cont_pipeline.lambda_w = 0.35
+    cont_pipeline.g_h = 0.3
     cont_pipeline.g_w = 0.1
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    [INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors` onto device: cuda.
+    [INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/beta_schedule_learned_linear.safetensors).
 :::
 :::
 :::
@@ -2352,11 +2510,11 @@ for different unitaries, we create some helper functions here.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [17]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     def verify_unitary(U: torch.Tensor):
         """Check if unitary."""
@@ -2372,11 +2530,11 @@ for different unitaries, we create some helper functions here.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [18]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     def sample_kernels_and_evaluate(U: torch.Tensor,
                                     prompt: str,
@@ -2404,7 +2562,7 @@ for different unitaries, we create some helper functions here.
                                       num_of_qubits=num_of_qubits,
                                       max_gates=discrete_max_gates,
                                       g=10.0,               # classifier-free-guidance (CFG) scale
-                                      no_bar=False,         # show progress bar
+                                      no_bar=True,          # show progress bar
                                       auto_batch_size=256,  # for less GPU memory usage limit batch size
                                       tensor_prod_pad=False,
                                       enable_params=False,
@@ -2427,7 +2585,7 @@ for different unitaries, we create some helper functions here.
                                       system_size=cont_system_size,
                                       num_of_qubits=num_of_qubits,
                                       max_gates=cont_max_gates,
-                                      no_bar=False,        # show progress bar
+                                      no_bar=True,         # show progress bar
                                       auto_batch_size=256, # for less GPU memory usage limit batch size
                                      )
             tokenizer = cont_tokenizer
@@ -2460,11 +2618,11 @@ for different unitaries, we create some helper functions here.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [19]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     def plot_topk_kernels(generated_kernels: list,
                           infidelities: torch.Tensor,
@@ -2517,11 +2675,11 @@ Let's start with a random 3-qubit unitary.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [20]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     num_of_qubits = 3
 :::
@@ -2535,11 +2693,11 @@ We can define our arbitrary unitary [`U`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [21]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     U = torch.tensor([[0.70710678, 0., 0., 0., 0.70710678, 0., 0., 0.],
                    [0., -0.70710678, 0., 0., 0., -0.70710678, 0., 0.],
@@ -2585,11 +2743,11 @@ without using the [`x`{.docutils .literal .notranslate}]{.pre} gate:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [22]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Notice how the x gate is missing from the prompt since this is a restriction we set
     prompt = "Compile using: ['h', 'cx', 'z', 'ccx', 'swap']"
@@ -2601,14 +2759,14 @@ Now, we call the diffusion model pipeline to generate encoded circuits
 based on the specified conditions: [`prompt`{.docutils .literal
 .notranslate}]{.pre} and [`U`{.docutils .literal .notranslate}]{.pre}.
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [23]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
@@ -2620,35 +2778,16 @@ based on the specified conditions: [`prompt`{.docutils .literal
 :::
 :::
 
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    [INFO]: (generate_comp_tensors) Generated 128 tensors
-:::
-:::
-:::
-
 Next, we plot the best three circuits in the following cell.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [24]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
@@ -2662,31 +2801,30 @@ Next, we plot the best three circuits in the following cell.
 ::: {.output_area .docutils .container}
 ::: highlight
     Circuit has an infidelity of 3.4e-08.
-         ╭───╮╭───╮        ╭───╮╭───╮
-    q0 : ┤ x ├┤ z ├─────●──┤ z ├┤ z ├──●──
-         ╰─┬─╯╰───╯   ╭─┴─╮├───┤╰───╯╭─┴─╮
-    q1 : ──●────────╳─┤ x ├┤ z ├─────┤ x ├
-           │  ╭───╮ │ ╰─┬─╯╰───╯     ╰─┬─╯
-    q2 : ──●──┤ h ├─╳───●──────────────●──
+         ╭───╮                          ╭───╮
+    q0 : ┤ x ├──╳───╳──╳───●─────────●──┤ z ├
+         ╰─┬─╯  │   │  │ ╭─┴─╮╭───╮╭─┴─╮╰───╯
+    q1 : ──●────╳───┼──╳─┤ x ├┤ z ├┤ x ├─────
+           │  ╭───╮ │    ╰─┬─╯╰───╯╰─┬─╯
+    q2 : ──●──┤ h ├─╳──────●─────────●───────
               ╰───╯
 
     Circuit has an infidelity of 3.4e-08.
          ╭───╮╭───╮
-    q0 : ┤ x ├┤ z ├─────●─────────●──
-         ╰─┬─╯╰───╯   ╭─┴─╮╭───╮╭─┴─╮
-    q1 : ──●────────╳─┤ x ├┤ z ├┤ x ├
-           │  ╭───╮ │ ╰─┬─╯╰───╯╰─┬─╯
-    q2 : ──●──┤ h ├─╳───●─────────●──
-              ╰───╯
+    q0 : ┤ x ├┤ z ├───────●─────────●───────
+         ╰─┬─╯╰───╯╭───╮╭─┴─╮╭───╮╭─┴─╮
+    q1 : ──●────╳──┤ h ├┤ x ├┤ z ├┤ x ├─────
+           │    │  ├───┤╰─┬─╯╰───╯╰─┬─╯╭───╮
+    q2 : ──●────╳──┤ z ├──●─────────●──┤ z ├
+                   ╰───╯               ╰───╯
 
     Circuit has an infidelity of 3.4e-08.
          ╭───╮╭───╮
-    q0 : ┤ x ├┤ z ├─────●─────────●──
-         ╰─┬─╯╰───╯   ╭─┴─╮╭───╮╭─┴─╮
-    q1 : ──●────────╳─┤ x ├┤ z ├┤ x ├
-           │  ╭───╮ │ ╰─┬─╯╰───╯╰─┬─╯
-    q2 : ──●──┤ h ├─╳───●─────────●──
-              ╰───╯
+    q0 : ┤ x ├┤ z ├───────●─────────●──
+         ╰─┬─╯╰───╯╭───╮╭─┴─╮╭───╮╭─┴─╮
+    q1 : ──●────╳──┤ h ├┤ x ├┤ z ├┤ x ├
+           │    │  ╰───╯╰─┬─╯╰───╯╰─┬─╯
+    q2 : ──●────╳─────────●─────────●──
 :::
 :::
 :::
@@ -2732,11 +2870,11 @@ without using the [`h`{.docutils .literal .notranslate}]{.pre} gate.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [25]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Notice how the h gate is missing from the prompt since this is a restriction we set
     prompt = f"Compile {num_of_qubits} qubits using: ['cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
@@ -2748,14 +2886,14 @@ Now, we call the diffusion model pipeline to generate encoded circuits
 based on the specified conditions: [`prompt`{.docutils .literal
 .notranslate}]{.pre} and [`U`{.docutils .literal .notranslate}]{.pre}.
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [26]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
@@ -2767,35 +2905,16 @@ based on the specified conditions: [`prompt`{.docutils .literal
 :::
 :::
 
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    [INFO]: (generate_comp_tensors) Generated 64 tensors
-:::
-:::
-:::
-
 Next, we plot the best three circuits in the following cell.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [27]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
@@ -2808,32 +2927,31 @@ Next, we plot the best three circuits in the following cell.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 2.6e-05.
-         ╭───╮
-    q0 : ┤ x ├────●─────────────●────────●────●────●──
-         ╰─┬─╯  ╭─┴─╮           │      ╭─┴─╮  │  ╭─┴─╮
-    q1 : ──●────┤ x ├────╳──────┼──────┤ x ├──┼──┤ x ├
-           │  ╭─┴───┴──╮ │ ╭────┴─────╮╰───╯╭─┴─╮╰───╯
-    q2 : ──●──┤ ry(11) ├─╳─┤ r1(3.15) ├─────┤ x ├─────
-              ╰────────╯   ╰──────────╯     ╰───╯
+    Circuit has an infidelity of 8.9e-05.
+         ╭───╮                          ╭───────────╮
+    q0 : ┤ x ├──────●────────●───────●──┤ rz(3.139) ├
+         ╰─┬─╯╭─────┴─────╮  │     ╭─┴─╮╰───────────╯
+    q1 : ──●──┤ r1(9.421) ├──┼───╳─┤ x ├─────────────
+           │  ├───────────┤╭─┴─╮ │ ╰───╯
+    q2 : ──●──┤ ry(11.01) ├┤ x ├─╳───────────────────
+              ╰───────────╯╰───╯
 
-    Circuit has an infidelity of 3.1e-05.
+    Circuit has an infidelity of 1.3e-04.
          ╭───╮
-    q0 : ┤ x ├──────────────────────●────────●────────●────────●──
-         ╰─┬─╯   ╭───────────╮      │        │        │        │
-    q1 : ──●───╳─┤ ry(11.01) ├──────┼────────┼────────┼────────┼──
-           │   │ ╰───────────╯╭─────┴─────╮╭─┴─╮╭─────┴─────╮╭─┴─╮
-    q2 : ──●───╳──────────────┤ r1(6.279) ├┤ x ├┤ r1(3.139) ├┤ x ├
-                              ╰───────────╯╰───╯╰───────────╯╰───╯
+    q0 : ┤ x ├──────●───────────●────────●───────●────●──
+         ╰─┬─╯    ╭─┴─╮    ╭────┴─────╮  │       │  ╭─┴─╮
+    q1 : ──●──────┤ x ├────┤ r1(9.44) ├──┼───╳───┼──┤ x ├
+           │  ╭───┴───┴───╮╰──────────╯╭─┴─╮ │ ╭─┴─╮╰───╯
+    q2 : ──●──┤ ry(11.01) ├────────────┤ x ├─╳─┤ x ├─────
+              ╰───────────╯            ╰───╯   ╰───╯
 
-    Circuit has an infidelity of 3.5e-05.
+    Circuit has an infidelity of 1.6e-04.
          ╭───╮
-    q0 : ┤ x ├─────●──────────────────●────────●──
-         ╰─┬─╯     │  ╭────────╮      │        │
-    q1 : ──●───╳───┼──┤ ry(11) ├──────┼────────┼──
-           │   │ ╭─┴─╮╰────────╯╭─────┴─────╮╭─┴─╮
-    q2 : ──●───╳─┤ x ├──────────┤ r1(3.131) ├┤ x ├
-                 ╰───╯          ╰───────────╯╰───╯
+    q0 : ┤ x ├──●────────●────────●──────────────────
+         ╰─┬─╯╭─┴─╮╭─────┴─────╮╭─┴─╮   ╭───────────╮
+    q1 : ──●──┤ x ├┤ r1(9.436) ├┤ x ├─╳─┤ ry(11.02) ├
+           │  ╰───╯╰───────────╯╰───╯ │ ╰───────────╯
+    q2 : ──●──────────────────────────╳──────────────
 :::
 :::
 :::
@@ -2845,11 +2963,11 @@ changes.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [28]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Notice how the swap gate is missing from the prompt since this is a restriction we set
     prompt = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'rx', 'ry', 'rz', 'cp']"
@@ -2857,14 +2975,14 @@ changes.
 :::
 :::
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [29]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
@@ -2876,33 +2994,14 @@ changes.
 :::
 :::
 
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    [INFO]: (generate_comp_tensors) Generated 64 tensors
-:::
-:::
-:::
-
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [30]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
@@ -2915,32 +3014,32 @@ changes.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 1.2e-04.
+    Circuit has an infidelity of 1.6e-04.
          ╭───╮
-    q0 : ┤ x ├──────●───────────────────────────●────────●──
-         ╰─┬─╯    ╭─┴─╮         ╭───╮           │        │
-    q1 : ──●──────┤ x ├──────●──┤ x ├──●────────┼────────┼──
-           │  ╭───┴───┴───╮╭─┴─╮╰─┬─╯╭─┴─╮╭─────┴─────╮╭─┴─╮
-    q2 : ──●──┤ ry(10.99) ├┤ x ├──●──┤ x ├┤ r1(3.167) ├┤ x ├
-              ╰───────────╯╰───╯     ╰───╯╰───────────╯╰───╯
+    q0 : ┤ x ├──────●────────────●─────────────●────────────
+         ╰─┬─╯    ╭─┴─╮    ╭─────┴─────╮╭───╮╭─┴─╮     ╭───╮
+    q1 : ──●──────┤ x ├────┤ r1(3.168) ├┤ x ├┤ x ├──●──┤ x ├
+           │  ╭───┴───┴───╮╰───────────╯╰─┬─╯╰───╯╭─┴─╮╰─┬─╯
+    q2 : ──●──┤ ry(11.01) ├───────────────●───────┤ x ├──●──
+              ╰───────────╯                       ╰───╯
 
-    Circuit has an infidelity of 1.9e-04.
-         ╭───╮    ╭───╮         ╭───╮╭───────────╮
-    q0 : ┤ x ├────┤ h ├─────────┤ x ├┤ ry(10.97) ├─────
-         ╰─┬─╯    ╰───╯         ╰─┬─╯╰───┬───┬───╯
-    q1 : ──●─────────────────●────●──────┤ x ├──────●──
-           │  ╭───────────╮╭─┴─╮         ╰─┬─╯    ╭─┴─╮
-    q2 : ──●──┤ ry(10.99) ├┤ x ├───────────●──────┤ x ├
-              ╰───────────╯╰───╯                  ╰───╯
+    Circuit has an infidelity of 2.4e-04.
+         ╭───╮    ╭───╮    ╭───╮╭───────────╮
+    q0 : ┤ x ├────┤ h ├────┤ x ├┤ ry(10.97) ├──────────
+         ╰─┬─╯    ╰───╯    ╰─┬─╯╰───┬───┬───╯     ╭───╮
+    q1 : ──●─────────────────●──────┤ x ├──────●──┤ x ├
+           │  ╭───────────╮         ╰─┬─╯    ╭─┴─╮╰─┬─╯
+    q2 : ──●──┤ ry(11.01) ├───────────●──────┤ x ├──●──
+              ╰───────────╯                  ╰───╯
 
-    Circuit has an infidelity of 2.7e-04.
-         ╭───╮  ╭───╮                  ╭───╮╭───────────╮
-    q0 : ┤ x ├──┤ h ├──────────────────┤ x ├┤ ry(10.96) ├
-         ╰─┬─╯  ╰───╯   ╭───╮     ╭───╮╰─┬─╯╰───────────╯
-    q1 : ──●────────────┤ x ├──●──┤ x ├──┼───────────────
-           │  ╭────────╮╰─┬─╯╭─┴─╮╰─┬─╯  │
-    q2 : ──●──┤ ry(11) ├──●──┤ x ├──●────●───────────────
-              ╰────────╯     ╰───╯
+    Circuit has an infidelity of 2.8e-04.
+         ╭───╮
+    q0 : ┤ x ├──────●─────────────────●─────────────●───────
+         ╰─┬─╯    ╭─┴─╮         ╭─────┴─────╮╭───╮  │
+    q1 : ──●──────┤ x ├──────●──┤ r1(3.179) ├┤ x ├──┼────●──
+           │  ╭───┴───┴───╮╭─┴─╮╰───────────╯╰─┬─╯╭─┴─╮╭─┴─╮
+    q2 : ──●──┤ ry(11.01) ├┤ x ├───────────────●──┤ x ├┤ x ├
+              ╰───────────╯╰───╯                  ╰───╯╰───╯
 :::
 :::
 :::
@@ -2974,11 +3073,11 @@ For this task, we use the continuous model.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [31]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     num_of_qubits = 4
     prompt        = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
@@ -2992,11 +3091,11 @@ We can get the QFT unitary from [`genqc`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [32]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     from genQC.benchmark.bench_compilation import SpecialUnitaries
     U = SpecialUnitaries.QFT(num_of_qubits)
@@ -3006,40 +3105,21 @@ We can get the QFT unitary from [`genqc`{.docutils .literal
 
 As before, we sample and plot the best circuits
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [33]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
                                               num_of_qubits=num_of_qubits,
-                                              samples=64,
+                                              samples=128,
                                               discrete_model=False)
-:::
-:::
-:::
-
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    [INFO]: (generate_comp_tensors) Generated 64 tensors
 :::
 :::
 :::
@@ -3047,11 +3127,11 @@ As before, we sample and plot the best circuits
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [34]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=2)
 :::
@@ -3064,51 +3144,51 @@ As before, we sample and plot the best circuits
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 1.6e-02.
-            ╭───╮                                                            »
-    q0 : ─╳─┤ h ├──────●────────────●────────────●───────────────────────────»
-          │ ╰───╯      │            │            │                           »
-    q1 : ─┼────────────┼────────────┼────────────┼─────────────────●───────╳─»
-          │            │      ╭─────┴─────╮      │      ╭───╮╭─────┴─────╮ │ »
-    q2 : ─┼────────────┼──────┤ r1(1.617) ├──────┼──────┤ h ├┤ r1(1.687) ├─╳─»
-          │      ╭─────┴─────╮╰───────────╯╭─────┴─────╮╰───╯╰───────────╯   »
-    q3 : ─╳──────┤ r1(7.905) ├─────────────┤ r1(11.37) ├─────────────────────»
-                 ╰───────────╯             ╰───────────╯                     »
+    Circuit has an infidelity of 2.5e-02.
+                                                                               »
+    q0 : ───────────────────────────────────────────────────────────────●──────»
+                                           ╭───╮╭───╮             ╭─────┴─────╮»
+    q1 : ───────────────────╳──────────────┤ x ├┤ h ├──────●──────┤ r1(1.076) ├»
+                            │              ╰─┬─╯╰───╯╭─────┴─────╮╰───┬───┬───╯»
+    q2 : ───────────●───────╳───────●────────●───────┤ r1(4.595) ├────┤ h ├────»
+         ╭───╮╭─────┴─────╮   ╭─────┴─────╮          ╰───────────╯    ╰───╯    »
+    q3 : ┤ h ├┤ r1(7.854) ├───┤ r1(7.343) ├────────────────────────────────────»
+         ╰───╯╰───────────╯   ╰───────────╯                                    »
 
     ################################################################################
 
 
-    ──────●────────────────────────────────────────────
+    ──────●───────╳──────
+          │       │
+    ──────┼───────┼──────
+    ╭─────┴─────╮ │
+    ┤ r1(7.848) ├─┼──────
+    ╰───────────╯ │ ╭───╮
+    ──────────────╳─┤ h ├
+                    ╰───╯
+
+    Circuit has an infidelity of 2.5e-02.
+                                                                               »
+    q0 : ──────────────────────────────────────────────────╳───────●───────────»
+                                                           │       │           »
+    q1 : ───────────────────────╳───────●──────────────────┼───────┼───────────»
+                          ╭───╮ │ ╭─────┴─────╮            │ ╭─────┴─────╮╭───╮»
+    q2 : ──────────●──────┤ h ├─╳─┤ r1(1.551) ├─────●──────┼─┤ r1(3.866) ├┤ h ├»
+         ╭───╮╭────┴─────╮╰───╯   ╰───────────╯╭────┴────╮ │ ╰───────────╯╰───╯»
+    q3 : ┤ h ├┤ r1(7.89) ├─────────────────────┤ r1(9.6) ├─╳───────────────────»
+         ╰───╯╰──────────╯                     ╰─────────╯                     »
+
+    ################################################################################
+
+
+    ───────────────────────────────
+
+    ──────●────────────────────────
           │
-    ──────┼──────────────────●─────────────────────────
-    ╭─────┴──────╮╭───╮      │
-    ┤ r1(0.8472) ├┤ h ├──────┼─────────────●───────────
-    ╰────────────╯╰───╯╭─────┴──────╮╭─────┴─────╮╭───╮
-    ───────────────────┤ r1(0.9612) ├┤ r1(7.672) ├┤ h ├
-                       ╰────────────╯╰───────────╯╰───╯
-
-    Circuit has an infidelity of 4.5e-02.
-                                                                              »
-    q0 : ────────────────────────╳───────●────────────────────────────────────»
-                                 │ ╭─────┴──────╮                             »
-    q1 : ────────────────────────┼─┤ r1(0.8751) ├──────●────────────────────╳─»
-                           ╭───╮ │ ╰────────────╯╭─────┴─────╮              │ »
-    q2 : ───────────●──────┤ h ├─┼───────────────┤ r1(7.991) ├──────●───────╳─»
-         ╭───╮╭─────┴─────╮╰───╯ │               ╰───────────╯╭─────┴─────╮   »
-    q3 : ┤ h ├┤ r1(1.796) ├──────╳────────────────────────────┤ r1(7.399) ├───»
-         ╰───╯╰───────────╯                                   ╰───────────╯   »
-
-    ################################################################################
-
-
-    ───────────────────────
-
-    ───────────────────────
-    ╭───╮
-    ┤ h ├──────●───────────
-    ╰───╯╭─────┴─────╮╭───╮
-    ─────┤ r1(1.437) ├┤ h ├
-         ╰───────────╯╰───╯
+    ──────┼────────────●───────────
+    ╭─────┴─────╮╭─────┴─────╮╭───╮
+    ┤ r1(7.365) ├┤ r1(1.616) ├┤ h ├
+    ╰───────────╯╰───────────╯╰───╯
 :::
 :::
 :::
@@ -3149,11 +3229,11 @@ For this task, we use the continuous model.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [35]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     num_of_qubits = 3
     prompt        = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
@@ -3167,11 +3247,11 @@ We can get the XXZ-Hamiltonian evolution unitary from [`genqc`{.docutils
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [36]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     from genQC.benchmark.bench_compilation import XXZHamiltonian
 
@@ -3188,40 +3268,21 @@ We can get the XXZ-Hamiltonian evolution unitary from [`genqc`{.docutils
 
 As before, we sample and plot the best circuits
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [37]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
                                               num_of_qubits=num_of_qubits,
-                                              samples=64,
+                                              samples=128,
                                               discrete_model=False)
-:::
-:::
-:::
-
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    [INFO]: (generate_comp_tensors) Generated 64 tensors
 :::
 :::
 :::
@@ -3229,11 +3290,11 @@ As before, we sample and plot the best circuits
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [38]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
@@ -3246,32 +3307,32 @@ As before, we sample and plot the best circuits
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Circuit has an infidelity of 3.5e-02.
+    Circuit has an infidelity of 2.7e-02.
          ╭───────────╮
-    q0 : ┤ rx(12.43) ├────────────────────────────────────────────
-         ╰───┬───┬───╯                          ╭───╮
-    q1 : ────┤ x ├──────────●───────────────────┤ x ├─────────────
-             ╰─┬─╯    ╭─────┴─────╮╭───────────╮╰─┬─╯╭───────────╮
-    q2 : ──────●──────┤ r1(12.51) ├┤ rx(12.38) ├──●──┤ rx(12.47) ├
-                      ╰───────────╯╰───────────╯     ╰───────────╯
+    q0 : ┤ rx(12.45) ├─────────────────────────────────
+         ╰───────────╯     ╭───╮             ╭───╮
+    q1 : ───────────────●──┤ h ├──────●──────┤ h ├──●──
+         ╭───────────╮╭─┴─╮╰───╯╭─────┴─────╮╰───╯╭─┴─╮
+    q2 : ┤ rx(12.41) ├┤ x ├─────┤ r1(12.27) ├─────┤ x ├
+         ╰───────────╯╰───╯     ╰───────────╯     ╰───╯
 
-    Circuit has an infidelity of 3.6e-02.
-         ╭───────────╮
-    q0 : ┤ rx(12.42) ├────────────────────────────
-         ╰───┬───┬───╯                       ╭───╮
-    q1 : ────┤ x ├───────────────●───────────┤ x ├
-             ╰─┬─╯    ╭───╮╭─────┴─────╮╭───╮╰─┬─╯
-    q2 : ──────●──────┤ h ├┤ r1(12.44) ├┤ h ├──●──
-                      ╰───╯╰───────────╯╰───╯
+    Circuit has an infidelity of 3.0e-02.
 
-    Circuit has an infidelity of 3.7e-02.
+    q0 : ─────────────────────────────────────────────
+              ╭───╮             ╭───╮
+    q1 : ──●──┤ h ├──────●──────┤ h ├──●──────────────
+         ╭─┴─╮╰───╯╭─────┴─────╮╰───╯╭─┴─╮╭──────────╮
+    q2 : ┤ x ├─────┤ r1(12.29) ├─────┤ x ├┤ rx(12.4) ├
+         ╰───╯     ╰───────────╯     ╰───╯╰──────────╯
+
+    Circuit has an infidelity of 3.3e-02.
          ╭───────────╮
-    q0 : ┤ rx(6.256) ├───────────────────────────────
-         ╰───────────╯╭───────────╮
-    q1 : ──────●──────┤ rx(12.34) ├───────────────●──
-             ╭─┴─╮    ├───────────┤╭───────────╮╭─┴─╮
-    q2 : ────┤ x ├────┤ rx(6.245) ├┤ rz(12.44) ├┤ x ├
-             ╰───╯    ╰───────────╯╰───────────╯╰───╯
+    q0 : ┤ rx(12.44) ├──────────────────────────────────────────────
+         ├───────────┤╭───╮                                    ╭───╮
+    q1 : ┤ rz(12.52) ├┤ x ├────────────────────────●───────────┤ x ├
+         ╰───────────╯╰─┬─╯╭───╮╭───────────╮╭─────┴─────╮╭───╮╰─┬─╯
+    q2 : ───────────────●──┤ h ├┤ rz(12.39) ├┤ r1(6.183) ├┤ h ├──●──
+                           ╰───╯╰───────────╯╰───────────╯╰───╯
 :::
 :::
 :::
@@ -3296,11 +3357,11 @@ inspect what the model generates.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [39]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     num_of_qubits = 3
     prompt = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
@@ -3318,14 +3379,14 @@ inspect what the model generates.
 :::
 :::
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [40]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     generated_kernels, infidelities, generated_tensors = \
                     sample_kernels_and_evaluate(
@@ -3339,36 +3400,17 @@ inspect what the model generates.
 :::
 :::
 
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    [INFO]: (generate_comp_tensors) Generated 128 tensors
-:::
-:::
-:::
-
 First, we plot a histogram of the infidelities of our generated
 circuits.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [41]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     import matplotlib.pyplot as plt
 
@@ -3393,7 +3435,7 @@ circuits.
 :::
 :::
 
-As we see above, we now have around 15 kernels that compile the desired
+As we see above, we now have multiple kernels that compile the desired
 unitary! This is particularly valuable when dealing with hardware
 constraints, where, for instance, we might want to avoid using certain
 qubits or specific gates. One practical example is finding the circuit
@@ -3406,11 +3448,11 @@ in our tokenized tensors.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [42]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     cx_token = cont_vocabulary["cx"]
     cx_token
@@ -3419,7 +3461,10 @@ in our tokenized tensors.
 :::
 
 ::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [42]:
+:::
 :::
 
 ::: {.output_area .docutils .container}
@@ -3435,11 +3480,11 @@ number of [`cx`{.docutils .literal .notranslate}]{.pre} gates:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [43]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # First, we remove possible duplicates and only pick distinct circuits
     _, idx_unique = torch.unique(generated_tensors, dim=0, return_inverse=True)
@@ -3467,13 +3512,13 @@ number of [`cx`{.docutils .literal .notranslate}]{.pre} gates:
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    The model generated 14 distinct circuits with infidelity < 0.01.
-    These circuits have this number of cx gates: [0, 2, 1, 0, 2, 2, 3, 2, 2, 1, 2, 1, 1, 1]
+    The model generated 56 distinct circuits with infidelity < 0.01.
+    These circuits have this number of cx gates: [0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 2, 1, 2, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 2, 0, 0, 1, 1, 1, 2, 0, 1, 0, 1, 1, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 2, 1, 0]
 :::
 :::
 :::
 
-As we can see, the diffusion model (DM) uses 0 to 3 CNOT gates to
+As we can see, the diffusion model (DM) uses 0 to 2 CNOT gates to
 compile the unitary. We can now print a few of these circuits to select
 the one that best suits our needs, or to study whether there are any
 interesting patterns the model employs for this specific unitary.
@@ -3484,11 +3529,11 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [44]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Get the correct kernels
     correct_kernels = [unique_kernels[idx] for idx in idx_correct]
@@ -3519,31 +3564,31 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 ::: {.output_area .docutils .container}
 ::: highlight
     Generated circuit with 0 cx:
-         ╭───╮                     ╭───────────╮
-    q0 : ┤ x ├──────────────●──────┤ rz(3.132) ├
-         ╰─┬─╯              │      ├───────────┤
-    q1 : ──●────────╳───────┼──────┤ rz(9.379) ├
-           │  ╭───╮ │ ╭─────┴─────╮╰───────────╯
-    q2 : ──●──┤ h ├─╳─┤ r1(3.084) ├─────────────
-              ╰───╯   ╰───────────╯
+         ╭───╮                              ╭──────────╮
+    q0 : ┤ x ├───────────────────────●──────┤ rz(9.39) ├
+         ╰─┬─╯   ╭───────╮╭───╮      │      ╰──────────╯
+    q1 : ──●───╳─┤ rx(3) ├┤ h ├──────┼──────────────────
+           │   │ ╰───────╯╰───╯╭─────┴─────╮
+    q2 : ──●───╳───────────────┤ r1(9.437) ├────────────
+                               ╰───────────╯
 
     Generated circuit with 0 cx:
-         ╭───╮╭───────────╮╭───╮
-    q0 : ┤ x ├┤ ry(1.567) ├┤ h ├──────●─────────
-         ╰─┬─╯╰───────────╯╰───╯╭─────┴─────╮
-    q1 : ──●────────────────────┤ r1(3.127) ├─╳─
-           │   ╭────────╮       ╰───────────╯ │
-    q2 : ──●───┤ ry(11) ├─────────────────────╳─
-               ╰────────╯
+         ╭───╮                                  ╭───────────╮
+    q0 : ┤ x ├───────────────────────────●──────┤ rz(3.146) ├
+         ╰─┬─╯                           │      ├───────────┤
+    q1 : ──●─────────────────────╳───────┼──────┤ rz(3.083) ├
+           │  ╭───────────╮╭───╮ │ ╭─────┴─────╮╰───────────╯
+    q2 : ──●──┤ rx(6.304) ├┤ h ├─╳─┤ r1(3.084) ├─────────────
+              ╰───────────╯╰───╯   ╰───────────╯
 
-    Generated circuit with 1 cx:
-         ╭───╮    ╭───╮       ╭───╮╭───────────╮
-    q0 : ┤ x ├────┤ h ├───────┤ x ├┤ ry(4.683) ├
-         ╰─┬─╯    ╰───╯       ╰─┬─╯╰───────────╯
-    q1 : ──●────────────────╳───┼───────────────
-           │  ╭───────────╮ │   │
-    q2 : ──●──┤ ry(4.722) ├─╳───●───────────────
-              ╰───────────╯
+    Generated circuit with 0 cx:
+         ╭───╮╭───────────╮
+    q0 : ┤ x ├┤ rz(3.147) ├──────●────────────────────────
+         ╰─┬─╯╰───────────╯      │      ╭───╮╭───────────╮
+    q1 : ──●────────╳────────────┼──────┤ h ├┤ rz(9.304) ├
+           │        │      ╭─────┴─────╮╰───╯╰───────────╯
+    q2 : ──●────────╳──────┤ r1(9.438) ├──────────────────
+                           ╰───────────╯
 :::
 :::
 :::
@@ -3551,11 +3596,11 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [45]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     print(cudaq.__version__)
     print("genQC Version", genQC.__version__)
@@ -3569,8 +3614,8 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version 0.11.0 (https://github.com/NVIDIA/cuda-quantum f5cc3bb1d85abcf1f642f4ddd20ad08bc1d4d200)
-    genQC Version 0.2.3
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 6967da4da1a4615bfba77c04fdb95c0164e0baad)
+    genQC Version 0.2.5
 :::
 :::
 :::

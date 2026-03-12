@@ -191,27 +191,31 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
-        .internal}
-        -   [Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../examples/ptsbe.html){.reference .internal}
+        -   [Conceptual
+            Overview](../examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick Start](../examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing Operators](../examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -437,8 +441,8 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+        -   [5. Compare
+            results](../../applications/python/qsci.html#5.-Compare-results){.reference
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
@@ -1024,6 +1028,27 @@ latest
         -   [6. References and further
             reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](../../applications/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [Set up the
+            environment](../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../backends/backends.html){.reference .internal}
     -   [Circuit Simulation](../backends/simulators.html){.reference
         .internal}
@@ -1462,6 +1487,28 @@ latest
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1717,6 +1764,27 @@ latest
             .internal}
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
+                .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
                 .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
@@ -2214,7 +2282,7 @@ following command to build the CUDA-Q Python wheel:
 ::: {.highlight-bash .notranslate}
 ::: highlight
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
-    bash scripts/install_prerequisites.sh -t llvm && \
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
@@ -2303,7 +2371,7 @@ following command to build CUDA-Q:
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v
+    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF
 :::
 :::
 
@@ -2327,6 +2395,10 @@ command
     # everything and no hardcoded absolute paths are needed.
     mkdir -p cuda_quantum_assets
     cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
+
+    # Remove Python-dependent plugins from the C++ installer. The pyscf plugin
+    # requires a Python runtime and is not used for the C++ workflows.
+    rm -f cuda_quantum_assets/cudaq/lib/plugins/libcudaq-pyscf*
 
     # Bundle the complete LLVM installation in its own subtree so clang's
     # internal path resolution (resource dir, C++ headers, runtime libs) works

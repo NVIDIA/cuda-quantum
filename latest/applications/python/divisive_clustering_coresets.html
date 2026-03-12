@@ -207,17 +207,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -332,7 +332,7 @@
 <li class="toctree-l3"><a class="reference internal" href="qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
-<li class="toctree-l3"><a class="reference internal" href="qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#5.-Compare-results">5. Compare results</a></li>
 <li class="toctree-l3"><a class="reference internal" href="qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
@@ -622,6 +622,19 @@
 <li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -886,6 +899,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/python_api.html">Python API</a><ul>
@@ -991,6 +1014,15 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -1083,7 +1115,7 @@ leverage coresets for clustering applications on quantum computers and use far f
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
-<span class="o">%</span><span class="k">pip</span> install networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
+<span class="o">%</span><span class="k">pip</span> install mpi4py networkx==2.8.8 pandas==2.2.2 scikit-learn==1.4.2 tqdm==4.66.2 numba==0.60.0 -q
 </pre></div>
 </div>
 </div>
@@ -1501,11 +1533,12 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 100/100 [00:00&lt;00:00, 42379.55it/s]
-100%|██████████| 1/1 [00:00&lt;00:00, 27776.85it/s]
-100%|██████████| 21/21 [00:00&lt;00:00, 78643.20it/s]
-100%|██████████| 3/3 [00:00&lt;00:00, 24385.49it/s]
-100%|██████████| 4/4 [00:00&lt;00:00, 78766.27it/s]
+100%|██████████| 114/114 [00:00&lt;00:00, 41226.99it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 29127.11it/s]
+100%|██████████| 23/23 [00:00&lt;00:00, 78049.35it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 28532.68it/s]
+100%|██████████| 3/3 [00:00&lt;00:00, 58525.17it/s]
+100%|██████████| 2/2 [00:00&lt;00:00, 55188.21it/s]
 </pre></div></div>
 </div>
 <p>The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits generally mark divisions between the least similar data.</p>
@@ -1659,45 +1692,31 @@ perform this task.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-                                                                »
-q0 : ──●─────────────────────●──────────────────────────────────»
-     ╭─┴─╮╭───────────────╮╭─┴─╮                                »
-q1 : ┤ x ├┤ rz(0.0002127) ├┤ x ├──●─────────────────────●───────»
-     ╰───╯╰───────────────╯╰───╯╭─┴─╮╭───────────────╮╭─┴─╮     »
-q2 : ───────────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├──●──»
-                                ╰───╯╰───────────────╯╰───╯╭─┴─╮»
-q3 : ──────────────────────────────────────────────────────┤ x ├»
-                                                           ╰───╯»
-q4 : ───────────────────────────────────────────────────────────»
-                                                                »
+                                                                          »
+q0 : ──●─────────────────●────────────────────────────────────────────────»
+     ╭─┴─╮╭───────────╮╭─┴─╮                                              »
+q1 : ┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●─────────────────────────»
+     ╰───╯╰───────────╯╰───╯╭─┴─╮╭───────────╮╭─┴─╮                       »
+q2 : ───────────────────────┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●──»
+                            ╰───╯╰───────────╯╰───╯╭─┴─╮╭───────────╮╭─┴─╮»
+q3 : ──────────────────────────────────────────────┤ x ├┤ rz(1.204) ├┤ x ├»
+                                                   ╰───╯╰───────────╯╰───╯»
+q4 : ─────────────────────────────────────────────────────────────────────»
+                                                                          »
 
 ################################################################################
 
-                                                 ╭───╮╭───────────────╮╭───╮»
-─────────────────────────────────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├»
-                                                 ╰─┬─╯╰───────────────╯╰─┬─╯»
-───────────────────────────────────────────────────┼─────────────────────┼──»
-                                                   │                     │  »
-───────────────────●───────────────────────────────┼─────────────────────┼──»
-╭───────────────╮╭─┴─╮                             │                     │  »
-┤ rz(0.0002127) ├┤ x ├──●─────────────────────●────┼─────────────────────┼──»
-╰───────────────╯╰───╯╭─┴─╮╭───────────────╮╭─┴─╮  │                     │  »
-──────────────────────┤ x ├┤ rz(0.0002127) ├┤ x ├──●─────────────────────●──»
-                      ╰───╯╰───────────────╯╰───╯                           »
-
-################################################################################
-
-╭───────────╮
-┤ rx(1.127) ├
-├───────────┤
-┤ rx(1.127) ├
-├───────────┤
-┤ rx(1.127) ├
-├───────────┤
-┤ rx(1.127) ├
-├───────────┤
-┤ rx(1.127) ├
-╰───────────╯
+                       ╭───╮╭───────────╮╭───╮╭────────────╮
+───────────────────────┤ x ├┤ rz(1.204) ├┤ x ├┤ rx(0.1425) ├
+                       ╰─┬─╯╰───────────╯╰─┬─╯├────────────┤
+─────────────────────────┼─────────────────┼──┤ rx(0.1425) ├
+                         │                 │  ├────────────┤
+─────────────────────────┼─────────────────┼──┤ rx(0.1425) ├
+                         │                 │  ├────────────┤
+──●─────────────────●────┼─────────────────┼──┤ rx(0.1425) ├
+╭─┴─╮╭───────────╮╭─┴─╮  │                 │  ├────────────┤
+┤ x ├┤ rz(1.204) ├┤ x ├──●─────────────────●──┤ rx(0.1425) ├
+╰───╯╰───────────╯╰───╯                       ╰────────────╯
 
 </pre></div></div>
 </div>
@@ -1757,11 +1776,10 @@ q4 : ─────────────────────────
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 480/480 [00:00&lt;00:00, 44895.88it/s]
-100%|██████████| 48/48 [00:00&lt;00:00, 111600.11it/s]
+100%|██████████| 473/473 [00:00&lt;00:00, 42833.21it/s]
+100%|██████████| 15/15 [00:00&lt;00:00, 97090.37it/s]
 100%|██████████| 12/12 [00:00&lt;00:00, 148910.20it/s]
-100%|██████████| 4/4 [00:00&lt;00:00, 98112.37it/s]
-100%|██████████| 4/4 [00:00&lt;00:00, 53261.00it/s]
+100%|██████████| 12/12 [00:00&lt;00:00, 153450.15it/s]
 </pre></div></div>
 </div>
 </section>
@@ -1793,21 +1811,21 @@ divisive clustering procedure using the QAOA method, 100000 simulated shots for 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1771611064.714571] [fb5fb776d150:85711:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1771611064.800026] [fb5fb776d150:85711:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773105393.065186] [f46691a660f5:79232:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773105393.156726] [f46691a660f5:79232:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773105393.156726] [f46691a660f5:79232:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|██████████████████████████████████| 14842/14842 [00:01&lt;00:00, 14617.13it/s]
-100%|██████████████████████████████████████| 128/128 [00:00&lt;00:00, 73183.06it/s]
-100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 46867.32it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 147168.56it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 144010.44it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 142481.66it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 134756.76it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 122461.43it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 117323.19it/s]
-Total time for the execution: 25.115535654
-Total time spent on CUDA-Q: 22.706712142
+100%|██████████████████████████████████| 14866/14866 [00:01&lt;00:00, 11524.80it/s]
+100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 46777.31it/s]
+100%|██████████████████████████████████████| 128/128 [00:00&lt;00:00, 73173.08it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 135847.90it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 134217.73it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 145257.28it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 149796.57it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 114912.44it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 113359.57it/s]
+Total time for the execution: 24.384913350000005
+Total time spent on CUDA-Q: 22.876361590000005
 </pre></div></div>
 </div>
 <p>Scaling up to N=25, the task becomes even more onerous on a CPU. Depending on your device, the simulation may not even run. Try it and feel free to interrupt after your patience has worn out.</p>
@@ -1836,29 +1854,30 @@ Total time spent on CUDA-Q: 22.706712142
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1771611081.663407] [fb5fb776d150:85963:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1771611081.749453] [fb5fb776d150:85963:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773105410.584339] [f46691a660f5:79483:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773105410.670883] [f46691a660f5:79483:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773105410.670883] [f46691a660f5:79483:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
-100%|███████████████████████████████████| 19169/19169 [00:02&lt;00:00, 7340.95it/s]
-100%|████████████████████████████████████| 9699/9699 [00:00&lt;00:00, 20903.20it/s]
-100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 46408.62it/s]
-100%|██████████████████████████████████████| 250/250 [00:00&lt;00:00, 57152.45it/s]
-100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 111015.49it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 141579.88it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 143089.26it/s]
-100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 139810.13it/s]
-100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 127826.41it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 118987.35it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 114130.72it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 118987.35it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 120699.40it/s]
-100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 116508.44it/s]
-Total time for the execution: 52.755354396
-Total time spent on CUDA-Q: 48.283614136999994
+100%|███████████████████████████████████| 19122/19122 [00:02&lt;00:00, 7393.67it/s]
+100%|████████████████████████████████████| 9597/9597 [00:00&lt;00:00, 20794.02it/s]
+100%|██████████████████████████████████████| 511/511 [00:00&lt;00:00, 47107.33it/s]
+100%|██████████████████████████████████████| 250/250 [00:00&lt;00:00, 57339.97it/s]
+100%|███████████████████████████████████████| 32/32 [00:00&lt;00:00, 114422.62it/s]
+100%|████████████████████████████████████████| 32/32 [00:00&lt;00:00, 99200.09it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 130055.94it/s]
+100%|█████████████████████████████████████████| 8/8 [00:00&lt;00:00, 141579.88it/s]
+100%|███████████████████████████████████████| 16/16 [00:00&lt;00:00, 138368.79it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 111107.39it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 106861.25it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 121574.03it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 114912.44it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 104206.31it/s]
+100%|█████████████████████████████████████████| 4/4 [00:00&lt;00:00, 111107.39it/s]
+Total time for the execution: 52.869397943
+Total time spent on CUDA-Q: 48.594538112
 </pre></div></div>
 </div>
-<p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> coreset, a single GPU (assuming A100) will run out of memory. Run the code below to see for yourself.</p>
+<p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> coreset, a single GPU (assuming A100) will run out of memory. When this happens, the GPU memory error propagates out of the quantum simulation and surfaces as a <code class="docutils literal notranslate"><span class="pre">RuntimeError:</span> <span class="pre">NLOpt</span> <span class="pre">runtime</span> <span class="pre">error:</span> <span class="pre">nlopt</span> <span class="pre">failure</span></code>, since the optimizer catches the exception from the failed objective function evaluation. Run the code below to see for yourself.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
@@ -1873,9 +1892,9 @@ Total time spent on CUDA-Q: 48.283614136999994
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1771611118.898043] [fb5fb776d150:86265:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
-[1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
-[1771611118.984218] [fb5fb776d150:86265:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
+[1773105448.213156] [f46691a660f5:79783:0]     ucp_context.c:1321 UCX  WARN  transports &#39;rc&#39;,&#39;gdr_copy&#39; are not available, please use one or more of: cma, cuda, cuda_copy, cuda_ipc, mm, posix, self, shm, sm, sysv, tcp
+[1773105448.299988] [f46691a660f5:79783:0]          parser.c:2359 UCX  WARN  unused environment variables: UCX_INSTALL_PREFIX; UCX_IB_PCI_RELAXED_ORDERING
+[1773105448.299988] [f46691a660f5:79783:0]          parser.c:2359 UCX  WARN  (set UCX_WARN_UNUSED_ENV_VARS=n to suppress this warning)
 Using BFL2 method to generate coresets
 RuntimeError: NLOpt runtime error: nlopt failure
 </pre></div></div>

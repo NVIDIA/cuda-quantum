@@ -197,27 +197,33 @@ latest
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../../examples/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](../../using/examples/ptsbe.html){.reference
         .internal}
-        -   [Set up the
-            environment](../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+        -   [Conceptual
+            Overview](../../using/examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](../../using/examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick
+            Start](../../using/examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](../../using/examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](../../using/examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](../../using/examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -441,9 +447,8 @@ latest
         -   [3. Classical Diagonalization on the Selected
             Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
             .internal}
-        -   [5. Compuare
-            results](qsci.html#5.-Compuare-results){.reference
-            .internal}
+        -   [5. Compare
+            results](qsci.html#5.-Compare-results){.reference .internal}
         -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
@@ -986,6 +991,26 @@ latest
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+        -   [Set up the
+            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1455,6 +1480,28 @@ latest
             .internal}
         -   [Namespaces](../../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1711,6 +1758,27 @@ latest
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1955,7 +2023,7 @@ The state vectors can be accessed using the [`get_state`{.docutils
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [2]:
 :::
 :::
 
@@ -1976,9 +2044,15 @@ The state vectors can be accessed using the [`get_state`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Psi state:  SV: [(0.707107,0), (0,0), (0.707107,0), (0,0)]
+    Psi state:  (0.707107,0)
+    (0,0)
+    (0.707107,0)
+    (0,0)
 
-    Phi state:  SV: [(0,0), (1,0), (0,0), (0,0)]
+    Phi state:  (0,0)
+    (1,0)
+    (0,0)
+    (0,0)
 :::
 :::
 :::
@@ -2120,9 +2194,9 @@ expectation value and the standard error towards the numerical result.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    { 0:85281 1:14719 }
+    { 0:85509 1:14491 }
 
-    Observable QC:  0.70562 + - 0.0015844563982640861
+    Observable QC:  0.71018 + - 0.0015742369065677502
     Numerical result 0.7071067690849304
 :::
 :::
@@ -2208,7 +2282,7 @@ is specified and the number of GPUs available is determined.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [7]:
 :::
 :::
 
@@ -2235,7 +2309,7 @@ is specified and the number of GPUs available is determined.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Number of QPUs: 5
+    Number of QPUs: 1
 :::
 :::
 :::
@@ -2304,21 +2378,21 @@ processed to produce the eigenvalues.
 ::: {.output_area .docutils .container}
 ::: highlight
     0
-    { 0:49865 1:50135 }
+    { 0:49880 1:50120 }
 
-    QKSD Matrix Element:  -0.0027 + - 0.0022360598270171573
+    QKSD Matrix Element:  -0.0024 + - 0.002236061537614741
     1
-    { 0:49796 1:50204 }
+    { 0:50111 1:49889 }
 
-    QKSD Matrix Element:  -0.00408 + - 0.002236049366181346
+    QKSD Matrix Element:  0.00222 + - 0.0022360624673742903
     2
-    { 0:49695 1:50305 }
+    { 0:50127 1:49873 }
 
-    QKSD Matrix Element:  -0.0061 + - 0.002236026375068058
+    QKSD Matrix Element:  0.00254 + - 0.0022360607643800738
     3
-    { 0:49972 1:50028 }
+    { 0:49832 1:50168 }
 
-    QKSD Matrix Element:  -0.00056 + - 0.002236067626884303
+    QKSD Matrix Element:  -0.00336 + - 0.0022360553553076455
 :::
 :::
 :::
@@ -2367,13 +2441,13 @@ non-orthogonal states.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [[-0.0027  -0.00408]
-     [-0.0061  -0.00056]]
+    [[-0.0024   0.00222]
+     [ 0.00254 -0.00336]]
     Eigenvalues:
-    [-0.00782313  0.00456313]
+    [-0.00546496 -0.00029504]
     Eigenvector:
-    [[-0.76575845  0.64312829]
-     [-0.64312829 -0.76575845]]
+    [[-0.63808707 -0.76996421]
+     [ 0.76996421 -0.63808707]]
 :::
 :::
 :::
