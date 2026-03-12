@@ -343,7 +343,7 @@ fi
 # Run backend tests
 echo "Running backend tests."
 for backendTest in "$root_folder/tests/backends"/*.py; do
-    python3 -m pytest -v $backendTest
+    python3 -m pytest -v --rootdir "$root_folder/tests" $backendTest
     # Exit code 5 indicates that no tests were collected,
     # i.e. all tests in this file were skipped, which is the case
     # for the mock server tests since they are not included.
@@ -360,7 +360,7 @@ if $is_macos; then
 else
     echo "Running platform tests."
     for parallelTest in "$root_folder/tests/parallel"/*.py; do
-        python3 -m pytest -v $parallelTest
+        python3 -m pytest -v --rootdir "$root_folder/tests" $parallelTest
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mPython platform test $parallelTest failed.\e[0m" >&2
             status_sum=$((status_sum + 1))

@@ -60,3 +60,23 @@ def test_ptsbe_sample_with_apply_noise_in_kernel(kernel_with_apply_noise):
     )
     assert sum(result.count(bs) for bs in result) == 100
     assert len(result) >= 1
+
+
+def test_ptsbe_sequential_data_empty_by_default(depol_noise, bell_kernel):
+    result = cudaq.ptsbe.sample(bell_kernel,
+                                noise_model=depol_noise,
+                                shots_count=10)
+    seq = result.get_sequential_data()
+    assert len(seq) == 0
+
+
+def test_ptsbe_sequential_data_populated_when_requested(depol_noise,
+                                                        bell_kernel):
+    result = cudaq.ptsbe.sample(bell_kernel,
+                                noise_model=depol_noise,
+                                shots_count=10,
+                                include_sequential_data=True)
+    seq = result.get_sequential_data()
+    assert len(seq) == 10
+    for bs in seq:
+        assert len(bs) == 2

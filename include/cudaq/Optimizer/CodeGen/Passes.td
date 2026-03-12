@@ -62,6 +62,14 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   ];
 }
 
+def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
+  let summary = "Move measurements as late as possible";
+  let description = [{
+    Move measurements as late as possible. This is useful for a Base Profile
+    QIR program.
+  }];
+}
+
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CG dialect.";
   let description = [{
