@@ -118,10 +118,10 @@ ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 # Issue: https://github.com/NVIDIA/cuda-quantum/issues/4148
-COPY --exclude=python/quantum_transformer.ipynb \
-     --exclude=python/quantum_transformer_src \
-     --exclude=python/logical_aim_sqale.ipynb \
-     ./docs/sphinx/applications/ /home/cudaq/applications/
+ADD ./docs/sphinx/applications/ /home/cudaq/applications/
+RUN rm -rf /home/cudaq/applications/python/quantum_transformer.ipynb \
+           /home/cudaq/applications/python/quantum_transformer_src \
+           /home/cudaq/applications/python/logical_aim_sqale.ipynb
 ADD ./docs/sphinx/targets/ /home/cudaq/targets/
 ADD ./docker/release/README.md /home/cudaq/README.md
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
