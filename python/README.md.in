@@ -42,7 +42,7 @@ ${{ deprecation_notice }}
  installation. Different CUDA-Q binary distributions may conflict with each
  other causing issues.
 
-Platform-specific instructions: [Linux](#linux-gpu) | [macOS](#macos)
+Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a>
 
 <a id="linux-gpu"></a>
 **Linux: GPU-Acceleration and Multi-GPU**
