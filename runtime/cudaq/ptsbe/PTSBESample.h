@@ -207,6 +207,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 
   // Stage 3: Build PTSBatch with trajectory generation and shot allocation
   auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), options, shots);
+  batch.includeSequentialData = options.include_sequential_data;
   cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
               batch.totalShots(), batch.trajectories.size());
 
