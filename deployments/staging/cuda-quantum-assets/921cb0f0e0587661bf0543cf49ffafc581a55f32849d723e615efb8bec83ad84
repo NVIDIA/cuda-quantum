@@ -1,0 +1,12 @@
+source-sha: 5c3e3fb7b175cc9d477d97699fee6655a85d13d9
+cuda-quantum-assets-image: ghcr.io/nvidia/cuda-quantum-assets@sha256:921cb0f0e0587661bf0543cf49ffafc581a55f32849d723e615efb8bec83ad84
+platform-base-image: arm64v8/almalinux:8
+openmpi-build-cache: type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-assets-openmpi-cu13-0-llvm-arm64:main
+platform: linux/arm64
+cuda-version: 13.0
+nvidia-mgpu-repo: cuda-quantum/cuquantum-mgpu.git
+nvidia-mgpu-commit: 52dbd7d31cf3c88c8e5a1de9bac6635a5b0c8309
+
+asset-name: installer_arm64_cu13_publishing.txt
+release-id: 22981622177_installer_arm64_cu13_publishing
+artifacts-url: https://api.github.com/repos/NVIDIA/cuda-quantum/actions/runs/22977847753/artifacts
