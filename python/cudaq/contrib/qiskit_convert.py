@@ -5,7 +5,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
 """Functions to convert Qiskit circuits and OpenQASM files to CUDA-Q kernels.
 
 This module provides interoperability between Qiskit and CUDA-Q,
@@ -24,19 +23,19 @@ from ..kernel.kernel_builder import make_kernel
 
 
 def _try_import_qiskit():
-    """Import qiskit QuantumCircuit.
+    """Import Qiskit `QuantumCircuit`.
 
     Returns:
-        The QuantumCircuit class from qiskit.
+        The `QuantumCircuit` class from Qiskit.
 
     Raises:
-        ImportError: If qiskit is not installed.
+        ImportError: If Qiskit is not installed.
     """
     try:
         from qiskit import QuantumCircuit
     except ImportError as e:
-        raise ImportError("This feature requires qiskit. "
-                          "Install it with: pip install qiskit") from e
+        raise ImportError("This feature requires Qiskit. "
+                          "Install it with: `pip install qiskit`") from e
     return QuantumCircuit
 
 
@@ -53,7 +52,7 @@ def from_qasm(qasm_file):
         A CUDA-Q kernel equivalent to the OpenQASM circuit.
 
     Raises:
-        ImportError: If qiskit is not installed.
+        ImportError: If Qiskit is not installed.
         FileNotFoundError: If the QASM file does not exist.
         RuntimeError: If the QASM file cannot be parsed.
 
@@ -82,13 +81,13 @@ def from_qiskit(qiskit_circuit):
     kernel by mapping Qiskit gates to their CUDA-Q counterparts.
 
     Args:
-        qiskit_circuit: A qiskit.QuantumCircuit instance.
+        qiskit_circuit: A `Qiskit.QuantumCircuit` instance.
 
     Returns:
         A CUDA-Q kernel equivalent to the input Qiskit circuit.
 
     Raises:
-        ImportError: If qiskit is not installed.
+        ImportError: If Qiskit is not installed.
         ValueError: If the circuit contains unsupported gates.
 
     Supported gates:
