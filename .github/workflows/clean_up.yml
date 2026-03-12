@@ -217,25 +217,15 @@ jobs:
           # 5 days ago timestamp
           cutoff=$(date -u -d '5 days ago' +%s)
 
-          # Fetch open PRs created before the cutoff date
-          stale_prs=$(gh pr list \
-            --repo "${{ github.repository }}" \
-            --state open \
-            --limit 200 \
-            --json number,createdAt \
-            --jq ".[] | select((.createdAt | fromdate) < $cutoff) | .number")
-
-          if [ -z "$stale_prs" ]; then
-            echo "No stale PR previews to delete."
-            exit 0
-          fi
-
-          echo "Stale PRs (open > 5 days): $stale_prs"
-
-          for pr in $stale_prs; do
-            folder="pr-$pr"
-            echo "Deleting preview folder $folder (PR #$pr)."
-            git rm -r "$folder" --ignore-unmatch || true
+          # Go over existing pr-* folders and remove any whose last
+          # git commit is older than the cutoff date.
+          for folder in pr-*/; do
+            [ -d "$folder" ] || continue
+            last_commit=$(git log --format="%at" -1 -- "$folder")
+            if [ -z "$last_commit" ] || [ "$last_commit" -lt "$cutoff" ]; then
+              echo "Removing stale preview folder $folder (last updated: ${last_commit:-never})."
+              git rm -r "$folder" --ignore-unmatch || true
+            fi
           done
 
           # If nothing matches, skip commit/push
@@ -244,5 +234,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Cleaning up stale docs preview for PRs open > 5 days."
+          git commit -m "Cleaning up stale docs previews (not updated in > 5 days)."
           git push
