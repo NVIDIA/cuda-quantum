@@ -13650,6 +13650,15 @@ with Batch Execution
     <!-- -->
     ```
 
+    []{#structcudaq_1_1ptsbe_1_1PTSBEOptions_1afe8f0c7846ca55620e3c65d11f19501e .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[include_sequential_data]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions23include_sequential_dataE "Permalink to this definition"){.headerlink}\
+
+    :   Populate per-shot sequential bitstring data on the result. When
+        false (default), only aggregated counts are produced.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#structcudaq_1_1ptsbe_1_1PTSBEOptions_1aed27312b5a14a5df88920102d320a3d8 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[max_trajectories]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq5ptsbe12PTSBEOptions16max_trajectoriesE "Permalink to this definition"){.headerlink}\
 
     :   Maximum number of unique trajectories to generate. When
