@@ -117,11 +117,7 @@ RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
 ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
-# Issue: https://github.com/NVIDIA/cuda-quantum/issues/4148
-COPY --exclude=python/quantum_transformer.ipynb \
-     --exclude=python/quantum_transformer_src \
-     --exclude=python/logical_aim_sqale.ipynb \
-     ./docs/sphinx/applications/ /home/cudaq/applications/
+ADD ./docs/sphinx/applications/ /home/cudaq/applications/
 ADD ./docs/sphinx/targets/ /home/cudaq/targets/
 ADD ./docker/release/README.md /home/cudaq/README.md
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
