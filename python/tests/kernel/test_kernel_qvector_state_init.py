@@ -515,6 +515,7 @@ def test_extra_qubit_before_qvector_large_state_f64():
     assert len(counts) == 1
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_qvector_state_init_too_many_qubits():
     cudaq.reset_target()
 
@@ -536,6 +537,7 @@ def test_qvector_state_init_too_many_qubits():
             ' supported. Requested 11 qubits.') in repr(e)
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_qvector_state_init_too_many_qubits_list_param():
     cudaq.reset_target()
 
