@@ -165,8 +165,8 @@ public:
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
 
-    // 1. Convert concats to cables.
     patterns.insert<CallPattern>(ctx);
+    quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
     if (failed(applyPatternsAndFoldGreedily(funcOp, std::move(patterns))))
       signalPassFailure();
   }
