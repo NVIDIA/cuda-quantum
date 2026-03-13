@@ -2020,7 +2020,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![fe5b480ebef446909f90588a0bddb8f8](../../_images/oracle.png){.no-scaled-link
+![359f7648cb194598b65179b7f5bb303a](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2126,7 +2126,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![b0d70a2ae20e48eeb5471616b5fb1e38](../../_images/deutsch.png){.no-scaled-link
+![2de7a42c663c4763b7b0b289f91f25bf](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}
