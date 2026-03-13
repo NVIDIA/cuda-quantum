@@ -350,3 +350,122 @@ func.func @test() {
 // expected-error @+1 {{invalid complex cast}}
 %0 = cc.cast unsigned %c : (complex<i32>) -> complex<f64>
 
+// -----
+
+// quake.call_by_ref verification errors
+
+func.func private @callee(i32, i32)
+func.func @test() {
+  %0 = quake.null_wire
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{argument #0 must be a quantum type}}
+  %2 = quake.call_by_ref @callee(%0, %1) : (!quake.wire, i32) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+func.func private @callee(!quake.veq<2>, i32) -> f64
+func.func @test() {
+  %0 = quake.null_wire
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{argument #0 must match in size}}
+  %2:2 = quake.call_by_ref @callee(%0, %1) : (!quake.wire, i32) -> (f64, !quake.wire)
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+func.func private @callee(!quake.wire, i32) -> f64
+func.func @test() {
+  %0 = quake.null_wire
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{value types are not allowed in callee inputs}}
+  %2:2 = quake.call_by_ref @callee(%0, %1) : (!quake.wire, i32) -> (f64, !quake.wire)
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+func.func private @callee(!quake.ref, i32) -> !quake.wire
+func.func @test() {
+  %0 = quake.null_wire
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{value types are not allowed in callee results}}
+  %2:2 = quake.call_by_ref @callee(%0, %1) : (!quake.wire, i32) -> (!quake.wire, !quake.wire)
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+func.func private @callee(!quake.ref, i32) -> f64
+func.func @test() {
+  %0 = quake.alloca !quake.ref
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{reference types are not allowed}}
+  %2 = quake.call_by_ref @callee(%0, %1) : (!quake.ref, i32) -> f64
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+// -----
+
+func.func @test() {
+  %0 = quake.null_wire
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{result types must match}}
+  %2 = quake.call_by_ref @callee(%0, %1) : (!quake.wire, i32) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+func.func private @callee(!quake.ref, i32) -> f64
+
+// -----
+
+func.func @test() {
+  %0 = quake.null_wire
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{callee must be declared}}
+  %2 = quake.call_by_ref @callee(%0, %1) : (!quake.wire, i32) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+func.func @test() {
+  %0 = quake.null_wire
+  // expected-error @+1 {{number of arguments must be consistent}}
+  %2 = quake.call_by_ref @callee(%0) : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+func.func private @callee(!quake.ref, i32)
+
+// -----
+
+func.func private @callee(!quake.veq<2>, i32) -> f64
+func.func @test() {
+  %0 = quake.null_cable<2>
+  %1 = arith.constant 1 : i32
+  // expected-error @+1 {{result quantum value type #1 must match argument value type #0}}
+  %2:2 = quake.call_by_ref @callee(%0, %1) : (!quake.cable<2>, i32) -> (f64, !quake.wire)
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+func.func private @callee(!quake.veq<2>, i32) -> f64
+func.func @test() {
+  %0 = quake.null_cable<2>
+  %1 = arith.constant 1.0 : f32
+  // expected-error @+1 {{argument #1 has incorrect type}}
+  %2:2 = quake.call_by_ref @callee(%0, %1) : (!quake.cable<2>, f32) -> (f64, !quake.cable<2>)
+  quake.sink %2#1 : !quake.cable<2>
+  return
+}

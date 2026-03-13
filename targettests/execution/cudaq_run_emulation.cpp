@@ -32,16 +32,16 @@ __qpu__ std::vector<bool> mz_test(int count) {
   return cudaq::to_bool_vector(mz(v));
 }
 
-__qpu__ auto return_mz() {
+__qpu__ bool return_mz() {
   cudaq::qubit q;
   h(q);
   return mz(q);
 }
 
-__qpu__ auto return_vector_mz() {
+__qpu__ std::vector<bool> return_vector_mz() {
   cudaq::qvector q(3);
   x(q);
-  return mz(q);
+  return cudaq::to_bool_vector(mz(q));
 }
 
 int main() {

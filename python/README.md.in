@@ -19,8 +19,9 @@ well as a link to the documentation and examples for each version can be found
 in the [release notes][cudaq_docs_releases]. System and compatibility
 requirements are listed in the Installation Guide of the linked documentation.
 
-**Note**: CUDA-Q is currently only supported on Linux operating systems using
-`x86_64` or `aarch64`/`arm64` processors.
+**Note**: CUDA-Q is supported on Linux (`x86_64` and `aarch64`/`arm64`) and
+macOS (ARM64/Apple silicon, CPU-only simulation). GPU-accelerated simulation
+requires Linux with a supported NVIDIA GPU.
 
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
@@ -30,26 +31,30 @@ requirements are listed in the Installation Guide of the linked documentation.
 [//]: # (Begin complete install)
 
 CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
-
-Getting started with CUDA-Q simply requires `pip install
+Getting started with CUDA-Q requires `pip install
 ${{ package_name }}`. Please make sure your `pip` version is \>= 24.0.
-If you have an NVIDIA GPU on your host system, you will be
-able to use it without any further installation steps.
 
 ${{ deprecation_notice }}
 
-> **Important:** 
-> Please check if you have an existing installation of the `cuda-quantum`, 
+> **Important:**
+> Please check if you have an existing installation of the `cuda-quantum`,
 `cudaq-quantum-cu11`, `cuda-quantum-cu12`, or `cuda-quantum-cu13` package, and uninstall it prior to
- installation. Different CUDA-Q binary distributions may conflict with each 
+ installation. Different CUDA-Q binary distributions may conflict with each
  other causing issues.
 
+Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a>
 
-If you want to perform multi-GPU simulations, additional components must be 
-installed. We recommend using [Conda](https://docs.conda.io/en/latest/) to do 
-so. If you are not already using Conda, you can install a minimal version 
-following [miniconda instructions here](https://docs.anaconda.com/miniconda/). 
-The following commands will create and activate a complete environment for 
+<a id="linux-gpu"></a>
+**Linux: GPU-Acceleration and Multi-GPU**
+
+If you have an NVIDIA GPU on your host system, you will be
+able to use it without any further installation steps.
+
+If you want to perform multi-GPU simulations, additional components must be
+installed. We recommend using [Conda](https://docs.conda.io/en/latest/) to do
+so. If you are not already using Conda, you can install a minimal version
+following [miniconda instructions here](https://docs.anaconda.com/miniconda/).
+The following commands will create and activate a complete environment for
 CUDA-Q with all its dependencies:
 
 [//]: # (Begin conda install)
@@ -68,8 +73,8 @@ source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activat
 
 [//]: # (End conda install)
 
-**Warning (conda-forge)**: Installing `cudaq` from the `conda-forge` channel on recent versions of Python can lead to segmentation faults. 
-If you see such errors, please switch to one of the Python versions 3.10.15, 3.11.10, or 3.12.7 as per the issue 
+**Warning (conda-forge)**: Installing `cudaq` from the `conda-forge` channel on recent versions of Python can lead to segmentation faults.
+If you see such errors, please switch to one of the Python versions 3.10.15, 3.11.10, or 3.12.7 as per the issue
 [#2999](https://github.com/NVIDIA/cuda-quantum/issues/2999) or [#3104](https://github.com/NVIDIA/cuda-quantum/issues/3104).
 
 You must configure MPI by setting the following environment variables:
@@ -89,6 +94,22 @@ environment, like the commands above do for `LD_LIBRARY_PATH`. To avoid having
 to set them every time you launch a new shell, we recommend adding them to
 `~/.profile` (create the file if it does not exist), and to `~/.bash_profile` or
 `~/.bash_login` if such a file exists.
+
+<a id="macos"></a>
+**macOS**
+
+GPU-acceleration is not available on macOS, so a virtual environment
+is all you need:
+
+[//]: # (Begin macos install)
+
+```console
+python3 -m venv .venv
+source .venv/bin/activate
+pip install cudaq
+```
+
+[//]: # (End macos install)
 
 [//]: # (End complete install)
 

@@ -14,6 +14,7 @@ import weakref
 from functools import partialmethod
 from typing import get_origin
 
+from .kernel_signature import KernelSignature
 import numpy as np
 from cudaq.mlir.ir import (BoolAttr, Block, Context, Module, TypeAttr, UnitAttr,
                            FunctionType, DictAttr, F32Type, F64Type, NoneType,
@@ -29,12 +30,12 @@ from cudaq.mlir._mlir_libs._quakeDialects import (
 from cudaq.kernel_types import qubit, qvector
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
-from .kernel_decorator import isa_kernel_decorator
+from .kernel_decorator import DecoratorCapture, LinkedKernelCapture, isa_kernel_decorator
 from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    recover_value_of, globalRegisteredOperations)
+                    globalRegisteredOperations)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -482,7 +483,7 @@ class PyKernel(object):
 
         return operand
 
-    def __getMLIRValueFromPythonArg(self, arg, argTy):
+    def __getMLIRValueFromPythonArg(self, arg, argTy=None):
         """
         Given a python runtime argument, create and return an equivalent
         constant MLIR Value.
@@ -1338,10 +1339,12 @@ class PyKernel(object):
                     f"or deactivate deferred compilation:\n\n"
                     f"    @cudaq.kernel(defer_compilation=False)\n"
                     f"    def {name}(...): ...\n")
-            target = self.resolve_callable_arg(self.insertPoint, target)
+            target = self.resolve_callable_arg(self.insertPoint,
+                                               DecoratorCapture(target))
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
-    def resolve_callable_arg(self, insPt, target):
+    def resolve_callable_arg(self, insPt,
+                             target: DecoratorCapture | LinkedKernelCapture):
         """
         `target` must be a callable. For a simple callable (a `func.FuncOp`),
         resolution is trivial. If the callable is a decorator with lambda lifted
@@ -1349,31 +1352,43 @@ class PyKernel(object):
         closure here.
         Returns a `CreateLambdaOp` closure.
         """
+        match target:
+            case DecoratorCapture(decorator=decorator, resolved=resolved_args):
+                kernel_name = nvqppPrefix + decorator.uniqName
+                merge_module = decorator.qkeModule
+                signature = decorator.signature
+            case LinkedKernelCapture(linkedKernel=kernel_name,
+                                     qkeModule=merge_module):
+                signature = KernelSignature.parse_from_mlir(
+                    merge_module, kernel_name)
+                resolved_args = []
+            case _:
+                raise ValueError(f"Invalid callable arg: {target}")
+
         # Add the target kernel to the current module.
-        fulluniq = nvqppPrefix + target.uniqName
-        cudaq_runtime.updateModule(fulluniq, self.module, target.qkeModule)
-        fn = recover_func_op(self.module, fulluniq)
+        cudaq_runtime.updateModule(kernel_name, self.module, merge_module)
+        fn = recover_func_op(self.module, kernel_name)
+        funcTy = signature.get_lifted_type()
+        callableTy = signature.get_callable_type()
+        arg_types = signature.arg_types
 
         # build the closure to capture the lifted `args`
-        funcTy = target.signature.get_lifted_type()
-        callableTy = target.signature.get_callable_type()
         with insPt, self.loc:
             lamb = cc.CreateLambdaOp(callableTy, loc=self.loc)
             lamb.attributes.__setitem__('function_type', TypeAttr.get(funcTy))
             initRegion = lamb.initRegion
-            initBlock = Block.create_at_start(initRegion, target.arg_types())
+            initBlock = Block.create_at_start(initRegion, arg_types)
             inner = InsertionPoint(initBlock)
             with inner:
                 vs = []
                 for ba in initBlock.arguments:
                     vs.append(ba)
-                for var in target.captured_variables():
-                    v = recover_value_of(var.name, target.defFrame)
-                    if isa_kernel_decorator(v):
+                for arg in resolved_args:
+                    if isinstance(arg, (DecoratorCapture, LinkedKernelCapture)):
                         # The recursive step
-                        v = self.resolve_callable_arg(inner, v)
+                        v = self.resolve_callable_arg(inner, arg)
                     else:
-                        v = self.__getMLIRValueFromPythonArg(v, var.type)
+                        v = self.__getMLIRValueFromPythonArg(arg)
                     vs.append(v)
                 if funcTy.results:
                     call = func.CallOp(fn, vs).result
@@ -1717,10 +1732,9 @@ class PyKernel(object):
             else:
                 processedArgs.append(arg)
 
-        retTy = NoneType.get(self.module.context)
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
-        cudaq_runtime.marshal_and_launch_module(self.name, specialized, retTy,
+        cudaq_runtime.marshal_and_launch_module(self.name, specialized,
                                                 *processedArgs)
 
     def __getattr__(self, attr_name):

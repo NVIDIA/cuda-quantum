@@ -157,6 +157,8 @@ public:
 
   bool allowJitEngineCaching = false;
 
+  bool useParametricJit = false;
+
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
@@ -205,9 +207,27 @@ void setExecutionContext(ExecutionContext *ctx);
 /// Use `quantum_platform::with_execution_context` instead of setting/resetting
 /// the execution context manually.
 void resetExecutionContext();
-
-void enablePersistentJITEngine();
-void disablePersistentJITEngine();
 } // namespace detail
 
+namespace compiler_artifact {
+/// Saves and reuses the JITEngine across launches
+///
+/// This will exhibit undefined behavior if the launch arguments/context
+/// in any way differs from the saved launch.
+void enablePersistentJITEngine();
+void disablePersistentJITEngine();
+bool isPersistingJITEngine();
+
+/// Checks that the compiler artifact (if present) can be reused
+/// for the given explicit launch arguments.
+///
+/// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
+void checkArtifactReuse(const std::string kernelName,
+                        const std::vector<void *> &args, const JitEngine jit,
+                        std::function<void *()> argsCreatorThunk);
+
+void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
+                  const JitEngine jit,
+                  std::function<void *()> argsCreatorThunk);
+}; // namespace compiler_artifact
 } // namespace cudaq

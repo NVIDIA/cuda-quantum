@@ -489,4 +489,3 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         tail call void @cudaqRegisterArgsCreator(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_3.kernelName, i64 0, i64 0), i8* nonnull bitcast (i64 (i8**, i8**)* @test_3.argsCreator to i8*))
 // CHECK:         ret void
 // CHECK:       }
-

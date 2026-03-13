@@ -446,4 +446,3 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           llvm.return
 // HYBRID:         }
 // HYBRID:         llvm.mlir.global_ctors {ctors = [@ghz.kernelRegFunc], priorities = [17 : i32]}
-

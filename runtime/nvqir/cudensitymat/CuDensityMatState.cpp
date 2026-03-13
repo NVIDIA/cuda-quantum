@@ -116,6 +116,9 @@ CuDensityMatState::createFromData(const state_data &data) {
 std::unique_ptr<SimulationState>
 CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                         std::size_t type) {
+  if (!dataPtr || size == 0)
+    throw std::runtime_error(
+        "[createFromSizeAndPtr] invalid null pointer or zero size");
   bool isDm = false;
   if (type == cudaq::detail::variant_index<cudaq::state_data,
                                            cudaq::TensorStateData>()) {
@@ -131,7 +134,8 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                "accept 1D or 2D arrays");
 
     isDm = extents.size() == 2;
-    size = std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+    size = std::reduce(extents.begin(), extents.end(), std::size_t{1},
+                       std::multiplies());
     dataPtr = const_cast<void *>(ptr);
   }
   std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
@@ -242,8 +246,8 @@ void CuDensityMatState::destroyState() {
 
 static size_t
 calculate_state_vector_size(const std::vector<int64_t> &hilbertSpaceDims) {
-  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(), 1,
-                         std::multiplies<>());
+  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
+                         std::size_t{1}, std::multiplies<>());
 }
 
 static size_t

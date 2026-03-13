@@ -7,10 +7,11 @@
  ******************************************************************************/
 
 #include "PasqalServerHelper.h"
+#include "PasqalUtils.h"
 #include "common/AnalogHamiltonian.h"
 #include "cudaq/runtime/logger/logger.h"
 
-#include <unordered_map>
+#include <cstdlib>
 #include <unordered_set>
 
 namespace cudaq {
@@ -18,14 +19,14 @@ namespace cudaq {
 void PasqalServerHelper::initialize(BackendConfig config) {
   CUDAQ_INFO("Initialize Pasqal Cloud.");
 
-  // Hard-coded for now.
+  // Defaults
   const std::string MACHINE = "EMU_MPS";
   const int MAX_QUBITS = 100;
 
-  CUDAQ_INFO("Running on device {}", MACHINE);
-
   if (!config.contains("machine"))
     config["machine"] = MACHINE;
+
+  CUDAQ_INFO("Running on Pasqal machine {}", config["machine"]);
 
   config["qubits"] = MAX_QUBITS;
 
@@ -73,7 +74,7 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     tasks.push_back(message);
   }
 
-  CUDAQ_INFO("Created job payload for Pasqal, targeting device {}",
+  CUDAQ_INFO("Created Pasqal payload, targeting machine {}",
              backendConfig.at("machine"));
 
   // Return a tuple containing the job path, headers, and the job message
@@ -110,25 +111,19 @@ sample_result PasqalServerHelper::processResults(ServerMessage &postJobResponse,
 
   std::vector<ExecutionResult> results;
   auto jobs = postJobResponse["data"]["result"];
+
+  // loop over jobs in batch to get results
+  // Current implementation only has 1 job
   for (auto &job : jobs) {
-    // loop over jobs in batch to get results
-    // Current implementation only has 1 job
-
-    // Pasqal's bitstring uses little-endian.
-    std::unordered_map<std::string, std::size_t> result;
-    for (auto &[bitstring, count] : job.items()) {
-      auto r_bitstring = bitstring;
-      std::reverse(r_bitstring.begin(), r_bitstring.end());
-      result[r_bitstring] = count;
-    }
-
-    results.push_back(ExecutionResult(result));
+    results.push_back(pasqal::parseExecutionResult(job));
   }
 
   return sample_result(results);
 }
-
 } // namespace cudaq
 
-// Register the Pasqal server helper in the CUDA-Q server helper factory
+// Avoid duplicate "pasqal" registration from the Python dialect extension
+// build; the runtime plugin provides the canonical registration.
+#ifndef CUDAQuantumPythonModules_extension__quakeDialects_dso_EXPORTS
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::PasqalServerHelper, pasqal)
+#endif

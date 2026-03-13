@@ -36,6 +36,7 @@ struct VectorOfStaticVeq {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq() -> !cc.stdvec<!quake.measure>
+// CHECK-NOT: cudaq-entrypoint
 // CHECK:           %[[VAL_0:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
@@ -88,6 +89,7 @@ struct VectorOfDynamicVeq {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfDynamicVeq(
 // CHECK-SAME:                                                    %[[VAL_0:.*]]: i32,
 // CHECK-SAME:                                                    %[[VAL_1:.*]]: i32) -> !cc.stdvec<!quake.measure>
+// CHECK-NOT: cudaq-entrypoint
 // CHECK:           %[[VAL_2:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
@@ -107,4 +109,44 @@ struct VectorOfDynamicVeq {
 // CHECK:           %[[VAL_16:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_14]], %[[VAL_15]], %[[VAL_2]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_17:.*]] = cc.stdvec_init %[[VAL_16]], %[[VAL_15]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<!quake.measure>
 // CHECK:           return %[[VAL_17]] : !cc.stdvec<!quake.measure>
+// CHECK:         }
+
+struct MxTest {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    auto r = mx(q);
+    bool b = r;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__MxTest() attributes
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] name "r" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_5:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<i1>
+// CHECK:           return
+// CHECK:         }
+
+struct MyTest {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    auto r = my(q);
+    bool b = r;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__MyTest() attributes
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.my %[[VAL_0]] name "r" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_5:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<i1>
+// CHECK:           return
 // CHECK:         }

@@ -184,39 +184,33 @@ public:
     parser.parse(qirOutputLog);
 
     // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *buf = static_cast<char *>(parser.getBufferPtr());
+    auto *origBuffer = parser.getBufferPtr();
     std::size_t bufferSize = parser.getBufferSize();
+    char *buffer = static_cast<char *>(malloc(bufferSize));
+    std::memcpy(buffer, origBuffer, bufferSize);
 
-    // Each shot is stored as 3 pointers (begin, end, capacity) in the buffer.
-    constexpr std::size_t kVecReprSize = 3 * sizeof(cudaq::measure_result *);
-    std::size_t numShots = bufferSize / kVecReprSize;
-
+    std::vector<std::vector<bool>> results = {
+        reinterpret_cast<std::vector<bool> *>(buffer),
+        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
+    const auto numShots = results.size();
     // Create the counts dictionary
     cudaq::CountsDictionary globalCounts;
     std::vector<std::string> globalSequentialData;
     globalSequentialData.reserve(numShots);
-
-    for (std::size_t i = 0; i < numShots; ++i) {
-      // Read the {begin, end, capacity} pointers directly
-      auto **ptrs =
-          reinterpret_cast<cudaq::measure_result **>(buf + i * kVecReprSize);
-      cudaq::measure_result *begin = ptrs[0];
-      cudaq::measure_result *end = ptrs[1];
-      std::size_t count = static_cast<std::size_t>(end - begin);
-
+    for (const auto &shotResult : results) {
+      // Each shot is an array of tagged results
       std::string bitString;
-      bitString.reserve(count);
-      for (std::size_t j = 0; j < count; ++j)
-        bitString += (begin[j].getResult() ? '1' : '0');
+      for (const auto &bitVal : shotResult) {
+        bitString.append(bitVal ? "1" : "0");
+      }
       // Global register results
       globalCounts[bitString]++;
-      globalSequentialData.push_back(std::move(bitString));
-      std::free(ptrs[0]);
+      globalSequentialData.push_back(bitString);
     }
 
     // Add the global register results
     cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
-    result.sequentialData = std::move(globalSequentialData);
+    result.sequentialData = globalSequentialData;
     return cudaq::sample_result({result});
   }
 };

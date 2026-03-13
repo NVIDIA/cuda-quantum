@@ -366,4 +366,3 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           llvm.return
 // CHECK:         }
 // CHECK:         llvm.mlir.global_ctors {ctors = [@test_1.kernelRegFunc], priorities = [17 : i32]}
-
