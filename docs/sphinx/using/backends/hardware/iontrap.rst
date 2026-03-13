@@ -31,7 +31,7 @@ Submitting
 
     By default, quantum kernel code will be submitted to the IonQ simulator.
 
-    .. note:: 
+    .. note::
 
        A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
        However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
@@ -70,7 +70,7 @@ Submitting
 
         This will take the API key and handle all authentication with, and submission to, the IonQ QPU(s). By default, quantum kernel code will be submitted to the IonQsimulator.
 
-        .. note:: 
+        .. note::
 
                 A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
                 However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
@@ -105,7 +105,7 @@ Setting Credentials
 ```````````````````
 
 Programmers of CUDA-Q may access the Quantinuum API from either
-C++ or Python. Quantinuum requires a credential configuration file. 
+C++ or Python. Quantinuum requires a credential configuration file.
 The configuration file can be generated as follows, replacing
 the ``email`` and ``credentials`` in the first line with your Quantinuum
 account details.
@@ -134,8 +134,8 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
 .. tab:: Python
 
-       
-        The backend to which quantum kernels are submitted 
+
+        The backend to which quantum kernels are submitted
         can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
@@ -155,15 +155,15 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
             cudaq.set_target('quantinuum', machine='H2-2')
 
         where ``H2-2`` is an example of a physical QPU. Hardware specific
-        emulators may be accessed by appending an ``E`` to the end (e.g, ``H2-2E``). For 
-        access to the syntax checker for the provided machine, you may append an ``SC`` 
+        emulators may be accessed by appending an ``E`` to the end (e.g, ``H2-2E``). For
+        access to the syntax checker for the provided machine, you may append an ``SC``
         to the end (e.g, ``H2-1SC``).
 
-        For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__ 
+        For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__
         and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
 
         To emulate the Quantinuum machine locally, without submitting through the cloud,
-        you can set the ``emulate`` flag to ``True``. This will emit any target 
+        you can set the ``emulate`` flag to ``True``. This will emit any target
         specific compiler warnings and diagnostics, before running a noise free emulation.
         You do not need to specify project or machine when emulating.
 
@@ -175,7 +175,7 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
         the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
         the ``shots_count`` is set to 1000.
 
-        .. code:: python 
+        .. code:: python
 
             cudaq.sample(kernel, shots_count=10000)
 
@@ -183,7 +183,7 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 .. tab:: C++
 
         To target quantum kernel code for execution in the Quantinuum backends,
-        pass the flag ``--target quantinuum`` to the ``nvq++`` compiler. CUDA-Q will 
+        pass the flag ``--target quantinuum`` to the ``nvq++`` compiler. CUDA-Q will
         authenticate via the Quantinuum REST API using the credential in your configuration file.
         By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
         Submission to the syntax checker merely validates the program; the kernels are not executed.
@@ -202,15 +202,15 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
             nvq++ --target quantinuum --quantinuum-machine H2-2 src.cpp ...
 
         where ``H2-2`` is an example of a physical QPU. Hardware specific
-        emulators may be accessed by appending an ``E`` to the end (e.g, ``H2-2E``). For 
-        access to the syntax checker for the provided machine, you may append an ``SC`` 
+        emulators may be accessed by appending an ``E`` to the end (e.g, ``H2-2E``). For
+        access to the syntax checker for the provided machine, you may append an ``SC``
         to the end (e.g, ``H2-1SC``).
 
-        For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__ 
+        For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__
         and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
 
         To emulate the Quantinuum machine locally, without submitting through the cloud,
-        you can pass the ``--emulate`` flag to ``nvq++``. This will emit any target 
+        you can pass the ``--emulate`` flag to ``nvq++``. This will emit any target
         specific compiler warnings and diagnostics, before running a noise free emulation.
         You do not need to specify project or machine when emulating.
 
@@ -218,16 +218,15 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
             nvq++ --emulate --target quantinuum src.cpp
 
-.. note:: 
+.. note::
 
-<<<<<<< HEAD
        Quantinuum's syntax checker for Helios (e.g., ``Helios-1SC``) only performs QIR code validation and does not return any results.
        Thus, it always returns an empty result set. This is different from other Quantinuum backends (e.g., ``H2-1SC``) where the syntax checker returns dummy results.
        As a result, when using the Helios syntax checker, we may receive this warning message:
 
         .. code:: text
-    
-                WARNING: this kernel invocation produced 0 shots worth of results when executed. 
+
+                WARNING: this kernel invocation produced 0 shots worth of results when executed.
 
         It means that the kernel was successfully validated, but no execution results are available.
         To get results, please submit to the Helios emulator (e.g., ``Helios-1E``) or the actual quantum device (e.g., ``Helios-1``).
@@ -236,16 +235,15 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
 To see a complete example, take a look at :ref:`Quantinuum examples <quantinuum-examples>`.
 
-.. note:: 
+.. note::
 
         In local emulation mode (``emulate`` flag set to ``True``), the program will be executed on the :ref:`default simulator <default-simulator>`.
-        The environment variable ``CUDAQ_DEFAULT_SIMULATOR`` can be used to change the emulation simulator. 
-        
+        The environment variable ``CUDAQ_DEFAULT_SIMULATOR`` can be used to change the emulation simulator.
+
         For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
-        depend on the selected simulator.  
-        
+        depend on the selected simulator.
+
         Any environment variables must be set prior to setting the target or running "`import cudaq`".
-=======
 
 QBRAID
 +++++++
@@ -310,5 +308,3 @@ Submitting
                 nvq++ --emulate --target qbraid src.cpp
 
         To see a complete example for using IonQ's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
-  
->>>>>>> 17f25cf4 (qBraid integration MVP (#4))

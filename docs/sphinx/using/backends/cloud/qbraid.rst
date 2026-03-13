@@ -59,4 +59,3 @@ Submission from C++
                 nvq++ --emulate --target qbraid src.cpp
 
         To see a complete example for using IonQ's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
-  
