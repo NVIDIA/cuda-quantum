@@ -176,7 +176,7 @@ For example, in the `HSB`-based implementation, we use the `ptp_timestamp` field
 in the `RPCHeader`/`RPCResponse` (see the message protocol [documentation](cudaq_realtime_message_protocol.md))
 to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA)
 stores the 'send' timestamp in the `RPCHeader` (incoming message),
-which will be echoed by the GPU in the after outgoing `RPCResponse`
+which will be echoed by the GPU in the outgoing `RPCResponse`
 after processing it (e.g., with the RPC handler).
 Using the Integrated Logic Analyzer (`ILA`) timestamp when the FPGA receives
 the response from the GPU, we can compute the round-trip latency,
