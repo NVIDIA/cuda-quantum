@@ -1,0 +1,195 @@
+on:
+  workflow_dispatch:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+    paths:
+      - realtime/** # Only trigger on changes to the realtime directory
+      - .github/** # Also trigger on changes to GitHub workflows
+  merge_group:
+    types: 
+      - checks_requested
+    
+name: Realtime CI 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_installer:
+    name: Build CUDA Quantum Realtime assets
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    uses: ./.github/workflows/realtime_prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ matrix.platform }}
+      cuda_version: ${{ matrix.cuda_version }}
+
+  test_installer:
+    name: Test Installer  
+    needs: build_installer
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+        distro: ['ubuntu24.04', 'ubi9']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      # Note: in this test, we need to build a CUDA kernel (to use with CUDAQ Realtime), hence we need the CUDA toolkit, not just the runtime.
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-${{ matrix.distro }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download installer 
+        uses: actions/download-artifact@v4
+        with:
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
+          path: ./installers
+      
+      - name: Install CUDA Quantum Realtime using installer
+        shell: bash
+        run: |
+          cd ./installers
+          # Find the installer file (assuming there's only one in the directory)
+          installer_file=$(ls install_cuda_quantum_realtime_*)
+          echo "Found installer: $installer_file"
+          # Make the installer executable and run it
+          chmod +x "$installer_file"
+          ./"$installer_file" --accept
+
+      - name: Test CUDA Quantum Realtime installation
+        shell: bash
+        run: |
+          # Install cmake for building a test example that uses the installed CUDA Quantum Realtime
+          # Install cmake depending on distro
+          if [[ "${{ matrix.distro }}" == "ubi9" ]]; then
+            dnf install -y cmake
+          else
+            apt update && apt install -y --no-install-recommends cmake 
+          fi
+          # Build the test example that uses the installed CUDA Quantum Realtime
+          cd realtime/examples/gpu_dispatch
+          mkdir -p build && cd build
+          cmake .. 
+          make -j$(nproc)
+          ./dispatch_kernel
+  
+  build_realtime:
+    name: Build 
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build CUDA Quantum Realtime
+        uses: ./.github/actions/run-in-docker
+        with:
+          # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
+          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          volume: ${{ github.workspace }}:/workspace
+          shell: bash
+          run: |
+            # Note: HSB requires cmake 3.20+
+            apt update && apt install -y --no-install-recommends ca-certificates gpg wget
+            wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+            apt update && apt install -y kitware-archive-keyring
+            # Build 
+            apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
+            cd /workspace/realtime
+            bash scripts/install_dev_prerequisites.sh
+            # Build HSB (GPU RoCE transceiver and hololink_core)
+            export CUDA_NATIVE_ARCH=${{ (contains(matrix.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}
+            cd /workspace/ && git clone -b release-2.6.0-EA https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge 
+            cmake -G Ninja -S /workspace/holoscan-sensor-bridge -B /workspace/holoscan-sensor-bridge/build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF
+            cmake --build /workspace/holoscan-sensor-bridge/build --target roce_receiver gpu_roce_transceiver hololink_core
+            # Build CUDA-Q Realtime
+            cd /workspace/realtime
+            mkdir -p build && cd build
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/workspace/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/workspace/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/workspace/installer
+            make -j$(nproc) install
+
+      - name: 'Tar files'
+        run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
+      
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: build_artifacts.tgz
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ${{ github.workspace }}/installer
+          retention-days: 1
+          if-no-files-found: error
+
+  test_realtime:
+    name: Test 
+    needs: build_realtime
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      # Use a base CUDA runtime image for testing
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+
+    steps:
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          path: ./realtime_build_artifacts
+      
+      - name: Extract files
+        run: mkdir -p /workspace/realtime/build && tar -xvzf ./realtime_build_artifacts/build_artifacts.tgz -C /workspace/realtime/build
+      
+      - name: Test CUDA Quantum Realtime
+        shell: bash
+        run: |
+          # Install cmake for ctest
+          apt update && apt install -y --no-install-recommends cmake 
+          cd /workspace/realtime/build
+          ctest -V
