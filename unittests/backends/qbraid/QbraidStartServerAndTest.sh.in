@@ -13,7 +13,7 @@ checkServerConnection() {
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", 62449))
+    s.connect(("localhost", 62452))
     s.close()
 except Exception:
     exit(1)
@@ -35,7 +35,7 @@ while ! checkServerConnection; do
 done
 # Run the tests
 ./test_qbraid
-# Did they fail? 
+# Did they fail?
 testsPassed=$?
 # kill the server
 kill -INT $pid

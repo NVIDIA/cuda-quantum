@@ -3,16 +3,13 @@
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <bitset>
-#include <fstream>
-#include <map>
 #include <thread>
 
 namespace cudaq {
 
 class QbraidServerHelper : public ServerHelper {
-  static constexpr const char *DEFAULT_URL = "https://api.qbraid.com/api";
-  static constexpr const char *DEFAULT_DEVICE = "ionq_simulator";
+  static constexpr const char *DEFAULT_URL = "https://api-v2.qbraid.com/api/v1";
+  static constexpr const char *DEFAULT_DEVICE = "ionq:ionq:sim:simulator";
   static constexpr int DEFAULT_QUBITS = 29;
 
 public:
@@ -28,8 +25,7 @@ public:
     backendConfig["qubits"] = std::to_string(DEFAULT_QUBITS);
 
     backendConfig["api_key"] = getEnvVar("QBRAID_API_KEY", "", true);
-    backendConfig["job_path"] = backendConfig["url"] + "/quantum-jobs";
-    backendConfig["results_path"] = backendConfig["url"] + "/quantum-jobs/result/";
+    backendConfig["job_path"] = backendConfig["url"] + "/jobs";
 
     backendConfig["results_output_dir"] = getValueOrDefault(config, "results_output_dir", "./qbraid_results");
     backendConfig["results_file_prefix"] = getValueOrDefault(config, "results_file_prefix", "qbraid_job_");
@@ -63,14 +59,18 @@ public:
     std::vector<ServerMessage> jobs;
     for (auto &circuitCode : circuitCodes) {
       ServerMessage job;
-      job["qbraidDeviceId"] = backendConfig.at("device_id");
-      job["openQasm"] = circuitCode.code;
+      job["deviceQrn"] = backendConfig.at("device_id");
       job["shots"] = std::stoi(backendConfig.at("shots"));
 
+      // v2 API: program is a structured object with format and data
+      nlohmann::json program;
+      program["format"] = "qasm2";
+      program["data"] = circuitCode.code;
+      job["program"] = program;
+
+      // v2 API: name is a top-level field (not nested under tags)
       if (!circuitCode.name.empty()) {
-        nlohmann::json tags;
-        tags["name"] = circuitCode.name;
-        job["tags"] = tags;
+        job["name"] = circuitCode.name;
       }
 
       jobs.push_back(job);
@@ -80,40 +80,47 @@ public:
   }
 
   std::string extractJobId(ServerMessage &postResponse) override {
-    if (!postResponse.contains("qbraidJobId")) {
-      throw std::runtime_error("ServerMessage doesn't contain 'qbraidJobId' key.");
+    // v2 API: jobQrn is nested under data envelope
+    if (postResponse.contains("data") && postResponse["data"].contains("jobQrn")) {
+      return postResponse["data"]["jobQrn"].get<std::string>();
     }
-    return postResponse.at("qbraidJobId");
+    throw std::runtime_error("ServerMessage doesn't contain 'data.jobQrn' key.");
   }
 
   std::string constructGetJobPath(ServerMessage &postResponse) override {
-    if (!postResponse.contains("qbraidJobId")) {
-      throw std::runtime_error("ServerMessage doesn't contain 'qbraidJobId' key.");
+    // v2 API: use path parameter instead of query parameter
+    if (postResponse.contains("data") && postResponse["data"].contains("jobQrn")) {
+      return backendConfig.at("job_path") + "/" + postResponse["data"]["jobQrn"].get<std::string>();
     }
-
-    return backendConfig.at("job_path") + "?qbraidJobId=" + postResponse.at("qbraidJobId").get<std::string>();
+    throw std::runtime_error("ServerMessage doesn't contain 'data.jobQrn' key.");
   }
 
   std::string constructGetJobPath(std::string &jobId) override {
-    return backendConfig.at("job_path") + "?qbraidJobId=" + jobId;
+    // v2 API: /jobs/{jobQrn}
+    return backendConfig.at("job_path") + "/" + jobId;
   }
 
   std::string constructGetResultsPath(const std::string &jobId) {
-    return backendConfig.at("results_path") + jobId;
+    // v2 API: /jobs/{jobQrn}/result
+    return backendConfig.at("job_path") + "/" + jobId + "/result";
+  }
+
+  std::string constructGetProgramPath(const std::string &jobId) {
+    // v2 API: /jobs/{jobQrn}/program
+    return backendConfig.at("job_path") + "/" + jobId + "/program";
   }
 
   bool jobIsDone(ServerMessage &getJobResponse) override {
     std::string status;
 
-    if (getJobResponse.contains("jobsArray") && !getJobResponse["jobsArray"].empty()) {
-      status = getJobResponse["jobsArray"][0]["status"].get<std::string>();
-      cudaq::info("Job status from jobs endpoint: {}", status);
+    // v2 API: status is nested under data envelope
+    if (getJobResponse.contains("data") && getJobResponse["data"].contains("status")) {
+      status = getJobResponse["data"]["status"].get<std::string>();
+      cudaq::info("Job status from v2 data envelope: {}", status);
     } else if (getJobResponse.contains("status")) {
+      // Fallback: direct status field
       status = getJobResponse["status"].get<std::string>();
       cudaq::info("Job status from direct response: {}", status);
-    } else if (getJobResponse.contains("data") && getJobResponse["data"].contains("status")) {
-      status = getJobResponse["data"]["status"].get<std::string>();
-      cudaq::info("Job status from data object: {}", status);
     } else {
       cudaq::info("Unexpected job response format: {}", getJobResponse.dump());
       throw std::runtime_error("Invalid job response format");
@@ -127,7 +134,26 @@ public:
     return false;
   }
 
-  // Sample results with results api - with retry logic
+  // Fetch the original program from v2 endpoint
+  std::string getJobProgram(const ServerMessage &response, const std::string &jobId) override {
+    auto programPath = constructGetProgramPath(jobId);
+    auto headers = getHeaders();
+
+    cudaq::info("Fetching job program from v2 endpoint: {}", programPath);
+    RestClient client;
+    auto programJson = client.get("", programPath, headers, true);
+
+    // v2 API: program content at data.data, format at data.format
+    if (programJson.contains("data") && programJson["data"].contains("data")) {
+      cudaq::info("Retrieved program (format: {})",
+                  programJson["data"].value("format", "unknown"));
+      return programJson["data"]["data"].get<std::string>();
+    }
+
+    throw std::runtime_error("Invalid program response format: " + programJson.dump());
+  }
+
+  // Fetch results from v2 results endpoint with retry logic
   cudaq::sample_result processResults(ServerMessage &getJobResponse, std::string &jobId) override {
     int maxRetries = 5;
     int waitTime = 2;
@@ -138,23 +164,30 @@ public:
         auto resultsPath = constructGetResultsPath(jobId);
         auto headers = getHeaders();
 
-        cudaq::info("Fetching results using direct endpoint (attempt {}/{}): {}", attempt + 1, maxRetries, resultsPath);
+        cudaq::info("Fetching results from v2 endpoint (attempt {}/{}): {}", attempt + 1, maxRetries, resultsPath);
         RestClient client;
         auto resultJson = client.get("", resultsPath, headers, true);
 
-        if (resultJson.contains("error") && !resultJson["error"].is_null()) {
-          std::string errorMsg = resultJson["error"].is_string()
-                                     ? resultJson["error"].get<std::string>()
-                                     : resultJson["error"].dump();
-          cudaq::info("Error from results endpoint: {}", errorMsg);
+        // v2 API: error indicated by success=false
+        if (resultJson.contains("success") && resultJson["success"].is_boolean()
+            && !resultJson["success"].get<bool>()) {
+          std::string errorMsg = "Results not yet available";
+          if (resultJson.contains("data") && resultJson["data"].contains("message")) {
+            errorMsg = resultJson["data"]["message"].get<std::string>();
+          }
+          cudaq::info("Results endpoint returned success=false: {}", errorMsg);
 
           if (attempt == maxRetries - 1) {
             throw std::runtime_error("Error retrieving results: " + errorMsg);
           }
-        } else if (resultJson.contains("data") && resultJson["data"].contains("measurementCounts")) {
-          cudaq::info("Processing results from direct endpoint");
+        }
+        // v2 API: measurementCounts nested under data.resultData
+        else if (resultJson.contains("data")
+                 && resultJson["data"].contains("resultData")
+                 && resultJson["data"]["resultData"].contains("measurementCounts")) {
+          cudaq::info("Processing results from v2 endpoint");
           CountsDictionary counts;
-          auto &measurements = resultJson["data"]["measurementCounts"];
+          auto &measurements = resultJson["data"]["resultData"]["measurementCounts"];
 
           for (const auto &[bitstring, count] : measurements.items()) {
             counts[bitstring] =
@@ -168,7 +201,7 @@ public:
           return cudaq::sample_result(execResults);
         }
 
-        // If we get here, no valid data was found but also no error - retry
+        // No valid data yet and no explicit error - retry
         if (attempt < maxRetries - 1) {
           int sleepTime = (attempt == 0) ? waitTime : waitTime * std::pow(backoffFactor, attempt);
           cudaq::info("No valid results yet, retrying in {} seconds", sleepTime);
@@ -176,51 +209,17 @@ public:
         }
 
       } catch (const std::exception &e) {
-        cudaq::info("Exception when using direct results endpoint: {}", e.what());
+        cudaq::info("Exception when fetching results: {}", e.what());
         if (attempt < maxRetries - 1) {
           int sleepTime = (attempt == 0) ? waitTime : waitTime * std::pow(backoffFactor, attempt);
           cudaq::info("Retrying in {} seconds", sleepTime);
           std::this_thread::sleep_for(std::chrono::seconds(sleepTime));
-        } else {
-          cudaq::info("Falling back to original results processing method");
         }
       }
     }
 
-    // Original result processing as fallback
-    cudaq::info("Processing results from job response for job {}", jobId);
-    if (getJobResponse.contains("jobsArray") && !getJobResponse["jobsArray"].empty()) {
-      auto &job = getJobResponse["jobsArray"][0];
-
-      if (job.contains("measurementCounts")) {
-        CountsDictionary counts;
-        auto &measurements = job["measurementCounts"];
-
-        for (const auto &[bitstring, count] : measurements.items()) {
-          counts[bitstring] = count.get<std::size_t>();
-        }
-
-        std::vector<ExecutionResult> execResults;
-        execResults.emplace_back(ExecutionResult{counts});
-        return cudaq::sample_result(execResults);
-      }
-    }
-
-    // Last resort - check for direct measurementCounts in the response
-    if (getJobResponse.contains("measurementCounts")) {
-      CountsDictionary counts;
-      auto &measurements = getJobResponse["measurementCounts"];
-
-      for (const auto &[bitstring, count] : measurements.items()) {
-        counts[bitstring] = count.get<std::size_t>();
-      }
-
-      std::vector<ExecutionResult> execResults;
-      execResults.emplace_back(ExecutionResult{counts});
-      return cudaq::sample_result(execResults);
-    }
-
-    throw std::runtime_error("No measurement counts found in any response format");
+    throw std::runtime_error("Failed to retrieve measurement counts after " +
+                             std::to_string(maxRetries) + " attempts");
   }
 
   /// @brief Override the polling interval method
@@ -266,7 +265,7 @@ private:
     }
 
     RestHeaders headers;
-    headers["api-key"] = backendConfig.at("api_key");
+    headers["X-API-KEY"] = backendConfig.at("api_key");
     headers["Content-Type"] = "application/json";
     headers["User-Agent"] = backendConfig.at("user_agent");
     return headers;

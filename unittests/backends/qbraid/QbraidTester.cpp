@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 // Update the backend string to match the QBraid format
-std::string mockPort = "62449";
+std::string mockPort = "62452";
 std::string backendStringTemplate =
     "qbraid;emulate;false;url;http://localhost:{}";
 
