@@ -166,7 +166,8 @@ public:
     RewritePatternSet patterns(ctx);
 
     patterns.insert<CallPattern>(ctx);
-    quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
+    quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
+    quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
     if (failed(applyPatternsAndFoldGreedily(funcOp, std::move(patterns))))
       signalPassFailure();
   }
