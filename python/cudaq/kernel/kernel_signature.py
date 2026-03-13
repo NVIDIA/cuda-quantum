@@ -70,7 +70,9 @@ class KernelSignature:
         of the MLIR `FuncOp` are treated as direct arguments to the kernel and
         `captured_args` is set to `[]`.
         """
-        funcOp = recover_func_op(mlir_module, nvqppPrefix + kernel_name)
+        if not kernel_name.startswith(nvqppPrefix):
+            kernel_name = nvqppPrefix + kernel_name
+        funcOp = recover_func_op(mlir_module, kernel_name)
         fnTy = mlir.FunctionType(
             mlir.TypeAttr(funcOp.attributes['function_type']).value)
         if len(fnTy.results) > 1:

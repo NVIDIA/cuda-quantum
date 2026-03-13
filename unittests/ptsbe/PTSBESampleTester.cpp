@@ -791,5 +791,74 @@ CUDAQ_TEST(PTSBESampleTest, InlineApplyNoise) {
   EXPECT_GE(noiseCount, 1u);
 }
 
+// ============================================================================
+// SEQUENTIAL DATA TESTS
+// ============================================================================
+
+CUDAQ_TEST(PTSBESampleTest, SequentialDataEmptyByDefault) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.05));
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.05));
+
+  sample_options options;
+  options.shots = 10;
+  options.noise = noise;
+
+  auto result = sample(options, bellKernel);
+  EXPECT_EQ(result.get_total_shots(), 10u);
+  auto seq = result.sequential_data();
+  EXPECT_TRUE(seq.empty())
+      << "sequential_data should be empty by default for PTSBE";
+}
+
+CUDAQ_TEST(PTSBESampleTest, SequentialDataPopulatedWhenRequested) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.05));
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.05));
+
+  const std::size_t shots = 10;
+  sample_options options;
+  options.shots = shots;
+  options.noise = noise;
+  options.ptsbe.include_sequential_data = true;
+
+  auto result = sample(options, bellKernel);
+  EXPECT_EQ(result.get_total_shots(), shots);
+
+  auto seq = result.sequential_data();
+  EXPECT_EQ(seq.size(), shots)
+      << "sequential_data length should equal shots when requested";
+
+  auto countsMap = result.to_map();
+  for (const auto &bitstring : seq) {
+    EXPECT_FALSE(bitstring.empty());
+    EXPECT_EQ(bitstring.size(), 2u) << "Bell circuit has 2 measured qubits";
+    EXPECT_TRUE(countsMap.count(bitstring) > 0)
+        << "Every sequential bitstring must appear in counts: " << bitstring;
+  }
+}
+
+CUDAQ_TEST(PTSBESampleTest, SequentialDataWithGHZ) {
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
+  noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.01));
+
+  const std::size_t shots = 10;
+  sample_options options;
+  options.shots = shots;
+  options.noise = noise;
+  options.ptsbe.include_sequential_data = true;
+
+  auto result = sample(options, ghzKernel);
+  EXPECT_EQ(result.get_total_shots(), shots);
+
+  auto seq = result.sequential_data();
+  EXPECT_EQ(seq.size(), shots);
+
+  for (const auto &bitstring : seq) {
+    EXPECT_EQ(bitstring.size(), 3u) << "GHZ circuit has 3 measured qubits";
+  }
+}
+
 #endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
        // && !CUDAQ_BACKEND_CUSTATEVEC_FP32

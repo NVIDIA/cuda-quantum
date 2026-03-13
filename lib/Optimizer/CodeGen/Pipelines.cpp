@@ -34,7 +34,7 @@ static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-base") {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurements());
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-adaptive") {

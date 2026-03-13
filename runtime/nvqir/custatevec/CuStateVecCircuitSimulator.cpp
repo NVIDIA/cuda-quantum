@@ -655,7 +655,8 @@ public:
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     ScopedTraceWithContext(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
@@ -706,19 +707,23 @@ public:
       extraWorkspace = nullptr;
     }
 
-    std::vector<std::string> sequentialData;
-    sequentialData.reserve(shots);
-
     cudaq::ExecutionResult counts;
 
-    // We've sampled, convert the results to our ExecutionResult counts
-    for (int i = 0; i < shots; ++i) {
-      auto bitstring = std::bitset<64>(bitstrings0[i])
-                           .to_string()
-                           .erase(0, 64 - measuredBits.size());
+    // Bitstrings are sorted in ascending order.
+    // Use this to avoid O(N) string conversions.
+    for (int i = 0; i < shots;) {
+      auto val = bitstrings0[i];
+      int runLen = 1;
+      while (i + runLen < shots && bitstrings0[i + runLen] == val)
+        ++runLen;
+      auto bitstring =
+          std::bitset<64>(val).to_string().erase(0, 64 - measuredBits.size());
       std::reverse(bitstring.begin(), bitstring.end());
-      counts.appendResult(bitstring, 1);
-      sequentialData.push_back(std::move(bitstring));
+      if (includeSequentialData)
+        counts.appendResult(bitstring, runLen);
+      else
+        counts.counts[std::move(bitstring)] += runLen;
+      i += runLen;
     }
 
     // Compute the expectation value from the counts

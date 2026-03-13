@@ -513,3 +513,43 @@ def test_extra_qubit_before_qvector_large_state_f64():
     expected = '0' + '1' * n
     assert expected in counts
     assert len(counts) == 1
+
+
+@pytest.mark.skip_macos_arm64_jit
+def test_qvector_state_init_too_many_qubits():
+    cudaq.reset_target()
+
+    n = 11
+    v = np.zeros(2**n, dtype=cudaq.complex())
+    v[-1] = 1.
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            p = cudaq.qubit()
+            q = cudaq.qvector(v)
+            mz(p)
+            mz(q)
+
+        cudaq.sample(kernel)
+    assert ('State vector initialization with more than 10 qubits is not'
+            ' supported. Requested 11 qubits.') in repr(e)
+
+
+@pytest.mark.skip_macos_arm64_jit
+def test_qvector_state_init_too_many_qubits_list_param():
+    cudaq.reset_target()
+
+    n = 11
+    v = [0.] * (2**n)
+    v[-1] = 1.
+
+    @cudaq.kernel
+    def kernel(state: list[complex]):
+        q = cudaq.qvector(state)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel, v)
+    assert ('State vector initialization with more than 10 qubits is not'
+            ' supported. Requested 11 qubits.') in repr(e)
