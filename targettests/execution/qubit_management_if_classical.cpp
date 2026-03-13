@@ -22,7 +22,7 @@ struct run_test {
       rx(1., p);
       y(p);
     }
-    auto res = mz(p);
+    bool res = mz(p);
     return res;
   }
 };

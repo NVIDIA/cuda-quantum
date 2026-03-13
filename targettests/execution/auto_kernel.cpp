@@ -25,7 +25,7 @@ struct ak2 {
     h(q[0]);
     x(q[1]);
     y(q[2]);
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 

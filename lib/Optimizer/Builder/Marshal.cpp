@@ -790,6 +790,11 @@ std::pair<bool, func::FuncOp> cudaq::opt::marshal::lookupHostEntryPointFunc(
     // No host entry point needed.
     return {false, func::FuncOp{}};
   }
+  // Device-only kernels (those with quantum types or `measure_result` in their
+  // signature) have no host-side entry point, so skip them.
+  if (!funcOp->hasAttr(cudaq::entryPointAttrName)) {
+    return {false, func::FuncOp{}};
+  }
   if (auto *decl = module.lookupSymbol(mangledEntryPointName))
     if (auto func = dyn_cast<func::FuncOp>(decl)) {
       func.eraseBody();
