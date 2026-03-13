@@ -1973,7 +1973,7 @@ output is used to classify hand written digits.
 ::: highlight
     # Set CUDAQ and PyTorch to run on either CPU or GPU.
 
-    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia") and torch.cuda.is_available():
         cudaq.set_target("nvidia")
         device = torch.device("cuda:0")
     else:

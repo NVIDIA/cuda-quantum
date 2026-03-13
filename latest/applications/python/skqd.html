@@ -1416,7 +1416,7 @@ Generating Krylov state U^11...
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
 <p><strong>Note</strong>: Set <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> at the beginning of the notebook to enable GPU acceleration for postprocessing. The quantum circuit simulation uses the NVIDIA target in CUDA-Q regardless of this flag.</p>
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code>.</p>
-<p><img alt="cec0f40c62994af384c49dccca51b7ac" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
+<p><img alt="23627125e7fb4561b3bf536a88f296ce" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
@@ -1430,7 +1430,7 @@ Generating Krylov state U^11...
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Using: CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 37053302ceb3d83684186b2a99aac500df7b847e)
+Using: CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 4509f3fced5e25e14d357e643fb247e09b2075d6)
 </pre></div></div>
 </div>
 </section>

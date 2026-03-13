@@ -2034,6 +2034,12 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 
     os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
 
+    # Users may hit a rate limit for HuggingFace requests if the HF_TOKEN is not set.
+    import huggingface_hub
+    hf_token = os.environ.get('HF_TOKEN')
+    if hf_token:
+        huggingface_hub.login(token=hf_token, add_to_git_credential=False)
+
     import genQC.utils.misc_utils as util
     from genQC.pipeline.diffusion_pipeline import DiffusionPipeline
     from genQC.pipeline.multimodal_diffusion_pipeline \
@@ -2323,7 +2329,7 @@ gates.
 :::
 :::
 
-::: {.nboutput .docutils .container}
+::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .empty .docutils .container}
 :::
 
@@ -2334,28 +2340,6 @@ gates.
     [INFO]: Creating `UnitaryTextEncoder` with `unitary_downscale_factor=4` and `encoding_ch=640`.
     [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT` instantiated from given `config` on cuda.
     [INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit_v1.1/snapshots/bd2c968349d0915580b5acbaf970d2fc446d2503/model.safetensors` onto device: cuda.
-:::
-:::
-:::
-
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .stderr .docutils .container}
-::: highlight
-    Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-    WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-:::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
     [INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT`. Freeze model: True
     [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given `config` on cuda.
     [INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Found no key `save_type` in `config`. No state dict loaded.
@@ -3614,7 +3598,7 @@ For instance, we can sort the circuits by their [`cx`{.docutils .literal
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 6967da4da1a4615bfba77c04fdb95c0164e0baad)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 4509f3fced5e25e14d357e643fb247e09b2075d6)
     genQC Version 0.2.5
 :::
 :::

@@ -2496,7 +2496,7 @@ Brucek Khailany, *Augmenting Simulated Noisy Quantum Data Collection by
 Orders of Magnitude Using Pre-Trajectory Sampling with Batched
 Execution.* Proceedings of the International Conference for High
 Performance Computing, Networking, Storage and Analysis. 2025.
-[https://dl.acm.org/doi/full/10.1145/3712285.3759871](https://dl.acm.org/doi/full/10.1145/3712285.3759871){.reference
+[https://arxiv.org/abs/2504.16297](https://arxiv.org/abs/2504.16297){.reference
 .external}
 :::
 :::

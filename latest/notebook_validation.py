@@ -98,7 +98,7 @@ def validate(notebook_filename, available_backends):
     return any(target in available_backends for target in targets_found)
 
 
-def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=600):
+def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=900):
     """Execute a notebook with timeout."""
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')

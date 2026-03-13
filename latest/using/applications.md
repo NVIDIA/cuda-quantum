@@ -2369,7 +2369,7 @@ method for sampling from noisy quantum circuits. Rather than simulating
 the full density matrix, PTSBE pre-samples unique noise trajectories and
 batches many shots across them, yielding orders-of-magnitude speedups
 for large shot counts. Based on the SC25 paper by Patti et al.
-(https://dl.acm.org/doi/full/10.1145/3712285.3759871).
+(https://arxiv.org/abs/2504.16297).
 :::
 :::
 

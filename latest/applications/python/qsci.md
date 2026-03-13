@@ -1933,6 +1933,10 @@ Let's define Hamiltonian of [\\(\\mathrm{H_4}\\)]{.math .notranslate
     import openfermionpyscf
     from openfermion.transforms import jordan_wigner, get_fermion_operator
     import cudaq
+    import numpy as np
+
+    if not hasattr(np, 'string_'):
+        np.string_ = np.bytes_
 :::
 :::
 :::
@@ -2076,7 +2080,7 @@ correspond to Slater determinants (electronic configurations).
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    { 11110000:1000 }
+    { 01011010:1 11100100:2 11110000:997 }
 :::
 :::
 :::
@@ -2225,7 +2229,7 @@ energy estimates.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    -2.1019517013583533
+    -2.1033232756074405
 :::
 :::
 :::

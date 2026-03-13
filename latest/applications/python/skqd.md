@@ -2426,7 +2426,7 @@ and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
 
-![cec0f40c62994af384c49dccca51b7ac](../../_images/speedup.png){.no-scaled-link
+![23627125e7fb4561b3bf536a88f296ce](../../_images/speedup.png){.no-scaled-link
 style="width: 600px;"}
 
 ::: {.nbinput .docutils .container}
@@ -2449,7 +2449,7 @@ style="width: 600px;"}
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Using: CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 37053302ceb3d83684186b2a99aac500df7b847e)
+    Using: CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 4509f3fced5e25e14d357e643fb247e09b2075d6)
 :::
 :::
 :::
