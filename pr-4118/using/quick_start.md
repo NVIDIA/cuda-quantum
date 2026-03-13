@@ -183,27 +183,31 @@ pr-4118
     -   [Noisy
         Simulations](../examples/python/noisy_simulations.html){.reference
         .internal}
-    -   [PTSBE End-to-End
-        Workflow](../examples/python/ptsbe_end_to_end_workflow.html){.reference
-        .internal}
-        -   [Set up the
-            environment](../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+    -   [Pre-Trajectory Sampling with Batch
+        Execution](examples/ptsbe.html){.reference .internal}
+        -   [Conceptual
+            Overview](examples/ptsbe.html#conceptual-overview){.reference
             .internal}
-        -   [Define the circuit and noise
-            model](../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+        -   [When to Use
+            PTSBE](examples/ptsbe.html#when-to-use-ptsbe){.reference
             .internal}
-            -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+        -   [Quick Start](examples/ptsbe.html#quick-start){.reference
+            .internal}
+        -   [Usage
+            Tutorial](examples/ptsbe.html#usage-tutorial){.reference
+            .internal}
+            -   [Controlling the Number of
+                Trajectories](examples/ptsbe.html#controlling-the-number-of-trajectories){.reference
                 .internal}
-        -   [Run PTSBE
-            sampling](../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
-            .internal}
-            -   [Larger circuit for execution
-                data](../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+            -   [Choosing a Trajectory Sampling
+                Strategy](examples/ptsbe.html#choosing-a-trajectory-sampling-strategy){.reference
                 .internal}
-        -   [Inspecting trajectories with execution
-            data](../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
-            .internal}
+            -   [Shot Allocation
+                Strategies](examples/ptsbe.html#shot-allocation-strategies){.reference
+                .internal}
+            -   [Inspecting Execution
+                Data](examples/ptsbe.html#inspecting-execution-data){.reference
+                .internal}
     -   [Constructing Operators](examples/operators.html){.reference
         .internal}
         -   [Constructing Spin
@@ -1012,6 +1016,27 @@ pr-4118
         -   [6. References and further
             reading](../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
+    -   [PTSBE end-to-end
+        workflow](../applications/python/ptsbe_end_to_end_workflow.html){.reference
+        .internal}
+        -   [Set up the
+            environment](../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            .internal}
+        -   [Define the circuit and noise
+            model](../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            .internal}
+            -   [Inline noise with [`apply_noise`{.docutils .literal
+                .notranslate}]{.pre}](../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .internal}
+        -   [Run PTSBE
+            sampling](../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            .internal}
+            -   [Larger circuit for execution
+                data](../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                .internal}
+        -   [Inspecting trajectories with execution
+            data](../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
 -   [Backends](backends/backends.html){.reference .internal}
     -   [Circuit Simulation](backends/simulators.html){.reference
         .internal}
@@ -1453,6 +1478,28 @@ pr-4118
             .internal}
         -   [Namespaces](../api/languages/cpp_api.html#namespaces){.reference
             .internal}
+        -   [PTSBE](../api/languages/cpp_api.html#ptsbe){.reference
+            .internal}
+            -   [Sampling
+                Functions](../api/languages/cpp_api.html#sampling-functions){.reference
+                .internal}
+            -   [Options](../api/languages/cpp_api.html#options){.reference
+                .internal}
+            -   [Result
+                Type](../api/languages/cpp_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../api/languages/cpp_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../api/languages/cpp_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../api/languages/cpp_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../api/languages/cpp_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Python API](../api/languages/python_api.html){.reference
         .internal}
         -   [Program
@@ -1709,6 +1756,27 @@ pr-4118
             -   [[`sample()`{.docutils .literal
                 .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
+        -   [PTSBE
+            Submodule](../api/languages/python_api.html#ptsbe-submodule){.reference
+            .internal}
+            -   [Sampling
+                Functions](../api/languages/python_api.html#sampling-functions){.reference
+                .internal}
+            -   [Result
+                Type](../api/languages/python_api.html#result-type){.reference
+                .internal}
+            -   [Trajectory Sampling
+                Strategies](../api/languages/python_api.html#trajectory-sampling-strategies){.reference
+                .internal}
+            -   [Shot Allocation
+                Strategy](../api/languages/python_api.html#shot-allocation-strategy){.reference
+                .internal}
+            -   [Execution
+                Data](../api/languages/python_api.html#execution-data){.reference
+                .internal}
+            -   [Trajectory and Selection
+                Types](../api/languages/python_api.html#trajectory-and-selection-types){.reference
+                .internal}
     -   [Quantum Operations](../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
@@ -1860,16 +1928,13 @@ PyPI. If you have an NVIDIA GPU, make sure to also follow the
 instructions for enabling GPU-acceleration.
 
 CUDA-Q does not require a GPU to use, but some components are
-GPU-accelerated.
-
-Getting started with CUDA-Q simply requires [`pip`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
+GPU-accelerated. Getting started with CUDA-Q requires [`pip`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`install`{.docutils .literal
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre}. Please
 make sure your [`pip`{.docutils .literal .notranslate}]{.pre} version is
-\>= 24.0. If you have an NVIDIA GPU on your host system, you will be
-able to use it without any further installation steps.
+\>= 24.0.
 
 > <div>
 >
@@ -1882,6 +1947,13 @@ able to use it without any further installation steps.
 > distributions may conflict with each other causing issues.
 >
 > </div>
+
+Platform-specific instructions: [Linux](#linux-gpu) \| [macOS](#macos)
+
+[]{#linux-gpu} **Linux: GPU-Acceleration and Multi-GPU**
+
+If you have an NVIDIA GPU on your host system, you will be able to use
+it without any further installation steps.
 
 If you want to perform multi-GPU simulations, additional components must
 be installed. We recommend using
@@ -1936,6 +2008,19 @@ adding them to [`~/.profile`{.docutils .literal .notranslate}]{.pre}
 [`~/.bash_profile`{.docutils .literal .notranslate}]{.pre} or
 [`~/.bash_login`{.docutils .literal .notranslate}]{.pre} if such a file
 exists.
+
+[]{#macos} **macOS**
+
+GPU-acceleration is not available on macOS, so a virtual environment is
+all you need:
+
+::: {.highlight-console .notranslate}
+::: highlight
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install cudaq
+:::
+:::
 :::
 :::
 
@@ -2125,6 +2210,17 @@ following command:
 :::
 
 If you have an NVIDIA GPU the program uses GPU acceleration by default.
+
+::: {.admonition .note}
+Note
+
+GPU-accelerated targets ([`nvidia`{.docutils .literal
+.notranslate}]{.pre}, [`nvidia-fp64`{.docutils .literal
+.notranslate}]{.pre}, etc.) are available on Linux only. macOS users can
+skip this section and proceed to
+[[Basics]{.doc}](basics/basics.html){.reference .internal}.
+:::
+
 To confirm that this works as expected and to see the effects of GPU
 acceleration, you can increase the numbers of qubits the program uses to
 28 and compare the time to execute the program on the [`nvidia`{.code

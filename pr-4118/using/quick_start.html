@@ -206,17 +206,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/operators.html">   Constructing Operators</a><ul>
@@ -621,6 +621,19 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="backends/backends.html">   Backends</a><ul>
@@ -885,6 +898,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/languages/python_api.html">Python API</a><ul>
@@ -990,6 +1013,15 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/default_ops.html">Quantum Operations</a><ul>
@@ -1082,10 +1114,8 @@ On Windows, you can use <a class="reference external" href="https://learn.micros
 <p>To develop CUDA-Q applications using Python,
 please follow the instructions for <a class="reference external" href="https://pypi.org/project/cudaq/">installing CUDA-Q</a> from PyPI.
 If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.</p>
-<p>CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.</p>
-<p>Getting started with CUDA-Q simply requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>. Please make sure your <code class="docutils literal notranslate"><span class="pre">pip</span></code> version is &gt;= 24.0.
-If you have an NVIDIA GPU on your host system, you will be
-able to use it without any further installation steps.</p>
+<p>CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
+Getting started with CUDA-Q requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>. Please make sure your <code class="docutils literal notranslate"><span class="pre">pip</span></code> version is &gt;= 24.0.</p>
 <blockquote>
 <div><p><strong>Important:</strong>
 Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
@@ -1093,6 +1123,11 @@ Please check if you have an existing installation of the <code class="docutils l
 installation. Different CUDA-Q binary distributions may conflict with each
 other causing issues.</p>
 </div></blockquote>
+<p>Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a></p>
+<p><a id="linux-gpu"></a>
+<strong>Linux: GPU-Acceleration and Multi-GPU</strong></p>
+<p>If you have an NVIDIA GPU on your host system, you will be
+able to use it without any further installation steps.</p>
 <p>If you want to perform multi-GPU simulations, additional components must be
 installed. We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do
 so. If you are not already using Conda, you can install a minimal version
@@ -1123,6 +1158,15 @@ environment, like the commands above do for <code class="docutils literal notran
 to set them every time you launch a new shell, we recommend adding them to
 <code class="docutils literal notranslate"><span class="pre">~/.profile</span></code> (create the file if it does not exist), and to <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> or
 <code class="docutils literal notranslate"><span class="pre">~/.bash_login</span></code> if such a file exists.</p>
+<p><a id="macos"></a>
+<strong>macOS</strong></p>
+<p>GPU-acceleration is not available on macOS, so a virtual environment
+is all you need:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m venv .venv</span>
+<span class="go">source .venv/bin/activate</span>
+<span class="go">pip install cudaq</span>
+</pre></div>
+</div>
 </div>
 </div>
 <div class="admonition note">
@@ -1231,8 +1275,13 @@ should be observed around 500 times each.</p>
 </div>
 </div>
 </div>
-<p>If you have an NVIDIA GPU the program uses GPU acceleration by default.
-To confirm that this works as expected and to see the effects of GPU acceleration, you can
+<p>If you have an NVIDIA GPU the program uses GPU acceleration by default.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>GPU-accelerated targets (<code class="docutils literal notranslate"><span class="pre">nvidia</span></code>, <code class="docutils literal notranslate"><span class="pre">nvidia-fp64</span></code>, etc.) are available on
+Linux only. macOS users can skip this section and proceed to <a class="reference internal" href="basics/basics.html"><span class="doc">Basics</span></a>.</p>
+</div>
+<p>To confirm that this works as expected and to see the effects of GPU acceleration, you can
 increase the numbers of qubits the program uses to 28 and
 compare the time to execute the program on the
 <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target (<a class="reference internal" href="backends/sims/svsims.html#cuquantum-single-gpu"><span class="std std-ref">GPU-accelerated statevector simulator</span></a>) to the time when setting the target to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> (<a class="reference internal" href="backends/sims/svsims.html#openmp-cpu-only"><span class="std std-ref">OpenMP parallelized CPU-only statevector simulator</span></a>):</p>
