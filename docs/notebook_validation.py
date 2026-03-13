@@ -54,6 +54,15 @@ GPU_REQUIRED_NOTEBOOKS = [
     'quantum_pagerank.ipynb',  # Requires dynamics target
 ]
 
+# Notebooks for which we set a longer timeout.
+LONG_RUNNING_NOTEBOOKS = [
+    "hybrid_quantum_neural_networks.ipynb",
+    "unitary_compilation_diffusion_models.ipynb",
+    "qm_mm_pe.ipynb",
+    "qsci.ipynb",
+    "vqe_advanced.ipynb",
+]
+
 
 def validate(notebook_filename, available_backends):
     """
@@ -98,11 +107,16 @@ def validate(notebook_filename, available_backends):
     return any(target in available_backends for target in targets_found)
 
 
-def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=900):
+def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=None):
     """Execute a notebook with timeout."""
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     notebook_basename = os.path.basename(notebook_filename)
+    if not timeout_seconds:
+        timeout_seconds = 300
+        if notebook_basename in LONG_RUNNING_NOTEBOOKS:
+            timeout_seconds = 1500
+
     try:
         start_time = time.perf_counter()
         cmd = [
