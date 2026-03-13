@@ -26,5 +26,10 @@ target-arguments:
   - key: machine
     required: false
     type: string
-    platform-arg: qpu 
+    platform-arg: qpu
     help-string: "Specify the qBraid QPU."
+  - key: api_key
+    required: false
+    type: string
+    platform-arg: api_key
+    help-string: "Specify the qBraid API key."

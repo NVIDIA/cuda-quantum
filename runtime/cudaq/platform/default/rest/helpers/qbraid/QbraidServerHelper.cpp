@@ -20,11 +20,24 @@ public:
 
     backendConfig.clear();
     backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
-    backendConfig["device_id"] = getValueOrDefault(config, "device_id", DEFAULT_DEVICE);
     backendConfig["user_agent"] = "cudaq/" + std::string(cudaq::getVersion());
     backendConfig["qubits"] = std::to_string(DEFAULT_QUBITS);
 
-    backendConfig["api_key"] = getEnvVar("QBRAID_API_KEY", "", true);
+    // Accept "machine" as a user-friendly alias for device_id
+    // Usage: cudaq.set_target("qbraid", machine="ionq:ionq:sim:simulator")
+    if (!config["machine"].empty()) {
+      backendConfig["device_id"] = config["machine"];
+    } else {
+      backendConfig["device_id"] = getValueOrDefault(config, "device_id", DEFAULT_DEVICE);
+    }
+
+    // Accept api_key from target arguments, fall back to QBRAID_API_KEY env var
+    // Usage: cudaq.set_target("qbraid", api_key="my-key")
+    if (!config["api_key"].empty()) {
+      backendConfig["api_key"] = config["api_key"];
+    } else {
+      backendConfig["api_key"] = getEnvVar("QBRAID_API_KEY", "", true);
+    }
     backendConfig["job_path"] = backendConfig["url"] + "/jobs";
 
     backendConfig["results_output_dir"] = getValueOrDefault(config, "results_output_dir", "./qbraid_results");
