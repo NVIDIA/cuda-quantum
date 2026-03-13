@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -factor-quantum-alloc -cable-rough-in -canonicalize -memtoreg %s | FileCheck %s
+// RUN: cudaq-opt -factor-quantum-alloc -cable-rough-in -memtoreg %s | FileCheck %s
 
 func.func private @callee(!quake.veq<?>, f32)
 
