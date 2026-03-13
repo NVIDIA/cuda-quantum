@@ -196,9 +196,8 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     - cc-loop-unroll
   }];
 
-  let dependentDialects = ["mlir::arith::ArithDialect",
-                           "mlir::cf::ControlFlowDialect",
-                           "cudaq::cc::CCDialect"];
+  let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::cc::CCDialect",
+    "mlir::cf::ControlFlowDialect"];
 
   let options = [
     Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
