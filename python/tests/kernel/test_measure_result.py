@@ -21,19 +21,53 @@ def do_something():
 def test_return_measure_result():
 
     @cudaq.kernel
+    def device(q: cudaq.qubit) -> cudaq.measure_result:
+        x(q)
+        return mz(q)
+
+    @cudaq.kernel
+    def entry_point() -> bool:
+        q = cudaq.qubit()
+        r = device(q)
+        return r
+
+    results = cudaq.run(entry_point, shots_count=10)
+    assert len(results) == 10
+    for r in results:
+        assert r == True
+
+
+def test_return_measure_result_list():
+
+    @cudaq.kernel
+    def kernel(q: cudaq.qview) -> list[cudaq.measure_result]:
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        return mz(q)
+
+    @cudaq.kernel
+    def entry_point() -> int:
+        q = cudaq.qvector(2)
+        r = kernel(q)
+        return int(r[0]) + int(r[1])
+
+    results = cudaq.run(entry_point, shots_count=10)
+    assert len(results) == 10
+    for r in results:
+        assert r in [0, 2]
+
+
+def test_direct_invocation():
+
+    @cudaq.kernel
     def kernel() -> cudaq.measure_result:
         q = cudaq.qubit()
         x(q)
         return mz(q)
 
-    results = cudaq.run(kernel, shots_count=10)
-    assert len(results) == 10
-    for r in results:
-        assert isinstance(r, cudaq.measure_result)
-        assert bool(r) == True
-
-
-def test_return_measure_result_list():
+    with pytest.raises(RuntimeError) as e:
+        kernel()
+    assert "cannot be invoked directly" in str(e.value)
 
     @cudaq.kernel
     def kernel() -> list[cudaq.measure_result]:
@@ -42,15 +76,22 @@ def test_return_measure_result_list():
         x.ctrl(q[0], q[1])
         return mz(q)
 
-    results = cudaq.run(kernel, shots_count=10)
-    assert len(results) == 10
-    for r in results:
-        assert isinstance(r, list)
-        assert len(r) == 2
-        assert r[0] == r[1]
+    with pytest.raises(RuntimeError) as e:
+        kernel()
+    assert "cannot be invoked directly" in str(e.value)
 
 
-def test_return_measure_result_tuple():
+def test_unsupported_return_types():
+
+    @cudaq.kernel
+    def kernel() -> cudaq.measure_result:
+        q = cudaq.qubit()
+        x(q)
+        return mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=10)
+    assert "unsupported return type from entry-point kernel" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 

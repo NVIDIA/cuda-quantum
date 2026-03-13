@@ -955,6 +955,17 @@ cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
   return args;
 }
 
+static bool containsMeasureResult(Type ty) {
+  if (isa<quake::MeasureType>(ty))
+    return true;
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+    if (isa<quake::MeasureType>(vecTy.getElementType()))
+      return true;
+  if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty))
+    return structTy.getName() == "measure_result";
+  return false;
+}
+
 py::object cudaq::marshal_and_launch_module(const std::string &name,
                                             MlirModule module,
                                             py::args runtimeArgs) {
@@ -962,6 +973,10 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
+  if (retTy && containsMeasureResult(retTy))
+    throw std::runtime_error(
+        "Kernels returning `measure_result` cannot be invoked directly. "
+        "Use them as device-only kernels called from other kernels.");
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
   // FIXME: handle dynamic sized results!
