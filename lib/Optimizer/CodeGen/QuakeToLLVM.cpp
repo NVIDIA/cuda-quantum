@@ -284,13 +284,8 @@ public:
   LogicalResult
   matchAndRewrite(quake::DiscriminateOp discr, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto loc = discr.getLoc();
-    Value resultPtr = adaptor.getMeasurement();
-    auto i1Ty = rewriter.getI1Type();
-    auto readResultFn = cudaq::opt::qir0_1::ReadResultBody;
-    auto call =
-        rewriter.create<LLVM::CallOp>(loc, i1Ty, readResultFn, resultPtr);
-    rewriter.replaceOp(discr, call.getResult());
+    auto m = discr.getMeasurement();
+    rewriter.replaceOp(discr, m);
     return success();
   }
 };

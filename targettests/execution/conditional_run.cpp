@@ -52,10 +52,7 @@ int main() {
   auto results = cudaq::run(/*shots*/ nShots, kernel{});
 
   // Count the number of times we measured "1"
-  /// FIXME: `std::ranges` doesn't work here
-  std::size_t nOnes = std::count_if(results.begin(), results.end(), [](auto r) {
-    return static_cast<bool>(r);
-  });
+  std::size_t nOnes = std::ranges::count(results, true);
 
 #ifndef SYNTAX_CHECK
   // Will fail if not equal to number of shots

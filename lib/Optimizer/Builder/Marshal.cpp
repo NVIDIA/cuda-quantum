@@ -764,7 +764,7 @@ bool cudaq::opt::marshal::hasLegalType(FunctionType funTy) {
     if (quake::isQuantumType(ty))
       return false;
   for (auto ty : funTy.getResults())
-    if (quake::isQuantumType(ty) || isa<quake::MeasureType>(ty))
+    if (quake::isQuantumType(ty))
       return false;
   return true;
 }
@@ -788,9 +788,6 @@ std::pair<bool, func::FuncOp> cudaq::opt::marshal::lookupHostEntryPointFunc(
       mangledEntryPointName.contains("_PyKernelEntryPointRewrite") ||
       funcOp.empty()) {
     // No host entry point needed.
-    return {false, func::FuncOp{}};
-  }
-  if (!funcOp->hasAttr(cudaq::entryPointAttrName)) {
     return {false, func::FuncOp{}};
   }
   if (auto *decl = module.lookupSymbol(mangledEntryPointName))
