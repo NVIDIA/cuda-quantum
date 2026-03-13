@@ -23,7 +23,7 @@ using namespace mlir;
 // Generated logic
 //===----------------------------------------------------------------------===//
 namespace cudaq::opt {
-#define GEN_PASS_DEF_DECOMPOSITIONPASS
+#define GEN_PASS_DEF_DECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -34,8 +34,8 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct Decomposition
-    : public cudaq::opt::impl::DecompositionPassBase<Decomposition> {
-  using DecompositionPassBase::DecompositionPassBase;
+    : public cudaq::opt::impl::DecompositionBase<Decomposition> {
+  using DecompositionBase::DecompositionBase;
 
   /// Initialize the decomposer by building the set of patterns used during
   /// execution.
@@ -45,8 +45,7 @@ struct Decomposition
     if (!basis.empty() && !enabledPatterns.empty()) {
       mlir::emitWarning(
           mlir::UnknownLoc::get(context),
-          "DecompositionPass: basis is ignored when enabledPatterns is "
-          "specified");
+          "Decomposition: basis is ignored when enabledPatterns is specified");
     }
 
     if (!basis.empty() && enabledPatterns.empty()) {

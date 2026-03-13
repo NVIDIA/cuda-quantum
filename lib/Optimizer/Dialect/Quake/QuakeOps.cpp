@@ -416,6 +416,31 @@ void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
 }
 
+LogicalResult quake::ConcatOp::verify() {
+  bool isUnspecified = false;
+  std::size_t size = 0;
+  for (auto tq : getTargets()) {
+    Type ty = tq.getType();
+    if (auto veq = dyn_cast<quake::VeqType>(ty);
+        veq && !veq.hasSpecifiedSize()) {
+      isUnspecified = true;
+      break;
+    }
+    if (auto struq = dyn_cast<quake::StruqType>(ty);
+        struq && !struq.hasSpecifiedSize()) {
+      isUnspecified = true;
+      break;
+    }
+    size += getAllocationSize(ty);
+  }
+  auto resTy = cast<quake::VeqType>(getType());
+  if (isUnspecified && resTy.hasSpecifiedSize())
+    return emitOpError("veq size must be non-constant");
+  if (resTy.hasSpecifiedSize() && resTy.getSize() != size)
+    return emitOpError("veq size must equal size of aggregate operands");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // ExpPauliRef
 //===----------------------------------------------------------------------===//

@@ -24,7 +24,7 @@ using namespace mlir;
 // Generated logic
 //===----------------------------------------------------------------------===//
 namespace cudaq::opt {
-#define GEN_PASS_DEF_BASISCONVERSIONPASS
+#define GEN_PASS_DEF_BASISCONVERSION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -35,8 +35,8 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct BasisConversion
-    : public cudaq::opt::impl::BasisConversionPassBase<BasisConversion> {
-  using BasisConversionPassBase::BasisConversionPassBase;
+    : public cudaq::opt::impl::BasisConversionBase<BasisConversion> {
+  using BasisConversionBase::BasisConversionBase;
 
   void runOnOperation() override {
     auto module = getOperation();
