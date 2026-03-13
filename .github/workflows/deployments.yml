@@ -35,6 +35,11 @@ on:
         description: Build and include macOS wheels and installer.
         required: false
         default: true
+      run_publishing_after:
+        type: boolean
+        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        required: false
+        default: false
   workflow_run:
     workflows:
       - PR merged
@@ -161,6 +166,17 @@ jobs:
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
+
+      - name: Upload publishing flag
+        if: github.event_name == 'workflow_dispatch'
+        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
+      - name: Upload publishing_requested artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: publishing_requested
+          path: publishing_requested.txt
+          retention-days: 1
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -825,3 +841,26 @@ jobs:
     with:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
       cudaq_version: ${{ inputs.create_release }}
+
+  trigger_publishing:
+    name: Trigger Publishing
+    needs: [summary, python_wheels, binaries]
+    if: inputs.run_publishing_after
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger Publishing workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publishing.yml',
+              ref: context.ref.replace('refs/heads/', ''),
+              inputs: {
+                deployment_id: context.runId.toString(),
+              },
+            });

@@ -39,9 +39,39 @@ on:
 name: Publishing
 
 jobs:
+  check_publishing_requested:
+    name: Check if publishing was requested
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      run_publishing: ${{ steps.check.outputs.run_publishing }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_run" ]; then
+            echo "run_publishing=true" >> $GITHUB_OUTPUT
+          else
+            artifacts_url='${{ github.event.workflow_run.artifacts_url }}'
+            artifact_url=$(gh api "$artifacts_url" --paginate -q '.artifacts[] | select(.name=="publishing_requested") | .archive_download_url' | head -1)
+            if [ -n "$artifact_url" ]; then
+              gh api "$artifact_url" -o publishing_requested.zip
+              unzip -o publishing_requested.zip
+              content=$(cat publishing_requested.txt 2>/dev/null | tr -d '\n' || echo "true")
+            else
+              content="true"
+            fi
+            echo "run_publishing=$content" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   assets:
     name: Assets
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    needs: [check_publishing_requested]
+    if: >-
+      (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success'
+      && needs.check_publishing_requested.outputs.run_publishing == 'true'))
     runs-on: ubuntu-latest
     permissions:
       actions: read
