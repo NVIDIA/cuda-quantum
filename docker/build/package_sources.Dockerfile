@@ -80,12 +80,13 @@ RUN mkdir -p "${SOURCES_ROOT}/NOTICES" \
 
 ENV SCRIPTS_DIR=${SOURCES_ROOT}/.scripts
 
-# Copy .gitmodules, tpls lock file, clone script, package lists, and pip sdist fetcher
+# Copy .gitmodules, tpls lock file, clone script, package lists, pip sdist fetcher, and prereq sources
 COPY .gitmodules "${SCRIPTS_DIR}"/.gitmodules
 COPY tpls_commits.lock "${SCRIPTS_DIR}"/tpls_commits.lock
 COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
 COPY package-source-diff/apt_packages_cudaq.txt package-source-diff/apt_packages_cudaqx.txt package-source-diff/apt_packages_cudaqx_trimmed.txt "${SCRIPTS_DIR}"/
 COPY package-source-diff/pip_packages_cudaq.txt package-source-diff/pip_packages_cudaqx.txt package-source-diff/pip_packages_cudaqx_trimmed.txt package-source-diff/pip_packages_macos.txt package-source-diff/pip_packages_macos_trimmed.txt "${SCRIPTS_DIR}"/
+COPY prereqs/ "${SOURCES_ROOT}/prereqs/"
 
 # Copy attribution into NOTICES folder (NOTICE_PIP_* and NOTICE_APT_* generated per variant with CUDA version, e.g. NOTICE_PIP_cudaq_cu12)
 COPY NOTICE LICENSE "${SOURCES_ROOT}/NOTICES/"
