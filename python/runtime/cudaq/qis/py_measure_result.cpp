@@ -17,26 +17,25 @@ namespace cudaq {
 
 void bindMeasureResult(py::module &mod) {
   py::class_<measure_result>(mod, "measure_result",
-                             R"#(A quantum measurement result.
+                             R"#(A quantum measurement value.
 This type represents the outcome of a quantum measurement operation.
 It carries the measurement value and an optional unique identifier
 for backend-specific metadata correlation.)#")
       .def(py::init<>())
-      .def(py::init<int>(), py::arg("result"))
-      .def(py::init<int, int>(), py::arg("result"), py::arg("unique_id"))
-      .def_property_readonly("result", &measure_result::getResult,
-                             "The integer measurement result (0 or 1).")
-      .def_property_readonly("unique_id", &measure_result::getUniqueId,
-                             "The unique identifier for this measurement "
-                             "result (INT_MAX if unassigned).")
+      .def(py::init<int>(), py::arg("value"))
+      .def(py::init<int, int>(), py::arg("value"), py::arg("unique_id"))
+      .def_readonly("value", &measure_result::value,
+                    "The integer measurement value (0 or 1).")
+      .def_readonly("unique_id", &measure_result::unique_id,
+                    "The unique identifier for this measurement "
+                    "value (INT_MAX if unassigned).")
       .def("__bool__",
            [](const measure_result &self) { return static_cast<bool>(self); })
-      .def("__int__",
-           [](const measure_result &self) { return self.getResult(); })
+      .def("__int__", [](const measure_result &self) { return self.value; })
       .def("__eq__",
            [](const measure_result &self, const measure_result &other) {
-             return (self.getResult() == other.getResult()) &&
-                    (self.getUniqueId() == other.getUniqueId());
+             return (self.value == other.value) &&
+                    (self.unique_id == other.unique_id);
            })
       .def("__eq__",
            [](const measure_result &self, bool other) {
@@ -44,8 +43,8 @@ for backend-specific metadata correlation.)#")
            })
       .def("__ne__",
            [](const measure_result &self, const measure_result &other) {
-             return (self.getResult() != other.getResult()) ||
-                    (self.getUniqueId() != other.getUniqueId());
+             return (self.value != other.value) ||
+                    (self.unique_id != other.unique_id);
            })
       .def("__ne__",
            [](const measure_result &self, bool other) {
@@ -53,8 +52,8 @@ for backend-specific metadata correlation.)#")
            })
       .def("__repr__", [](const measure_result &self) {
         std::ostringstream os;
-        os << "measure_result(value=" << self.getResult()
-           << ", id=" << self.getUniqueId() << ")";
+        os << "measure_result(value=" << self.value << ", id=" << self.unique_id
+           << ")";
         return os.str();
       });
 }
