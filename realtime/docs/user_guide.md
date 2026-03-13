@@ -149,6 +149,10 @@ bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gp
 
     For example, `--net host --gpus all` should be used to launch the container.
 
+    > **_NOTE:_** Depending on the host system configurations, the `--privileged`
+    flag may also be required so that the container can access the `IB` devices
+    of the host.
+
 2. Install CUDA runtime.
 
 3. Install [`DOCA`](https://developer.nvidia.com/doca-downloads)
@@ -184,3 +188,23 @@ i.e., the elapsed time from the timestamp in the header to the `ILA` receive tim
 
 Please refer to `hololink_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
 for a sample of data generation tools.
+
+## Troubleshooting
+
+<!-- markdownlint-disable MD013 -->
+
+### Error "`error while loading shared libraries: libcudaq-realtime-bridge-hololink.so cannot open shared object file: No such file or directory`"
+
+This can be resolved by following the post-installation step in the [setup](#setup) section to set the `LD_LIBRARY_PATH`.
+
+### Error "`error while loading shared libraries: libdoca_gpunetio.so.2: cannot open shared object file: No such file or directory`"
+
+This can be resolved by installing the `doca-sdk-gpunetio` package.
+
+### Error "`Cannot find GID for RoCE v2`"
+
+Please make sure the `IB` device name (`--device`) is correct, i.e., the one connected to the `HSB` FPGA.
+
+### Error "`Failed to get remote MAC.`"
+
+Please make sure the IP address of the `HSB` FPGA (`--fpga-ip`) is correct. For example, we can do a quick `ping` test to check the connectivity.
