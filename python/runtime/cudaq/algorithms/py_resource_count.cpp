@@ -17,9 +17,10 @@ namespace py = pybind11;
 
 using namespace cudaq;
 
-static Resources estimate_resources_impl(
-    const std::string &kernelName, MlirModule kernelMod, MlirType returnTy,
-    std::optional<std::function<bool()>> choice, py::args args) {
+static Resources
+estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
+                        std::optional<std::function<bool()>> choice,
+                        py::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -44,8 +45,8 @@ static Resources estimate_resources_impl(
 
   try {
     platform.with_execution_context(ctx, [&]() {
-      [[maybe_unused]] auto result = cudaq::marshal_and_launch_module(
-          kernelName, kernelMod, returnTy, args);
+      [[maybe_unused]] auto result =
+          cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
     });
   } catch (...) {
     python::detail::stopUsingResourceCounterSimulator();

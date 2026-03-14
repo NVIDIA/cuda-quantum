@@ -33,6 +33,10 @@ struct PTSBEOptions {
   /// needed.
   bool return_execution_data = false;
 
+  /// Populate per-shot sequential bitstring data on the result. When false
+  /// (default), only aggregated counts are produced.
+  bool include_sequential_data = false;
+
   /// Maximum number of unique trajectories to generate. When `nullopt`,
   /// defaults to the number of shots.
   std::optional<std::size_t> max_trajectories = std::nullopt;

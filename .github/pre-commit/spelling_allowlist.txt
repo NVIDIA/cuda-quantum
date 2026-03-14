@@ -90,6 +90,7 @@ OpenSUSE
 Ou
 POSIX
 PSIRT
+PTSBE
 Pasqal
 Pauli
 Paulis
@@ -108,6 +109,7 @@ QPP
 QPU
 QPUs
 QPU’s
+QRMI
 QTX
 QX
 QaaS

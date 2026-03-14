@@ -157,6 +157,8 @@ public:
 
   bool allowJitEngineCaching = false;
 
+  bool useParametricJit = false;
+
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
@@ -223,5 +225,9 @@ bool isPersistingJITEngine();
 void checkArtifactReuse(const std::string kernelName,
                         const std::vector<void *> &args, const JitEngine jit,
                         std::function<void *()> argsCreatorThunk);
+
+void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
+                  const JitEngine jit,
+                  std::function<void *()> argsCreatorThunk);
 }; // namespace compiler_artifact
 } // namespace cudaq

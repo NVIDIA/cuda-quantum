@@ -304,6 +304,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
+  if (numQubits > 10)
+    throw std::runtime_error(
+        "State vector initialization with more than 10 qubits is not "
+        "supported. Requested " +
+        std::to_string(numQubits) + " qubits.");
   if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
     auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
         numQubits, data, cudaq::simulation_precision::fp64);
@@ -364,6 +369,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
+  if (numQubits > 10)
+    throw std::runtime_error(
+        "State vector initialization with more than 10 qubits is not "
+        "supported. Requested " +
+        std::to_string(numQubits) + " qubits.");
   if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
     auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
         numQubits, data, cudaq::simulation_precision::fp32);
