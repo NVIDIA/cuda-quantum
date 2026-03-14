@@ -2114,10 +2114,6 @@ In order to access Pasqal's devices you need to sign up for an account
 on [Pasqal's cloud platform](https://portal.pasqal.cloud){.reference
 .external}. For support you can also join the [Pasqal
 Community](https://community.pasqal.com/){.reference .external}.
-[Pasqal's Pulser
-library](https://pulser.readthedocs.io/en/latest/){.reference .external}
-is also a good resource for getting started with analog neutral atom
-quantum computing.
 
 ::: {#pasqal-backend .section}
 []{#id1}

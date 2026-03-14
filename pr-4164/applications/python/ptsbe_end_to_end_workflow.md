@@ -2328,8 +2328,8 @@ Note: this is an experimental API and may change in future releases.
 ::: {.output_area .docutils .container}
 ::: highlight
     Trajectories: 147, Total shots: 1,000,000
-    [2026-03-13 23:47:35.015] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
+    [2026-03-14 17:10:58.871] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
     Top 5 trajectories (highest probability):
       #1: p_theory=0.886385, p_empirical=0.888297, shots=888,297, errors=0, cumulative shots=88.8%
       #2: p_theory=0.002984, p_empirical=0.002378, shots=2,378, errors=1, cumulative shots=89.1%

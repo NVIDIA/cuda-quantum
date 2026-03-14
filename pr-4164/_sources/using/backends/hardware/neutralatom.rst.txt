@@ -145,8 +145,6 @@ portal.
 In order to access Pasqal's devices you need to sign up for an account on
 `Pasqal's cloud platform <https://portal.pasqal.cloud>`__.
 For support you can also join the `Pasqal Community <https://community.pasqal.com/>`__.
-`Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__ is also a good
-resource for getting started with analog neutral atom quantum computing.
 
 .. _pasqal-backend:
 
