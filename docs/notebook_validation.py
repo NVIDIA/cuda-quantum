@@ -193,11 +193,7 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
 
-        ## `quantum_transformer`:
-        ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
-        notebooks_skipped = [
-            'quantum_transformer.ipynb', 'logical_aim_sqale.ipynb'
-        ]
+        notebooks_skipped = []
 
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)
