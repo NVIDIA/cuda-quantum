@@ -31,8 +31,14 @@ namespace {
 
 class QIRVendorDeviceCallPat
     : public OpRewritePattern<cudaq::cc::DeviceCallOp> {
+  bool insertTrapImplementation;
+
 public:
   using OpRewritePattern::OpRewritePattern;
+  static constexpr const char TrapFuncAttr[] = "cudaq-trap-device-call-impl";
+
+  QIRVendorDeviceCallPat(MLIRContext *context, bool insertTrapImpl)
+      : OpRewritePattern(context), insertTrapImplementation(insertTrapImpl) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::DeviceCallOp devcall,
                                 PatternRewriter &rewriter) const override {
@@ -53,21 +59,12 @@ public:
     hash.final(result);
     std::uint32_t callbackCode = result.low();
 
-    if (devFunc->getAttr(cudaq::autoDeviceCallAttrName) &&
-        devFunc.isDeclaration()) {
-      // This is an auto-generated device call, e.g., arbitrary functions
-      // provided by remote hardware providers
-      // In the JIT pipeline, the device call name will be sent on to the
-      // provider, which will resolve it to the actual function to call on the
-      // service side.
-
-      // This pass, which may be executed as part of the AOT pipeline, will
-      // convert this to a runtime trap (unreachable) since we don't expect to
-      // run this locally. This allows us to fully lower the code to LLVM IR as
-      // we don't have the actual device function definition available.
-      // Note: the generated code should never be executed unless there is a bug
-      // in the kernel launch.
-
+    if (insertTrapImplementation && devFunc.isDeclaration()) {
+      // For 'declared' device functions that are not defined in the module, we
+      // add a weak implementation (a trap) for them. If this is not provided
+      // (via linking with a library that defines the device function), we will
+      // get an error.
+      devFunc->setAttr(TrapFuncAttr, rewriter.getUnitAttr());
       // (1) Create a trap function that has the same signature as the device
       // function.
       auto insPt = rewriter.saveInsertionPoint();
@@ -105,7 +102,8 @@ public:
       rewriter.restoreInsertionPoint(insPt);
 
       // (2) Replace the device call with a call to the trap function.
-      rewriter.replaceOpWithNewOp<func::CallOp>(
+      // Prevent inlining of the trap function.
+      rewriter.replaceOpWithNewOp<cudaq::cc::NoInlineCallOp>(
           devcall, trapFunc.getFunctionType().getResults(),
           trapFunc.getSymNameAttr(), devcall.getArgs());
       return success();
@@ -167,7 +165,8 @@ public:
 
   LogicalResult matchAndRewrite(func::FuncOp func,
                                 PatternRewriter &rewriter) const override {
-    if (func->getAttr(cudaq::autoDeviceCallAttrName) && func.isDeclaration()) {
+    if (func.isDeclaration() &&
+        func->hasAttr(QIRVendorDeviceCallPat::TrapFuncAttr)) {
       rewriter.eraseOp(func);
       return success();
     }
@@ -201,8 +200,9 @@ public:
     }
 
     patterns.add<ResolveDevicePtrOpPat>(ctx);
-    patterns.insert<QIRVendorDeviceCallPat>(ctx);
-    patterns.add<RemoveAutoGenDeviceCallDecl>(ctx);
+    patterns.insert<QIRVendorDeviceCallPat>(ctx, insertTrapImplementation);
+    if (insertTrapImplementation)
+      patterns.add<RemoveAutoGenDeviceCallDecl>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     return;

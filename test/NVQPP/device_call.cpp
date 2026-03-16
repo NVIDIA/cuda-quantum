@@ -6,27 +6,33 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// We should have compile error if the callback name overload is used on target
-// that don't support device calls with callback names.
+// This file check AOT device call lowering for device functions that only have
+// declarations (i.e., no definitions) in the module. For remote hardware
+// providers, this is supported as the implementation is provided by the
+// provider.
+// For local execution targets, this is not supported as we have no way to
+// resolve the device call for simulation or emulation.
+// These should fail to compile because the device call cannot be resolved for
+// local execution targets.
 // clang-format off
-// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_CHECK
-// RUN: nvq++ --target quantinuum %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_CHECK
+// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR
+// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR
 // clang-format on
 
-// Note: the below test, we mimic the AOT pipeline of a quantum device target
-// that supports callback names, where the unresolved device call is replaced
-// with a trap. However, since we don't have the actual device implementation
-// (with a JIT pipeline) in place yet, we just check for the expected error
-// message at runtime when the trap is executed.
+// This should compile successfully because the trap implementation will be
+// inserted for unresolved device calls.
 
-// clang-format off
-// RUN: nvq++ -DCUDAQ_QUANTUM_DEVICE -DCUDAQ_DEVICE_CALL_WITH_CALLBACK_NAME_SUPPORTED %s -o %t && %t 2>&1 | FileCheck %s --check-prefix=RUNTIME_CHECK
-// clang-format on
+// RUN: nvq++ --target quantinuum %s -o %t
 
 #include "cudaq.h"
 
+extern "C" {
+// Device call declaration
+int add_op(int a, int b);
+}
+
 __qpu__ int kernel(int a, int b) {
-  int result = cudaq::device_call<int>(/*device_id*/ 0, "add_op", a, b);
+  int result = cudaq::device_call(/*device_id*/ 0, add_op, a, b);
   return result;
 }
 
@@ -37,6 +43,4 @@ int main() {
   return 0;
 }
 
-// COMPILE_CHECK: device_call with callback name not supported in this target
-
-// RUNTIME_CHECK: illegal execution of unreachable code
+// COMPILE_ERROR: undefined reference to `add_op'
