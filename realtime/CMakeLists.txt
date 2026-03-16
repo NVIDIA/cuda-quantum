@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -123,3 +123,5 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
   add_subdirectory(unittests)
 endif()
 
+# Install the LICENSE and NOTICE files
+install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})

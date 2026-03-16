@@ -64,6 +64,10 @@ Please refer to this [section](#using-docker) for instructions.
     The bit-file for supported FPGA vendors
     can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/).
 
+    > **_NOTE:_** Please make sure set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
+    and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration)
+    (if not already done so).
+
 3. Run the validation script
 
     The validation script is located at `/opt/nvidia/cudaq/realtime/validate.sh`.
@@ -80,6 +84,10 @@ Please refer to this [section](#using-docker) for instructions.
     > - `--fpga-ip` is the IP address of the `HSB` FPGA.
     > - `--bridge-ip` is the IP address of the NIC on the host machine.
     > - `--page-size` is the ring buffer slot size in bytes.
+    > - `--unified` is the flag to enable the unified dispatch mode.
+    The other option is `--forward`, which skips the RPC callback.
+    Without either of these flags, we will run the test in
+    the three-kernel mode with the RPC handler.
 
     Upon successful completion, the above validation script should
     print out the following:
@@ -111,7 +119,7 @@ Congratulations! You have successfully validated the CUDA-Q Realtime installatio
 > **_NOTE:_** In the above test script, we execute a simple RPC dispatch tests, whereby
 the FPGA sends data (array of bytes) to the GPU; the GPU performs
 a simple increment by one calculation on each of the byte
-in the incoming array and returns the array.
+in the incoming array (unless in the `--forward` mode) and returns the array.
 We validate the data and measure the round-trip latency
 then output the report as shown above.
 
@@ -141,9 +149,62 @@ bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gp
 
     For example, `--net host --gpus all` should be used to launch the container.
 
+    > **_NOTE:_** Depending on the host system configurations, the `--privileged`
+    flag may also be required so that the container can access the `IB` devices
+    of the host.
+
 2. Install CUDA runtime.
 
 3. Install [`DOCA`](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` (`doca-sdk-gpunetio`) support.
 
 4. Download and install CUDA-Q Installer as described in the [setup](#setup) section.
+
+## Using a Custom Networking Implementation
+
+CUDA-Q Realtime allows users to extend the networking layer with
+their own hardware and software components,
+in addition to one based on Holoscan Sensor Bridge.
+
+Please refer to this [guide](cudaq_realtime_network_interface.md)
+for more information about extending the networking interface
+for your custom transport protocol.
+
+### Measuring latency
+
+In other to measure the latency with a custom networking implementation,
+we need to construct a stimulus (data generation) tool to send data
+to CUDA-Q realtime according to the custom networking protocol.
+
+For example, in the `HSB`-based implementation, we use the `ptp_timestamp` field
+in the `RPCHeader`/`RPCResponse` (see the message protocol [documentation](cudaq_realtime_message_protocol.md))
+to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA)
+stores the 'send' timestamp in the `RPCHeader` (incoming message),
+which will be echoed by the GPU in the outgoing `RPCResponse`
+after processing it (e.g., with the RPC handler).
+Using the Integrated Logic Analyzer (`ILA`) timestamp when the FPGA receives
+the response from the GPU, we can compute the round-trip latency,
+i.e., the elapsed time from the timestamp in the header to the `ILA` receive timestamp.
+
+Please refer to `hololink_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
+for a sample of data generation tools.
+
+## Troubleshooting
+
+<!-- markdownlint-disable MD013 -->
+
+### Error "`error while loading shared libraries: libcudaq-realtime-bridge-hololink.so cannot open shared object file: No such file or directory`"
+
+This can be resolved by following the post-installation step in the [setup](#setup) section to set the `LD_LIBRARY_PATH`.
+
+### Error "`error while loading shared libraries: libdoca_gpunetio.so.2: cannot open shared object file: No such file or directory`"
+
+This can be resolved by installing the `doca-sdk-gpunetio` package.
+
+### Error "`Cannot find GID for RoCE v2`"
+
+Please make sure the `IB` device name (`--device`) is correct, i.e., the one connected to the `HSB` FPGA.
+
+### Error "`Failed to get remote MAC.`"
+
+Please make sure the IP address of the `HSB` FPGA (`--fpga-ip`) is correct. For example, we can do a quick `ping` test to check the connectivity.
