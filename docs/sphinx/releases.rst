@@ -14,7 +14,7 @@ and is also available as a Docker image. More information about installing the n
 
 **0.14.0**
 
-This release comes with a range of exiting improvement. 
+This release comes with a range of exciting improvement. 
 
 This release includes the first 0.1.0 version of CUDA-Q Realtime. CUDA-Q Realtime is built to support low-latency high-bandwidth data transfer between FPGAs and GPUs using NVQLink. CUDA-Q Realtime is installed separately via the C++ installer provided in the release assets. For more information about CUDA-Q Realtime, please see our `docs <https://nvidia.github.io/cuda-quantum/0.14.0/using/realtime.html>`__.
 
