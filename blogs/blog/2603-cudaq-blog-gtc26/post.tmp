@@ -1,0 +1,127 @@
+---
+date:
+  created: 2026-03-16
+  updated: 2026-03-16
+readtime: 20
+pin: false
+links:
+  - Homepage: index.md
+  - Blog index: blog/index.md
+  - External links:
+    - CUDA-Q GitHub: https://github.com/NVIDIA/cuda-quantum
+    - CUDA-Q Documentation: https://nvidia.github.io/cuda-quantum/latest/index.html
+    - CUDA-Q Developer Page: https://developer.nvidia.com/cuda-q
+categories:
+  - CUDA-Q
+tags:
+  - CUDA-Q
+  - GTC
+authors:
+  - efrat-shabtai
+  - bettina-heim
+  - nic-harrigan
+slug: cudaq-GTC-26
+---
+
+
+# CUDA-Q Accelerates Quantum Workloads at GTC 2026
+
+Over the past year the quantum computing industry has shifted from qubit demonstrations to the work of building large-scale quantum-classical supercomputers. Central to that transition has been the intersection of quantum computing work with AI supercomputing. At GTC 2026, researchers and developers across the ecosystem are demonstrating how the NVIDIA [CUDA-Q](https://developer.nvidia.com/cuda-q) platform is bringing accelerated computing to the key workloads set to define quantum computing in 2026 and beyond. 
+
+<figure markdown="1">
+![CUDAQ GTC26 Quantum Workloads](../../../images/cudaq-blog-gtc26/cudaq_blog_hero_image.png){ width="800" }
+</figure>
+
+<!-- more -->
+
+---
+
+## Quantum Application Development
+
+Building better quantum algorithms remains a critical workload for shortening the timeline to utility-scale quantum computing. GPU-accelerated simulation is the central tool for exploring and refining these algorithms, and teams around the world are continuing to push applications work to new levels with CUDA-Q's access to GPU-accelerated simulations.
+
+[CINECA](https://www.cineca.it/en) and [Kipu Quantum](https://www.kipu-quantum.com/) have [run what is believed to be the largest-known **statevector simulation** of a quantum optimization routine](https://kipu-quantum.com/knowledge-hub/news/kipu-nvidia-hybrid-optimization-simulation/) — a 43-qubit simulation of a novel **Quantum-Enhanced Memetic Tabu Search (QE-MTS)** algorithm on 2,048 NVIDIA Ampere GPUs. QE-MTS targets **Low Autocorrelation Binary Sequence (LABS)** problems, a challenging class of combinatorial optimization with applications in signal processing and communications.
+
+[Infleqtion](https://www.infleqtion.com/) is [applying CUDA-Q to biomarker discovery through its **Q4Bio** project](http://infleqtion.com/gpu-quantum-biomarker-discovery), using **quantum neural networks** to identify high-impact feature sets from complex cancer data. The team has consumed 24,000 NVIDIA A100 GPU-node-hours on the Perlmutter supercomputer at NERSC to train these networks. Infleqtion uses a hybrid combination of its Sqale QPU and NVIDIA GPUs for inference, and is exploring [NVIDIA NVQLink](https://www.nvidia.com/en-us/solutions/quantum-computing/nvqlink/) to scale execution further.
+
+<figure markdown="1">
+![Hypergraph of interactions in Infleqtion Work](../../../images/cudaq-blog-gtc26/infleqtion_image.png){ width="500" }
+</figure>
+
+_Fig 1: Hypergraph showing interactions between logical qubits in Infleqtion's demonstration of quantum neural networks_
+
+A collaboration between [UCL](https://www.ucl.ac.uk/), [QMatter](https://qmatter.xyz/), the [Technical University of Munich](https://www.tum.de/en/), [Ludwig-Maximilians-Universität München](https://www.lmu.de/en/), [LRZ](https://www.lrz.de/en/), and [IQM](https://www.meetiqm.com/) [demonstrated a hybrid biomolecular simulation of a **G-protein-coupled receptor (GPCR)**](https://qmatter.xyz/where-quantum-computing-meets-gpu-accelerated-supercomputing/) on the CUDA-Q platform, with the quantum component executed on Euro-Q-Exa — an IQM 54-qubit system, alongside NVIDIA H100 GPUs hosted at the LRZ AI cluster. The postprocessing element of the work was further scaled to a billion quantum configurations using 1,200 NVIDIA H100 on the [Eos](https://blogs.nvidia.com/blog/eos/) cluster
+
+<figure markdown="1">
+![GPCR Protein from Qmatter Work](../../../images/cudaq-blog-gtc26/qmatter_GPCR.png){ width="800" }
+</figure>
+
+_Fig 2: GPCR protein active site modelled in collaboration between UCL, QMatter, TUM, LMU, LRZ and IQM_
+
+<!-- TODO: UCL biomolecular simulation image from Sabrina Schulte — please supply -->
+<!-- ![Biomolecular simulation of a G-protein-coupled receptor using hybrid quantum-classical computing](../../images/gtc-2026-quantum-ecosystem/ucl-biomolecular.jpg) -->
+<!-- _Fig 3: Caption TBD_ -->
+
+These results join a broader wave of GPU-accelerated quantum application work showcased at GTC 2026:
+
+- **[Aegiq](https://aegiq.com/)** used DGX Spark to [prototype hundred-qubit tensor-network-based CFD simulation workloads](https://www.aegiq.com/blog/quantum-simulation-with-nvidia-dgx-spark), that could then be scaled to thousands of qubits.
+- **[Classiq](https://www.classiq.io/)** built an end-to-end path from high-level quantum modeling to CUDA-Q execution, reducing synthesis and execution of a 31-qubit circuit from 67 minutes to 2.5 minutes on a single A100 GPU.
+- **[TII](https://www.tii.ae/)** built a cuTENSOR-based emulator for adiabatic quantum annealing, demonstrating simulations of up to 500,000 qubits with $7.5 \times 10^9$ two-qubit entangling gates.
+- **[ORCA Computing](https://www.orcacomputing.com/)** built a [GPU-accelerated photonic simulator on NVIDIA cuQuantum](https://orcacomputing.com/?p=16297&preview=true) to model large photonic circuits.
+- **[JIJ](https://www.j-ij.com/)** used CUDA-Q to implement Photonic Quantum-Enhanced Knowledge Distillation - a hybrid quantum-classical framework for efficiently compressing convolutional neural networks, validated on MNIST, Fashion-MNIST, and CIFAR-10.
+- **[OTI Lumionics](https://www.otilumionics.com/)** ran their quantum-native iQCC algorithm for materials design, cutting calculation time from 109 hours on a 32-CPU cluster to 1.2 hours on a single NVIDIA Blackwell GPU.
+- **[Kvantify](https://www.kvantify.dk/)** benchmarked [ground-state energy calculations for penicillin on DGX Spark](https://www.kvantify.com/blog/nvidia-dgx-spark) using its Kvantify Qrunch platform.
+
+<figure markdown="1">
+![Kvantify Results](../../../images/cudaq-blog-gtc26/kvantify_plot.png){ width="600" }
+</figure>
+
+_Fig 3: Kvantify results showing performance of DGX Spark with CUDA-Q for quantum computing simulation workloads_
+
+
+---
+
+## Quantum Error Correction 
+
+CUDA-Q is also proving essential for research into quantum error correction — work critical to the long-term viability of quantum computing.
+
+Researchers at the [University of Edinburgh](https://www.ed.ac.uk/), working through the Grace Hopper Superchip Seed Program with [Supermicro](https://www.supermicro.com/), have [performed breakthrough work by developing a **vibe decoder** for color codes](https://qec.codes/blog/vibe_gpu/). By combining an ensemble of **Belief Propagation (BP)** decoders parallelized with CUDA on NVIDIA GH200 GPUs, vibe decoding achieves microsecond per-round batched throughput — 900x faster than previous state-of-the-art — providing the most compelling evidence yet that color code decoding could compete with industry-standard surface codes.
+
+
+
+[Alice & Bob](https://www.alice-bob.com/) are using CUDA-Q's GPU acceleration to [run noisy simulations validating **elevator codes**](https://alice-bob.com/blog/how-alice-bob-uses-nvidia-cuda-q-to-accelerate-quantum-error-correction-research), a new error correction code designed for the biased noise in their cat qubits. The team benchmarked a 9.25x speedup over CPU-based techniques when decoding a $[15,9,3]$, $d_z=9$ elevator code from 100,000 simulated shots on an NVIDIA GH200.
+
+---
+
+## Quantum-Classical Integrations
+
+Providing developers the tools they need to work with future quantum-GPU supercomputers is key to advancing quantum computing. Quantum software builders are drawing on CUDA-Q to ensure their tools seamlessly support hybrid systems.
+
+[Scaleway](https://www.scaleway.com/) now supports CUDA-Q kernels from its Quantum-as-a-Service platform, with execution across hardware from [Alpine Quantum Technologies](https://www.aqt.eu/), while [PsiQuantum](https://www.psiquantum.com/) has [integrated CUDA-Q with PsiQuantum Construct](https://www.psiquantum.com/news-import/construct-nvidia-cudaq) for simulating large-scale, fault-tolerant hybrid applications. 
+
+[TII](https://www.tii.ae/) has integrated its Qibo framework with CUDA-Q for hybrid workload validation - planning to use NVQLink in future work, and [Pasqal](https://www.pasqal.com/) has [integrated CUDA-Q with its **Quantum Resource Management Interface (QRMI)** runtime](https://www.pasqal.com/newsroom/pasqal-introduces-new-integration-with-nvidia-cuda-q-to-enhance-its-hybrid-quantum-computing-environment-for-hpc/), enabling SLURM-based scheduling of work across Pasqal QPUs and accelerated computing. 
+
+Meanwhile [memQ](https://memq.tech/) [announced its Extensible Distributed Quantum Compiler (xDQC)](https://memq.tech/memq_qc_software_stack) built on CUDA-Q, demonstrating how hybrid applications can be spread across multi-QPU systems - simulating hundreds of qubits across eight QPUs, and HPE has [incorporated NVQLink into its vision for quantum supercomputing](https://community.hpe.com/t5/advancing-life-work/toward-a-utility-scale-quantum-supercomputer-with-tight-hpc-qc/ba-p/7262995).
+
+
+---
+
+## AI-Powered Quantum Development
+
+Quantum researchers are looking to the latest AI advances and CUDA-Q is establishing itself as the backbone for AI-driven quantum development - making quantum algorithm and hardware design faster and more accessible.
+
+[Hiverge](https://www.hiverge.com/) has [integrated CUDA-Q with **the Hive**](https://hiverge.ai/blog/quantinuum-nvidia-collaboration), an AI platform that uses LLM agents to translate natural-language problem descriptions into executable quantum circuits. [Quantinuum](https://www.quantinuum.com/) is using the Hive for AI-guided discovery of quantum algorithms for combinatorial optimization, with applications in power grid dispatch, nuclear fuel arrangement, and molecular design for drug and materials discovery. 
+
+[QCentroid](https://www.qcentroid.xyz/) has [integrated CUDA-Q with its **QuantumOps** platform](https://qcentroid.xyz/news/qcentroid-makes-nvidia-cuda-q-available-in-its-quantumops-platform-to-accelerate-enterprise-hybrid-quantum-adoption/), giving enterprise users access through an AI copilot layer. And [Conductor Quantum](https://www.conductorquantum.com/) announced Coda's new **Model Context Protocol (MCP)**, which gives AI agents access to quantum compute resources as tools — supporting CUDA-Q transpilation from other frameworks and circuit simulations of up to 34 qubits for autonomous debugging and optimization.
+
+---
+
+## Get Started
+
+The work at GTC 2026 shows hybrid quantum-classical supercomputing maturing rapidly across applications, error correction, integrations, and AI-driven development — with CUDA-Q as the common thread.
+
+- [CUDA-Q on GitHub](https://github.com/NVIDIA/cuda-quantum)
+- [CUDA-Q Documentation](https://nvidia.github.io/cuda-quantum/latest/)
+- [NVIDIA Quantum Computing](https://www.nvidia.com/en-us/solutions/quantum-computing/)
+- [CUDA-Q Academic](https://nvidia.github.io/cuda-q-academic/learningpath.html)
+
