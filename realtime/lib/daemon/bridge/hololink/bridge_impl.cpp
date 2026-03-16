@@ -244,7 +244,7 @@ hololink_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
     return CUDAQ_ERR_INVALID_ARG;
   auto &transceiver = ctx->transceiver;
   const bool unified_igpu = ctx->config.unified && ctx->is_igpu;
-  if (ctx->config.unified) {
+  if (ctx->config.unified && !unified_igpu) {
     std::cout << "\n Unified mode -- no hololink monitor thread needed"
               << std::endl;
   } else if (unified_igpu) {
