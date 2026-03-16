@@ -10,10 +10,8 @@ import pytest
 import numpy as np
 import cudaq
 
-swap_matrix = np.array([1, 0, 0, 0,
-                        0, 0, 1, 0,
-                        0, 1, 0, 0,
-                        0, 0, 0, 1], dtype=complex)
+swap_matrix = np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                       dtype=complex)
 
 
 @pytest.fixture(autouse=True)
