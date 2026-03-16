@@ -514,26 +514,6 @@ pr-3800
             -   [Classically Diagonalize the Subspace
                 Matrix](../../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
-    -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](../../../applications/python/logical_aim_sqale.html){.reference
-        .internal}
-        -   [Performing logical Variational Quantum Eigensolver (VQE)
-            with
-            CUDA-QX](../../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
-            .internal}
-        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
-            .literal .notranslate}]{.pre}
-            encoding](../../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
-            .internal}
-        -   [Setting up submission and decoding
-            workflow](../../../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
-            .internal}
-        -   [Running a CUDA-Q noisy
-            simulation](../../../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
-            .internal}
-        -   [Running logical AIM on Infleqtion's
-            hardware](../../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
-            .internal}
     -   [Spin-Hamiltonian Simulation Using
         CUDA-Q](../../../applications/python/hamiltonian_simulation.html){.reference
         .internal}
@@ -676,28 +656,6 @@ pr-3800
         -   [Gate Fusion for Larger
             Circuits](../../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum
-        Transformer](../../../applications/python/quantum_transformer.html){.reference
-        .internal}
-        -   [Installation](../../../applications/python/quantum_transformer.html#Installation){.reference
-            .internal}
-        -   [Algorithm and
-            Example](../../../applications/python/quantum_transformer.html#Algorithm-and-Example){.reference
-            .internal}
-            -   [Creating the self-attention
-                circuits](../../../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits){.reference
-                .internal}
-        -   [Usage](../../../applications/python/quantum_transformer.html#Usage){.reference
-            .internal}
-            -   [Model
-                Training](../../../applications/python/quantum_transformer.html#Model-Training){.reference
-                .internal}
-            -   [Generating
-                Molecules](../../../applications/python/quantum_transformer.html#Generating-Molecules){.reference
-                .internal}
-            -   [Attention
-                Maps](../../../applications/python/quantum_transformer.html#Attention-Maps){.reference
-                .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](../../../applications/python/afqmc.html){.reference
         .internal}
