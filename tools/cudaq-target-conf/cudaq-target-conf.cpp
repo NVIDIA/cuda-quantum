@@ -67,6 +67,11 @@ static cl::opt<bool> skipGpuCheck(
     cl::desc("Skip NVIDIA check on target configuration that requires GPUs."),
     cl::init(false));
 
+static cl::opt<bool> listBoolArgs(
+    "list-bool-args",
+    cl::desc("List argument keys that are Bool type (no value required)."),
+    cl::init(false));
+
 static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
 static constexpr const char CLEAR[] = "\033[0m";
@@ -123,6 +128,15 @@ int main(int argc, char **argv) {
   cudaq::config::TargetConfig config;
   llvm::yaml::Input Input(*(fileOrErr.get()));
   Input >> config;
+
+  // If --list-bool-args is specified, just output Bool argument keys and exit
+  if (listBoolArgs) {
+    for (const auto &arg : config.TargetArguments) {
+      if (arg.Type == cudaq::config::ArgumentType::Bool)
+        llvm::outs() << arg.KeyName << "\n";
+    }
+    return 0;
+  }
 
   // Verify GPU requirement
   if (!skipGpuCheck && config.GpuRequired && countGPUs() <= 0) {
