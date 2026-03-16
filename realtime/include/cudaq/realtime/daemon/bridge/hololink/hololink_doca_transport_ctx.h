@@ -25,6 +25,8 @@ typedef struct {
   uint32_t rx_ring_mkey;    ///< Network-byte-order memory key (`htobe32(rkey)`)
   uint32_t rx_ring_stride_num; ///< Number of slots in the ring
   size_t frame_size;           ///< Actual frame/payload size within a slot
+  int use_bf;                  ///< Non-zero: use BlueFlame TX (dGPU).
+                               ///< Zero: use NIC_HANDLER_AUTO (iGPU/CPU proxy).
 } hololink_doca_transport_ctx;
 
 #ifdef __cplusplus
