@@ -2316,6 +2316,41 @@ class PyASTBridge(ast.NodeVisitor):
                     return name + ".." + hex(id(result))
         return None
 
+    def __expandCustomOpTargets(self, pyArgs, numTargets, node):
+        """Collect qubit references for a custom operation call, expanding qvector
+        arguments into individual references.
+        """
+        targets = []
+        for arg in pyArgs:
+            if isinstance(arg, ast.Starred):
+                self.visit(arg.value)
+            else:
+                self.visit(arg)
+            val = self.popValue()
+            if quake.VeqType.isinstance(val.type):
+                if quake.VeqType.hasSpecifiedSize(val.type):
+                    size = quake.VeqType.getSize(val.type)
+                else:
+                    size = numTargets
+                for i in range(size):
+                    ref = quake.ExtractRefOp(
+                        self.getRefType(),
+                        val,
+                        -1,
+                        index=self.getConstantInt(i)).result
+                    targets.append(ref)
+            elif quake.RefType.isinstance(val.type):
+                targets.append(val)
+            else:
+                self.emitFatalError(
+                    'invalid target operand for custom operation: '
+                    'expected a qubit or qvector', node)
+        if len(targets) != numTargets:
+            self.emitFatalError(
+                f'custom operation requires {numTargets} qubit target(s), '
+                f'but {len(targets)} were provided', node)
+        return targets
+
     def visit_Call(self, node):
         """Map a Python Call operation to equivalent MLIR. This method handles
         functions that are `ast.Name` and `ast.Attribute` objects.
