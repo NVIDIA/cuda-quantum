@@ -255,10 +255,10 @@ inline int bridge_run(BridgeConfig &config) {
       config.remote_qp,         // remote QP number (FPGA default: 2)
       config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
-      config.peer_ip.c_str(),   // immediate connection
-      use_forward ? 1 : 0,      // forward
-      use_3kernel ? 1 : 0,      // rx_only
-      use_3kernel ? 1 : 0       // tx_only
+      config.peer_ip.c_str(), // immediate connection
+      use_forward ? 1 : 0,    // forward
+      use_3kernel ? 1 : 0,    // rx_only
+      use_3kernel ? 1 : 0     // tx_only
   );
 
   if (!transceiver) {
