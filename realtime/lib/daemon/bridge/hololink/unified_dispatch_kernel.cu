@@ -166,26 +166,28 @@ __global__ void hololink_unified_dispatch_kernel(
       response->ptp_timestamp = ptp_timestamp;
     }
 
-    // Repost the receive WQE BEFORE sending the response.  On iGPU the
-    // send goes through the CPU proxy which may batch doorbell writes,
-    // delaying return to the kernel.  Reposting first ensures the NIC
-    // has a fresh WQE before any such delay.
-    sq_wqe_idx++;
-    repost_receive(qp, sq_wqe_idx);
-    cq_ticket = sq_wqe_idx;
-
     auto buffer_addr =
         static_cast<std::uint64_t>(ring_buf_stride_sz) * stride;
     if (use_bf) {
+      // dGPU: send first, then repost (original order).  Reposting before
+      // send adds ~400ns by serializing a PCIe write ahead of BlueFlame.
       if (!use_inline) {
-        send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(qp, &wqe_sh, sq_wqe_idx - 1,
+        send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(qp, &wqe_sh, sq_wqe_idx,
                                             buffer_addr);
       } else {
         send_bf<GPU_ROCE_MAX_FRAME_SIZE_44B>(
-            qp, &wqe_sh, sq_wqe_idx - 1,
+            qp, &wqe_sh, sq_wqe_idx,
             reinterpret_cast<std::uint64_t>(slot));
       }
+      sq_wqe_idx++;
+      repost_receive(qp, sq_wqe_idx);
+      cq_ticket = sq_wqe_idx;
     } else {
+      // iGPU: repost first, then send.  The CPU proxy may batch doorbell
+      // writes, so ensure the NIC has a fresh receive WQE before any delay.
+      sq_wqe_idx++;
+      repost_receive(qp, sq_wqe_idx);
+      cq_ticket = sq_wqe_idx;
       if (!use_inline) {
         send<GPU_ROCE_MAX_FRAME_SIZE_0B>(qp, sq_wqe_idx - 1, buffer_addr);
       } else {
