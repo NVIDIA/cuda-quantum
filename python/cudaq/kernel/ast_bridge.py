@@ -2961,14 +2961,8 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.id in globalRegisteredOperations:
                 unitary = globalRegisteredOperations[node.func.id]
                 numTargets = int(np.log2(np.sqrt(unitary.size)))
-                targets = self.__groupValues(node.args,
-                                             [(numTargets, numTargets)])
-
-                for i, t in enumerate(targets):
-                    if not quake.RefType.isinstance(t.type):
-                        self.emitFatalError(
-                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
-                        )
+                targets = self.__expandCustomOpTargets(node.args, numTargets,
+                                                       node)
 
                 globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
