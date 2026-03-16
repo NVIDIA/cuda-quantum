@@ -13,28 +13,27 @@ LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 
 cudaq::KernelThunkResultType
 cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs,
-                         mlir::Type resultTy) {
+                         const std::vector<void *> &rawArgs) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `launchModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule", name);
-  return launcher->launchModule(name, module, rawArgs, resultTy);
+  return launcher->launchModule(name, module, rawArgs);
 }
 
 void *
 cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
                              const std::vector<void *> &rawArgs,
-                             mlir::Type resultTy,
-                             std::optional<cudaq::JitEngine> &cachedEngine) {
+                             std::optional<cudaq::JitEngine> &cachedEngine,
+                             bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `specializeModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::specializeModule", name);
-  return launcher->specializeModule(name, module, rawArgs, resultTy,
-                                    cachedEngine);
+  return launcher->specializeModule(name, module, rawArgs, cachedEngine,
+                                    isEntryPoint);
 }

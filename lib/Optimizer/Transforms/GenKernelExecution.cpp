@@ -1037,9 +1037,15 @@ public:
         auto mangledAttr = mangledNameMap.getAs<StringAttr>(funcOp.getName());
         assert(mangledAttr && "funcOp must appear in mangled name map");
         StringRef mangledName = mangledAttr.getValue();
-        auto [hostEntryNeeded, hostFunc] =
-            cudaq::opt::marshal::lookupHostEntryPointFunc(mangledName, module,
-                                                          funcOp);
+        bool hostEntryNeeded = false;
+        func::FuncOp hostFunc;
+        if (!ignoreHostFunction) {
+          auto hostInfo = cudaq::opt::marshal::lookupHostEntryPointFunc(
+              mangledName, module, funcOp);
+          hostEntryNeeded = hostInfo.first;
+          hostFunc = hostInfo.second;
+        }
+
         FunctionType hostFuncTy;
         const bool hasThisPtr = !funcOp->hasAttr("no_this");
         if (hostEntryNeeded) {

@@ -106,7 +106,7 @@ repos:
         stages: [pre-push]
         additional_dependencies:
           - pyspelling>=2.8.2
-          - pymdown-extensions
+          - pymdown-extensions>=10.16.1
 
       - id: markdown-link-check
         name: Check links in Markdown files

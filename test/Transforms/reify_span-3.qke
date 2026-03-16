@@ -1,0 +1,36 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -globalize-array-values -canonicalize %s | FileCheck %s
+
+// NaN/Inf f64 values that survive text serialization roundtrip as 
+// integer attributes (IntegerAttr) rather than float attributes.
+//
+// Bit patterns (IEEE-754 double)
+// Referred from https://en.wikipedia.org/wiki/Double-precision_floating-point_format:
+//   NaN:  0x7FF8000000000000 = 9221120237041090560 (i64)
+//   +Inf: 0x7FF0000000000000 = 9218868437227405312 (i64)
+//   -Inf: 0xFFF0000000000000 = -4503599627370496   (i64)
+
+func.func private @use_f64_vec(!cc.stdvec<f64>)
+
+func.func @reify_f64_span_integer_attrs_for_nan_inf() {
+  %0 = cc.const_array [9221120237041090560 : i64, 9218868437227405312 : i64,
+                        -4503599627370496 : i64, 1.0 : f64]
+       : !cc.array<f64 x 4>
+  %1 = cc.reify_span %0 : (!cc.array<f64 x 4>) -> !cc.stdvec<f64>
+  call @use_f64_vec(%1) : (!cc.stdvec<f64>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @reify_f64_span_integer_attrs_for_nan_inf() {
+// CHECK-DAG:       %[[NAN:.*]] = arith.constant 0x7FF8000000000000 : f64
+// CHECK-DAG:       %[[INF:.*]] = arith.constant 0x7FF0000000000000 : f64
+// CHECK-DAG:       %[[NINF:.*]] = arith.constant 0xFFF0000000000000 : f64
+// CHECK-DAG:       %[[ONE:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           call @use_f64_vec

@@ -135,10 +135,12 @@ public:
                             nullptr, mlir::ModuleOp{});
   }
 
-  KernelThunkResultType launchModule(const std::string &name,
-                                     mlir::ModuleOp module,
-                                     const std::vector<void *> &rawArgs,
-                                     mlir::Type resTy) override {
+  KernelThunkResultType
+  launchModule(const std::string &name, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs) override {
+    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
+    auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
+    auto resTy = cudaq::runtime::getReturnType(funcOp);
     if (resTy) {
       // Looks very much like launchKernel(string, vector<ptr>*).
       return launchKernelImpl(name, nullptr, rawArgs.back(), 0, 0, &rawArgs,
@@ -148,10 +150,10 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  void *
-  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine) override {
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(

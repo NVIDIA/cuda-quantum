@@ -11,6 +11,7 @@
 #include "QIRTypes.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "common/Trace.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
@@ -303,6 +304,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
+  if (numQubits > 10)
+    throw std::runtime_error(
+        "State vector initialization with more than 10 qubits is not "
+        "supported. Requested " +
+        std::to_string(numQubits) + " qubits.");
   if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
     auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
         numQubits, data, cudaq::simulation_precision::fp64);
@@ -363,6 +369,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
+  if (numQubits > 10)
+    throw std::runtime_error(
+        "State vector initialization with more than 10 qubits is not "
+        "supported. Requested " +
+        std::to_string(numQubits) + " qubits.");
   if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
     auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
         numQubits, data, cudaq::simulation_precision::fp32);
@@ -718,7 +729,24 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
     return;
 
   auto *noise = ctx->noiseModel;
-  // per-spec, no noise model provided, emit warning, no application
+  if (cudaq::isInTracerMode()) {
+    std::vector<double> paramVec(params, params + numParams);
+    std::vector<cudaq::QuditInfo> targets;
+    for (std::size_t id : arrayToVectorSizeT(qubits))
+      targets.emplace_back(2, id);
+    auto key = static_cast<std::intptr_t>(krausChannelKey);
+    std::string channelName("apply_noise");
+    if (noise) {
+      try {
+        channelName = noise->get_channel(key, paramVec).get_type_name();
+      } catch (...) {
+      }
+    }
+    ctx->kernelTrace.appendNoiseInstruction(
+        key, channelName, std::move(paramVec), {}, std::move(targets));
+    return;
+  }
+
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");
@@ -739,7 +767,27 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
     return;
 
   auto *noise = ctx->noiseModel;
-  // per-spec, no noise model provided, emit warning, no application
+  if (cudaq::isInTracerMode()) {
+    std::vector<double> paramVec;
+    paramVec.reserve(numParams);
+    for (std::size_t i = 0; i < numParams; ++i)
+      paramVec.push_back(static_cast<double>(params[i]));
+    std::vector<cudaq::QuditInfo> targets;
+    for (std::size_t id : arrayToVectorSizeT(qubits))
+      targets.emplace_back(2, id);
+    auto key = static_cast<std::intptr_t>(krausChannelKey);
+    std::string channelName("apply_noise");
+    if (noise) {
+      try {
+        channelName = noise->get_channel(key, paramVec).get_type_name();
+      } catch (...) {
+      }
+    }
+    ctx->kernelTrace.appendNoiseInstruction(
+        key, channelName, std::move(paramVec), {}, std::move(targets));
+    return;
+  }
+
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");

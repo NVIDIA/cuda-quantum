@@ -70,7 +70,9 @@ class KernelSignature:
         of the MLIR `FuncOp` are treated as direct arguments to the kernel and
         `captured_args` is set to `[]`.
         """
-        funcOp = recover_func_op(mlir_module, nvqppPrefix + kernel_name)
+        if not kernel_name.startswith(nvqppPrefix):
+            kernel_name = nvqppPrefix + kernel_name
+        funcOp = recover_func_op(mlir_module, kernel_name)
         fnTy = mlir.FunctionType(
             mlir.TypeAttr(funcOp.attributes['function_type']).value)
         if len(fnTy.results) > 1:
@@ -101,9 +103,15 @@ class KernelSignature:
                 f"CUDA-Q kernel {kernel_name} has return statement but no return type annotation"
             )
 
+        def assert_not_none(ty, name):
+            if ty is None:
+                raise KernelSignatureError(
+                    f"Argument '{name}' is missing a required type annotation")
+            return ty
+
         arg_types = [
-            _mlir_type_from_annotation(annotation)
-            for _name, annotation in visitor.arg_annotations
+            assert_not_none(_mlir_type_from_annotation(annotation), name)
+            for name, annotation in visitor.arg_annotations
         ]
         return_type = _mlir_type_from_annotation(visitor.return_annotation,
                                                  acceptNoneType=False)

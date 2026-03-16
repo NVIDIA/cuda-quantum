@@ -163,3 +163,8 @@ async def getResults(jobId: str):
 
     res = retData
     return res
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

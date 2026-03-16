@@ -62,7 +62,6 @@ void createClassicalOptimizationPipeline(
     std::optional<bool> allowBreak = std::nullopt,
     std::optional<bool> allowClosedInterval = std::nullopt);
 
-std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 void addLowerToCFG(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);

@@ -157,7 +157,9 @@ protected:
     // Default to single shot
     std::size_t batch_size = 1;
     auto *executionContext = getExecutionContext();
-    if (executionContext && executionContext->name == "sample" &&
+    if (executionContext &&
+        (executionContext->name == "sample" ||
+         executionContext->name == "ptsbe-sample") &&
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "msm")
@@ -459,6 +461,10 @@ protected:
       deallocateState();
       return;
     }
+
+    // Reset all qubits to |0> and clear measurement records, preserving
+    // the allocated simulators for reuse (required by the PTSBE
+    // per-trajectory loop which calls setToZeroState between trajectories).
     auto nq = sampleSim->num_qubits;
     if (nq > 0) {
       std::vector<std::uint32_t> allQubits(nq);
@@ -530,7 +536,8 @@ public:
   /// explicitMeasurements is set, this returns all previously saved
   /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     auto executionContext = getExecutionContext();
 
     if (executionContext->explicitMeasurements && qubits.empty() &&
@@ -584,16 +591,19 @@ public:
                                         ? 0
                                         : bits_per_sample - qubits.size();
     CountsDictionary counts;
-    sequentialData.reserve(shots);
+    if (includeSequentialData)
+      sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
       std::string aShot(bits_per_sample - first_bit_to_save, '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
         aShot[b - first_bit_to_save] = sample[shot][b] ? '1' : '0';
       counts[aShot]++;
-      sequentialData.push_back(std::move(aShot));
+      if (includeSequentialData)
+        sequentialData.push_back(std::move(aShot));
     }
     ExecutionResult result(counts);
-    result.sequentialData = std::move(sequentialData);
+    if (includeSequentialData)
+      result.sequentialData = std::move(sequentialData);
     return result;
   }
 

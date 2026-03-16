@@ -123,8 +123,12 @@ public:
         if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
           if (alloc.getSize() || alloc.hasInitializedState())
             return;
-          analysis.allocations.push_back(alloc);
           auto size = allocationSize(alloc);
+          if (size == 0)
+            // Skip zero-size allocas. Merging them would
+            // produce subveq(lo, lo-1) which is invalid.
+            continue;
+          analysis.allocations.push_back(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
         } else if (auto dealloc = dyn_cast_or_null<quake::DeallocOp>(&op)) {

@@ -22,8 +22,7 @@ using namespace mlir;
 
 /// @brief Run `cudaq::translate` on the provided kernel.
 static std::string translate_impl(const std::string &shortName,
-                                  MlirModule module, MlirType returnTy,
-                                  const std::string &format,
+                                  MlirModule module, const std::string &format,
                                   py::args runtimeArguments) {
   StringRef format_ = format;
   auto formatPair = format_.split(':');
