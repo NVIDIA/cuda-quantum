@@ -32,6 +32,7 @@ struct HololinkBridgeContext {
   cudaq::realtime::BridgeConfig config;
   hololink_transceiver_t transceiver = nullptr;
   std::unique_ptr<std::thread> hololink_thread;
+  bool is_igpu = false;
   HololinkBridgeContext(const cudaq::realtime::BridgeConfig &cfg)
       : config(cfg) {
     //============================================================================
@@ -49,19 +50,27 @@ struct HololinkBridgeContext {
       config.page_size = config.frame_size;
     }
 
-    // Unified mode uses Hololink's forward/symmetric ring layout but doesn't
-    // run any Hololink kernels -- the unified dispatch kernel handles RX+TX.
-    bool use_forward_ring = config.forward || config.unified;
+    // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
+    // thread.  Hololink's blocking_monitor() starts this thread alongside its
+    // kernels.  For unified mode on iGPU we need the CPU proxy but NOT the
+    // hololink kernels, so we pass (false, false, false) -- blocking_monitor
+    // will start only the CPU proxy thread.  On dGPU, no CPU proxy is needed
+    // and we use forward=true to get 64-deep receive pre-posting from start().
+    is_igpu = (prop.integrated != 0);
+    const bool unified_igpu = config.unified && is_igpu;
+
+    bool use_forward = config.forward || (config.unified && !is_igpu);
+    bool use_3kernel = !config.forward && !config.unified;
 
     transceiver = hololink_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
         config.remote_qp,         // remote QP number
         config.gpu_id,            // GPU device ID
         config.frame_size, config.page_size, config.num_pages,
-        config.peer_ip.c_str(),   // immediate connection
-        use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
-        use_forward_ring ? 0 : 1, // rx_only
-        use_forward_ring ? 0 : 1  // tx_only
+        config.peer_ip.c_str(), // immediate connection
+        use_forward ? 1 : 0,    // forward
+        use_3kernel ? 1 : 0,    // rx_only
+        use_3kernel ? 1 : 0     // tx_only
     );
   }
 };
@@ -107,6 +116,19 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
   // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
   HANDLE_CUDA_ERROR(cudaSetDevice(config.gpu_id));
 
+  // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
+  // was created with forward=false, rx_only=false, tx_only=false).  Call the
+  // prepare kernel here so the NIC has receive buffers before any packets
+  // arrive.
+  const bool unified_igpu = config.unified && ctx->is_igpu;
+  if (unified_igpu) {
+    if (!hololink_prepare_receive_send(ctx->transceiver, config.frame_size)) {
+      std::cerr << "ERROR: Failed to pre-post receive WQEs" << std::endl;
+      hololink_destroy_transceiver(ctx->transceiver);
+      delete ctx;
+      return CUDAQ_ERR_INTERNAL;
+    }
+  }
   return CUDAQ_OK;
 }
 
@@ -170,6 +192,7 @@ static cudaq_status_t hololink_bridge_get_transport_context(
     doca_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
     doca_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
     doca_ctx.frame_size = ctx->config.frame_size;
+    doca_ctx.use_bf = ctx->is_igpu ? 0 : 1;
 
     dispatch_ctx->launch_fn = &hololink_launch_unified_dispatch;
     dispatch_ctx->transport_ctx = &doca_ctx;
@@ -220,10 +243,16 @@ hololink_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
   if (!ctx || !ctx->transceiver)
     return CUDAQ_ERR_INVALID_ARG;
   auto &transceiver = ctx->transceiver;
-
+  const bool unified_igpu = ctx->config.unified && ctx->is_igpu;
   if (ctx->config.unified) {
     std::cout << "\n Unified mode -- no hololink monitor thread needed"
               << std::endl;
+  } else if (unified_igpu) {
+    std::cout << "\n Unified mode (iGPU) -- starting Hololink monitor "
+              << "(CPU proxy only, no hololink kernels)" << std::endl;
+    ctx->hololink_thread = std::make_unique<std::thread>(
+        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   } else {
     //============================================================================
     // Launch Hololink kernels and run
