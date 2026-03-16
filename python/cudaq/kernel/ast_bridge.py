@@ -4125,6 +4125,14 @@ class PyASTBridge(ast.NodeVisitor):
                 quake.ConcatOp(self.getVeqType(), listElementValues).result)
             return
 
+        # Since `MeasureType` has no memory representation, we need to
+        # discriminate to `i1` first so the values can be stored in a list.
+        if quake.MeasureType.isinstance(listElementValues[0].type):
+            listElementValues = [
+                quake.DiscriminateOp(self.getIntegerType(1), el).result
+                for el in listElementValues
+            ]
+
         # not a list of quantum types
         # Get the first element
         firstTy = listElementValues[0].type
@@ -4936,6 +4944,15 @@ class PyASTBridge(ast.NodeVisitor):
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
+
+        # Since `MeasureType` has no memory representation, we need to
+        # discriminate to `i1` first so the values can be inserted into a struct
+        elementValues = [
+            quake.DiscriminateOp(self.getIntegerType(1), v).result
+            if quake.MeasureType.isinstance(v.type) else v
+            for v in elementValues
+        ]
+
         expectedTypes = None
         if self.walkingReturnNode and cc.StructType.isinstance(
                 self.signature.return_type):

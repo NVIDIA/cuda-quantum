@@ -60,6 +60,10 @@ def _validate_run_return_type(decorator):
 
     mr = cudaq_runtime.measure_result
 
+    if ret is mr:
+        raise RuntimeError("Unsupported data type: returning a `measure_result`"
+                           " from an entry-point kernel is not allowed")
+
     if typing.get_origin(ret) is tuple:
         if mr in typing.get_args(ret):
             raise RuntimeError("Unsupported data type: returning a tuple "

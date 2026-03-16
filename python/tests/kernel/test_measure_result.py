@@ -91,18 +91,16 @@ def test_unsupported_return_types():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=10)
-    assert "unsupported return type from entry-point kernel" in str(e.value)
+    assert "Unsupported data type" in str(e.value)
+
+    @cudaq.kernel
+    def kernel() -> tuple[cudaq.measure_result, cudaq.measure_result]:
+        q = cudaq.qvector(2)
+        x(q[0])
+        return mz(q[0]), mz(q[1])
 
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def kernel() -> tuple[cudaq.measure_result, cudaq.measure_result]:
-            q = cudaq.qvector(2)
-            x(q[0])
-            return mz(q[0]), mz(q[1])
-
         cudaq.run(kernel, shots_count=10)
-
     assert "Unsupported data type" in str(e.value)
 
     @dataclasses.dataclass(slots=True)
@@ -110,17 +108,90 @@ def test_unsupported_return_types():
         r1: cudaq.measure_result
         r2: int
 
+    @cudaq.kernel
+    def kernel() -> Result:
+        q = cudaq.qubit()
+        x(q)
+        return Result(mz(q), 42)
+
     with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def kernel() -> Result:
-            q = cudaq.qubit()
-            x(q)
-            return Result(mz(q), 42)
-
         cudaq.run(kernel, shots_count=10)
-
     assert "Unsupported data type" in str(e.value)
+
+
+def test_list_from_measure():
+
+    @cudaq.kernel
+    def kernel() -> list[bool]:
+        q = cudaq.qvector(3)
+        h(q)
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        if r0 and r1:
+            x(q[2])
+        r2 = mz(q[2])
+        return [r0, r1, r2]
+
+    results = cudaq.run(kernel, shots_count=10)
+    assert len(results) == 10
+    for shot in results:
+        assert len(shot) == 3
+        assert all(isinstance(b, bool) for b in shot)
+
+
+def test_tuple_from_measure():
+
+    @cudaq.kernel
+    def kernel_direct_return() -> tuple[bool, bool]:
+        q = cudaq.qvector(2)
+        x(q[0])
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        return (r0, r1)
+
+    results = cudaq.run(kernel_direct_return, shots_count=10)
+    assert len(results) == 10
+    for r in results:
+        assert r == (True, False)
+
+    @cudaq.kernel
+    def kernel_assign_to_var() -> tuple[bool, bool]:
+        q = cudaq.qvector(2)
+        x(q[0])
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        t = (r0, r1)
+        return t
+
+    results = cudaq.run(kernel_assign_to_var, shots_count=10)
+    assert len(results) == 10
+    for r in results:
+        assert r == (True, False)
+
+
+def test_list_comprehension():
+
+    @cudaq.kernel
+    def kernel() -> list[bool]:
+        q = cudaq.qvector(3)
+        x(q)
+        return [mz(qi) for qi in q]
+
+    results = cudaq.run(kernel, shots_count=10)
+    assert len(results) == 10
+    for shot in results:
+        assert len(shot) == 3
+        assert all(b == True for b in shot)
+
+    @cudaq.kernel
+    def kernel() -> list[bool]:
+        q = cudaq.qvector(3)
+        x(q)
+        return [mz(q[i]) for i in range(3)]
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=10)
+    assert "only supported when iterating" in str(e.value)
 
 
 # leave for gdb debugging
