@@ -517,25 +517,6 @@ pr-4162
             -   [Classically Diagonalize the Subspace
                 Matrix](hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
-    -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](logical_aim_sqale.html){.reference .internal}
-        -   [Performing logical Variational Quantum Eigensolver (VQE)
-            with
-            CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
-            .internal}
-        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
-            .literal .notranslate}]{.pre}
-            encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
-            .internal}
-        -   [Setting up submission and decoding
-            workflow](logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
-            .internal}
-        -   [Running a CUDA-Q noisy
-            simulation](logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
-            .internal}
-        -   [Running logical AIM on Infleqtion's
-            hardware](logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
-            .internal}
     -   [Spin-Hamiltonian Simulation Using
         CUDA-Q](hamiltonian_simulation.html){.reference .internal}
         -   [Introduction](hamiltonian_simulation.html#Introduction){.reference
@@ -671,27 +652,6 @@ pr-4162
         -   [Gate Fusion for Larger
             Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum Transformer](quantum_transformer.html){.reference
-        .internal}
-        -   [Installation](quantum_transformer.html#Installation){.reference
-            .internal}
-        -   [Algorithm and
-            Example](quantum_transformer.html#Algorithm-and-Example){.reference
-            .internal}
-            -   [Creating the self-attention
-                circuits](quantum_transformer.html#Creating-the-self-attention-circuits){.reference
-                .internal}
-        -   [Usage](quantum_transformer.html#Usage){.reference
-            .internal}
-            -   [Model
-                Training](quantum_transformer.html#Model-Training){.reference
-                .internal}
-            -   [Generating
-                Molecules](quantum_transformer.html#Generating-Molecules){.reference
-                .internal}
-            -   [Attention
-                Maps](quantum_transformer.html#Attention-Maps){.reference
-                .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](afqmc.html){.reference .internal}
         -   [Hamiltonian preparation for
@@ -2370,9 +2330,9 @@ Note: this is an experimental API and may change in future releases.
         site 19 [depolarization2 on q[9, 8]]: K0 (no-error)
         site 21 [depolarization2 on q[10, 9]]: K0 (no-error)
         site 23 [depolarization2 on q[11, 10]]: K0 (no-error)
-    [2026-03-13 21:18:14.103] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
     Trajectories grouped by error count:
+    [2026-03-16 21:17:21.965] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
       0 errors: 1 trajectories, 888,297 shots (88.8%)
       1 errors: 126 trajectories, 103,948 shots (10.4%)
       2 errors: 19 trajectories, 7,396 shots (0.7%)
