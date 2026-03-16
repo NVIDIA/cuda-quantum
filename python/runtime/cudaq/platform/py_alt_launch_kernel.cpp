@@ -369,6 +369,10 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
   for (auto [i, zippy] : llvm::enumerate(llvm::zip(args, mlirTys))) {
     py::object arg = py::reinterpret_borrow<py::object>(std::get<0>(zippy));
     Type kernelArgTy = std::get<1>(zippy);
+    if (arg.is_none()) {
+      argData.emplace_back(nullptr, [](void *ptr) {});
+      continue;
+    }
     llvm::TypeSwitch<Type, void>(kernelArgTy)
         .Case([&](ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
@@ -698,9 +702,9 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
 // preserve (cache) the IR, and erase the clone after the kernel is done.
 static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
-               const std::vector<void *> &rawArgs, Type resultTy) {
+               const std::vector<void *> &rawArgs) {
   auto clone = mod.clone();
-  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs, resultTy);
+  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs);
   clone.erase();
   return res;
 }
@@ -895,18 +899,19 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
 static const std::vector<void *> &
 appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
                          ModuleOp module, const std::string &name) {
-  if (returnType && !isa<NoneType>(returnType))
+  if (returnType)
     appendTheResultValue(module, name, runtimeArgs, returnType);
   return runtimeArgs.getArgs();
 }
 
 cudaq::KernelThunkResultType
-cudaq::clean_launch_module(const std::string &name, ModuleOp mod, Type retTy,
+cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
                            cudaq::OpaqueArguments &args) {
+  auto kernelFunc = getKernelFuncOp(mod, name);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
-  return pyLaunchModule(name, mod, rawArgs, resTy);
+  return pyLaunchModule(name, mod, rawArgs);
 }
 
 cudaq::OpaqueArguments
@@ -924,17 +929,16 @@ cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
 
 py::object cudaq::marshal_and_launch_module(const std::string &name,
                                             MlirModule module,
-                                            MlirType returnType,
                                             py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_launch_module", name);
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
-  Type retTy = unwrap(returnType);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
-  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, retTy, args);
+  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
   // FIXME: handle dynamic sized results!
 
-  if (isa<NoneType>(retTy))
+  if (!retTy)
     return py::none();
   return cudaq::convertResult(mod, retTy,
                               reinterpret_cast<char *>(args.getArgs().back()));
@@ -947,23 +951,21 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
 // `delete_cache_execution_engine` with the cache key.
 static std::pair<void *, std::size_t>
 marshal_and_retain_module(const std::string &name, MlirModule module,
-                          MlirType returnType, bool isEntryPoint,
-                          py::args runtimeArgs) {
+                          bool isEntryPoint, py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
   std::optional<cudaq::JitEngine> cachedEngine;
 
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
-  Type retTy = unwrap(returnType);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args =
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
   auto clone = mod.clone();
   // Returns the pointer to the JITted LLVM code for the entry point function.
   void *funcPtr = cudaq::streamlinedSpecializeModule(
-      name, clone, rawArgs, resTy, cachedEngine, isEntryPoint);
+      name, clone, rawArgs, cachedEngine, isEntryPoint);
   clone.erase();
   // `streamlinedSpecializeModule` should always set the cached engine pointer
   if (!cachedEngine)

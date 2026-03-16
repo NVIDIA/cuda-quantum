@@ -22,37 +22,42 @@ namespace py = pybind11;
 using namespace cudaq;
 
 static async_sample_result sample_async_impl(
-    const std::string &shortName, MlirModule module, MlirType returnTy,
-    std::size_t shots_count, std::optional<noise_model> noise_model,
-    bool explicit_measurements, std::size_t qpu_id, py::args runtimeArgs) {
+    const std::string &shortName, MlirModule module, std::size_t shots_count,
+    std::optional<noise_model> noise_model, bool explicit_measurements,
+    std::size_t qpu_id, py::args runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 
   std::string kernelName = shortName;
-  auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
-  if (noise_model.has_value()) {
-    if (platform.is_remote())
-      throw std::runtime_error(
-          "Noise model is not supported on remote platforms.");
-    platform.set_noise(&noise_model.value());
-  }
+
+  // Check remote platform restriction for noise model.
+  if (noise_model.has_value() && platform.is_remote(qpu_id))
+    throw std::runtime_error(
+        "Noise model is not supported on remote platforms.");
+
   auto fnOp = getKernelFuncOp(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL
   py::gil_scoped_release release;
+
+  // Use runSamplingAsync with noise model support.
+  // The noise_model is passed by value to runSamplingAsync, which captures
+  // it in the async task to ensure proper lifetime and handles setting/
+  // resetting it to avoid dangling pointers and global state pollution.
   return details::runSamplingAsync(
       // Notes:
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
       detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      retTy, mod = mod.clone()]() mutable {
+                                      mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, retTy, opaques);
+            clean_launch_module(kernelName, mod, opaques);
       }),
-      platform, kernelName, shots_count, explicit_measurements, qpu_id);
+      platform, kernelName, shots_count, explicit_measurements, qpu_id,
+      std::move(noise_model));
 }
 
 void cudaq::bindSampleAsync(py::module &mod) {

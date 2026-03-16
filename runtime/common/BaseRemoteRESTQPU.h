@@ -32,7 +32,7 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-cudaq::Resources *getResourceCounts();
+void setResourceCounts(cudaq::Resources &&);
 bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
@@ -291,10 +291,9 @@ public:
     return {};
   }
 
-  KernelThunkResultType launchModule(const std::string &kernelName,
-                                     mlir::ModuleOp module,
-                                     const std::vector<void *> &rawArgs,
-                                     mlir::Type resTy) override {
+  KernelThunkResultType
+  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
 
     auto executionContext = cudaq::getExecutionContext();
@@ -314,7 +313,7 @@ public:
   }
 
   void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         const std::vector<void *> &rawArgs,
                          std::optional<cudaq::JitEngine> &cachedEngine,
                          bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
@@ -342,7 +341,8 @@ public:
     if (executionContext->name == "resource-count") {
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      assert(codes.size() == 1 && codes[0].jit);
+      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
+      nvqir::setResourceCounts(std::move(codes[0].resourceCounts.value()));
       cudaq::get_platform().with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       return;

@@ -39,7 +39,9 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .
         $<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
         ${CMAKE_SOURCE_DIR}/tpls/eigen
-        ${CMAKE_SOURCE_DIR}/runtime)
+        ${CMAKE_SOURCE_DIR}/runtime
+	${CMAKE_SOURCE_DIR}/include
+)
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
@@ -131,8 +133,7 @@ target_include_directories(cudaq-mlir-runtime
     ${CMAKE_SOURCE_DIR}/runtime)
 
 target_link_libraries(cudaq-mlir-runtime
-  PUBLIC
-    nvqir
+  PRIVATE
     CCDialect
     QuakeDialect
     OptCodeGen
@@ -149,7 +150,8 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-  PRIVATE
+    cudaq-common
+    cudaq-qir-verifier
     CUDAQTargetConfigUtil
     cudaq-logger
 )

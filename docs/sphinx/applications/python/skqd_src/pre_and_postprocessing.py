@@ -136,6 +136,8 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
     n_y1 = xp.sum(y_mask & (states_expanded == 1), axis=2, dtype=xp.int32)
     n_z1 = xp.sum(z_mask & (states_expanded == 1), axis=2, dtype=xp.int32)
 
+    del flip_mask, y_mask, z_mask
+
     # Compute phase index (mod 4) and look up phase value
     phase_index = (n_y0 - n_y1 + 2 * n_z1) % 4  # (n_basis, n_terms)
     phase_lookup = xp.array([1.0 + 0j, 0.0 + 1j, -1.0 + 0j, 0.0 - 1j],
@@ -152,8 +154,13 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
 
     basis_ints = xp.sum(basis_states_xp.astype(xp.int64) * powers_of_2,
                         axis=1)  # (n_basis,)
-    transformed_ints = xp.sum(transformed_states.astype(xp.int64) * powers_of_2,
-                              axis=2)  # (n_basis, n_terms)
+
+    transformed_ints = xp.empty((n_basis, n_terms), dtype=xp.int64)
+    for start in range(0, n_basis, 4096):
+        transformed_ints[start:start +
+                         4096] = (transformed_states[start:start + 4096].astype(
+                             xp.int64) @ powers_of_2)
+    del transformed_states
 
     # STEP 5: Find matching basis states using sorted search
     # Sort basis integers and use binary search for O(log n) lookup

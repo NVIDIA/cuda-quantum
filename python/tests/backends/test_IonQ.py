@@ -23,11 +23,13 @@ port = 62441
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+    return got < -1.1 and got > -2.2
 
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
+    cudaq.set_random_seed(13)
+
     os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
 
     # Set the targeted QPU

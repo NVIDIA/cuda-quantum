@@ -236,12 +236,14 @@ public:
 
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     auto executionContext = cudaq::getExecutionContext();
 
     const bool hasNoise = executionContext && executionContext->noiseModel;
     if (!hasNoise || shots < 1)
-      return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
+      return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots,
+                                                        includeSequentialData);
 
     LOG_API_TIME();
     cudaq::ExecutionResult counts;
@@ -274,8 +276,12 @@ public:
       const auto samples = m_state->executeSample(
           sampler, workDesc, measuredBitIds, 1, requireCacheWorkspace());
       assert(samples.size() == 1);
-      for (const auto &[bitString, count] : samples)
-        counts.appendResult(bitString, count);
+      for (const auto &[bitString, count] : samples) {
+        if (includeSequentialData)
+          counts.appendResult(bitString, count);
+        else
+          counts.counts[bitString] += count;
+      }
     }
 
     for (const auto &[k, v] : samplerCache) {

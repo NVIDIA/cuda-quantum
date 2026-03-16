@@ -97,7 +97,7 @@ jobs:
           run: |
             set -euo pipefail
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client==28.0.0 --break-system-packages
+            python3 -m pip install iqm-client==28.0.0 qio~=0.1.33 --break-system-packages
             bash scripts/run_tests.sh -v
 
       - name: Test CUDA Quantum MPI Plugin Activation
@@ -234,7 +234,7 @@ jobs:
             python3 -m venv --system-site-packages "$VENV_DIR"
             . "$VENV_DIR/bin/activate"
 
-            pip install iqm-client==28.0.0
+            pip install iqm-client==28.0.0 qio~=0.1.33
             pip install . -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
@@ -243,16 +243,22 @@ jobs:
             fi
             python -m pip install pytest
             python -m pytest -v --durations=0  python/tests/ \
-              --ignore python/tests/backends
+              --ignore python/tests/backends \
+              --ignore python/tests/contrib
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
+            mock_qpu_failures=""
             for backendTest in python/tests/backends/*.py; do
-              python -m pytest -v --durations=0  $backendTest
+              output=$(python -m pytest -v -s --durations=0 $backendTest 2>&1)
               pytest_status=$?
-
+              echo "$output"
+              if echo "$output" | grep -q "Mock qpu not available"; then
+                echo "::error file=test_in_devenv.yml::Mock QPU unavailable for $backendTest"
+                mock_qpu_failures="$mock_qpu_failures $backendTest"
+              fi
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
@@ -260,6 +266,18 @@ jobs:
                 exit 1
               fi
             done
+            if [ -n "$mock_qpu_failures" ]; then
+              echo "::error file=test_in_devenv.yml::Mock QPU tests skipped due to missing startServer:$mock_qpu_failures"
+              exit 1
+            fi
+
+            pip install qiskit
+            python -m pytest -v --durations=0  python/tests/contrib
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml::Python contrib tests failed with status $pytest_status."
+              exit 1
+            fi
 
       - name: Save environment
         id: env_save

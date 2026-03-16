@@ -9,7 +9,7 @@
 # This file builds an image that contains a CUDA-Q installation and all necessary runtime 
 # dependencies for using CUDA-Q.
 #
-# This image requires specifing an image as argument that contains a CUDA-Q installation
+# This image requires specifying an image as argument that contains a CUDA-Q installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
 # A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.

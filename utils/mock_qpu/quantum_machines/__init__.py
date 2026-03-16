@@ -87,3 +87,8 @@ async def get_results(id: str):
     logging.info("In /v1/results/{}. returning job results: {}", id, response)
     assert response
     return response
+
+
+def start_server(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
