@@ -517,25 +517,6 @@ pr-4000
             -   [Classically Diagonalize the Subspace
                 Matrix](hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
-    -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](logical_aim_sqale.html){.reference .internal}
-        -   [Performing logical Variational Quantum Eigensolver (VQE)
-            with
-            CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
-            .internal}
-        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
-            .literal .notranslate}]{.pre}
-            encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
-            .internal}
-        -   [Setting up submission and decoding
-            workflow](logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
-            .internal}
-        -   [Running a CUDA-Q noisy
-            simulation](logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
-            .internal}
-        -   [Running logical AIM on Infleqtion's
-            hardware](logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
-            .internal}
     -   [Spin-Hamiltonian Simulation Using
         CUDA-Q](hamiltonian_simulation.html){.reference .internal}
         -   [Introduction](hamiltonian_simulation.html#Introduction){.reference
@@ -671,27 +652,6 @@ pr-4000
         -   [Gate Fusion for Larger
             Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum Transformer](quantum_transformer.html){.reference
-        .internal}
-        -   [Installation](quantum_transformer.html#Installation){.reference
-            .internal}
-        -   [Algorithm and
-            Example](quantum_transformer.html#Algorithm-and-Example){.reference
-            .internal}
-            -   [Creating the self-attention
-                circuits](quantum_transformer.html#Creating-the-self-attention-circuits){.reference
-                .internal}
-        -   [Usage](quantum_transformer.html#Usage){.reference
-            .internal}
-            -   [Model
-                Training](quantum_transformer.html#Model-Training){.reference
-                .internal}
-            -   [Generating
-                Molecules](quantum_transformer.html#Generating-Molecules){.reference
-                .internal}
-            -   [Attention
-                Maps](quantum_transformer.html#Attention-Maps){.reference
-                .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](afqmc.html){.reference .internal}
         -   [Hamiltonian preparation for
@@ -1930,7 +1890,7 @@ mutual polarization.
 
 <div>
 
-![7a0654eb261644f69e19ebc4f6f0c949](../../_images/qm-mm-pe.png){.no-scaled-link
+![f683e6708fa04b0c938265c5f273d758](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>
@@ -1982,7 +1942,7 @@ style="width: 600px;"}
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -1990,6 +1950,7 @@ style="width: 600px;"}
 ::: highlight
     # You might need to install (apt-get update & apt-get install build-essential -y
     #                         apt-get install python3-dev) before installing cppe.
+    %pip install --upgrade setuptools
     %pip install cppe
     %pip install pyscf
 :::
@@ -1999,7 +1960,7 @@ style="width: 600px;"}
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
+    [2]:
 :::
 :::
 
@@ -2026,7 +1987,7 @@ style="width: 600px;"}
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [3]:
 :::
 :::
 
@@ -2061,15 +2022,14 @@ style="width: 600px;"}
     [Pyscf] Total number of electrons =  4
     [Pyscf] Total number of orbitals =  6
     [Pyscf] Total HF energy with solvent: -7.862708330327407
-    [Pyscf] Polarizable embedding energy from HF:  -1.1127389358871828e-05
-    [Pyscf] Total CCSD energy with solvent:  -7.882680504632604
-    [Pyscf] Polarizable embedding energy from CCSD:  -1.0898134916648752e-05
+    [Pyscf] Polarizable embedding energy from HF:  -1.112738935883172e-05
+    [Pyscf] Total CCSD energy with solvent:  -7.882680504632596
+    [Pyscf] Polarizable embedding energy from CCSD:  -1.089813491052816e-05
             Running solver for induced moments.
-    0        --- Norm: 0.000095431562
-    1        --- Norm: 0.000000927586
+    0        --- Norm: 0.000095615129
+    1        --- Norm: 0.000000930774
             --- Turning on DIIS. ---
-    2        --- Norm: 0.000000010648
-    3        --- Norm: 0.000000000133
+    2        --- Norm: 0.000000007008
 :::
 :::
 :::
@@ -2077,7 +2037,7 @@ style="width: 600px;"}
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [4]:
 :::
 :::
 
@@ -2095,7 +2055,7 @@ style="width: 600px;"}
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [5]:
 :::
 :::
 
@@ -2120,7 +2080,7 @@ style="width: 600px;"}
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    converged SCF energy = -7.86270833032741
+    converged SCF energy = -7.8627083303274
 :::
 :::
 :::
@@ -2139,7 +2099,7 @@ modified to smaller value, e.g., 1e-7.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [6]:
 :::
 :::
 
@@ -2281,41 +2241,41 @@ modified to smaller value, e.g., 1e-7.
     Number of parameters: 16 singles, 76 doubles, 92 total
     overwrite output file: Li 0-pyscf.log
     Optimizer exited successfully:  True
-    VQE Energy: -7.867161909761761
+    VQE Energy: -7.881456264307182
     VQE converged: True
             Running solver for induced moments.
-    0        --- Norm: 0.000095457621
-    1        --- Norm: 0.000000860362
+    0        --- Norm: 0.000095403904
+    1        --- Norm: 0.000000748309
             --- Turning on DIIS. ---
-    2        --- Norm: 0.000000004312
-    Energy from observe call=     0.000762169 & Energy from np einsum=     0.000762197
-    Cycle 1  E_tot = -7.86793486027634  dE = 7.86793
-    Polarizable embedding energy:  -1.0781673490428836e-05
-    Expectation value of polarizable operator:  0.0007621688410912728
+    2        --- Norm: 0.000000007479
+    Energy from observe call=     0.000762039 & Energy from np einsum=      0.00076198
+    Cycle 1  E_tot = -7.88222931176252  dE = 7.88223
+    Polarizable embedding energy:  -1.1008237304300546e-05
+    Expectation value of polarizable operator:  0.0007620392180328967
 
 
     Optimizer exited successfully:  True
-    VQE Energy: -7.8692404296251395
+    VQE Energy: -7.881685030545087
     VQE converged: True
             Running solver for induced moments.
-    0        --- Norm: 0.000095564807
-    1        --- Norm: 0.000000887381
+    0        --- Norm: 0.000095616250
+    1        --- Norm: 0.000000948911
             --- Turning on DIIS. ---
-    2        --- Norm: 0.000000007916
-    Energy from observe call=     0.000762218 & Energy from np einsum=     0.000762229
-    Cycle 2  E_tot = -7.87001339604889  dE = 0.00207854
-    Polarizable embedding energy:  -1.0748496723151968e-05
-    Expectation value of polarizable operator:  0.0007622179270272233
+    2        --- Norm: 0.000000007398
+    Energy from observe call=     0.000762037 & Energy from np einsum=     0.000761991
+    Cycle 2  E_tot = -7.88245806438924  dE = 0.000228753
+    Polarizable embedding energy:  -1.0997000538082559e-05
+    Expectation value of polarizable operator:  0.0007620368436104166
 
 
 
 
     Final result:
-    Polarizable embedding energy:  -1.0748496723151968e-05
-    Expectation value of polarizable operator:  0.0007622179270272233
-    PE-VQE-UCCSD energy (L-BFGS-B)=  -7.87001339604889
-    Natural orbitals occupation number:  [1.99899690e+00 1.91601348e+00 6.71542420e-02 1.60555115e-02
-     1.15390205e-03 6.30790416e-04]
+    Polarizable embedding energy:  -1.0997000538082559e-05
+    Expectation value of polarizable operator:  0.0007620368436104166
+    PE-VQE-UCCSD energy (L-BFGS-B)=  -7.882458064389236
+    Natural orbitals occupation number:  [1.99994756e+00 1.95804140e+00 3.84732000e-02 1.45458205e-03
+     1.45448694e-03 6.28773018e-04]
 :::
 :::
 :::
@@ -2327,7 +2287,7 @@ modified to smaller value, e.g., 1e-7.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [7]:
 :::
 :::
 
@@ -2369,26 +2329,26 @@ modified to smaller value, e.g., 1e-7.
     overwrite output file: qchem/NH3-pyscf.log
     [Pyscf] Total number of electrons =  10
     [Pyscf] Total number of orbitals =  15
-    [Pyscf] Total HF energy with solvent: -56.460544146152934
-    [Pyscf] Polarizable embedding energy from HF:  -0.2987297397877397
-    [pyscf] CCSD energy of the active space (using molecular orbitals) with solvent=  -56.47023410365107
-    [Pyscf] Polarizable embedding energy from CCSD:  -0.2986368707105786
+    [Pyscf] Total HF energy with solvent: -56.46054414611039
+    [Pyscf] Polarizable embedding energy from HF:  -0.298729739745301
+    [pyscf] CCSD energy of the active space (using molecular orbitals) with solvent=  -56.47023410386734
+    [Pyscf] Polarizable embedding energy from CCSD:  -0.2986368709268163
             Running solver for induced moments.
-    0        --- Norm: 0.572427861637
-    1        --- Norm: 0.194328219249
+    0        --- Norm: 0.586472819364
+    1        --- Norm: 0.193783817190
             --- Turning on DIIS. ---
-    2        --- Norm: 0.063478479823
-    3        --- Norm: 0.007602903988
-    4        --- Norm: 0.002247104251
-    5        --- Norm: 0.000460072303
-    6        --- Norm: 0.000114086983
-    7        --- Norm: 0.000023144988
-    8        --- Norm: 0.000005162818
-    9        --- Norm: 0.000001149278
-    10        --- Norm: 0.000000248690
-    11        --- Norm: 0.000000069750
-    12        --- Norm: 0.000000018086
-    13        --- Norm: 0.000000001401
+    2        --- Norm: 0.052366566202
+    3        --- Norm: 0.005770613979
+    4        --- Norm: 0.001096671421
+    5        --- Norm: 0.000240954869
+    6        --- Norm: 0.000046695934
+    7        --- Norm: 0.000011133375
+    8        --- Norm: 0.000003080297
+    9        --- Norm: 0.000000540627
+    10        --- Norm: 0.000000130514
+    11        --- Norm: 0.000000038555
+    12        --- Norm: 0.000000010061
+    13        --- Norm: 0.000000001252
 :::
 :::
 :::
@@ -2396,7 +2356,7 @@ modified to smaller value, e.g., 1e-7.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [8]:
 :::
 :::
 
@@ -2423,7 +2383,7 @@ modified to smaller value, e.g., 1e-7.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    converged SCF energy = -56.460544146164
+    converged SCF energy = -56.4605441461449
 :::
 :::
 :::
@@ -2437,7 +2397,7 @@ modified to smaller value, e.g., 1e-7.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [9]:
 :::
 :::
 
@@ -2574,66 +2534,62 @@ modified to smaller value, e.g., 1e-7.
 ::: highlight
     Number of parameters: 18 singles, 99 doubles, 117 total
     Optimizer exited successfully:  True
-    VQE Energy: -56.07492192212563
+    VQE Energy: -56.074426476013564
     VQE converged: True
             Running solver for induced moments.
-    0        --- Norm: 0.560904998895
-    1        --- Norm: 0.195464440561
+    0        --- Norm: 0.572318773112
+    1        --- Norm: 0.195666782676
             --- Turning on DIIS. ---
-    2        --- Norm: 0.080909047471
-    3        --- Norm: 0.014193006098
-    4        --- Norm: 0.004526458635
-    5        --- Norm: 0.001256746907
-    6        --- Norm: 0.000476278998
-    7        --- Norm: 0.000120262763
-    8        --- Norm: 0.000033369845
-    9        --- Norm: 0.000007548513
-    10        --- Norm: 0.000001932468
-    11        --- Norm: 0.000000513677
-    12        --- Norm: 0.000000251862
-    13        --- Norm: 0.000000062997
-    14        --- Norm: 0.000000031247
-    15        --- Norm: 0.000000008129
-    Cycle 1  E_tot = -56.4704454234038  dE = 56.4704
-    Polarizable embedding energy:  -0.29871334470788147
-    Expectation value of polarizable operator:  0.09681015657024516
+    2        --- Norm: 0.058807815273
+    3        --- Norm: 0.004497500472
+    4        --- Norm: 0.001129354225
+    5        --- Norm: 0.000151145045
+    6        --- Norm: 0.000019428764
+    7        --- Norm: 0.000005662408
+    8        --- Norm: 0.000001192387
+    9        --- Norm: 0.000000287622
+    10        --- Norm: 0.000000096234
+    11        --- Norm: 0.000000017752
+    12        --- Norm: 0.000000000869
+    Cycle 1  E_tot = -56.4699499241113  dE = 56.4699
+    Polarizable embedding energy:  -0.29871471196218335
+    Expectation value of polarizable operator:  0.09680873613553222
 
 
     Optimizer exited successfully:  True
-    VQE Energy: -56.074941291297016
+    VQE Energy: -56.0747318290178
     VQE converged: True
             Running solver for induced moments.
-    0        --- Norm: 0.578438887906
-    1        --- Norm: 0.186313099889
+    0        --- Norm: 0.583085290933
+    1        --- Norm: 0.192439703471
             --- Turning on DIIS. ---
-    2        --- Norm: 0.068418421402
-    3        --- Norm: 0.012730202853
-    4        --- Norm: 0.004094551612
-    5        --- Norm: 0.000999816754
-    6        --- Norm: 0.000319250864
-    7        --- Norm: 0.000077598802
-    8        --- Norm: 0.000023880904
-    9        --- Norm: 0.000008037391
-    10        --- Norm: 0.000001859332
-    11        --- Norm: 0.000000532803
-    12        --- Norm: 0.000000133206
-    13        --- Norm: 0.000000032446
-    14        --- Norm: 0.000000009283
-    Cycle 2  E_tot = -56.4704648912704  dE = 1.94679e-05
-    Polarizable embedding energy:  -0.2987133198747535
-    Expectation value of polarizable operator:  0.09681028009861878
+    2        --- Norm: 0.058661144548
+    3        --- Norm: 0.009395427087
+    4        --- Norm: 0.002471454205
+    5        --- Norm: 0.000527553904
+    6        --- Norm: 0.000241516685
+    7        --- Norm: 0.000076836446
+    8        --- Norm: 0.000018242378
+    9        --- Norm: 0.000004062313
+    10        --- Norm: 0.000000548254
+    11        --- Norm: 0.000000113972
+    12        --- Norm: 0.000000020099
+    13        --- Norm: 0.000000003720
+    Cycle 2  E_tot = -56.4703163016152  dE = 0.000366378
+    Polarizable embedding energy:  -0.29873969323969307
+    Expectation value of polarizable operator:  0.09684477935774831
 
 
 
 
     Final result:
-    Polarizable embedding energy:  -0.2987133198747535
-    Expectation value of polarizable operator:  0.09681028009861878
-    PE-VQE-UCCSD energy (L-BFGS-B)=  -56.47046489127038
-    Natural orbitals occupation number:  [ 2.00000000e+00  2.00000000e+00  1.99935887e+00  1.99541659e+00
-      1.99508319e+00  4.74450015e-03  4.36742635e-03  1.08093504e-03
-      4.89965694e-15  1.85085120e-15  1.30851294e-15  5.07383839e-16
-     -1.05732651e-15 -1.59225347e-15 -6.12772938e-15]
+    Polarizable embedding energy:  -0.29873969323969307
+    Expectation value of polarizable operator:  0.09684477935774831
+    PE-VQE-UCCSD energy (L-BFGS-B)=  -56.47031630161524
+    Natural orbitals occupation number:  [ 2.00000000e+00  2.00000000e+00  1.99882491e+00  1.99430107e+00
+      1.99358353e+00  6.17761982e-03  5.45028586e-03  1.66259058e-03
+      5.47510085e-15  4.43704250e-15  2.80529359e-15 -7.25382351e-17
+     -1.43637860e-15 -3.87660852e-15 -9.64429802e-15]
 :::
 :::
 :::
@@ -2641,7 +2597,7 @@ modified to smaller value, e.g., 1e-7.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [10]:
 :::
 :::
 
@@ -2658,7 +2614,7 @@ modified to smaller value, e.g., 1e-7.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 615d91910310605c83ea59f6afe6e7ae6dfecd28)
+    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 6c1896cbdaa429589f24c9af2dc74d170ba0b006)
 :::
 :::
 :::

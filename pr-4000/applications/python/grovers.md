@@ -517,25 +517,6 @@ pr-4000
             -   [Classically Diagonalize the Subspace
                 Matrix](hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
-    -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](logical_aim_sqale.html){.reference .internal}
-        -   [Performing logical Variational Quantum Eigensolver (VQE)
-            with
-            CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
-            .internal}
-        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
-            .literal .notranslate}]{.pre}
-            encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
-            .internal}
-        -   [Setting up submission and decoding
-            workflow](logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
-            .internal}
-        -   [Running a CUDA-Q noisy
-            simulation](logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
-            .internal}
-        -   [Running logical AIM on Infleqtion's
-            hardware](logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
-            .internal}
     -   [Spin-Hamiltonian Simulation Using
         CUDA-Q](hamiltonian_simulation.html){.reference .internal}
         -   [Introduction](hamiltonian_simulation.html#Introduction){.reference
@@ -671,27 +652,6 @@ pr-4000
         -   [Gate Fusion for Larger
             Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum Transformer](quantum_transformer.html){.reference
-        .internal}
-        -   [Installation](quantum_transformer.html#Installation){.reference
-            .internal}
-        -   [Algorithm and
-            Example](quantum_transformer.html#Algorithm-and-Example){.reference
-            .internal}
-            -   [Creating the self-attention
-                circuits](quantum_transformer.html#Creating-the-self-attention-circuits){.reference
-                .internal}
-        -   [Usage](quantum_transformer.html#Usage){.reference
-            .internal}
-            -   [Model
-                Training](quantum_transformer.html#Model-Training){.reference
-                .internal}
-            -   [Generating
-                Molecules](quantum_transformer.html#Generating-Molecules){.reference
-                .internal}
-            -   [Attention
-                Maps](quantum_transformer.html#Attention-Maps){.reference
-                .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](afqmc.html){.reference .internal}
         -   [Hamiltonian preparation for
@@ -2164,7 +2124,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![cacd0578afe943e89879eca091b886df](../../_images/grovers-2D-plane.png)
+![ce1eaa59be704f399dd2de7ec866a955](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2379,7 +2339,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![1bacb4fa3ec746a392d195864f969ed7](../../_images/grovers-steps1-3.png)
+![42d6a0af11b24591b7d07c173c2b2cfd](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2391,7 +2351,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![78e6fa0d6228424387682d9f0f2e192c](../../_images/grovers-full-rotation.png)
+![f9ba465361374d55b6c6128fe5d96ba8](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

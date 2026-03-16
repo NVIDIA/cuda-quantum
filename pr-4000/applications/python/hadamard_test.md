@@ -516,25 +516,6 @@ pr-4000
             -   [Classically Diagonalize the Subspace
                 Matrix](#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
-    -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](logical_aim_sqale.html){.reference .internal}
-        -   [Performing logical Variational Quantum Eigensolver (VQE)
-            with
-            CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
-            .internal}
-        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
-            .literal .notranslate}]{.pre}
-            encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
-            .internal}
-        -   [Setting up submission and decoding
-            workflow](logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
-            .internal}
-        -   [Running a CUDA-Q noisy
-            simulation](logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
-            .internal}
-        -   [Running logical AIM on Infleqtion's
-            hardware](logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
-            .internal}
     -   [Spin-Hamiltonian Simulation Using
         CUDA-Q](hamiltonian_simulation.html){.reference .internal}
         -   [Introduction](hamiltonian_simulation.html#Introduction){.reference
@@ -670,27 +651,6 @@ pr-4000
         -   [Gate Fusion for Larger
             Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum Transformer](quantum_transformer.html){.reference
-        .internal}
-        -   [Installation](quantum_transformer.html#Installation){.reference
-            .internal}
-        -   [Algorithm and
-            Example](quantum_transformer.html#Algorithm-and-Example){.reference
-            .internal}
-            -   [Creating the self-attention
-                circuits](quantum_transformer.html#Creating-the-self-attention-circuits){.reference
-                .internal}
-        -   [Usage](quantum_transformer.html#Usage){.reference
-            .internal}
-            -   [Model
-                Training](quantum_transformer.html#Model-Training){.reference
-                .internal}
-            -   [Generating
-                Molecules](quantum_transformer.html#Generating-Molecules){.reference
-                .internal}
-            -   [Attention
-                Maps](quantum_transformer.html#Attention-Maps){.reference
-                .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](afqmc.html){.reference .internal}
         -   [Hamiltonian preparation for
@@ -1877,7 +1837,7 @@ pr-4000
 Previous](hybrid_quantum_neural_networks.html "Hybrid Quantum Neural Networks"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](logical_aim_sqale.html "Anderson Impurity Model ground state solver on Infleqtion’s Sqale"){.btn
+aria-hidden="true"}](hamiltonian_simulation.html "Spin-Hamiltonian Simulation Using CUDA-Q"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2462,7 +2422,7 @@ non-orthogonal states.
 Previous](hybrid_quantum_neural_networks.html "Hybrid Quantum Neural Networks"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](logical_aim_sqale.html "Anderson Impurity Model ground state solver on Infleqtion’s Sqale"){.btn
+aria-hidden="true"}](hamiltonian_simulation.html "Spin-Hamiltonian Simulation Using CUDA-Q"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

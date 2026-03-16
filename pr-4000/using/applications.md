@@ -511,26 +511,6 @@ pr-4000
             -   [Classically Diagonalize the Subspace
                 Matrix](../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix){.reference
                 .internal}
-    -   [Anderson Impurity Model ground state solver on Infleqtion's
-        Sqale](../applications/python/logical_aim_sqale.html){.reference
-        .internal}
-        -   [Performing logical Variational Quantum Eigensolver (VQE)
-            with
-            CUDA-QX](../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
-            .internal}
-        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
-            .literal .notranslate}]{.pre}
-            encoding](../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
-            .internal}
-        -   [Setting up submission and decoding
-            workflow](../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow){.reference
-            .internal}
-        -   [Running a CUDA-Q noisy
-            simulation](../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation){.reference
-            .internal}
-        -   [Running logical AIM on Infleqtion's
-            hardware](../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware){.reference
-            .internal}
     -   [Spin-Hamiltonian Simulation Using
         CUDA-Q](../applications/python/hamiltonian_simulation.html){.reference
         .internal}
@@ -673,28 +653,6 @@ pr-4000
         -   [Gate Fusion for Larger
             Circuits](../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
-    -   [Quantum
-        Transformer](../applications/python/quantum_transformer.html){.reference
-        .internal}
-        -   [Installation](../applications/python/quantum_transformer.html#Installation){.reference
-            .internal}
-        -   [Algorithm and
-            Example](../applications/python/quantum_transformer.html#Algorithm-and-Example){.reference
-            .internal}
-            -   [Creating the self-attention
-                circuits](../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits){.reference
-                .internal}
-        -   [Usage](../applications/python/quantum_transformer.html#Usage){.reference
-            .internal}
-            -   [Model
-                Training](../applications/python/quantum_transformer.html#Model-Training){.reference
-                .internal}
-            -   [Generating
-                Molecules](../applications/python/quantum_transformer.html#Generating-Molecules){.reference
-                .internal}
-            -   [Attention
-                Maps](../applications/python/quantum_transformer.html#Attention-Maps){.reference
-                .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](../applications/python/afqmc.html){.reference .internal}
         -   [Hamiltonian preparation for
@@ -2085,20 +2043,6 @@ backend to evaluate execution on multiple simulated QPUs in parallel.
 Preview](../_static/app_title_images/hadamard_preview.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="chemistry,qec,qpu,neutral,collab"}
-[The Anderson Impurity Model With Logical
-Qubits](../applications/python/logical_aim_sqale.html){.notebook-title}
-
-::: notebook-content
-A collaboration between NVIDIA and Infleqtion demonstrated a logical
-qubit workflow built in CUDA-Q and executed on the Infleqtion\'s neutral
-atom QPU. (https://arxiv.org/abs/2412.07670)
-:::
-
-![AIM
-Preview](../_static/app_title_images/aim_preview.png){.notebook-image}
-:::
-
 ::: {.notebook-entry tags="fundamental,noiseless,gpu"}
 [Trotterized Hamiltonian
 Simulation](../applications/python/hamiltonian_simulation.html){.notebook-title}
@@ -2200,20 +2144,6 @@ optimizations like gate fusion.
 
 ![VQE
 Preview](../_static/app_title_images/vqe_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="chemistry,collab,qforai,noiseless,gpu"}
-[Quantum Transformer Model for Generating
-Molecules](../applications/python/quantum_transformer.html){.notebook-title}
-
-::: notebook-content
-Learn how to implement a hybrid quantum transformer model for generating
-molecules. The tutorial is based off a collaboration between NVIDIA and
-Yale. (https://arxiv.org/pdf/2502.19214)
-:::
-
-![Transformer
-Preview](../_static/app_title_images/quantum_transformer_preview.png){.notebook-image}
 :::
 
 ::: {.notebook-entry tags="chemistry,noiseless,gpu,collab"}
@@ -2369,7 +2299,7 @@ method for sampling from noisy quantum circuits. Rather than simulating
 the full density matrix, PTSBE pre-samples unique noise trajectories and
 batches many shots across them, yielding orders-of-magnitude speedups
 for large shot counts. Based on the SC25 paper by Patti et al.
-(https://dl.acm.org/doi/epdf/10.1145/3712285.3759871).
+(https://arxiv.org/abs/2504.16297).
 :::
 :::
 
