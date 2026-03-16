@@ -20,7 +20,7 @@ This release includes the first 0.1.0 version of CUDA-Q Realtime. CUDA-Q Realtim
 
 0.14.0 adds support for Pre-Trajectory Sampling with Batch Execution (PTSBE). PTSBE can be used to capture millions of times more noisy shot data, which can then be used as training data in ML tasks such as AI decoders, or it can be deployed proportionally, capturing the exact statistics of the problem while still offering a considerable speedup. For more information, see our `docs <https://nvidia.github.io/cuda-quantum/0.14.0/using/examples/ptsbe.html>`__ and `applications <https://nvidia.github.io/cuda-quantum/0.14.0/applications/python/ptsbe_end_to_end_workflow.html>`__.
 
-Starting with version 0.14.0, we now also distribute Mac wheels on PyPI, and have made the C++ installer usable without root privileges. 
+Starting with version 0.14.0, we now also distribute MacOS wheels on PyPI, and have made the C++ installer usable without root privileges. 
 Additionally, we have completely overhauled the Python compiler. 
 
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__

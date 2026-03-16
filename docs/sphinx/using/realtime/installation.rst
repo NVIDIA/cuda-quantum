@@ -6,9 +6,9 @@ We provide pre-built installers for CUDA-Q Realtime that can be downloaded from 
 The binaries are available for `x86_64`, and `ARM64` Linux system with CUDA Versions 12.6+ (Driver 560.35.05+) and 13.x (Driver 580.65.06+). Instructions for building CUDA-Q Realtime from source can be found on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/docs/>`__.
 
 CUDA-Q Realtime has been tested with the following NVIDIA products:
-- `NVIDIA IGX Thor <https://www.nvidia.com/en-au/edge-computing/products/igx/>`_
-- `NVIDIA GB200 <https://www.nvidia.com/en-us/products/workstations/gb200-developer-kit/>`
-- `NVIDIA DGX Spark <https://www.nvidia.com/en-us/products/workstations/dgx-spark/>`_
+- `NVIDIA IGX Thor <https://www.nvidia.com/en-au/edge-computing/products/igx/>`__
+- `NVIDIA GB200 <https://www.nvidia.com/en-us/products/workstations/gb200-developer-kit/>`__
+- `NVIDIA DGX Spark <https://www.nvidia.com/en-us/products/workstations/dgx-spark/>`__
 
 Prerequisites
 ---------------------

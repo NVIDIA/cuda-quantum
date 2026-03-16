@@ -74,6 +74,7 @@ MPI
 MPICH
 MPS
 MSB
+MacOS
 Mandel
 Max-Cut
 Miniconda
