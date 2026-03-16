@@ -108,9 +108,49 @@ public:
         continue;
       }
       if (isa<quake::StruqType>(argTy)) {
-        // Note: must be a make_struq and have specified size.
-        LLVM_DEBUG(llvm::dbgs() << argTy << " not yet implemented.\n");
-        return failure();
+        auto mkStruq = arg.getDefiningOp<quake::MakeStruqOp>();
+        if (!mkStruq) {
+          LLVM_DEBUG(llvm::dbgs() << arg << " is not a make_struq.\n");
+          return failure();
+        }
+        std::size_t cableSize = 0;
+        SmallVector<Value> unwraps;
+        for (auto strArg : mkStruq.getVeqs()) {
+          auto strArgTy = strArg.getType();
+          if (isa<quake::RefType>(strArgTy)) {
+            unwraps.push_back(
+                rewriter.create<quake::UnwrapOp>(loc, wireTy, strArg));
+            cableSize++;
+            continue;
+          }
+          if (auto veqTy = dyn_cast<quake::VeqType>(strArgTy)) {
+            if (auto relax = strArg.getDefiningOp<quake::RelaxSizeOp>())
+              strArg = relax.getInputVec();
+            auto concat = strArg.getDefiningOp<quake::ConcatOp>();
+            if (!concat) {
+              LLVM_DEBUG(llvm::dbgs() << arg << " is not a concat.\n");
+              return failure();
+            }
+            for (auto carg : concat.getTargets())
+              if (carg.getType() != refTy) {
+                LLVM_DEBUG(llvm::dbgs()
+                           << concat << " must have ref arguments.\n");
+                return failure();
+              }
+            cableSize += concat.getTargets().size();
+            for (auto carg : concat.getTargets())
+              unwraps.push_back(
+                  rewriter.create<quake::UnwrapOp>(loc, wireTy, carg));
+            continue;
+          }
+          LLVM_DEBUG(llvm::dbgs() << strArg << " is not supported.\n");
+          return failure();
+        }
+        auto cableTy = quake::CableType::get(ctx, cableSize);
+        newArgs.push_back(
+            rewriter.create<quake::BundleCableOp>(loc, cableTy, unwraps));
+        resultTys.push_back(cableTy);
+        continue;
       }
       // Pass non-quantum arguments as-is.
       newArgs.push_back(arg);
@@ -146,7 +186,36 @@ public:
           rewriter.create<quake::WrapOp>(loc, wire, concatTargs[j]);
       }
       if (isa<quake::StruqType>(argTy)) {
-        // TODO
+        auto mkStruq = arg.getDefiningOp<quake::MakeStruqOp>();
+        const std::size_t cableSize =
+            cast<quake::CableType>(resultTys[i]).getSize();
+        SmallVector<Type> wireTys(cableSize);
+        std::fill(wireTys.begin(), wireTys.end(), wireTy);
+        auto split =
+            rewriter.create<quake::SplitCableOp>(loc, wireTys, results[i++]);
+        std::size_t j = 0;
+        SmallVector<Value> splitResults{split.getResults().begin(),
+                                        split.getResults().end()};
+        for (auto strArg : mkStruq.getVeqs()) {
+          auto strArgTy = strArg.getType();
+          if (isa<quake::RefType>(strArgTy)) {
+            rewriter.create<quake::WrapOp>(loc, splitResults[j++], strArg);
+            continue;
+          }
+          if (isa<quake::VeqType>(strArgTy)) {
+            if (auto relax = strArg.getDefiningOp<quake::RelaxSizeOp>())
+              strArg = relax.getInputVec();
+            auto concat = strArg.getDefiningOp<quake::ConcatOp>();
+            SmallVector<Value> concatTargs{concat.getTargets().begin(),
+                                           concat.getTargets().end()};
+            for (std::size_t k = 0, K = concatTargs.size(); k < K; ++k)
+              rewriter.create<quake::WrapOp>(loc, splitResults[j++],
+                                             concatTargs[k]);
+            continue;
+          }
+          LLVM_DEBUG(llvm::dbgs() << strArg << " is not supported.\n");
+          return failure();
+        }
       }
     }
 
