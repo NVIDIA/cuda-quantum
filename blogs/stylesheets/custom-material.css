@@ -119,6 +119,17 @@
     padding: 0.75em 1em;
   }
   
+  /* Figures */
+  .md-typeset figure {
+    width: 100%;
+    margin: 1.5em 0;
+  }
+
+  .md-typeset figure figcaption {
+    text-align: left;
+    max-width: 100%;
+  }
+
   /* Images */
   .md-typeset img {
     /* border: 1px solid var(--md-default-fg-color--lighter); */
