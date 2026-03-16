@@ -121,8 +121,6 @@ Submitting
 
 
 To see a complete example, take a look at :ref:`Infleqtion examples <infleqtion-examples>`.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
-:doc:`Anderson Impurity Model ground state solver <../../../applications/python/logical_aim_sqale>` notebook.
 
 .. note:: 
 
@@ -297,8 +295,8 @@ Submitting via QRMI
 CUDA-Q's ``pasqal`` target supports routing Pasqal jobs through the vendor-agnostic
 Quantum Resource Management Interface (QRMI), by specifying ``machine`` as ``qrmi``.
 This enables integration with resource managers like Slurm for scheduling.
-Select the Pasqal backend with the ``--qpu`` option in ``sbatch`` and let QRMI
-handle submission.
+When configuring Slurm, select the Pasqal backend with the ``--qpu`` option in ``sbatch``
+and let QRMI handle submission.
 
 For this route, credentials and project ID are read by QRMI using either
 ``~/.pasqal/config`` or other methods supported by your cluster's QRMI setup.
