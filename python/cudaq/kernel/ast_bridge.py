@@ -2317,7 +2317,7 @@ class PyASTBridge(ast.NodeVisitor):
         return None
 
     def __expandCustomOpTargets(self, pyArgs, numTargets, node):
-        """Collect qubit references for a custom operation call, expanding qvector
+        """Collect qubit references for a custom operation call, expanding `qvector`
         arguments into individual references.
         """
         targets = []
