@@ -238,9 +238,17 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
-  // Unified mode uses Hololink's forward/symmetric ring layout but doesn't
-  // run any Hololink kernels -- the unified dispatch kernel handles RX+TX.
-  bool use_forward_ring = config.forward || config.unified;
+  // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
+  // thread.  Hololink's blocking_monitor() starts this thread alongside its
+  // kernels.  For unified mode on iGPU we need the CPU proxy but NOT the
+  // hololink kernels, so we pass (false, false, false) -- blocking_monitor
+  // will start only the CPU proxy thread.  On dGPU, no CPU proxy is needed
+  // and we use forward=true to get 64-deep receive pre-posting from start().
+  bool is_igpu = (prop.integrated != 0);
+  bool unified_igpu = config.unified && is_igpu;
+
+  bool use_forward = config.forward || (config.unified && !is_igpu);
+  bool use_3kernel = !config.forward && !config.unified;
 
   hololink_transceiver_t transceiver = hololink_create_transceiver(
       config.device.c_str(), 1, // ib_port
@@ -248,9 +256,9 @@ inline int bridge_run(BridgeConfig &config) {
       config.gpu_id,            // DOCA GPU device ID
       config.frame_size, config.page_size, config.num_pages,
       config.peer_ip.c_str(),   // immediate connection
-      use_forward_ring ? 1 : 0, // forward (symmetric ring layout)
-      use_forward_ring ? 0 : 1, // rx_only
-      use_forward_ring ? 0 : 1  // tx_only
+      use_forward ? 1 : 0,      // forward
+      use_3kernel ? 1 : 0,      // rx_only
+      use_3kernel ? 1 : 0       // tx_only
   );
 
   if (!transceiver) {
@@ -269,6 +277,19 @@ inline int bridge_run(BridgeConfig &config) {
 
   // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
   BRIDGE_CUDA_CHECK(cudaSetDevice(config.gpu_id));
+
+  // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
+  // was created with forward=false, rx_only=false, tx_only=false).  Call the
+  // prepare kernel here so the NIC has receive buffers before any packets
+  // arrive.
+  if (unified_igpu) {
+    if (!hololink_prepare_receive_send(transceiver, config.frame_size)) {
+      std::cerr << "ERROR: Failed to pre-post receive WQEs" << std::endl;
+      hololink_destroy_transceiver(transceiver);
+      return 1;
+    }
+    std::cout << "  Pre-posted receive WQEs (iGPU unified mode)" << std::endl;
+  }
 
   std::cout << "  QP connected to remote peer" << std::endl;
 
@@ -393,6 +414,7 @@ inline int bridge_run(BridgeConfig &config) {
       unified_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
       unified_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
       unified_ctx.frame_size = config.frame_size;
+      unified_ctx.use_bf = is_igpu ? 0 : 1;
 
       if (cudaq_dispatcher_set_unified_launch(dispatcher,
                                               &hololink_launch_unified_dispatch,
@@ -455,9 +477,15 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::thread hololink_thread;
 
-  if (config.unified) {
-    std::cout << "\n[5/5] Unified mode -- Hololink kernels not needed"
+  if (config.unified && !unified_igpu) {
+    std::cout << "\n[5/5] Unified mode (dGPU) -- Hololink kernels not needed"
               << std::endl;
+  } else if (unified_igpu) {
+    std::cout << "\n[5/5] Unified mode (iGPU) -- starting Hololink monitor "
+              << "(CPU proxy only, no hololink kernels)" << std::endl;
+    hololink_thread = std::thread(
+        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   } else {
     std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
     hololink_thread = std::thread(

@@ -26,9 +26,14 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include <doca_error.h>
+#include <endian.h>
 #include <iostream>
 
 extern "C" cudaError_t GpuRoceTransceiverQueryOccupancy(int *, int *, int *);
+extern "C" doca_error_t GpuRoceTransceiverPrepareKernel(
+    cudaStream_t stream, struct doca_gpu_dev_verbs_qp *qp, size_t frame_size,
+    uint32_t cu_page_mkey, uint32_t cuda_blocks, uint32_t cuda_threads);
 
 using namespace hololink::operators;
 
@@ -193,4 +198,25 @@ unsigned hololink_get_num_pages(hololink_transceiver_t handle) {
     return impl->transceiver->get_rx_ring_stride_num();
   }
   return 0;
+}
+
+int hololink_prepare_receive_send(hololink_transceiver_t handle,
+                                  size_t frame_size) {
+  if (!handle)
+    return 0;
+  auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+  auto *qp = static_cast<struct doca_gpu_dev_verbs_qp *>(
+      impl->transceiver->get_doca_gpu_dev_qp(0));
+  if (!qp)
+    return 0;
+  uint32_t mkey = htobe32(impl->transceiver->get_rkey());
+  doca_error_t err =
+      GpuRoceTransceiverPrepareKernel(0, qp, frame_size, mkey, 1, 64);
+  if (err != DOCA_SUCCESS) {
+    std::cerr << "ERROR: GpuRoceTransceiverPrepareKernel failed: "
+              << doca_error_get_descr(err) << std::endl;
+    return 0;
+  }
+  cudaStreamSynchronize(0);
+  return 1;
 }

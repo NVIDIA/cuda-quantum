@@ -111,6 +111,19 @@ size_t hololink_get_page_size(hololink_transceiver_t handle);
 /** Get the number of pages (slots) configured for this transceiver. */
 unsigned hololink_get_num_pages(hololink_transceiver_t handle);
 
+/**
+ * Pre-post receive WQEs and initialize the send WQE template.
+ *
+ * Calls GpuRoceTransceiverPrepareKernel with the transceiver's GPU QP,
+ * frame_size, and RX ring rkey.  Use this when start() didn't call the
+ * prepare kernel (e.g. unified mode on iGPU with forward=false).
+ *
+ * @param frame_size  Actual frame/payload size for send WQE setup
+ * @return 1 on success, 0 on failure
+ */
+int hololink_prepare_receive_send(hololink_transceiver_t handle,
+                                  size_t frame_size);
+
 #ifdef __cplusplus
 }
 #endif
