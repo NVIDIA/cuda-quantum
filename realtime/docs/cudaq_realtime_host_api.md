@@ -166,7 +166,7 @@ buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
 registers before the handler runs.
 
 For example, the Hololink/`DOCA` transport implementation polls a `DOCA` completion
-queue (CQ) in step 1, sends via `DOCA` `BlueFlame` in step 5, and reposts a `DOCA`
+queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
 receive `WQE` in step 6.  Other transports would substitute their own receive and
 send primitives.
 
