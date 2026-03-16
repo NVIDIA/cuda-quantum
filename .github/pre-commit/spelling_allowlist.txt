@@ -320,6 +320,7 @@ performant
 photonic
 photonics
 pipelined
+pluggable
 precompute
 precomputed
 prepend
