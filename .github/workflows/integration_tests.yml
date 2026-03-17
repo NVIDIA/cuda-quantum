@@ -423,9 +423,9 @@ jobs:
               ;;
             tii)
               echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
-              echo "::add-mask::${{ secrets.TII_AUTH_TOKEN }}"
+              echo "::add-mask::${{ secrets.TII_API_TOKEN }}"
               echo "::add-mask::${{ secrets.TII_PROJECT }}"
-              echo "TII_AUTH_TOKEN=${{ secrets.TII_AUTH_TOKEN }}" >> $GITHUB_ENV
+              echo "TII_API_TOKEN=${{ secrets.TII_API_TOKEN }}" >> $GITHUB_ENV
               echo "TII_PROJECT=${{ secrets.TII_PROJECT }}" >> $GITHUB_ENV
               ;;
           esac
@@ -643,10 +643,26 @@ jobs:
                   python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":white_check_mark: Successfully ran test: $filename  (direct execution)" >> $GITHUB_STEP_SUMMARY
                   else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":x: Test failed (failed to execute): $filename (direct execution)" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
+                  fi
+                  if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
+                     [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
+                    PASQAL_MACHINE_TARGET=qrmi \
+                    SLURM_JOB_QPU_RESOURCES=EMU_FREE \
+                    EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
+                    python3 "$filename" 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":information_source: Skipped QRMI test for $filename (QRMI not available in this build)" >> $GITHUB_STEP_SUMMARY
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -677,7 +693,7 @@ jobs:
                 if [[ "$filename" == *.cpp ]]; then
                   if [[ "$filename" == *"quantinuum_ng/"* ]]; then
                     echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
-                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 15 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 26 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
                   else
                     echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
                     nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}

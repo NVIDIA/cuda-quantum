@@ -60,8 +60,7 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
             "Invalid `shots_count`. Must be a non-negative number.")
 
     processedArgs, module = decorator.prepare_call(*args)
-    retTy = decorator.get_none_type()
-    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module, retTy,
+    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
                                   shots_count, noise_model, qpu_id,
                                   *processedArgs)
 
@@ -117,9 +116,8 @@ Returns:
                              " or hardware QPU.")
 
     processedArgs, module = decorator.prepare_call(*args)
-    retTy = decorator.get_none_type()
     async_results = cudaq_runtime.run_async_impl(decorator.uniqName + ".run",
-                                                 module, retTy, shots_count,
+                                                 module, shots_count,
                                                  noise_model, qpu_id,
                                                  *processedArgs)
     return AsyncRunResult(async_results, module)

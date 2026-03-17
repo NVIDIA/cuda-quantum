@@ -134,7 +134,8 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                "accept 1D or 2D arrays");
 
     isDm = extents.size() == 2;
-    size = std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+    size = std::reduce(extents.begin(), extents.end(), std::size_t{1},
+                       std::multiplies());
     dataPtr = const_cast<void *>(ptr);
   }
   std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
@@ -245,8 +246,8 @@ void CuDensityMatState::destroyState() {
 
 static size_t
 calculate_state_vector_size(const std::vector<int64_t> &hilbertSpaceDims) {
-  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(), 1,
-                         std::multiplies<>());
+  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
+                         std::size_t{1}, std::multiplies<>());
 }
 
 static size_t

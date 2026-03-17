@@ -36,16 +36,17 @@ using namespace cudaq;
 /// (cudaq.ptsbe.sample) and passed here as positional parameters.
 static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
-              MlirType returnTy, std::size_t shots_count,
-              noise_model noiseModel,
+              std::size_t shots_count, noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
               py::object sampling_strategy, py::object shot_allocation_obj,
-              bool return_execution_data, py::args runtimeArgs) {
+              bool return_execution_data, bool include_sequential_data,
+              py::args runtimeArgs) {
   if (shots_count == 0)
     return ptsbe::sample_result();
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
+  ptsbe_options.include_sequential_data = include_sequential_data;
   ptsbe_options.max_trajectories = max_trajectories;
 
   if (!sampling_strategy.is_none())
@@ -58,7 +59,6 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
-  auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
 
   platform.set_noise(&noiseModel);
@@ -71,7 +71,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
-              clean_launch_module(shortName, mod, retTy, opaques);
+              clean_launch_module(shortName, mod, opaques);
         },
         platform, shortName, shots_count, ptsbe_options);
   } catch (const std::exception &e) {
@@ -106,14 +106,15 @@ struct AsyncPTSBESampleResultImpl {
 /// @brief Run PTSBE sampling asynchronously from Python.
 static AsyncPTSBESampleResultImpl
 pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
-                   MlirType returnTy, std::size_t shots_count,
-                   noise_model &noiseModel,
+                   std::size_t shots_count, noise_model &noiseModel,
                    std::optional<std::size_t> max_trajectories,
                    py::object sampling_strategy, py::object shot_allocation_obj,
-                   bool return_execution_data, py::args runtimeArgs) {
+                   bool return_execution_data, bool include_sequential_data,
+                   py::args runtimeArgs) {
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
+  ptsbe_options.include_sequential_data = include_sequential_data;
   ptsbe_options.max_trajectories = max_trajectories;
 
   if (!sampling_strategy.is_none())
@@ -126,7 +127,6 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
-  auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
 
   auto fnOp = getKernelFuncOp(mod, shortName);
@@ -137,10 +137,9 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   // Release GIL before launching async C++ work
   py::gil_scoped_release release;
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
-      [opaques = std::move(opaques), kernelName, retTy,
-       mod = mod.clone()]() mutable {
+      [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, retTy, opaques);
+            clean_launch_module(kernelName, mod, opaques);
       },
       platform, kernelName, shots_count, ptsbe_options, /*qpu_id=*/0,
       noiseModel));
@@ -188,9 +187,9 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
            "CUDA-Q's global random seed.")
       .def_readwrite("type", &ptsbe::ShotAllocationStrategy::type,
                      "The allocation strategy type.")
-      .def_readwrite("bias_strength",
-                     &ptsbe::ShotAllocationStrategy::bias_strength,
-                     "Bias factor for weighted strategies (default: 2.0).");
+      .def_readwrite(
+          "bias_strength", &ptsbe::ShotAllocationStrategy::bias_strength,
+          "Bias factor for weighted strategies. Default value is 2.0.");
 
   // Concrete strategies
   py::class_<ptsbe::ProbabilisticSamplingStrategy, ptsbe::PTSSamplingStrategy,
@@ -360,7 +359,7 @@ void cudaq::bindSamplePTSBE(py::module &mod) {
 
   // PTSBE sample result (subclass of sample_result)
   py::class_<ptsbe::sample_result, sample_result>(
-      ptsbe, "SampleResult",
+      ptsbe, "PTSBESampleResult",
       "PTSBE sample result with optional execution data.")
       .def_property_readonly(
           "ptsbe_execution_data",
@@ -401,10 +400,11 @@ Args:
   sampling_strategy: Sampling strategy or None for default (probabilistic).
   shot_allocation: Shot allocation strategy or None for default (proportional).
   return_execution_data: Whether to include execution data in the result.
+  include_sequential_data: Whether to populate per-shot sequential data.
   *arguments: The kernel arguments.
 
 Returns:
-  SampleResult with optional PTSBE execution data.
+  PTSBESampleResult with optional PTSBE execution data.
 )pbdoc");
 
   // PTSBE async sample implementation

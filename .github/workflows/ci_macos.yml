@@ -5,6 +5,11 @@ on:
         required: false
         type: string
         default: main
+      cudaq_version:
+        required: false
+        type: string
+        description: 'Override version for wheel/installer (e.g. when called from deployments for a release).'
+        default: ''
   # Daily rebuild on main to ensure devdeps rebuilt as needed
   schedule:
     - cron: '0 4 * * *'  # aim to be ready by 9am CET/CEST
@@ -65,11 +70,16 @@ jobs:
 
       - id: version
         run: |
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          if [ -n "${{ inputs.cudaq_version }}" ]; then
+            cudaq_version=$(echo "${{ inputs.cudaq_version }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)
+            cudaq_version=${cudaq_version:-0.0.0}
           else
-            cudaq_version=0.0.0
+            is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+            if ${is_versioned}; then
+              cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+            else
+              cudaq_version=0.0.0
+            fi
           fi
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
 

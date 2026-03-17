@@ -121,8 +121,6 @@ Submitting
 
 
 To see a complete example, take a look at :ref:`Infleqtion examples <infleqtion-examples>`.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
-:doc:`Anderson Impurity Model ground state solver <../../../applications/python/logical_aim_sqale>` notebook.
 
 .. note:: 
 
@@ -142,8 +140,8 @@ arrays to bring a practical quantum advantage to its customers and address real-
 The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
 portal.
 
-In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
-and an active project. Please see our `cloud documentation <https://docs.pasqal.cloud/cloud/>`__ for more details if needed.
+In order to access Pasqal's devices you to sign up for an account on
+`Pasqal's cloud platform <https://portal.pasqal.cloud>`__.
 
 Although a different SDK, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
 resource for getting started with analog neutral atom quantum computing.
@@ -164,8 +162,8 @@ For example from Python one can use the `pasqal-cloud package <https://github.co
     import os
 
     sdk = SDK(
-        username=os.environ.get['PASQAL_USERNAME'],
-        password=os.environ.get('PASQAL_PASSWORD', None)
+        username=os.environ.get('PASQAL_USERNAME'),
+        password=os.environ.get('PASQAL_PASSWORD', None) # Ensures you will be securely prompted
     )
 
     token = sdk.user_token()
@@ -179,6 +177,21 @@ Alternatively, users can set the following environment variables directly.
 
   export PASQAL_AUTH_TOKEN=<>
   export PASQAL_PROJECT_ID=<>
+
+Pasqal via QRMI
+```````````````
+
+CUDA-Q's ``pasqal`` target for routing Pasqal jobs through the vendor agnostic
+Quantum Resource Management Interface (QRMI), by specifying ``machine`` as ``qrmi``.
+This target enables integration with resource managers like Slurm for scheduling.
+Select the Pasqal backend with the ``--qpu`` option in ``sbatch`` and let QRMI
+handle submission.
+
+
+For this route, credentials and project id are read by QRMI using either
+``~/.pasqal/config`` or other methods supported by your cluster's QRMI setup.
+
+The job submission process is the same as for the ``pasqal`` target. For example:
 
 
 Submitting
