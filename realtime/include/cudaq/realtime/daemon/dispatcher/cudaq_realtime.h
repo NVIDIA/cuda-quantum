@@ -45,7 +45,7 @@ typedef enum {
 // RPC wire-format constants (must match dispatch_kernel_launch.h).
 #define CUDAQ_RPC_MAGIC_REQUEST  0x43555152u /* 'CUQR' */
 #define CUDAQ_RPC_MAGIC_RESPONSE 0x43555153u /* 'CUQS' */
-#define CUDAQ_RPC_HEADER_SIZE    12u         /* 3 x uint32_t */
+#define CUDAQ_RPC_HEADER_SIZE    24u         /* sizeof(RPCHeader): 4 x uint32_t + 1 x uint64_t */
 
 // Kernel synchronization type
 typedef enum {
