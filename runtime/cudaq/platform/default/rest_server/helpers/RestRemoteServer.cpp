@@ -9,6 +9,7 @@
 #include "common/FmtCore.h"
 #include "common/JIT.h"
 #include "common/JsonConvert.h"
+#include "common/PassPipelineLogging.h"
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
@@ -453,7 +454,8 @@ protected:
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
             ").");
-
+            
+      cudaq::maybeLogPassPipeline(pm, "rest-jit");
       if (failed(pm.run(module)))
         throw std::runtime_error(
             "Remote rest platform: applying IR passes failed.");

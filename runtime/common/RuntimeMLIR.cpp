@@ -8,6 +8,7 @@
 
 #include "RuntimeMLIR.h"
 #include "common/CodeGenConfig.h"
+#include "common/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -428,6 +429,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
+  cudaq::maybeLogPassPipeline(pm, qirProfile);
   if (failed(pm.run(op)))
     return failure();
   if (auto mod = dyn_cast<ModuleOp>(op))
@@ -594,6 +596,7 @@ static void registerToOpenQASMTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
+        cudaq::maybeLogPassPipeline(pm, "qasm2");
         if (failed(pm.run(op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
@@ -625,6 +628,7 @@ static void registerToIQMJsonTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
+        cudaq::maybeLogPassPipeline(pm, "iqm");
         if (failed(pm.run(op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();

@@ -8,6 +8,7 @@
 
 #include "JIT.h"
 #include "common/Environment.h"
+#include "common/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -299,6 +300,7 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
+    cudaq::maybeLogPassPipeline(pm, "createQIRJITEngine");
     if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
       throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "

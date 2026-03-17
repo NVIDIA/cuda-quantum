@@ -11,6 +11,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
+#include "common/PassPipelineLogging.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
@@ -205,6 +206,7 @@ public:
         moduleOp.getContext()->disableMultithreading();
         pm.enableIRPrinting();
       }
+      cudaq::maybeLogPassPipeline(pm, name + ":" + passName + "-synth");
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply " + passName +
                                  " synth.");
@@ -247,6 +249,7 @@ public:
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
+    cudaq::maybeLogPassPipeline(pm, name + ":client");
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
           "Remote rest platform: applying IR passes failed.");
@@ -300,6 +303,7 @@ public:
     mlir::PassManager pm(ctx);
     // For now, the server side expects full-QIR.
     opt::addAOTPipelineConvertToQIR(pm);
+    cudaq::maybeLogPassPipeline(pm, name + ":aot-qir");
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(

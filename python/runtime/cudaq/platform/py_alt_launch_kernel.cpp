@@ -12,6 +12,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
+#include "common/PassPipelineLogging.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -1079,6 +1080,7 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
+  cudaq::maybeLogPassPipeline(pm, "python-jit-argument-synth");
   if (failed(pm.run(cloned))) {
     engine.eraseHandler(handlerId);
     throw std::runtime_error(
@@ -1112,6 +1114,7 @@ static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
+  cudaq::maybeLogPassPipeline(pm, "python-jit");
 
   if (failed(pm.run(mod))) {
     engine.eraseHandler(handlerId);
@@ -1131,6 +1134,7 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     PassManager pm(ctx);
     std::string transport = getTransportLayer();
     cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
+    cudaq::maybeLogPassPipeline(pm, "python-aot-qir");
     executeMLIRPassManager(mod, pm);
     return mod;
   }
@@ -1273,6 +1277,7 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
                 true));
+        cudaq::maybeLogPassPipeline(pm, "python-synth-callable");
         if (failed(pm.run(m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");
