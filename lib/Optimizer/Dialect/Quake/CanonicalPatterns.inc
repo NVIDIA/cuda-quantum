@@ -243,7 +243,8 @@ public:
     if (!subveq)
       return failure();
     // Let the combining of back-to-back subveq ops happen first.
-    if (isa<quake::SubVeqOp>(subveq.getVeq().getDefiningOp()))
+    auto subsub = subveq.getVeq().getDefiningOp<quake::SubVeqOp>();
+    if (subsub)
       return failure();
 
     Value offset;

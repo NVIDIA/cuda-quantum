@@ -500,7 +500,7 @@ def FactorQuantumAllocations :
     If the function contains deallocations of quantum vectors (`veq`), these
     will be replaced with a series of deallocations.
   }];
-  let dependentDialects = ["quake::QuakeDialect"];
+  let dependentDialects = ["quake::QuakeDialect", "cudaq::cc::CCDialect"];
 
   let options = [
     Option<"enableFailures", "enable-failures", "bool", /*default=*/"false",
