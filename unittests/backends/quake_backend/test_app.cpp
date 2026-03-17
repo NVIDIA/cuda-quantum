@@ -8,11 +8,18 @@
 
 #include <cudaq.h>
 
+extern "C" {
+// Device call declarations
+int add_op(int a, int b);
+int sub_op(int a, int b);
+int mul_op(int a, int b);
+}
+
 __qpu__ int random_bit_add(int a, int b) {
   cudaq::qubit q;
   // Hadamard to create superposition
   h(q);
-  int result = cudaq::device_call<int>(/*device_id*/ 0, "add_op", a, b);
+  int result = cudaq::device_call(/*device_id*/ 0, add_op, a, b);
   return mz(q) + result;
 }
 
@@ -20,7 +27,7 @@ __qpu__ int random_bit_minus(int a, int b) {
   cudaq::qubit q;
   // Hadamard to create superposition
   h(q);
-  int result = cudaq::device_call<int>(/*device_id*/ 0, "sub_op", a, b);
+  int result = cudaq::device_call(/*device_id*/ 0, sub_op, a, b);
   return mz(q) + result;
 }
 
@@ -28,17 +35,7 @@ __qpu__ int random_bit_multiply(int a, int b) {
   cudaq::qubit q;
   // Hadamard to create superposition
   h(q);
-  int result = cudaq::device_call<int>(/*device_id*/ 0, "mul_op", a, b);
-  return mz(q) + result;
-}
-
-__qpu__ int random_bit_invalid(int a, int b) {
-  cudaq::qubit q;
-  // Hadamard to create superposition
-  h(q);
-  // This is an unknown operation that the server won't recognize, which should
-  // trigger error handling.
-  int result = cudaq::device_call<int>(/*device_id*/ 0, "invalid_op", a, b);
+  int result = cudaq::device_call(/*device_id*/ 0, mul_op, a, b);
   return mz(q) + result;
 }
 
@@ -103,26 +100,5 @@ int main() {
     }
   }
 
-  try {
-    auto results = cudaq::run(100, random_bit_invalid, 1, 2);
-    std::cerr
-        << "Expected random_bit_invalid to throw an exception, but it did not."
-        << std::endl;
-    return 1;
-  } catch (const std::exception &e) {
-    std::string expectedMessagePart =
-        "Function invalid_op not found in JIT engine.";
-    if (std::string(e.what()).find(expectedMessagePart) == std::string::npos) {
-      std::cerr << "random_bit_invalid threw an exception, but the message was "
-                   "unexpected: "
-                << e.what() << std::endl;
-      return 1;
-    }
-    // If we reach here, the exception message was as expected, so we can
-    // consider this a pass.
-    std::cout << "random_bit_invalid correctly threw an exception for unknown "
-                 "operation. Exception message: "
-              << e.what() << std::endl;
-  }
   return 0;
 }

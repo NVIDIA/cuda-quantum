@@ -14,7 +14,7 @@ config:
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Add preprocessor defines to compilation
-  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE", "-D CUDAQ_DEVICE_CALL_WITH_CALLBACK_NAME_SUPPORTED"]
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the JIT lowering pipeline

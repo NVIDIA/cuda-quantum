@@ -561,7 +561,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
 }
 
 // A codegen translation to Quake MLIR
-void registerToQuakeTranslation() {
+static void registerToQuakeTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "quake", "translate to raw Quake MLIR string",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,

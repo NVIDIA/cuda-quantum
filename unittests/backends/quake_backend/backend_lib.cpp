@@ -16,5 +16,4 @@ int add_op(int a, int b) { return a + b; }
 int mul_op(int a, int b) { return a * b; }
 
 int sub_op(int a, int b) { return a - b; }
-
 }

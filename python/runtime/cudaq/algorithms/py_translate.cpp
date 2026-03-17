@@ -69,6 +69,8 @@ static std::string translate_impl(const std::string &shortName,
 void cudaq::bindPyTranslate(py::module &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
+  // Internal translation to QIR for testing and internal use. Not intended to
+  // be a public API.
   mod.def(
       "_lower_to_qir",
       [](MlirModule module) -> std::string {
