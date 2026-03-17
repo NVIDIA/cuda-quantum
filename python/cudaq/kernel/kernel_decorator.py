@@ -657,8 +657,8 @@ class PyKernelDecorator(object):
         # Validate size limit for list[complex] arguments used for `qvector`
         # state initialization.
         if cc.StdvecType.isinstance(arg_type):
-            toEleTy = cc.StdvecType.getElementType(arg_type)
-            if ComplexType.isinstance(toEleTy) and hasattr(
+            eleTy = cc.StdvecType.getElementType(arg_type)
+            if ComplexType.isinstance(eleTy) and hasattr(
                     arg, '__len__') and len(arg) > 2**10:
                 num_qubits = int(np.log2(len(arg)))
                 emitFatalError(
