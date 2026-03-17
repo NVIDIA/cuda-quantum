@@ -413,7 +413,8 @@ LogicalResult quake::BorrowWireOp::verify() {
 
 void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
+  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern>(
+      context);
 }
 
 LogicalResult quake::ConcatOp::verify() {
@@ -529,7 +530,8 @@ void printRawIndex(OpAsmPrinter &printer, OP refOp, Value index,
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
-               ForwardConcatExtractPattern>(context);
+               ForwardConcatExtractPattern, ExtractRefFromSubVeqPattern>(
+      context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
@@ -667,7 +669,7 @@ LogicalResult quake::SubVeqOp::verify() {
 void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
   patterns.add<FixUnspecifiedSubveqPattern, FuseConstantToSubveqPattern,
-               RemoveSubVeqNoOpPattern>(context);
+               RemoveSubVeqNoOpPattern, CombineSubVeqsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
