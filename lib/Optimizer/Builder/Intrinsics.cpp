@@ -441,6 +441,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__trap(i64)
 )#"},
 
+    {"__nvqpp_customop_size_error", {}, R"#(
+  func.func private @__nvqpp_customop_size_error(i64, i64)
+)#"},
+
     // The QIR defined output logging functions.
     {cudaq::opt::QIRArrayRecordOutput,
      // note: uses all DefaultPrerequisiteSize slots
