@@ -245,6 +245,7 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}

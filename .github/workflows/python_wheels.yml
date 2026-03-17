@@ -34,6 +34,8 @@ on:
         required: true
       DOCKERHUB_READONLY_TOKEN:
         required: true
+      ANACONDA_TOKEN:
+        required: true
 
 name: Python wheels
 
@@ -268,11 +270,8 @@ jobs:
               fi
             done
 
-      # TODO: enable
-      # if: matrix.os_image == 'redhat/ubi9:9.2'
-      # once conda license issues are resolved
       - name: Run Python MPI tests
-        if: false
+        if: matrix.os_image == 'redhat/ubi9:9.6'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
@@ -292,6 +291,13 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
 
+            # we have to accept the channels in order to install the package to sign in
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
+            conda install --name base anaconda-auth --yes
+            anaconda auth ${{ secrets.ANACONDA_TOKEN }}
+
             # Extract the setup script from Python wheel's readme
             cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
             wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip 
@@ -307,10 +313,12 @@ jobs:
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
               # Install the wheel file
               line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
+              echo "+ $line"
               eval "$line"
             done <<< "$conda_script"
             ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
+                echo "+ $line"
                 eval "$line"
             done <<< "$ompi_script"
 
