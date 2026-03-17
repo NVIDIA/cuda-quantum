@@ -53,6 +53,8 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+Hololink
+Holoscan
 Homebrew
 IQM
 InfiniBand
@@ -151,6 +153,7 @@ Toshiko
 UCCSD
 VQE
 Vazirani
+Verilog
 WSL
 Xcode
 Zener
@@ -266,6 +269,7 @@ functors
 grovers
 hadamard
 hamiltonian
+handoff
 heisenberg
 homogenous
 iff
@@ -306,6 +310,7 @@ namespaces
 natively
 normalization
 nullary
+nvcc
 observables
 optimizer
 optimizers
