@@ -6,8 +6,6 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// See issue #4142
-// UNSUPPORTED: system-darwin
 // RUN: cudaq-opt -add-dealloc -factor-quantum-alloc -canonicalize %s | FileCheck %s
 
 func.func @test1() {

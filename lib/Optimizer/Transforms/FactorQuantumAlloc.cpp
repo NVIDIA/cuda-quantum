@@ -102,7 +102,7 @@ public:
           rewriter.create<quake::MakeStruqOp>(loc, stqTy, memAllocs);
       // 3. Walk all the uses. If they are quake.get_member operations, replace
       // them with direct uses.
-      for (auto *user : allocOp->getUsers())
+      for (auto *user : llvm::make_early_inc_range(allocOp->getUsers()))
         if (auto getMem = dyn_cast<quake::GetMemberOp>(user)) {
           auto index = getMem.getIndex();
           rewriter.replaceOp(getMem, memAllocs[index]);
