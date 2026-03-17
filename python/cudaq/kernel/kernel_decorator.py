@@ -654,6 +654,17 @@ class PyKernelDecorator(object):
                 f"Argument has callable type but the argument ({arg}) is not "
                 f"a kernel decorator.")
 
+        # Validate size limit for list[complex] arguments used for `qvector`
+        # state initialization.
+        if cc.StdvecType.isinstance(arg_type):
+            eleTy = cc.StdvecType.getElementType(arg_type)
+            if ComplexType.isinstance(eleTy) and hasattr(
+                    arg, '__len__') and len(arg) > 2**10:
+                num_qubits = int(np.log2(len(arg)))
+                emitFatalError(
+                    f"State vector initialization with more than 10 qubits is"
+                    f" not supported. Requested {num_qubits} qubits.")
+
         if self.isCastablePyType(mlirType, arg_type):
             return self.castPyType(mlirType, arg_type, arg)
 
