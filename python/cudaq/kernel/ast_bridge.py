@@ -2320,13 +2320,31 @@ class PyASTBridge(ast.NodeVisitor):
         """Collect qubit references for a custom operation call, expanding `qvector`
         arguments into individual references.
         """
-        targets = []
+        # Pass 1: Compute the static qubit count
+        values = []
+        staticCount = 0
         for arg in pyArgs:
             if isinstance(arg, ast.Starred):
                 self.visit(arg.value)
             else:
                 self.visit(arg)
             val = self.popValue()
+            values.append(val)
+            if quake.RefType.isinstance(val.type):
+                staticCount += 1
+            elif quake.VeqType.isinstance(val.type):
+                if quake.VeqType.hasSpecifiedSize(val.type):
+                    staticCount += quake.VeqType.getSize(val.type)
+            else:
+                self.emitFatalError(
+                    'invalid target operand for custom operation: '
+                    'expected a qubit or qvector', node)
+
+        dynamicExpected = numTargets - staticCount
+
+        # Pass 2: emit runtime size checks
+        targets = []
+        for val in values:
             if quake.VeqType.isinstance(val.type):
                 if quake.VeqType.hasSpecifiedSize(val.type):
                     size = quake.VeqType.getSize(val.type)
@@ -2334,21 +2352,24 @@ class PyASTBridge(ast.NodeVisitor):
                     load_intrinsic(self.module, '__nvqpp_customop_size_error')
                     actualSize = quake.VeqSizeOp(self.getIntegerType(),
                                                  val).result
-                    expectedSize = self.getConstantInt(numTargets)
-                    sizesMatch = arith.CmpIOp(
-                        arith.CmpIPredicate.eq, actualSize,
-                        expectedSize).result
+                    expectedSizeVal = self.getConstantInt(dynamicExpected)
+                    eqPred = IntegerAttr.get(self.getIntegerType(), 0)
+                    sizesMatch = arith.CmpIOp(eqPred, actualSize,
+                                              expectedSizeVal).result
                     ifOp = cc.IfOp([], sizesMatch, [])
                     thenBlock = Block.create_at_start(ifOp.thenRegion, [])
                     with InsertionPoint(thenBlock):
                         cc.ContinueOp([])
                     elseBlock = Block.create_at_start(ifOp.elseRegion, [])
                     with InsertionPoint(elseBlock):
-                        func.CallOp(
-                            [], '__nvqpp_customop_size_error',
-                            [expectedSize, actualSize])
+                        totalActual = arith.AddIOp(
+                            actualSize,
+                            self.getConstantInt(staticCount)).result
+                        func.CallOp([], '__nvqpp_customop_size_error', [
+                            self.getConstantInt(numTargets), totalActual
+                        ])
                         cc.ContinueOp([])
-                    size = numTargets
+                    size = dynamicExpected
                 for i in range(size):
                     ref = quake.ExtractRefOp(
                         self.getRefType(),
@@ -2358,10 +2379,7 @@ class PyASTBridge(ast.NodeVisitor):
                     targets.append(ref)
             elif quake.RefType.isinstance(val.type):
                 targets.append(val)
-            else:
-                self.emitFatalError(
-                    'invalid target operand for custom operation: '
-                    'expected a qubit or qvector', node)
+
         if len(targets) != numTargets:
             self.emitFatalError(
                 f'custom operation requires {numTargets} qubit target(s), '
