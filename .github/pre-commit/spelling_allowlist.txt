@@ -10,6 +10,7 @@ AquSim
 Asynchronous
 BFGS
 Bloch
+BlueField
 Braket
 CLA
 CLI
@@ -23,6 +24,7 @@ CUDA
 Cartesian
 CentOS
 Conda
+ConnectX
 CuPy
 DCO
 DGX
@@ -32,6 +34,7 @@ Deutsch
 Devcontainer
 Doxygen
 Exponentiating
+FPGA
 FPGAs
 Fermion
 Fock
@@ -49,6 +52,8 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+Hololink
+Holoscan
 Homebrew
 IQM
 InfiniBand
@@ -75,9 +80,11 @@ Max-Cut
 Miniconda
 MyST
 NGC
+NIC
 NVIDIA
 NVLink
 NVQIR
+NVQLink
 OPX
 OQC
 ORCA
@@ -118,7 +125,9 @@ QuEra
 QuTiP
 Quake
 Quantinuum
+RDMA
 RHEL
+RPC
 RSA
 RSH
 SDK
@@ -140,6 +149,7 @@ Toshiko
 UCCSD
 VQE
 Vazirani
+Verilog
 WSL
 Xcode
 Zener
@@ -255,6 +265,7 @@ functors
 grovers
 hadamard
 hamiltonian
+handoff
 heisenberg
 homogenous
 iff
@@ -295,6 +306,7 @@ namespaces
 natively
 normalization
 nullary
+nvcc
 observables
 optimizer
 optimizers
@@ -307,6 +319,7 @@ parameterization
 performant
 photonic
 photonics
+pipelined
 precompute
 precomputed
 prepend
@@ -326,13 +339,16 @@ qudits
 qumode
 qumodes
 reStructuredText
+realtime
 reconfigurable
 reproducibility
+reusability
 runtime
 runtimes
 rvalue
 scalability
 scalable
+schemas
 selectable
 sexualized
 shifter
@@ -366,6 +382,7 @@ superpositions
 symplectic
 tablegen
 templated
+testability
 toolchain
 toolchains
 toolset
