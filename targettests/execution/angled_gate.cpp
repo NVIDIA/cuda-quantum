@@ -30,6 +30,7 @@ int main() {
   for (auto &[bits, count] : counts) {
     printf("%s\n", bits.data());
   }
+  return 0;
 }
 
 // CHECK: 00
