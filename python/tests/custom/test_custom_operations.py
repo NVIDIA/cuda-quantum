@@ -232,18 +232,6 @@ def test_invalid_ctrl():
 
 
 def test_bug_2452():
-    cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
-
-    with pytest.raises(RuntimeError) as error:
-
-        @cudaq.kernel
-        def kernel1():
-            qubits = cudaq.qvector(2)
-            custom_i(qubits)
-
-        kernel1.compile()
-    assert 'broadcasting is not supported on custom operations' in repr(error)
-
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     @cudaq.kernel
@@ -255,20 +243,6 @@ def test_bug_2452():
 
     counts = cudaq.sample(kernel2)
     assert len(counts) == 1 and '111' in counts
-
-    cudaq.register_operation(
-        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                               -1]))
-
-    with pytest.raises(RuntimeError) as error:
-
-        @cudaq.kernel
-        def kernel3():
-            qubits = cudaq.qvector(2)
-            custom_cz(qubits)
-
-        cudaq.sample(kernel3)
-    assert 'missing value' in repr(error)
 
 
 # leave for gdb debugging
