@@ -952,7 +952,8 @@ pr-4171
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
-    -   [PTSBE end-to-end workflow](#){.current .reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](#){.current .reference .internal}
         -   [Set up the environment](#Set-up-the-environment){.reference
             .internal}
         -   [Define the circuit and noise
@@ -968,6 +969,9 @@ pr-4171
                 .internal}
         -   [Inspecting trajectories with execution
             data](#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
+        -   [Performance of PTSBE vs standard noisy
+            sampling](#Performance-of-PTSBE-vs-standard-noisy-sampling){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1111,6 +1115,207 @@ pr-4171
         .internal}
     -   [Examples](../../using/dynamics.html#examples){.reference
         .internal}
+-   [Realtime](../../using/realtime.html){.reference .internal}
+    -   [Installation](../../using/realtime/installation.html){.reference
+        .internal}
+        -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
+            .internal}
+        -   [Setup](../../using/realtime/installation.html#setup){.reference
+            .internal}
+        -   [Latency
+            Measurement](../../using/realtime/installation.html#latency-measurement){.reference
+            .internal}
+    -   [Host API](../../using/realtime/host.html){.reference .internal}
+        -   [What is
+            HSB?](../../using/realtime/host.html#what-is-hsb){.reference
+            .internal}
+        -   [Transport
+            Mechanisms](../../using/realtime/host.html#transport-mechanisms){.reference
+            .internal}
+            -   [Supported Transport
+                Options](../../using/realtime/host.html#supported-transport-options){.reference
+                .internal}
+        -   [The 3-Kernel Architecture (HSB Example)
+            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+            .internal}
+            -   [Data Flow
+                Summary](../../using/realtime/host.html#data-flow-summary){.reference
+                .internal}
+            -   [Why 3
+                Kernels?](../../using/realtime/host.html#why-3-kernels){.reference
+                .internal}
+        -   [Unified Dispatch
+            Mode](../../using/realtime/host.html#unified-dispatch-mode){.reference
+            .internal}
+            -   [Architecture](../../using/realtime/host.html#architecture){.reference
+                .internal}
+            -   [Transport-Agnostic API, Transport-Specific
+                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+                .internal}
+            -   [When to Use Which
+                Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
+                .internal}
+            -   [Host API
+                Extensions](../../using/realtime/host.html#host-api-extensions){.reference
+                .internal}
+            -   [Wiring Example (Unified Mode with
+                HSB)](../../using/realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                .internal}
+        -   [What This API Does (In One
+            Paragraph)](../../using/realtime/host.html#what-this-api-does-in-one-paragraph){.reference
+            .internal}
+        -   [Scope](../../using/realtime/host.html#scope){.reference
+            .internal}
+        -   [Terms and
+            Components](../../using/realtime/host.html#terms-and-components){.reference
+            .internal}
+        -   [Schema Data
+            Structures](../../using/realtime/host.html#schema-data-structures){.reference
+            .internal}
+            -   [Type
+                Descriptors](../../using/realtime/host.html#type-descriptors){.reference
+                .internal}
+            -   [Handler
+                Schema](../../using/realtime/host.html#handler-schema){.reference
+                .internal}
+        -   [RPC Messaging
+            Protocol](../../using/realtime/host.html#rpc-messaging-protocol){.reference
+            .internal}
+        -   [Host API
+            Overview](../../using/realtime/host.html#host-api-overview){.reference
+            .internal}
+        -   [Manager and Dispatcher
+            Topology](../../using/realtime/host.html#manager-and-dispatcher-topology){.reference
+            .internal}
+        -   [Host API
+            Functions](../../using/realtime/host.html#host-api-functions){.reference
+            .internal}
+            -   [Occupancy Query and Eager Module
+                Loading](../../using/realtime/host.html#occupancy-query-and-eager-module-loading){.reference
+                .internal}
+            -   [Graph-Based Dispatch
+                Functions](../../using/realtime/host.html#graph-based-dispatch-functions){.reference
+                .internal}
+            -   [Kernel Launch Helper
+                Functions](../../using/realtime/host.html#kernel-launch-helper-functions){.reference
+                .internal}
+        -   [Memory Layout and Ring Buffer
+            Wiring](../../using/realtime/host.html#memory-layout-and-ring-buffer-wiring){.reference
+            .internal}
+        -   [Step-by-Step: Wiring the Host API
+            (Minimal)](../../using/realtime/host.html#step-by-step-wiring-the-host-api-minimal){.reference
+            .internal}
+        -   [Device Handler and Function
+            ID](../../using/realtime/host.html#device-handler-and-function-id){.reference
+            .internal}
+            -   [Multi-Argument Handler
+                Example](../../using/realtime/host.html#multi-argument-handler-example){.reference
+                .internal}
+        -   [CUDA Graph Dispatch
+            Mode](../../using/realtime/host.html#cuda-graph-dispatch-mode){.reference
+            .internal}
+            -   [Requirements](../../using/realtime/host.html#requirements){.reference
+                .internal}
+            -   [Graph-Based Dispatch
+                API](../../using/realtime/host.html#graph-based-dispatch-api){.reference
+                .internal}
+            -   [Graph Handler Setup
+                Example](../../using/realtime/host.html#graph-handler-setup-example){.reference
+                .internal}
+            -   [Graph Capture and
+                Instantiation](../../using/realtime/host.html#graph-capture-and-instantiation){.reference
+                .internal}
+            -   [When to Use Graph
+                Dispatch](../../using/realtime/host.html#when-to-use-graph-dispatch){.reference
+                .internal}
+            -   [Graph vs Device Call
+                Dispatch](../../using/realtime/host.html#graph-vs-device-call-dispatch){.reference
+                .internal}
+        -   [Building and Sending an RPC
+            Message](../../using/realtime/host.html#building-and-sending-an-rpc-message){.reference
+            .internal}
+        -   [Reading the
+            Response](../../using/realtime/host.html#reading-the-response){.reference
+            .internal}
+        -   [Schema-Driven Argument
+            Parsing](../../using/realtime/host.html#schema-driven-argument-parsing){.reference
+            .internal}
+        -   [HSB 3-Kernel Workflow
+            (Primary)](../../using/realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+            .internal}
+        -   [NIC-Free Testing (No HSB / No
+            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+            .internal}
+        -   [Troubleshooting](../../using/realtime/host.html#troubleshooting){.reference
+            .internal}
+    -   [Messaging
+        Protocol](../../using/realtime/protocol.html){.reference
+        .internal}
+        -   [Scope](../../using/realtime/protocol.html#scope){.reference
+            .internal}
+        -   [RPC Header /
+            Response](../../using/realtime/protocol.html#rpc-header-response){.reference
+            .internal}
+        -   [Request ID
+            Semantics](../../using/realtime/protocol.html#request-id-semantics){.reference
+            .internal}
+        -   [[`PTP`{.docutils .literal .notranslate}]{.pre} Timestamp
+            Semantics](../../using/realtime/protocol.html#ptp-timestamp-semantics){.reference
+            .internal}
+        -   [Function ID
+            Semantics](../../using/realtime/protocol.html#function-id-semantics){.reference
+            .internal}
+        -   [Schema and Payload
+            Interpretation](../../using/realtime/protocol.html#schema-and-payload-interpretation){.reference
+            .internal}
+            -   [Type
+                System](../../using/realtime/protocol.html#type-system){.reference
+                .internal}
+        -   [Payload
+            Encoding](../../using/realtime/protocol.html#payload-encoding){.reference
+            .internal}
+            -   [Single-Argument
+                Payloads](../../using/realtime/protocol.html#single-argument-payloads){.reference
+                .internal}
+            -   [Multi-Argument
+                Payloads](../../using/realtime/protocol.html#multi-argument-payloads){.reference
+                .internal}
+            -   [Size
+                Constraints](../../using/realtime/protocol.html#size-constraints){.reference
+                .internal}
+            -   [Encoding
+                Examples](../../using/realtime/protocol.html#encoding-examples){.reference
+                .internal}
+            -   [Bit-Packed Data
+                Encoding](../../using/realtime/protocol.html#bit-packed-data-encoding){.reference
+                .internal}
+            -   [Multi-Bit Measurement
+                Encoding](../../using/realtime/protocol.html#multi-bit-measurement-encoding){.reference
+                .internal}
+        -   [Response
+            Encoding](../../using/realtime/protocol.html#response-encoding){.reference
+            .internal}
+            -   [Single-Result
+                Response](../../using/realtime/protocol.html#single-result-response){.reference
+                .internal}
+            -   [Multi-Result
+                Response](../../using/realtime/protocol.html#multi-result-response){.reference
+                .internal}
+            -   [Status
+                Codes](../../using/realtime/protocol.html#status-codes){.reference
+                .internal}
+        -   [QEC-Specific Usage
+            Example](../../using/realtime/protocol.html#qec-specific-usage-example){.reference
+            .internal}
+            -   [QEC
+                Terminology](../../using/realtime/protocol.html#qec-terminology){.reference
+                .internal}
+            -   [QEC Decoder
+                Handler](../../using/realtime/protocol.html#qec-decoder-handler){.reference
+                .internal}
+            -   [Decoding
+                Rounds](../../using/realtime/protocol.html#decoding-rounds){.reference
+                .internal}
 -   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
         Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
@@ -1826,7 +2031,7 @@ pr-4171
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q Applications](../../using/applications.html)
--   PTSBE end-to-end workflow
+-   Pre-Trajectory Sampling with Batch Execution (PTSBE)
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
@@ -1843,8 +2048,8 @@ aria-hidden="true"}](../../using/backends/backends.html "CUDA-Q Backends"){.btn
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#PTSBE-end-to-end-workflow .section}
-# PTSBE end-to-end workflow[¶](#PTSBE-end-to-end-workflow "Permalink to this heading"){.headerlink}
+::: {#Pre-Trajectory-Sampling-with-Batch-Execution-(PTSBE) .section}
+# Pre-Trajectory Sampling with Batch Execution (PTSBE)[¶](#Pre-Trajectory-Sampling-with-Batch-Execution-(PTSBE) "Permalink to this heading"){.headerlink}
 
 PTSBE (Pre-Trajectory Sampling with Batch Execution) is a method for
 sampling from noisy quantum circuits efficiently. Instead of simulating
@@ -1886,24 +2091,6 @@ call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
-:::
-:::
-
-::: {.input_area .highlight-ipython3 .notranslate}
-::: highlight
-    import sys, os
-    _root = os.path.join(os.path.expanduser("~/Devel/cudaq-pstbe/vendor/cuda-quantum"), "build")
-    sys.path.insert(0, os.path.join(_root, "python"))
-    _build_lib = os.path.join(_root, "lib")
-    os.environ["LD_LIBRARY_PATH"] = _build_lib + ":" + os.environ.get("LD_LIBRARY_PATH", "")
-:::
-:::
-:::
-
-::: {.nbinput .nblast .docutils .container}
-::: {.prompt .highlight-none .notranslate}
-::: highlight
     [2]:
 :::
 :::
@@ -1912,7 +2099,7 @@ call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 ::: highlight
     import cudaq
 
-    cudaq.set_target("qpp-cpu")
+    cudaq.set_target("nvidia")
     cudaq.set_random_seed(42)
 :::
 :::
@@ -2005,7 +2192,7 @@ model-attached noise.
 ::: {.output_area .docutils .container}
 ::: highlight
     Inline apply_noise result:
-    { 00:4873 01:74 10:74 11:4979 }
+    { 00:5007 01:79 10:69 11:4845 }
 :::
 :::
 :::
@@ -2114,18 +2301,16 @@ Optional arguments are:
         max_trajectories=max_traj,
     )
 
-    cudaq.set_target("density-matrix-cpu")
     result_standard = cudaq.sample(
         bell_with_noise,
         noise_model=noise,
         shots_count=shots,
     )
-    cudaq.set_target("qpp-cpu")
 
     print(f"Comparison with same shots={shots}, max_trajectories={max_traj}")
     print_result("PTSBE (ordered + low-weight bias)", result_biased)
     print_result("PTSBE (ordered + proportional)", result_unbiased)
-    print_result("Density-matrix noisy sample", result_standard)
+    print_result("Standard noisy sample", result_standard)
 :::
 :::
 :::
@@ -2137,11 +2322,11 @@ Optional arguments are:
 ::: {.output_area .docutils .container}
 ::: highlight
     Comparison with same shots=10000, max_trajectories=16
-    PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5045 01:6 10:4 11:4945 }
+    PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5044 01:5 10:5 11:4946 }
 
-    PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4877 01:49 10:55 11:5019 }
+    PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4919 01:45 10:59 11:4977 }
 
-    Density-matrix noisy sample          shots= 10000  counts={ 00:4943 01:83 10:98 11:4876 }
+    Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 11:4804 }
 :::
 :::
 :::
@@ -2288,7 +2473,7 @@ Note: this is an experimental API and may change in future releases.
 ::: {.output_area .docutils .container}
 ::: highlight
     Trajectories: 147, Total shots: 1,000,000
-    [2026-03-17 19:05:19.587] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
+    [2026-03-16 15:10:06.241] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
     Top 5 trajectories (highest probability):
       #1: p_theory=0.886385, p_empirical=0.888297, shots=888,297, errors=0, cumulative shots=88.8%
@@ -2337,6 +2522,82 @@ Note: this is an experimental API and may change in future releases.
       1 errors: 126 trajectories, 103,948 shots (10.4%)
       2 errors: 19 trajectories, 7,396 shots (0.7%)
       3 errors: 1 trajectories, 359 shots (0.0%)
+:::
+:::
+:::
+:::
+
+::: {#Performance-of-PTSBE-vs-standard-noisy-sampling .section}
+## Performance of PTSBE vs standard noisy sampling[¶](#Performance-of-PTSBE-vs-standard-noisy-sampling "Permalink to this heading"){.headerlink}
+
+The table below times compares the performance of standard trajectory
+sampling with PTSBE on the 12-qubit GHZ circuit at increasing shot
+counts.
+
+::: {.nbinput .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [9]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    import time
+
+    shot_counts = [1_000, 10_000, 100_000, 1_000_000]
+    max_traj = 64
+
+    print(f"{'shots':>10}  {'standard (s)':>14}  {'PTSBE (s)':>12}  {'speedup':>8}")
+    print("-" * 52)
+
+    for shots in shot_counts:
+        # Standard noisy sampling (one trajectory per shot)
+        t0 = time.perf_counter()
+        cudaq.sample(ghz, n_qubits, noise_model=ghz_noise, shots_count=shots)
+        t_standard = time.perf_counter() - t0
+
+        # PTSBE (batched trajectories)
+        t0 = time.perf_counter()
+        cudaq.ptsbe.sample(
+            ghz, n_qubits,
+            noise_model=ghz_noise,
+            shots_count=shots,
+            max_trajectories=max_traj,
+        )
+        t_ptsbe = time.perf_counter() - t0
+
+        speedup = t_standard / t_ptsbe if t_ptsbe > 0 else float('inf')
+        print(f"{shots:>10,}  {t_standard:>14.3f}  {t_ptsbe:>12.3f}  {speedup:>7.1f}x")
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+         shots    standard (s)     PTSBE (s)   speedup
+    ----------------------------------------------------
+         1,000           0.043         0.024      1.8x
+        10,000           0.119         0.024      4.9x
+       100,000           0.739         0.029     25.8x
+     1,000,000           5.800         0.051    113.1x
+:::
+:::
+:::
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [ ]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
 :::
 :::
 :::
