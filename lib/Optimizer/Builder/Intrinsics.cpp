@@ -337,13 +337,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!quake.state>) -> i64
 )#"},
 
-    {cudaq::runtime::bindingDeconstructString,
-     {},
-     "func.func private @__nvqpp_deconstructString(!cc.ptr<i8>)"},
-
     {"__nvqpp_customop_size_error", {}, R"#(
   func.func private @__nvqpp_customop_size_error(i64, i64)
 )#"},
+
+    {cudaq::runtime::bindingDeconstructString,
+     {},
+     "func.func private @__nvqpp_deconstructString(!cc.ptr<i8>)"},
 
     // Note that the malloc* hooks use RVO. The C++ bridge must perform this
     // optimization on its side as well. Specifically, the device_ptr return
