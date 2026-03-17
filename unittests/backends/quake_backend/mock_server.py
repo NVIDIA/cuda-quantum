@@ -39,14 +39,6 @@ async def postJob(request: Request):
     payload = await request.json()
     # Decode base64
     decoded_payload = base64.b64decode(payload["ir"]).decode('utf-8')
-
-    # Remove "cudaq-autogen" attribute from all operations in the module
-    # Note: This is needed as we reuse CUDA-Q pass (which has customization for this attribute for AOT compilation) for lowering here.
-    # Real backend should have its own pass, which doesn't care about this attribute.
-    decoded_payload = decoded_payload.replace('"cudaq-autogen", ', '')
-    decoded_payload = decoded_payload.replace(', "cudaq-autogen"', '')
-    decoded_payload = decoded_payload.replace('"cudaq-autogen"', '')
-
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)
     pm = PassManager.parse(
