@@ -341,6 +341,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      "func.func private @__nvqpp_deconstructString(!cc.ptr<i8>)"},
 
+    {"__nvqpp_customop_size_error", {}, R"#(
+  func.func private @__nvqpp_customop_size_error(i64, i64)
+)#"},
+
     // Note that the malloc* hooks use RVO. The C++ bridge must perform this
     // optimization on its side as well. Specifically, the device_ptr return
     // value *must* be converted to the first argument.
@@ -439,10 +443,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {cudaq::opt::QISTrap, {}, R"#(
   func.func private @__quantum__qis__trap(i64)
-)#"},
-
-    {"__nvqpp_customop_size_error", {}, R"#(
-  func.func private @__nvqpp_customop_size_error(i64, i64)
 )#"},
 
     // The QIR defined output logging functions.
