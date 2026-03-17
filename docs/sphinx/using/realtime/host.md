@@ -4,23 +4,23 @@ This document explains the C host API for realtime dispatch, the RPC wire
 protocol, and complete wiring examples. It is written for external partners
 integrating CUDA-QX decoders with their own transport mechanisms. The API and
 protocol are **transport-agnostic** and support multiple data transport options,
-including NVIDIA Hololink (RDMA via ConnectX NIC's), `libibverbs`, and proprietary
+including NVIDIA HSB (RDMA via ConnectX NIC's), `libibverbs`, and proprietary
 transport layers. Handlers can execute on GPU (via CUDA kernels) or CPU (via
-host threads). Examples in this document use Hololink's 3-kernel workflow (RX
+host threads). Examples in this document use HSB's 3-kernel workflow (RX
 kernel/dispatch/TX kernel) for illustration, but the same principles apply to
 other transport mechanisms.
 
-## What is Hololink?
+## What is HSB?
 
-**Hololink** is NVIDIA's low-latency sensor bridge framework that enables
+**HSB** is NVIDIA's low-latency sensor bridge framework that enables
 direct GPU memory access from external devices (FPGAs, sensors) over Ethernet
 using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
-quantum error correction, Hololink is one example of a transport mechanism that
+quantum error correction, HSB is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.
 
 **Repository**: [`nvidia-holoscan`/`holoscan-sensor-bridge` (`nvqlink` branch)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink)
 
-Hololink handles:
+HSB handles:
 
 - **RX (Receive)**: RX kernel receives data from the FPGA directly
 into GPU memory via RDMA
@@ -42,7 +42,7 @@ sending responses from TX ring buffer slots back to the FPGA.
 
 ### Supported Transport Options
 
-**Hololink (GPU-based with GPUDirect)**:
+**HSB (GPU-based with GPUDirect)**:
 
 - Uses ConnectX-7 NIC's with RDMA for zero-copy data movement
 - RX and TX are persistent GPU kernels that directly access GPU memory
@@ -67,9 +67,9 @@ The key requirement is that the transport mechanism implements the ring buffer
 slot + flag protocol: writing RPC messages to RX slots and setting `rx_flags`,
 then reading TX slots after `tx_flags` are set.
 
-## The 3-Kernel Architecture (Hololink Example) {#three-kernel-architecture}
+## The 3-Kernel Architecture (HSB Example) {#three-kernel-architecture}
 
-The Hololink workflow separates concerns into three persistent GPU kernels that
+The HSB workflow separates concerns into three persistent GPU kernels that
 communicate via shared ring buffers:
 
 <!-- markdownlint-disable-next-line -->
@@ -130,51 +130,42 @@ Transport (RX/TX kernels) vs. compute (dispatch) are decoupled
 2. **Reusability**:
 Same dispatch kernel works with any decoder handler
 3. **Testability**:
-Dispatch kernel can be tested without Hololink hardware
+Dispatch kernel can be tested without HSB hardware
 4. **Flexibility**:
 RX/TX kernels can be replaced with different transport mechanisms
 5. **Transport independence**:
-The protocol works with Hololink, `libibverbs`, or proprietary transports
+The protocol works with HSB, `libibverbs`, or proprietary transports
 
-For use cases where lowest possible latency is needed, see
+For use cases where latency is more important than transport independence, see
 [Unified Dispatch Mode](#unified-dispatch-mode) which combines all three kernels
-into one while retaining transport independence through a pluggable launch
-function.
+into one.
 
 ## Unified Dispatch Mode
 
 The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
-3-kernel architecture that combines receive, RPC dispatch, and transmit into a
-single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
-between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
-latency for simple (non-cooperative) RPC handlers.
+3-kernel architecture that combines RDMA receive, RPC dispatch, and RDMA transmit
+into a single GPU kernel.  By eliminating the inter-kernel ring-buffer flag
+hand-off between RX, dispatch, and TX kernels, the unified kernel reduces
+round-trip latency for simple (non-cooperative) RPC handlers.
 
 ### Architecture
 
-In unified mode, a single GPU thread runs a transport-provided kernel that
-combines receive, dispatch, and transmit into one tight loop:
+In unified mode, a single GPU thread:
 
-1. Polls for an incoming message (transport-specific mechanism)
+1. Polls the `DOCA` completion queue (`CQ`) for an incoming RDMA message
 2. Parses the `RPCHeader` from the receive buffer
 3. Looks up and calls the registered handler in-place
 4. Writes the `RPCResponse` header (overwriting the request header)
-5. Sends the response (transport-specific mechanism)
-6. Re-posts the receive buffer for the next message
+5. Sends the response via `DOCA` `BlueFlame`
+6. Re-posts the receive work queue entry (`WQE`)
 
 The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
 registers before the handler runs.
 
-For example, the Hololink/`DOCA` transport implementation polls a `DOCA` completion
-queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
-receive `WQE` in step 6.  Other transports would substitute their own receive and
-send primitives.
+### Transport-Agnostic API, Transport-Specific Implementation
 
-### Transport-Agnostic Design
-
-The unified dispatch mode is fully transport-agnostic, just like the 3-kernel
-mode.  The core dispatcher library (`libcudaq-realtime.so`) has no dependency
-on any specific transport (no `DOCA`, no Hololink).  Unified mode introduces:
+The dispatcher host API remains transport-agnostic.  Unified mode introduces:
 
 - `CUDAQ_KERNEL_UNIFIED` -- a new `cudaq_kernel_type_t` enum value
 - `cudaq_unified_launch_fn_t` -- a launch function type that receives an opaque
@@ -182,15 +173,13 @@ on any specific transport (no `DOCA`, no Hololink).  Unified mode introduces:
 - `cudaq_dispatcher_set_unified_launch()` -- wires the launch function and
     transport context to the dispatcher
 
-Transport-specific details are packed into an opaque struct and passed through
-the `void* transport_ctx` pointer.  The transport provider supplies both the
-context struct and the launch function implementation.  For example, the
-Hololink/`DOCA` transport packs `DOCA` `QP` handles, memory keys, and ring buffer
-addresses into a `doca_transport_ctx` and provides
-`hololink_launch_unified_dispatch` as the launch function (compiled into
-`libcudaq-realtime-bridge-hololink.so`).  A different transport would define
-its own context struct and launch function; the dispatcher manages them
-identically without any transport-specific knowledge.
+The transport-specific details (`DOCA` `QP` handles, memory keys, ring buffer
+addresses) are packed into an opaque struct (`HSB_doca_transport_ctx` for the
+HSB/`DOCA` implementation) and passed through the `void* transport_ctx`
+pointer.  A different transport could define its own context struct and launch
+function, and the dispatcher would manage it identically.  The bridge returns a
+`cudaq_unified_dispatch_ctx_t` bundle containing the launch function pointer
+and the opaque transport context, keeping the dispatcher API fully transport-agnostic.
 
 ### When to Use Which Mode
 
@@ -201,13 +190,12 @@ identically without any transport-specific knowledge.
 
 - Required for cooperative handlers that use `grid.sync()`
 
-- Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
+- Best choice when transport independence is a priority
 
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
 - Lowest latency for regular (non-cooperative) handlers
-- Transport-agnostic API -- the transport provides a pluggable launch function
-  and opaque context (e.g., Hololink/`DOCA` supplies `hololink_launch_unified_dispatch`)
+- Transport-specific kernel implementation (currently `DOCA`/HSB)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
 - Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
@@ -240,16 +228,16 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 - `num_slots` and `slot_size` in the configuration may be zero
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
-### Wiring Example (Unified Mode with Hololink)
+### Wiring Example (Unified Mode with HSB)
 
 ```cpp
 // Pack DOCA transport handles
-hololink_doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = hololink_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = hololink_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = hololink_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(hololink_get_rkey(transceiver));
-ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+HSB_doca_transport_ctx ctx;
+ctx.gpu_dev_qp     = HSB_get_gpu_dev_qp(transceiver);
+ctx.rx_ring_data   = HSB_get_rx_ring_data_addr(transceiver);
+ctx.rx_ring_stride_sz  = HSB_get_page_size(transceiver);
+ctx.rx_ring_mkey   = htonl(HSB_get_rkey(transceiver));
+ctx.rx_ring_stride_num = HSB_get_num_pages(transceiver);
 ctx.frame_size     = frame_size;
 
 // Configure dispatcher for unified mode
@@ -260,7 +248,7 @@ config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
 cudaq_dispatcher_set_unified_launch(
-    dispatcher, &hololink_launch_unified_dispatch, &ctx);
+    dispatcher, &HSB_launch_unified_dispatch, &ctx);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
@@ -269,12 +257,12 @@ cudaq_dispatcher_start(dispatcher);
 ## What This API Does (In One Paragraph)
 
 The host API wires a dispatcher (GPU kernel or CPU thread) to shared ring buffers.
-The transport mechanism (e.g., Hololink RX/TX kernels, `libibverbs` threads, or
+The transport mechanism (e.g., HSB RX/TX kernels, `libibverbs` threads, or
 proprietary transport) places incoming RPC messages into RX slots and retrieves
 responses from TX slots.
 The dispatcher polls RX flags (see Message completion note), looks up a
 handler by `function_id`, executes it on the GPU, and writes a response into the
-same slot. The transport's RX/TX components handle I/O; the dispatch kernel sits
+same slot. `HSB`'s RX/TX kernels handle device I/O; the dispatch kernel sits
 in the middle and runs the decoder handler.
 
 ## Scope
@@ -365,7 +353,8 @@ TX Slot: | RPCResponse | response payload bytes |
 ```
 
 Payload encoding details (type system, multi-argument encoding, bit-packing,
-and QEC-specific examples) are defined in [cudaq_realtime_message_protocol.md](cudaq_realtime_message_protocol.md).
+and QEC-specific examples) are defined in documentation for the CUDA-Q Realtime
+Messaging Protocol.
 
 Magic values (little-endian 32-bit):
 
@@ -457,7 +446,7 @@ Parameters:
   - `slot_size` (required)
   - `vp_id` (default 0): tags a dispatcher to a transport channel.
   Queue pair selection and NIC port/IP binding are configured
-  in Hololink, not in this API.
+  in HSB, not in this API.
   - `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
     - `CUDAQ_KERNEL_REGULAR`: standard kernel launch
     - `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
@@ -600,7 +589,7 @@ Parameters:
 
 Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
-deadlocks when the dispatch kernel and transport kernels (e.g., Hololink RX/TX)
+deadlocks when the dispatch kernel and transport kernels (e.g., HSB RX/TX)
 run as persistent kernels.
 
 <strong><code>cudaq_dispatch_kernel_query_occupancy</code></strong> returns the
@@ -982,7 +971,7 @@ Adapted from `test_realtime_decoding.cu` (the actual test uses a library helper,
 `cudaMemcpy`):
 
 Note: this host-side snippet emulates what the external device/FPGA would do
-when populating RX slots in a Hololink deployment.
+when populating RX slots in a HSB deployment.
 
 ```cpp
 /// @brief Write detection events to RX buffer in RPC format.
@@ -1007,7 +996,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
 ## Reading the Response
 
 Note: this host-side snippet emulates what the external device/FPGA would do
-when consuming TX slots in a Hololink deployment.
+when consuming TX slots in a HSB deployment.
 
 ```cpp
 /// @brief Read response from TX buffer.
@@ -1097,19 +1086,19 @@ For multi-argument payloads, arguments are **concatenated in schema order**:
 The schema specifies the size of each argument, allowing the dispatcher to
 compute offsets.
 
-## Hololink 3-Kernel Workflow (Primary)
+## HSB 3-Kernel Workflow (Primary)
 
 See the 3-Kernel Architecture diagram above for
 the complete data flow. The key integration points are:
 
-**Ring buffer handoff (RX → Dispatch)**:
+**Ring buffer hand-off (RX → Dispatch)**:
 
 ```cpp
-// Hololink RX kernel sets this after writing detection event data
+// HSB RX kernel sets this after writing detection event data
 rx_flags[slot] = device_ptr_to_slot_data;
 ```
 
-**Ring buffer handoff (Dispatch → TX)**:
+**Ring buffer hand-off (Dispatch → TX)**:
 
 ```cpp
 // Dispatch kernel sets this after writing RPCResponse
@@ -1124,7 +1113,7 @@ TX kernel polls and sends → RDMA read completes
 All three kernels are **persistent** (launched once, run indefinitely), so
 there is no kernel launch overhead in the hot path.
 
-## NIC-Free Testing (No Hololink / No ConnectX-7)
+## NIC-Free Testing (No HSB / No ConnectX-7)
 
 Emulate RX/TX with mapped host memory:
 
