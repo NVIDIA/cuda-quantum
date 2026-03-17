@@ -142,5 +142,7 @@ def test_unknown_veq_size_incorrect_count():
         x(qvec[0])
         custom_swap(*qvec)
 
-    counts = cudaq.sample(kernel, 3)
-    assert counts.most_probable() == "010"
+    with pytest.raises(RuntimeError) as error:
+        cudaq.sample(kernel, 3)
+    assert 'custom operation requires 2 qubit target(s), but 3 were provided' in repr(
+        error)
