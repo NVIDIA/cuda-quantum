@@ -2330,9 +2330,9 @@ Note: this is an experimental API and may change in future releases.
         site 19 [depolarization2 on q[9, 8]]: K0 (no-error)
         site 21 [depolarization2 on q[10, 9]]: K0 (no-error)
         site 23 [depolarization2 on q[11, 10]]: K0 (no-error)
+    [2026-03-17 21:20:03.065] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
     Trajectories grouped by error count:
-    [2026-03-17 19:18:38.545] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
       0 errors: 1 trajectories, 888,297 shots (88.8%)
       1 errors: 126 trajectories, 103,948 shots (10.4%)
       2 errors: 19 trajectories, 7,396 shots (0.7%)
