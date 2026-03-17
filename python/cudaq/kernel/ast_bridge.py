@@ -2331,6 +2331,23 @@ class PyASTBridge(ast.NodeVisitor):
                 if quake.VeqType.hasSpecifiedSize(val.type):
                     size = quake.VeqType.getSize(val.type)
                 else:
+                    load_intrinsic(self.module, '__nvqpp_customop_size_error')
+                    actualSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                 val).result
+                    expectedSize = self.getConstantInt(numTargets)
+                    sizesMatch = arith.CmpIOp(
+                        arith.CmpIPredicate.eq, actualSize,
+                        expectedSize).result
+                    ifOp = cc.IfOp([], sizesMatch, [])
+                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                    with InsertionPoint(thenBlock):
+                        cc.ContinueOp([])
+                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                    with InsertionPoint(elseBlock):
+                        func.CallOp(
+                            [], '__nvqpp_customop_size_error',
+                            [expectedSize, actualSize])
+                        cc.ContinueOp([])
                     size = numTargets
                 for i in range(size):
                     ref = quake.ExtractRefOp(
