@@ -330,9 +330,10 @@ std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
 /// operation is invoked with a qvector and its runtime size does not match the
 /// number of qubits the operation requires.
 void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
-  CUDAQ_ERROR("custom operation requires {} qubit target(s), but {} were "
-              "provided",
-              expected, actual);
+  throw std::runtime_error(
+      fmt::format("custom operation requires {} qubit target(s), but {} were "
+                  "provided",
+                  expected, actual));
 }
 }
 } // namespace cudaq::support
