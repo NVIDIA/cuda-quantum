@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include <climits>
+#include <cstdint>
+#include <limits>
 
 namespace cudaq {
 
@@ -23,16 +24,16 @@ bool __nvqpp__MeasureResultBoolConversion(int);
 class measure_result {
 public:
   /// The intrinsic measurement value
-  int value = 0;
+  std::int64_t value = 0;
 
   /// Unique integer for measure result identification.
-  /// INT_MAX means unassigned; negative values are valid
-  int unique_id = INT_MAX;
+  /// INT64_MAX means unassigned; negative values are valid
+  std::int64_t unique_id = std::numeric_limits<std::int64_t>::max();
 
   // Constructors
   measure_result() = default;
-  measure_result(int val) : value(val) {}
-  measure_result(int val, int id) : value(val), unique_id(id) {}
+  explicit measure_result(int val) : value(val) {}
+  explicit measure_result(int val, int id) : value(val), unique_id(id) {}
 
   // Operator overloads for conversions and comparisons
 #ifdef CUDAQ_LIBRARY_MODE
