@@ -654,7 +654,7 @@ class PyKernelDecorator(object):
                 f"Argument has callable type but the argument ({arg}) is not "
                 f"a kernel decorator.")
 
-        # Validate size limit for list[complex] arguments used for qvector
+        # Validate size limit for list[complex] arguments used for `qvector`
         # state initialization.
         if cc.StdvecType.isinstance(arg_type):
             toEleTy = cc.StdvecType.getElementType(arg_type)
