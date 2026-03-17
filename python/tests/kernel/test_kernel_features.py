@@ -2824,6 +2824,7 @@ def test_named_reg_in_sample(capfd):
 # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
 # See: https://github.com/NVIDIA/cuda-quantum/issues/3818
 @pytest.mark.xfail(raises=RuntimeError)
+@pytest.mark.skip_macos_arm64_jit
 def test_adjoint_bug():
     num_electrons = 2
     num_qubits = 8
