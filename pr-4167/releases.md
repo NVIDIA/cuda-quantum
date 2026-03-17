@@ -2077,7 +2077,7 @@ about installing the nightly builds can be found
 
 **0.14.0**
 
-This release comes with a range of exiting improvement.
+This release comes with a range of exciting improvement.
 
 This release includes the first 0.1.0 version of CUDA-Q Realtime. CUDA-Q
 Realtime is built to support low-latency high-bandwidth data transfer
@@ -2098,8 +2098,8 @@ For more information, see our
 [applications](https://nvidia.github.io/cuda-quantum/0.14.0/applications/python/ptsbe_end_to_end_workflow.html){.reference
 .external}.
 
-Starting with version 0.14.0, we now also distribute Mac wheels on PyPI,
-and have made the C++ installer usable without root privileges.
+Starting with version 0.14.0, we now also distribute MacOS wheels on
+PyPI, and have made the C++ installer usable without root privileges.
 Additionally, we have completely overhauled the Python compiler.
 
 -   [Docker

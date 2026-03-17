@@ -2069,12 +2069,9 @@ repository](https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/docs/){.re
 CUDA-Q Realtime has been tested with the following NVIDIA products: -
 [NVIDIA IGX
 Thor](https://www.nvidia.com/en-au/edge-computing/products/igx/){.reference
-.external} - [`NVIDIA`{.code .docutils .literal
-.notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`GB200`{.code .docutils .literal
-.notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`<https://www.nvidia.com/en-us/products/workstations/gb200-developer-kit/>`{.code
-.docutils .literal .notranslate}]{.pre} - [NVIDIA DGX
+.external} - [NVIDIA
+GB200](https://www.nvidia.com/en-us/products/workstations/gb200-developer-kit/){.reference
+.external} - [NVIDIA DGX
 Spark](https://www.nvidia.com/en-us/products/workstations/dgx-spark/){.reference
 .external}
 
