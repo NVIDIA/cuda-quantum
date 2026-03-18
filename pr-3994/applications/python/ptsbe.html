@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PTSBE end-to-end workflow &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Pre-Trajectory Sampling with Batch Execution (PTSBE) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -600,7 +600,7 @@
 <li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">PTSBE end-to-end workflow</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Set-up-the-environment">Set up the environment</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
@@ -611,6 +611,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Performance-of-PTSBE-vs-standard-noisy-sampling">Performance of PTSBE vs standard noisy sampling</a></li>
 </ul>
 </li>
 </ul>
@@ -702,6 +703,107 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#batch-simulation">Batch simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/realtime.html">   Realtime</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/installation.html">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/host.html">Host API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-is-hsb">What is HSB?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#transport-mechanisms">Transport Mechanisms</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#supported-transport-options">Supported Transport Options</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture">The 3-Kernel Architecture (HSB Example) {#three-kernel-architecture}</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#data-flow-summary">Data Flow Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#why-3-kernels">Why 3 Kernels?</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#unified-dispatch-mode">Unified Dispatch Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#architecture">Architecture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation">Transport-Agnostic API, Transport-Specific Implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#when-to-use-which-mode">When to Use Which Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#host-api-extensions">Host API Extensions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-this-api-does-in-one-paragraph">What This API Does (In One Paragraph)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#scope">Scope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#terms-and-components">Terms and Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#schema-data-structures">Schema Data Structures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#type-descriptors">Type Descriptors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#handler-schema">Handler Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#rpc-messaging-protocol">RPC Messaging Protocol</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#host-api-overview">Host API Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#manager-and-dispatcher-topology">Manager and Dispatcher Topology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#host-api-functions">Host API Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#occupancy-query-and-eager-module-loading">Occupancy Query and Eager Module Loading</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-based-dispatch-functions">Graph-Based Dispatch Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#kernel-launch-helper-functions">Kernel Launch Helper Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#memory-layout-and-ring-buffer-wiring">Memory Layout and Ring Buffer Wiring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#step-by-step-wiring-the-host-api-minimal">Step-by-Step: Wiring the Host API (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#device-handler-and-function-id">Device Handler and Function ID</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#multi-argument-handler-example">Multi-Argument Handler Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#cuda-graph-dispatch-mode">CUDA Graph Dispatch Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#requirements">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-based-dispatch-api">Graph-Based Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-handler-setup-example">Graph Handler Setup Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-capture-and-instantiation">Graph Capture and Instantiation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#when-to-use-graph-dispatch">When to Use Graph Dispatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-vs-device-call-dispatch">Graph vs Device Call Dispatch</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#building-and-sending-an-rpc-message">Building and Sending an RPC Message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#reading-the-response">Reading the Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#schema-driven-argument-parsing">Schema-Driven Argument Parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#hsb-3-kernel-workflow-primary">HSB 3-Kernel Workflow (Primary)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7">NIC-Free Testing (No HSB / No ConnectX-7)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/protocol.html">Messaging Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#scope">Scope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#rpc-header-response">RPC Header / Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#request-id-semantics">Request ID Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#ptp-timestamp-semantics"><code class="docutils literal notranslate"><span class="pre">PTP</span></code> Timestamp Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#function-id-semantics">Function ID Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#schema-and-payload-interpretation">Schema and Payload Interpretation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#type-system">Type System</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#payload-encoding">Payload Encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#single-argument-payloads">Single-Argument Payloads</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#multi-argument-payloads">Multi-Argument Payloads</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#size-constraints">Size Constraints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#encoding-examples">Encoding Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#bit-packed-data-encoding">Bit-Packed Data Encoding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#multi-bit-measurement-encoding">Multi-Bit Measurement Encoding</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#response-encoding">Response Encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#single-result-response">Single-Result Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#multi-result-response">Multi-Result Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#status-codes">Status Codes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#qec-specific-usage-example">QEC-Specific Usage Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#qec-terminology">QEC Terminology</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#qec-decoder-handler">QEC Decoder Handler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#decoding-rounds">Decoding Rounds</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/cudaqx/cudaqx.html">   CUDA-QX</a><ul>
@@ -1057,7 +1159,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">PTSBE end-to-end workflow</li>
+      <li class="breadcrumb-item active">Pre-Trajectory Sampling with Batch Execution (PTSBE)</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
@@ -1069,8 +1171,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="PTSBE-end-to-end-workflow">
-<h1>PTSBE end-to-end workflow<a class="headerlink" href="#PTSBE-end-to-end-workflow" title="Permalink to this heading">¶</a></h1>
+  <section id="Pre-Trajectory-Sampling-with-Batch-Execution-(PTSBE)">
+<h1>Pre-Trajectory Sampling with Batch Execution (PTSBE)<a class="headerlink" href="#Pre-Trajectory-Sampling-with-Batch-Execution-(PTSBE)" title="Permalink to this heading">¶</a></h1>
 <p>PTSBE (Pre-Trajectory Sampling with Batch Execution) is a method for sampling from noisy quantum circuits efficiently. Instead of simulating the full density matrix and sampling once per shot, PTSBE:</p>
 <ol class="arabic simple">
 <li><p>Traces the kernel to get the gate sequence and qubit layout.</p></li>
@@ -1084,24 +1186,12 @@
 <section id="Set-up-the-environment">
 <h2>Set up the environment<a class="headerlink" href="#Set-up-the-environment" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
-<span class="n">_root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/Devel/cudaq-pstbe/vendor/cuda-quantum&quot;</span><span class="p">),</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_root</span><span class="p">,</span> <span class="s2">&quot;python&quot;</span><span class="p">))</span>
-<span class="n">_build_lib</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_root</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">)</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;LD_LIBRARY_PATH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_build_lib</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LD_LIBRARY_PATH&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1161,7 +1251,7 @@
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Inline apply_noise result:
-{ 00:4873 01:74 10:74 11:4979 }
+{ 00:5007 01:79 10:69 11:4845 }
 
 </pre></div></div>
 </div>
@@ -1228,18 +1318,16 @@ Inline apply_noise result:
     <span class="n">max_trajectories</span><span class="o">=</span><span class="n">max_traj</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
 <span class="n">result_standard</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
     <span class="n">bell_with_noise</span><span class="p">,</span>
     <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
     <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Comparison with same shots=</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2">, max_trajectories=</span><span class="si">{</span><span class="n">max_traj</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;PTSBE (ordered + low-weight bias)&quot;</span><span class="p">,</span> <span class="n">result_biased</span><span class="p">)</span>
 <span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;PTSBE (ordered + proportional)&quot;</span><span class="p">,</span> <span class="n">result_unbiased</span><span class="p">)</span>
-<span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;Density-matrix noisy sample&quot;</span><span class="p">,</span> <span class="n">result_standard</span><span class="p">)</span>
+<span class="n">print_result</span><span class="p">(</span><span class="s2">&quot;Standard noisy sample&quot;</span><span class="p">,</span> <span class="n">result_standard</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1249,11 +1337,11 @@ Inline apply_noise result:
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Comparison with same shots=10000, max_trajectories=16
-PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5045 01:6 10:4 11:4945 }
+PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5044 01:5 10:5 11:4946 }
 
-PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4877 01:49 10:55 11:5019 }
+PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4919 01:45 10:59 11:4977 }
 
-Density-matrix noisy sample          shots= 10000  counts={ 00:4943 01:83 10:98 11:4876 }
+Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 11:4804 }
 
 </pre></div></div>
 </div>
@@ -1371,7 +1459,7 @@ Density-matrix noisy sample          shots= 10000  counts={ 00:4943 01:83 10:98 
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Trajectories: 147, Total shots: 1,000,000
-[2026-03-18 02:34:36.559] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
+[2026-03-16 15:10:06.241] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
 Top 5 trajectories (highest probability):
   #1: p_theory=0.886385, p_empirical=0.888297, shots=888,297, errors=0, cumulative shots=88.8%
@@ -1421,6 +1509,64 @@ Trajectories grouped by error count:
   2 errors: 19 trajectories, 7,396 shots (0.7%)
   3 errors: 1 trajectories, 359 shots (0.0%)
 </pre></div></div>
+</div>
+</section>
+<section id="Performance-of-PTSBE-vs-standard-noisy-sampling">
+<h2>Performance of PTSBE vs standard noisy sampling<a class="headerlink" href="#Performance-of-PTSBE-vs-standard-noisy-sampling" title="Permalink to this heading">¶</a></h2>
+<p>The table below times compares the performance of standard trajectory sampling with PTSBE on the 12-qubit GHZ circuit at increasing shot counts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="n">shot_counts</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1_000</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">,</span> <span class="mi">100_000</span><span class="p">,</span> <span class="mi">1_000_000</span><span class="p">]</span>
+<span class="n">max_traj</span> <span class="o">=</span> <span class="mi">64</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;shots&#39;</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;standard (s)&#39;</span><span class="si">:</span><span class="s2">&gt;14</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;PTSBE (s)&#39;</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;speedup&#39;</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">52</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">shots</span> <span class="ow">in</span> <span class="n">shot_counts</span><span class="p">:</span>
+    <span class="c1"># Standard noisy sampling (one trajectory per shot)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">ghz_noise</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
+    <span class="n">t_standard</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+    <span class="c1"># PTSBE (batched trajectories)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">ptsbe</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+        <span class="n">ghz</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span>
+        <span class="n">noise_model</span><span class="o">=</span><span class="n">ghz_noise</span><span class="p">,</span>
+        <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
+        <span class="n">max_trajectories</span><span class="o">=</span><span class="n">max_traj</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">t_ptsbe</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+    <span class="n">speedup</span> <span class="o">=</span> <span class="n">t_standard</span> <span class="o">/</span> <span class="n">t_ptsbe</span> <span class="k">if</span> <span class="n">t_ptsbe</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shots</span><span class="si">:</span><span class="s2">&gt;10,</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">t_standard</span><span class="si">:</span><span class="s2">&gt;14.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">t_ptsbe</span><span class="si">:</span><span class="s2">&gt;12.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">&gt;7.1f</span><span class="si">}</span><span class="s2">x&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+     shots    standard (s)     PTSBE (s)   speedup
+----------------------------------------------------
+     1,000           0.043         0.024      1.8x
+    10,000           0.119         0.024      4.9x
+   100,000           0.739         0.029     25.8x
+ 1,000,000           5.800         0.051    113.1x
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
 </div>
 </section>
 </section>

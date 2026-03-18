@@ -137,7 +137,7 @@ There are some known Blackwell issues when using CUDA-Q.
     .. code-block:: console
 
         Module 'torch' was found, but when imported by pytest it raised:
-        ImportError('/home/cudaq/.local/lib/python3.10/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12')
+        ImportError('/home/cudaq/.local/lib/python3.12/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12')
 
     This may be caused by an incorrectly linked shared object. If you encounter this, try adding the shared object to the LD_LIBRARY_PATH:
 
@@ -892,7 +892,7 @@ The following table summarizes the required components.
     * - Tested Distributions
       - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
     * - Python versions
-      - 3.10+
+      - 3.11+
 
 .. list-table:: Requirements for GPU Simulation
     :widths: 30 50
