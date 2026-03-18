@@ -138,6 +138,19 @@ func.func @b(%c4: i16) {
 // CHECK:           return
 // CHECK:         }
 
+// FACTOR-LABEL:   func.func @b(
+// FACTOR-SAME:      %[[VAL_0:.*]]: i16) {
+// FACTOR:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_5:.*]] = quake.concat %[[VAL_1]], %[[VAL_2]], %[[VAL_3]], %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// FACTOR:           %[[VAL_6:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_0]]] : (!quake.veq<4>, i16) -> !quake.ref
+// FACTOR:           quake.x {{\[}}%[[VAL_6]]] %[[VAL_7]] : (!quake.ref, !quake.ref) -> ()
+// FACTOR:           return
+// FACTOR:         }
+
 func.func @c() {
   %1 = quake.alloca !quake.veq<4>
   %c2 = arith.constant 2 : i64
@@ -157,14 +170,14 @@ func.func @c() {
 // CHECK:           return
 // CHECK:         }
 
-// FACTOR-LABEL:  func.func @c() {
-// FACTOR:          %0 = quake.alloca !quake.ref
-// FACTOR:          %1 = quake.alloca !quake.ref
-// FACTOR:          %2 = quake.alloca !quake.ref
-// FACTOR:          %3 = quake.alloca !quake.ref
-// FACTOR:          quake.x %3 : (!quake.ref) -> ()
-// FACTOR:          return
-// FACTOR:        }
+// FACTOR-LABEL:   func.func @c() {
+// FACTOR:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// FACTOR:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// FACTOR:           return
+// FACTOR:         }
 
 func.func @d(%c2: i64, %c3: i64, %c1: i64, %off: i16) {
   %1 = quake.alloca !quake.veq<4>
@@ -185,3 +198,18 @@ func.func @d(%c2: i64, %c3: i64, %c1: i64, %off: i16) {
 // CHECK:           quake.x %[[VAL_8]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+
+// FACTOR-LABEL:   func.func @d(
+// FACTOR-SAME:       %[[VAL_0:.*]]: i64, %[[VAL_1:.*]]: i64, %[[VAL_2:.*]]: i64, %[[VAL_3:.*]]: i16) {
+// FACTOR:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_5:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_6:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_7:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_8:.*]] = quake.concat %[[VAL_4]], %[[VAL_5]], %[[VAL_6]], %[[VAL_7]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// FACTOR:           %[[VAL_9:.*]] = arith.addi %[[VAL_0]], %[[VAL_2]] : i64
+// FACTOR:           %[[VAL_10:.*]] = cc.cast unsigned %[[VAL_3]] : (i16) -> i64
+// FACTOR:           %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_9]] : i64
+// FACTOR:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_11]]] : (!quake.veq<4>, i64) -> !quake.ref
+// FACTOR:           quake.x %[[VAL_12]] : (!quake.ref) -> ()
+// FACTOR:           return
+// FACTOR:         }
