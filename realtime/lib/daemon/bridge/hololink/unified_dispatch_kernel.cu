@@ -9,7 +9,12 @@
 /// @file unified_dispatch_kernel.cu
 /// @brief Hololink/DOCA unified dispatch: RDMA RX + RPC dispatch + RDMA TX
 /// in one GPU kernel, using Hololink's gpu_roce_transceiver.cuh device
-/// functions for WQE preparation and BlueFlame TX.
+/// functions for WQE preparation and TX.
+///
+/// Two TX paths selected at runtime via the use_bf flag:
+///   dGPU: send_bf (BlueFlame, shared-memory WQE) -- lowest latency.
+///   iGPU: send (NIC_HANDLER_AUTO -> CPU proxy) -- required because the
+///         GPU cannot ring the NIC doorbell directly on integrated GPUs.
 ///
 /// Compiled into libcudaq-realtime-bridge-hololink.so (transport-specific).
 /// The core libcudaq-realtime-dispatch.a no longer contains this file.
@@ -74,8 +79,11 @@ unified_lookup_entry(std::uint32_t function_id,
 //==============================================================================
 // Unified dispatch kernel -- single thread, single block.
 //
-// Uses Hololink's prepare_send_shared / send_bf / repost_receive from
-// gpu_roce_transceiver.cuh instead of duplicating WQE manipulation code.
+// Two TX paths selected at runtime via the use_bf flag:
+//   use_bf=true  (dGPU): prepare_send_shared + send_bf  (BlueFlame, smem WQE)
+//   use_bf=false (iGPU): prepare_receive_send + send    (NIC_HANDLER_AUTO)
+//
+// Receive WQEs are pre-posted by the host before this kernel launches.
 //==============================================================================
 
 __global__ void hololink_unified_dispatch_kernel(
@@ -83,7 +91,7 @@ __global__ void hololink_unified_dispatch_kernel(
     std::uint8_t *ring_buf, std::size_t ring_buf_stride_sz,
     std::uint32_t ring_buf_mkey, std::uint32_t ring_buf_stride_num,
     std::size_t frame_size, cudaq_function_entry_t *function_table,
-    std::size_t func_count, std::uint64_t *stats) {
+    std::size_t func_count, std::uint64_t *stats, int use_bf) {
   if (qp == nullptr)
     return;
 
@@ -94,9 +102,15 @@ __global__ void hololink_unified_dispatch_kernel(
 
   const bool use_inline = (frame_size <= MAX_SEND_INLINE_WQE);
 
-  // Prepare WQE template in shared memory using Hololink's helper
+  // Receive WQEs are pre-posted by the host (GpuRoceTransceiverPrepareKernel
+  // in start() on dGPU, or hololink_prepare_receive_send() on iGPU).
   __shared__ struct doca_gpu_dev_verbs_wqe wqe_sh;
-  prepare_send_shared(qp, &wqe_sh, frame_size, ring_buf_mkey);
+
+  if (use_bf) {
+    prepare_send_shared(qp, &wqe_sh, frame_size, ring_buf_mkey);
+  } else {
+    prepare_receive_send(qp, frame_size, ring_buf_mkey);
+  }
 
   doca_gpu_dev_verbs_ticket_t cq_ticket = 0;
   std::uint64_t sq_wqe_idx = 0;
@@ -152,21 +166,36 @@ __global__ void hololink_unified_dispatch_kernel(
       response->ptp_timestamp = ptp_timestamp;
     }
 
-    // Send response via Hololink's BlueFlame helper
     auto buffer_addr =
         static_cast<std::uint64_t>(ring_buf_stride_sz) * stride;
-    if (!use_inline) {
-      send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(
-          qp, &wqe_sh, sq_wqe_idx, buffer_addr);
+    if (use_bf) {
+      // dGPU: send first, then repost (original order).  Reposting before
+      // send adds ~400ns by serializing a PCIe write ahead of BlueFlame.
+      if (!use_inline) {
+        send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(qp, &wqe_sh, sq_wqe_idx,
+                                            buffer_addr);
+      } else {
+        send_bf<GPU_ROCE_MAX_FRAME_SIZE_44B>(
+            qp, &wqe_sh, sq_wqe_idx,
+            reinterpret_cast<std::uint64_t>(slot));
+      }
+      sq_wqe_idx++;
+      repost_receive(qp, sq_wqe_idx);
+      cq_ticket = sq_wqe_idx;
     } else {
-      send_bf<GPU_ROCE_MAX_FRAME_SIZE_44B>(
-          qp, &wqe_sh, sq_wqe_idx,
-          reinterpret_cast<std::uint64_t>(slot));
+      // iGPU: repost first, then send.  The CPU proxy may batch doorbell
+      // writes, so ensure the NIC has a fresh receive WQE before any delay.
+      sq_wqe_idx++;
+      repost_receive(qp, sq_wqe_idx);
+      cq_ticket = sq_wqe_idx;
+      if (!use_inline) {
+        send<GPU_ROCE_MAX_FRAME_SIZE_0B>(qp, sq_wqe_idx - 1, buffer_addr);
+      } else {
+        send<GPU_ROCE_MAX_FRAME_SIZE_44B>(
+            qp, sq_wqe_idx - 1, reinterpret_cast<std::uint64_t>(slot));
+      }
     }
 
-    sq_wqe_idx++;
-    repost_receive(qp, sq_wqe_idx);
-    cq_ticket = sq_wqe_idx;
     packet_count++;
   }
 
@@ -187,5 +216,5 @@ extern "C" void hololink_launch_unified_dispatch(
       static_cast<struct doca_gpu_dev_verbs_qp *>(ctx->gpu_dev_qp),
       shutdown_flag, ctx->rx_ring_data, ctx->rx_ring_stride_sz,
       ctx->rx_ring_mkey, ctx->rx_ring_stride_num, ctx->frame_size,
-      function_table, func_count, stats);
+      function_table, func_count, stats, ctx->use_bf);
 }

@@ -1,6 +1,6 @@
 Code documentation
 ******************
-
+.. |:spellcheck-disable:| replace:: \
 .. toctree::
   :caption: CUDA-Q API
   :maxdepth: 1
@@ -8,3 +8,4 @@ Code documentation
   C++ API <languages/cpp_api.rst>
   Python API <languages/python_api.rst>
   Quantum Operations <default_ops.rst>
+.. |:spellcheck-enable:| replace:: \

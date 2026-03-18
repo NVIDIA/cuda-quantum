@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -100,7 +100,8 @@ endif()
 find_package(Threads REQUIRED)
 
 # Enable static linking of the C++ standard library to avoid dependency issues when distributing the library.
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 add_subdirectory(lib)
 
@@ -122,3 +123,5 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
   add_subdirectory(unittests)
 endif()
 
+# Install the LICENSE and NOTICE files
+install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})

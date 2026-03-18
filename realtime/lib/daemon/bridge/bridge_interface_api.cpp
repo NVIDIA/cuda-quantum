@@ -17,15 +17,22 @@
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include <dlfcn.h>
 #include <iostream>
+#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
-
 namespace {
 std::unordered_map<cudaq_realtime_transport_provider_t,
                    cudaq_realtime_bridge_interface_t *>
     provider_interface_map;
+
 std::unordered_map<cudaq_realtime_bridge_handle_t,
                    cudaq_realtime_bridge_interface_t *>
     bridge_handle_interface_map;
+
+// Mutex to protect access to global maps (provider_interface_map and
+// bridge_handle_interface_map) for thread safety.
+std::shared_mutex bridge_interface_mutex;
+
 /// @brief Path to the built-in Hololink bridge library.  This is used when the
 /// provider is CUDAQ_PROVIDER_HOLOLINK to load the Hololink implementation of
 /// the bridge interface.  The library must be present at the load path (e.g.,
@@ -37,6 +44,9 @@ cudaq_status_t
 cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
                     cudaq_realtime_transport_provider_t provider, int argc,
                     char **argv) {
+  // For create, hold an unique lock.
+  std::unique_lock<std::shared_mutex> lock(bridge_interface_mutex);
+
   const auto it = provider_interface_map.find(provider);
   if (it != provider_interface_map.end()) {
     auto *bridge_interface = it->second;
@@ -106,6 +116,9 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 }
 
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {
+  // For destroy, hold an unique lock.
+  std::unique_lock<std::shared_mutex> lock(bridge_interface_mutex);
+
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
     std::cerr << "ERROR: Invalid bridge handle in destroy" << std::endl;
@@ -123,6 +136,9 @@ cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {
 cudaq_status_t cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context) {
+  // Hold a shared lock since this is a read-only operation on the global maps.
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
     std::cerr << "ERROR: Invalid bridge handle in get_transport_context"
@@ -135,6 +151,9 @@ cudaq_status_t cudaq_bridge_get_transport_context(
 }
 
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge) {
+  // Hold a shared lock since this is a read-only operation on the global maps.
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
     std::cerr << "ERROR: Invalid bridge handle in connect" << std::endl;
@@ -145,6 +164,9 @@ cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge) {
 }
 
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge) {
+  // Hold a shared lock since this is a read-only operation on the global maps.
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
     std::cerr << "ERROR: Invalid bridge handle in launch" << std::endl;
@@ -155,6 +177,9 @@ cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge) {
 }
 
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge) {
+  // Hold a shared lock since this is a read-only operation on the global maps.
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
     std::cerr << "ERROR: Invalid bridge handle in disconnect" << std::endl;

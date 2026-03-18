@@ -1,6 +1,6 @@
 # Steps to execute the NVQLink latency demo
 
-The source Verilog code can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/).
+The source Verilog code can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/).
 
 More details about how the `Holoscan Sensor Bridge` (`HSB`) IP can be incorporated
 can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/latest/fpga_index.html)
@@ -20,7 +20,7 @@ the capabilities required.
 Mainly the IP address of the NIC needs to be set to `192.168.0.101`.
 More details can be found at the
 *Data Channel Enumeration and IP Address Configuration* section of [this document](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html)
-3. Download the accompanying software from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink)
+3. Download the accompanying software from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA)
 
    Then generate the docker:
 
@@ -28,6 +28,9 @@ More details can be found at the
    sudo sh ./docker/build.sh --dgpu
    sudo sh ./docker/demo.sh
    ```
+
+> **Note:** The above command is applicable to discrete GPU configurations.
+If using an integrated GPU configuration, please use the `--igpu` option.
 
 To run the test, here is an example for 32B messages reported in the paper:
 

@@ -10,6 +10,7 @@ AquSim
 Asynchronous
 BFGS
 Bloch
+BlueField
 Braket
 CLA
 CLI
@@ -96,6 +97,7 @@ OpenSUSE
 Ou
 POSIX
 PSIRT
+PTSBE
 Pasqal
 Pauli
 Paulis

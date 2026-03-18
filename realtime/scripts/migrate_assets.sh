@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -84,9 +84,15 @@ find "$target/bin" -type f -exec chmod u+x {} \;
 
 # Done installing, print next steps
 echo "Installation complete."
+echo "***************************************************************"
+echo "IMPORTANT: Please review the post-installation actions below to ensure your CUDA-Q Realtime installation is set up correctly and ready to use."
+echo "***************************************************************"
 echo "Post-installation Actions:"
 echo "1. Environment Setup: the LD_LIBRARY_PATH variable needs to contain ${target}/lib."
-echo "For example, you can run: export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${target}/lib"
+echo "For example, you can run: "
+echo "=============================================================== "
+echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${target}/lib"
+echo "=============================================================== "
 echo "2. Validation [Recommended]: Run the included validate.sh script to verify your installation is working correctly."
 echo "Alternatively, you can run the demo.sh script to run a demo application in a containerized environment that uses the installed CUDA-Q Realtime libraries."
 # Guide users to read the `user_guide.md` file to validate their installation.
