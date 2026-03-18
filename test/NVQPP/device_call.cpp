@@ -47,4 +47,8 @@ int main() {
   return 0;
 }
 
-// COMPILE_ERROR: undefined reference to `add_op'
+// Either "undefined reference to `add_op'" or "undefined symbol: add_op" is
+// fine, as the exact error message may differ based on the platform and
+// toolchain.
+
+// COMPILE_ERROR: undefined {{.*}}add_op
