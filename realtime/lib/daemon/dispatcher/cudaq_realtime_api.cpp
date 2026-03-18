@@ -67,8 +67,10 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
 
   if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
-    if (!dispatcher->ringbuffer.rx_flags_host || !dispatcher->ringbuffer.tx_flags_host ||
-        !dispatcher->ringbuffer.rx_data_host || !dispatcher->ringbuffer.tx_data_host)
+    if (!dispatcher->ringbuffer.rx_flags_host ||
+        !dispatcher->ringbuffer.tx_flags_host ||
+        !dispatcher->ringbuffer.rx_data_host ||
+        !dispatcher->ringbuffer.tx_data_host)
       return CUDAQ_ERR_INVALID_ARG;
     return CUDAQ_OK;
   }
@@ -166,7 +168,8 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
-  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP && launch_fn != nullptr)
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP &&
+      launch_fn != nullptr)
     return CUDAQ_ERR_INVALID_ARG;
   if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP && !launch_fn)
     return CUDAQ_ERR_INVALID_ARG;
@@ -297,21 +300,21 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
 //==============================================================================
 
 static inline uint64_t atomic_load_u64(volatile uint64_t *ptr) {
-  auto *ap = reinterpret_cast<std::atomic<uint64_t> *>(
-      const_cast<uint64_t *>(ptr));
+  auto *ap =
+      reinterpret_cast<std::atomic<uint64_t> *>(const_cast<uint64_t *>(ptr));
   return ap->load(std::memory_order_acquire);
 }
 
 static inline void atomic_store_u64(volatile uint64_t *ptr, uint64_t val) {
-  auto *ap = reinterpret_cast<std::atomic<uint64_t> *>(
-      const_cast<uint64_t *>(ptr));
+  auto *ap =
+      reinterpret_cast<std::atomic<uint64_t> *>(const_cast<uint64_t *>(ptr));
   ap->store(val, std::memory_order_release);
 }
 
 cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
     const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
-    const void *payload, uint32_t payload_len,
-    uint32_t request_id, uint64_t ptp_timestamp) {
+    const void *payload, uint32_t payload_len, uint32_t request_id,
+    uint64_t ptp_timestamp) {
   if (!rb || !rb->rx_data_host)
     return CUDAQ_ERR_INVALID_ARG;
   if (CUDAQ_RPC_HEADER_SIZE + payload_len > rb->rx_stride_sz)
@@ -339,8 +342,9 @@ void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
   atomic_store_u64(&rb->rx_flags_host[slot_idx], addr);
 }
 
-cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
-    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, int *out_cuda_error) {
+cudaq_tx_status_t
+cudaq_host_ringbuffer_poll_tx_flag(const cudaq_ringbuffer_t *rb,
+                                   uint32_t slot_idx, int *out_cuda_error) {
   uint64_t v = atomic_load_u64(&rb->tx_flags_host[slot_idx]);
   if (v == 0)
     return CUDAQ_TX_EMPTY;

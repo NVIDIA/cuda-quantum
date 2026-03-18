@@ -10,9 +10,9 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
+#include <cuda_runtime.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <cuda_runtime.h>
 
 #ifndef QEC_CPU_RELAX
 #if defined(__x86_64__)
@@ -42,8 +42,8 @@ typedef struct {
 } cudaq_host_dispatch_worker_t;
 
 typedef struct {
-  void *rx_flags;      ///< opaque cuda::std::atomic<uint64_t>*
-  void *tx_flags;      ///< opaque cuda::std::atomic<uint64_t>*
+  void *rx_flags; ///< opaque cuda::std::atomic<uint64_t>*
+  void *tx_flags; ///< opaque cuda::std::atomic<uint64_t>*
   uint8_t *rx_data_host;
   uint8_t *rx_data_dev;
   uint8_t *tx_data_host;
@@ -58,14 +58,15 @@ typedef struct {
   /// others dropped).
   cudaq_function_entry_t *function_table;
   size_t function_table_count;
-  void *shutdown_flag;     ///< opaque cuda::std::atomic<int>*
+  void *shutdown_flag; ///< opaque cuda::std::atomic<int>*
   uint64_t *stats_counter;
-  void *live_dispatched;   ///< opaque cuda::std::atomic<uint64_t>*
-  void *idle_mask;         ///< opaque cuda::std::atomic<uint64_t>*, 1=free 0=busy
-  int *inflight_slot_tags; ///< worker_id -> origin FPGA slot for tx_flags routing
+  void *live_dispatched; ///< opaque cuda::std::atomic<uint64_t>*
+  void *idle_mask;       ///< opaque cuda::std::atomic<uint64_t>*, 1=free 0=busy
+  int *inflight_slot_tags; ///< worker_id -> origin FPGA slot for tx_flags
+                           ///< routing
 } cudaq_host_dispatcher_config_t;
 
-/// Run the host-side dispatcher loop. Blocks until *config->shutdown_flag
+/// Run the host-side dispatcher loop. Blocks until `*config->shutdown_flag`
 /// becomes non-zero. Call from a dedicated thread.
 /// Uses dynamic worker pool: allocates via idle_mask, tags with
 /// inflight_slot_tags.
