@@ -46,6 +46,7 @@ GPUDirect
 GPUs
 GitHub
 HPC
+HSB
 HTTP
 HTTPS
 Hadamard
@@ -75,6 +76,7 @@ MPI
 MPICH
 MPS
 MSB
+MacOS
 Mandel
 Max-Cut
 Miniconda
@@ -130,6 +132,8 @@ RHEL
 RPC
 RSA
 RSH
+Realtime
+RoCE
 SDK
 SLED
 SLES

@@ -93,7 +93,7 @@ if $gen_cpp_coverage; then
     use_llvm_cov=true
 
     # Run tests (C++ Unittests)
-    python3 -m pip install iqm-client==28.0.0
+    python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
     ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-nvqpp -E ctest-targettests
     ctest_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
@@ -130,6 +130,8 @@ if $gen_cpp_coverage; then
             -e '/Linking CXX executable/s/^.*Linking CXX executable //p' ${repo_root}/build/logs/ninja_output.txt))
         objects=""
         for item in "${binarys[@]}"; do
+            # Static libraries (.a) often produce malformed coverage data; only use shared libs and executables
+            [[ "$item" == *.a ]] && continue
             objects+="-object ${repo_root}/build/$item "
         done
 
@@ -178,20 +180,29 @@ if $gen_cpp_coverage; then
 fi
 
 if $gen_py_coverage; then
+    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    apt install -y python${PY_VER}-venv
+ 
+    # Needs to be installed outside of venv
+    python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
+
+    venv_dir=${repo_root}/build/venv-coverage
+    python3 -m venv "$venv_dir"
+    . "${venv_dir}/bin/activate"
     pip install pytest-cov
-    pip install iqm_client==16.1 --user -vvv
     rm -rf ${repo_root}/_skbuild
-    pip install . --user -vvv
+    pip install . -vvv
+    mkdir -p ${repo_root}/build/pycoverage
     if $is_codecov_format; then
-        python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
     else
-        python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
     fi
     for backendTest in python/tests/backends/*.py; do
         if $is_codecov_format; then
-            python3 -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+            python -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
         else
-            python3 -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+            python -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
         fi
         pytest_status=$?
         if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
