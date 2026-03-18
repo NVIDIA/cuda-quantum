@@ -86,7 +86,7 @@ In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment prior to proceeding with 
 the build as described in the subsequent sections:
 
-- Python version 3.10 or newer: If you intend to build CUDA-Q with Python
+- Python version 3.11 or newer: If you intend to build CUDA-Q with Python
   support, make sure the Python version on the build system matches the version
   on the host system. If you intend to only build the C++ support for
   CUDA-Q, the Python interpreter is required only for some of the 

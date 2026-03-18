@@ -534,14 +534,14 @@ def test_qvector_state_init_too_many_qubits():
 
         cudaq.sample(kernel)
     assert ('State vector initialization with more than 10 qubits is not'
-            ' supported. Requested 11 qubits.') in repr(e)
+            ' supported. Requested 11 qubits.') in str(e.value)
 
 
 @pytest.mark.skip_macos_arm64_jit
 def test_qvector_state_init_too_many_qubits_list_param():
     cudaq.reset_target()
 
-    n = 11
+    n = 20
     v = [0.] * (2**n)
     v[-1] = 1.
 
@@ -552,4 +552,4 @@ def test_qvector_state_init_too_many_qubits_list_param():
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel, v)
     assert ('State vector initialization with more than 10 qubits is not'
-            ' supported. Requested 11 qubits.') in repr(e)
+            ' supported. Requested 20 qubits.') in str(e.value)
