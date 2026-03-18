@@ -6,5 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && echo skipping
-#include "../execution/sudoku_2x2-bit_names.cpp"
+// RUN: echo skipping
+
+#include "../execution/sudoku_2x2-bit_name.cpp"

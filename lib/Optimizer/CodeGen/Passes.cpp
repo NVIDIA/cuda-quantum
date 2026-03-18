@@ -21,10 +21,10 @@ static void addAnyonPPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "z(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addAnyonCPipeline(OpPassManager &pm) {
@@ -32,10 +32,10 @@ static void addAnyonCPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addOQCPipeline(OpPassManager &pm) {
@@ -44,10 +44,10 @@ static void addOQCPipeline(OpPassManager &pm) {
       // TODO: make this our native gate set
       "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addQCIPipeline(OpPassManager &pm) {
@@ -58,10 +58,10 @@ static void addQCIPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addQuantinuumPipeline(OpPassManager &pm) {
@@ -69,10 +69,10 @@ static void addQuantinuumPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addIQMPipeline(OpPassManager &pm) {
@@ -81,10 +81,10 @@ static void addIQMPipeline(OpPassManager &pm) {
       "phased_rx",
       "z(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addIonQPipeline(OpPassManager &pm) {
@@ -93,10 +93,10 @@ static void addIonQPipeline(OpPassManager &pm) {
       "h",  "s", "t", "rx", "ry",
       "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addFermioniqPipeline(OpPassManager &pm) {
@@ -104,10 +104,10 @@ static void addFermioniqPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
   options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 void cudaq::opt::registerTargetPipelines() {
