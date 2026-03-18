@@ -40,6 +40,10 @@ int main() {
   int a = 2;
   int b = 3;
   auto results = cudaq::run(100, kernel, a, b);
+  for (int res : results) {
+    printf("Result: %d\n", res);
+    assert(res == 5 && "Result should be 5.");
+  }
   return 0;
 }
 

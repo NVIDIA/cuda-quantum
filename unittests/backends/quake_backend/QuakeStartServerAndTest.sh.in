@@ -45,7 +45,7 @@ done
 
 echo "Server started successfully"
 test_err_sum=0
-# Test the app nvq++ 
+# Test the app nvq++ (remote execution on the mock server)
 PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_app.cpp -o test_app
 if [ $? -ne 0 ]; then
   echo ":x: nvq++ compilation failed"
@@ -59,6 +59,24 @@ else
     test_err_sum=$((test_err_sum+1))
   else
     echo ":white_check_mark: Successfully ran test_app"
+  fi
+fi
+
+# Emulation test
+# Note: for emulation, we need to link in the device library. 
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_app (emulation) with nvq++"
+  # Run the test app
+  ./test_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_app (emulation)"
   fi
 fi
 

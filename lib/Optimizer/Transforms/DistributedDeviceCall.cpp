@@ -60,10 +60,19 @@ public:
     std::uint32_t callbackCode = result.low();
 
     if (insertTrapImplementation && devFunc.isDeclaration()) {
-      // For 'declared' device functions that are not defined in the module, we
-      // add a weak implementation (a trap) for them. If this is not provided
-      // (via linking with a library that defines the device function), we will
-      // get an error.
+      // If `insertTrapImplementation` is enabled (e.g., AOT compilation for
+      // remote hardware providers), we want to insert a trap implementation for
+      // any unresolved device function (declaration only), so that we can
+      // perform AOT compilation without needing the actual device function
+      // definitions. This trap function will never be executed as the remote
+      // JIT pipeline would not be using the `device_call` functions anyway.
+      // Rather, these functions will only be resolved at runtime by the remote
+      // provider's runtime library.
+
+      // Add an attribute to the declaration to indicate that this function is
+      // an unresolved device function and the trap implementation is inserted
+      // for it. We will use this attribute to identify and remove these
+      // declarations later.
       devFunc->setAttr(TrapFuncAttr, rewriter.getUnitAttr());
       // (1) Create a trap function that has the same signature as the device
       // function.
@@ -72,6 +81,14 @@ public:
       auto trapFunc = rewriter.create<func::FuncOp>(
           devcall.getLoc(), devFuncName, devFunc.getFunctionType());
       trapFunc.setPrivate();
+      // Set weak_odr linkage to allow multiple definitions across translation
+      // units without linker errors. e.g., compiling for a remote hardware
+      // provider with the actual device call library linkage (even though
+      // unused) should not cause any problems.
+      auto weakOdrLinkage = mlir::LLVM::linkage::Linkage::WeakODR;
+      auto linkage =
+          mlir::LLVM::LinkageAttr::get(rewriter.getContext(), weakOdrLinkage);
+      trapFunc->setAttr("llvm.linkage", linkage);
       auto &entryBlock = *trapFunc.addEntryBlock();
       rewriter.setInsertionPointToStart(&entryBlock);
       // Create a call to the trap intrinsic.
@@ -157,9 +174,11 @@ public:
   }
 };
 
-// Remove auto-generated device call declarations that are not resolved.
-// We have already replaced all resolved auto-generated device calls with traps.
-class RemoveAutoGenDeviceCallDecl : public OpRewritePattern<func::FuncOp> {
+// Remove device call declarations that we have already inserted trap
+// implementations for, to avoid duplicate declarations of the same device
+// function.
+class RemoveDuplicateDeviceCallDeclaration
+    : public OpRewritePattern<func::FuncOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -202,7 +221,7 @@ public:
     patterns.add<ResolveDevicePtrOpPat>(ctx);
     patterns.insert<QIRVendorDeviceCallPat>(ctx, insertTrapImplementation);
     if (insertTrapImplementation)
-      patterns.add<RemoveAutoGenDeviceCallDecl>(ctx);
+      patterns.add<RemoveDuplicateDeviceCallDeclaration>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     return;
