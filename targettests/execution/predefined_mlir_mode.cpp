@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 // clang-format off
-// RUN: nvq++ --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t
 // RUN: nvq++ --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t && %t | FileCheck %s
 // clang-format on
 
