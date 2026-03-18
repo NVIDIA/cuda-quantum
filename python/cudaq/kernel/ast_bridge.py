@@ -2363,11 +2363,10 @@ class PyASTBridge(ast.NodeVisitor):
                     elseBlock = Block.create_at_start(ifOp.elseRegion, [])
                     with InsertionPoint(elseBlock):
                         totalActual = arith.AddIOp(
-                            actualSize,
-                            self.getConstantInt(staticCount)).result
-                        func.CallOp([], '__nvqpp_customop_size_error', [
-                            self.getConstantInt(numTargets), totalActual
-                        ])
+                            actualSize, self.getConstantInt(staticCount)).result
+                        func.CallOp(
+                            [], '__nvqpp_customop_size_error',
+                            [self.getConstantInt(numTargets), totalActual])
                         cc.ContinueOp([])
                     size = dynamicExpected
                 for i in range(size):
