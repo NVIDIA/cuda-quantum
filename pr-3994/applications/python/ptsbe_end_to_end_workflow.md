@@ -2289,6 +2289,7 @@ Note: this is an experimental API and may change in future releases.
 ::: highlight
     Trajectories: 147, Total shots: 1,000,000
 
+    [2026-03-18 00:28:29.926] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
     Top 5 trajectories (highest probability):
       #1: p_theory=0.886385, p_empirical=0.888297, shots=888,297, errors=0, cumulative shots=88.8%
       #2: p_theory=0.002984, p_empirical=0.002378, shots=2,378, errors=1, cumulative shots=89.1%
@@ -2330,7 +2331,6 @@ Note: this is an experimental API and may change in future releases.
         site 19 [depolarization2 on q[9, 8]]: K0 (no-error)
         site 21 [depolarization2 on q[10, 9]]: K0 (no-error)
         site 23 [depolarization2 on q[11, 10]]: K0 (no-error)
-    [2026-03-17 07:56:04.024] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
     Trajectories grouped by error count:
       0 errors: 1 trajectories, 888,297 shots (88.8%)
