@@ -7,4 +7,5 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/sudoku_2x2-bit_names.cpp"
+
+#include "../execution/sudoku_2x2-bit_name.cpp"
