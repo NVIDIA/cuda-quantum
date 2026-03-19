@@ -128,6 +128,7 @@ set_source_files_properties(
 
 target_include_directories(cudaq-mlir-runtime
   PRIVATE .
+    ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
     ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
     ${CMAKE_SOURCE_DIR}/tpls/fmt/include
     ${CMAKE_SOURCE_DIR}/runtime)

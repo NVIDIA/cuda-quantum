@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "logger/pipeline/PassPipelineLogging.h"
+#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 
 #include "common/Environment.h"
 #include "llvm/ADT/StringRef.h"
@@ -61,7 +61,7 @@ void appendToLogFile(llvm::StringRef logPath, llvm::StringRef record) {
 
 } // namespace
 
-namespace cudaq {
+namespace cudaq_internal::compiler {
 
 std::string getPipelineLogPath() {
   if (const char *path = std::getenv("CUDAQ_PIPELINE_LOG"))
@@ -137,4 +137,4 @@ void maybeLogPassPipeline(mlir::PassManager &pm, llvm::StringRef label) {
   pm.addInstrumentation(std::make_unique<PipelineRecorder>(effectiveLabel));
 }
 
-} // namespace cudaq
+} // namespace cudaq_internal::compiler

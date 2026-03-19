@@ -70,6 +70,7 @@ add_library(${LIBRARY_NAME}
 )
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
+       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
@@ -89,6 +90,7 @@ add_library(rest-remote-platform-server
 
 target_include_directories(rest-remote-platform-server 
   PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
     $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
     $<INSTALL_INTERFACE:include>

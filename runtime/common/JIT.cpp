@@ -18,7 +18,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "logger/pipeline/PassPipelineLogging.h"
+#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -300,7 +300,7 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    cudaq::maybeLogPassPipeline(pm, "createQIRJITEngine");
+    cudaq_internal::compiler::maybeLogPassPipeline(pm, "createQIRJITEngine");
     if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
       throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "

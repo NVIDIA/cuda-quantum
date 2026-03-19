@@ -21,7 +21,7 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
-#include "logger/pipeline/PassPipelineLogging.h"
+#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
@@ -95,7 +95,8 @@ specializeKernel(const std::string &name, ModuleOp module,
     module.getContext()->disableMultithreading();
     pm.enableIRPrinting();
   }
-  cudaq::maybeLogPassPipeline(pm, name + ":python-specialize");
+  cudaq_internal::compiler::maybeLogPassPipeline(pm,
+                                                 name + ":python-specialize");
   if (failed(pm.run(module)))
     throw std::runtime_error("Could not successfully apply argument synth.");
 }
@@ -115,7 +116,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
-  cudaq::maybeLogPassPipeline(pm, name + ":python-qir");
+  cudaq_internal::compiler::maybeLogPassPipeline(pm, name + ":python-qir");
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to " + format + " failed.");
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(module, format)))
@@ -154,7 +155,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
     ctx->disableMultithreading();
     pm.enableIRPrinting();
   }
-  cudaq::maybeLogPassPipeline(pm, name + ":python-openqasm");
+  cudaq_internal::compiler::maybeLogPassPipeline(pm, name + ":python-openqasm");
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to OpenQASM failed.");
   std::string result;

@@ -19,7 +19,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "logger/pipeline/PassPipelineLogging.h"
+#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -952,7 +952,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(createSymbolDCEPass());
-    cudaq::maybeLogPassPipeline(pm, "cudaq::builder JIT");
+    cudaq_internal::compiler::maybeLogPassPipeline(pm, "cudaq::builder JIT");
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
@@ -975,7 +975,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createConvertToQIR());
     pm.addPass(createCanonicalizerPass());
-    cudaq::maybeLogPassPipeline(pm, "cudaq::builder JIT");
+    cudaq_internal::compiler::maybeLogPassPipeline(pm, "cudaq::builder JIT");
 
     if (failed(pm.run(module)))
       throw std::runtime_error(

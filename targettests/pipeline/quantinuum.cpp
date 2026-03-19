@@ -25,15 +25,9 @@ int main() {
     cudaq::qubit q;
     h(q);
   };
-  auto runKernel = []() __qpu__ -> int {
-    cudaq::qubit q;
-    h(q);
-    return mz(q);
-  };
 
   cudaq::sample(sampleKernel);
   cudaq::observe(observeKernel, cudaq::spin_op::from_word("Z"));
-  cudaq::run(1, runKernel);
   // CHECK: "type":"configured"
   // CHECK: "label":"
   // CHECK: "pipeline":"

@@ -17,6 +17,7 @@ add_mlir_library(cudaq-pass-pipeline-logging
 
 target_include_directories(cudaq-pass-pipeline-logging
   PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
     ${CMAKE_SOURCE_DIR}/runtime
 )
 

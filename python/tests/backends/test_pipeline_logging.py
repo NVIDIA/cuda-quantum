@@ -24,7 +24,8 @@ TARGET_CONFIGS = [
     # `run` is not currently supported on these backend targets.
     pytest.param("infleqtion", {"emulate": True}, False, id="openqasm"),
     pytest.param("quantinuum", {"emulate": True}, False, id="qir"),
-    pytest.param("remote-mqpu", {"auto_launch": "1"}, True,
+    pytest.param("remote-mqpu", {"auto_launch": "1"},
+                 True,
                  id="remote-simulator"),
     # Keep one local/default case that also exercises `run`.
     pytest.param("qpp-cpu", {}, True, id="default"),
@@ -37,11 +38,13 @@ def sample_kernel():
     h(qubit)
     mz(qubit)
 
+
 @cudaq.kernel
 def run_kernel() -> int:
     qubit = cudaq.qubit()
     h(qubit)
     return mz(qubit)
+
 
 @cudaq.kernel
 def observe_kernel():
@@ -70,7 +73,8 @@ def test_pipeline_logging_decorator(tmp_path, monkeypatch, target,
     assert log_path.exists()
 
     entries = [
-        json.loads(line) for line in log_path.read_text().splitlines()
+        json.loads(line)
+        for line in log_path.read_text().splitlines()
         if line.strip()
     ]
     assert any(entry.get("type") == "configured" for entry in entries)
@@ -91,7 +95,8 @@ def test_pipeline_logging_builder_default(tmp_path, monkeypatch):
     assert log_path.exists()
 
     entries = [
-        json.loads(line) for line in log_path.read_text().splitlines()
+        json.loads(line)
+        for line in log_path.read_text().splitlines()
         if line.strip()
     ]
     assert any(entry.get("type") == "configured" for entry in entries)
