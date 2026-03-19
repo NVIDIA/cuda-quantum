@@ -11,7 +11,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
-#include "common/PassPipelineLogging.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"

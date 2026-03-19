@@ -12,7 +12,7 @@
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/JIT.h"
-#include "common/PassPipelineLogging.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"

@@ -12,7 +12,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
-#include "common/PassPipelineLogging.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"

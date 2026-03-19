@@ -8,7 +8,7 @@
 
 #include "JIT.h"
 #include "common/Environment.h"
-#include "common/PassPipelineLogging.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"

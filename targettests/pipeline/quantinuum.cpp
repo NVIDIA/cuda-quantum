@@ -7,12 +7,38 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: if nvq++ --list-targets | grep -qx quantinuum; then \
-// RUN:   nvq++ --enable-mlir --target quantinuum --emulate %s -o %t && \
-// RUN:   rm -f %t.log && \
-// RUN:   CUDAQ_PIPELINE_LOG=%t.log %t && \
-// RUN:   FileCheck %cudaq_src_dir/targettests/pipeline/log.checks --input-file=%t.log; \
-// RUN: fi
+// RUN: nvq++ --enable-mlir --target quantinuum --emulate %s -o %t && \
+// RUN: rm -f %t.log && \
+// RUN: CUDAQ_PIPELINE_LOG=%t.log %t && \
+// RUN: FileCheck %s --input-file=%t.log
 // clang-format on
 
-#include "trivial_kernel.h"
+#include <cudaq.h>
+
+int main() {
+  auto sampleKernel = []() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    mz(q);
+  };
+  auto observeKernel = []() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+  };
+  auto runKernel = []() __qpu__ -> int {
+    cudaq::qubit q;
+    h(q);
+    return mz(q);
+  };
+
+  cudaq::sample(sampleKernel);
+  cudaq::observe(observeKernel, cudaq::spin_op::from_word("Z"));
+  cudaq::run(1, runKernel);
+  // CHECK: "type":"configured"
+  // CHECK: "label":"
+  // CHECK: "pipeline":"
+  // CHECK: "type":"executed"
+  // CHECK: "label":"
+  // CHECK: "passes":[{"pass":"
+  return 0;
+}

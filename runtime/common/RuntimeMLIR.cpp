@@ -8,7 +8,7 @@
 
 #include "RuntimeMLIR.h"
 #include "common/CodeGenConfig.h"
-#include "common/PassPipelineLogging.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"

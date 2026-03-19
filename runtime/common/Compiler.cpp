@@ -14,7 +14,7 @@
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "common/NoiseModel.h"
-#include "common/PassPipelineLogging.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
