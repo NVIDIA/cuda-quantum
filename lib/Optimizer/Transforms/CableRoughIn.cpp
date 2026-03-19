@@ -74,7 +74,9 @@ public:
     // Walk arguments and map them to value types and keep track of the new wire
     // types in left-to-right order.
     SmallVector<Value> newArgs;
-    SmallVector<Type> resultTys;
+    const std::size_t origCoarity = call.getResultTypes().size();
+    SmallVector<Type> resultTys{call.getResultTypes().begin(),
+                                call.getResultTypes().end()};
     for (auto arg : call.getOperands()) {
       Type argTy = arg.getType();
       if (argTy == refTy) {
@@ -161,7 +163,7 @@ public:
         loc, resultTys, call.getCalleeAttr(), newArgs);
 
     // Wrap the wires and cables.
-    unsigned i = 0;
+    std::size_t i = origCoarity;
     SmallVector<Value> results{callByRef.getResults().begin(),
                                callByRef.getResults().end()};
     for (auto arg : call.getOperands()) {
@@ -219,7 +221,8 @@ public:
       }
     }
 
-    rewriter.eraseOp(call);
+    rewriter.replaceOp(
+        call, callByRef.getResults().drop_back(resultTys.size() - origCoarity));
     return success();
   }
 };
