@@ -99,13 +99,6 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
   return std::make_pair(targets, SmallVector<Value>{});
 }
 
-static Value emitDiscriminate(OpBuilder &builder, Location loc, Value val) {
-  auto measTy = quake::MeasureType::get(builder.getContext());
-  if (val.getType() == measTy)
-    return builder.create<quake::DiscriminateOp>(loc, builder.getI1Type(), val);
-  return val;
-}
-
 namespace {
 // Type used to specialize the buildOp function. This extends the cases below by
 // prefixing a single parameter value to the list of arguments for cases 1
@@ -643,25 +636,21 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
         builder.create<cudaq::cc::CastOp>(loc, castToTy, popValue(), mode));
   }
   case clang::CastKind::CK_IntegralToFloating: {
-    auto value = popValue();
-    value = emitDiscriminate(builder, loc, value);
     auto mode =
         (x->getSubExpr()->getType()->isUnsignedIntegerOrEnumerationType())
             ? cudaq::cc::CastOpMode::Unsigned
             : cudaq::cc::CastOpMode::Signed;
     return pushValue(
-        builder.create<cudaq::cc::CastOp>(loc, castToTy, value, mode));
+        builder.create<cudaq::cc::CastOp>(loc, castToTy, popValue(), mode));
   }
   case clang::CastKind::CK_IntegralToBoolean: {
     auto last = popValue();
-    last = emitDiscriminate(builder, loc, last);
     Value zero = builder.create<arith::ConstantIntOp>(loc, 0, last.getType());
     return pushValue(builder.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::ne, last, zero));
   }
   case clang::CastKind::CK_FloatingToBoolean: {
     auto last = popValue();
-    last = emitDiscriminate(builder, loc, last);
     Value zero = opt::factory::createFloatConstant(
         loc, builder, 0.0, cast<FloatType>(last.getType()));
     return pushValue(builder.create<arith::CmpFOp>(
@@ -681,11 +670,13 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     // Handle conversion of `measure_result`
     auto measTy = quake::MeasureType::get(builder.getContext());
     if (sub.getType() == measTy) {
-      auto i1Val = emitDiscriminate(builder, loc, sub);
+      auto i1Val = builder.create<quake::DiscriminateOp>(loc, i1Type, sub);
+      if (castToTy == i1Type)
+        return pushValue(i1Val);
       // Convert to `int`
       if (isa<IntegerType>(castToTy))
-        return pushValue(
-            builder.create<cudaq::cc::CastOp>(loc, castToTy, i1Val));
+        return pushValue(builder.create<cudaq::cc::CastOp>(
+            loc, castToTy, i1Val, cudaq::cc::CastOpMode::Unsigned));
       // Convert to `float`
       if (isa<FloatType>(castToTy))
         return pushValue(builder.create<cudaq::cc::CastOp>(
@@ -853,9 +844,6 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
       x->getOpcode() == clang::BinaryOperatorKind::BO_NE) {
     rhs = maybeLoadValue(rhs);
     lhs = maybeLoadValue(lhs);
-    // Discriminate measure types before comparison
-    lhs = emitDiscriminate(builder, loc, lhs);
-    rhs = emitDiscriminate(builder, loc, rhs);
     // Floating point comparison?
     if (isa<FloatType>(lhs.getType())) {
       arith::CmpFPredicate pred;
@@ -934,9 +922,6 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   }
   rhs = maybeLoadValue(rhs);
   lhs = maybeLoadValue(lhs);
-  // Discriminate measure types before arithmetic
-  lhs = emitDiscriminate(builder, loc, lhs);
-  rhs = emitDiscriminate(builder, loc, rhs);
   castToSameType(builder, loc, x->getLHS()->getType().getTypePtrOrNull(), lhs,
                  x->getRHS()->getType().getTypePtrOrNull(), rhs);
   switch (x->getOpcode()) {
@@ -1024,7 +1009,6 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
   if (!TraverseStmt(x->getCond()))
     return false;
   auto condVal = popValue();
-  condVal = emitDiscriminate(builder, loc, condVal);
   Type resultTy = builder.getI64Type();
 
   // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
@@ -1606,9 +1590,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         lhs = builder.create<cc::LoadOp>(loc, lhs);
       if (isa<cc::PointerType>(rhs.getType()))
         rhs = builder.create<cc::LoadOp>(loc, rhs);
-      // Discriminate measure types
-      lhs = emitDiscriminate(builder, loc, lhs);
-      rhs = emitDiscriminate(builder, loc, rhs);
+      auto measTy = quake::MeasureType::get(builder.getContext());
+      auto i1Type = builder.getI1Type();
+      if (lhs.getType() == measTy)
+        lhs = builder.create<quake::DiscriminateOp>(loc, i1Type, lhs);
+      if (rhs.getType() == measTy)
+        rhs = builder.create<quake::DiscriminateOp>(loc, i1Type, rhs);
       // Choose predicate based on operator
       auto pred = (opKind == clang::OO_EqualEqual) ? arith::CmpIPredicate::eq
                                                    : arith::CmpIPredicate::ne;
