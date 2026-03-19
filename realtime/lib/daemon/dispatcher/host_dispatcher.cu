@@ -120,7 +120,7 @@ static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
                                     config->workers[w].stream);
 
   if (err != cudaSuccess) {
-    uint64_t error_val = (uint64_t)0xDEAD << 48 | (uint64_t)err;
+    uint64_t error_val = CUDAQ_TX_FLAG_ERROR_TAG << 48 | (uint64_t)err;
     as_atomic_u64(config->tx_flags)[current_slot].store(
         error_val, cuda::std::memory_order_release);
     as_atomic_u64(config->idle_mask)
@@ -130,7 +130,7 @@ static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
       config->workers[w].post_launch_fn(config->workers[w].post_launch_data,
                                         data_dev, config->workers[w].stream);
     as_atomic_u64(config->tx_flags)[current_slot].store(
-        0xEEEEEEEEEEEEEEEEULL, cuda::std::memory_order_release);
+        CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
   }
 }
 
@@ -150,7 +150,7 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatcher_config_t *config) {
         cuda::std::memory_order_acquire);
 
     if (rx_value == 0) {
-      QEC_CPU_RELAX();
+      CUDAQ_REALTIME_CPU_RELAX();
       continue;
     }
 
@@ -181,7 +181,7 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatcher_config_t *config) {
     int worker_id =
         acquire_graph_worker(config, use_function_table, entry, function_id);
     if (worker_id < 0) {
-      QEC_CPU_RELAX();
+      CUDAQ_REALTIME_CPU_RELAX();
       continue;
     }
 

@@ -14,14 +14,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifndef QEC_CPU_RELAX
+#ifndef CUDAQ_REALTIME_CPU_RELAX
 #if defined(__x86_64__)
 #include <immintrin.h>
-#define QEC_CPU_RELAX() _mm_pause()
+#define CUDAQ_REALTIME_CPU_RELAX() _mm_pause()
 #elif defined(__aarch64__)
-#define QEC_CPU_RELAX() __asm__ volatile("yield" ::: "memory")
+#define CUDAQ_REALTIME_CPU_RELAX() __asm__ volatile("yield" ::: "memory")
 #else
-#define QEC_CPU_RELAX()                                                        \
+#define CUDAQ_REALTIME_CPU_RELAX()                                             \
   do {                                                                         \
   } while (0)
 #endif

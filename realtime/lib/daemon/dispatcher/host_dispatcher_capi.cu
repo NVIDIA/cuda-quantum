@@ -28,6 +28,17 @@ struct cudaq_host_dispatcher_handle {
   bool owns_mailbox = false;
 };
 
+static void free_handle(cudaq_host_dispatcher_handle *handle) {
+  if (!handle)
+    return;
+  delete[] handle->workers;
+  delete handle->idle_mask;
+  delete[] handle->inflight_slot_tags;
+  if (handle->owns_mailbox)
+    delete[] handle->h_mailbox_bank;
+  delete handle;
+}
+
 static size_t count_graph_launch_workers(const cudaq_function_table_t *table) {
   size_t n = 0;
   for (uint32_t i = 0; i < table->count; ++i) {
@@ -71,12 +82,7 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   }
   if (!handle->workers || !handle->idle_mask || !handle->inflight_slot_tags ||
       !handle->h_mailbox_bank) {
-    delete[] handle->workers;
-    delete handle->idle_mask;
-    delete[] handle->inflight_slot_tags;
-    if (handle->owns_mailbox)
-      delete[] handle->h_mailbox_bank;
-    delete handle;
+    free_handle(handle);
     return nullptr;
   }
 
@@ -92,12 +98,7 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
     if (cudaStreamCreate(&stream) != cudaSuccess) {
       for (size_t j = 0; j < worker_idx; ++j)
         cudaStreamDestroy(handle->workers[j].stream);
-      delete[] handle->workers;
-      delete handle->idle_mask;
-      delete[] handle->inflight_slot_tags;
-      if (handle->owns_mailbox)
-        delete[] handle->h_mailbox_bank;
-      delete handle;
+      free_handle(handle);
       return nullptr;
     }
     handle->workers[worker_idx].graph_exec =
@@ -162,10 +163,5 @@ cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle) {
     handle->thread.join();
   for (size_t i = 0; i < handle->num_workers; ++i)
     cudaStreamDestroy(handle->workers[i].stream);
-  delete[] handle->workers;
-  delete handle->idle_mask;
-  delete[] handle->inflight_slot_tags;
-  if (handle->owns_mailbox)
-    delete[] handle->h_mailbox_bank;
-  delete handle;
+  free_handle(handle);
 }

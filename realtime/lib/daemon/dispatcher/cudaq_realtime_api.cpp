@@ -179,7 +179,7 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
 
 cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
                                             void **h_mailbox_bank) {
-  if (!dispatcher)
+  if (!dispatcher || !h_mailbox_bank)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->h_mailbox_bank = h_mailbox_bank;
   return CUDAQ_OK;
@@ -348,9 +348,9 @@ cudaq_host_ringbuffer_poll_tx_flag(const cudaq_ringbuffer_t *rb,
   uint64_t v = atomic_load_u64(&rb->tx_flags_host[slot_idx]);
   if (v == 0)
     return CUDAQ_TX_EMPTY;
-  if (v == 0xEEEEEEEEEEEEEEEEULL)
+  if (v == CUDAQ_TX_FLAG_IN_FLIGHT)
     return CUDAQ_TX_IN_FLIGHT;
-  if ((v >> 48) == 0xDEAD) {
+  if ((v >> 48) == CUDAQ_TX_FLAG_ERROR_TAG) {
     if (out_cuda_error)
       *out_cuda_error = static_cast<int>(v & 0xFFFF);
     return CUDAQ_TX_ERROR;
