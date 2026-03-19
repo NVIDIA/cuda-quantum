@@ -172,23 +172,35 @@ def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
   let summary = "Construct a veq from a list of other ref/veq values.";
   let description = [{
     The `concat` operation allows one to concatenate a list of SSA-values of
-    either type Ref or Veq into a new Veq vector.
+    either type `ref`, `struq`, or `veq` into a new `veq` vector.
+
+    `concat` can also perform size relaxation as a side-effect if the result
+    type is specified as `!quake.veq<?>`.
 
     Example:
     ```mlir
-      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.veq<?>,
-                                           !quake.ref) -> !quake.veq<?>
+      %v1 = quake.concat %ra, %vb, %rc : (!quake.ref, !quake.veq<?>,
+                                          !quake.ref) -> !quake.veq<?>
+      %v2 = quake.concat %rd, %ve, %rf : (!quake.ref, !quake.veq<3>,
+                                          !quake.ref) -> !quake.veq<5>
+      %v3 = quake.concat %vg, %vh, %vi : (!quake.veq<3>, !quake.veq<2>,
+                                          !quake.veq<4>) -> !quake.veq<?>
+      %v4 = quake.concat %sj : (!quake.struq<!quake.veq<2>, !quake.ref>) ->
+                                !quake.veq<3>
+      %v5 = quake.concat %sk : (!quake.struq<!quake.veq<2>, !quake.ref>) ->
+                                !quake.veq<?>
     ```
   }];
 
-  let arguments = (ins Variadic<AnyRefType>:$qbits);
+  let arguments = (ins Variadic<AnyRefType>:$targets);
   let results = (outs VeqType);
 
   let assemblyFormat = [{
-    $qbits attr-dict `:` functional-type(operands, results)
+    $targets attr-dict `:` functional-type(operands, results)
   }];
 
   let hasCanonicalizer = 1;
+  let hasVerifier = 1;
 }
 
 def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
@@ -679,10 +691,10 @@ def quake_SinkOp : QuakeOp<"sink"> {
   }];
 
   let arguments = (ins
-    Arg<WireType, "wire to sink", [MemRead, MemWrite]>:$target
+    Arg<AnyQLinearType, "wire to sink", [MemRead, MemWrite]>:$target
   );
   let assemblyFormat = [{
-     $target `:` qualified(type(operands)) attr-dict
+     $target `:` type(operands) attr-dict
   }];
 }
 
@@ -823,23 +835,6 @@ def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
       attr-dict
   }];
   let hasVerifier = 1;
-}
-
-def quake_SinkCableOp : QuakeOp<"sink_cable"> {
-  let summary = "Sink a cable of quantum wires.";
-  let description = [{
-    This operation can be used as syntactic sugar for connecting a set of wire
-    values to a series of `quake.sink` operations. It can be used, possibly, to
-    declutter code by combining a long sequence of `quake.sink` operations.
-  }];
-
-  let arguments = (ins
-    Arg<CableType, "cable destroyed", [MemRead, MemWrite]>:$cable
-  );
-
-  let assemblyFormat = [{
-    $cable `:` type($cable) attr-dict
-  }];
 }
 
 //===----------------------------------------------------------------------===//

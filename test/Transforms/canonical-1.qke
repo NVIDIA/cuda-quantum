@@ -48,8 +48,7 @@ func.func @test3() {
 
 // CHECK-LABEL:   func.func @test3() {
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<10>
-// CHECK:           %[[VAL_4:.*]] = quake.subveq %[[VAL_3]], 4, 7 : (!quake.veq<10>) -> !quake.veq<4>
-// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][2] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][6] : (!quake.veq<10>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }

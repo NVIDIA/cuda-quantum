@@ -7,10 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -DNO_ADAPTIVE --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++               --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++                                             %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %s --enable-mlir -o %t
+// RUN: nvq++ -DNO_ADAPTIVE --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

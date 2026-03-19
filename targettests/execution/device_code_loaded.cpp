@@ -10,9 +10,6 @@
 
 #include <cudaq.h>
 
-// CHECK: { [[B0:.*]]:[[C0:.*]] [[B1:.*]]:[[C1:.*]] }
-// CHECK-NEXT: module {{.*}} func.func @__nvqpp__mlirgen__ghz{{.*}}(%arg0: i32{{.*}}) attributes {
-
 // Define a quantum kernel
 struct ghz {
   auto operator()(const int N) __qpu__ {
@@ -32,3 +29,8 @@ int main() {
   printf("%s\n", cudaq::get_quake(ghz{}).data());
   return 0;
 }
+
+// clang-format off
+// CHECK: { [[B0:.*]]:[[C0:.*]] [[B1:.*]]:[[C1:.*]] }
+// CHECK-NEXT: module {{.*}} func.func @__nvqpp__mlirgen__ghz{{.*}}(%arg0: i32{{.*}}) attributes {
+// clang-format on

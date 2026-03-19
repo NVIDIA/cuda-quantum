@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func private @callee(!quake.veq<?>, f32)
+
+func.func @test() {
+  %0 = quake.null_cable<2>
+  %1 = arith.constant 1.0 : f32
+  %2 = quake.call_by_ref @callee(%0, %1) : (!quake.cable<2>, f32) -> !quake.cable<2>
+  quake.sink %2 : !quake.cable<2>
+  return
+}
+
+// CHECK-LABEL: define void @test() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 2)
+// CHECK:         tail call void @callee(%[[VAL_1]]* %[[VAL_0]], float 1.0
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }
