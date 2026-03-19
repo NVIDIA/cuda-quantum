@@ -124,6 +124,7 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
     cudaq-logger 
+    cudaq-pass-pipeline-logging
     cudaq-common 
     cudaq-em-default
     cudaq-em-photonics

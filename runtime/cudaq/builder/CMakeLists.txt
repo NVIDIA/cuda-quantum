@@ -22,6 +22,7 @@ target_link_libraries(cudaq-builder
     fmt::fmt-header-only
     nvqir
     cudaq-mlir-runtime
+    cudaq-pass-pipeline-logging
 )
 
 install(TARGETS cudaq-builder DESTINATION lib)

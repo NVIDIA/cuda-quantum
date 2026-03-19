@@ -75,7 +75,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-logger cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-logger cudaq-mlir-runtime cudaq-pass-pipeline-logging fmt::fmt-header-only unzip_util nvqir)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
@@ -104,6 +104,7 @@ target_link_libraries(rest-remote-platform-server
     cudaq-operator
     cudaq-em-default 
     cudaq-mlir-runtime
+    cudaq-pass-pipeline-logging
     cudaq-platform-default
     cudaq-qir-verifier
     nvqir

@@ -8,44 +8,26 @@
 
 #pragma once
 
-#include "common/Environment.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "mlir/Pass/Pass.h"
+#include "mlir/Pass/PassInstrumentation.h"
 #include "mlir/Pass/PassManager.h"
 #include <string>
+#include <vector>
 
 namespace cudaq {
 
-inline bool shouldPrintMLIRPassPipeline() {
-#ifdef CUDAQ_DEBUG
-  // Keep this debug-only so release builds avoid pipeline serialization work
-  // even if the environment variable is set.
-  return getEnvBool("CUDAQ_MLIR_PRINT_PASS_PIPELINE", false);
-#else
-  return false;
-#endif
-}
+/// Returns the pipeline log file path from the CUDAQ_PIPELINE_LOG environment
+/// variable, or an empty string if not set.
+std::string getPipelineLogPath();
 
-inline void maybeLogPassPipeline(mlir::PassManager &pm,
-                                 llvm::StringRef label = {}) {
-  if (!shouldPrintMLIRPassPipeline())
-    return;
-
-  // TODO: pass statistics is canonical way to do this sort of testing
-  // pm.enableStatistics()
-
-  std::string pipeline;
-  llvm::raw_string_ostream os(pipeline);
-  pm.printAsTextualPipeline(os);
-
-  if (pipeline.empty())
-    pipeline = "<empty>";
-
-  if (label.empty())
-    llvm::outs() << "MLIR pass pipeline:\n" << pipeline << "\n";
-  else
-    llvm::outs() << "MLIR pass pipeline (" << label << "):\n" << pipeline << "\n";
-}
+/// Log the configured pass pipeline to CUDAQ_PIPELINE_LOG as a JSONL record
+/// and attach a PipelineRecorder instrumentation to capture what actually runs.
+/// Call this after adding passes to the PassManager but before pm.run().
+///
+/// Emits two JSONL records per pipeline:
+///   {"type":"configured","label":"<label>","pipeline":"<textual-pipeline>"}
+///   {"type":"executed","label":"<label>","passes":[{"pass":"...","op":"..."},...]}
+void maybeLogPassPipeline(mlir::PassManager &pm, llvm::StringRef label = {});
 
 } // namespace cudaq

@@ -106,6 +106,25 @@ endif()
 ## here called cudaq-mlir-runtime that cudaq-builder and cudaq-rest-qpu
 ## can link to and get MLIR/LLVM things uniformly
 
+add_library(cudaq-pass-pipeline-logging
+  SHARED
+    PassPipelineLogging.cpp
+)
+
+target_include_directories(cudaq-pass-pipeline-logging
+  PRIVATE .
+    ${CMAKE_SOURCE_DIR}/runtime
+)
+
+target_link_libraries(cudaq-pass-pipeline-logging
+  PRIVATE
+    MLIRIR
+    MLIRPass
+    MLIRSupport
+)
+
+target_compile_options(cudaq-pass-pipeline-logging PRIVATE -fno-rtti)
+
 add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
@@ -134,6 +153,7 @@ target_include_directories(cudaq-mlir-runtime
 
 target_link_libraries(cudaq-mlir-runtime
   PRIVATE
+    cudaq-pass-pipeline-logging
     CCDialect
     QuakeDialect
     OptCodeGen
@@ -156,4 +176,5 @@ target_link_libraries(cudaq-mlir-runtime
     cudaq-logger
 )
 
+install(TARGETS cudaq-pass-pipeline-logging DESTINATION lib)
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)
