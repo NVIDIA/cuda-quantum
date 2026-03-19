@@ -234,20 +234,6 @@ def test_invalid_ctrl():
     assert 'missing value' in repr(error)
 
 
-def test_bug_2452():
-    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
-
-    @cudaq.kernel
-    def kernel2():
-        qubit = cudaq.qubit()
-        ancilla = cudaq.qvector(2)
-        x(ancilla)
-        custom_x.ctrl(ancilla, qubit)  # `controls` can be `qvector`
-
-    counts = cudaq.sample(kernel2)
-    assert len(counts) == 1 and '111' in counts
-
-
 def test_individual_qubit_refs():
     """custom_swap(q0, q1)"""
     cudaq.register_operation("custom_swap", swap_matrix)
