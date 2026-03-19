@@ -19,6 +19,10 @@ skipIfPasqalNotInstalled = pytest.mark.skipif(
 @pytest.fixture(scope="session", autouse=True)
 
 def set_up_target():
+    # NOTE: Credentials can be set with environment variables.
+    # This test covers the direct `pasqal` backend only.
+    # QRMI-routed execution is validated separately because it requires a
+    # supported QRMI build and a compatible cluster resource manager.
     cudaq.set_target("pasqal")
     yield "Running the tests."
     cudaq.reset_target()
