@@ -354,6 +354,7 @@ def test_unknown_veq_size_correct_count():
     assert counts.most_probable() == "01"
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_unknown_veq_size_incorrect_count():
     """custom_swap(*qvec), qvec has more qubits than the operation requires."""
     cudaq.register_operation("custom_swap", swap_matrix)
