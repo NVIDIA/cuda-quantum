@@ -124,7 +124,7 @@ public:
 
       for (auto operand : quake::getQuantumOperands(op))
         if (isSupportedValue(operand))
-         netlists[getIndexOf(operand)].push_back(op);
+          netlists[getIndexOf(operand)].push_back(op);
     });
   }
 
