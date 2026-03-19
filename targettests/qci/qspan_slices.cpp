@@ -7,4 +7,5 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/qspan_slices.cpp"
+
+#include "../execution/qspan_slice.cpp"

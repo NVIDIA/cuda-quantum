@@ -91,6 +91,14 @@ func.func @if_test_1() {
   return
 }
 
+// CHECK-LABEL:   func.func @if_test_1() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             func.call @if_test_call() : () -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
 func.func @if_test_2() {
   %0 = arith.constant true
   cc.if (%0) {
@@ -101,6 +109,14 @@ func.func @if_test_2() {
   }
   return
 }
+
+// CHECK-LABEL:   func.func @if_test_2() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             func.call @if_test_call() : () -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
 
 func.func @if_test_3() {
   %0 = arith.constant false
@@ -113,6 +129,14 @@ func.func @if_test_3() {
   return
 }
 
+// CHECK-LABEL:   func.func @if_test_3() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             func.call @if_test_call() : () -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
 func.func @if_test_4() {
   %0 = arith.constant false
   cc.if (%0) {
@@ -122,30 +146,25 @@ func.func @if_test_4() {
   return
 }
 
-// CHECK-LABEL:   func.func @if_test_1() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           cc.if(%[[VAL_0]]) {
-// CHECK:             func.call @if_test_call() : () -> ()
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
-
-// CHECK-LABEL:   func.func @if_test_2() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           cc.if(%[[VAL_0]]) {
-// CHECK:             func.call @if_test_call() : () -> ()
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
-
-// CHECK-LABEL:   func.func @if_test_3() {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           cc.if(%[[VAL_0]]) {
-// CHECK:             func.call @if_test_call() : () -> ()
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
-
 // CHECK-LABEL:   func.func @if_test_4() {
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee(!quake.veq<4>)
+
+func.func @collapse_concat() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<4>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+  %3 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+  %4 = quake.extract_ref %0[3] : (!quake.veq<4>) -> !quake.ref
+  %5 = quake.concat %1, %2, %3, %4 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+  call @callee(%5) : (!quake.veq<4>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @collapse_concat() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           call @callee(%[[VAL_0]]) : (!quake.veq<4>) -> ()
 // CHECK:           return
 // CHECK:         }

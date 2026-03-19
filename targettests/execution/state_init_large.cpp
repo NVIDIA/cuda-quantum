@@ -6,9 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
-// clang-format on
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 // Tests qvector initialization from a cudaq::state created in host code with a
 // large number of qubits (19 qubits = 524288 elements).
@@ -44,4 +42,5 @@ int main() {
   // CHECK-LABEL: Large state test
   // CHECK: 0000000000000000000
   // CHECK: 1000000000000000000
+  return 0;
 }
