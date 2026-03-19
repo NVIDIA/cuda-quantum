@@ -1960,7 +1960,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           // Loop over the ctrlValues and negate (apply an XOp) those in the
           // negations list.
           if (auto concat = ctrlValues.getDefiningOp<quake::ConcatOp>()) {
-            for (auto v : concat.getQbits())
+            for (auto v : concat.getTargets())
               if (std::find(negations.begin(), negations.end(), v) !=
                   negations.end()) {
                 if (isa<quake::VeqType>(v.getType())) {

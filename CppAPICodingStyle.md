@@ -67,8 +67,8 @@ We define three API layers as illustrated below:
 │ Audience:   Hardware vendors + core developers                     │
 │            (NOT for users / external libs to depend on)            │
 │ Headers:    "cudaq_internal/<module>/<hdr>.h"  (or cudaq_dev/...)  │
-│ Namespace:  cudaq::<module>::...  (module lowercase)               │
-│             cudaq::<module>::detail = NON-public                   │
+│ Namespace:  cudaq_internal::<module>::...  (module lowercase)      │
+│             cudaq_internal::<module>::detail = private             │
 │ Naming:     CamelCase (or consistent module convention)            │
 └────────────────────────────────────────────────────────────────────┘
                           ▲
@@ -78,8 +78,8 @@ We define three API layers as illustrated below:
 │ Level 3: Internal Private APIs                                     │
 ├────────────────────────────────────────────────────────────────────┤
 │ Audience:   Module implementers only                               │
-│ Headers:    module-local (e.g., <module>/src/, include-private/)   │
-│ Namespace:  typically in cudaq::<module>::detail (recommended)     │
+│ Headers:    module local (e.g., <module>/src/, include-private/)   │
+│ Namespace:  typically in cudaq_internal::<module>::detail          │
 │ Naming:     unconstrained; keep consistent within module           │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -167,9 +167,9 @@ shipped user headers as required by `nvq++` compilation.
 
 #### 3.2.4 Namespaces
 
-- Declarations live under a module namespace nested in `cudaq`:
+- Declarations live under a module namespace nested in `cudaq_internal`:
   - `namespace cudaq::<module_name> { ... }` where `<module_name>` is lowercase
-    Examples: `cudaq::compiler`, `cudaq::cudaq_fmt`
+    Examples: `cudaq_internal::compiler`, `cudaq_internal::device_code`
 - Nested namespaces follow the same visibility convention: they are public
 except for the `detail` namespace.
 
@@ -256,7 +256,7 @@ namespace cudaq {
 Internal module API:
 
 ```cpp
-namespace cudaq::compiler {
+namespace cudaq_internal::compiler {
   class PassPipeline;
 
   namespace detail {
@@ -264,3 +264,12 @@ namespace cudaq::compiler {
   }
 }
 ```
+
+## 5. Additional conventions
+
+This documented primarily aims at defining conventions on APIs and modules.
+Of particular relevance are the following rules from the LLVM coding standard
+that we shall strive to follow.
+
+- [Use Namespace Qualifiers to Define Previously Declared Symbols](https://llvm.org/docs/CodingStandards.html#use-namespace-qualifiers-to-define-previously-declared-symbols)
+- [Restrict Visibility](https://llvm.org/docs/CodingStandards.html#restrict-visibility)
