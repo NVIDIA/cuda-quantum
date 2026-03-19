@@ -42,15 +42,8 @@ typedef enum {
   CUDAQ_TX_READY = 3
 } cudaq_tx_status_t;
 
-// RPC wire-format constants (must match dispatch_kernel_launch.h).
-#define CUDAQ_RPC_MAGIC_REQUEST 0x43555152u  /* 'CUQR' */
-#define CUDAQ_RPC_MAGIC_RESPONSE 0x43555153u /* 'CUQS' */
-#define CUDAQ_RPC_HEADER_SIZE                                                  \
-  24u /* `sizeof(RPCHeader)`: 4 x uint32_t + 1 x uint64_t */
-
-// TX flag sentinel values used by the host dispatcher and ring buffer helpers.
-#define CUDAQ_TX_FLAG_IN_FLIGHT  0xEEEEEEEEEEEEEEEEULL
-#define CUDAQ_TX_FLAG_ERROR_TAG  0xDEADULL
+// RPC wire-format constants — single source of truth in rpc_wire_format.h.
+#include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
 
 // Kernel synchronization type
 typedef enum {
