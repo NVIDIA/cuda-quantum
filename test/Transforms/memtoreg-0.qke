@@ -139,6 +139,7 @@ func.func private @callee_e(!quake.ref) -> i1
 func.func @test_e() -> i1 {
   %4 = quake.alloca !quake.ref
   %5 = call @callee_e(%4) : (!quake.ref) -> i1
+  quake.dealloc %4 : !quake.ref
   return %5 : i1
 }
 
