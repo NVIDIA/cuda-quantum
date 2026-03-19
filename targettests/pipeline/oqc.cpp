@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,6 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
+// clang-format off
+// RUN: if nvq++ --list-targets | grep -qx oqc; then \
+// RUN:   nvq++ --enable-mlir --target oqc --emulate %s -o %t && \
+// RUN:   rm -f %t.log && \
+// RUN:   CUDAQ_PIPELINE_LOG=%t.log %t && \
+// RUN:   FileCheck %cudaq_src_dir/targettests/pipeline/log.checks --input-file=%t.log; \
+// RUN: fi
+// clang-format on
 
-#include "logger/pipeline/PassPipelineLogging.h"
+#include "trivial_kernel.h"

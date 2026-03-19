@@ -1,0 +1,6 @@
+CHECK: "type":"configured"
+CHECK: "label":"
+CHECK: "pipeline":"
+CHECK: "type":"executed"
+CHECK: "label":"
+CHECK: "passes":[{"pass":"

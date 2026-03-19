@@ -30,3 +30,5 @@ install(EXPORT cudaq-logger-targets
         FILE CUDAQLoggerTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
+
+add_subdirectory(pipeline)

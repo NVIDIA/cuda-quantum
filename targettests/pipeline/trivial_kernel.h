@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -8,4 +8,13 @@
 
 #pragma once
 
-#include "logger/pipeline/PassPipelineLogging.h"
+#include <cudaq.h>
+
+int main() {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc();
+  kernel.h(q);
+  kernel.mz(q);
+  auto counts = cudaq::sample(kernel);
+  return counts.count("0") + counts.count("1") > 0 ? 0 : 1;
+}
