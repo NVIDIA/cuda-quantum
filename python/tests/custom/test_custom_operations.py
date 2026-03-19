@@ -318,7 +318,7 @@ def test_too_few_qubits_raises_error():
             custom_swap(qbit)
 
         kernel.compile()
-    assert 'custom operation requires 2 qubit target(s), but got 1' in repr(
+    assert 'custom operation requires 2 qubit target(s), but 1 were provided' in repr(
         error)
 
 
@@ -336,7 +336,7 @@ def test_too_many_qubits_raises_error():
             custom_swap(q1, q2, q3)
 
         kernel.compile()
-    assert 'custom operation requires 2 qubit target(s), but got 3' in repr(
+    assert 'custom operation requires 2 qubit target(s), but 3 were provided' in repr(
         error)
 
 
@@ -367,7 +367,7 @@ def test_unknown_veq_size_incorrect_count():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.sample(kernel, 3)
-    assert 'custom operation requires 2 qubit target(s), but got 3' in repr(
+    assert 'custom operation requires 2 qubit target(s), but 3 were provided' in repr(
         error)
 
 
