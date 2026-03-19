@@ -2349,7 +2349,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if quake.VeqType.hasSpecifiedSize(val.type):
                     size = quake.VeqType.getSize(val.type)
                 else:
-                    load_intrinsic(self.module, '__nvqpp_customop_size_error')
+                    load_intrinsic(self.module, '__quantum__qis__trap')
                     actualSize = quake.VeqSizeOp(self.getIntegerType(),
                                                  val).result
                     expectedSizeVal = self.getConstantInt(dynamicExpected)
@@ -2362,11 +2362,20 @@ class PyASTBridge(ast.NodeVisitor):
                         cc.ContinueOp([])
                     elseBlock = Block.create_at_start(ifOp.elseRegion, [])
                     with InsertionPoint(elseBlock):
+                        errMsg = (f'custom operation requires {numTargets} '
+                                  f'qubit target(s), but got ')
+                        strLitTy = cc.PointerType.get(
+                            cc.ArrayType.get(self.getIntegerType(8),
+                                             len(errMsg) + 1))
+                        strLit = cc.CreateStringLiteralOp(
+                            strLitTy, StringAttr.get(errMsg)).result
+                        msgPtr = cc.CastOp(
+                            cc.PointerType.get(self.getIntegerType(8)),
+                            strLit).result
                         totalActual = arith.AddIOp(
                             actualSize, self.getConstantInt(staticCount)).result
-                        func.CallOp(
-                            [], '__nvqpp_customop_size_error',
-                            [self.getConstantInt(numTargets), totalActual])
+                        func.CallOp([], '__quantum__qis__trap',
+                                    [totalActual, msgPtr])
                         cc.ContinueOp([])
                     size = dynamicExpected
                 for i in range(size):
@@ -2382,7 +2391,7 @@ class PyASTBridge(ast.NodeVisitor):
         if len(targets) != numTargets:
             self.emitFatalError(
                 f'custom operation requires {numTargets} qubit target(s), '
-                f'but {len(targets)} were provided', node)
+                f'but got {len(targets)}', node)
         return targets
 
     def visit_Call(self, node):

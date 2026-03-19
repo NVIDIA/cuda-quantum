@@ -707,8 +707,10 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 // QIR. In such cases, code generation may elect to produce a trap in the
 // kernel, which calls this function. The trap should explain the issue to the
 // user and about the kernel when executed.
-void __quantum__qis__trap(std::int64_t code) {
-  if (code == 0) {
+void __quantum__qis__trap(std::int64_t code, const char *msg) {
+  if (msg) {
+    CUDAQ_ERROR(std::string(msg) + std::to_string(code));
+  } else if (code == 0) {
     CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
   } else if (code == 1) {
     CUDAQ_ERROR("unsupported return type from entry-point kernel");

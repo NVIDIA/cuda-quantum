@@ -1275,8 +1275,10 @@ struct ApplyOpTrap : public OpConversionPattern<quake::ApplyOp> {
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = apply.getLoc();
     Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+    Value nullMsg = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, zero);
     rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
-                                  ValueRange{zero});
+                                  ValueRange{zero, nullMsg});
     SmallVector<Value> values;
     for (auto r : apply.getResults()) {
       Value v = rewriter.create<cudaq::cc::PoisonOp>(loc, r.getType());

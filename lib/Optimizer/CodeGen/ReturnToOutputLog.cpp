@@ -162,9 +162,13 @@ public:
         })
         .Default([&](Type) {
           // If we reach here, we don't know how to handle this type.
+          Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
           Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+          auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+          Value nullMsg =
+              rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, zero);
           rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
-                                        ValueRange{one});
+                                        ValueRange{one, nullMsg});
         });
   }
 
