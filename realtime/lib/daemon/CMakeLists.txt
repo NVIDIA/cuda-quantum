@@ -91,7 +91,7 @@ if(CUDA_FOUND)
   # ============================================================================
   # Compiled with nvcc so libcu++ (<cuda/std/atomic>) works without extra
   # include paths. Host-only code; no device code in this TU.
-  add_library(cudaq-realtime-host-dispatch SHARED
+  add_library(cudaq-realtime-host-dispatch STATIC
     dispatcher/host_dispatcher.cu
     dispatcher/host_dispatcher_capi.cu
   )
@@ -110,12 +110,12 @@ if(CUDA_FOUND)
   set_target_properties(cudaq-realtime-host-dispatch PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
 
   install(TARGETS cudaq-realtime-host-dispatch
     COMPONENT realtime-lib
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
   if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
     add_subdirectory(bridge/hololink)
