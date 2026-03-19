@@ -576,6 +576,38 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
 
 
+def test_observe_kernel_exception_no_segfault():
+    """
+    When cudaq.observe is called with list arguments that are
+    too short, the kernel raises a RuntimeError inside the ExecutionContext.
+    Before this change, ExecutionContext.__exit__ would call finalizeExecutionContext on
+    an uninitialized simulator state causing a segfault on GPU backend.
+    """
+    qubit_count = 4
+    kernel, thetas = cudaq.make_kernel(list)
+    qreg = kernel.qalloc(qubit_count)
+    for i in range(qubit_count):
+        kernel.rx(thetas[i], qreg[i])
+    hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
+
+    with pytest.raises(Exception) as exception:
+        cudaq.observe(kernel,
+                      hamiltonian,
+                      np.random.uniform(size=(3, 2)),
+                      shots_count=10)
+    assert "Invalid runtime list argument" in str(exception.value)
+
+    with pytest.raises(Exception) as exception:
+        cudaq.observe(kernel,
+                      hamiltonian,
+                      np.random.uniform(size=(2,)),
+                      shots_count=10)
+    assert "Invalid runtime list argument" in str(exception.value)
+
+    result = cudaq.observe(kernel, hamiltonian, [np.pi] * qubit_count)
+    assert np.isclose(result.expectation(), -4.0, atol=1e-12)
+
+
 def test_observe_n():
     """
     Test that we can broadcast the observe call over a number of argument sets

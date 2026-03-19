@@ -60,6 +60,16 @@ Once you completed the installation, please follow the instructions
       sudo -E bash install_cuda_quantum*.$(uname -m) --accept 
       . /etc/profile
 
+   Alternatively, install to a custom location without ``sudo``:
+
+   .. code-block:: bash
+
+      bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+
+   In both cases, the installer configures your shell profile so that CUDA-Q
+   is available in new shells automatically. To use it in the current shell,
+   run ``source /opt/nvidia/cudaq/set_env.sh`` (or the path you chose).
+
    If you have an NVIDIA GPU on Linux, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
 
    Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including
@@ -117,6 +127,12 @@ should be observed around 500 times each.
       nvq++ program.cpp -o program.x && ./program.x
 
 If you have an NVIDIA GPU the program uses GPU acceleration by default.
+
+.. note::
+
+    GPU-accelerated targets (``nvidia``, ``nvidia-fp64``, etc.) are available on
+    Linux only. macOS users can skip this section and proceed to :doc:`Basics <basics/basics>`.
+
 To confirm that this works as expected and to see the effects of GPU acceleration, you can 
 increase the numbers of qubits the program uses to 28 and
 compare the time to execute the program on the 

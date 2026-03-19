@@ -110,23 +110,22 @@ static void registerEmulationTargetPrepPipeline() {
       });
 }
 
-void cudaq::opt::addDecompositionPass(OpPassManager &pm,
-                                      ArrayRef<std::string> enabledPats,
-                                      ArrayRef<std::string> disabledPats) {
+void cudaq::opt::addDecomposition(OpPassManager &pm,
+                                  ArrayRef<std::string> enabledPats,
+                                  ArrayRef<std::string> disabledPats) {
   // NB: Both of these ListOption *must* be set here or they may contain garbage
   // and the compiler may crash.
-  cudaq::opt::DecompositionPassOptions opts;
+  cudaq::opt::DecompositionOptions opts;
   opts.disabledPatterns = disabledPats;
   opts.enabledPatterns = enabledPats;
-  pm.addPass(cudaq::opt::createDecompositionPass(opts));
+  pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
 static void createTargetDeployPipeline(OpPassManager &pm) {
   cudaq::opt::createClassicalOptimizationPipeline(pm);
-  cudaq::opt::addDecompositionPass(pm, {std::string("U3ToRotations")});
+  cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createMultiControlDecompositionPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This

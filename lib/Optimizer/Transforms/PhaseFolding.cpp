@@ -699,13 +699,17 @@ struct PhaseFoldingPipelineOptions
 /// loop in the module cannot be fully unrolled and signalFailure is set.
 static void createPhaseFoldingPipeline(OpPassManager &pm, unsigned min_length,
                                        double min_rz_weight) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createFactorQuantumAllocations({.enableFailures = true}));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::PhaseFoldingOptions pfo{min_length, min_rz_weight};
+  // FIXME: Due to correctness bugs in this phase-folding pass, recombine the
+  // quantum allocations *before* running phase-folding. I suspect that the
+  // netlist construction has logic errors.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding(pfo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
 }
 
 void cudaq::opt::registerPhaseFoldingPipeline() {

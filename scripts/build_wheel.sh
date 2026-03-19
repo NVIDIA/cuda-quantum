@@ -404,6 +404,13 @@ else
 
     # Move repaired wheel to output
     repaired_wheel=$(ls "${auditwheel_tmp:?}"/*manylinux*.whl 2>/dev/null | head -1)
+    if [ "$(uname -m)" = "x86_64" ] && [ -n "$repaired_wheel" ]; then
+        if ! unzip -l "$repaired_wheel" 2>/dev/null | grep -q 'libqrmi'; then
+            echo "WARNING: libqrmi.so not bundled in x86_64 wheel"
+        else
+            echo "Verified libqrmi.so is bundled in x86_64 wheel"
+        fi
+    fi
     if [ -n "$repaired_wheel" ]; then
         mv "$repaired_wheel" "$output_dir/"
         echo "Repaired wheel: $output_dir/$(basename "$repaired_wheel")"

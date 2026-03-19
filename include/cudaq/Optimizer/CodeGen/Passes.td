@@ -62,6 +62,14 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   ];
 }
 
+def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
+  let summary = "Move measurements as late as possible";
+  let description = [{
+    Move measurements as late as possible. This is useful for a Base Profile
+    QIR program.
+  }];
+}
+
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CG dialect.";
   let description = [{
@@ -154,38 +162,6 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
     extracted from the program to allow reconstruction of the outputs from the
     backend.
   }];
-}
-
-def VerifyNVQIRCallOps :
-    Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
-  let summary =
-    "Verify that all LLVM CallOps' callees are NVQIR compliant";
-  let description = [{
-    This is a function pass to verify that all function calls within the
-    function body are referring to pre-defined allowed functions or QIR
-    functions, i.e., starting with a __quantum prefix, or NVQIR runtime
-    functions.
-  }];
-  
-  let options = [
-    ListOption<"allowedFuncs", "allowed-funcs", "llvm::StringRef",
-        "Allowed list of functions in addition to NVQIR-defined function.">
-  ];
-
-  let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";
-}
-
-def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the specific profile";
-  let description = [{
-    This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR specific profile.
-  }];
-
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
 }
 
 def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {

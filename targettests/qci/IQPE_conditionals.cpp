@@ -7,4 +7,5 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/IQPE_conditionals.cpp"
+
+#include "../execution/IQPE_conditional.cpp"

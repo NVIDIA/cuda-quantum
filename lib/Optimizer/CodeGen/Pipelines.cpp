@@ -22,10 +22,6 @@ struct TargetCodegenPipelineOptions
       *this, "loops-may-have-break",
       llvm::cl::desc("Enable break statements in loops."),
       llvm::cl::init(true)};
-  PassOptions::Option<bool> appendDeprecatedVerifier{
-      *this, "append-verifier",
-      llvm::cl::desc("Append the QIR verifier pipeline."),
-      llvm::cl::init(false)};
   PassOptions::Option<std::string> target{
       *this, "convert-to", llvm::cl::desc("Conversion target specifier."),
       llvm::cl::init("")};
@@ -38,7 +34,7 @@ static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-base") {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurements());
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-adaptive") {
@@ -107,8 +103,6 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());
-  if (options.appendDeprecatedVerifier)
-    cudaq::opt::addQIRProfileVerify(pm, options.target);
 }
 
 template <bool isJIT>
@@ -116,8 +110,6 @@ void createTargetCodegenPipeline(PassManager &pm, StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
-  opts.appendDeprecatedVerifier =
-      convertFields.first != "qir" && convertFields.first != "qir-full";
   opts.target = convertTo.str();
   createTargetCodegenPipeline<isJIT>(pm, opts);
 }
@@ -154,8 +146,8 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(createMultiControlDecompositionPass());
-  pm.addPass(createDecompositionPass(
+  pm.addNestedPass<func::FuncOp>(createMultiControlDecomposition());
+  pm.addPass(createDecomposition(
       {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
                            "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
                            "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",

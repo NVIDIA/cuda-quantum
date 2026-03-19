@@ -296,18 +296,18 @@ int main(int argc, char **argv) {
   auto installBinPath = cudaqQuakePath.parent_path();
   auto cudaqInstallPath = installBinPath.parent_path();
 
-  // Default to the internal resource-dir in the absence of
-  // the one in the LLVM_BINARY_DIR
+  // Resolve LLVM install path: try the build-time LLVM_ROOT first, then
+  // the installer's lib/llvm/ subtree inside the CUDAQ prefix.
   std::filesystem::path llvmInstallPath{LLVM_ROOT};
+  if (!std::filesystem::exists(llvmInstallPath))
+    llvmInstallPath = cudaqInstallPath / "lib" / "llvm";
+
   std::filesystem::path resourceDirPath{resourceDir.getValue()};
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
   if (!std::filesystem::exists(resourceDirPath))
     resourceDirPath =
         llvmInstallPath / "lib" / "clang" / STR(LLVM_VERSION_MAJOR);
-  if (!std::filesystem::exists(resourceDirPath))
-    resourceDirPath =
-        cudaqInstallPath / "lib" / "clang" / STR(LLVM_VERSION_MAJOR);
   if (!std::filesystem::exists(resourceDirPath)) {
     llvm::errs() << "Could not find a valid clang resource-dir.\n";
     return 1;
@@ -372,21 +372,27 @@ int main(int argc, char **argv) {
     clArgs.push_back(path);
   }
 
-  // Configure C++ standard library headers (paths determined at CMake configure
-  // time). If LLVM was built with libc++, use those headers. Otherwise on
-  // macOS, use the SDK. On Linux without LLVM libc++, system headers are found
-  // automatically.
-  const std::string libcxxPath = CUDAQ_LIBCXX_PATH;
-  const std::string libcxxTargetPath = CUDAQ_LIBCXX_TARGET_PATH;
+  // Configure C++ standard library headers. Try the CMake configure-time paths
+  // first; if this binary has been relocated (e.g., via the installer), fall
+  // back to the LLVM subtree resolved above (lib/llvm/include/...).
+  std::filesystem::path resolvedLibcxxPath{std::string(CUDAQ_LIBCXX_PATH)};
+  std::filesystem::path resolvedLibcxxTargetPath{
+      std::string(CUDAQ_LIBCXX_TARGET_PATH)};
   const std::string sysrootPath = CUDAQ_SYSROOT_PATH;
-  if (!libcxxPath.empty()) {
-    // Target-specific path (eg., containing __config_site) must come first.
-    if (!libcxxTargetPath.empty()) {
+  if (!resolvedLibcxxPath.empty() &&
+      !std::filesystem::exists(resolvedLibcxxPath)) {
+    resolvedLibcxxPath = llvmInstallPath / "include" / "c++" / "v1";
+    resolvedLibcxxTargetPath =
+        llvmInstallPath / "include" / LLVM_TARGET_TRIPLE / "c++" / "v1";
+  }
+  if (!resolvedLibcxxPath.empty() &&
+      std::filesystem::exists(resolvedLibcxxPath)) {
+    if (std::filesystem::exists(resolvedLibcxxTargetPath)) {
       clArgs.push_back("-isystem");
-      clArgs.push_back(libcxxTargetPath);
+      clArgs.push_back(resolvedLibcxxTargetPath.string());
     }
     clArgs.push_back("-isystem");
-    clArgs.push_back(libcxxPath);
+    clArgs.push_back(resolvedLibcxxPath.string());
   } else if (!sysrootPath.empty()) {
     clArgs.push_back("-isysroot");
     clArgs.push_back(sysrootPath);

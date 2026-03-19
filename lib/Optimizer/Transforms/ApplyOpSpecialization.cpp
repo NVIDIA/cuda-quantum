@@ -275,6 +275,27 @@ static bool regionHasUnstructuredControlFlow(Region &region) {
     if (!isa<cudaq::cc::IfOp>(op) && !cudaq::opt::isaMonotonicLoop(&op) &&
         op.getNumRegions() > 1)
       return true; // Op has multiple regions but is not a known Op.
+    if (auto loop = dyn_cast<cudaq::cc::LoopOp>(op)) {
+      auto contOp =
+          cast<cudaq::cc::ContinueOp>(loop.getStepBlock()->getTerminator());
+      if (!contOp.getOperand(0).getDefiningOp())
+        return true; // TODO: Currently, cloneReversedLoop requires that the
+                     // first operand is the induction variable
+                     // See https://github.com/NVIDIA/cuda-quantum/issues/3818
+      for (size_t i = 0; i < loop.getNumResults(); i++) {
+        if (!loop.getResult(i).getUses().empty()) {
+          auto res = loop.getResult(i);
+          auto users = SmallVector<Operation *>(res.getUsers().begin(),
+                                                res.getUsers().end());
+          if (users.size() == 1 && users[0]->hasTrait<OpTrait::IsTerminator>())
+            continue;  // Exception, threading variables through nested loops is
+                       // acceptable
+          return true; // TODO: Threading variables through loops as
+                       // arguments/returns is not handled properly
+                       // See https://github.com/NVIDIA/cuda-quantum/issues/3818
+        }
+      }
+    }
     for (auto &reg : op.getRegions())
       if (regionHasUnstructuredControlFlow(reg))
         return true;

@@ -35,16 +35,9 @@ namespace cudaq::opt {
 /// \deprecated Replaced by the convert to QIR API pipeline.
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
-void addQIRProfileVerify(mlir::OpPassManager &pm, llvm::StringRef convertTo);
-
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
                                     llvm::StringRef profile);
-
-/// Verify that all `CallOp` targets are QIR- or NVQIR-defined functions or in
-/// the provided allowed list.
-std::unique_ptr<mlir::Pass>
-createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
