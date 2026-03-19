@@ -109,7 +109,32 @@ static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
   ptrdiff_t offset =
       static_cast<uint8_t *>(slot_host) - config->rx_data_host;
   void *data_dev = static_cast<void *>(config->rx_data_dev + offset);
-  config->h_mailbox_bank[worker_id] = data_dev;
+
+  if (config->io_ctxs_host != nullptr) {
+    // GraphIOContext mode: fill per-worker context with separate RX/TX info.
+    auto *h_ctxs = static_cast<GraphIOContext *>(config->io_ctxs_host);
+    auto *d_ctxs = static_cast<uint8_t *>(config->io_ctxs_dev);
+    GraphIOContext *h_ctx = &h_ctxs[worker_id];
+
+    h_ctx->rx_slot = data_dev;
+    h_ctx->tx_slot = config->tx_data_dev + current_slot * config->tx_stride_sz;
+    h_ctx->tx_flag = &config->tx_flags_dev[current_slot];
+    h_ctx->tx_flag_value =
+        reinterpret_cast<uint64_t>(h_ctx->tx_slot);
+    h_ctx->tx_stride_sz = config->tx_stride_sz;
+
+    void *d_ctx = d_ctxs + worker_id * sizeof(GraphIOContext);
+    config->h_mailbox_bank[worker_id] = d_ctx;
+
+    // In GraphIOContext mode the graph kernel writes tx_flag_value (READY)
+    // to tx_flags from the GPU.  Set the in-flight marker BEFORE launch so
+    // the kernel's READY write is never clobbered by a late host write.
+    as_atomic_u64(config->tx_flags)[current_slot].store(
+        CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
+    __sync_synchronize();
+  } else {
+    config->h_mailbox_bank[worker_id] = data_dev;
+  }
   __sync_synchronize();
 
   const size_t w = static_cast<size_t>(worker_id);
@@ -129,8 +154,10 @@ static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
     if (config->workers[w].post_launch_fn)
       config->workers[w].post_launch_fn(config->workers[w].post_launch_data,
                                         data_dev, config->workers[w].stream);
-    as_atomic_u64(config->tx_flags)[current_slot].store(
-        CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
+    if (config->io_ctxs_host == nullptr) {
+      as_atomic_u64(config->tx_flags)[current_slot].store(
+          CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
+    }
   }
 }
 

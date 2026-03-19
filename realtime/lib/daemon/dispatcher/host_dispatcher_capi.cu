@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatcher.h"
 
 #include <cuda/std/atomic>
@@ -26,6 +27,7 @@ struct cudaq_host_dispatcher_handle {
   int *inflight_slot_tags = nullptr;
   void **h_mailbox_bank = nullptr;
   bool owns_mailbox = false;
+  void *io_ctxs_pinned = nullptr;
 };
 
 static void free_handle(cudaq_host_dispatcher_handle *handle) {
@@ -36,6 +38,8 @@ static void free_handle(cudaq_host_dispatcher_handle *handle) {
   delete[] handle->inflight_slot_tags;
   if (handle->owns_mailbox)
     delete[] handle->h_mailbox_bank;
+  if (handle->io_ctxs_pinned)
+    cudaFreeHost(handle->io_ctxs_pinned);
   delete handle;
 }
 
@@ -116,6 +120,27 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   handle->idle_mask->store((1ULL << num_workers) - 1,
                            cuda::std::memory_order_release);
 
+  // Allocate per-worker GraphIOContext array only when the caller wired
+  // separate RX and TX data buffers.  When rx_data == tx_data (in-place),
+  // the legacy path writes a raw slot pointer into the mailbox instead.
+  void *io_ctxs_host_ptr = nullptr;
+  void *io_ctxs_dev_ptr = nullptr;
+  if (ringbuffer->rx_data != ringbuffer->tx_data) {
+    size_t io_ctxs_bytes =
+        num_workers * sizeof(cudaq::realtime::GraphIOContext);
+    if (cudaHostAlloc(&io_ctxs_host_ptr, io_ctxs_bytes,
+                      cudaHostAllocMapped) == cudaSuccess) {
+      std::memset(io_ctxs_host_ptr, 0, io_ctxs_bytes);
+      if (cudaHostGetDevicePointer(&io_ctxs_dev_ptr, io_ctxs_host_ptr, 0) !=
+          cudaSuccess) {
+        cudaFreeHost(io_ctxs_host_ptr);
+        io_ctxs_host_ptr = nullptr;
+        io_ctxs_dev_ptr = nullptr;
+      }
+    }
+  }
+  handle->io_ctxs_pinned = io_ctxs_host_ptr;
+
   cudaq_host_dispatcher_config_t host_config;
   std::memset(&host_config, 0, sizeof(host_config));
   host_config.rx_flags = (void *)(uintptr_t)ringbuffer->rx_flags_host;
@@ -137,6 +162,9 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   host_config.live_dispatched = nullptr;
   host_config.idle_mask = handle->idle_mask;
   host_config.inflight_slot_tags = handle->inflight_slot_tags;
+  host_config.tx_flags_dev = ringbuffer->tx_flags;
+  host_config.io_ctxs_host = io_ctxs_host_ptr;
+  host_config.io_ctxs_dev = io_ctxs_dev_ptr;
 
   handle->thread = std::thread(
       [cfg = host_config]() { cudaq_host_dispatcher_loop(&cfg); });

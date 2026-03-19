@@ -64,6 +64,17 @@ typedef struct {
   void *idle_mask;       ///< opaque cuda::std::atomic<uint64_t>*, 1=free 0=busy
   int *inflight_slot_tags; ///< worker_id -> origin FPGA slot for tx_flags
                            ///< routing
+
+  /// Device view of tx_flags (needed for GraphIOContext.tx_flag).
+  /// NULL when tx_flags is already a device-accessible pointer.
+  volatile uint64_t *tx_flags_dev;
+
+  /// Per-worker GraphIOContext array for separate RX/TX buffer support.
+  /// When non-NULL, launch_graph_worker fills a GraphIOContext per dispatch
+  /// and writes its device address into h_mailbox_bank[worker_id].
+  /// When NULL, legacy mode: raw RX slot pointer written to mailbox.
+  void *io_ctxs_host; ///< host view of GraphIOContext[num_workers]
+  void *io_ctxs_dev;  ///< device view of same pinned mapped memory
 } cudaq_host_dispatcher_config_t;
 
 /// Run the host-side dispatcher loop. Blocks until `*config->shutdown_flag`
