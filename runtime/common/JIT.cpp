@@ -8,7 +8,6 @@
 
 #include "JIT.h"
 #include "common/Environment.h"
-#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -19,6 +18,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"

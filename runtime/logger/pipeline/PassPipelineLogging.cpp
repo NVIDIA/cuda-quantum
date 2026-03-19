@@ -69,12 +69,9 @@ std::string getPipelineLogPath() {
   return {};
 }
 
-/// PassInstrumentation that records which passes actually executed and writes
-/// them to CUDAQ_PIPELINE_LOG as a JSONL record after the pipeline completes.
+/// Records which passes are actually executed. Record is written to
+/// CUDAQ_PIPELINE_LOG as a JSONL record after the pipeline completes.
 /// Attached automatically by maybeLogPassPipeline.
-///
-/// Each record has the form:
-///   {"type":"executed","label":"<label>","passes":[{"pass":"...","op":"..."},...]}
 struct PipelineRecorder : public mlir::PassInstrumentation {
   struct PassRecord {
     std::string passArg;
@@ -85,8 +82,8 @@ struct PipelineRecorder : public mlir::PassInstrumentation {
   std::string label;
   std::vector<PassRecord> records;
 
-  explicit PipelineRecorder(llvm::StringRef label = {}) :
-      label(label.empty() ? "<unnamed>" : label.str()) {}
+  explicit PipelineRecorder(llvm::StringRef label = {})
+      : label(label.empty() ? "<unnamed>" : label.str()) {}
 
   ~PipelineRecorder() override { flushToLog(); }
 
@@ -106,9 +103,8 @@ private:
     if (logPath.empty())
       return;
 
-    std::string record =
-        "{\"type\":\"executed\",\"label\":\"" + jsonEscape(label) +
-        "\",\"passes\":[";
+    std::string record = "{\"type\":\"executed\",\"label\":\"" +
+                         jsonEscape(label) + "\",\"passes\":[";
     for (size_t i = 0; i < records.size(); ++i) {
       if (i > 0)
         record += ",";

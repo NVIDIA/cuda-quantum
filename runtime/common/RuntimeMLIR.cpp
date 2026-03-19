@@ -8,7 +8,6 @@
 
 #include "RuntimeMLIR.h"
 #include "common/CodeGenConfig.h"
-#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -24,6 +23,7 @@
 #include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"

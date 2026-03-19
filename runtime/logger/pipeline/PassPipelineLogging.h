@@ -10,19 +10,20 @@
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Pass/PassManager.h"
-#include <string>
 
 namespace cudaq {
 
 std::string getPipelineLogPath();
 
 /// Log the configured pass pipeline to CUDAQ_PIPELINE_LOG as a JSONL record
-/// and attach a PipelineRecorder instrumentation to capture what actually runs.
+/// and attach a mlir::PassInstrumentation object to capture what actually runs.
 /// Call this after adding passes to the PassManager but before pm.run().
 ///
 /// Emits two JSONL records per pipeline:
 ///   {"type":"configured","label":"<label>","pipeline":"<textual-pipeline>"}
+///       This is raw form of the pipeline before it is run, including arguments
 ///   {"type":"executed","label":"<label>","passes":[{"pass":"...","op":"..."},...]}
+///       This is the results of actually executing the passes
 void maybeLogPassPipeline(mlir::PassManager &pm, llvm::StringRef label = {});
 
 } // namespace cudaq

@@ -8,7 +8,6 @@
 
 #include "kernel_builder.h"
 #include "common/FmtCore.h"
-#include "logger/pipeline/PassPipelineLogging.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -20,6 +19,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "logger/pipeline/PassPipelineLogging.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
