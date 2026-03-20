@@ -202,6 +202,27 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   auto targetPath = cudaqLibPath.parent_path() / "targets";
   findAvailableTargets(targetPath, targets, simulationTargets);
 
+  const char *backendPathVar = std::getenv("CUDAQ_BACKEND_PATH");
+  if (backendPathVar) {
+    std::string entry;
+    std::stringstream ss(backendPathVar);
+    while (std::getline(ss, entry, ':')) {
+      if (entry.empty())
+        continue;
+      std::filesystem::path pkgRoot(entry);
+      auto extTargetPath = pkgRoot / "targets";
+      auto extLibDir = pkgRoot / "lib";
+      if (!std::filesystem::is_directory(extTargetPath)) {
+        CUDAQ_INFO("CUDAQ_BACKEND_PATH entry '{}': no targets/ dir, skipping.",
+                   entry);
+        continue;
+      }
+      CUDAQ_INFO("Loading external backends from '{}'.", entry);
+      findAvailableTargets(extTargetPath, targets, simulationTargets,
+                           extLibDir);
+    }
+  }
+
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
   // We have to ensure that nvqir and cudaq are loaded
