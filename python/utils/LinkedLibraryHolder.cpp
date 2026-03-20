@@ -469,9 +469,13 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
-  auto potentialServerHelperPath =
-      cudaqLibPath /
+  auto soName =
       fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
+  auto potentialServerHelperPath = cudaqLibPath / soName;
+  if (!std::filesystem::exists(potentialServerHelperPath) &&
+      !target.serverHelperLibDir.empty())
+    potentialServerHelperPath =
+        std::filesystem::path(target.serverHelperLibDir) / soName;
   if (std::filesystem::exists(potentialServerHelperPath) &&
       !libHandles.count(potentialServerHelperPath.string())) {
     void *serverHelperHandle = dlopen(
