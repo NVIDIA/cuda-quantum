@@ -147,7 +147,7 @@ TEST_F(ExternalBackendTester, setsServerHelperLibDir) {
   cudaq::findAvailableTargets(root / "targets", targets, simTargets,
                               root / "lib");
 
-  ASSERT_EQ(targets.count("my-backend"), 1u);
+  ASSERT_EQ(targets.count("my-backend"), 1);
   EXPECT_EQ(targets.at("my-backend").serverHelperLibDir,
             (root / "lib").string());
   EXPECT_EQ(targets.at("my-backend").name, "my-backend");
@@ -162,8 +162,8 @@ TEST_F(ExternalBackendTester, backendPathMultipleEntries) {
     cudaq::findAvailableTargets(root / "targets", targets, simTargets,
                                 root / "lib");
 
-  ASSERT_EQ(targets.count("backend-a"), 1u);
-  ASSERT_EQ(targets.count("backend-b"), 1u);
+  ASSERT_EQ(targets.count("backend-a"), 1);
+  ASSERT_EQ(targets.count("backend-b"), 1);
   EXPECT_EQ(targets.at("backend-a").serverHelperLibDir,
             (rootA / "lib").string());
   EXPECT_EQ(targets.at("backend-b").serverHelperLibDir,
@@ -177,9 +177,26 @@ TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
   cudaq::findAvailableTargets(root / "targets", targets, simTargets,
                               root / "lib");
 
-  ASSERT_EQ(targets.count("my-backend"), 1u);
+  ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
   auto resolvedPath = std::filesystem::path(target.serverHelperLibDir) /
                       ("libcudaq-serverhelper-" + target.name + ".so");
   EXPECT_TRUE(std::filesystem::exists(resolvedPath));
+}
+
+TEST_F(ExternalBackendTester, reconstructYmlPathFromServerHelperLibDir) {
+  auto root = createBackendPackage("my-backend");
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::findAvailableTargets(root / "targets", targets, simTargets,
+                              root / "lib");
+
+  ASSERT_EQ(targets.count("my-backend"), 1);
+  const auto &target = targets.at("my-backend");
+  ASSERT_FALSE(target.serverHelperLibDir.empty());
+
+  auto ymlPath =
+      std::filesystem::path(target.serverHelperLibDir).parent_path() /
+      "targets" / (target.name + ".yml");
+  EXPECT_TRUE(std::filesystem::exists(ymlPath));
 }
