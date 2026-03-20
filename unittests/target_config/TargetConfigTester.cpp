@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "LinkedLibraryHolder.h"
 #include "cudaq/Support/TargetConfigYaml.h"
+#include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 
 TEST(TargetConfigTester, checkMachineList) {
@@ -101,4 +104,31 @@ target-arguments:
             "qir-adaptive:1.0:int_computations,float_computations");
   EXPECT_EQ(config.getCodeGenSpec({{"machine", "Helios-1E"}}),
             "qir-adaptive:1.0:int_computations,float_computations");
+}
+
+TEST(TargetConfigTester, setsServerHelperLibDir) {
+  auto tmpDir = std::filesystem::temp_directory_path() /
+                "cudaq_test_find_available_targets";
+  auto targetsDir = tmpDir / "targets";
+  auto libDir = tmpDir / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+
+  const std::string ymlContent = R"(
+name: my-backend
+description: "Test backend."
+config:
+  platform-qpu: remote_rest
+  library-mode: false
+)";
+  std::ofstream(targetsDir / "my-backend.yml") << ymlContent;
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+
+  ASSERT_EQ(targets.count("my-backend"), 1);
+  EXPECT_EQ(targets.at("my-backend").serverHelperLibDir, libDir.string());
+  EXPECT_EQ(targets.at("my-backend").name, "my-backend");
+
+  std::filesystem::remove_all(tmpDir);
 }
