@@ -12,6 +12,40 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
+class ExternalBackendTester : public ::testing::Test {
+protected:
+  std::filesystem::path tmpRoot;
+
+  void SetUp() override {
+    tmpRoot = std::filesystem::temp_directory_path() /
+              ("cudaq_test_" + std::string(
+                                   ::testing::UnitTest::GetInstance()
+                                       ->current_test_info()
+                                       ->name()));
+    std::filesystem::create_directories(tmpRoot);
+  }
+
+  void TearDown() override { std::filesystem::remove_all(tmpRoot); }
+
+  std::filesystem::path createBackendPackage(const std::string &name,
+                                             bool createSo = false) {
+    auto root = tmpRoot / name;
+    auto targetsDir = root / "targets";
+    auto libDir = root / "lib";
+    std::filesystem::create_directories(targetsDir);
+    std::filesystem::create_directories(libDir);
+
+    std::ofstream(targetsDir / (name + ".yml"))
+        << "name: " << name << "\ndescription: \"Test backend.\"\nconfig:\n"
+        << "  platform-qpu: remote_rest\n  library-mode: false\n";
+
+    if (createSo)
+      std::ofstream(libDir / ("libcudaq-serverhelper-" + name + ".so")).close();
+
+    return root;
+  }
+};
+
 TEST(TargetConfigTester, checkMachineList) {
   const std::string configYmlContents = R"(
 name: test
@@ -106,61 +140,46 @@ target-arguments:
             "qir-adaptive:1.0:int_computations,float_computations");
 }
 
-TEST(TargetConfigTester, setsServerHelperLibDir) {
-  auto tmpDir = std::filesystem::temp_directory_path() /
-                "cudaq_test_find_available_targets";
-  auto targetsDir = tmpDir / "targets";
-  auto libDir = tmpDir / "lib";
-  std::filesystem::create_directories(targetsDir);
-  std::filesystem::create_directories(libDir);
-
-  const std::string ymlContent = R"(
-name: my-backend
-description: "Test backend."
-config:
-  platform-qpu: remote_rest
-  library-mode: false
-)";
-  std::ofstream(targetsDir / "my-backend.yml") << ymlContent;
+TEST_F(ExternalBackendTester, setsServerHelperLibDir) {
+  auto root = createBackendPackage("my-backend");
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+  cudaq::findAvailableTargets(root / "targets", targets, simTargets,
+                              root / "lib");
 
-  ASSERT_EQ(targets.count("my-backend"), 1);
-  EXPECT_EQ(targets.at("my-backend").serverHelperLibDir, libDir.string());
+  ASSERT_EQ(targets.count("my-backend"), 1u);
+  EXPECT_EQ(targets.at("my-backend").serverHelperLibDir,
+            (root / "lib").string());
   EXPECT_EQ(targets.at("my-backend").name, "my-backend");
-
-  std::filesystem::remove_all(tmpDir);
 }
 
-TEST(TargetConfigTester, backendPathMultipleEntries) {
-  auto tmpDir =
-      std::filesystem::temp_directory_path() / "cudaq_test_backend_path";
-
-  auto createBackend = [&](const std::string &name) {
-    auto root = tmpDir / name;
-    std::filesystem::create_directories(root / "targets");
-    std::filesystem::create_directories(root / "lib");
-    std::ofstream(root / "targets" / (name + ".yml"))
-        << "name: " << name << "\ndescription: \"Test.\"\nconfig:\n"
-        << "  platform-qpu: remote_rest\n  library-mode: false\n";
-    return root;
-  };
-
-  auto rootA = createBackend("backend-a");
-  auto rootB = createBackend("backend-b");
+TEST_F(ExternalBackendTester, backendPathMultipleEntries) {
+  auto rootA = createBackendPackage("backend-a");
+  auto rootB = createBackendPackage("backend-b");
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
   for (auto &root : {rootA, rootB})
     cudaq::findAvailableTargets(root / "targets", targets, simTargets,
                                 root / "lib");
 
-  ASSERT_EQ(targets.count("backend-a"), 1);
-  ASSERT_EQ(targets.count("backend-b"), 1);
+  ASSERT_EQ(targets.count("backend-a"), 1u);
+  ASSERT_EQ(targets.count("backend-b"), 1u);
   EXPECT_EQ(targets.at("backend-a").serverHelperLibDir,
             (rootA / "lib").string());
   EXPECT_EQ(targets.at("backend-b").serverHelperLibDir,
             (rootB / "lib").string());
+}
 
-  std::filesystem::remove_all(tmpDir);
+TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
+  auto root = createBackendPackage("my-backend", /*createSo=*/true);
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::findAvailableTargets(root / "targets", targets, simTargets,
+                              root / "lib");
+
+  ASSERT_EQ(targets.count("my-backend"), 1u);
+  const auto &target = targets.at("my-backend");
+  auto resolvedPath = std::filesystem::path(target.serverHelperLibDir) /
+                      ("libcudaq-serverhelper-" + target.name + ".so");
+  EXPECT_TRUE(std::filesystem::exists(resolvedPath));
 }
