@@ -1,0 +1,153 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+#
+#
+# TRIAL SETUP
+#
+# This config is part of a CodeRabbit evaluation trial. Reviews are NOT
+# automatic. To opt in on a PR, either:
+#   1. Add the "coderabbit" label, OR
+#   2. Include "@coderabbitai" in the PR description.
+#
+# Feedback: post impressions in the dedicated Slack thread. You can also
+# reply directly to CodeRabbit's PR comments (it learns from corrections).
+#
+# See coderabbit-trial.md at the project root for full trial guidelines.
+#
+# TODO: Migrate coding-knowledge path_instructions into per-directory
+#       AGENTS.md files (with a ## Reviewing section). Keep only
+#       review-specific directives (breaking-change flags, etc.) here.
+# ============================================================================ #
+
+language: "en-US"
+
+tone_instructions: >
+  Be an expert systems programmer reviewing C++ and Python quantum computing
+  code. Be terse. State the issue and fix directly. No praise or preamble.
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: true
+  collapse_walkthrough: true
+  review_details: true
+
+  # Disabled during trial to avoid confusing non-participants with
+  # unexpected GitHub status checks on their PRs.
+  commit_status: false
+
+  # CodeRabbit requests changes initially and auto-approves once its
+  # comments are resolved. This does not bypass GitHub branch protection.
+  # Human approvals are still required to merge.
+  request_changes_workflow: true
+
+  auto_review:
+    enabled: false
+    description_keyword: "@coderabbitai"
+    labels:
+      - "coderabbit"
+    drafts: false
+    auto_incremental_review: true
+
+  # ------------------------------------------------------------------ #
+  # Path instructions
+  #
+  # Two categories:
+  #   1. Coding knowledge (temporary) -- migrate to AGENTS.md later
+  #   2. Review-specific directives   -- keep here long-term
+  # ------------------------------------------------------------------ #
+  path_instructions:
+    # -- Coding knowledge (temporary, migrate to AGENTS.md) -----------
+    - path: "runtime/**"
+      instructions: |
+        CUDA-Q C++ runtime code. CUDA-Q is a systems-oriented quantum
+        programming SDK. Performance matters: prefer zero-overhead
+        abstractions, minimize allocations on hot paths, and avoid
+        unnecessary copies. Public APIs use snake_case in namespace cudaq.
+        Internal APIs use CamelCase. Follow LLVM/MLIR coding standards
+        for internals. Non-public APIs belong in the cudaq::detail or
+        cudaq::<module>::detail namespace.
+
+    - path: "python/**/*.py"
+      instructions: |
+        Python bindings and tests for CUDA-Q. Follow Google Python style
+        guide. Check for proper pybind11 usage patterns in binding code.
+
+    - path: "test/**"
+      instructions: |
+        Compiler and translation tests using LLVM lit and FileCheck.
+        Verify that new compiler functionality has accompanying FileCheck
+        tests. Where possible ensure fixes have regression tests.
+
+    - path: "unittests/**"
+      instructions: |
+        C++ unit tests using Google Test (gtest). Verify that new runtime
+        functionality has accompanying unit tests.
+        Where possible ensure fixes have regression tests.
+
+    # -- Review-specific directives (keep long-term) ------------------
+    - path: "include/**"
+      instructions: |
+        Public C++ headers consumed by users and external libraries (e.g.
+        cudaqx). Flag any changes that could break backward compatibility.
+        Eg., removed functions, changed signatures, altered semantics, or
+        modified include paths. Verify proper documentation for public
+        APIs.
+
+    - path: "runtime/cudaq/algorithms/**"
+      instructions: |
+        Public C++ algorithm API surface (sample, observe, optimize,
+        etc.). Flag signature changes, removed overloads, or semantic
+        changes that could break user code or downstream libraries.
+
+    - path: "python/cudaq/**"
+      instructions: |
+        Public Python API surface. Flag removed functions, changed
+        signatures, changed return types, or altered default arguments
+        that could break user scripts. Check that docstrings are present
+        and accurate for public functions.
+
+  # We only list tools we explicitly want enabled or disabled.
+  tools:
+    clang:
+      enabled: true
+    cppcheck:
+      enabled: true
+    ruff:
+      enabled: true
+    markdownlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    gitleaks:
+      enabled: true
+    github-checks:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: "local"
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CppAPICodingStyle.md"
+      - "Developing.md"
+  linked_repositories:
+    - repository: "NVIDIA/cudaqx"
+      instructions: >
+        cudaqx depends on CUDA-Q public C++ and Python APIs. When
+        reviewing changes to include/, runtime/cudaq/algorithms/, or
+        python/cudaq/, consider whether the change could break cudaqx.
