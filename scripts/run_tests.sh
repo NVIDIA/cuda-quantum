@@ -74,8 +74,10 @@ elif [ ! -x "$(command -v nvidia-smi)" ] || \
   gpu_excludes="--label-exclude gpu_required"
 fi
 
-# 1a. CTest: CPU tests in parallel
-# Exclude lit test suites from ctest. They are run individually above/below.
+# 1. CTest: all gtest tests in parallel.
+# Exclude lit test suites from ctest -- they are run individually below.
+# GPU tests serialize automatically via RESOURCE_LOCK "gpu" in CMakeLists.txt.
+# On machines without a GPU, $gpu_excludes skips gpu_required tests.
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
   -E "ctest-nvqpp|ctest-targettests|pycudaq-mlir" $gpu_excludes
@@ -83,19 +85,6 @@ ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
   status_sum=$((status_sum + 1))
-fi
-
-# 1b. GPU tests: run serially to avoid GPU memory contention
-if [ -z "$gpu_excludes" ]; then
-  echo "=== Running GPU ctest (serial) ==="
-  ctest --output-on-failure --test-dir "$build_dir" -j 1 \
-    -E "ctest-nvqpp|ctest-targettests" \
-    -L "gpu_required" --label-exclude "mgpus_required"
-  gpu_ctest_status=$?
-  if [ $gpu_ctest_status -ne 0 ]; then
-    echo "::error::GPU ctest failed with status $gpu_ctest_status"
-    status_sum=$((status_sum + 1))
-  fi
 fi
 
 # 2. Main lit tests
