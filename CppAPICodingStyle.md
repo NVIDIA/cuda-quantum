@@ -265,7 +265,54 @@ namespace cudaq_internal::compiler {
 }
 ```
 
-## 5. Additional conventions
+---
+
+## 5. Physical file layout
+
+### 5.1 Internal modules
+
+Internal modules shall be laid out according to the following structure:
+
+```text
+runtime
+   ├── internal
+        ├── compiler
+        │      ├── CMakeLists.txt
+        │      ├── *.cpp
+        │      ├── include/cudaq_internal/compiler/*.h
+        ├── device_code
+        │      ├── CMakeLists.txt
+        │      ├── *.cpp
+        │      ├── include/cudaq_internal/device_code/*.h
+```
+
+Most noticeably, header files shall not be under a common include root.
+This is so that adding a dependency to a given module, using CMake `target_link_libraries`,
+only gives visibility to the public headers of that module.
+
+The concern for `nvq++` users is different. The expectation is that `nvq++` finds
+automatically all the required headers, even those from internal modules
+included transitively. We do not know ahead of time which headers will be used,
+and we do not expect users to provide this information, so we have to assume
+that all headers could be used.
+
+CMake's `INSTALL_INTERFACE` and `BUILD_INTERFACE` will be leveraged to meet these
+requirements. They allow for a different header file layout for build and install
+environment.
+
+Example:
+
+```cmake
+target_include_directories(cudaq-mlir-runtime
+  PUBLIC
+    $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
+  PRIVATE .)
+```
+
+---
+
+## 6. Additional conventions
 
 This documented primarily aims at defining conventions on APIs and modules.
 Of particular relevance are the following rules from the LLVM coding standard
