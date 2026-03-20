@@ -9,15 +9,14 @@
 #include "ProbabilisticSamplingStrategy.h"
 #include <map>
 
-namespace cudaq::ptsbe {
-
 static constexpr std::size_t ATTEMPT_MULTIPLIER = 10;
 
-ProbabilisticSamplingStrategy::~ProbabilisticSamplingStrategy() = default;
+cudaq::ptsbe::ProbabilisticSamplingStrategy::~ProbabilisticSamplingStrategy() =
+    default;
 
 std::vector<cudaq::KrausTrajectory>
-ProbabilisticSamplingStrategy::generateTrajectories(
-    std::span<const NoisePoint> noise_points,
+cudaq::ptsbe::ProbabilisticSamplingStrategy::generateTrajectories(
+    std::span<const cudaq::ptsbe::detail::NoisePoint> noise_points,
     std::size_t max_trajectories) const {
 
   std::vector<cudaq::KrausTrajectory> results;
@@ -25,7 +24,7 @@ ProbabilisticSamplingStrategy::generateTrajectories(
   if (noise_points.empty() || max_trajectories == 0)
     return results;
 
-  std::size_t total_possible = computeTotalTrajectories(noise_points);
+  std::size_t total_possible = detail::computeTotalTrajectories(noise_points);
   results.reserve(std::min(max_trajectories, total_possible));
 
   std::map<std::vector<std::size_t>, std::size_t> pattern_to_index;
@@ -89,5 +88,3 @@ ProbabilisticSamplingStrategy::generateTrajectories(
 
   return results;
 }
-
-} // namespace cudaq::ptsbe

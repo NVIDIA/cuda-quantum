@@ -20,7 +20,25 @@ namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
 namespace detail {
 bool isKernelGenerated(const std::string &);
+
+/// @brief Check whether a kernel uses conditional feedback (measurement-
+/// dependent branching). Checks MLIR metadata first, then optionally checks
+/// the ExecutionContext's registerNames (populated during library-mode
+/// tracing).
+///
+/// @param kernelName Name of the kernel (for MLIR registry lookup)
+/// @param ctx Optional pointer to an ExecutionContext populated after tracing
+/// @return true if conditional feedback is detected
+inline bool hasConditionalFeedback(const std::string &kernelName,
+                                   const ExecutionContext *ctx = nullptr) {
+  if (cudaq::kernelHasConditionalFeedback(kernelName))
+    return true;
+  if (ctx && !ctx->registerNames.empty())
+    return true;
+  return false;
 }
+} // namespace detail
+
 /// @brief Return type for asynchronous sampling.
 using async_sample_result = async_result<sample_result>;
 
@@ -42,7 +60,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
 
-  if (cudaq::kernelHasConditionalFeedback(kernelName))
+  if (cudaq::detail::hasConditionalFeedback(kernelName))
     throw std::runtime_error(
         "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "
         "that branch on measurement results. Kernel '" +

@@ -62,6 +62,7 @@ int main() {
       std::cout << '\n';
     }
   }
+  return 0;
 }
 
 // CHECK:           state: (size: 2) { (1,0) (0,0) }

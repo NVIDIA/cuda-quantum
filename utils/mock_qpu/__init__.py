@@ -18,7 +18,9 @@ MOCK_QPU_PORTS = {
     "anyon": 62446,
     "infleqtion": 62447,
     "quantum_machines": 62448,
-    "qci": 62449
+    "qci": 62449,
+    "scaleway": 62450,
+    "tii": 62451,
 }
 
 

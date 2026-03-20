@@ -13,8 +13,7 @@ LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 
 cudaq::KernelThunkResultType
 cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs,
-                         mlir::Type resultTy) {
+                         const std::vector<void *> &rawArgs) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
@@ -26,10 +25,11 @@ cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
   return compiled.execute(rawArgs);
 }
 
-void *cudaq::QPU::specializeModule(
-    const std::string &name, mlir::ModuleOp module,
-    const std::vector<void *> &rawArgs, mlir::Type resultTy,
-    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint) {
+void *
+cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
+                             const std::vector<void *> &rawArgs,
+                             std::optional<cudaq::JitEngine> &cachedEngine,
+                             bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(

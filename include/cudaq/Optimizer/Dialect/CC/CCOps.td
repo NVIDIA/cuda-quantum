@@ -1649,8 +1649,8 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     Since this λ expression captures the value %88 from the parent, we have to
     instantiate a closure that includes this %88 value when we lift the λ.
     The lifted λ is given the name `@lifted_lambda.54` in the following. A
-    second function, `@stub.54`, unpacks the closure into arguments to the new
-    outlined λ function in the following example.
+    second function, `@trampoline.54`, unpacks the closure into arguments to the
+    new outlined λ function in the following example.
 
     ```mlir
       %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) ->

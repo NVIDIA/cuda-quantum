@@ -206,11 +206,11 @@ public:
 
   [[nodiscard]] virtual KernelThunkResultType
   launchModule(const std::string &name, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, mlir::Type resultTy);
+               const std::vector<void *> &rawArgs);
 
   [[nodiscard]] virtual void *
   specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
+                   const std::vector<void *> &rawArgs,
                    std::optional<cudaq::JitEngine> &cachedEngine,
                    bool isEntryPoint);
 

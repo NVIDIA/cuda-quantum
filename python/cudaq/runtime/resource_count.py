@@ -35,9 +35,6 @@ def estimate_resources(kernel, *args, **kwargs):
     else:
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
-    returnTy = (decorator.return_type
-                if decorator.return_type else decorator.get_none_type())
     choice = kwargs.get("choice", None)
     return cudaq_runtime.estimate_resources_impl(decorator.uniqName, module,
-                                                 returnTy, choice,
-                                                 *processedArgs)
+                                                 choice, *processedArgs)

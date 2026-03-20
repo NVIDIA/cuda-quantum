@@ -104,6 +104,9 @@ struct QppState : public cudaq::SimulationState {
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
     return std::make_unique<QppState>(Eigen::Map<qpp::ket>(
         reinterpret_cast<std::complex<double> *>(ptr), size));
   }
@@ -351,7 +354,8 @@ public:
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     if (shots < 1) {
       double expectationValue = calculateExpectationValue(qubits);
       CUDAQ_INFO("Computed expectation value = {}", expectationValue);
@@ -379,7 +383,10 @@ public:
       // Add to the sample result
       // in mid-circ sampling mode this will append 1 bitstring
       auto bitstring = bitstream.str();
-      counts.appendResult(bitstring, count);
+      if (includeSequentialData)
+        counts.appendResult(bitstring, count);
+      else
+        counts.counts[bitstring] += count;
       auto par = cudaq::sample_result::has_even_parity(bitstring);
       auto p = count / (double)shots;
       if (!par) {

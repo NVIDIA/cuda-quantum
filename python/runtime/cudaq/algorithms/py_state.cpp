@@ -41,20 +41,20 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
-                            MlirType retTy, py::args args) {
+                            py::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, retTy, args);
+    return marshal_and_launch_module(shortName, mod, args);
   };
   return details::extractState(std::move(closure));
 }
 
-static std::future<state>
-get_state_async_impl(const std::string &shortName, MlirModule module,
-                     MlirType returnTy, std::size_t qpu_id, py::args args) {
+static std::future<state> get_state_async_impl(const std::string &shortName,
+                                               MlirModule module,
+                                               std::size_t qpu_id,
+                                               py::args args) {
   // Launch the asynchronous execution.
   auto mod = unwrap(module);
   std::string kernelName = shortName;
-  auto retTy = unwrap(returnTy);
   auto &platform = get_platform();
   auto fnOp = getKernelFuncOp(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
@@ -62,9 +62,9 @@ get_state_async_impl(const std::string &shortName, MlirModule module,
   py::gil_scoped_release release;
   return details::runGetStateAsync(
       detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      retTy, mod = mod.clone()]() mutable {
+                                      mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, retTy, opaques);
+            clean_launch_module(kernelName, mod, opaques);
       }),
       platform, qpu_id);
 }
@@ -597,7 +597,7 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             return s[idx];
           },
           R"#(Return the `index`-th element of the state vector.
-          
+
 .. code-block:: python
 
   # Example:
@@ -636,7 +636,7 @@ index pair.
             return s.amplitude(basisState);
           },
           R"#(Return the amplitude of a state in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -650,7 +650,7 @@ index pair.
             return s.amplitude(bitStringToIntVec(bitString));
           },
           R"#(Return the amplitude of a state in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -664,7 +664,7 @@ index pair.
             return s.amplitudes(basisStates);
           },
           R"#(Return the amplitude of a list of states in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -682,7 +682,7 @@ index pair.
             return s.amplitudes(basisStates);
           },
           R"#(Return the amplitudes of a list of states in computational basis.
-          
+
 .. code-block:: python
 
   # Example:
@@ -783,8 +783,7 @@ index pair.
 
   mod.def(
       "get_state_impl",
-      [&](const std::string &shortName, MlirModule module, MlirType retTy,
-          py::args args) {
+      [&](const std::string &shortName, MlirModule module, py::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "orca-photonics")
@@ -793,17 +792,17 @@ index pair.
 
         if (is_remote_platform() || is_emulated_platform())
           return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, retTy, args);
+        return get_state_impl(shortName, module, args);
       },
-      "See the python documenation for get_state.");
+      "See the python documentation for get_state.");
 
   py::class_<async_state_result>(
       mod, "AsyncStateResult",
-      R"#(A data-type containing the results of a call to :func:`get_state_async`. 
-The `AsyncStateResult` models a future-like type, whose 
-:class:`State` may be returned via an invocation of the `get` method. This 
+      R"#(A data-type containing the results of a call to :func:`get_state_async`.
+The `AsyncStateResult` models a future-like type, whose
+:class:`State` may be returned via an invocation of the `get` method. This
 kicks off a wait on the current thread until the results are available.
-See `future <https://en.cppreference.com/w/cpp/thread/future>`_ 
+See `future <https://en.cppreference.com/w/cpp/thread/future>`_
 for more information on this programming pattern.)#")
       .def(
           "get", [](async_state_result &self) { return self.get(); },
@@ -813,8 +812,8 @@ for more information on this programming pattern.)#")
 
   mod.def(
       "get_state_async_impl",
-      [&](const std::string &shortName, MlirModule module, MlirType retTy,
-          std::size_t qpu_id, py::args args) {
+      [&](const std::string &shortName, MlirModule module, std::size_t qpu_id,
+          py::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc" ||
@@ -823,7 +822,7 @@ for more information on this programming pattern.)#")
           throw std::runtime_error(
               "get_state_async is not supported in this context.");
 
-        return get_state_async_impl(shortName, module, retTy, qpu_id, args);
+        return get_state_async_impl(shortName, module, qpu_id, args);
       },
       "See the python documentation for get_state_async.");
 

@@ -3,7 +3,7 @@
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -22,11 +22,10 @@ def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
     if not isa_kernel_decorator(decorator):
         decorator = mk_decorator(decorator)
 
-    if isa_kernel_decorator(decorator):
-        if decorator.qkeModule is None:
-            raise RuntimeError(
-                "Unsupported target / Invalid kernel for `ptsbe.sample`: "
-                "missing module")
+    if decorator.qkeModule is None:
+        raise RuntimeError(
+            "Unsupported target / Invalid kernel for `ptsbe.sample`: "
+            "missing module")
 
     if decorator.formal_arity() != len(args):
         raise RuntimeError(
@@ -55,7 +54,8 @@ def sample(kernel,
            max_trajectories=None,
            sampling_strategy=None,
            shot_allocation=None,
-           return_execution_data=False):
+           return_execution_data=False,
+           include_sequential_data=False):
     """
     Sample using Pre-Trajectory Sampling with Batch Execution (`PTSBE`).
 
@@ -85,6 +85,8 @@ def sample(kernel,
       return_execution_data (bool): Include circuit structure, trajectory
           specifications, and per-trajectory measurement outcomes in the
           returned result. Defaults to ``False``.
+      include_sequential_data (bool): Populate per-shot sequential bitstring
+          data on the result. Defaults to ``False``.
 
     Returns:
       ``SampleResult``: Measurement results. Returns a list of results
@@ -104,23 +106,19 @@ def sample(kernel,
         results = []
         for argSet in argSets:
             processedArgs, module = decorator.prepare_call(*argSet)
-            retTy = decorator.get_none_type()
             result = cudaq_runtime.ptsbe.sample_impl(
-                decorator.uniqName, module, retTy, shots_count, noise_model,
+                decorator.uniqName, module, shots_count, noise_model,
                 max_trajectories, sampling_strategy, shot_allocation,
-                return_execution_data, *processedArgs)
+                return_execution_data, include_sequential_data, *processedArgs)
             results.append(result)
         return results
 
     processedArgs, module = decorator.prepare_call(*args)
-    retTy = decorator.get_none_type()
 
-    return cudaq_runtime.ptsbe.sample_impl(decorator.uniqName, module, retTy,
-                                           shots_count, noise_model,
-                                           max_trajectories, sampling_strategy,
-                                           shot_allocation,
-                                           return_execution_data,
-                                           *processedArgs)
+    return cudaq_runtime.ptsbe.sample_impl(
+        decorator.uniqName, module, shots_count, noise_model, max_trajectories,
+        sampling_strategy, shot_allocation, return_execution_data,
+        include_sequential_data, *processedArgs)
 
 
 def sample_async(kernel,
@@ -130,7 +128,8 @@ def sample_async(kernel,
                  max_trajectories=None,
                  sampling_strategy=None,
                  shot_allocation=None,
-                 return_execution_data=False):
+                 return_execution_data=False,
+                 include_sequential_data=False):
     """
     Asynchronously sample using PTSBE. Returns a future whose result
     can be retrieved via ``.get()``.
@@ -146,9 +145,10 @@ def sample_async(kernel,
       shot_allocation (``ShotAllocationStrategy`` or ``None``): Strategy for
           allocating shots across trajectories.
       return_execution_data (bool): Include execution data in the result.
+      include_sequential_data (bool): Populate per-shot sequential data.
 
     Returns:
-      ``AsyncSampleResult``: A future whose ``.get()`` returns the
+      ``AsyncPTSBESampleResult``: A future whose ``.get()`` returns the
           ``SampleResult``.
 
     Raises:
@@ -161,13 +161,10 @@ def sample_async(kernel,
         noise_model = cudaq_runtime.NoiseModel()
 
     processedArgs, module = decorator.prepare_call(*args)
-    retTy = decorator.get_none_type()
 
     impl = cudaq_runtime.ptsbe.sample_async_impl(
-        decorator.uniqName, module, retTy, shots_count, noise_model,
-        max_trajectories, sampling_strategy, shot_allocation,
-        return_execution_data, *processedArgs)
+        decorator.uniqName, module, shots_count, noise_model, max_trajectories,
+        sampling_strategy, shot_allocation, return_execution_data,
+        include_sequential_data, *processedArgs)
 
-    result = AsyncSampleResult(impl, module)
-    result._noise_model = noise_model  # prevent GC until .get() is called
-    return result
+    return AsyncSampleResult(impl, module)

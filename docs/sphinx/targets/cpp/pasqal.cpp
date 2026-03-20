@@ -3,8 +3,10 @@
 // nvq++ --target pasqal pasqal.cpp -o out.x
 // ./out.x
 // ```
-// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)
-// have been set.
+// Assumes credentials are configured either with environment variables
+// (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).
+// For QRMI-routed execution, see the `pasqal` notes
+// in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/algorithms/integrator.h"

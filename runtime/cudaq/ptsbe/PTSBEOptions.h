@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -32,6 +32,10 @@ struct PTSBEOptions {
   /// counts) in the sample result. Default false to avoid overhead when not
   /// needed.
   bool return_execution_data = false;
+
+  /// Populate per-shot sequential bitstring data on the result. When false
+  /// (default), only aggregated counts are produced.
+  bool include_sequential_data = false;
 
   /// Maximum number of unique trajectories to generate. When `nullopt`,
   /// defaults to the number of shots.

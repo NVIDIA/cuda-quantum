@@ -205,7 +205,8 @@ if [ -n "${extra_packages}" ]; then
 fi
 
 if $is_macos; then
-    # macOS: use venv (simpler, no conda ToS issues, no MPI needed for CPU-only)
+    # macOS: extract install commands from README markers, matching the Linux
+    # pattern.
     venv_dir="$HOME/.venv/cudaq-validation"
 
     if $fresh_venv && [ -d "$venv_dir" ]; then
@@ -213,27 +214,45 @@ if $is_macos; then
         rm -rf "$venv_dir"
     fi
 
-    if [ -d "$venv_dir" ]; then
-        echo "Reusing existing venv at $venv_dir (use -F to start fresh)"
-    else
-        echo "Creating venv at $venv_dir"
-        python3 -m venv "$venv_dir"
+    macos_script="$(awk '/(Begin macos install)/{flag=1;next}/(End macos install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')"
+    if [ -z "$macos_script" ]; then
+        echo -e "\e[01;31mNo macOS install instructions found in $readme_file (missing Begin/End macos install markers).\e[0m" >&2
+        (return 0 2>/dev/null) && return 100 || exit 100
     fi
-    source "$venv_dir/bin/activate"
 
-    # Install the wheel first
+    # Build the pip install replacement for the README's "pip install cudaq".
+    # When a local packages dir is provided (-i), install the wheel file
+    # directly since the wheel's distribution name (cuda_quantum) differs
+    # from the metapackage name (cudaq).
     if [ -n "${extra_packages}" ]; then
-        wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
-        if [ -n "$wheel_file" ]; then
-            echo "Installing wheel: $wheel_file"
-            pip install --force-reinstall "$wheel_file"
+        metapackage=$(ls "${extra_packages}"/cudaq-*.tar.gz 2>/dev/null | head -1)
+        if [ -n "$metapackage" ]; then
+            pip_install_replacement="pip install --force-reinstall cudaq==${cudaq_version} --find-links ${extra_packages}"
         else
-            echo "No wheel found in ${extra_packages}, installing from PyPI"
-            pip install --upgrade cudaq==${cudaq_version}
+            wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
+            if [ -n "$wheel_file" ]; then
+                pip_install_replacement="pip install --force-reinstall $wheel_file"
+            else
+                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}.\e[0m" >&2
+                (return 0 2>/dev/null) && return 100 || exit 100
+            fi
         fi
     else
-        pip install --upgrade cudaq==${cudaq_version}
+        pip_install_replacement="pip install cudaq==${cudaq_version}"
     fi
+
+    while IFS= read -r line; do
+        # Redirect venv creation into the CI-managed venv_dir
+        line=$(echo "$line" | sed -E "s|python3 -m venv [^ ]+|python3 -m venv $venv_dir|g")
+        line=$(echo "$line" | sed -E "s|source [^ ]+/bin/activate|source $venv_dir/bin/activate|g")
+        # Replace 'pip install cudaq' with versioned install + local wheel path
+        line=$(echo "$line" | sed -E 's/\$\{\{\s*[^}]+\s*\}\}/cudaq/g')
+        line=$(echo "$line" | sed -E "s|pip install cudaq|${pip_install_replacement}|g")
+        if [ -n "$(echo $line | tr -d '[:space:]')" ]; then
+            echo "+ $line"
+            eval "$line"
+        fi
+    done <<<"$macos_script"
 
     # Install test/dev dependencies (pytest, etc.)
     echo "Installing dev/test dependencies..."
@@ -241,6 +260,10 @@ if $is_macos; then
 else
     # Linux: full conda setup with CUDA and MPI
     conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')"
+    if [ -z "$conda_script" ]; then
+        echo -e "\e[01;31mNo conda install instructions found in $readme_file (missing Begin/End conda install markers).\e[0m" >&2
+        (return 0 2>/dev/null) && return 100 || exit 100
+    fi
 
     while IFS= read -r line; do
         line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")
@@ -320,7 +343,7 @@ fi
 # Run backend tests
 echo "Running backend tests."
 for backendTest in "$root_folder/tests/backends"/*.py; do
-    python3 -m pytest -v $backendTest
+    python3 -m pytest -v --rootdir "$root_folder/tests" $backendTest
     # Exit code 5 indicates that no tests were collected,
     # i.e. all tests in this file were skipped, which is the case
     # for the mock server tests since they are not included.
@@ -337,7 +360,7 @@ if $is_macos; then
 else
     echo "Running platform tests."
     for parallelTest in "$root_folder/tests/parallel"/*.py; do
-        python3 -m pytest -v $parallelTest
+        python3 -m pytest -v --rootdir "$root_folder/tests" $parallelTest
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mPython platform test $parallelTest failed.\e[0m" >&2
             status_sum=$((status_sum + 1))
@@ -437,8 +460,8 @@ if [ -d "$root_folder/targets" ]; then
             elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
                 skip_example=true
-            elif [ "$t" == "quantum_machines" ] || [ "$t" == "quantinuum" ] || \
-                 [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
+            elif [ "$t" == "tii" ] || [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || \
+                 [ "$t" == "quantinuum" ] || [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
                  [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
                 # These targets require remote backends that are not available
                 # in CI or local dev without explicit setup.

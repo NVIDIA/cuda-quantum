@@ -391,7 +391,8 @@ public:
   /// @brief Sample the current multi-qubit state on the given qubit indices
   /// over a certain number of shots
   virtual cudaq::ExecutionResult
-  sample(const std::vector<std::size_t> &qubitIdxs, const int shots) = 0;
+  sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
+         bool includeSequentialData = true) = 0;
 
   /// @brief Return the name of this CircuitSimulator
   virtual std::string name() const = 0;
@@ -966,6 +967,9 @@ public:
 
   /// @brief Reset the current execution context.
   void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
+    if (nQubitsAllocated == 0 && context.name != "sample")
+      return;
+
     // Get the ExecutionContext name
     auto execContextName = context.name;
 
@@ -1045,6 +1049,11 @@ public:
 
   /// @brief Clean up state after execution ends
   void endExecution() override {
+    if (nQubitsAllocated == 0) {
+      tracker = {};
+      return;
+    }
+
     bool shouldSetToZero = cudaq::isInBatchMode() && !cudaq::isLastBatch();
 
     // Reset the state if we've deallocated all qubits.
@@ -1285,6 +1294,12 @@ public:
   // only the relative order of the target in the spin op is relevant.
   void measureSpinOp(const cudaq::spin_op &op) override {
     auto executionContext = cudaq::getExecutionContext();
+
+    if (nQubitsAllocated == 0) {
+      if (executionContext)
+        executionContext->expectationValue = 0.0;
+      return;
+    }
 
     flushGateQueue();
 

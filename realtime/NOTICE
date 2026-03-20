@@ -1,0 +1,16 @@
+CUDA-Q Realtime
+
+Copyright (c) 2024-2026 NVIDIA Corporation & Affiliates.
+
+This product includes software developed by NVIDIA corporation and affiliates and includes material from third parties. It includes work released under the following licenses:
+
+----------------------------------------------------------------
+
+Holoscan Sensor Bridge - Apache License 2.0
+<https://github.com/nvidia-holoscan/holoscan-sensor-bridge>
+
+Copyright (c) 2022-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+License at <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/blob/main/LICENSE>
+
+----------------------------------------------------------------
+
