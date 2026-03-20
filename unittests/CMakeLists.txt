@@ -44,6 +44,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   common/ExecutionContextThreadTester.cpp
+  common/RuntimeTargetTester.cpp
   ptsbe/PTSBESampleTester.cpp
   ptsbe/PTSBEMultiBackendTester.cpp
   integration/tracer_tester.cpp
