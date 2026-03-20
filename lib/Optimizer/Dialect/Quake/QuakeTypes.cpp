@@ -116,6 +116,8 @@ void quake::StruqType::print(AsmPrinter &printer) const {
   printer << '>';
 }
 
+//===----------------------------------------------------------------------===//
+
 // This recursive function returns true if and only if \p ty is a quake
 // type in the set \e R, `{ ref, veq, struq }`, (loosely known as "reference"
 // types) and the number of qubits is a compile-time known constant. This

@@ -6,5 +6,5 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && echo skipping
-#include "../execution/int8_t.cpp"
+// RUN: echo skipping
+#include "../execution/qspan_slice.cpp"

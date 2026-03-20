@@ -413,7 +413,33 @@ LogicalResult quake::BorrowWireOp::verify() {
 
 void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
+  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern>(
+      context);
+}
+
+LogicalResult quake::ConcatOp::verify() {
+  bool isUnspecified = false;
+  std::size_t size = 0;
+  for (auto tq : getTargets()) {
+    Type ty = tq.getType();
+    if (auto veq = dyn_cast<quake::VeqType>(ty);
+        veq && !veq.hasSpecifiedSize()) {
+      isUnspecified = true;
+      break;
+    }
+    if (auto struq = dyn_cast<quake::StruqType>(ty);
+        struq && !struq.hasSpecifiedSize()) {
+      isUnspecified = true;
+      break;
+    }
+    size += getAllocationSize(ty);
+  }
+  auto resTy = cast<quake::VeqType>(getType());
+  if (isUnspecified && resTy.hasSpecifiedSize())
+    return emitOpError("veq size must be non-constant");
+  if (resTy.hasSpecifiedSize() && resTy.getSize() != size)
+    return emitOpError("veq size must equal size of aggregate operands");
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -504,7 +530,8 @@ void printRawIndex(OpAsmPrinter &printer, OP refOp, Value index,
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
-               ForwardConcatExtractPattern>(context);
+               ForwardConcatExtractPattern, ExtractRefFromSubVeqPattern>(
+      context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
@@ -642,7 +669,7 @@ LogicalResult quake::SubVeqOp::verify() {
 void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
   patterns.add<FixUnspecifiedSubveqPattern, FuseConstantToSubveqPattern,
-               RemoveSubVeqNoOpPattern>(context);
+               RemoveSubVeqNoOpPattern, CombineSubVeqsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

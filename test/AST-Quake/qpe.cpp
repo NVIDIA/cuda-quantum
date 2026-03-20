@@ -281,7 +281,7 @@ int main() {
 // CHECK:             cc.condition %[[VAL_31]](%[[VAL_30]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_32:.*]]: i64):
-// CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_16]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.h %[[VAL_33]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_32]] : i64
 // CHECK:           } step {
@@ -312,7 +312,7 @@ int main() {
 // CHECK:                   } do {
 // CHECK:                     %[[VAL_47:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
 // CHECK:                     %[[VAL_48:.*]] = cc.cast signed %[[VAL_47]] : (i32) -> i64
-// CHECK:                     %[[VAL_49:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:                     %[[VAL_49:.*]] = quake.extract_ref %[[VAL_16]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                     quake.apply @__nvqpp__mlirgen__tgate [%[[VAL_49]]] %[[VAL_26]] : (!quake.ref, !quake.veq<?>) -> ()
 // CHECK:                     cc.continue
 // CHECK:                   } step {
