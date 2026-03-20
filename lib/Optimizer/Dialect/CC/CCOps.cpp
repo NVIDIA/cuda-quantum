@@ -2098,15 +2098,17 @@ void cudaq::cc::IfOp::getRegionInvocationBounds(
     ArrayRef<Attribute> attrs, SmallVectorImpl<InvocationBounds> &bounds) {
   // If the condition is a constant, one region is guaranteed to run (1,1) and
   // the other is dead (0,0). Otherwise each may run 0 or 1 times.
-  if (auto cond = dyn_cast_or_null<IntegerAttr>(attrs[0])) {
-    if (cond.getValue().getBoolValue()) {
-      bounds.push_back({1, 1}); // then runs
-      bounds.push_back({0, 0}); // else is dead
-    } else {
-      bounds.push_back({0, 0}); // then is dead
-      bounds.push_back({1, 1}); // else runs
+  if (!attrs.empty()) {
+    if (auto cond = dyn_cast_or_null<IntegerAttr>(attrs[0])) {
+      if (cond.getValue().getBoolValue()) {
+        bounds.push_back({1, 1}); // then runs
+        bounds.push_back({0, 0}); // else is dead
+      } else {
+        bounds.push_back({0, 0}); // then is dead
+        bounds.push_back({1, 1}); // else runs
+      }
+      return;
     }
-    return;
   }
   bounds.assign(2, {0, 1});
 }
@@ -2119,12 +2121,14 @@ void cudaq::cc::IfOp::getSuccessorRegions(
     return;
   }
   // If the condition is a constant, only the live region is a successor.
-  if (auto cond = dyn_cast_or_null<IntegerAttr>(operands[0])) {
-    if (cond.getValue().getBoolValue())
-      regions.push_back(RegionSuccessor(&getThenRegion()));
-    else if (!getElseRegion().empty())
-      regions.push_back(RegionSuccessor(&getElseRegion()));
-    return;
+  if (!operands.empty()) {
+    if (auto cond = dyn_cast_or_null<IntegerAttr>(operands[0])) {
+      if (cond.getValue().getBoolValue())
+        regions.push_back(RegionSuccessor(&getThenRegion()));
+      else if (!getElseRegion().empty())
+        regions.push_back(RegionSuccessor(&getElseRegion()));
+      return;
+    }
   }
   regions.push_back(RegionSuccessor(&getThenRegion()));
   if (!getElseRegion().empty())
