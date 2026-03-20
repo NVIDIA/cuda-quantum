@@ -330,6 +330,15 @@ jobs:
         with:
           enable-apt: true
 
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
+          registry-token: ${{ github.token }}
+
       - name: Extract metadata
         id: metadata
         uses: docker/metadata-action@v5
@@ -347,6 +356,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Debug"
@@ -356,6 +367,26 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Extract ccache from build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
@@ -555,6 +586,15 @@ jobs:
         with:
           enable-apt: true
 
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          registry-token: ${{ github.token }}
+
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
         uses: docker/metadata-action@v5
@@ -575,6 +615,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
@@ -583,6 +625,26 @@ jobs:
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
+
+      - name: Extract ccache from release build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.devdeps_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: inputs.environment
