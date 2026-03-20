@@ -132,3 +132,35 @@ config:
 
   std::filesystem::remove_all(tmpDir);
 }
+
+TEST(TargetConfigTester, backendPathMultipleEntries) {
+  auto tmpDir =
+      std::filesystem::temp_directory_path() / "cudaq_test_backend_path";
+
+  auto createBackend = [&](const std::string &name) {
+    auto root = tmpDir / name;
+    std::filesystem::create_directories(root / "targets");
+    std::filesystem::create_directories(root / "lib");
+    std::ofstream(root / "targets" / (name + ".yml"))
+        << "name: " << name << "\ndescription: \"Test.\"\nconfig:\n"
+        << "  platform-qpu: remote_rest\n  library-mode: false\n";
+    return root;
+  };
+
+  auto rootA = createBackend("backend-a");
+  auto rootB = createBackend("backend-b");
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  for (auto &root : {rootA, rootB})
+    cudaq::findAvailableTargets(root / "targets", targets, simTargets,
+                                root / "lib");
+
+  ASSERT_EQ(targets.count("backend-a"), 1);
+  ASSERT_EQ(targets.count("backend-b"), 1);
+  EXPECT_EQ(targets.at("backend-a").serverHelperLibDir,
+            (rootA / "lib").string());
+  EXPECT_EQ(targets.at("backend-b").serverHelperLibDir,
+            (rootB / "lib").string());
+
+  std::filesystem::remove_all(tmpDir);
+}
