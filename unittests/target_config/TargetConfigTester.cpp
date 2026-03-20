@@ -17,11 +17,11 @@ protected:
   std::filesystem::path tmpRoot;
 
   void SetUp() override {
-    tmpRoot = std::filesystem::temp_directory_path() /
-              ("cudaq_test_" + std::string(
-                                   ::testing::UnitTest::GetInstance()
-                                       ->current_test_info()
-                                       ->name()));
+    tmpRoot =
+        std::filesystem::temp_directory_path() /
+        ("cudaq_test_" +
+         std::string(
+             ::testing::UnitTest::GetInstance()->current_test_info()->name()));
     std::filesystem::create_directories(tmpRoot);
   }
 
