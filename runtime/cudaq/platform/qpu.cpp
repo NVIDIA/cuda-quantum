@@ -20,8 +20,7 @@ cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `launchModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule", name);
-  auto compiled =
-      launcher->compileModule(name, module, rawArgs, resultTy, true);
+  auto compiled = launcher->compileModule(name, module, rawArgs, true);
   return compiled.execute(rawArgs);
 }
 
@@ -36,8 +35,7 @@ cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `specializeModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::specializeModule", name);
-  auto compiled =
-      launcher->compileModule(name, module, rawArgs, resultTy, isEntryPoint);
+  auto compiled = launcher->compileModule(name, module, rawArgs, isEntryPoint);
   if (cachedEngine)
     throw std::runtime_error("cache must not be populated");
   cachedEngine = compiled.getEngine();

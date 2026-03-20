@@ -32,24 +32,29 @@ public:
   // TODO: remove these two methods once the CompiledKernel is returned to
   // Python.
   void (*getEntryPoint() const)();
-  const JitEngine getEngine() const;
+  JitEngine getEngine() const;
 
 private:
   CompiledKernel(JitEngine engine, std::string kernelName, void (*entryPoint)(),
-                 bool hasResult);
+                 int64_t (*argsCreator)(const void *, void **), bool hasResult);
 
   // Use the following factory function (compiled into cudaq-mlir-runtime) to
   // construct CompiledKernels.
   friend CompiledKernel createCompiledKernel(JitEngine engine,
                                              std::string kernelName,
-                                             bool hasResult);
+                                             bool hasResult,
+                                             bool hasVariationalArgs);
 
   JitEngine engine;
   std::string name;
+
+  // Function pointers into JITEngine
   void (*entryPoint)();
+  int64_t (*argsCreator)(const void *, void **);
+
   bool hasResult;
 };
 
 CompiledKernel createCompiledKernel(JitEngine engine, std::string kernelName,
-                                    bool hasResult);
+                                    bool hasResult, bool hasVariationalArgs);
 } // namespace cudaq

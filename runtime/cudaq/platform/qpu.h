@@ -227,7 +227,6 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
   virtual CompiledKernel compileModule(const std::string &name,
                                        mlir::ModuleOp module,
                                        const std::vector<void *> &rawArgs,
-                                       mlir::Type resultTy,
                                        bool isEntryPoint) = 0;
 };
 

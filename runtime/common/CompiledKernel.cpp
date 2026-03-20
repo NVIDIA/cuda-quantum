@@ -8,28 +8,33 @@
 
 #include "CompiledKernel.h"
 
-namespace cudaq {
-
-CompiledKernel::CompiledKernel(JitEngine engine, std::string kernelName,
-                               void (*entryPoint)(), bool hasResult)
+cudaq::CompiledKernel::CompiledKernel(
+    JitEngine engine, std::string kernelName, void (*entryPoint)(),
+    int64_t (*argsCreator)(const void *, void **), bool hasResult)
     : engine(engine), name(std::move(kernelName)), entryPoint(entryPoint),
-      hasResult(hasResult) {}
+      argsCreator(argsCreator), hasResult(hasResult) {}
 
-KernelThunkResultType
-CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
+cudaq::KernelThunkResultType
+cudaq::CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
   auto funcPtr = getEntryPoint();
   if (hasResult) {
     void *buff = const_cast<void *>(rawArgs.back());
     return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
         buff, /*client_server=*/false);
-  } else {
-    reinterpret_cast<void (*)()>(funcPtr)();
+  }
+  if (argsCreator) {
+    void *buff = nullptr;
+    argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
+    reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
+        buff, /*client_server=*/false);
+    std::free(buff);
     return {nullptr, 0};
   }
+
+  funcPtr();
+  return {nullptr, 0};
 }
 
-void (*CompiledKernel::getEntryPoint() const)() { return entryPoint; }
+void (*cudaq::CompiledKernel::getEntryPoint() const)() { return entryPoint; }
 
-const JitEngine CompiledKernel::getEngine() const { return engine; }
-
-} // namespace cudaq
+cudaq::JitEngine cudaq::CompiledKernel::getEngine() const { return engine; }
