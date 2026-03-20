@@ -532,18 +532,6 @@ Resources *python::detail::getResourceCounts() {
   return nvqir::getResourceCounts();
 }
 
-void LinkedLibraryHolder::registerBackend(const std::string &configPath,
-                                          const std::string &libDir) {
-  std::filesystem::path ymlPath(configPath);
-  if (!std::filesystem::exists(ymlPath))
-    throw std::runtime_error("Backend config file not found: " + configPath);
-
-  CUDAQ_INFO("Registering external backend from {} (lib={})", configPath,
-             libDir);
-  findAvailableTargets(ymlPath.parent_path(), targets, simulationTargets,
-                       std::filesystem::path(libDir));
-}
-
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
   if (holder && cudaq::__internal__::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();

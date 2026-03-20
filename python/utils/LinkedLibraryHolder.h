@@ -100,11 +100,6 @@ public:
 
   /// @brief Reset the target back to the default.
   void resetTarget();
-
-  /// @brief Register an external backend from a YAML config file and a
-  /// directory containing its server-helper shared library.
-  void registerBackend(const std::string &configPath,
-                       const std::string &libDir);
 };
 
 namespace python {
