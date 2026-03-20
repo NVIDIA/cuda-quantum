@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include "llvm/ADT/StringRef.h"
 #include "mlir/Pass/PassManager.h"
+#include <string>
 
-namespace cudaq_internal::compiler {
+namespace cudaq_internal {
 
 std::string getPipelineLogPath();
 
@@ -25,4 +27,4 @@ std::string getPipelineLogPath();
 ///       This is the results of actually executing the passes
 void maybeLogPassPipeline(mlir::PassManager &pm, llvm::StringRef label = {});
 
-} // namespace cudaq_internal::compiler
+} // namespace cudaq_internal

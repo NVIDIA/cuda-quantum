@@ -11,6 +11,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
+#include "common/PassPipelineLogging.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
@@ -25,7 +26,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -206,8 +206,8 @@ public:
         moduleOp.getContext()->disableMultithreading();
         pm.enableIRPrinting();
       }
-      cudaq_internal::compiler::maybeLogPassPipeline(pm, name + ":" + passName +
-                                                             "-synth");
+      cudaq_internal::maybeLogPassPipeline(pm,
+                                           name + ":" + passName + "-synth");
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply " + passName +
                                  " synth.");
@@ -250,7 +250,7 @@ public:
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    cudaq_internal::compiler::maybeLogPassPipeline(pm, name + ":client");
+    cudaq_internal::maybeLogPassPipeline(pm, name + ":client");
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
           "Remote rest platform: applying IR passes failed.");
@@ -304,7 +304,7 @@ public:
     mlir::PassManager pm(ctx);
     // For now, the server side expects full-QIR.
     opt::addAOTPipelineConvertToQIR(pm);
-    cudaq_internal::compiler::maybeLogPassPipeline(pm, name + ":aot-qir");
+    cudaq_internal::maybeLogPassPipeline(pm, name + ":aot-qir");
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(

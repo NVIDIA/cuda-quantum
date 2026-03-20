@@ -119,13 +119,12 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
     ${CMAKE_SOURCE_DIR}/python 
     ${CMAKE_SOURCE_DIR}/python/utils
-    ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
     ${CMAKE_SOURCE_DIR}/runtime
 )
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
     cudaq-logger 
-    cudaq-pass-pipeline-logging
+    cudaq-mlir-runtime
     cudaq-common 
     cudaq-em-default
     cudaq-em-photonics

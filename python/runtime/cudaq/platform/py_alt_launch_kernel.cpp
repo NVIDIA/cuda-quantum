@@ -12,6 +12,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
+#include "common/PassPipelineLogging.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -21,7 +22,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -1080,8 +1080,7 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  cudaq_internal::compiler::maybeLogPassPipeline(pm,
-                                                 "python-jit-argument-synth");
+  cudaq_internal::maybeLogPassPipeline(pm, "python-jit-argument-synth");
   if (failed(pm.run(cloned))) {
     engine.eraseHandler(handlerId);
     throw std::runtime_error(
@@ -1115,7 +1114,7 @@ static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  cudaq_internal::compiler::maybeLogPassPipeline(pm, "python-jit");
+  cudaq_internal::maybeLogPassPipeline(pm, "python-jit");
 
   if (failed(pm.run(mod))) {
     engine.eraseHandler(handlerId);
@@ -1135,7 +1134,7 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     PassManager pm(ctx);
     std::string transport = getTransportLayer();
     cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
-    cudaq_internal::compiler::maybeLogPassPipeline(pm, "python-aot-qir");
+    cudaq_internal::maybeLogPassPipeline(pm, "python-aot-qir");
     executeMLIRPassManager(mod, pm);
     return mod;
   }
@@ -1278,8 +1277,7 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
                 true));
-        cudaq_internal::compiler::maybeLogPassPipeline(pm,
-                                                       "python-synth-callable");
+        cudaq_internal::maybeLogPassPipeline(pm, "python-synth-callable");
         if (failed(pm.run(m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");

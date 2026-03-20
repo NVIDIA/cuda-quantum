@@ -70,13 +70,12 @@ add_library(${LIBRARY_NAME}
 )
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
-       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-logger cudaq-mlir-runtime cudaq-pass-pipeline-logging fmt::fmt-header-only unzip_util nvqir)
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-logger cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
@@ -90,7 +89,6 @@ add_library(rest-remote-platform-server
 
 target_include_directories(rest-remote-platform-server 
   PUBLIC 
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
     $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
     $<INSTALL_INTERFACE:include>
@@ -106,7 +104,6 @@ target_link_libraries(rest-remote-platform-server
     cudaq-operator
     cudaq-em-default 
     cudaq-mlir-runtime
-    cudaq-pass-pipeline-logging
     cudaq-platform-default
     cudaq-qir-verifier
     nvqir

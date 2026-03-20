@@ -13,7 +13,6 @@ add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp kernels.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(cudaq-builder PUBLIC 
           $<INSTALL_INTERFACE:include> 
-          $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
 target_link_libraries(cudaq-builder
@@ -23,7 +22,6 @@ target_link_libraries(cudaq-builder
     fmt::fmt-header-only
     nvqir
     cudaq-mlir-runtime
-    cudaq-pass-pipeline-logging
 )
 
 install(TARGETS cudaq-builder DESTINATION lib)

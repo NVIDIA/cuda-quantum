@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
+#include "common/PassPipelineLogging.h"
 
 #include "common/Environment.h"
 #include "llvm/ADT/StringRef.h"
@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -61,7 +62,7 @@ void appendToLogFile(llvm::StringRef logPath, llvm::StringRef record) {
 
 } // namespace
 
-namespace cudaq_internal::compiler {
+namespace cudaq_internal {
 
 std::string getPipelineLogPath() {
   if (const char *path = std::getenv("CUDAQ_PIPELINE_LOG"))
@@ -69,9 +70,6 @@ std::string getPipelineLogPath() {
   return {};
 }
 
-/// Records which passes are actually executed. Record is written to
-/// CUDAQ_PIPELINE_LOG as a JSONL record after the pipeline completes.
-/// Attached automatically by maybeLogPassPipeline.
 struct PipelineRecorder : public mlir::PassInstrumentation {
   struct PassRecord {
     std::string passArg;
@@ -137,4 +135,4 @@ void maybeLogPassPipeline(mlir::PassManager &pm, llvm::StringRef label) {
   pm.addInstrumentation(std::make_unique<PipelineRecorder>(effectiveLabel));
 }
 
-} // namespace cudaq_internal::compiler
+} // namespace cudaq_internal

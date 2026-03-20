@@ -116,6 +116,7 @@ add_library(cudaq-mlir-runtime
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
     LayoutInfo.cpp
+    PassPipelineLogging.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
@@ -126,16 +127,19 @@ set_source_files_properties(
   RuntimeMLIR.cpp
 )
 
+set_source_files_properties(
+  PassPipelineLogging.cpp
+  PROPERTIES COMPILE_OPTIONS "-fno-rtti"
+)
+
 target_include_directories(cudaq-mlir-runtime
   PRIVATE .
-    ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
     ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
     ${CMAKE_SOURCE_DIR}/tpls/fmt/include
     ${CMAKE_SOURCE_DIR}/runtime)
 
 target_link_libraries(cudaq-mlir-runtime
   PRIVATE
-    cudaq-pass-pipeline-logging
     CCDialect
     QuakeDialect
     OptCodeGen

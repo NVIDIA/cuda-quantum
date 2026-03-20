@@ -8,6 +8,7 @@
 
 #include "RuntimeMLIR.h"
 #include "common/CodeGenConfig.h"
+#include "common/PassPipelineLogging.h"
 #include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -23,7 +24,6 @@
 #include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/logging/PassPipelineLogging.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
@@ -429,7 +429,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  cudaq_internal::compiler::maybeLogPassPipeline(pm, qirProfile);
+  cudaq_internal::maybeLogPassPipeline(pm, qirProfile);
   if (failed(pm.run(op)))
     return failure();
   if (auto mod = dyn_cast<ModuleOp>(op))
@@ -596,7 +596,7 @@ static void registerToOpenQASMTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
-        cudaq_internal::compiler::maybeLogPassPipeline(pm, "qasm2");
+        cudaq_internal::maybeLogPassPipeline(pm, "qasm2");
         if (failed(pm.run(op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
@@ -628,7 +628,7 @@ static void registerToIQMJsonTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
-        cudaq_internal::compiler::maybeLogPassPipeline(pm, "iqm");
+        cudaq_internal::maybeLogPassPipeline(pm, "iqm");
         if (failed(pm.run(op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
