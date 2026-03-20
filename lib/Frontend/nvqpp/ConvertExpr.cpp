@@ -671,8 +671,6 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     auto measTy = quake::MeasureType::get(builder.getContext());
     if (sub.getType() == measTy) {
       auto i1Val = builder.create<quake::DiscriminateOp>(loc, i1Type, sub);
-      if (castToTy == i1Type)
-        return pushValue(i1Val);
       // Convert to `int`
       if (isa<IntegerType>(castToTy))
         return pushValue(builder.create<cudaq::cc::CastOp>(
