@@ -13,8 +13,13 @@ set (CMAKE_CXX_FLAGS
 SET(CMAKE_EXE_LINKER_FLAGS "")
 SET(CMAKE_SHARED_LINKER_FLAGS "")
 
+# ctest's PROCESSORS property tells the scheduler how many CPU slots each test
+# occupies. Without it, `ctest -j N` launches N OpenMP-parallel tests at once
+# (2N threads competing for N cores). This value is only applied to tests that
+# link OpenMP backends (qpp, dm). Non-OpenMP tests keep the default of 1.
+# CI passes -DCUDAQ_TEST_OMP_SLOTS=2 alongside OMP_NUM_THREADS=2 at runtime.
 set(CUDAQ_TEST_OMP_SLOTS 1 CACHE STRING
-  "CPU slots per OpenMP-parallel test.")
+  "CPU slots per OpenMP-parallel test (should match OMP_NUM_THREADS).")
 
 set(CUDAQ_RUNTIME_TEST_SOURCES
   # Integration tests
@@ -122,7 +127,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   if ("${TEST_LABELS}" STREQUAL "")
     gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES PROCESSORS ${TEST_PROCESSORS} DISCOVERY_TIMEOUT 120)
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" PROCESSORS ${TEST_PROCESSORS} DISCOVERY_TIMEOUT 120)
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" PROCESSORS ${TEST_PROCESSORS} RESOURCE_LOCK "gpu" DISCOVERY_TIMEOUT 120)
   endif()
 endmacro()
 
@@ -180,7 +185,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
+  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
   # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
@@ -204,7 +209,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
-  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
+  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
@@ -226,7 +231,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
           configure_file("mqpu/run_mpi.sh.in"
                     "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
         add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
-        set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required")
+        set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required" RESOURCE_LOCK "gpu")
       endif()
     endif()
 
@@ -244,7 +249,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
       cudaq-platform-mqpu
       nvqir-custatevec-fp64
       gtest_main)
-      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required")
+      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
   endif()
 endif()
 
@@ -273,7 +278,7 @@ if(TARGET nvqir-tensornet)
             nvqir-tensornet
             gtest)
         add_test(NAME TensornetMPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_tensornet_mpi)
-        set_tests_properties(TensornetMPITest PROPERTIES LABELS "gpu_required;mgpus_required")
+        set_tests_properties(TensornetMPITest PROPERTIES LABELS "gpu_required;mgpus_required" RESOURCE_LOCK "gpu")
       endif() # NGPUS
     endif() # NVIDIA_SMI
   endif() # MPI_CXX_FOUND
@@ -299,7 +304,7 @@ if(TARGET nvqir-tensornet)
     nvqir-tensornet
     gtest_main)
   # Run this test with "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE"
-  gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required")
+  gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 endif()
 
 # Create an executable for SpinOp UnitTests
@@ -397,7 +402,7 @@ if (CUDA_FOUND)
    gtest_main
    )
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
-  gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
+  gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 
   # Multi-QPU evolve_async test
   add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
@@ -425,7 +430,7 @@ if (CUDA_FOUND)
     execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
     # Only add this test if we have more than 1 GPU
     if (${NGPUS} GREATER_EQUAL 2)
-      gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required")
+      gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required" RESOURCE_LOCK "gpu")
 
       # Multi-GPU batching test: this test needs MPI as well
       if (MPI_CXX_FOUND)
@@ -450,7 +455,7 @@ if (CUDA_FOUND)
           )
 
         add_test(NAME DynamicsMPIBatchingTest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_dynamics_mpi_batching)
-        set_tests_properties(DynamicsMPIBatchingTest PROPERTIES LABELS "gpu_required;mgpus_required")
+        set_tests_properties(DynamicsMPIBatchingTest PROPERTIES LABELS "gpu_required;mgpus_required" RESOURCE_LOCK "gpu")
       endif()
     endif()
   endif()
