@@ -487,6 +487,13 @@ void LinkedLibraryHolder::setTarget(
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 
+  if (!target.serverHelperLibDir.empty()) {
+    auto ymlPath =
+        std::filesystem::path(target.serverHelperLibDir).parent_path() /
+        "targets" / (targetName + ".yml");
+    backendConfigStr += fmt::format(";__yml_path;{}", ymlPath.string());
+  }
+
   platform->setTargetBackend(backendConfigStr);
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
