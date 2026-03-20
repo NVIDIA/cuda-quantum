@@ -91,6 +91,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/common/RuntimePyMLIR.cpp
     ../../runtime/common/JIT.cpp
     ../../runtime/common/Compiler.cpp
+    ../../runtime/common/PassPipelineLogging.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
@@ -110,12 +111,17 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    OptCodeGen
    OptTransforms
    MLIRPass
+   MLIRSupport
    CUDAQTargetConfigUtil
    cudaq-python-interop
    cudaq-platform-default
    cudaq-qir-verifier
 )
 
+set_source_files_properties(
+  ../../runtime/common/PassPipelineLogging.cpp
+  PROPERTIES COMPILE_OPTIONS "-fno-rtti"
+)
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
     ${CMAKE_SOURCE_DIR}/python 
     ${CMAKE_SOURCE_DIR}/python/utils
@@ -124,7 +130,6 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
     cudaq-logger 
-    cudaq-mlir-runtime
     cudaq-common 
     cudaq-em-default
     cudaq-em-photonics
