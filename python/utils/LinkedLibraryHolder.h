@@ -31,6 +31,14 @@ namespace cudaq {
 
 class quantum_platform;
 
+/// @brief Search a targets directory for available targets, registering each
+/// with the provided maps.
+void findAvailableTargets(
+    const std::filesystem::path &targetPath,
+    std::unordered_map<std::string, RuntimeTarget> &targets,
+    std::unordered_map<std::string, RuntimeTarget> &simulationTargets,
+    const std::filesystem::path &libDir = {});
+
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
 /// for the CUDA-Q runtime within the Python runtime.

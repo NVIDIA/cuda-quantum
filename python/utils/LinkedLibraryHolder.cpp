@@ -123,7 +123,8 @@ void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
     std::unordered_map<std::string, RuntimeTarget> &targets,
-    std::unordered_map<std::string, RuntimeTarget> &simulationTargets) {
+    std::unordered_map<std::string, RuntimeTarget> &simulationTargets,
+    const std::filesystem::path &libDir) {
 
   // directory_iterator ordering is unspecified, so sort it to make it
   // repeatable and consistent.
@@ -160,8 +161,11 @@ void findAvailableTargets(
       target.config = config;
       target.name = targetName;
       target.description = config.Description;
-      auto cudaqLibPath = targetPath.parent_path() / "lib";
-      parseRuntimeTarget(cudaqLibPath, target, defaultTargetConfigStr);
+      auto resolvedLibDir =
+          libDir.empty() ? targetPath.parent_path() / "lib" : libDir;
+      if (!libDir.empty())
+        target.serverHelperLibDir = libDir.string();
+      parseRuntimeTarget(resolvedLibDir, target, defaultTargetConfigStr);
       CUDAQ_INFO("Found Target: {} -> (sim={}, platform={})", targetName,
                  target.simulatorName, target.platformName);
       // Add the target.
