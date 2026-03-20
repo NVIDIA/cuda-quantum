@@ -63,8 +63,6 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
   if (!dispatcher->table.entries || dispatcher->table.count == 0)
     return CUDAQ_ERR_INVALID_ARG;
-  if (dispatcher->config.num_slots == 0 || dispatcher->config.slot_size == 0)
-    return CUDAQ_ERR_INVALID_ARG;
 
   if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
     if (!dispatcher->ringbuffer.rx_flags_host ||
