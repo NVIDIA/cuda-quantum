@@ -32,8 +32,9 @@ public:
 
   // Constructors
   measure_result() = default;
-  explicit measure_result(int val) : value(val) {}
-  explicit measure_result(int val, int id) : value(val), unique_id(id) {}
+  explicit measure_result(int64_t val) : value(val) {}
+  explicit measure_result(int64_t val, int64_t id)
+      : value(val), unique_id(id) {}
 
   // Operator overloads for conversions and comparisons
 #ifdef CUDAQ_LIBRARY_MODE
@@ -41,7 +42,7 @@ public:
 #else
   operator bool() const { return value == 1; }
 #endif
-  explicit operator int() const { return value; }
+  explicit operator int() const { return static_cast<int>(value); }
   explicit operator double() const { return static_cast<double>(value); }
 
   friend bool operator==(const measure_result &m1, const measure_result &m2) {

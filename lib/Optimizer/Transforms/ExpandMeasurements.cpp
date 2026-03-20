@@ -51,9 +51,9 @@ public:
     // determines the size of the buffer to create to store the results in.
     Value totalQubits = calculateTotalQubits(rewriter, loc, measureOp);
 
-    // Step 2: Determine processing mode and find discriminate op, if present
-    quake::DiscriminateOp discriminateOp = findDiscriminateUser(measureOp);
-    bool needsDiscrimination = (discriminateOp != nullptr);
+    // Step 2: Determine processing mode and find discriminate ops, if present
+    auto discriminateOps = findDiscriminateUsers(measureOp);
+    bool needsDiscrimination = !discriminateOps.empty();
 
     // Step 3: Allocate storage buffer
     Type storageType;
@@ -78,7 +78,7 @@ public:
     // replacing either the original measurement op (non-discriminated) or the
     // discriminate op (discriminated path).
     finalizeResults(rewriter, loc, measureOp, buffer, totalQubits,
-                    needsDiscrimination, discriminateOp);
+                    needsDiscrimination, discriminateOps);
 
     return success();
   }
@@ -105,12 +105,13 @@ private:
     return total;
   }
 
-  // Find discriminate op if it exists for this measurement
-  quake::DiscriminateOp findDiscriminateUser(A measureOp) const {
+  // Find discriminate ops if they exist for this measurement
+  SmallVector<quake::DiscriminateOp> findDiscriminateUsers(A measureOp) const {
+    SmallVector<quake::DiscriminateOp> results;
     for (auto *user : measureOp.getMeasOut().getUsers())
       if (auto discOp = dyn_cast<quake::DiscriminateOp>(user))
-        return discOp;
-    return nullptr;
+        results.push_back(discOp);
+    return results;
   }
 
   // Stores a single measurement result into the buffer. The discrimination
@@ -211,9 +212,10 @@ private:
   //
   // The resulting stdvec type matches what downstream code expects:
   // !cc.stdvec<i1> for booleans, !cc.stdvec<!quake.measure> for raw results.
-  void finalizeResults(PatternRewriter &rewriter, Location loc, A measureOp,
-                       Value buffer, Value count, bool hasDiscriminate,
-                       quake::DiscriminateOp discriminateOp) const {
+  void finalizeResults(
+      PatternRewriter &rewriter, Location loc, A measureOp, Value buffer,
+      Value count, bool hasDiscriminate,
+      SmallVectorImpl<quake::DiscriminateOp> &discriminateOps) const {
     auto ctx = rewriter.getContext();
 
     if (hasDiscriminate) {
@@ -225,8 +227,9 @@ private:
       auto castedBuffer = rewriter.template create<cudaq::cc::CastOp>(
           loc, arrayPtrType, buffer);
 
-      rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-          discriminateOp, vecType, castedBuffer, count);
+      for (auto discOp : discriminateOps)
+        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            discOp, vecType, castedBuffer, count);
       rewriter.eraseOp(measureOp);
     } else {
       // Create vector of measurement results
