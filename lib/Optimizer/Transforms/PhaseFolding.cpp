@@ -51,7 +51,7 @@ static bool isSupportedValue(Value ref) {
   if (!ref.getDefiningOp())
     return false;
 
-  if (!isa<quake::AllocaOp>(ref.getDefiningOp()))
+  if (!ref.getDefiningOp<quake::AllocaOp>())
     return false;
 
   // TODO: Concat op allows the pointer to be loaded again in a separate
