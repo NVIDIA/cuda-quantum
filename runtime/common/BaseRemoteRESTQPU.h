@@ -196,7 +196,14 @@ public:
     /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
-    auto configFilePath = platformPath / fileName;
+    std::filesystem::path configFilePath;
+    auto ymlPathIter = backendConfig.find("__yml_path");
+    if (ymlPathIter != backendConfig.end()) {
+      configFilePath = ymlPathIter->second;
+      backendConfig.erase(ymlPathIter);
+    } else {
+      configFilePath = platformPath / fileName;
+    }
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
     std::ifstream configFile(configFilePath.string());
     std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
