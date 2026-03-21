@@ -338,12 +338,13 @@ cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
                                                   bool hasResult,
                                                   bool hasVariationalArgs) {
   std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-  std::string entryName = hasResult ? kernelName + ".thunk" : fullName;
+  std::string entryName =
+      (hasResult || hasVariationalArgs) ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
   int64_t (*argsCreator)(const void *, void **) = nullptr;
   if (hasVariationalArgs)
     argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-        engine.lookupRawNameOrFail(fullName + ".argsCreator"));
+        engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
   return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
                                argsCreator, hasResult);
 }
