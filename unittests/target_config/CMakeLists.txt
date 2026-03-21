@@ -11,14 +11,18 @@ add_executable(test_target_config TargetConfigTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_target_config PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
-target_include_directories(test_target_config PRIVATE
-  ${CMAKE_SOURCE_DIR}/python/utils
-)
 target_link_libraries(test_target_config
   PRIVATE
     CUDAQTargetConfigUtil
-    cudaq-py-utils
     gtest_main
 )
+
+if(CUDAQ_ENABLE_PYTHON)
+  target_include_directories(test_target_config PRIVATE
+    ${CMAKE_SOURCE_DIR}/python/utils
+  )
+  target_link_libraries(test_target_config PRIVATE cudaq-py-utils)
+  target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
+endif()
 
 gtest_discover_tests(test_target_config)

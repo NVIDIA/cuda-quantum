@@ -6,12 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
+#endif
 #include "cudaq/Support/TargetConfigYaml.h"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 
+#ifdef CUDAQ_ENABLE_PYTHON
 class ExternalBackendTester : public ::testing::Test {
 protected:
   std::filesystem::path tmpRoot;
@@ -200,3 +203,4 @@ TEST_F(ExternalBackendTester, reconstructYmlPathFromServerHelperLibDir) {
       "targets" / (target.name + ".yml");
   EXPECT_TRUE(std::filesystem::exists(ymlPath));
 }
+#endif // CUDAQ_ENABLE_PYTHON
