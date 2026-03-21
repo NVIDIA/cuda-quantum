@@ -53,6 +53,15 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
   auto [codeGenName, codeGenVersion, codeGenOptions] =
       parseCodeGenTranslationString(codegenTranslation);
 
+  if (codeGenName == "quake") {
+    CodeGenConfig config = {.profile = codeGenName,
+                            .isQIRProfile = false,
+                            .isAdaptiveProfile = true,
+                            .isBaseProfile = false,
+                            .outputLog = true};
+    return config;
+  }
+
   if (codeGenName.find("qir") == codeGenName.npos)
     return {.profile = codeGenName};
 
