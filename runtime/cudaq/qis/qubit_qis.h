@@ -12,6 +12,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/measure_result.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
@@ -422,20 +423,23 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
 
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline measure_result mz(qubit &q) {
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_result(
+      getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
 /// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
 inline measure_result mx(qubit &q) {
   h(q);
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_result(
+      getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
 // Measure an individual qubit in `y` basis, return 0,1 as `bool`
 inline measure_result my(qubit &q) {
   r1(-M_PI_2, q);
   h(q);
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_result(
+      getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
 inline void reset(qubit &q) {
@@ -518,10 +522,30 @@ inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   return ret;
 }
 
+inline std::int64_t to_integer(const std::vector<bool> &bits) {
+  std::int64_t ret = 0;
+  for (std::size_t i = 0; i < bits.size(); i++) {
+    if (bits[i]) {
+      ret |= 1UL << i;
+    }
+  }
+  return ret;
+}
+
 inline std::int64_t to_integer(const std::string &arg) {
   std::string bitString{arg};
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
+}
+
+// Convert a vector of `measure_result` to a vector of Boolean values.
+inline std::vector<bool>
+to_bool_vector(const std::vector<measure_result> &results) {
+  std::vector<bool> out;
+  out.reserve(results.size());
+  for (const auto &r : results)
+    out.push_back(static_cast<bool>(r));
+  return out;
 }
 
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,

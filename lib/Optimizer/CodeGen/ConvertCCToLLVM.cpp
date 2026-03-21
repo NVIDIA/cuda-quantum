@@ -76,8 +76,12 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
       [](quake::StateType type) { return factory::stateImplType(type); });
   converter->addConversion([converter](cc::StructType type) -> Type {
     SmallVector<Type> members;
-    for (auto t : type.getMembers())
-      members.push_back(converter->convertType(t));
+    for (auto t : type.getMembers()) {
+      auto converted = converter->convertType(t);
+      if (!converted)
+        return Type{};
+      members.push_back(converted);
+    }
     return LLVM::LLVMStructType::getLiteral(type.getContext(), members,
                                             type.getPacked());
   });

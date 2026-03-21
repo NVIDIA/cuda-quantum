@@ -43,15 +43,15 @@ def test_bug_1875():
 # CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "aux_1" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
-# CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_3]] name "aux_2" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
-# CHECK:           %[[VAL_9:.*]] = cc.cast unsigned %[[VAL_6]] : (i1) -> i64
-# CHECK:           %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_1]] : i64
-# CHECK:           %[[VAL_11:.*]] = cc.if(%[[VAL_10]]) -> i1 {
+# CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_3]] name "aux_2" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
+# CHECK:           %[[VAL_8:.*]] = cc.cast unsigned %[[VAL_7]] : (i1) -> i64
+# CHECK:           %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_1]] : i64
+# CHECK:           %[[VAL_10:.*]] = cc.if(%[[VAL_9]]) -> i1 {
 # CHECK:             cc.continue %[[VAL_0]] : i1
 # CHECK:           } else {
-# CHECK:             %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_8]] : (i1) -> i64
+# CHECK:             %[[VAL_11:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
+# CHECK:             %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_11]] : (i1) -> i64
 # CHECK:             %[[VAL_13:.*]] = arith.cmpi eq, %[[VAL_12]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_13]] : i1
 # CHECK:           }

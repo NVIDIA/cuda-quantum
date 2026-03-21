@@ -1144,11 +1144,7 @@ public:
         loc, cudaq::opt::getResultType(context), symbolRef, ValueRange{args});
     if (regName)
       callOp->setAttr("registerName", regName);
-    auto i1Ty = rewriter.getI1Type();
-    auto i1PtrTy = LLVM::LLVMPointerType::get(i1Ty);
-    auto cast =
-        rewriter.create<LLVM::BitcastOp>(loc, i1PtrTy, callOp.getResult());
-    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(measure, i1Ty, cast);
+    rewriter.replaceOp(measure, callOp.getResult());
 
     return success();
   }
