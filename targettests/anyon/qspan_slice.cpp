@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/qspan_slices.cpp"
+#include "../execution/qspan_slice.cpp"

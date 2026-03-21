@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/sudoku_2x2-bit_names.cpp"
+#include "../execution/int8_t_free_func.cpp"

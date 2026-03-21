@@ -19,6 +19,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  CableRoughIn.cpp
   ClassicalOptimization.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp

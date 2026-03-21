@@ -11,6 +11,10 @@ add_mlir_library(cudaq-qir-verifier
   QIRLLVMIRDialect.cpp
   QIRSpec.cpp
 
+  DEPENDS
+    CCDialect
+    QuakeDialect
+
   LINK_LIBS PUBLIC
     MLIRLLVMDialect
     MLIRIR
