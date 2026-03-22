@@ -56,4 +56,6 @@ private:
 JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
                              llvm::StringRef convertTo);
 
+class CompiledKernel;
+
 } // namespace cudaq

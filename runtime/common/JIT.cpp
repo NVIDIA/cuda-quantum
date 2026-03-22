@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "JIT.h"
+#include "CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -330,6 +331,23 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
   return JitEngine(std::move(jitOrError.get()));
+}
+
+cudaq::CompiledKernel
+cudaq::createCompiledKernel(JitEngine engine, std::string kernelName,
+                            bool hasVariationalArgs,
+                            CompiledKernel::ResultInfo resultInfo) {
+  std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+  bool hasResult = resultInfo.hasResult();
+  std::string entryName =
+      (hasResult || hasVariationalArgs) ? kernelName + ".thunk" : fullName;
+  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
+  int64_t (*argsCreator)(const void *, void **) = nullptr;
+  if (hasVariationalArgs)
+    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
+        engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
+  return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
+                               argsCreator, std::move(resultInfo));
 }
 
 class cudaq::JitEngine::Impl {
