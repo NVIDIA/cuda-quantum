@@ -333,11 +333,12 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
   return JitEngine(std::move(jitOrError.get()));
 }
 
-cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
-                                                  std::string kernelName,
-                                                  bool hasResult,
-                                                  bool hasVariationalArgs) {
+cudaq::CompiledKernel
+cudaq::createCompiledKernel(JitEngine engine, std::string kernelName,
+                            bool hasVariationalArgs,
+                            CompiledKernel::ResultInfo resultInfo) {
   std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+  bool hasResult = resultInfo.hasResult();
   std::string entryName =
       (hasResult || hasVariationalArgs) ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
@@ -346,7 +347,7 @@ cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
     argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
         engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
   return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
-                               argsCreator, hasResult);
+                               argsCreator, std::move(resultInfo));
 }
 
 class cudaq::JitEngine::Impl {
