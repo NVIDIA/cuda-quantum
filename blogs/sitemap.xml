@@ -2,118 +2,118 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>http://www.example.com/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/tags/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/2026/03/16/cudaq-0.14/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/2026/03/16/cudaq-GTC-26/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/2026/03/16/launching-cudaq-realtime/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/images/launching-cudaq-realtime/post/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/archive/2026/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/category/cuda-q/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/category/releases/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/category/nvqlink/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/efrat-shabtai/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/bettina-heim/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/nic-harrigan/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/jinsung-kim/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/esperanza-cuenca-gomez/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/linsey-rodenbach/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/stefano-mensa/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/zohim-chandani/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/shane-caldwell/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/chuck-ketcham/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/thien-nguyen/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/bruno-schmitt/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/elena-agostini/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/corey-simpson/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/jeffrey-bonde/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/tom-lassiter/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/moein-khazraee/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>http://www.example.com/blog/author/ben-howe/</loc>
-         <lastmod>2026-03-18</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
 </urlset>
