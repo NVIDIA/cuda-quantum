@@ -133,3 +133,18 @@ func.func @test_d() {
 // CHECK:           quake.sink %[[VAL_11]]#2 : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func private @callee_e(!quake.ref) -> i1
+
+func.func @test_e() -> i1 {
+  %4 = quake.alloca !quake.ref
+  %5 = call @callee_e(%4) : (!quake.ref) -> i1
+  quake.dealloc %4 : !quake.ref
+  return %5 : i1
+}
+
+// CHECK-LABEL:   func.func @test_e() -> i1 {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]]:2 = quake.call_by_ref @callee_e(%[[VAL_0]]) : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           return %[[VAL_1]]#0 : i1
+// CHECK:         }
