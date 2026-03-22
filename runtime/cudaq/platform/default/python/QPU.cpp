@@ -9,6 +9,7 @@
 #include "QPU.h"
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
+#include "common/CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/JIT.h"
@@ -17,7 +18,9 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
@@ -28,6 +31,47 @@
 #include <unordered_set>
 
 using namespace mlir;
+
+// Forward declaration — defined in py_alt_launch_kernel.cpp, compiled into the
+// same Python extension binary.
+namespace cudaq {
+std::pair<std::size_t, std::vector<std::size_t>>
+getTargetLayout(mlir::ModuleOp mod, cudaq::cc::StructType structTy);
+}
+
+/// Build a CompiledKernel::ResultInfo from an MLIR return type.
+/// \p resultTy may be null (no return value). When \p isEntryPoint is false,
+/// the result is not marshaled — returns an empty ResultInfo.
+static cudaq::CompiledKernel::ResultInfo
+buildResultInfo(Type resultTy, bool isEntryPoint, ModuleOp module) {
+  cudaq::CompiledKernel::ResultInfo info;
+  if (!resultTy || !isEntryPoint)
+    return info;
+
+  info.typeOpaquePtr = resultTy.getAsOpaquePointer();
+  llvm::TypeSwitch<Type, void>(resultTy)
+      .Case([&](IntegerType ty) {
+        info.bufferSize =
+            ty.getIntOrFloatBitWidth() == 1 ? sizeof(bool) : sizeof(long);
+      })
+      .Case([&](ComplexType) { info.bufferSize = 2 * sizeof(double); })
+      .Case([&](Float64Type) { info.bufferSize = sizeof(double); })
+      .Case([&](Float32Type) { info.bufferSize = sizeof(float); })
+      .Case([&](cudaq::cc::StdvecType) {
+        // StdvecType is a span: { data_ptr, length }.
+        info.bufferSize = sizeof(void *) + sizeof(std::size_t);
+      })
+      .Case([&](cudaq::cc::StructType ty) {
+        auto [size, offsets] = cudaq::getTargetLayout(module, ty);
+        info.bufferSize = size;
+        info.fieldOffsets = std::move(offsets);
+      })
+      .Default([](Type) {
+        // CallableType or unsupported — leave bufferSize = 0.
+      });
+
+  return info;
+}
 
 static void
 specializeKernel(const std::string &name, ModuleOp module,
@@ -259,11 +303,11 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         varArgIndices.clear();
     }
     const bool hasVariationalArgs = !varArgIndices.empty();
-    const bool hasResult = !!resultTy;
+    auto resultInfo = buildResultInfo(resultTy, isEntryPoint, module);
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      return cudaq::createCompiledKernel(*jit, name, hasResult && isEntryPoint,
-                                         hasVariationalArgs);
+      return cudaq::createCompiledKernel(*jit, name, hasVariationalArgs,
+                                         resultInfo);
     }
 
     // 1. Check that this call is sane.
@@ -297,8 +341,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
                                            argsCreatorThunk);
 
-    return cudaq::createCompiledKernel(jit, name, hasResult && isEntryPoint,
-                                       hasVariationalArgs);
+    return cudaq::createCompiledKernel(jit, name, hasVariationalArgs,
+                                       resultInfo);
   }
 };
 } // namespace
