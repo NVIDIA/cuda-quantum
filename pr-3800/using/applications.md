@@ -2452,7 +2452,7 @@ Quantum PageRank algorithm for social network analysis.
 Preview](../_static/app_title_images/quantum_pagerank_preview.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="chemistry,noisless"}
+::: {.notebook-entry tags="chemistry,noiseless"}
 [UCCSD Wavefunction
 Ansatz](../applications/python/uccsd_wf_ansatz.html){.notebook-title}
 
@@ -2476,7 +2476,7 @@ Learn how to approximately prepare quantum states via MPS using CUDA-Q.
 Encoding](../_static/app_title_images/mps_encoding.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="chemistry,noisless"}
+::: {.notebook-entry tags="chemistry,noiseless"}
 [QM/MM simulation: VQE within a Polarizable Embedded
 Framework.](../applications/python/qm_mm_pe.html){.notebook-title}
 
