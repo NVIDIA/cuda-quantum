@@ -1155,6 +1155,64 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
+// GetMeasureOp
+//===----------------------------------------------------------------------===//
+
+def quake_GetMeasureOp : QuakeOp<"get_measure", [Pure]> {
+  let summary =
+    "Extract a single measurement from a measurements collection.";
+  let description = [{
+    Extracts a single `!quake.measure` value from a `!quake.measurements<N>`
+    collection by index. This is analogous to `quake.extract_ref` for qubits.
+
+    Example:
+    ```mlir
+      %m = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
+    ```
+  }];
+
+  let arguments = (ins
+    MeasurementsType:$measurements,
+    Optional<AnySignlessIntegerOrIndex>:$index,
+    I64Attr:$rawIndex
+  );
+  let results = (outs MeasureType:$measure);
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index,
+                   "mlir::IntegerAttr":$rawIndex), [{
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, index, rawIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index), [{
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, index, GetMeasureOp::kDynamicIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$measurements, "std::size_t":$rawIndex), [{
+      auto i64Ty = $_builder.getI64Type();
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, mlir::Value{},
+                   mlir::IntegerAttr::get(i64Ty, rawIndex));
+    }]>
+  ];
+
+  let assemblyFormat = [{
+    $measurements `[` custom<RawIndex>($index, $rawIndex) `]` `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    static constexpr std::size_t kDynamicIndex =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasConstantIndex() { return !getIndex(); }
+    std::size_t getConstantIndex() { return getRawIndex(); }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
 // Quantum gates
 //===----------------------------------------------------------------------===//
 
