@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -75,9 +77,9 @@ constexpr std::uint32_t fnv1a_hash(const char *str) {
   return hash;
 }
 
-// RPC framing magic values (ASCII: CUQ?).
-constexpr std::uint32_t RPC_MAGIC_REQUEST = 0x43555152;  // 'CUQR'
-constexpr std::uint32_t RPC_MAGIC_RESPONSE = 0x43555153; // 'CUQS'
+// RPC framing magic values — sourced from rpc_wire_format.h.
+constexpr std::uint32_t RPC_MAGIC_REQUEST = CUDAQ_RPC_MAGIC_REQUEST;
+constexpr std::uint32_t RPC_MAGIC_RESPONSE = CUDAQ_RPC_MAGIC_RESPONSE;
 
 //==============================================================================
 // Graph IO Context (for CUDAQ_DISPATCH_GRAPH_LAUNCH)

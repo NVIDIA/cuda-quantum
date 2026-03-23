@@ -8,7 +8,9 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
+#include <atomic>
 #include <cstdio>
+#include <cstring>
 #include <new>
 
 struct cudaq_dispatch_manager_t {
@@ -26,6 +28,8 @@ struct cudaq_dispatcher_t {
   uint64_t *stats = nullptr;
   cudaStream_t stream = nullptr;
   bool running = false;
+  cudaq_host_dispatcher_handle_t *host_handle = nullptr;
+  void **h_mailbox_bank = nullptr;
 };
 
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
@@ -43,6 +47,7 @@ static bool is_valid_dispatch_mode(cudaq_dispatch_mode_t dispatch_mode) {
   switch (dispatch_mode) {
   case CUDAQ_DISPATCH_DEVICE_CALL:
   case CUDAQ_DISPATCH_GRAPH_LAUNCH:
+  case CUDAQ_DISPATCH_HOST_CALL:
     return true;
   default:
     return false;
@@ -58,6 +63,15 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
   if (!dispatcher->table.entries || dispatcher->table.count == 0)
     return CUDAQ_ERR_INVALID_ARG;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+    if (!dispatcher->ringbuffer.rx_flags_host ||
+        !dispatcher->ringbuffer.tx_flags_host ||
+        !dispatcher->ringbuffer.rx_data_host ||
+        !dispatcher->ringbuffer.tx_data_host)
+      return CUDAQ_ERR_INVALID_ARG;
+    return CUDAQ_OK;
+  }
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
     if (!dispatcher->unified_launch_fn || !dispatcher->transport_ctx)
@@ -110,6 +124,11 @@ cudaq_status_t cudaq_dispatcher_create(cudaq_dispatch_manager_t *,
 cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->running && dispatcher->host_handle) {
+    *dispatcher->shutdown_flag = 1;
+    cudaq_host_dispatcher_stop(dispatcher->host_handle);
+    dispatcher->host_handle = nullptr;
+  }
   delete dispatcher;
   return CUDAQ_OK;
 }
@@ -145,9 +164,22 @@ cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
 cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn) {
-  if (!dispatcher || !launch_fn)
+  if (!dispatcher)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP &&
+      launch_fn != nullptr)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP && !launch_fn)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->launch_fn = launch_fn;
+  return CUDAQ_OK;
+}
+
+cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
+                                            void **h_mailbox_bank) {
+  if (!dispatcher || !h_mailbox_bank)
+    return CUDAQ_ERR_INVALID_ARG;
+  dispatcher->h_mailbox_bank = h_mailbox_bank;
   return CUDAQ_OK;
 }
 
@@ -174,6 +206,18 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     device_id = 0;
   if (cudaSetDevice(device_id) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+    dispatcher->host_handle = cudaq_host_dispatcher_start_thread(
+        &dispatcher->ringbuffer, &dispatcher->table, &dispatcher->config,
+        dispatcher->shutdown_flag, dispatcher->stats,
+        dispatcher->h_mailbox_bank);
+    if (!dispatcher->host_handle)
+      return CUDAQ_ERR_INTERNAL;
+    dispatcher->running = true;
+    return CUDAQ_OK;
+  }
+
   if (cudaStreamCreate(&dispatcher->stream) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
@@ -197,6 +241,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (err != cudaSuccess) {
     fprintf(stderr, "CUDA error in dispatcher launch: %s (%d)\n",
             cudaGetErrorString(err), err);
+    cudaStreamDestroy(dispatcher->stream);
+    dispatcher->stream = nullptr;
     return CUDAQ_ERR_CUDA;
   }
 
@@ -209,6 +255,15 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
   if (!dispatcher->running)
     return CUDAQ_OK;
+
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP &&
+      dispatcher->host_handle) {
+    *dispatcher->shutdown_flag = 1;
+    cudaq_host_dispatcher_stop(dispatcher->host_handle);
+    dispatcher->host_handle = nullptr;
+    dispatcher->running = false;
+    return CUDAQ_OK;
+  }
 
   int shutdown = 1;
   if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
@@ -226,9 +281,99 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
   if (!dispatcher || !out_packets || !dispatcher->stats)
     return CUDAQ_ERR_INVALID_ARG;
 
+  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+    *out_packets = *dispatcher->stats;
+    return CUDAQ_OK;
+  }
+
   if (cudaMemcpy(out_packets, dispatcher->stats, sizeof(uint64_t),
                  cudaMemcpyDeviceToHost) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
   return CUDAQ_OK;
+}
+
+//==============================================================================
+// Ring buffer slot helpers
+//==============================================================================
+
+static inline uint64_t atomic_load_u64(volatile uint64_t *ptr) {
+  auto *ap =
+      reinterpret_cast<std::atomic<uint64_t> *>(const_cast<uint64_t *>(ptr));
+  return ap->load(std::memory_order_acquire);
+}
+
+static inline void atomic_store_u64(volatile uint64_t *ptr, uint64_t val) {
+  auto *ap =
+      reinterpret_cast<std::atomic<uint64_t> *>(const_cast<uint64_t *>(ptr));
+  ap->store(val, std::memory_order_release);
+}
+
+cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
+    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
+    const void *payload, uint32_t payload_len, uint32_t request_id,
+    uint64_t ptp_timestamp) {
+  if (!rb || !rb->rx_data_host)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (CUDAQ_RPC_HEADER_SIZE + payload_len > rb->rx_stride_sz)
+    return CUDAQ_ERR_INVALID_ARG;
+
+  uint8_t *slot = rb->rx_data_host + slot_idx * rb->rx_stride_sz;
+  uint32_t *hdr32 = reinterpret_cast<uint32_t *>(slot);
+  hdr32[0] = CUDAQ_RPC_MAGIC_REQUEST;
+  hdr32[1] = function_id;
+  hdr32[2] = payload_len;
+  hdr32[3] = request_id;
+  uint64_t *hdr64 = reinterpret_cast<uint64_t *>(slot + 16);
+  *hdr64 = ptp_timestamp;
+
+  if (payload && payload_len > 0)
+    std::memcpy(slot + CUDAQ_RPC_HEADER_SIZE, payload, payload_len);
+
+  return CUDAQ_OK;
+}
+
+void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
+                                       uint32_t slot_idx) {
+  uint64_t addr = reinterpret_cast<uint64_t>(rb->rx_data_host +
+                                             slot_idx * rb->rx_stride_sz);
+  atomic_store_u64(&rb->rx_flags_host[slot_idx], addr);
+}
+
+cudaq_tx_status_t
+cudaq_host_ringbuffer_poll_tx_flag(const cudaq_ringbuffer_t *rb,
+                                   uint32_t slot_idx, int *out_cuda_error) {
+  uint64_t v = atomic_load_u64(&rb->tx_flags_host[slot_idx]);
+  if (v == 0)
+    return CUDAQ_TX_EMPTY;
+  if (v == CUDAQ_TX_FLAG_IN_FLIGHT)
+    return CUDAQ_TX_IN_FLIGHT;
+  if ((v >> 48) == CUDAQ_TX_FLAG_ERROR_TAG) {
+    if (out_cuda_error)
+      *out_cuda_error = static_cast<int>(v & 0xFFFF);
+    return CUDAQ_TX_ERROR;
+  }
+  return CUDAQ_TX_READY;
+}
+
+int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
+                                         uint32_t slot_idx) {
+  return atomic_load_u64(&rb->rx_flags_host[slot_idx]) == 0 &&
+         atomic_load_u64(&rb->tx_flags_host[slot_idx]) == 0;
+}
+
+void cudaq_host_ringbuffer_clear_slot(const cudaq_ringbuffer_t *rb,
+                                      uint32_t slot_idx) {
+  atomic_store_u64(&rb->tx_flags_host[slot_idx], 0);
+}
+
+cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
+                                         int worker_id) {
+  if (!dispatcher)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP ||
+      !dispatcher->host_handle)
+    return CUDAQ_ERR_INVALID_ARG;
+  return cudaq_host_dispatcher_release_worker(dispatcher->host_handle,
+                                              worker_id);
 }

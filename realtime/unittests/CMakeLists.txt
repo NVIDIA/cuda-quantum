@@ -53,7 +53,6 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDAQ_REALTIME_INCLUDE_DIR}
   )
   
-  # Find CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
   find_library(CUDADEVRT_LIBRARY cudadevrt
     HINTS ${CUDAToolkit_LIBRARY_DIR}
     REQUIRED
@@ -73,6 +72,28 @@ if(CMAKE_CUDA_COMPILER)
   )
   
   message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
+
+  # Host dispatcher tests (CUDAQ_BACKEND_HOST_LOOP)
+  add_executable(test_host_dispatcher test_host_dispatcher.cu)
+  set_target_properties(test_host_dispatcher PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 17
+  )
+  target_include_directories(test_host_dispatcher PRIVATE
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+  )
+  target_link_libraries(test_host_dispatcher PRIVATE
+    GTest::gtest_main
+    CUDA::cudart
+    cudaq-realtime
+    cudaq-realtime-host-dispatch
+  )
+  add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
+  gtest_discover_tests(test_host_dispatcher
+    TEST_PREFIX "test_host_dispatcher."
+  )
+  message(STATUS "  - test_host_dispatcher (host dispatcher loop)")
 endif()
 
 # ==============================================================================
