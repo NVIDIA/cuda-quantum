@@ -576,6 +576,30 @@ void quake::GetMemberOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
+// GetMeasureOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::GetMeasureOp::verify() {
+  if (getIndex()) {
+    if (getRawIndex() != kDynamicIndex)
+      return emitOpError(
+          "must not have both a constant index and an index argument.");
+  } else {
+    if (getRawIndex() == kDynamicIndex) {
+      return emitOpError("invalid constant index value");
+    } else {
+      auto msSize = getMeasurements().getType().getSize();
+      if (getMeasurements().getType().hasSpecifiedSize() &&
+          getRawIndex() >= msSize)
+        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
+                           "] because >= size [" + std::to_string(msSize) +
+                           "]");
+    }
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // InitializeStateOp
 //===----------------------------------------------------------------------===//
 
