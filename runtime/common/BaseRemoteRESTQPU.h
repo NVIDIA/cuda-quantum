@@ -364,6 +364,13 @@ public:
     cudaq::details::future future;
     if (emulate) {
 
+      // TODO: This assert demonstrates that we are never expected to return a
+      // future in emulation mode. We are launching a new thread just to wait
+      // for its execution to finish below. We need to make this work without
+      // the thread as the executionContext is crossing the thread boundary
+      // which is not thread safe in the general case.
+      assert(!executionContext->asyncExec);
+
       // Fetch the thread-specific seed outside and then pass it inside.
       std::size_t seed = cudaq::get_random_seed();
 

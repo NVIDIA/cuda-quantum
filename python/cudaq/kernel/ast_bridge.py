@@ -2316,6 +2316,75 @@ class PyASTBridge(ast.NodeVisitor):
                     return name + ".." + hex(id(result))
         return None
 
+    def __expandCustomOpTargets(self, pyArgs, numTargets, node):
+        """Collect qubit references for a custom operation call, expanding `qvector`
+        arguments into individual references.
+        """
+        # Pass 1: Compute the static qubit count
+        values = []
+        staticCount = 0
+        for arg in pyArgs:
+            if isinstance(arg, ast.Starred):
+                self.visit(arg.value)
+            else:
+                self.visit(arg)
+            val = self.popValue()
+            values.append(val)
+            if quake.RefType.isinstance(val.type):
+                staticCount += 1
+            elif quake.VeqType.isinstance(val.type):
+                if quake.VeqType.hasSpecifiedSize(val.type):
+                    staticCount += quake.VeqType.getSize(val.type)
+            else:
+                self.emitFatalError(
+                    'invalid target operand for custom operation: '
+                    'expected a qubit or qvector', node)
+
+        dynamicExpected = numTargets - staticCount
+
+        # Pass 2: emit runtime size checks
+        targets = []
+        for val in values:
+            if quake.VeqType.isinstance(val.type):
+                if quake.VeqType.hasSpecifiedSize(val.type):
+                    size = quake.VeqType.getSize(val.type)
+                else:
+                    load_intrinsic(self.module, '__nvqpp_customop_size_error')
+                    actualSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                 val).result
+                    expectedSizeVal = self.getConstantInt(dynamicExpected)
+                    eqPred = IntegerAttr.get(self.getIntegerType(), 0)
+                    sizesMatch = arith.CmpIOp(eqPred, actualSize,
+                                              expectedSizeVal).result
+                    ifOp = cc.IfOp([], sizesMatch, [])
+                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                    with InsertionPoint(thenBlock):
+                        cc.ContinueOp([])
+                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                    with InsertionPoint(elseBlock):
+                        totalActual = arith.AddIOp(
+                            actualSize, self.getConstantInt(staticCount)).result
+                        func.CallOp(
+                            [], '__nvqpp_customop_size_error',
+                            [self.getConstantInt(numTargets), totalActual])
+                        cc.ContinueOp([])
+                    size = dynamicExpected
+                for i in range(size):
+                    ref = quake.ExtractRefOp(
+                        self.getRefType(),
+                        val,
+                        -1,
+                        index=self.getConstantInt(i)).result
+                    targets.append(ref)
+            elif quake.RefType.isinstance(val.type):
+                targets.append(val)
+
+        if len(targets) != numTargets:
+            self.emitFatalError(
+                f'custom operation requires {numTargets} qubit target(s), '
+                f'but {len(targets)} were provided', node)
+        return targets
+
     def visit_Call(self, node):
         """Map a Python Call operation to equivalent MLIR. This method handles
         functions that are `ast.Name` and `ast.Attribute` objects.
@@ -2926,14 +2995,8 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.id in globalRegisteredOperations:
                 unitary = globalRegisteredOperations[node.func.id]
                 numTargets = int(np.log2(np.sqrt(unitary.size)))
-                targets = self.__groupValues(node.args,
-                                             [(numTargets, numTargets)])
-
-                for i, t in enumerate(targets):
-                    if not quake.RefType.isinstance(t.type):
-                        self.emitFatalError(
-                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
-                        )
+                targets = self.__expandCustomOpTargets(node.args, numTargets,
+                                                       node)
 
                 globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
