@@ -126,14 +126,6 @@ jobs:
             apt update && apt install -y kitware-archive-keyring
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
-            # CUDA 12.x's nvcc can't parse GCC 12+/13 intrinsic builtins (AMX, AVX512-BF16)
-            # on x86_64; use GCC 11 as the host compiler to match the Dockerfile build.
-            if [ "$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)" = "12" ] && [ "$(uname -m)" = "x86_64" ]; then
-              apt install -y --no-install-recommends gcc-11 g++-11
-              export CC=/usr/bin/gcc-11
-              export CXX=/usr/bin/g++-11
-              export CUDAHOSTCXX=/usr/bin/g++-11
-            fi
             cd /workspace/realtime
             bash scripts/install_dev_prerequisites.sh
             # Build HSB (GPU RoCE transceiver and hololink_core)
