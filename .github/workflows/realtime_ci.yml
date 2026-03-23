@@ -126,10 +126,15 @@ jobs:
             apt update && apt install -y kitware-archive-keyring
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
+            # CUDA 12.x's nvcc doesn't support GCC 13's AMX tile intrinsics on x86_64.
+            # Disable them via -mno-amx-tile to avoid build errors in system headers.
+            if [ "$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)" = "12" ] && [ "$(uname -m)" = "x86_64" ]; then
+              export CUDAFLAGS="-Xcompiler -mno-amx-tile"
+            fi
             cd /workspace/realtime
             bash scripts/install_dev_prerequisites.sh
             # Build HSB (GPU RoCE transceiver and hololink_core)
-            export CUDA_NATIVE_ARCH=${{ (contains(matrix.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}
+            export CUDA_NATIVE_ARCH="${{ (contains(matrix.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}"
             cd /workspace/ && git clone -b release-2.6.0-EA https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge 
             cmake -G Ninja -S /workspace/holoscan-sensor-bridge -B /workspace/holoscan-sensor-bridge/build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF
             cmake --build /workspace/holoscan-sensor-bridge/build --target roce_receiver gpu_roce_transceiver hololink_core
