@@ -126,10 +126,13 @@ jobs:
             apt update && apt install -y kitware-archive-keyring
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
-            # CUDA 12.x's nvcc doesn't support GCC 13's AMX tile intrinsics on x86_64.
-            # Use NVCC_PREPEND_FLAGS (read directly by nvcc, bypasses CMake).
+            # CUDA 12.x's nvcc doesn't support GCC 13's AMX tile intrinsics on x86_64;
+            # install GCC 12 and use it as the CUDA host compiler.
             if [ "$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)" = "12" ] && [ "$(uname -m)" = "x86_64" ]; then
-              export NVCC_PREPEND_FLAGS="-Xcompiler -mno-amx-tile"
+              apt install -y --no-install-recommends gcc-12 g++-12
+              export CC=/usr/bin/gcc-12
+              export CXX=/usr/bin/g++-12
+              export CUDAHOSTCXX=/usr/bin/g++-12
             fi
             cd /workspace/realtime
             bash scripts/install_dev_prerequisites.sh
