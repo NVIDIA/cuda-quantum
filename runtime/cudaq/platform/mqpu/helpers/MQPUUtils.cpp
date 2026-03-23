@@ -24,6 +24,7 @@
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
+#include "cudaq/distributed/mpi_plugin.h"
 #ifdef CUDAQ_ENABLE_CUDA
 #include "cuda_runtime_api.h"
 #endif
@@ -226,7 +227,7 @@ cudaq::AutoLaunchRestServerProcess::~AutoLaunchRestServerProcess() {
 
 std::string cudaq::AutoLaunchRestServerProcess::getUrl() const { return m_url; }
 
-int cudaq::getCudaGetDeviceCount() {
+int cudaq::getCudaDeviceCount() {
 #ifdef CUDAQ_ENABLE_CUDA
   int nDevices{0};
   const auto status = cudaGetDeviceCount(&nDevices);
@@ -234,4 +235,54 @@ int cudaq::getCudaGetDeviceCount() {
 #else
   return 0;
 #endif
+}
+
+/// @brief Retrieve the MPI plugin comm interface
+static cudaqDistributedInterface_t *getMpiPluginInterface() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Failed to retrieve MPI plugin");
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  if (!mpiInterface)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered");
+  return mpiInterface;
+}
+
+/// @brief Retrieve the MPI plugin (type-erased) comm pointer
+static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Failed to retrieve MPI plugin");
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  if (!comm)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered");
+  return comm;
+}
+
+#define HANDLE_MPI_ERROR(x)                                                    \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != 0) {                                                            \
+      printf("MPI Error encountered in line %d\n", __LINE__);                  \
+      fflush(stdout);                                                          \
+      std::abort();                                                            \
+    }                                                                          \
+  };
+
+int cudaq::getMPIProcessCount() {
+  cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
+  cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
+  if (!mpiInterface || !comm)
+    return 1; // Fallback to 1 if not running in an MPI context
+  int initialized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->initialized(&initialized));
+  if (!initialized)
+    return 1; // Fallback to 1 if MPI is not initialized
+  int finalized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->finalized(&finalized));
+  if (finalized)
+    return 1; // Fallback to 1 if MPI is finalized
+  int numRanks = 0;
+  HANDLE_MPI_ERROR(mpiInterface->getNumRanks(comm, &numRanks));
+  return numRanks;
 }
