@@ -9,6 +9,7 @@
 #include "JIT.h"
 #include "CompiledKernel.h"
 #include "common/Environment.h"
+#include "common/LayoutInfo.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -333,20 +334,37 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
   return JitEngine(std::move(jitOrError.get()));
 }
 
-cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
-                                                  std::string kernelName,
-                                                  bool hasResult,
-                                                  bool isFullySpecialized) {
-  std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+void cudaq::attachJit(CompiledKernel &ck, JitEngine engine,
+                      bool isFullySpecialized) {
+  const auto &name = ck.name;
+  bool hasResult = ck.resultInfo.hasResult();
+  std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
   std::string entryName =
-      (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
+      (hasResult || !isFullySpecialized) ? name + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
   int64_t (*argsCreator)(const void *, void **) = nullptr;
   if (!isFullySpecialized)
     argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-        engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
-  return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
-                               argsCreator, hasResult);
+        engine.lookupRawNameOrFail(name + ".argsCreator"));
+
+  ck.jitRepr =
+      CompiledKernel::JitRepr{std::move(engine), entryPoint, argsCreator};
+}
+
+/// Build a `CompiledKernel::ResultInfo` from an MLIR return type.
+/// \p resultTy may be null (no return value). When \p isEntryPoint is false,
+/// the result is not marshaled — returns an empty `ResultInfo`.
+cudaq::ResultInfo cudaq::createResultInfo(Type resultTy, bool isEntryPoint,
+                                          ModuleOp module) {
+  cudaq::ResultInfo info;
+  if (!resultTy || !isEntryPoint)
+    return info;
+
+  info.typeOpaquePtr = resultTy.getAsOpaquePointer();
+  auto [size, offsets] = cudaq::getResultBufferLayout(module, resultTy);
+  info.bufferSize = size;
+  info.fieldOffsets = std::move(offsets);
+  return info;
 }
 
 class cudaq::JitEngine::Impl {

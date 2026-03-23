@@ -9,6 +9,7 @@
 #include "QPU.h"
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
+#include "common/CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/JIT.h"
@@ -17,6 +18,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -28,6 +30,13 @@
 #include <unordered_set>
 
 using namespace mlir;
+
+// Forward declaration — defined in `py_alt_launch_kernel.cpp`, compiled into
+// the same Python extension binary.
+namespace cudaq {
+std::pair<std::size_t, std::vector<std::size_t>>
+getResultBufferLayout(mlir::ModuleOp mod, mlir::Type resultTy);
+}
 
 static void
 specializeKernel(const std::string &name, ModuleOp module,
@@ -259,11 +268,12 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         varArgIndices.clear();
     }
     const bool isFullySpecialized = varArgIndices.empty();
-    const bool hasResult = !!resultTy;
+    auto resultInfo = cudaq::createResultInfo(resultTy, isEntryPoint, module);
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      return cudaq::createCompiledKernel(*jit, name, hasResult && isEntryPoint,
-                                         isFullySpecialized);
+      cudaq::CompiledKernel ck(name, resultInfo);
+      cudaq::attachJit(ck, *jit, isFullySpecialized);
+      return ck;
     }
 
     // 1. Check that this call is sane.
@@ -297,8 +307,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
                                            argsCreatorThunk);
 
-    return cudaq::createCompiledKernel(jit, name, hasResult && isEntryPoint,
-                                       isFullySpecialized);
+    cudaq::CompiledKernel ck(name, resultInfo);
+    cudaq::attachJit(ck, jit, isFullySpecialized);
+    return ck;
   }
 };
 } // namespace

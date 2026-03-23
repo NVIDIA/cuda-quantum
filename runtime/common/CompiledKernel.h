@@ -9,28 +9,91 @@
 
 #include "common/JIT.h"
 #include "common/ThunkInterface.h"
+#include <optional>
 #include <string>
 #include <vector>
 
+// This header file and the types defined within are designed to have no
+// dependencies and be useable across the compiler and runtime. However,
+// constructing instances of these types is easiest done within compilation
+// units that do link against MLIR. We provide this functionality via free
+// functions, defined as friends of the types defined here and implemented in
+// the `cudaq-mlir-runtime` library.
+
+namespace mlir {
+class Type;
+class ModuleOp;
+} // namespace mlir
+
 namespace cudaq {
+
+/// Pre-computed result metadata, set at build time. Used at execution time
+/// for result buffer allocation and type conversion. Construct via
+/// `createResultInfo` (implemented in `cudaq-mlir-runtime`).
+class ResultInfo {
+  // Friend factory function, to be used for construction.
+  friend ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
+                                     mlir::ModuleOp module);
+  friend class CompiledKernel;
+
+  /// Opaque pointer to the `mlir::Type` of the result. Obtained via
+  /// `mlir::Type::getAsOpaquePointer()`.
+  /// Lifetime: the `MLIRContext` that owns the Type must outlive this object.
+  const void *typeOpaquePtr = nullptr;
+
+  /// Size (in bytes) of the buffer needed to hold the result value.
+  /// Pre-computed from the MLIR type at build time.
+  std::size_t bufferSize = 0;
+
+  /// Pre-computed struct field offsets (from `getTargetLayout`). Only non-empty
+  /// for struct return types.
+  std::vector<std::size_t> fieldOffsets;
+
+public:
+  /// Whether this kernel has a result that must be marshaled.
+  bool hasResult() const { return typeOpaquePtr != nullptr; }
+};
 
 /// @brief A compiled, ready-to-execute kernel.
 ///
-/// This type does not have a dependency on MLIR (or LLVM) as it only keeps
-/// type-erased pointers to JIT-related types.
+/// Bundles one or more representations of a compiled kernel (JIT binary, MLIR
+/// module) along with metadata needed for execution and result extraction.
 ///
-/// The constructor is private; use the factory function in
-/// `runtime/common/JIT.h` to construct instances.
+/// This type does not have a dependency on MLIR (or LLVM) as it only keeps
+/// type-erased / opaque pointers. Use `attachJit` (defined in
+/// `cudaq-mlir-runtime`) to attach a compiled JIT representation after
+/// construction.
 class CompiledKernel {
 public:
-  /// @brief Execute the JIT-ed kernel.
-  ///
-  /// If the kernel has a return type, the caller must have appended a result
-  /// buffer as the last element of \p rawArgs.
+  // --- Construction ---
+
+  CompiledKernel(std::string kernelName, ResultInfo resultInfo);
+
+  // --- Queries ---
+
+  bool hasJit() const { return jitRepr.has_value(); }
+  bool hasMlir() const { return mlirRepr.has_value(); }
+
+  /// Whether the kernel is fully specialized (all arguments inlined). For JIT
+  /// kernels this means `argsCreator` is null.
+  /// Currently, MLIR-only kernels are always considered fully specialized.
+  bool isFullySpecialized() const {
+    return !jitRepr || jitRepr->argsCreator == nullptr;
+  }
+
+  const std::string &getName() const { return name; }
+
+  // --- Execution (local JIT path) ---
+
+  /// @brief Execute a fully specialized kernel (no external arguments needed).
+  KernelThunkResultType execute() const;
+
+  /// @brief Execute the JIT-ed kernel with caller-provided arguments.
   KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
 
-  // TODO: remove the following two methods once the CompiledKernel is returned
-  // to Python.
+  // TODO: remove the following two methods once the `CompiledKernel` is
+  // returned to Python.
+
   /// @brief Get the entry point of the kernel as a function pointer.
   ///
   /// The returned function pointer will expect different arguments depending
@@ -46,31 +109,53 @@ public:
   JitEngine getEngine() const;
 
 private:
-  CompiledKernel(JitEngine engine, std::string kernelName, void (*entryPoint)(),
-                 int64_t (*argsCreator)(const void *, void **), bool hasResult);
+  // Friend functions to attach compiled representations after construction.
+  friend void attachJit(CompiledKernel &ck, JitEngine engine,
+                        bool isFullySpecialized);
 
-  // Use the following factory function (compiled into cudaq-mlir-runtime) to
-  // construct CompiledKernels.
-  friend CompiledKernel createCompiledKernel(JitEngine engine,
-                                             std::string kernelName,
-                                             bool hasResult,
-                                             bool isFullySpecialized);
+  // --- Compiled representation formats ---
 
-  JitEngine engine;
+  /// JIT-compiled representation of a kernel, used for local execution.
+  struct JitRepr {
+    JitEngine engine;
+    void (*entryPoint)() = nullptr;
+    int64_t (*argsCreator)(const void *, void **) = nullptr;
+  };
+
+  /// MLIR module representation for remote code generation or re-targeting.
+  /// The opaque pointer is obtained via `ModuleOp::getAsOpaquePointer()`.
+  /// Lifetime: the `MLIRContext` that owns the module must outlive this object.
+  struct MlirRepr {
+    const void *modulePtr = nullptr;
+  };
+
+  const JitRepr &getJit() const;
+  const MlirRepr &getMlir() const;
+
   std::string name;
-
-  // Function pointers into JITEngine
-  void (*entryPoint)();
-  int64_t (*argsCreator)(const void *, void **);
-
-  bool hasResult;
+  ResultInfo resultInfo;
+  std::optional<JitRepr> jitRepr;
+  std::optional<MlirRepr> mlirRepr;
 };
 
-/// @brief Create a CompiledKernel from JIT-compiled code.
+/// @brief Populate the JIT representation of a `CompiledKernel`.
 ///
-/// `hasResult` and `isFullySpecialized` affect how the mangled kernel name
-/// and the arguments buffer passed to the compiled kernel are constructed.
-/// See `CompiledKernel::getEntryPoint` for more details.
-CompiledKernel createCompiledKernel(JitEngine engine, std::string kernelName,
-                                    bool hasResult, bool isFullySpecialized);
+/// Resolves the entry point and (optionally) `argsCreator` symbols from the
+/// engine, using the kernel's name and result metadata to determine the
+/// correct mangled symbol names.
+///
+/// Implemented in `JIT.cpp` (requires MLIR linkage).
+void attachJit(CompiledKernel &ck, JitEngine engine, bool isFullySpecialized);
+
+/// @brief Create a `ResultInfo` from opaque MLIR type and module pointers.
+///
+/// `resultTypePtr` is obtained via `mlir::Type::getAsOpaquePointer()` (may be
+/// null for void-returning kernels). `modulePtr` is obtained via
+/// `ModuleOp::getAsOpaquePointer()`. When `resultTypePtr` is null or
+/// `isEntryPoint` is false, returns an empty `ResultInfo`.
+///
+/// Implemented in `JIT.cpp` (requires MLIR linkage).
+ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
+                            mlir::ModuleOp module);
+
 } // namespace cudaq
