@@ -127,9 +127,9 @@ jobs:
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
             # CUDA 12.x's nvcc doesn't support GCC 13's AMX tile intrinsics on x86_64.
-            # Disable them via -mno-amx-tile to avoid build errors in system headers.
+            # Use NVCC_PREPEND_FLAGS (read directly by nvcc, bypasses CMake).
             if [ "$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)" = "12" ] && [ "$(uname -m)" = "x86_64" ]; then
-              export CUDAFLAGS="-Xcompiler -mno-amx-tile"
+              export NVCC_PREPEND_FLAGS="-Xcompiler -mno-amx-tile"
             fi
             cd /workspace/realtime
             bash scripts/install_dev_prerequisites.sh
