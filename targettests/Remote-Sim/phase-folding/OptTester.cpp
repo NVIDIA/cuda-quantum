@@ -53,7 +53,7 @@ void checkSimple() {
   auto state2 = cudaq::get_state(kernel);
   auto counts2 = cudaq::estimate_resources(kernel);
   // Make sure optimization is actually performed
-  //assert(counts2.count("rz") == 3);
+  assert(counts2.count("rz") == 3);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
@@ -100,7 +100,7 @@ void checkSubkernel() {
   cudaq::set_random_seed(30);
   auto state2 = cudaq::get_state(kernel);
   auto counts2 = cudaq::estimate_resources(kernel);
-  //assert(counts2.count("rz") == 3);
+  assert(counts2.count("rz") == 3);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
@@ -136,7 +136,7 @@ void checkClassical1() {
   cudaq::set_random_seed(40);
   auto state2 = cudaq::get_state(kernel);
   auto counts2 = cudaq::estimate_resources(kernel);
-  //assert(counts2.count("rz") == 2);
+  assert(counts2.count("rz") == 2);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
