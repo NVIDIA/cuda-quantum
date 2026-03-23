@@ -29,8 +29,19 @@ public:
   /// buffer as the last element of \p rawArgs.
   KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
 
-  // TODO: remove these two methods once the CompiledKernel is returned to
-  // Python.
+  // TODO: remove the following two methods once the CompiledKernel is returned
+  // to Python.
+  /// @brief Get the entry point of the kernel as a function pointer.
+  ///
+  /// The returned function pointer will expect different arguments depending
+  /// on the kernel:
+  ///  - if the kernel returns a value and/or is not fully specialized, the
+  ///    entry point will expect a pointer to a buffer storing the packed
+  ///    arguments and result.
+  ///  - otherwise, the entry point will not expect any arguments.
+  ///
+  /// Prefer using `CompiledKernel::execute` instead of calling this function as
+  /// it will handle the buffer and argument packing automatically.
   void (*getEntryPoint() const)();
   JitEngine getEngine() const;
 
@@ -43,7 +54,7 @@ private:
   friend CompiledKernel createCompiledKernel(JitEngine engine,
                                              std::string kernelName,
                                              bool hasResult,
-                                             bool hasVariationalArgs);
+                                             bool isFullySpecialized);
 
   JitEngine engine;
   std::string name;
@@ -55,6 +66,11 @@ private:
   bool hasResult;
 };
 
+/// @brief Create a CompiledKernel from JIT-compiled code.
+///
+/// `hasResult` and `isFullySpecialized` affect how the mangled kernel name
+/// and the arguments buffer passed to the compiled kernel are constructed.
+/// See `CompiledKernel::getEntryPoint` for more details.
 CompiledKernel createCompiledKernel(JitEngine engine, std::string kernelName,
-                                    bool hasResult, bool hasVariationalArgs);
+                                    bool hasResult, bool isFullySpecialized);
 } // namespace cudaq

@@ -258,12 +258,12 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       if (!execCtx || !execCtx->useParametricJit)
         varArgIndices.clear();
     }
-    const bool hasVariationalArgs = !varArgIndices.empty();
+    const bool isFullySpecialized = varArgIndices.empty();
     const bool hasResult = !!resultTy;
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
       return cudaq::createCompiledKernel(*jit, name, hasResult && isEntryPoint,
-                                         hasVariationalArgs);
+                                         isFullySpecialized);
     }
 
     // 1. Check that this call is sane.
@@ -298,7 +298,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
                                            argsCreatorThunk);
 
     return cudaq::createCompiledKernel(jit, name, hasResult && isEntryPoint,
-                                       hasVariationalArgs);
+                                       isFullySpecialized);
   }
 };
 } // namespace
