@@ -274,7 +274,7 @@ jobs:
           local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
 
           # Smaller, faster-to-pull registry caches: zstd compresses better than gzip and decompresses quickly.
-          registry_cache_export_opts=",mode=max,compression=zstd,compression-level=15,oci-mediatypes=true"
+          registry_cache_export_opts=",mode=max,compression=zstd,compression-level=15,force-compression=true,oci-mediatypes=true"
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
@@ -328,11 +328,15 @@ jobs:
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
           echo "push_to_registry=${{ inputs.environment != '' && inputs.update_registry_cache == '' }}" >> $GITHUB_OUTPUT
-          if ${{ inputs.environment == '' && inputs.update_registry_cache == '' }}; then
+          if ${{ inputs.environment != '' && inputs.update_registry_cache == '' }}; then
+            tags="${{ needs.metadata.outputs.image_tags }}"
+            name_opts=$(echo "$tags" | tr ',' '\n' | grep . | sed 's/^/name=/' | paste -sd ',' -)
+            echo "image_push_output=type=image,${name_opts},push=true,compression=zstd,compression-level=15,force-compression=true" >> $GITHUB_OUTPUT
+          elif ${{ inputs.environment == '' && inputs.update_registry_cache == '' }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive,compression=zstd,compression-level=15,force-compression=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out local cache
@@ -361,7 +365,7 @@ jobs:
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
-          outputs: ${{ steps.cache.outputs.docker_output }}
+          outputs: ${{ steps.cache.outputs.image_push_output || steps.cache.outputs.docker_output }}
 
       - name: Install Cosign
         if: steps.cache.outputs.push_to_registry == 'true'
