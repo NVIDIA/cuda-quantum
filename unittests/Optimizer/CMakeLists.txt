@@ -20,7 +20,6 @@ target_link_libraries(OptimizerUnitTests
     MLIRArithDialect
     MLIRFuncDialect
     MLIRParser
-    MLIRPass
     MLIRTransforms
     QuakeDialect
     CCDialect
