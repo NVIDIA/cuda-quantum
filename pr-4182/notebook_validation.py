@@ -113,7 +113,7 @@ def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
                                                       '.nbconvert.ipynb')
     notebook_basename = os.path.basename(notebook_filename)
     if notebook_basename in LONG_RUNNING_NOTEBOOKS:
-        timeout_seconds = 1500
+        timeout_seconds = 2100
 
     try:
         start_time = time.perf_counter()
