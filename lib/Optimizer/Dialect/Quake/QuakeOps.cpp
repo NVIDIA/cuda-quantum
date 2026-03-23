@@ -798,12 +798,12 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
                                  const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
-  bool mustBeStdvec =
+  bool mustBeCollection =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
-  if (mustBeStdvec) {
-    if (!isa<cudaq::cc::StdvecType>(op.getMeasOut().getType()))
-      return op.emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
+  if (mustBeCollection) {
+    if (!isa<quake::MeasurementsType>(op.getMeasOut().getType()))
+      return op.emitOpError("must return `!quake.measurements`, when "
                             "measuring a qreg, a series of qubits, or both");
   } else {
     if (!isa<quake::MeasureType>(op.getMeasOut().getType()))
@@ -831,19 +831,34 @@ LogicalResult quake::MzOp::verify() {
                             getMeasOut().getType());
 }
 
+void quake::MxOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                              MLIRContext *context) {
+  patterns.add<FuseSizeToMeasurementPattern<quake::MxOp>>(context);
+}
+
+void quake::MyOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                              MLIRContext *context) {
+  patterns.add<FuseSizeToMeasurementPattern<quake::MyOp>>(context);
+}
+
+void quake::MzOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                              MLIRContext *context) {
+  patterns.add<FuseSizeToMeasurementPattern<quake::MzOp>>(context);
+}
+
 //===----------------------------------------------------------------------===//
 // Discriminate
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::DiscriminateOp::verify() {
-  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType())) {
+  if (isa<quake::MeasurementsType>(getMeasurement().getType())) {
     auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(getResult().getType());
     if (!stdvecTy || !isa<IntegerType>(stdvecTy.getElementType()))
       return emitOpError("must return a !cc.stdvec<integral> type, when "
-                         "discriminating a qreg, a series of qubits, or both");
+                         "discriminating a measurements collection");
   } else {
-    auto measTy = isa<quake::MeasureType>(getMeasurement().getType());
-    if (!measTy || !isa<IntegerType>(getResult().getType()))
+    if (!isa<quake::MeasureType>(getMeasurement().getType()) ||
+        !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
   }

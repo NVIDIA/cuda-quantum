@@ -1064,7 +1064,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     OptionalAttr<StrAttr>:$registerName
   );
   let results = (outs
-    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measOut,
+    AnyTypeOf<[MeasureType, MeasurementsType]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -1081,6 +1081,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   }];
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 }
 
 def MxOp : Measurement<"mx"> {
@@ -1141,7 +1142,7 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measurement
+    AnyTypeOf<[MeasureType, MeasurementsType]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>
