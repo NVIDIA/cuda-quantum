@@ -118,7 +118,7 @@ public:
 
       rewriter.replaceOpWithNewOp<quake::ApplyOp>(
           op, TypeRange{}, FlatSymbolRefAttr::get(ctx, replacement.getName()),
-          adaptor.getIsAdj(), adaptor.getControls(), adaptor.getArgs());
+          adaptor.getIsAdj(), adaptor.getControls(), adaptor.getActuals());
       return success();
     }
     return failure();
