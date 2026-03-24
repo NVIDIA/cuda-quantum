@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,9 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/pd_lib.cpp -o %t/pd_lib.o && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/pd_main.cpp -o %t/pd_main.o && \
-// RUN: nvq++ %cpp_std --enable-mlir %t/pd_lib.o %t/pd_main.o -o %t/pd.a.out && \
+// RUN: nvq++ --enable-mlir -c %t/pd_lib.cpp -o %t/pd_lib.o && \
+// RUN: nvq++ --enable-mlir -c %t/pd_main.cpp -o %t/pd_main.o && \
+// RUN: nvq++ --enable-mlir %t/pd_lib.o %t/pd_main.o -o %t/pd.a.out && \
 // RUN: %t/pd.a.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on

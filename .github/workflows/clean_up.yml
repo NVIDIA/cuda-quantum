@@ -13,6 +13,7 @@ on:
         default: false
   schedule:
   - cron: "*/5 * * * *"
+  - cron: "0 0 * * *"
   pull_request_target:
     types:
       - closed
@@ -177,7 +178,7 @@ jobs:
 
   pr_cleanup:
     name: Clean up documentation previews
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'pull_request_target' || github.event.schedule == '0 0 * * *'
     runs-on: ubuntu-latest
 
     permissions:
@@ -185,11 +186,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ vars.preview_branch }}
+          fetch-depth: 0
 
-      - name: Delete preview folder
+      - name: Delete preview folder for closed PR
+        if: github.event_name == 'pull_request_target'
         run: |
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
@@ -197,3 +200,40 @@ jobs:
           git commit --allow-empty -m "Cleaning up docs preview for PR #${{ github.event.pull_request.number }}."
           git config pull.rebase true
           git pull --no-edit && git push
+
+      - name: Delete preview folder for stale PRs (open > 5 days)
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git config pull.rebase true
+
+          # Keep preview branch up-to-date
+          git pull --no-edit
+
+          # 5 days ago timestamp
+          cutoff=$(date -u -d '5 days ago' +%s)
+
+          # Go over existing pr-* folders and remove any whose last
+          # git commit is older than the cutoff date.
+          for folder in pr-*/; do
+            [ -d "$folder" ] || continue
+            last_commit=$(git log --format="%at" -1 -- "$folder")
+            if [ -z "$last_commit" ] || [ "$last_commit" -lt "$cutoff" ]; then
+              echo "Removing stale preview folder $folder (last updated: ${last_commit:-never})."
+              git rm -r "$folder" --ignore-unmatch || true
+            fi
+          done
+
+          # If nothing matches, skip commit/push
+          if git diff --cached --quiet; then
+            echo "No preview folders were removed (nothing to commit)."
+            exit 0
+          fi
+
+          git commit -m "Cleaning up stale docs previews (not updated in > 5 days)."
+          git push

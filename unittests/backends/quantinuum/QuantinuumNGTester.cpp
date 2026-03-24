@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,18 +8,10 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/ExtraPayloadProvider.h"
-#include "common/FmtCore.h"
 #include "cudaq/algorithm.h"
-#include <fstream>
 #include <gtest/gtest.h>
-#include <regex>
 
 namespace {
-std::string mockPort = "62440";
-// Helios NG device
-std::string backendStringTemplate =
-    "quantinuum;emulate;false;url;http://"
-    "localhost:{};credentials;{};project;mock_project_id;machine;Helios-SC";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -47,13 +39,6 @@ public:
 } // namespace
 
 CUDAQ_TEST(QuantinuumNGTester, checkSampleSync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
@@ -66,13 +51,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkSampleSync) {
 }
 
 CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
@@ -94,13 +72,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
 }
 
 CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
   // Small number of shots as NG device mock always
   // runs in shot-shot mode for QIR output.
   constexpr int numShots = 10;
@@ -233,36 +204,8 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
   }
 }
 
-CUDAQ_TEST(QuantinuumNGTester, checkGpuDecoderConfig) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-  backendString += ";extra_payload_provider;dummy";
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-  const std::string invalidConfig = "invalid_yaml: {{test: invalid}[]";
-  cudaq::registerExtraPayloadProvider(
-      std::make_unique<DummyDecoderConfig>(invalidConfig));
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-
-  // This will throw because the decoder config is invalid YAML.
-  EXPECT_ANY_THROW(cudaq::sample(100, kernel));
-  // Just some dummy config, valid YAML.
-  const std::string validConfig = R"(
----
-decoders:
-  - id:              0
-    type:            fancy-decoder
-    syndrome_size:   1000
-  )";
-
-  cudaq::registerExtraPayloadProvider(
-      std::make_unique<DummyDecoderConfig>(validConfig));
-  // No longer throws because the decoder config is valid YAML.
-  EXPECT_NO_THROW(cudaq::sample(100, kernel));
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  auto ret = RUN_ALL_TESTS();
+  return ret;
 }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -36,7 +36,7 @@ def test_kernel_float_params_f64():
 
     with pytest.raises(RuntimeError) as e:
         state = cudaq.State.from_data(f)
-    assert 'A numpy array with only floating point elements passed to state.from_data.' in repr(
+    assert 'A numpy array with only floating point elements passed to `state.from_data`.' in repr(
         e)
 
 
@@ -50,7 +50,7 @@ def test_kernel_float_params_f32():
 
     with pytest.raises(RuntimeError) as e:
         state = cudaq.State.from_data(f)
-    assert 'A numpy array with only floating point elements passed to state.from_data.' in repr(
+    assert 'A numpy array with only floating point elements passed to `state.from_data`.' in repr(
         e)
 
 
@@ -192,7 +192,7 @@ def test_kernel_complex128_capture_f64():
 
 
 @skipIfNvidiaFP64NotInstalled
-def test_kernel_complex128_capture_f64():
+def test_kernel_complex64_invalid_precision_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
 
@@ -292,6 +292,23 @@ def test_kernel_simulation_dtype_complex_params_f32():
 def test_kernel_simulation_dtype_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=cudaq.complex())
+    state = cudaq.State.from_data(c)
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(state)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+def test_kernel_simulation_dtype_capture_cpu():
+    cudaq.reset_target()
+    cudaq.set_target('qpp-cpu')
 
     c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
                  dtype=cudaq.complex())

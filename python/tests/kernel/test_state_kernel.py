@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -185,7 +185,7 @@ def test_state_vector_async():
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=np.complex128)
     state = future.get()
-    state.dump()
+    print(state)
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
     with pytest.raises(Exception) as error:

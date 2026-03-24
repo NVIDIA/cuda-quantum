@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -49,15 +49,25 @@ int main() {
 // CHECK:  gate ZN6kernelclEv(param0)  {
 // CHECK:  }
 
-// CHECK:  qreg var0[6];
-// CHECK:  x var0[5];
-// CHECK:  ch var0[4], var0[5];
-// CHECK:  rx(-6.700000e-01) var0[4];
-// CHECK:  x var0[3];
-// CHECK:  ch var0[2], var0[3];
-// CHECK:  ry(-6.700000e-01) var0[2];
-// CHECK:  x var0[1];
-// CHECK:  ch var0[0], var0[1];
-// CHECK:  rz(-6.700000e-01) var0[0];
-// CHECK:  creg var7[6];
-// CHECK:  measure var0 -> var7;
+// CHECK: qreg var0[6];
+// CHECK: x var0[5];
+// CHECK: ch var0[4], var0[5];
+// CHECK: rx(-6.700000e-01) var0[4];
+// CHECK: x var0[3];
+// CHECK: ch var0[2], var0[3];
+// CHECK: ry(-6.700000e-01) var0[2];
+// CHECK: x var0[1];
+// CHECK: ch var0[0], var0[1];
+// CHECK: rz(-6.700000e-01) var0[0];
+// CHECK: creg var7[1];
+// CHECK: measure var0[0] -> var7[0];
+// CHECK: creg var8[1];
+// CHECK: measure var0[1] -> var8[0];
+// CHECK: creg var9[1];
+// CHECK: measure var0[2] -> var9[0];
+// CHECK: creg var10[1];
+// CHECK: measure var0[3] -> var10[0];
+// CHECK: creg var11[1];
+// CHECK: measure var0[4] -> var11[0];
+// CHECK: creg var12[1];
+// CHECK: measure var0[5] -> var12[0];

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -31,11 +31,14 @@ def test_synthesize():
 
     print(ghz)
     ghz_synth = cudaq.synthesize(ghz, 5)
-    assert len(ghz_synth.argTypes) == 0
+    assert ghz_synth.launch_args_required() == 0
 
     counts = cudaq.sample(ghz_synth)
     counts.dump()
     assert len(counts) == 2 and '0' * 5 in counts and '1' * 5 in counts
+
+
+def test_synthesize_2():
 
     @cudaq.kernel
     def ansatz(angle: float):

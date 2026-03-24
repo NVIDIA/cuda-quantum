@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -32,6 +32,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
         %7 = quake.extract_ref %1[%6] : (!quake.veq<?>,i64) -> !quake.ref
         quake.x %7 : (!quake.ref) -> ()
       }
+      cc.return
     } : !cc.callable<() -> ()>
     %3 = cc.create_lambda {
       cc.scope {
@@ -40,6 +41,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
         %5 = quake.extract_ref %1[%4] : (!quake.veq<?>,i64) -> !quake.ref
         quake.h %5 : (!quake.ref) -> ()
       }
+      cc.return
     } : !cc.callable<() -> ()>
     quake.compute_action %2, %3 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
     return

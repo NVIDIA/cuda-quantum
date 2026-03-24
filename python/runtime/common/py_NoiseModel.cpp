@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -145,13 +145,13 @@ void bindNoiseModel(py::module &mod) {
             self.add_channel(opName, qubits, channel);
           },
           py::arg("operator"), py::arg("qubits"), py::arg("channel"),
-          R"#(Add the given :class:`KrausChannel` to be applied after invocation 
+          R"#(Add the given :class:`KrausChannel` to be applied after invocation
 of the specified quantum operation.
 
 Args:
   operator (str): The quantum operator to apply the noise channel to.
   qubits (List[int]): The qubit/s to apply the noise channel to.
-  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
+  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply
     to the specified `operator` on the specified `qubits`.)#")
       .def(
           "add_channel",
@@ -160,12 +160,12 @@ Args:
             self.add_channel(opName, pre);
           },
           py::arg("operator"), py::arg("pre"),
-          R"#(Add the given :class:`KrausChannel` generator callback to be applied after invocation 
+          R"#(Add the given :class:`KrausChannel` generator callback to be applied after invocation
 of the specified quantum operation.
 
 Args:
   operator (str): The quantum operator to apply the noise channel to.
-  pre (Callable): The callback which takes qubits operands and gate parameters and returns a concrete :class:`KrausChannel` to apply 
+  pre (Callable): The callback which takes qubits operands and gate parameters and returns a concrete :class:`KrausChannel` to apply
     to the specified `operator`.)#")
       .def(
           "add_all_qubit_channel",
@@ -175,12 +175,12 @@ Args:
           },
           py::arg("operator"), py::arg("channel"), py::arg("num_controls") = 0,
 
-          R"#(Add the given :class:`KrausChannel` to be applied after invocation 
+          R"#(Add the given :class:`KrausChannel` to be applied after invocation
 of the specified quantum operation on arbitrary qubits.
 
 Args:
   operator (str): The quantum operator to apply the noise channel to.
-  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
+  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply
     to the specified `operator` on any arbitrary qubits.
   num_controls: Number of control bits. Default is 0 (no control bits).)#")
       .def(
@@ -287,8 +287,11 @@ void bindNoiseChannels(py::module &mod) {
           py::arg("index"),
           "Return the :class:`KrausOperator` at the given index in this "
           ":class:`KrausChannel`.")
-      .def("append", &kraus_channel::push_back,
-           "Add a :class:`KrausOperator` to this :class:`KrausChannel`.");
+      .def(
+          "append",
+          [](kraus_channel &self, kraus_op op) { self.push_back(op); },
+          py::arg("operator"),
+          "Add a :class:`KrausOperator` to this :class:`KrausChannel`.");
 
   py::class_<depolarization_channel, kraus_channel>(
       mod, "DepolarizationChannel",
@@ -306,13 +309,13 @@ void bindNoiseChannels(py::module &mod) {
       K_3 = sqrt(probability / 3) * Z
 
       where I, X, Y, Z are the 2x2 Pauli matrices.
-      
-      The constructor expects a float value, `probability`, representing the 
+
+      The constructor expects a float value, `probability`, representing the
       probability the state decay will occur. The qubit will remain untouched,
       therefore, with a probability of `1 - probability`. And the X,Y,Z operators
       will be applied with a probability of `probability / 3`.
-      
-      For `probability = 0.0`, the channel will behave noise-free. 
+
+      For `probability = 0.0`, the channel will behave noise-free.
       For `probability = 0.75`, the channel will fully depolarize the state.
       For `probability = 1.0`, the channel will be uniform.)#")
       .def(py::init<std::vector<double>>())
@@ -326,16 +329,16 @@ void bindNoiseChannels(py::module &mod) {
   py::class_<amplitude_damping_channel, kraus_channel>(
       mod, "AmplitudeDampingChannel",
       R"#(Models the dissipation of energy due to system interactions with the
-      environment. 
+      environment.
 
       The Kraus Channels are thereby defined to be:
 
       K_0 = sqrt(1 - probability) * I
 
-      K_1 = sqrt(probability) * 0.5 * (X + iY) 
-      
+      K_1 = sqrt(probability) * 0.5 * (X + iY)
+
       Its constructor expects a float value, `probability`,
-      representing the probablity that the qubit will decay to its ground
+      representing the probability that the qubit will decay to its ground
       state. The probability of the qubit remaining in the same state is
       therefore `1 - probability`.)#")
       .def(py::init<std::vector<double>>())
@@ -348,18 +351,18 @@ void bindNoiseChannels(py::module &mod) {
 
   py::class_<bit_flip_channel, kraus_channel>(
       mod, "BitFlipChannel",
-      R"#(Models the decoherence of the qubit state. Its constructor expects a 
-      float value, `probability`, representing the probability that the qubit 
-      flips from the 1-state to the 0-state, or vice versa. E.g, the 
-      probability of a random X-180 rotation being applied to the qubit. 
-      
+      R"#(Models the decoherence of the qubit state. Its constructor expects a
+      float value, `probability`, representing the probability that the qubit
+      flips from the 1-state to the 0-state, or vice versa. E.g, the
+      probability of a random X-180 rotation being applied to the qubit.
+
       The Kraus Channels are thereby defined to be:
 
       K_0 = sqrt(1 - probability) * I
 
-      K_1 = sqrt(probability ) * X     
-      
-      The probability of the qubit remaining in the same state is therefore `1 - 
+      K_1 = sqrt(probability ) * X
+
+      The probability of the qubit remaining in the same state is therefore `1 -
       probability`.)#")
       .def(py::init<std::vector<double>>())
       .def(py::init<double>(), py::arg("probability"),
@@ -372,13 +375,13 @@ void bindNoiseChannels(py::module &mod) {
       mod, "PhaseFlipChannel",
       R"#(Models the decoherence of the qubit phase. Its constructor expects a
       float value, `probability`, representing the probability of a random
-      Z-180 rotation being applied to the qubit. 
-      
+      Z-180 rotation being applied to the qubit.
+
       The Kraus Channels are thereby defined to be:
 
       K_0 = sqrt(1 - probability) * I
 
-      K_1 = sqrt(probability ) * Z  
+      K_1 = sqrt(probability ) * Z
 
       The probability of the qubit phase remaining untouched is therefore
       `1 - probability`.)#")

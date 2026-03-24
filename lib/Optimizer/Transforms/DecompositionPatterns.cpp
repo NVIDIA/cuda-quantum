@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -532,7 +532,10 @@ struct ExpPauliDecomposition
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
-    rewriter.create<quake::RzOp>(loc, ValueRange{theta}, ValueRange{},
+    // Note: `Rz(theta)` = `exp(-i*theta/2 Z)`
+    Value negTwoTheta = rewriter.create<arith::MulFOp>(
+        loc, createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
+    rewriter.create<quake::RzOp>(loc, ValueRange{negTwoTheta}, ValueRange{},
                                  ValueRange{qubitSupport.back()});
 
     std::reverse(toReverse.begin(), toReverse.end());

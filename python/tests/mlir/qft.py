@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -32,86 +32,69 @@ def test_qft():
     print(iqft)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__iqft(
-# CHECK-SAME:             %[[VAL_0:.*]]: !quake.veq<?>)
-# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant -3.1415926535897931 : f64
-# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant -1 : i64
-# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
-# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
-# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_6:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-# CHECK:           %[[VAL_7:.*]] = cc.alloca i64
-# CHECK:           cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_9:.*]] = arith.floordivsi %[[VAL_8]], %[[VAL_5]] : i64
-# CHECK:           %[[VAL_10:.*]] = cc.loop while ((%[[VAL_11:.*]] = %[[VAL_4]]) -> (i64)) {
-# CHECK:             %[[VAL_12:.*]] = arith.cmpi slt, %[[VAL_11]], %[[VAL_9]] : i64
-# CHECK:             cc.condition %[[VAL_12]](%[[VAL_11]] : i64)
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__iqft..
+# CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant -3.1415926535897931 : f64
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant -1 : i64
+# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i64
+# CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_6:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_7:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_8:.*]] = cc.undef i64
+# CHECK:           %[[VAL_9:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+# CHECK:           %[[VAL_10:.*]] = arith.floordivsi %[[VAL_9]], %[[VAL_3]] : i64
+# CHECK:           %[[VAL_11:.*]]:2 = cc.loop while ((%[[VAL_12:.*]] = %[[VAL_5]], %[[VAL_13:.*]] = %[[VAL_8]]) -> (i64, i64)) {
+# CHECK:             %[[VAL_14:.*]] = arith.cmpi slt, %[[VAL_12]], %[[VAL_10]] : i64
+# CHECK:             cc.condition %[[VAL_14]](%[[VAL_12]], %[[VAL_13]] : i64, i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_13:.*]]: i64):
-# CHECK:             %[[VAL_50:.*]] = cc.alloca i64
-# CHECK:             cc.store %[[VAL_13]], %[[VAL_50]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_51:.*]] = cc.load %[[VAL_50]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_51]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_16:.*]] = arith.subi %[[VAL_15]], %[[VAL_51]] : i64
-# CHECK:             %[[VAL_17:.*]] = arith.subi %[[VAL_16]], %[[VAL_3]] : i64
-# CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_17]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             quake.swap %[[VAL_14]], %[[VAL_18]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_13]] : i64
+# CHECK:           ^bb0(%[[VAL_15:.*]]: i64, %[[VAL_16:.*]]: i64):
+# CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_15]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             %[[VAL_18:.*]] = arith.subi %[[VAL_9]], %[[VAL_15]] : i64
+# CHECK:             %[[VAL_19:.*]] = arith.subi %[[VAL_18]], %[[VAL_4]] : i64
+# CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_19]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             quake.swap %[[VAL_17]], %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_15]], %[[VAL_15]] : i64, i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_19:.*]]: i64):
-# CHECK:             %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_3]] : i64
-# CHECK:             cc.continue %[[VAL_20]] : i64
+# CHECK:           ^bb0(%[[VAL_21:.*]]: i64, %[[VAL_22:.*]]: i64):
+# CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_21]], %[[VAL_4]] : i64
+# CHECK:             cc.continue %[[VAL_23]], %[[VAL_22]] : i64, i64
 # CHECK:           }
-# CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_22:.*]] = arith.subi %[[VAL_21]], %[[VAL_3]] : i64
-# CHECK:           %[[VAL_23:.*]] = cc.loop while ((%[[VAL_24:.*]] = %[[VAL_4]]) -> (i64)) {
-# CHECK:             %[[VAL_25:.*]] = arith.cmpi slt, %[[VAL_24]], %[[VAL_22]] : i64
-# CHECK:             cc.condition %[[VAL_25]](%[[VAL_24]] : i64)
+# CHECK:           %[[VAL_24:.*]] = arith.subi %[[VAL_9]], %[[VAL_4]] : i64
+# CHECK:           %[[VAL_25:.*]]:4 = cc.loop while ((%[[VAL_26:.*]] = %[[VAL_5]], %[[VAL_27:.*]] = %[[VAL_28:.*]]#1, %[[VAL_29:.*]] = %[[VAL_7]], %[[VAL_30:.*]] = %[[VAL_6]]) -> (i64, i64, i64, i64)) {
+# CHECK:             %[[VAL_31:.*]] = arith.cmpi slt, %[[VAL_26]], %[[VAL_24]] : i64
+# CHECK:             cc.condition %[[VAL_31]](%[[VAL_26]], %[[VAL_27]], %[[VAL_29]], %[[VAL_30]] : i64, i64, i64, i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_26:.*]]: i64):
-# CHECK:             %[[VAL_52:.*]] = cc.alloca i64
-# CHECK:             cc.store %[[VAL_26]], %[[VAL_52]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_53:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_27:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_53]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             quake.h %[[VAL_27]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_54:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_28:.*]] = arith.addi %[[VAL_54]], %[[VAL_3]] : i64
-# CHECK:             %[[VAL_29:.*]] = cc.alloca i64
-# CHECK:             cc.store %[[VAL_28]], %[[VAL_29]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_55:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_30:.*]] = cc.loop while ((%[[VAL_31:.*]] = %[[VAL_55]]) -> (i64)) {
-# CHECK:               %[[VAL_32:.*]] = arith.cmpi sgt, %[[VAL_31]], %[[VAL_2]] : i64
-# CHECK:               cc.condition %[[VAL_32]](%[[VAL_31]] : i64)
+# CHECK:           ^bb0(%[[VAL_32:.*]]: i64, %[[VAL_33:.*]]: i64, %[[VAL_34:.*]]: i64, %[[VAL_35:.*]]: i64):
+# CHECK:             %[[VAL_36:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             quake.h %[[VAL_36]] : (!quake.ref) -> ()
+# CHECK:             %[[VAL_37:.*]] = arith.addi %[[VAL_32]], %[[VAL_4]] : i64
+# CHECK:             %[[VAL_38:.*]]:2 = cc.loop while ((%[[VAL_39:.*]] = %[[VAL_32]], %[[VAL_40:.*]] = %[[VAL_35]]) -> (i64, i64)) {
+# CHECK:               %[[VAL_41:.*]] = arith.cmpi sgt, %[[VAL_39]], %[[VAL_2]] : i64
+# CHECK:               cc.condition %[[VAL_41]](%[[VAL_39]], %[[VAL_40]] : i64, i64)
 # CHECK:             } do {
-# CHECK:             ^bb0(%[[VAL_33:.*]]: i64):
-# CHECK:               %[[VAL_56:.*]] = cc.alloca i64
-# CHECK:               cc.store %[[VAL_33]], %[[VAL_56]] : !cc.ptr<i64>
-# CHECK:               %[[VAL_34:.*]] = cc.load %[[VAL_29]] : !cc.ptr<i64>
-# CHECK:               %[[VAL_57:.*]] = cc.load %[[VAL_56]] : !cc.ptr<i64>
-# CHECK:               %[[VAL_35:.*]] = arith.subi %[[VAL_34]], %[[VAL_57]] : i64
-# CHECK:               %[[VAL_36:.*]] = math.ipowi %[[VAL_5]], %[[VAL_35]] : i64
-# CHECK:               %[[VAL_37:.*]] = cc.cast signed %[[VAL_36]] : (i64) -> f64
-# CHECK:               %[[VAL_38:.*]] = arith.divf %[[VAL_1]], %[[VAL_37]] : f64
-# CHECK:               %[[VAL_39:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_34]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:               %[[VAL_40:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_57]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:               quake.r1 (%[[VAL_38]]) {{\[}}%[[VAL_39]]] %[[VAL_40]] : (f64, !quake.ref, !quake.ref) -> ()
-# CHECK:               cc.continue %[[VAL_33]] : i64
+# CHECK:             ^bb0(%[[VAL_42:.*]]: i64, %[[VAL_43:.*]]: i64):
+# CHECK:               %[[VAL_44:.*]] = arith.subi %[[VAL_37]], %[[VAL_42]] : i64
+# CHECK:               %[[VAL_45:.*]] = math.ipowi %[[VAL_3]], %[[VAL_44]] : i64
+# CHECK:               %[[VAL_46:.*]] = cc.cast signed %[[VAL_45]] : (i64) -> f64
+# CHECK:               %[[VAL_47:.*]] = arith.divf %[[VAL_1]], %[[VAL_46]] : f64
+# CHECK:               %[[VAL_48:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_37]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:               %[[VAL_49:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_42]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:               quake.r1 (%[[VAL_47]]) {{\[}}%[[VAL_48]]] %[[VAL_49]] : (f64, !quake.ref, !quake.ref) -> ()
+# CHECK:               cc.continue %[[VAL_42]], %[[VAL_42]] : i64, i64
 # CHECK:             } step {
-# CHECK:             ^bb0(%[[VAL_41:.*]]: i64):
-# CHECK:               %[[VAL_42:.*]] = arith.addi %[[VAL_41]], %[[VAL_2]] : i64
-# CHECK:               cc.continue %[[VAL_42]] : i64
+# CHECK:             ^bb0(%[[VAL_50:.*]]: i64, %[[VAL_51:.*]]: i64):
+# CHECK:               %[[VAL_52:.*]] = arith.addi %[[VAL_50]], %[[VAL_2]] : i64
+# CHECK:               cc.continue %[[VAL_52]], %[[VAL_51]] : i64, i64
 # CHECK:             }
-# CHECK:             cc.continue %[[VAL_26]] : i64
+# CHECK:             cc.continue %[[VAL_32]], %[[VAL_32]], %[[VAL_37]], %[[VAL_53:.*]]#1 : i64, i64, i64, i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_43:.*]]: i64):
-# CHECK:             %[[VAL_44:.*]] = arith.addi %[[VAL_43]], %[[VAL_3]] : i64
-# CHECK:             cc.continue %[[VAL_44]] : i64
+# CHECK:           ^bb0(%[[VAL_54:.*]]: i64, %[[VAL_55:.*]]: i64, %[[VAL_56:.*]]: i64, %[[VAL_57:.*]]: i64):
+# CHECK:             %[[VAL_58:.*]] = arith.addi %[[VAL_54]], %[[VAL_4]] : i64
+# CHECK:             cc.continue %[[VAL_58]], %[[VAL_55]], %[[VAL_56]], %[[VAL_57]] : i64, i64, i64, i64
 # CHECK:           }
-# CHECK:           %[[VAL_45:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_46:.*]] = arith.subi %[[VAL_45]], %[[VAL_3]] : i64
-# CHECK:           %[[VAL_47:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_46]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:           quake.h %[[VAL_47]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_59:.*]] = arith.subi %[[VAL_9]], %[[VAL_4]] : i64
+# CHECK:           %[[VAL_60:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_59]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:           quake.h %[[VAL_60]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }

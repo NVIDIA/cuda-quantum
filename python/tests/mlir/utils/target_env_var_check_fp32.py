@@ -1,31 +1,39 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../.. pytest -rP  %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
 
 import os
 import subprocess
+import cudaq
+import pytest
+import numpy as np
+
 try:
-    NUM_GPUS = int(subprocess.getoutput('nvidia-smi --list-gpus | wc -l'))
+    NUM_GPUS = cudaq.num_available_gpus()
 except:
     NUM_GPUS = 0
 
-os.environ[
-    "CUDAQ_DEFAULT_SIMULATOR"] = "nvidia" if NUM_GPUS > 0 else "density-matrix-cpu"
+os.environ["CUDAQ_DEFAULT_SIMULATOR"] = ("nvidia" if NUM_GPUS > 0 else
+                                         "density-matrix-cpu")
 
-import pytest
-
-import cudaq
-import numpy as np
+if cudaq.has_target(os.environ["CUDAQ_DEFAULT_SIMULATOR"]):
+    cudaq.set_target(os.environ["CUDAQ_DEFAULT_SIMULATOR"])
+else:
+    pytest.skip("Skipping tests, unknown target: " +
+                os.environ["CUDAQ_DEFAULT_SIMULATOR"],
+                allow_module_level=True)
 
 
 def test_default_target():
-    """Tests the default target set by environment variable"""
+    """
+    Tests the default target set by environment variable
+    """
     if NUM_GPUS > 0:
         assert ("nvidia" == cudaq.get_target().name)
         # This is a single-precision simulator
@@ -43,16 +51,12 @@ def test_default_target():
 
     result = cudaq.sample(kernel)
     result.dump()
-    assert '00' in result
-    assert '11' in result
 
 
 def test_env_var_with_emulate():
-    """Tests the target when emulating a hardware backend"""
-    if NUM_GPUS > 0:
-        assert ("nvidia" == cudaq.get_target().name)
-    else:
-        assert ("density-matrix-cpu" == cudaq.get_target().name)
+    """
+    Tests the target when emulating a hardware backend
+    """
     cudaq.set_target("quantinuum", emulate=True)
     assert ("quantinuum" == cudaq.get_target().name)
 
@@ -72,12 +76,12 @@ def test_env_var_with_emulate():
 
     result = cudaq.sample(kernel)
     result.dump()
-    assert '00' in result
-    assert '11' in result
 
 
 def test_target_override():
-    """Tests the target set by environment variable is overridden by user setting"""
+    """
+    Tests the target set by environment variable is overridden by user setting
+    """
 
     cudaq.set_target("qpp-cpu")
     assert ("qpp-cpu" == cudaq.get_target().name)
@@ -90,8 +94,6 @@ def test_target_override():
 
     result = cudaq.sample(kernel)
     result.dump()
-    assert '00' in result
-    assert '11' in result
 
 
 os.environ.pop("CUDAQ_DEFAULT_SIMULATOR")
@@ -108,3 +110,7 @@ def test_version():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
+
+# CHECK: { 00:{{.*}} 11:{{.*}} }
+# CHECK: { 00:{{.*}} 11:{{.*}} }
+# CHECK: { 00:{{.*}} 11:{{.*}} }

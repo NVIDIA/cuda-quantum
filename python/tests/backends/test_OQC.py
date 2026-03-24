@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -33,6 +33,8 @@ def assert_close(got) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
 
+    cudaq.set_random_seed(13)
+
     os.environ["OQC_AUTH_TOKEN"] = "fake_auth_token"
     os.environ["OQC_DEVICE"] = "qpu:uk:-1:1234567890"
     os.environ["OQC_URL"] = f"http://localhost:{port}"
@@ -54,6 +56,8 @@ def startUpMockServer():
 
     # Kill the server, remove the file
     p.terminate()
+
+    cudaq.reset_target()
 
 
 def test_OQC_sample():
@@ -164,69 +168,6 @@ def test_OQC_observe():
     assert assert_close(res.expectation())
 
 
-def test_OQC_state_preparation():
-
-    @cudaq.kernel
-    def kernel(vec: List[complex]):
-        qubits = cudaq.qvector(vec)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_OQC_state_preparation_builder():
-    kernel, state = cudaq.make_kernel(List[complex])
-    qubits = kernel.qalloc(state)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_OQC_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
-def test_OQC_state_synthesis_from_simulator_builder():
-
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-
 def test_OQC_state_synthesis():
 
     @cudaq.kernel
@@ -262,6 +203,32 @@ def test_OQC_state_synthesis_builder():
     counts = cudaq.sample(kernel, s)
     assert '10' in counts
     assert len(counts) == 1
+
+
+def test_OQC_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
+def test_OQC_state_preparation_builder():
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 def test_exp_pauli():

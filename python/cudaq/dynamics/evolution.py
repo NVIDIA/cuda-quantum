@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -141,13 +141,10 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.asyncExec = is_async
-    cudaq_runtime.setExecutionContext(ctx)
-    cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
-    if is_async:
-        return ctx.asyncResult
-    res = ctx.result
-    cudaq_runtime.resetExecutionContext()
-    return res
+    with ctx:
+        cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
+
+    return ctx.asyncResult if is_async else ctx.result
 
 
 # FIXME: move to C++

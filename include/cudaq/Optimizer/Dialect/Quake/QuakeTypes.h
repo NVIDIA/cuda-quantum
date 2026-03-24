@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,13 +25,14 @@ namespace quake {
 inline bool isQuantumType(mlir::Type ty) {
   // NB: this intentionally excludes MeasureType.
   return mlir::isa<quake::RefType, quake::VeqType, quake::WireType,
-                   quake::ControlType, quake::StruqType>(ty);
+                   quake::ControlType, quake::StruqType, quake::CableType>(ty);
 }
 
 /// \returns true if \p `ty` is a Quake type.
 inline bool isQuakeType(mlir::Type ty) {
   // This should correspond to the registered types in QuakeTypes.cpp.
-  return isQuantumType(ty) || mlir::isa<quake::MeasureType>(ty);
+  return isQuantumType(ty) ||
+         mlir::isa<quake::MeasureType, quake::MeasurementsType>(ty);
 }
 
 /// \returns true if \p ty is a quantum reference type, excluding `struq`.
@@ -46,7 +47,7 @@ inline bool isQuantumReferenceType(mlir::Type ty) {
 
 /// A quake wire type is a linear type.
 inline bool isLinearType(mlir::Type ty) {
-  return mlir::isa<quake::WireType>(ty);
+  return mlir::isa<quake::WireType, quake::CableType>(ty);
 }
 
 inline bool isQuantumValueType(mlir::Type ty) {
@@ -54,6 +55,15 @@ inline bool isQuantumValueType(mlir::Type ty) {
 }
 
 bool isConstantQuantumRefType(mlir::Type ty);
+
+/// Get the number of references in \p ty. \p ty must be a reference type.
 std::size_t getAllocationSize(mlir::Type ty);
+
+/// Get the number of wires in \p ty. \p ty must be a value type.
+inline std::size_t getWireCount(mlir::Type ty) {
+  if (isa<quake::WireType, quake::ControlType>(ty))
+    return 1;
+  return cast<quake::CableType>(ty).getSize();
+}
 
 } // namespace quake

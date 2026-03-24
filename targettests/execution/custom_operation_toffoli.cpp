@@ -1,13 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
+// clang-format off
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
+// clang-format on
 
 #include <cudaq.h>
 
@@ -28,6 +30,7 @@ int main() {
   for (auto &[bits, count] : counts) {
     printf("%s\n", bits.data());
   }
+  return 0;
 }
 
 // CHECK: 110

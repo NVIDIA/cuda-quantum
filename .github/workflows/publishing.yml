@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.assets_repo || github.repository }}
           ref: ${{ vars.data_branch }}
@@ -353,7 +353,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -441,6 +441,11 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Extract cuda-quantum metadata
         id: metadata
@@ -545,7 +550,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -603,6 +608,11 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build installer
         uses: docker/build-push-action@v5
         with:
@@ -635,6 +645,27 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  cudaq_realtime_installers:
+    name: CUDA-Q Realtime installer
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    needs: assets
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    uses: ./.github/workflows/realtime_prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ matrix.platform }}
+      cuda_version: ${{ matrix.cuda_version }}
+      environment: ghcr-deployment
+
   cudaq_wheels:
     name: CUDA-Q Python wheels
     if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
@@ -657,7 +688,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -717,6 +748,11 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Build cuda-quantum wheel
         id: build_wheel
@@ -787,6 +823,80 @@ jobs:
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
+  macos_artifacts:
+    name: macOS artifacts
+    needs: assets
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+
+    outputs:
+      has_macos_wheels: ${{ steps.fetch.outputs.has_macos_wheels }}
+      has_macos_installer: ${{ steps.fetch.outputs.has_macos_installer }}
+
+    steps:
+      - name: Fetch macOS artifacts from Deployments run
+        id: fetch
+        run: |
+          artifacts_url="${{ needs.assets.outputs.artifacts_url }}"
+          if [ -z "$artifacts_url" ]; then
+            echo "No artifacts URL available."
+            echo "has_macos_wheels=false" >> $GITHUB_OUTPUT
+            echo "has_macos_installer=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          has_macos_wheels=false
+          has_macos_installer=false
+          mkdir -p wheels installer
+
+          while IFS= read -r artifact; do
+            name=$(echo "$artifact" | jq -r '.name')
+            url=$(echo "$artifact" | jq -r '.url')
+
+            if [[ "$name" == pycudaq-*-darwin-arm64 ]]; then
+              python_version=$(echo "$name" | sed 's/pycudaq-\(.*\)-darwin-arm64/\1/')
+              echo "Downloading macOS wheel: $name (Python $python_version)"
+              gh api "$url" > "${name}.zip"
+              unzip "${name}.zip" -d wheels/
+              rm "${name}.zip"
+              has_macos_wheels=true
+
+            elif [[ "$name" == cudaq-arm64-darwin-installer-* ]]; then
+              echo "Downloading macOS installer: $name"
+              gh api "$url" > "${name}.zip"
+              unzip "${name}.zip" -d installer/
+              rm "${name}.zip"
+              has_macos_installer=true
+            fi
+          done <<< "$(echo "$artifacts" | jq -c '.')"
+
+          echo "has_macos_wheels=$has_macos_wheels" >> $GITHUB_OUTPUT
+          echo "has_macos_installer=$has_macos_installer" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Upload macOS wheels
+        if: steps.fetch.outputs.has_macos_wheels == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-arm64-wheels
+          path: wheels/
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload macOS installer
+        if: steps.fetch.outputs.has_macos_installer == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-arm64-installer
+          path: installer/
+          retention-days: 1
+          if-no-files-found: error
+
   image_validation_config:
     name: Configure image validation
     needs: cudaq_images
@@ -837,7 +947,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
           path: github-repo
@@ -866,7 +976,7 @@ jobs:
           rm -rf examples applications targets snippets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets && mv github-repo/docs/sphinx/snippets/python snippets
           mv github-repo/docs/notebook_validation.py .
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+          bash github-repo/scripts/validate_installation.sh $backends_to_test | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
           # Grab the first line where "Testing on nvidia target..." starts
@@ -937,7 +1047,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -985,44 +1095,62 @@ jobs:
 
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
-          # The easiest is to just install it via conda.
+          # Install conda to a shared path so the non-root test user can access MPI.
           dnf install -y --nobest --setopt=install_weak_deps=False wget
-          mkdir -p ~/.miniconda3
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/.miniconda3/miniconda.sh
-          bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
-          rm -rf ~/.miniconda3/miniconda.sh
-          eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+          conda_prefix=/opt/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O /tmp/miniconda.sh
+          bash /tmp/miniconda.sh -b -u -p "$conda_prefix"
+          rm -f /tmp/miniconda.sh
+          eval "$($conda_prefix/bin/conda shell.bash hook)"
           conda install -y -c conda-forge openmpi">=5.0.7"
-
-          echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
-          echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
-          echo "export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'" >> ~/.bashrc
+          chmod -R a+rX "$conda_prefix"
 
       - name: Install and run sanity checks
         shell: bash
-        env:
-          BASH_ENV: ~/.bashrc
         run: |
+          useradd -m cudaqtest
+          install_path=/home/cudaqtest/.cudaq
+          mkdir -p "$install_path"
+          chown cudaqtest "$install_path"
+
           installer=install_cuda_quantum_cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1).x86_64
           chmod +x /tmp/install/$installer
-          /tmp/install/$installer --accept
-          rm -rf examples applications targets
-          mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets
-          rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
+          su cudaqtest -c "bash /tmp/install/$installer --accept -- --installpath $install_path"
 
-          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash -l scripts/validate_container.sh | tee /tmp/validation.out
+          # Set up the test user's environment for MPI (RHEL conda path)
+          cat >> /home/cudaqtest/.bashrc << 'ENVEOF'
+          if [ -d /opt/miniconda3 ]; then
+            eval "$(/opt/miniconda3/bin/conda shell.bash hook)"
+            export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CONDA_PREFIX/lib"
+            export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+          fi
+          ENVEOF
+          chown cudaqtest /home/cudaqtest/.bashrc
+
+          # Copy validation inputs to the test user's workspace
+          workdir=/home/cudaqtest/validation
+          mkdir -p "$workdir"
+          cp -R docs/sphinx/examples "$workdir/examples"
+          cp -R docs/sphinx/applications "$workdir/applications"
+          cp -R docs/sphinx/targets "$workdir/targets"
+          rm -rf "$workdir/examples/python" "$workdir/applications/python" "$workdir/targets/python"
+          cp scripts/validate_installation.sh "$workdir/"
+          chown -R cudaqtest "$workdir"
+
+          touch "$GITHUB_STEP_SUMMARY"
+          chmod a+w "$GITHUB_STEP_SUMMARY"
+
+          su cudaqtest -ls /bin/bash -c "
+            source ${install_path}/set_env.sh
+            cd ${workdir}
+            GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
+            bash validate_installation.sh | tee /tmp/validation.out
+          "
 
           # Check that the tests included the nvidia-mgpu backend:
-          # Grab the first line where "Testing on nvidia target..." starts
-          # The first should be okay, since any target being tested against
-          # nvidia should be using all the options for the validation script.
           nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
-
-          # From that line, extract the block until the next "Testing on" or EOF
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
 
-          # Check if "fp32,mgpu" is present
           if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
             echo "::error::Missing tests for nvidia fp32,mgpu backend."
             echo "Observed target options:"
@@ -1053,7 +1181,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -1156,7 +1284,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -1212,9 +1340,82 @@ jobs:
             exit $status_sum
           fi
 
+  metapackage_validation_macos:
+    name: Python metapackage validation, macOS
+    needs: [assets, cudaq_metapackages, macos_artifacts]
+    if: needs.macos_artifacts.outputs.has_macos_wheels == 'true'
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download macOS wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: darwin-arm64-wheels
+          path: /tmp/wheels
+
+      - name: Download metapackage
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          path: /tmp/metapackages
+
+      - name: Validate metapackage install chain
+        run: |
+          mkdir -p /tmp/packages
+          mv /tmp/wheels/* /tmp/packages
+          mv /tmp/metapackages/* /tmp/packages
+
+          python3 -m venv /tmp/metapackage-test
+          source /tmp/metapackage-test/bin/activate
+          pip install --upgrade pip
+
+          pip install "cudaq==${{ needs.assets.outputs.cudaq_version }}" \
+            --find-links "file:///tmp/packages"
+
+          expected_dependency=cuda-quantum-cu13
+          if [ -z "$(pip list | grep ${expected_dependency})" ]; then
+            echo "::error::Metapackage did not install ${expected_dependency}."
+            exit 1
+          fi
+          if [ "$(python3 -c 'import cudaq; print(cudaq.get_target().name)')" != "qpp-cpu" ]; then
+            echo "::error::Unexpected cudaq target after metapackage install."
+            exit 1
+          fi
+          deactivate
+
+      - name: Run validation test suite
+        shell: bash
+        run: |
+          set +e
+          source scripts/validate_pycudaq.sh \
+            -v ${{ needs.assets.outputs.cudaq_version }} \
+            -i /tmp/packages \
+            -p 3.12 -F
+          set -e
+
+          expected_dependency=cuda-quantum-cu13
+          if [ -z "$(pip list | grep ${expected_dependency})" ]; then
+            echo "::error::Missing installation of ${expected_dependency} package."
+            exit 1
+          fi
+          if [ "$status_sum" -ne "0" ]; then
+            echo "::error::Error running validation script"
+            exit $status_sum
+          fi
+
   create_release:
     name: CUDA-Q Release
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, metapackage_validation_macos, cudaq_realtime_installers]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -1240,6 +1441,12 @@ jobs:
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: metapackages
+
+      - name: Download CUDA-Q Realtime installer
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'install_cuda_quantum_realtime_*'
+          path: installers
 
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
@@ -1288,7 +1495,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, image_validation, installer_validation, metapackage_validation_conda, wheel_validation_piponly, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, cudaq_realtime_installers, image_validation, installer_validation, metapackage_validation_conda, metapackage_validation_macos, wheel_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

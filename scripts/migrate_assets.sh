@@ -1,12 +1,36 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+
+# Portable sed -i (BSD requires '' argument, GNU doesn't)
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        # GNU sed
+        sed -i "$@"
+    else
+        # BSD/macOS sed requires '' for in-place editing without backup
+        sed -i '' "$@"
+    fi
+}
+
+# Portable find for broken symlinks (macOS doesn't support -xtype)
+# Usage: find_symlinks <path>
+find_symlinks() {
+    if find --version 2>/dev/null | grep -q GNU; then
+        # GNU find: -xtype l finds symlinks whose target doesn't exist
+        find "$1" -xtype l 2>/dev/null
+    else
+        # macOS: find symlinks (-type l), keep only those where target doesn't
+        # exist (! -exec test -e), then print.
+        find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null
+    fi
+}
 
 # This scripts moves CUDA-Q assets to the correct locations.
 #
@@ -33,7 +57,17 @@
 # does not perform any validation regarding whether the copied
 # files are compatible or functional after moving them.
 
-# Process command line arguments
+# Process command line arguments.
+# Pre-process long options (getopts only handles short options).
+args=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --installpath) args+=(-t "$2"); shift 2 ;;
+        *) args+=("$1"); shift ;;
+    esac
+done
+set -- "${args[@]}"
+
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:s:t:" opt; do
@@ -54,7 +88,7 @@ OPTIND=$__optind__
 
 if $install; then
     CUDA_QUANTUM_PATH="$target" && mkdir -p "$CUDA_QUANTUM_PATH"
-    CUDAQ_INSTALL_PREFIX=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+    CUDAQ_INSTALL_PREFIX="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 elif [ -z "$CUDA_QUANTUM_PATH" ] && [ -z "$CUDAQ_INSTALL_PREFIX" ]; then 
     echo -e "\e[01;31mError: Neither CUDAQ_INSTALL_PREFIX nor CUDA_QUANTUM_PATH are defined.\e[0m" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -74,6 +108,31 @@ if [ ! -f "$build_config" ]; then
 fi
 
 remove_assets="$CUDA_QUANTUM_PATH/$($install && echo uninstall.sh || echo remove_assets.sh)"
+
+# Initialize the uninstall script with portable helper functions
+cat > "$remove_assets" << 'EOF_HELPERS'
+#!/bin/bash
+# Portable sed -i (BSD requires '' argument, GNU doesn't)
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+# Portable find for broken symlinks (macOS doesn't support -xtype)
+find_symlinks() {
+    if find --version 2>/dev/null | grep -q GNU; then
+        # GNU find: -xtype l finds symlinks whose target doesn't exist
+        find "$1" -xtype l 2>/dev/null
+    else
+        # macOS/BSD: find symlinks (-type l), filter to those where target
+        # doesn't exist (! -exec test -e)
+        find "$1" -type l ! -exec test -e {} \; -print 2>/dev/null
+    fi
+}
+EOF_HELPERS
+
 echo "Migrating assets in $assets."
 echo "Using build configuration $build_config."
 echo "The script to remove the migrated files can be found in $remove_assets."
@@ -103,33 +162,25 @@ function move_artifacts {
 
     find . -type f -print0 | while IFS= read -r -d '' file;
     do 
-        if [ ! -f "$2/$file" ]; 
-        then 
-            echo -e "\tadding file $2/$file"
-            mkdir -p "$(dirname "$2/$file")" -m 755 # need x permissions to see content
-            mv "$file" "$2/$file"
-            echo '  echo -e "\tremoving file '$2/$file'"' >> "$remove_assets"
-            echo "  rm $2/$file" >> "$remove_assets"
-            echo '  rmdir -p "'$(dirname "$2/$file")'" 2> /dev/null || true' >> "$remove_assets"
-            chmod a+rX "$2/$file" # add x permissions only for executables
-        fi
+        echo -e "\tadding file $2/$file"
+        mkdir -p "$(dirname "$2/$file")" -m 755
+        mv "$file" "$2/$file"
+        echo '  echo -e "\tremoving file '$2/$file'"' >> "$remove_assets"
+        echo "  rm $2/$file" >> "$remove_assets"
+        echo '  rmdir -p "'$(dirname "$2/$file")'" 2> /dev/null || true' >> "$remove_assets"
+        chmod a+rX "$2/$file"
     done
-    for symlink in `find -L . -xtype l`;
-    do
-        if [ ! -f "$2/$symlink" ]; 
-        then
-            echo -e "\tadding symbolic link $2/$symlink"
-            mkdir -p "$(dirname "$2/$symlink")" -m 755 # need x permissions to see content
-            mv "$symlink" "$2/$symlink"
-            echo '  echo -e "\tremoving symbolic link '$2/$symlink'"' >> "$remove_assets"
-            echo "  rm $2/$symlink" >> "$remove_assets"
-            echo '  rmdir -p "'$(dirname "$2/$symlink")'" 2> /dev/null || true' >> "$remove_assets"
-        fi
+    for symlink in $(find_symlinks .); do
+        echo -e "\tadding symbolic link $2/$symlink"
+        mkdir -p "$(dirname "$2/$symlink")" -m 755
+        mv "$symlink" "$2/$symlink"
+        echo '  echo -e "\tremoving symbolic link '$2/$symlink'"' >> "$remove_assets"
+        echo "  rm $2/$symlink" >> "$remove_assets"
+        echo '  rmdir -p "'$(dirname "$2/$symlink")'" 2> /dev/null || true' >> "$remove_assets"
     done
-    for symlink in `find -L $2 -xtype l`;
-    do
-        if [ ! -e "$symlink" ] ; then
-            echo -e "\e[01;31mError: Broken symbolic link $symlink pointing to $(readlink -f $symlink).\e[0m" >&2
+    for symlink in $(find_symlinks "$2"); do
+        if [ ! -e "$symlink" ]; then
+            echo -e "\e[01;31mError: Broken symbolic link $symlink pointing to $(realpath "$symlink").\e[0m" >&2
             (return 0 2>/dev/null) && return 1 || exit 1
         fi
     done
@@ -151,18 +202,18 @@ while rdom; do
     elif [ "$E" = "CUQUANTUM_INSTALL_PREFIX" ]; then
         if [ -d "$assets/cuquantum" ]; then
             move_artifacts "$assets/cuquantum" "$C"
-        elif $install; then
+        elif $install && [ "$(uname)" != "Darwin" ]; then
             echo -e "\e[01;31mError: Missing cuQuantum assets for installation.\e[0m" >&2
             (return 0 2>/dev/null) && return 1 || exit 1
         fi
     elif [ "$E" = "CUTENSOR_INSTALL_PREFIX" ]; then
         if [ -d "$assets/cutensor" ]; then
             move_artifacts "$assets/cutensor" "$C"
-        elif $install; then
+        elif $install && [ "$(uname)" != "Darwin" ]; then
             echo -e "\e[01;31mError: Missing cuTensor assets for installation.\e[0m" >&2
             (return 0 2>/dev/null) && return 1 || exit 1
         fi
-    elif [ -n "$(echo $C | tr -d ' ')" ] && [ -d "$assets/$E" ]; then
+    elif [ -n "${C// /}" ] && [ -d "$assets/$E" ]; then
         move_artifacts "$assets/$E" "$C"
     fi
 done < "$build_config"
@@ -182,8 +233,8 @@ function update_profile {
     echo "Configuring CUDA-Q environment variables in $1."
     echo 'CUDAQ_INSTALL_PATH="'${CUDA_QUANTUM_PATH}'"' >> "$1"
     echo '. "${CUDAQ_INSTALL_PATH}/set_env.sh"' >> "$1"
-    echo "sed -i '/^CUDAQ_INSTALL_PATH=/d' \"$1\"" >> "$remove_assets"
-    echo "sed -i '/"'${CUDAQ_INSTALL_PATH}'"\/set_env.sh/d' \"$1\"" >> "$remove_assets"
+    echo "sed_inplace '/^CUDAQ_INSTALL_PATH=/d' \"$1\"" >> "$remove_assets"
+    echo "sed_inplace '/"'${CUDAQ_INSTALL_PATH}'"\/set_env.sh/d' \"$1\"" >> "$remove_assets"
 }
 
 if $install; then
@@ -206,6 +257,8 @@ if $install; then
     fi
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then
         update_profile /etc/zprofile
+    elif [ -f $HOME/.zshrc ] || [ "$(basename "$SHELL")" = "zsh" ] || [ "$(uname)" = "Darwin" ]; then
+        update_profile $HOME/.zshrc
     fi
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then
         plugin_path="${CUDA_QUANTUM_PATH}/distributed_interfaces"
@@ -228,8 +281,9 @@ if $install; then
     echo 'fi' >> "$remove_assets"
 fi
 
-this_file=`readlink -f "${BASH_SOURCE[0]}"`
-remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$build_config"`)
+this_file="$(realpath "${BASH_SOURCE[0]}")"
+install_script="$(dirname "$this_file")/install.sh"
+remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$install_script" -not -path "$build_config"`)
 if [ ! ${#remaining_files[@]} -eq 0 ]; then
     rel_paths=(${remaining_files[@]##$assets/})
     components=(`echo "${rel_paths[@]%%/*}" | tr ' ' '\n' | uniq`)

@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -121,7 +121,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
   }];
 
   let arguments = (ins
-    VeqType:$targets,
+    NonStruqRefType:$targets,
     AnyStateInitType:$state
   );
   let results = (outs VeqType);
@@ -172,23 +172,35 @@ def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
   let summary = "Construct a veq from a list of other ref/veq values.";
   let description = [{
     The `concat` operation allows one to concatenate a list of SSA-values of
-    either type Ref or Veq into a new Veq vector.
+    either type `ref`, `struq`, or `veq` into a new `veq` vector.
+
+    `concat` can also perform size relaxation as a side-effect if the result
+    type is specified as `!quake.veq<?>`.
 
     Example:
     ```mlir
-      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.veq<?>,
-                                           !quake.ref) -> !quake.veq<?>
+      %v1 = quake.concat %ra, %vb, %rc : (!quake.ref, !quake.veq<?>,
+                                          !quake.ref) -> !quake.veq<?>
+      %v2 = quake.concat %rd, %ve, %rf : (!quake.ref, !quake.veq<3>,
+                                          !quake.ref) -> !quake.veq<5>
+      %v3 = quake.concat %vg, %vh, %vi : (!quake.veq<3>, !quake.veq<2>,
+                                          !quake.veq<4>) -> !quake.veq<?>
+      %v4 = quake.concat %sj : (!quake.struq<!quake.veq<2>, !quake.ref>) ->
+                                !quake.veq<3>
+      %v5 = quake.concat %sk : (!quake.struq<!quake.veq<2>, !quake.ref>) ->
+                                !quake.veq<?>
     ```
   }];
 
-  let arguments = (ins Variadic<AnyRefType>:$qbits);
+  let arguments = (ins Variadic<AnyRefType>:$targets);
   let results = (outs VeqType);
 
   let assemblyFormat = [{
-    $qbits attr-dict `:` functional-type(operands, results)
+    $targets attr-dict `:` functional-type(operands, results)
   }];
 
   let hasCanonicalizer = 1;
+  let hasVerifier = 1;
 }
 
 def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
@@ -587,6 +599,55 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
+def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
+  let summary = "Call a kernel casting wires to refs.";
+  let description = [{
+    This operation performs a wrap operation on the wire arguments, calls the
+    kernel argument, and unwraps the reference arguments back to wires in a
+    macro step.
+
+    Example:
+    ```mlir
+    // Specialization to cable4 of external `foo` device-only kernel.
+    func.func @foo(%a: !quake.veq<?>)
+    func.func @foo.wire.c4(%a: !quake.cable<4>) -> !quake.cable<4> {
+      %0 = quake.call_by_ref @foo(%a) : (!quake.cable<4>) -> !quake.cable<4>
+      return %0 : !quake.cable<4>
+    }
+
+    func.func @bar(%a: i32, %b: !quake.veq<?>) -> f64
+    func.func @bar.wire.c3(%a: i32 , %b: !quake.cable<3>) ->
+         (f64, !quake.cable<3>) {
+      %0:2 = quake.call_by_ref @bar(%a, %b) : (i32, !quake.cable<3>) ->
+         (f64, !quake.cable<3>)
+      return %0#0, %0#1 : (f64, !quake.cable<3>)
+    }
+    ```
+  }];
+
+  let arguments = (ins
+    SymbolRefAttr:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>);
+
+  let assemblyFormat = [{
+    $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    operand_range getArgOperands() {
+      return {operand_begin(), operand_end()};
+    }
+    
+    mlir::CallInterfaceCallable getCallableForCallee() {
+      return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
+    }
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Qubit value semantics: NullWire, Sink
 //===----------------------------------------------------------------------===//
@@ -630,10 +691,10 @@ def quake_SinkOp : QuakeOp<"sink"> {
   }];
 
   let arguments = (ins
-    Arg<WireType, "wire to sink", [MemRead, MemWrite]>:$target
+    Arg<AnyQLinearType, "wire to sink", [MemRead, MemWrite]>:$target
   );
   let assemblyFormat = [{
-     $target `:` qualified(type(operands)) attr-dict
+     $target `:` type(operands) attr-dict
   }];
 }
 
@@ -654,7 +715,7 @@ def quake_NullCableOp : QuakeOp<"null_cable"> {
   }];
 }
 
-def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
+def quake_BundleCableOp : QuakeOp<"bundle_cable", [Pure]> {
   let summary = "Bundle a list of wire values into a single cable value.";
   let description = [{
     This operation can be used as syntactic sugar to logically bind any number
@@ -662,7 +723,7 @@ def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
     a size that exactly matches the arity of the arguments.
 
     The order of the wires as presented at the `bundle_cable` operation will be
-    the exact same order as will be found in the results of a `terminate_cable`
+    the exact same order as will be found in the results of a `split_cable`
     operation.
   }];
 
@@ -675,12 +736,13 @@ def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
   let hasVerifier = 1;
 }
 
-def quake_TerminateCableOp : QuakeOp<"terminate_cable"> {
-  let summary = "Termination of a cable of wires, exposing all the wires.";
+def quake_SplitCableOp : QuakeOp<"split_cable", [Pure]> {
+  let summary = "Split a cable exposing all the wires it contains.";
   let description = [{
-    This operation can be used as syntactic sugar at the termination of a cable
-    of wires. This exposed all the wires in a cable as individual wire values.
-    All wires are linear types and must be used exactly one time.
+    This operation can be used as syntactic sugar at a point where wires bundled
+    into a cable need to be dealt with individually. This operation exposes all
+    the wires in a cable as individual wire values. All resulting wires have
+    linear types and must be used exactly one time after this operation.
   }];
   
   let arguments = (ins CableType:$cable);
@@ -692,21 +754,87 @@ def quake_TerminateCableOp : QuakeOp<"terminate_cable"> {
   let hasVerifier = 1;
 }
 
-def quake_SinkCableOp : QuakeOp<"sink_cable"> {
-  let summary = "Sink a cable of quantum wires.";
+def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
+  let summary = "Split a cable exposing a single wire and a new cable.";
   let description = [{
-    This operation can be used as syntactic sugar for connecting a set of wire
-    values to a series of `quake.sink` operations. It can be used, possibly, to
-    declutter code by combining a long sequence of `quake.sink` operations.
+    This operation can be used as syntactic sugar for extracting a single wire
+    value from out of a cable value. The remaining wires in the cable are
+    retained in a new cable with a size reduced by 1. The relative positions in
+    the new cable are maintained, with the wires after the removed wire's
+    position all shifted down by 1.
+
+    This syntactic sugar is provided to capture a common array-like idiom and
+    give the illusion that cables can be used like an imperative array.
+
+    Example:
+    ```mlir
+      // create a cable with 3 wires: 0, 1, and 2
+      %20 = quake.null_cable !quake.cable<3>
+      %21:2 = quake.left_tee %20[1] : (!quake.cable<3>) -> (!quake.wire,
+                                                            !quake.cable<2>)
+      // %21#0 contains wire 1 previously at position 1 in %20
+      // %21#1 contains wire 0 at position 0, and wire 2 at position 1
+    ```
+
+    See also `quake.right_tee`.
   }];
 
   let arguments = (ins
-    Arg<CableType, "cable destroyed", [MemRead, MemWrite]>:$cable
+    CableType:$cable,
+    I64Attr:$index
+  );
+  let results = (outs
+    WireType:$wireOut,
+    CableType:$cableOut
   );
 
   let assemblyFormat = [{
-    $cable `:` type($cable) attr-dict
+    $cable `[` $index `]` `:` functional-type(operands, results) attr-dict
   }];
+  let hasVerifier = 1;
+}
+
+def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
+  let summary = "Compose a cable from a single wire and an existing cable.";
+  let description = [{
+    This operation can be used as syntactic sugar for inserting a single wire
+    value into a cable value. This is a pure insertion operation and the wire
+    will be placed in the specified position. Wires in the cable argument will
+    be shifted by 1 if at and above the requested position to facilitate the
+    insertion operation. For example, this means an insertion at position 0 will
+    necessarily shift all the wires in the original cable argument up by 1.
+    (See also the example.)
+
+    This syntactic sugar is provided to capture a common array-like idiom and
+    give the illusion that cables can be used like an imperative array.
+
+    Example:
+    ```mlir
+      // create a cable with 3 wires: 0, 1, and 2
+      %20 = quake.null_cable !quake.cable<3>
+      %21:2 = quake.left_tee %20[1] : (!cable<3>) -> (!wire, !cable<2>)
+      // %21#0 contains wire 1 previous at position 1 in %20
+      // %21#1 contains wire 0 at position 0, and wire 2 at position 1
+      %22 = quake.right_tee %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
+      // %22 contains wire 0 at position 0, wire 2 at position 1,
+      // and wire 1 at position 2 as they were originally created in %20
+    ```
+
+    See also `quake.left_tee`.
+  }];
+
+  let arguments = (ins
+    WireType:$wire,
+    CableType:$cable,
+    I64Attr:$index
+  );
+  let results = (outs CableType:$cableOut);
+
+  let assemblyFormat = [{
+    $wire `,` $cable `[` $index `]` `:` functional-type(operands, results)
+      attr-dict
+  }];
+  let hasVerifier = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1024,6 +1152,64 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// GetMeasureOp
+//===----------------------------------------------------------------------===//
+
+def quake_GetMeasureOp : QuakeOp<"get_measure", [Pure]> {
+  let summary =
+    "Extract a single measurement from a measurements collection.";
+  let description = [{
+    Extracts a single `!quake.measure` value from a `!quake.measurements<N>`
+    collection by index. This is analogous to `quake.extract_ref` for qubits.
+
+    Example:
+    ```mlir
+      %m = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
+    ```
+  }];
+
+  let arguments = (ins
+    MeasurementsType:$measurements,
+    Optional<AnySignlessIntegerOrIndex>:$index,
+    I64Attr:$rawIndex
+  );
+  let results = (outs MeasureType:$measure);
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index,
+                   "mlir::IntegerAttr":$rawIndex), [{
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, index, rawIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index), [{
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, index, GetMeasureOp::kDynamicIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$measurements, "std::size_t":$rawIndex), [{
+      auto i64Ty = $_builder.getI64Type();
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, mlir::Value{},
+                   mlir::IntegerAttr::get(i64Ty, rawIndex));
+    }]>
+  ];
+
+  let assemblyFormat = [{
+    $measurements `[` custom<RawIndex>($index, $rawIndex) `]` `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    static constexpr std::size_t kDynamicIndex =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasConstantIndex() { return !getIndex(); }
+    std::size_t getConstantIndex() { return getRawIndex(); }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1656,7 +1842,8 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
   let summary = "Create state from data";
   let description = [{
     This operation takes a pointer to state data and creates a quantum state,
-    where state data is a pointer to an array of float or complex numbers.
+    where state data is a pointer to an array of float or complex numbers
+    along with the its length (number of elements in the array).
     The operation can be optimized away in DeleteStates pass, or replaced
     by an intrinsic runtime call on simulators.
 

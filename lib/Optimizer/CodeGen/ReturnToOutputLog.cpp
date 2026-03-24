@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -46,8 +46,7 @@ public:
   }
 
   static void genOutputLog(Location loc, PatternRewriter &rewriter, Value val,
-                           std::optional<StringRef> prefix,
-                           std::optional<Value> customLabel = std::nullopt) {
+                           std::optional<StringRef> prefix) {
     Type valTy = val.getType();
     TypeSwitch<Type>(valTy)
         .Case([&](IntegerType intTy) {
@@ -55,8 +54,7 @@ public:
           std::string labelStr = std::string("i") + std::to_string(width);
           if (prefix)
             labelStr = prefix->str();
-          Value label =
-              customLabel.value_or(makeLabel(loc, rewriter, labelStr));
+          Value label = makeLabel(loc, rewriter, labelStr);
           if (intTy.getWidth() == 1) {
             rewriter.create<func::CallOp>(loc, TypeRange{},
                                           cudaq::opt::QIRBoolRecordOutput,
@@ -82,8 +80,7 @@ public:
           std::string labelStr = std::string("f") + std::to_string(width);
           if (prefix)
             labelStr = prefix->str();
-          Value label =
-              customLabel.value_or(makeLabel(loc, rewriter, labelStr));
+          Value label = makeLabel(loc, rewriter, labelStr);
           // Floating point: convert it to double, whatever it actually is.
           Value castVal = val;
           if (floatTy != rewriter.getF64Type())
@@ -97,8 +94,7 @@ public:
           auto labelStr = translateType(structTy);
           if (prefix)
             labelStr = prefix->str();
-          Value label =
-              customLabel.value_or(makeLabel(loc, rewriter, labelStr));
+          Value label = makeLabel(loc, rewriter, labelStr);
           std::int32_t sz = structTy.getNumMembers();
           Value size = rewriter.create<arith::ConstantIntOp>(loc, sz, 64);
           rewriter.create<func::CallOp>(loc, TypeRange{},
@@ -115,8 +111,7 @@ public:
         })
         .Case([&](cudaq::cc::ArrayType arrTy) {
           auto labelStr = translateType(arrTy);
-          Value label =
-              customLabel.value_or(makeLabel(loc, rewriter, labelStr));
+          Value label = makeLabel(loc, rewriter, labelStr);
           std::int32_t sz = arrTy.getSize();
           Value size = rewriter.create<arith::ConstantIntOp>(loc, sz, 64);
           rewriter.create<func::CallOp>(loc, TypeRange{},
@@ -133,12 +128,13 @@ public:
           }
         })
         .Case([&](cudaq::cc::StdvecType vecTy) {
+          // For this type, we expect a cc.stdvec_init operation as the input.
+          // The data will be in a variable.
+          // If we reach here and we cannot determine the constant size of the
+          // buffer, then we will not generate any output logging.
           if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>())
             if (auto maybeLen = cudaq::opt::factory::maybeValueOfIntConstant(
                     vecInit.getLength())) {
-              // For this type, we expect a cc.stdvec_init operation as the
-              // input.
-              // The data will be in a variable.
               std::int32_t sz = *maybeLen;
               auto labelStr = translateType(vecTy, sz);
               Value label = makeLabel(loc, rewriter, labelStr);
@@ -162,55 +158,7 @@ public:
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
                 genOutputLog(loc, rewriter, w, offset);
               }
-              return;
             }
-
-          // If we reach here and we cannot determine the constant size of the
-          // buffer, then we will generate dynamic output logging with a for
-          // loop.
-          Value vecSz = rewriter.template create<cudaq::cc::StdvecSizeOp>(
-              loc, rewriter.getI64Type(), val);
-          const std::string arrayLabelPrefix =
-              "array<" + translateType(vecTy.getElementType()) + " x ";
-          Value labelBuffer =
-              makeLabel(loc, rewriter, arrayLabelPrefix, vecSz, ">");
-          rewriter.create<func::CallOp>(loc, TypeRange{},
-                                        cudaq::opt::QIRArrayRecordOutput,
-                                        ArrayRef<Value>{vecSz, labelBuffer});
-          auto eleTy = vecTy.getElementType();
-          const bool isBool = (eleTy == rewriter.getI1Type());
-          if (isBool)
-            eleTy = rewriter.getI8Type();
-          auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-          auto eleArrTy =
-              cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
-          auto vecPtr =
-              rewriter.create<cudaq::cc::StdvecDataOp>(loc, eleArrTy, val);
-          const std::string preStr = prefix ? prefix->str() : std::string{};
-          cudaq::opt::factory::createInvariantLoop(
-              rewriter, loc, vecSz,
-              [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-                Value indexVar = block.getArgument(0);
-                auto eleAddr = rewriter.create<cudaq::cc::ComputePtrOp>(
-                    loc, elePtrTy, vecPtr, ValueRange{indexVar});
-
-                Value w = [&]() {
-                  if (isBool) {
-                    auto i1PtrTy =
-                        cudaq::cc::PointerType::get(rewriter.getI1Type());
-                    auto i1Cast = rewriter.create<cudaq::cc::CastOp>(
-                        loc, i1PtrTy, eleAddr);
-                    return rewriter.create<cudaq::cc::LoadOp>(loc, i1Cast);
-                  }
-
-                  return rewriter.create<cudaq::cc::LoadOp>(loc, eleAddr);
-                }();
-                const std::string prefix = preStr + "[";
-                const std::string postfix = "]";
-                Value dynamicLabel =
-                    makeLabel(loc, rewriter, prefix, indexVar, postfix);
-                genOutputLog(loc, rewriter, w, std::nullopt, dynamicLabel);
-              });
         })
         .Default([&](Type) {
           // If we reach here, we don't know how to handle this type.
@@ -259,69 +207,6 @@ public:
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     return rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, lit);
   }
-
-  static Value makeLabel(Location loc, PatternRewriter &rewriter,
-                         const std::string &prefix, Value val,
-                         const std::string &postFix) {
-    auto i64Ty = rewriter.getI64Type();
-    auto i8Ty = rewriter.getI8Type();
-    auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
-    // Value must be i64
-    if (val.getType() != i64Ty)
-      val = rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, val);
-    // Compute the number of digits required
-    Value numDigits = rewriter
-                          .create<func::CallOp>(
-                              loc, i64Ty, "__nvqpp_internal_number_of_digits",
-                              ArrayRef<Value>{val})
-                          .getResult(0);
-    // Allocate a <i8 x 32> buffer
-    auto bufferSize = rewriter.create<arith::ConstantIntOp>(loc, 32, 64);
-    auto buffer = rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, bufferSize);
-    rewriter.create<func::CallOp>(loc, TypeRange{}, "__nvqpp_internal_tostring",
-                                  ArrayRef<Value>{buffer, val});
-    auto valStrBuf = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
-    Value arrayPrefix = makeLabel(loc, rewriter, prefix);
-    Value arrayPostfix = makeLabel(loc, rewriter, postFix);
-    const int preFixLen = prefix.size();
-    const int postFixLen = postFix.size();
-    Value totalStrSize = rewriter.create<arith::AddIOp>(
-        loc, numDigits,
-        rewriter.create<arith::ConstantIntOp>(loc, preFixLen + postFixLen + 1,
-                                              64));
-    auto labelBufferAlloc =
-        rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, totalStrSize);
-    Value labelBuffer =
-        rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, labelBufferAlloc);
-
-    // Copy the prefix
-    rewriter.create<func::CallOp>(
-        loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
-        ValueRange{labelBuffer, arrayPrefix,
-                   rewriter.create<arith::ConstantIntOp>(loc, preFixLen, 64),
-                   rewriter.create<arith::ConstantIntOp>(loc, 0, 1)});
-    // Copy the integer string
-    auto toPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
-        loc, i8PtrTy, labelBufferAlloc,
-        ValueRange{rewriter.create<arith::ConstantIntOp>(loc, preFixLen, 64)});
-    rewriter.create<func::CallOp>(
-        loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
-        ValueRange{toPtr, valStrBuf, numDigits,
-                   rewriter.create<arith::ConstantIntOp>(loc, 0, 1)});
-    // Copy the postfix + null terminator
-    Value shift = rewriter.create<arith::AddIOp>(
-        loc, numDigits,
-        rewriter.create<arith::ConstantIntOp>(loc, preFixLen, 64));
-    toPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
-        loc, i8PtrTy, labelBufferAlloc, ValueRange{shift});
-    rewriter.create<func::CallOp>(
-        loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
-        ValueRange{
-            toPtr, arrayPostfix,
-            rewriter.create<arith::ConstantIntOp>(loc, postFixLen + 1, 64),
-            rewriter.create<arith::ConstantIntOp>(loc, 0, 1)});
-    return labelBuffer;
-  }
 };
 
 struct ReturnToOutputLogPass
@@ -341,19 +226,6 @@ struct ReturnToOutputLogPass
     }
     if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::QISTrap))) {
       module.emitError("could not load QIR trap function.");
-      signalPassFailure();
-      return;
-    }
-
-    if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_internal_tostring"))) {
-      module.emitError("could not load string conversion function.");
-      signalPassFailure();
-      return;
-    }
-
-    if (failed(irBuilder.loadIntrinsic(module,
-                                       "__nvqpp_internal_number_of_digits"))) {
-      module.emitError("could not load number of digits function.");
       signalPassFailure();
       return;
     }

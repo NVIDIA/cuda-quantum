@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,11 +9,15 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -119,6 +123,57 @@ constexpr std::size_t variant_index() {
     return variant_index<VariantType, T, index + 1>();
   }
 }
+
+/// @brief Invoke a function and silence any exceptions
+template <typename F>
+void invoke_no_throw(F &&f) {
+  try {
+    (void)std::invoke(std::forward<F>(f));
+  } catch (const std::runtime_error &e) {
+    std::cerr << "Silencing runtime error: " << e.what() << std::endl;
+  } catch (...) {
+    std::cerr << "Silencing unknown exception";
+  }
+}
+
+/// @brief Invoke `g` after `f`, returning what `f` returns (if any).
+///
+/// If `f` throws an exception, `g` is called before the exception is re-thrown.
+/// More specifically:
+///  - if `f` does not throw an exception, `auto val = try_finally(f, g);` is
+///  equivalent to `auto val = f(); g();`
+///  - if `f` throws an exception, it will be re-thrown after `g` is called. Any
+///  further exceptions are ignored.
+template <typename F, typename G>
+auto try_finally(F &&f, G &&g) -> decltype(std::invoke(std::forward<F>(f))) {
+  using Ret = decltype(std::invoke(std::forward<F>(f)));
+  // If the return type is void, use a placeholder type to store the
+  // (non-existent) result.
+  using ResultType = std::conditional_t<std::is_void_v<Ret>, std::monostate,
+                                        std::optional<Ret>>;
+  ResultType result;
+
+  try {
+    // handle void-returning callables separately
+    if constexpr (std::is_void_v<Ret>) {
+      std::invoke(std::forward<F>(f));
+    } else {
+      result.emplace(std::invoke(std::forward<F>(f)));
+    }
+  } catch (...) {
+    invoke_no_throw(std::forward<G>(g));
+    throw;
+  }
+
+  (void)std::invoke(std::forward<G>(g));
+
+  if constexpr (std::is_void_v<Ret>) {
+    return;
+  } else {
+    return std::move(result).value();
+  }
+}
+
 } // namespace detail
 
 template <std::size_t I1, std::size_t I2, class Cont>
@@ -262,14 +317,8 @@ std::vector<double> random_vector(const double l_range, const double r_range,
 /// user-specified `start` value. The remaining values are all values
 /// incremented by `step` (defaults to 1) until the `stop` value is reached
 /// (exclusive).
-#if CUDAQ_USE_STD20
 template <typename ElementType>
   requires(std::signed_integral<ElementType>)
-#else
-template <typename ElementType,
-          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
-                                      std::is_signed_v<ElementType>>>
-#endif
 inline std::vector<ElementType> range(ElementType start, ElementType stop,
                                       ElementType step = 1) {
   std::vector<ElementType> vec;
@@ -284,14 +333,8 @@ inline std::vector<ElementType> range(ElementType start, ElementType stop,
 /// @brief Return a vector of integers. The first element is zero, and
 /// the remaining elements are all values incremented by 1 to the total
 /// size value provided (exclusive).
-#if CUDAQ_USE_STD20
 template <typename ElementType>
   requires(std::signed_integral<ElementType>)
-#else
-template <typename ElementType,
-          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
-                                      std::is_signed_v<ElementType>>>
-#endif
 inline std::vector<ElementType> range(ElementType N) {
   return range(ElementType(0), N);
 }

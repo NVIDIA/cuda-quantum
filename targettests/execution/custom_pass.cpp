@@ -1,14 +1,13 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin.so --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin%cudaq_plugin_ext --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

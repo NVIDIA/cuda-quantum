@@ -1,13 +1,14 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
-// RUN: cudaq-opt --lambda-lifting --canonicalize %s | \
+// RUN: cudaq-opt -lambda-lifting=constant-prop=1 -canonicalize %s | \
+// RUN:   FileCheck %s
+// RUN: cudaq-opt -lambda-lifting=constant-prop=1 -canonicalize %s | \
 // RUN:   cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {
@@ -41,6 +42,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8k
           }
         }
       }
+      cc.return
     } : !cc.callable<() -> ()>
     call @__nvqpp__mlirgen__kernel_b(%5) : (!cc.callable<() -> ()>) -> ()
     return
@@ -68,9 +70,9 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8k
 
 // CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<4>) {{.*}}{
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i32
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i32
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:             cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>

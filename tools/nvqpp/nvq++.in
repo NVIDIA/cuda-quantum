@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -280,9 +280,18 @@ install_dir="$(
 	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
 	pwd -P
 )"
-llvm_install_dir="@LLVM_BINARY_DIR@"
-llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
+# Locate the LLVM toolchain. The installer bundles LLVM under lib/llvm/;
+# fall back to a flat layout or the build-time LLVM directory (dev builds only).
+if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}/lib/llvm"
+elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}"
+elif [ -x "@LLVM_BINARY_DIR@/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="@LLVM_BINARY_DIR@"
+else
+	error_exit "Cannot find clang++ in the CUDA-Q installation. Expected it under ${install_dir}/lib/llvm/bin/ or ${install_dir}/bin/."
+fi
 
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 # Full version string of this nvq++ script.
@@ -310,22 +319,57 @@ COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
+
+# Set sysroot for finding system headers and libraries. This is critical on macOS
+# where a custom-built clang doesn't know the SDK location (unlike Linux where
+# system headers are in standard /usr/include paths).
+# Always detect at runtime on macOS. The build-time path is specific to the
+# build machine and goes stale on Xcode updates or between machines.
+# Users can override via CUDAQ_SYSROOT.
+if ${CUDAQ_IS_APPLE}; then
+	CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-$(xcrun --show-sdk-path 2>/dev/null || echo "")}"
+fi
+if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
+	COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq=-isysroot --Xcudaq=${CUDAQ_SYSROOT_PATH}"
+fi
+
+# Set macOS deployment target to match how the CUDA-Q libraries were built.
+# The vendored LLVM clang has its own default deployment target which may differ
+# from the target used when building CUDA-Q, causing linker warnings about
+# version mismatches between the executable and dylibs.
+CUDAQ_MACOS_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-@CMAKE_OSX_DEPLOYMENT_TARGET@}"
+LLC_FLAGS=-O2
+MACOS_VERSION_FLAG=""
+if ${CUDAQ_IS_APPLE} && [ -n "${CUDAQ_MACOS_DEPLOYMENT_TARGET}" ]; then
+	MACOS_VERSION_FLAG="-mmacosx-version-min=${CUDAQ_MACOS_DEPLOYMENT_TARGET}"
+	COMPILER_FLAGS="${COMPILER_FLAGS} ${MACOS_VERSION_FLAG}"
+	LINKER_FLAGS="${LINKER_FLAGS} ${MACOS_VERSION_FLAG}"
+	# Set LLC target triple to include deployment target, ensuring object files
+	# are marked with the same version as the linked libraries.
+	LLC_ARCH=$(uname -m)
+	LLC_FLAGS="${LLC_FLAGS} -mtriple=${LLC_ARCH}-apple-macos${CUDAQ_MACOS_DEPLOYMENT_TARGET}"
+fi
+
 LINKER_PATH=
 NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
 	LINKER_PATH="--ld-path=${NVQPP_LD_PATH}"
 fi
-LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install_dir}/lib/plugins -Wl,-rpath,${PWD}"
+LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${PWD}"
 
 LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 PLATFORM_TRANSPORT_LAYER="qir:0.1"
-LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
-LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
+LINKDIRS="-L${install_dir}/lib @CUDAQ_CXX_NVQPP_LINK_STR@"
+LINKLIBS="-lcudaq -lcudaq-logger -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
 if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]; then
+  LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${CUDAQ_PLUGIN_DIR}"
+  LINKDIRS="${LINKDIRS} -L${CUDAQ_PLUGIN_DIR}"
   CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*`
   for entry in $CUDAQ_PLUGIN_LIBS; do
     PLUGIN_NAME=$(basename $entry)
@@ -346,7 +390,6 @@ CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
 MAPPING_FILE=
-LLC_FLAGS=-O2
 DO_LINK=true
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
@@ -644,7 +687,6 @@ COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
-OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
 	GEN_TARGET_BACKEND=false
@@ -666,10 +708,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 		fi
 		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-		OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-		run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
-		OBJS_TO_MERGE="${OUTFILENAME}"
-		TMPFILES="${TMPFILES} ${OUTFILENAME}"
+	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""   
 	fi
 fi
 
@@ -702,7 +741,7 @@ fi
 AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
 
 RUN_OPT=false
-# NB: Keep this in synch with the PreDeviceCodeLoader pipeline
+# NB: Keep this in synch with the PythonAOT pipeline
 OPT_PASSES=
 if ${ENABLE_VARIABLE_COALESCE}; then
 	RUN_OPT=true
@@ -835,15 +874,17 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
+	# On macOS, use -nostdlib to prevent implicit -lc++ linking
+	NOSTDLIB_FLAG=""
+	if ${CUDAQ_IS_APPLE}; then
+		NOSTDLIB_FLAG="-nostdlib"
+	fi
+
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
 if ${DO_LINK}; then
-	if ${LIBRARY_MODE}; then
-		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
-	fi
-
 	# If the default C++ standard lib is LLVM's libc++ (injected by clang++ automatically), 
 	# we put it in front of CUDA-Q libs when compiling the application executable.
 	# Some CUDA-Q libs may contain partial C++ standard library implementation (due to static linking).

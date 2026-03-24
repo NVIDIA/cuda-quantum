@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -107,7 +107,7 @@ cc::StructType::getPreferredAlignment(const DataLayout &dataLayout,
 LogicalResult
 cc::StructType::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
                        mlir::StringAttr, llvm::ArrayRef<mlir::Type> members,
-                       bool, bool, unsigned long, unsigned int) {
+                       bool, bool, std::uint64_t, unsigned int) {
   for (auto ty : members)
     if (quake::isQuantumType(ty))
       return emitError() << "cc.struct may not contain quake types: " << ty;
@@ -152,7 +152,7 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 LogicalResult
 cc::ArrayType::verify(function_ref<InFlightDiagnostic()> emitError, Type eleTy,
-                      long) {
+                      std::int64_t) {
   if (quake::isQuantumType(eleTy))
     return emitError() << "cc.array may not have a quake element type: "
                        << eleTy;
@@ -227,10 +227,6 @@ bool isDynamicallySizedType(Type ty) {
            isDynamicallySizedType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
-}
-
-CallableType CallableType::getNoSignature(MLIRContext *ctx) {
-  return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }
 
 void CCDialect::registerTypes() {

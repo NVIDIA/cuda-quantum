@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,5 +9,7 @@
 get_filename_component(CUDAQ_PYTHONINTEROP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 if(NOT TARGET cudaq::cudaq-python-interop)
-  include("${CUDAQ_PYTHONINTEROP_CMAKE_DIR}/CUDAQPythonInteropTargets.cmake")
+  if(EXISTS "${CUDAQ_PYTHONINTEROP_CMAKE_DIR}/CUDAQPythonInteropTargets.cmake")
+    include("${CUDAQ_PYTHONINTEROP_CMAKE_DIR}/CUDAQPythonInteropTargets.cmake")
+  endif()
 endif()

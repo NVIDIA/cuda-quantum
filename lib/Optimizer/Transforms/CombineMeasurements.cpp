@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -133,12 +133,17 @@ public:
           std::make_pair(idx, std::to_string(idx));
 
       auto resultType = cudaq::cc::StdvecType::get(measure.getType(0));
-      if (measure == analysis.lastMeasurement)
+      if (measure == analysis.lastMeasurement) {
         rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
                                                  ValueRange{veq},
                                                  measure.getRegisterNameAttr());
-      else if (measure.use_empty())
+        return success();
+      }
+      if (measure.use_empty()) {
+        // Erasing an unused intermediate measurement is a valid rewrite action.
         rewriter.eraseOp(measure);
+        return success();
+      }
     }
 
     return failure();

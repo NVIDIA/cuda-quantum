@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,16 +10,14 @@
 
 #include <cstdint>
 #include <string>
-#include <tuple>
-#include <vector>
 
 namespace cudaq {
 
 enum struct QirVersion { version_0_1, version_1_0 };
 
 /// @brief `Codegen` configuration.
-/// Note: it is currently flattened to contain all possible options
-/// for all possible platforms.
+/// Note: it is currently flattened to contain all possible options for all
+/// possible platforms.
 struct CodeGenConfig {
   // Profile name
   std::string profile;

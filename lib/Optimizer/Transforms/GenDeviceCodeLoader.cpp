@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -195,9 +195,14 @@ public:
       if (!jitTime && mangledNameMap && !mangledNameMap.empty() &&
           mangledNameMap.contains(kernName)) {
         auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-        auto getEntryRef = [&](auto kernName) {
+        auto getEntryRef = [&](auto kernName) -> Value {
           auto hostFuncNameAttr = mangledNameMap.getAs<StringAttr>(kernName);
           auto hostFuncName = hostFuncNameAttr.getValue();
+          if (hostFuncName.endswith("_PyKernelEntryPointRewrite")) {
+            // This is a Python module, so there is no kernel host entry point.
+            auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+            return builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+          }
           auto hostFuncOp = module.lookupSymbol<func::FuncOp>(hostFuncName);
           if (!hostFuncOp) {
             // Using a fake type. We just want the symbol of an artifact defined

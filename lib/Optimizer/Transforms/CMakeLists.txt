@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,11 +13,13 @@ endif()
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
   AddMeasurements.cpp
+  AddMetadata.cpp
   AggressiveInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  CableRoughIn.cpp
   ClassicalOptimization.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
@@ -26,8 +28,6 @@ add_cudaq_library(OptTransforms
   Decomposition.cpp
   DecompositionPatterns.cpp
   DecompositionPatternSelection.cpp
-  DelayMeasurements.cpp
-  DeleteStates.cpp
   DistributedDeviceCall.cpp
   EraseNoise.cpp
   EraseNopCalls.cpp
@@ -57,7 +57,6 @@ add_cudaq_library(OptTransforms
   Pipelines.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
-  QuakeAddMetadata.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp

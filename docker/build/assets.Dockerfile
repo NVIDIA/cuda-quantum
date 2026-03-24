@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -44,6 +44,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [CUDA-Q Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
@@ -66,7 +67,7 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/install_prerequisites.sh -t llvm
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -103,6 +104,8 @@ ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
+ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
+ADD "scripts/set_env_defaults.sh" /cuda-quantum/scripts/set_env_defaults.sh
 ADD "targettests" /cuda-quantum/targettests
 ADD "test" /cuda-quantum/test
 ADD "tools" /cuda-quantum/tools
@@ -131,7 +134,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v
+    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF
     ## [<CUDAQuantumCppBuild]
 
 # Validate that the nvidia backend was built.
@@ -178,6 +181,7 @@ ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
 ADD "NOTICE" /cuda-quantum/NOTICE
+ADD "CITATION.cff" /cuda-quantum/CITATION.cff
 
 ARG release_version=
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=$release_version
@@ -203,7 +207,7 @@ RUN cd /cuda-quantum && \
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumPythonBuild]
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
-    bash scripts/install_prerequisites.sh -t llvm && \
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
@@ -219,7 +223,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [>CUDAQuantumWheel]
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
     MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*' | sed -re 's/^linux_/manylinux_2_28_/')" && \
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/cuda-quantum/_skbuild/lib" \
     python3 -m auditwheel -v repair ${CUDAQ_WHEEL} \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \

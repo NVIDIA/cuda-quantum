@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,10 +9,13 @@
 #include "CircuitSimulator.h"
 #include "NVQIRUtil.h"
 #include "QIRTypes.h"
-#include "common/Logger.h"
+#include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "common/Trace.h"
+#include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
+#include "cudaq/runtime/logger/logger.h"
 // TODO: do we want to avoid including this here?
 #include "resourcecounter/ResourceCounter.h"
 #include <cmath>
@@ -284,26 +287,6 @@ void __quantum__rt__finalize() {
   // retaining this, may want it later
 }
 
-/// @brief Set the Execution Context
-void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
-  __quantum__rt__initialize(0, nullptr);
-
-  if (ctx) {
-    ScopedTraceWithContext("NVQIR::setExecutionContext", ctx->name);
-    CUDAQ_INFO("Setting execution context: {}{}", ctx ? ctx->name : "basic",
-               ctx->hasConditionalsOnMeasureResults ? " with conditionals"
-                                                    : "");
-    nvqir::getCircuitSimulatorInternal()->setExecutionContext(ctx);
-  }
-}
-
-/// @brief Reset the Execution Context
-void __quantum__rt__resetExecutionContext() {
-  ScopedTraceWithContext("NVQIR::resetExecutionContext");
-  CUDAQ_INFO("Resetting execution context.");
-  nvqir::getCircuitSimulatorInternal()->resetExecutionContext();
-}
-
 /// @brief QIR function for allocated a qubit array
 Array *__quantum__rt__qubit_allocate_array(std::uint64_t numQubits) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array", numQubits);
@@ -321,6 +304,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
+  if (numQubits > 10)
+    throw std::runtime_error(
+        "State vector initialization with more than 10 qubits is not "
+        "supported. Requested " +
+        std::to_string(numQubits) + " qubits.");
   if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
     auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
         numQubits, data, cudaq::simulation_precision::fp64);
@@ -381,6 +369,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
+  if (numQubits > 10)
+    throw std::runtime_error(
+        "State vector initialization with more than 10 qubits is not "
+        "supported. Requested " +
+        std::to_string(numQubits) + " qubits.");
   if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
     auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
         numQubits, data, cudaq::simulation_precision::fp32);
@@ -689,7 +682,7 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
 }
 
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
-  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  auto *ctx = cudaq::getExecutionContext();
   if (ctx && ctx->name == "run") {
 
     std::string regName(reinterpret_cast<const char *>(name));
@@ -715,11 +708,13 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 // kernel, which calls this function. The trap should explain the issue to the
 // user and about the kernel when executed.
 void __quantum__qis__trap(std::int64_t code) {
-  if (code == 0)
-    throw std::runtime_error("could not autogenerate the adjoint of a kernel");
-  if (code == 1)
-    throw std::runtime_error("unsupported return type from entry-point kernel");
-  throw std::runtime_error("code generation failure for target");
+  if (code == 0) {
+    CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
+  } else if (code == 1) {
+    CUDAQ_ERROR("unsupported return type from entry-point kernel");
+  } else {
+    CUDAQ_ERROR("code generation failure for target");
+  }
 }
 
 void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
@@ -727,12 +722,29 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
                                                 std::size_t numParams,
                                                 Array *qubits) {
 
-  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  auto *ctx = cudaq::getExecutionContext();
   if (!ctx)
     return;
 
   auto *noise = ctx->noiseModel;
-  // per-spec, no noise model provided, emit warning, no application
+  if (cudaq::isInTracerMode()) {
+    std::vector<double> paramVec(params, params + numParams);
+    std::vector<cudaq::QuditInfo> targets;
+    for (std::size_t id : arrayToVectorSizeT(qubits))
+      targets.emplace_back(2, id);
+    auto key = static_cast<std::intptr_t>(krausChannelKey);
+    std::string channelName("apply_noise");
+    if (noise) {
+      try {
+        channelName = noise->get_channel(key, paramVec).get_type_name();
+      } catch (...) {
+      }
+    }
+    ctx->kernelTrace.appendNoiseInstruction(
+        key, channelName, std::move(paramVec), {}, std::move(targets));
+    return;
+  }
+
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");
@@ -748,12 +760,32 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
                                           float *params, std::size_t numParams,
                                           Array *qubits) {
 
-  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  auto *ctx = cudaq::getExecutionContext();
   if (!ctx)
     return;
 
   auto *noise = ctx->noiseModel;
-  // per-spec, no noise model provided, emit warning, no application
+  if (cudaq::isInTracerMode()) {
+    std::vector<double> paramVec;
+    paramVec.reserve(numParams);
+    for (std::size_t i = 0; i < numParams; ++i)
+      paramVec.push_back(static_cast<double>(params[i]));
+    std::vector<cudaq::QuditInfo> targets;
+    for (std::size_t id : arrayToVectorSizeT(qubits))
+      targets.emplace_back(2, id);
+    auto key = static_cast<std::intptr_t>(krausChannelKey);
+    std::string channelName("apply_noise");
+    if (noise) {
+      try {
+        channelName = noise->get_channel(key, paramVec).get_type_name();
+      } catch (...) {
+      }
+    }
+    ctx->kernelTrace.appendNoiseInstruction(
+        key, channelName, std::move(paramVec), {}, std::move(targets));
+    return;
+  }
+
   if (!noise)
     return cudaq::details::warn(
         "apply_noise called but no noise model provided.");
@@ -934,7 +966,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = circuitSimulator->getExecutionContext();
+  auto *currentContext = cudaq::getExecutionContext();
 
   // Some backends may better handle the observe task.
   // Let's give them that opportunity.

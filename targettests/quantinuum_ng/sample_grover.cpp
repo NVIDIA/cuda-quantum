@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t
 // clang-format on
 
 #include <algorithm>
@@ -46,8 +46,9 @@ __qpu__ void grover() {
 };
 
 int main() {
+  cudaq::set_random_seed(13);
   // Note: use a small number of shots.
-  auto result = cudaq::sample(15, grover);
+  auto result = cudaq::sample(50, grover);
   result.dump();
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {

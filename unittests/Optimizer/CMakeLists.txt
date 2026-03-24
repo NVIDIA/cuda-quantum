@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -54,6 +54,6 @@ target_link_libraries(test_quake_synth
   cudaq-em-default
   gtest_main)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quake_synth PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_quake_synth PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
-gtest_discover_tests(test_quake_synth)
+gtest_discover_tests(test_quake_synth DISCOVERY_TIMEOUT 120)

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -67,8 +67,8 @@ public:
 
   /// @brief Sample a subset of qubits
   virtual cudaq::ExecutionResult
-  sample(const std::vector<std::size_t> &measuredBits,
-         const int shots) override;
+  sample(const std::vector<std::size_t> &measuredBits, const int shots,
+         bool includeSequentialData = true) override;
 
   /// @brief Evaluate the expectation value of a given observable
   virtual cudaq::observe_result observe(const cudaq::spin_op &op) override;

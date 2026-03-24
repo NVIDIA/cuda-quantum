@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -194,11 +194,6 @@ def cc_CallableType : CCType<"Callable", "callable"> {
       return Base::get(signature.getContext(), signature);
     }]>
   ];
-
-  let extraClassDeclaration = [{
-    /// Create a callable type without a signature, for prototyping only.
-    [[deprecated]] static CallableType getNoSignature(mlir::MLIRContext *ctx);
-  }];
 }
 
 def cc_IndirectCallableType : CCType<"IndirectCallable", "indirect_callable"> {

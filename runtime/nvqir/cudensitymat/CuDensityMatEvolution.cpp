@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,11 +13,13 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
+#include "common/FmtCore.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>
 #include <stdexcept>
+
 namespace cudaq::__internal__ {
 template <typename Key, typename Value>
 std::map<Key, Value>
@@ -346,6 +348,16 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
 
+  // We requires an even partition for distributed batched states.
+  if (batchSize > 1 &&
+      batchSize % dynamics::Context::getCurrentContext()->getNumRanks() != 0) {
+    throw std::runtime_error(fmt::format(
+        "Distributed batched states require an even partition across ranks: "
+        "batch size {} is not divisible by number of ranks {}. Please adjust "
+        "the number of MPI ranks or the batch size.",
+        batchSize, dynamics::Context::getCurrentContext()->getNumRanks()));
+  }
+
   std::vector<CuDensityMatExpectation> expectations;
   auto &opConverter =
       cudaq::dynamics::Context::getCurrentContext()->getOpConverter();
@@ -353,6 +365,15 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
     auto cudmObsOp = opConverter.convertToCudensitymatOperator({}, obs, dims);
     expectations.emplace_back(CuDensityMatExpectation(handle, cudmObsOp));
   }
+
+  // Helper to compute the state idx within the batch for distributed mode
+  const auto getDistributedGlobalIdx = [](int localIdx, int batchSize) {
+    const auto mpiNumRanks =
+        dynamics::Context::getCurrentContext()->getNumRanks();
+    const auto mpiRank = dynamics::Context::getCurrentContext()->getRank();
+    const auto statesPerRank = batchSize / mpiNumRanks;
+    return mpiRank * statesPerRank + localIdx;
+  };
 
   std::vector<std::vector<std::vector<double>>> expectationVals(batchSize);
   std::vector<std::vector<cudaq::state>> intermediateStates(batchSize);
@@ -374,9 +395,24 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
 
       if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
         auto states = CuDensityMatState::splitBatchedState(*cudmState);
-        assert(states.size() == batchSize);
-        for (int i = 0; i < batchSize; ++i) {
-          intermediateStates[i].emplace_back(cudaq::state(states[i]));
+        // In distributed mode, the split operation only returns the local
+        // states held by this rank. The number of split states may be less than
+        // batch_size.
+        assert(states.size() <= batchSize);
+
+        const auto numLocalStates = states.size();
+        if (numLocalStates == batchSize) {
+          // Non-distributed mode: all states are local
+          for (int i = 0; i < batchSize; ++i) {
+            intermediateStates[i].emplace_back(states[i]);
+          }
+        } else {
+          for (int i = 0; i < numLocalStates; ++i) {
+            const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
+            if (globalIdx < batchSize) {
+              intermediateStates[globalIdx].emplace_back(states[i]);
+            }
+          }
         }
       }
       for (int i = 0; i < batchSize; ++i) {
@@ -387,7 +423,12 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
 
   if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     std::vector<evolve_result> results;
+    // Note: In distributed mode, each rank only has local states.
+    // Hence, return results only for the states this rank holds.
     for (int i = 0; i < batchSize; ++i) {
+      // Skip if we don't have the data
+      if (intermediateStates[i].empty())
+        continue;
       results.emplace_back(
           evolve_result(intermediateStates[i], expectationVals[i]));
     }
@@ -397,17 +438,49 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
     auto [finalTime, finalState] = integrator.getState();
     auto *cudmState = asCudmState(finalState);
     auto states = CuDensityMatState::splitBatchedState(*cudmState);
-    assert(states.size() == batchSize);
+    // In distributed mode, the split operation only returns the local
+    // states held by this rank. The number of split states may be less than
+    // batch_size.
+    assert(states.size() <= batchSize);
+
+    // Helper to construct results based on distribution mode (distributed or
+    // non-distributed)
+    const auto constructResults =
+        [batchSize, getDistributedGlobalIdx](
+            const auto &states,
+            const auto &expVals) -> std::vector<evolve_result> {
+      const auto numLocalStates = states.size();
+      std::vector<evolve_result> results;
+      if (numLocalStates == batchSize) {
+        // Non-distributed mode: all states are local
+        for (int i = 0; i < batchSize; ++i) {
+          results.emplace_back(
+              evolve_result({cudaq::state(states[i])}, expVals[i]));
+        }
+      } else {
+        // Distributed mode: each rank contains only a subset of batch data.
+        for (int i = 0; i < numLocalStates; ++i) {
+          const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
+          if (globalIdx < batchSize) {
+            results.emplace_back(
+                evolve_result({cudaq::state(states[i])}, expVals[globalIdx]));
+          }
+        }
+      }
+
+      return results;
+    };
 
     if (storeIntermediateResults ==
         cudaq::IntermediateResultSave::ExpectationValue) {
-      std::vector<evolve_result> results;
-      for (int i = 0; i < batchSize; ++i) {
-        results.emplace_back(
-            evolve_result({cudaq::state(states[i])}, expectationVals[i]));
-      }
-      return results;
+      // Construct results with only final states and all expectation values
+      // (including intermediate expectation values)
+      return constructResults(states, expectationVals);
     }
+
+    assert(storeIntermediateResults == cudaq::IntermediateResultSave::None);
+    // Save option is None: only the final state and final expectation value (no
+    // intermediate expectation values).
 
     // Compute final expectation values
     std::vector<std::vector<double>> expVals(batchSize);
@@ -420,12 +493,8 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
         expVals[i].emplace_back(expVal[i].real());
       }
     }
-
-    std::vector<evolve_result> results;
-    for (int i = 0; i < batchSize; ++i) {
-      results.emplace_back(evolve_result(cudaq::state(states[i]), expVals[i]));
-    }
-    return results;
+    // Construct results with only final states and final expectation values.
+    return constructResults(states, expVals);
   }
 }
 

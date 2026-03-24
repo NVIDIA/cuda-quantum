@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -31,7 +31,9 @@ set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 # and by keeping it private, others can specify the
 # backend library later on
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-common cudaq-operator dl fmt::fmt-header-only)
+  PUBLIC cudaq-common cudaq-operator dl fmt::fmt-header-only
+  PRIVATE cudaq-logger
+)
 
 install(TARGETS ${LIBRARY_NAME} 
         EXPORT nvqir-targets 

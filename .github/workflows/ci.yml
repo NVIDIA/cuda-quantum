@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: config
         run: |
@@ -96,8 +96,10 @@ jobs:
         toolchain=${{ matrix.toolchain }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
+      environment: ghcr-ci
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
+      matrix_step_name: dev_environment_devdeps
 
   wheeldeps:
     name: Load wheel dependencies
@@ -123,8 +125,10 @@ jobs:
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      environment: ghcr-ci
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
+      matrix_step_name: dev_environment_wheeldeps
 
   source_build:
     name: Load source build cache
@@ -149,30 +153,52 @@ jobs:
         toolchain=llvm
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
+      environment: ghcr-ci
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
+      matrix_step_name: dev_environment_source_build
 
-  # This job is needed only when using the cloudposse GitHub action to read
-  # the output of a matrix job. This is a workaround due to current GitHub
-  # limitations that may not be needed if the work started here concludes:
-  # https://github.com/actions/runner/pull/2477
-  config:
-    name: Configure build
+  # Split config jobs so downstream jobs can start as soon as their deps are ready
+  # (no need to wait for all 14 dependency jobs before any build/test runs).
+  config_devdeps:
+    name: Configure build (devdeps)
     runs-on: ubuntu-latest
-    needs: [devdeps, wheeldeps, source_build]
-
+    needs: devdeps
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         id: read_json
         with:
-          matrix-step-name: dev_environment
+          matrix-step-name: dev_environment_devdeps
+
+  config_wheeldeps:
+    name: Configure build (wheeldeps)
+    runs-on: ubuntu-latest
+    needs: wheeldeps
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        id: read_json
+        with:
+          matrix-step-name: dev_environment_wheeldeps
+
+  config_source_build:
+    name: Configure build (source_build)
+    runs-on: ubuntu-latest
+    needs: source_build
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        id: read_json
+        with:
+          matrix-step-name: dev_environment_source_build
 
   build_and_test:
     name: Build and test
-    needs: config
+    needs: config_devdeps
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -188,14 +214,14 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       mpi: ${{ matrix.mpi }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   gen_code_coverage:
     name: Gen code coverage
-    needs: config
+    needs: config_devdeps
     strategy:
       matrix:
         platform: [amd64]
@@ -206,14 +232,14 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
     name: Create Docker images
-    needs: config
+    needs: config_devdeps
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -224,13 +250,14 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
+      environment: ghcr-ci
 
   python_wheels:
     name: Create Python wheels
-    needs: config
+    needs: config_wheeldeps
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -245,9 +272,9 @@ jobs:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
       cuda_version: ${{ matrix.cuda_version }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
 
   python_metapackages:
     name: Create Python metapackages
@@ -261,7 +288,7 @@ jobs:
 
   binaries:
     name: Create CUDA Quantum installer
-    needs: [metadata, config]
+    needs: [metadata, config_source_build]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -276,12 +303,12 @@ jobs:
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       build_config_id: cu${{ matrix.cuda_version }}-llvm
       cuda_version: ${{ matrix.cuda_version }}
-      build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+      build_cache:  ${{ fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
 
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
-    needs: [metadata, config, build_and_test, docker_image, wheeldeps, python_wheels]
+    needs: [metadata, config_devdeps, config_wheeldeps, config_source_build, build_and_test, docker_image, wheeldeps, python_wheels]
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
 
@@ -290,9 +317,13 @@ jobs:
         id: workflow_inputs
         run: |
           set -e
-          key_matrix='${{ needs.config.outputs.json }}'
-          keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
-          echo "$keys" >> cache_keys.txt
+          touch cache_keys.txt
+          key_matrix='${{ needs.config_devdeps.outputs.json }}'
+          [ -n "$key_matrix" ] && [ "$key_matrix" != "{}" ] && echo "$key_matrix" | jq -r '.cache_key | to_entries | .[].value' >> cache_keys.txt || true
+          key_matrix='${{ needs.config_wheeldeps.outputs.json }}'
+          [ -n "$key_matrix" ] && [ "$key_matrix" != "{}" ] && echo "$key_matrix" | jq -r '.cache_key | to_entries | .[].value' >> cache_keys.txt || true
+          key_matrix='${{ needs.config_source_build.outputs.json }}'
+          [ -n "$key_matrix" ] && [ "$key_matrix" != "{}" ] && echo "$key_matrix" | jq -r '.cache_key | to_entries | .[].value' >> cache_keys.txt || true
 
           echo "pr-number: ${{ needs.metadata.outputs.pull_request_number }}" >> metadata.txt
           echo "pr-base: ${{ needs.metadata.outputs.pull_request_base }}" >> metadata.txt

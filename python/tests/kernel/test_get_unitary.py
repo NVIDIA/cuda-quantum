@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -126,14 +126,16 @@ def test_custom_single_qubit_gate():
     M = np.array([[0, 1j], [1, 0]], dtype=np.complex128)
     cudaq.register_operation("custom_gate", M)
 
-    @cudaq.kernel
-    def k():
-        q = cudaq.qubit()
-        custom_gate(q)
-
-    # currently, unsupported
     with pytest.raises(RuntimeError,
                        match='Invalid gate name provided: custom_gate'):
+
+        @cudaq.kernel
+        def k():
+            q = cudaq.qubit()
+            custom_gate(q)
+
+    # currently, unsupported
+
         U = cudaq.get_unitary(k)
     # np.testing.assert_allclose(U, M, atol=1e-12)
 

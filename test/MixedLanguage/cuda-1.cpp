@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,8 @@
 
 // REQUIRES: nvcc
 
-// RUN: (nvcc -c -Xcompiler -fPIC -std=c++17 %p/cuda-1.cu -o %t.o && \
-// RUN: nvq++ -std=c++17 --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
+// RUN: (nvcc -c -Xcompiler -fPIC %p/cuda-1.cu -o %t.o && \
+// RUN: nvq++ --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
 // RUN: FileCheck %s
 
 // CHECK-LABEL: Success

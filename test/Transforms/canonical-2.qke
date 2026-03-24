@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -13,11 +13,13 @@ func.func @canonicalize_scope(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
     cc.scope {
       quake.h %arg0 : (!quake.ref) -> ()
     }
+    cc.return
   } : !cc.callable<() -> ()>
   %1 = cc.create_lambda {
     cc.scope {
       quake.z %arg0 : (!quake.ref) -> ()
     }
+    cc.return
   } : !cc.callable<() -> ()>
   quake.compute_action %0, %1 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
   return

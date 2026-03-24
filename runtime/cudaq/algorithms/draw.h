@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -45,9 +45,8 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   ExecutionContext context("tracer");
 
   // set the context, execute and then reset
-  platform.set_exec_ctx(&context);
-  kernel(args...);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(context, std::forward<KernelFunctor>(kernel),
+                                  std::forward<Args>(args)...);
 
   return context.kernelTrace;
 }
@@ -114,27 +113,15 @@ std::string extractTraceLatex(KernelFunctor &&kernel) {
 /// @note This function is only available when using simulator backends.
 // clang-format on
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
   return __internal__::draw(
       contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
   if (format == "ascii") {
     return draw(kernel, std::forward<Args>(args)...);
@@ -186,14 +173,8 @@ extractTraceLatex(KernelFunctor &&kernel) {
 
 } // namespace details
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 [[deprecated("cudaq::draw is deprecated - please use "
              "cudaq::contrib::draw instead.")]] std::string
 draw(QuantumKernel &&kernel, Args &&...args) {
@@ -201,14 +182,8 @@ draw(QuantumKernel &&kernel, Args &&...args) {
       contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 [[deprecated("cudaq::draw is deprecated - please use "
              "cudaq::contrib::draw instead.")]] std::string
 draw(std::string format, QuantumKernel &&kernel, Args &&...args) {

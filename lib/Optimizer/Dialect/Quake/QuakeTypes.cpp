@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -50,6 +50,34 @@ Type quake::VeqType::parse(AsmParser &parser) {
 }
 
 //===----------------------------------------------------------------------===//
+// Measurements' custom parser and pretty printing.
+//
+// measurements `<` (`?` | int) `>`
+//===----------------------------------------------------------------------===//
+
+void quake::MeasurementsType::print(AsmPrinter &os) const {
+  os << '<';
+  if (hasSpecifiedSize())
+    os << getSize();
+  else
+    os << '?';
+  os << '>';
+}
+
+Type quake::MeasurementsType::parse(AsmParser &parser) {
+  if (parser.parseLess())
+    return {};
+  std::size_t size = kDynamicSize;
+  if (succeeded(parser.parseOptionalQuestion()))
+    size = kDynamicSize;
+  else if (parser.parseInteger(size))
+    return {};
+  if (parser.parseGreater())
+    return {};
+  return get(parser.getContext(), size);
+}
+
+//===----------------------------------------------------------------------===//
 
 Type quake::StruqType::parse(AsmParser &parser) {
   if (parser.parseLess())
@@ -80,6 +108,34 @@ Type quake::StruqType::parse(AsmParser &parser) {
   return quake::StruqType::get(ctx, nameAttr, members);
 }
 
+bool quake::StruqType::hasSpecifiedSize() const {
+  for (auto ty : getMembers())
+    if (auto veqTy = llvm::dyn_cast<quake::VeqType>(ty))
+      if (!veqTy.hasSpecifiedSize())
+        return false;
+  return true;
+}
+
+std::optional<std::size_t> quake::StruqType::getArity() const {
+  if (getMembers().empty())
+    return {0};
+  std::size_t res = 0;
+  for (auto ty : getMembers()) {
+    if (ty == RefType::get(getContext())) {
+      res++;
+    } else if (auto veqTy = llvm::dyn_cast<VeqType>(ty)) {
+      if (veqTy.hasSpecifiedSize())
+        res += veqTy.getSize();
+      else
+        return std::nullopt;
+    } else {
+      // NB: This is a bug. Should not have anything but Ref and Veq types.
+      return std::nullopt;
+    }
+  }
+  return {res};
+}
+
 void quake::StruqType::print(AsmPrinter &printer) const {
   printer << '<';
   if (getName())
@@ -87,6 +143,8 @@ void quake::StruqType::print(AsmPrinter &printer) const {
   llvm::interleaveComma(getMembers(), printer);
   printer << '>';
 }
+
+//===----------------------------------------------------------------------===//
 
 // This recursive function returns true if and only if \p ty is a quake
 // type in the set \e R, `{ ref, veq, struq }`, (loosely known as "reference"
@@ -127,6 +185,6 @@ std::size_t quake::getAllocationSize(Type ty) {
 //===----------------------------------------------------------------------===//
 
 void quake::QuakeDialect::registerTypes() {
-  addTypes<CableType, ControlType, MeasureType, RefType, StateType, StruqType,
-           VeqType, WireType>();
+  addTypes<CableType, ControlType, MeasureType, MeasurementsType, RefType,
+           StateType, StruqType, VeqType, WireType>();
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
+#include "common/FmtCore.h"
 
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>
