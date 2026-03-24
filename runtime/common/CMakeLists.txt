@@ -117,6 +117,7 @@ add_library(cudaq-mlir-runtime
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
     LayoutInfo.cpp
+    PassPipelineLogging.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
@@ -125,6 +126,11 @@ set_source_files_properties(
   Environment.cpp
   JIT.cpp
   RuntimeMLIR.cpp
+)
+
+set_source_files_properties(
+  PassPipelineLogging.cpp
+  PROPERTIES COMPILE_OPTIONS "-fno-rtti"
 )
 
 target_include_directories(cudaq-mlir-runtime

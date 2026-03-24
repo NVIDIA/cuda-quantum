@@ -20,7 +20,6 @@ target_link_libraries(OptimizerUnitTests
     MLIRArithDialect
     MLIRFuncDialect
     MLIRParser
-    MLIRPass
     MLIRTransforms
     QuakeDialect
     CCDialect
@@ -43,6 +42,7 @@ gtest_discover_tests(OptimizerUnitTests)
 add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth
   PRIVATE 
+  MLIRPass
   cudaq
   cudaq-operator
   cudaq-mlir-runtime
