@@ -135,6 +135,9 @@ struct QIRAPITypeConverter : public TypeConverter {
         [&](quake::CableType ty) { return getArrayType(ty.getContext()); });
     addConversion(
         [&](quake::MeasureType ty) { return getResultType(ty.getContext()); });
+    addConversion([&](quake::MeasurementsType ty) {
+      return LLVM::LLVMPointerType::get(ty.getContext());
+    });
     addConversion([&](quake::StruqType ty) { return convertStruqType(ty); });
   }
 

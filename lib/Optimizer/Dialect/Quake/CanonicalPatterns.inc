@@ -695,6 +695,51 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
   }
 };
 
+// %0 = quake.alloca !quake.veq<2>
+// %1 = quake.mz %0 : (!quake.veq<2>) -> !quake.measurements<?>
+// ────────────────────────────────────────────────────────────
+// %0 = quake.alloca !quake.veq<2>
+// %1 = quake.mz %0 : (!quake.veq<2>) -> !quake.measurements<2>
+template <typename MeasOp>
+struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
+  using OpRewritePattern<MeasOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(MeasOp measOp,
+                                PatternRewriter &rewriter) const override {
+    auto measTy =
+        dyn_cast<quake::MeasurementsType>(measOp.getMeasOut().getType());
+    if (!measTy || measTy.hasSpecifiedSize())
+      return failure();
+
+    std::size_t totalSize = 0;
+    for (auto target : measOp.getTargets()) {
+      if (isa<quake::RefType>(target.getType())) {
+        totalSize++;
+      } else if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
+        if (!veqTy.hasSpecifiedSize())
+          return failure();
+        totalSize += veqTy.getSize();
+      } else {
+        return failure();
+      }
+    }
+    if (totalSize == 0)
+      return failure();
+
+    auto newMeasTy =
+        quake::MeasurementsType::get(rewriter.getContext(), totalSize);
+    SmallVector<Type> resultTypes;
+    resultTypes.push_back(newMeasTy);
+    for (unsigned i = 1; i < measOp->getNumResults(); ++i)
+      resultTypes.push_back(measOp->getResult(i).getType());
+
+    rewriter.replaceOpWithNewOp<MeasOp>(measOp, TypeRange{resultTypes},
+                                        measOp.getTargets(),
+                                        measOp.getRegisterNameAttr());
+    return success();
+  }
+};
+
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
