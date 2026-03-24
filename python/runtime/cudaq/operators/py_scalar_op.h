@@ -8,8 +8,10 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of `cudaq::spin`
 /// and `cudaq::spin_op` to python.
-void bindScalarWrapper(nanobind::module_ &mod);
+void bindScalarWrapper(py::module_ &mod);
 } // namespace cudaq

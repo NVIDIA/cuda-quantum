@@ -11,10 +11,16 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+
+namespace py = nanobind;
 
 namespace cudaq {
 
-void bindExecutionManager(nanobind::module_ &mod) {
+void bindExecutionManager(py::module_ &mod) {
 
   mod.def(
       "applyQuantumOperation",
@@ -28,9 +34,9 @@ void bindExecutionManager(nanobind::module_ &mod) {
                        [](auto &&el) { return cudaq::QuditInfo(2, el); });
         cudaq::getExecutionManager()->apply(name, params, c, t, isAdjoint, op);
       },
-      nanobind::arg("name"), nanobind::arg("params"), nanobind::arg("controls"),
-      nanobind::arg("targets"), nanobind::arg("isAdjoint") = false,
-      nanobind::arg("op") = cudaq::spin_op::identity());
+      py::arg("name"), py::arg("params"), py::arg("controls"),
+      py::arg("targets"), py::arg("isAdjoint") = false,
+      py::arg("op") = cudaq::spin_op::identity());
 
   mod.def("startAdjointRegion",
           []() { cudaq::getExecutionManager()->startAdjointRegion(); });
@@ -49,6 +55,6 @@ void bindExecutionManager(nanobind::module_ &mod) {
         return cudaq::getExecutionManager()->measure(cudaq::QuditInfo(2, id),
                                                      regName);
       },
-      nanobind::arg("qubit"), nanobind::arg("register_name") = "");
+      py::arg("qubit"), py::arg("register_name") = "");
 }
 } // namespace cudaq

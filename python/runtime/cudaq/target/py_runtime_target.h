@@ -10,10 +10,12 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 
 class LinkedLibraryHolder;
 
-void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder);
+void bindRuntimeTarget(py::module_ &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq

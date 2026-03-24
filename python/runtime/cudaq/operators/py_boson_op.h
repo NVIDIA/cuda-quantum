@@ -8,8 +8,10 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of bosonic
 /// operators to python.
-void bindBosonWrapper(nanobind::module_ &mod);
+void bindBosonWrapper(py::module_ &mod);
 } // namespace cudaq

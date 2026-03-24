@@ -7,31 +7,34 @@
  ******************************************************************************/
 
 #include "py_run.h"
+#include "common/LayoutInfo.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
-#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <future>
-#include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
-#include <nanobind/stl/optional.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 using namespace cudaq;
-using namespace cudaq_internal::compiler;
 
-static std::vector<nanobind::object>
-readRunResults(mlir::ModuleOp module, mlir::Type ty,
-               details::RunResultSpan &results, std::size_t count) {
-  std::vector<nanobind::object> ret;
+static std::vector<py::object> readRunResults(mlir::ModuleOp module,
+                                              mlir::Type ty,
+                                              details::RunResultSpan &results,
+                                              std::size_t count) {
+  std::vector<py::object> ret;
   std::size_t byteSize = results.lengthInBytes / count;
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
-    nanobind::object obj = convertResult(module, ty, results.data + i);
+    py::object obj = convertResult(module, ty, results.data + i);
     ret.push_back(obj);
   }
   return ret;
@@ -72,11 +75,11 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   // kernels.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(returnTy)) {
     auto elemTy = vecTy.getElementType();
-    if (elemTy.isa<cudaq::cc::StdvecType>())
+    if (mlir::isa<cudaq::cc::StdvecType>(elemTy))
       throw std::runtime_error(
           "`cudaq.run` does not yet support returning nested `list` from "
           "entry-point kernels.");
-    if (elemTy.isa<cudaq::cc::StructType>())
+    if (mlir::isa<cudaq::cc::StructType>(elemTy))
       throw std::runtime_error("`cudaq.run` does not yet support returning "
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
@@ -86,23 +89,24 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
       [&]() mutable {
         [[maybe_unused]] auto result = clean_launch_module(name, mod, opaques);
       },
-      platform, name, name, shots_count, layoutInfo, qpu_id, allowCaching);
+      platform, name, name, shots_count, layoutInfo, qpu_id);
 
   return results;
 }
 
-static std::vector<nanobind::object>
-pyReadResults(details::RunResultSpan results, mlir::ModuleOp mod,
-              std::size_t shots_count, const std::string &name) {
+static std::vector<py::object> pyReadResults(details::RunResultSpan results,
+                                             mlir::ModuleOp mod,
+                                             std::size_t shots_count,
+                                             const std::string &name) {
   auto returnTy = recoverReturnType(mod, name);
   return readRunResults(mod, returnTy, results, shots_count);
 }
 
 /// @brief Run `cudaq::run` on the provided kernel.
-static std::vector<nanobind::object>
+static std::vector<py::object>
 run_impl(const std::string &shortName, MlirModule module,
          std::size_t shots_count, std::optional<noise_model> noise_model,
-         std::size_t qpu_id, nanobind::args runtimeArgs) {
+         std::size_t qpu_id, py::args runtimeArgs) {
   if (shots_count == 0)
     return {};
 
@@ -133,7 +137,7 @@ namespace {
 // When the `ready` future is set, the content of the buffer is filled.
 struct async_run_result {
   std::future<void> ready;
-  std::vector<nanobind::object> *results;
+  std::vector<py::object> *results;
   std::string *error;
 };
 } // namespace
@@ -142,7 +146,7 @@ struct async_run_result {
 static async_run_result
 run_async_impl(const std::string &shortName, MlirModule module,
                std::size_t shots_count, std::optional<noise_model> noise_model,
-               std::size_t qpu_id, nanobind::args runtimeArgs) {
+               std::size_t qpu_id, py::args runtimeArgs) {
   if (!shots_count)
     return {};
 
@@ -162,7 +166,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
         "Noise model is not supported on remote platforms.");
 
   async_run_result result;
-  result.results = new std::vector<nanobind::object>();
+  result.results = new std::vector<py::object>();
   result.error = new std::string();
 
   if (shots_count == 0) {
@@ -184,7 +188,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
   {
     // Release GIL to allow c++ threads, all code inside the scope is c++, so
     // there is no need to re-acquire the GIL inside the thread.
-    nanobind::gil_scoped_release gil_release{};
+    py::gil_scoped_release gil_release{};
     QuantumTask wrapped = detail::make_copyable_function(
         [sp = std::move(spanPromise), ep = std::move(errorPromise),
          noise_model = std::move(noise_model), qpu_id, name = shortName,
@@ -214,7 +218,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
   {
     // Release GIL to allow c++ threads, re-acquire for conversion of the
     // results to python objects.
-    nanobind::gil_scoped_release gil_release{};
+    py::gil_scoped_release gil_release{};
     auto resultFuture =
         std::async(std::launch::deferred,
                    [sf = std::move(spanFuture), ef = std::move(errorFuture),
@@ -224,7 +228,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
                      std::swap(*errorPtr, error);
                      if (error.empty()) {
                        auto span = sf.get();
-                       nanobind::gil_scoped_acquire gil{};
+                       py::gil_scoped_acquire gil{};
                        auto results =
                            pyReadResults(span, mod, shots_count, shortName);
                        std::swap(*resultsPtr, results);
@@ -237,7 +241,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
 }
 
 /// @brief Bind the run cudaq function.
-void cudaq::bindPyRun(nanobind::module_ &mod) {
+void cudaq::bindPyRun(py::module_ &mod) {
   mod.def("run_impl", run_impl,
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
@@ -255,8 +259,8 @@ Returns:
 }
 
 /// @brief Bind the run_async cudaq function.
-void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
-  nanobind::class_<async_run_result>(mod, "AsyncRunResultImpl", "")
+void cudaq::bindPyRunAsync(py::module_ &mod) {
+  py::class_<async_run_result>(mod, "AsyncRunResultImpl", "")
       .def(
           "get",
           [](async_run_result &self) {

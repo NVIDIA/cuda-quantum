@@ -9,21 +9,65 @@
 import cudaq, pytest, os
 import numpy as np
 from cudaq import spin
+from multiprocessing import Process
 from typing import List
-from conftest import QUANTINUUM_MOCK_PORT
+from network_utils import check_server_connection
+try:
+    from utils.mock_qpu.quantinuum import app
+    import uvicorn
 
-pytestmark = pytest.mark.xdist_group("quantinuum_mock")
+    def startServer(port):
+        cudaq.set_random_seed(13)
+        uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
+except:
+    print("Mock qpu not available, skipping Quantinuum tests.")
+    pytest.skip("Mock qpu not available.", allow_module_level=True)
+
+# Define the port for the mock server
+port = 62440
 
 
 def assert_close(got) -> bool:
     return got < -1.1 and got > -2.2
 
 
+@pytest.fixture(scope="session", autouse=True)
+def startUpMockServer():
+    # We need a Fake Credentials Config file
+    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
+
+    # Create Nexus credential file (cookie format)
+    with open(credsName, 'w') as f:
+        f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",
+                                                       "nexus_refresh"))
+
+    cudaq.set_random_seed(13)
+
+    # Launch the Mock Server
+    p = Process(target=startServer, args=(port,))
+    p.start()
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
+
+    yield credsName
+
+    # Kill the server, remove the file
+    p.terminate()
+    try:
+        os.remove(credsName)
+    except FileNotFoundError:
+        pass
+
+
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget(quantinuum_mock_server):
+def configureTarget(startUpMockServer):
+    # Set the target, using the next generation `Helios` device.
     cudaq.set_target('quantinuum',
-                     url='http://localhost:{}'.format(QUANTINUUM_MOCK_PORT),
-                     credentials=quantinuum_mock_server,
+                     url='http://localhost:{}'.format(port),
+                     credentials=startUpMockServer,
                      project='mock_project_id',
                      machine='Helios-1SC')
 

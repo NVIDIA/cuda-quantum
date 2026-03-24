@@ -18,7 +18,6 @@ set(CMAKE_INSTALL_RPATH
 add_subdirectory(quantum_lib)
 
 nanobind_add_module(cudaq_test_cpp_algo
-  NB_STATIC
   test_cpp_quantum_algorithm_module.cpp
 )
 
@@ -28,10 +27,6 @@ target_link_libraries(cudaq_test_cpp_algo
     quantum_lib
     cudaq-python-interop
 )
-
-if(APPLE)
-  target_link_options(cudaq_test_cpp_algo PRIVATE -Wl,-undefined,dynamic_lookup)
-endif()
 
 target_include_directories(cudaq_test_cpp_algo
   PRIVATE

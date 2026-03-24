@@ -10,6 +10,8 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
-void bindSampleAsync(nanobind::module_ &mod);
+void bindSampleAsync(py::module_ &mod);
 } // namespace cudaq

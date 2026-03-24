@@ -9,7 +9,9 @@
 
 #include "utils/LinkedLibraryHolder.h"
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Bind `cudaq.MeasureCounts` to python.
-void bindMeasureCounts(nanobind::module_ &mod);
+void bindMeasureCounts(py::module_ &mod);
 } // namespace cudaq

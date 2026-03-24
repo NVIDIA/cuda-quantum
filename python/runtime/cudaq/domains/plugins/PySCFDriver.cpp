@@ -9,18 +9,20 @@
 #include "cudaq/domains/chemistry/MoleculePackageDriver.h"
 #include "cudaq/target_control.h"
 #include <map>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/pair.h>
-#include <nanobind/stl/string.h>
+#include <pybind11/embed.h>  // nanobind has no embed equivalent; keep pybind11 for this
 
+namespace py = nanobind;
 using namespace cudaq;
 
 namespace {
 
-/// @brief Map an OpenFermion QubitOperator represented as a nanobind::object
+/// @brief Reference to the pybind11 scoped interpreter
+thread_local static std::unique_ptr<py::scoped_interpreter> interp;
+
+/// @brief Map an OpenFermion QubitOperator represented as a py::object
 /// to a CUDA-Q spin_op
-spin_op fromOpenFermionQubitOperator(const nanobind::object &op) {
-  if (!nanobind::hasattr(op, "terms"))
+spin_op fromOpenFermionQubitOperator(const py::object &op) {
+  if (!py::hasattr(op, "terms"))
     throw std::runtime_error(
         "This is not an openfermion operator, must have 'terms' attribute.");
   std::map<std::string, std::function<spin_op_term(std::size_t)>> creatorMap{
@@ -30,21 +32,20 @@ spin_op fromOpenFermionQubitOperator(const nanobind::object &op) {
   auto terms = op.attr("terms");
   auto H = spin_op::empty();
   for (auto term : terms) {
-    auto termTuple = nanobind::cast<nanobind::tuple>(term);
+    auto termTuple = py::cast<py::tuple>(term);
     auto localTerm = spin_op::identity();
-    for (auto element : termTuple) {
-      auto casted =
-          nanobind::cast<std::pair<std::size_t, std::string>>(element);
+    for (auto &element : termTuple) {
+      auto casted = py::cast<std::pair<std::size_t, std::string>>(element);
       localTerm *= creatorMap[casted.second](casted.first);
     }
-    H += nanobind::cast<double>(terms[term]) * localTerm;
+    H += py::cast<double>(terms[term]) * localTerm;
   }
   return H;
 }
 
 /// @brief Implement the CUDA-Q MoleculePackageDriver interface
 /// with support for generating molecular Hamiltonians via PySCF. We
-/// achieve this via nanobind's Python API wrappers.
+/// achieve this via Pybind11's embedded interpreter capabilities.
 class PySCFPackageDriver : public MoleculePackageDriver {
 protected:
   /// @brief The name of the chemistry python module.
@@ -61,83 +62,82 @@ public:
       int multiplicity, int charge,
       std::optional<std::size_t> nActiveElectrons = std::nullopt,
       std::optional<std::size_t> nActiveOrbitals = std::nullopt) override {
-    if (!Py_IsInitialized())
-      Py_Initialize();
+    if (!interp)
+      interp = std::make_unique<py::scoped_interpreter>();
 
     // Convert the molecular_geometry to a list[tuple(str,tuple)]
-    nanobind::list pyGeometry;
-    for (auto &atom : geometry) {
-      nanobind::object coordinate = nanobind::steal(PyTuple_New(3));
+    py::list pyGeometry(geometry.size());
+    for (std::size_t counter = 0; auto &atom : geometry) {
+      py::tuple coordinate(3);
       for (int i = 0; i < 3; i++)
-        PyTuple_SET_ITEM(coordinate.ptr(), i,
-                         nanobind::cast(atom.coordinates[i]).release().ptr());
+        coordinate[i] = atom.coordinates[i];
 
-      pyGeometry.append(nanobind::make_tuple(atom.name, coordinate));
+      pyGeometry[counter++] = py::make_tuple(atom.name, coordinate);
     }
 
     // We don't want to modify the platform, indicate so
     cudaq::__internal__::disableTargetModification();
 
     // Import the cudaq python chemistry module
-    auto cudaqModule = nanobind::module_::import_(ChemistryModuleName);
+    auto cudaqModule = py::module_::import_(ChemistryModuleName);
 
     // Reset it
     cudaq::__internal__::enableTargetModification();
 
     // Setup the active space if requested.
-    nanobind::object nElectrons = nanobind::none();
-    nanobind::object nActive = nanobind::none();
+    py::object nElectrons = py::none();
+    py::object nActive = py::none();
     if (nActiveElectrons.has_value())
-      nElectrons = nanobind::int_(nActiveElectrons.value());
+      nElectrons = py::int_(nActiveElectrons.value());
     if (nActiveOrbitals.has_value())
-      nActive = nanobind::int_(nActiveOrbitals.value());
+      nActive = py::int_(nActiveOrbitals.value());
 
     // Run the openfermion-pyscf wrapper to create the hamiltonian + metadata
     auto hamiltonianGen = cudaqModule.attr(CreatorFunctionName);
-    auto resultTuple = nanobind::cast<nanobind::tuple>(hamiltonianGen(
-        pyGeometry, basis, multiplicity, charge, nElectrons, nActive));
+    auto resultTuple = hamiltonianGen(pyGeometry, basis, multiplicity, charge,
+                                      nElectrons, nActive)
+                           py::cast<py::tuple>();
 
     // Get the spin_op representation
-    auto spinOp =
-        fromOpenFermionQubitOperator(nanobind::borrow(resultTuple[0]));
+    auto spinOp = fromOpenFermionQubitOperator(resultTuple[0]);
 
     // Get the OpenFermion molecule representation
-    auto openFermionMolecule = nanobind::borrow(resultTuple[1]);
+    auto openFermionMolecule = resultTuple[1];
 
     // Extract the one-body integrals
     auto pyOneBody = openFermionMolecule.attr("one_body_integrals");
-    auto shape = nanobind::cast<nanobind::tuple>(pyOneBody.attr("shape"));
-    one_body_integrals oneBody({nanobind::cast<std::size_t>(shape[0]),
-                                nanobind::cast<std::size_t>(shape[1])});
+    auto shape = py::cast<py::tuple>(pyOneBody.attr("shape"));
+    one_body_integrals oneBody(
+        {py::cast<std::size_t>(shape[0]), py::cast<std::size_t>(shape[1])});
     for (std::size_t i = 0; i < oneBody.shape[0]; i++)
       for (std::size_t j = 0; j < oneBody.shape[1]; j++)
-        oneBody(i, j) = nanobind::cast<double>(
-            pyOneBody.attr("__getitem__")(nanobind::make_tuple(i, j)));
+        oneBody(i, j) =
+            pyOneBody.attr("__getitem__")(py::make_tuple(i, py::cast<double>(j)));
 
     // Extract the two-body integrals
     auto pyTwoBody = openFermionMolecule.attr("two_body_integrals");
-    shape = nanobind::cast<nanobind::tuple>(pyTwoBody.attr("shape"));
-    two_body_integals twoBody({nanobind::cast<std::size_t>(shape[0]),
-                               nanobind::cast<std::size_t>(shape[1]),
-                               nanobind::cast<std::size_t>(shape[2]),
-                               nanobind::cast<std::size_t>(shape[3])});
+    shape = py::cast<py::tuple>(pyTwoBody.attr("shape"));
+    two_body_integals twoBody(
+        {py::cast<std::size_t>(shape[0]), py::cast<std::size_t>(shape[1]),
+         py::cast<std::size_t>(shape[2]), py::cast<std::size_t>(shape[3])});
     for (std::size_t i = 0; i < twoBody.shape[0]; i++)
       for (std::size_t j = 0; j < twoBody.shape[1]; j++)
         for (std::size_t k = 0; k < twoBody.shape[2]; k++)
           for (std::size_t l = 0; l < twoBody.shape[3]; l++)
-            twoBody(i, j, k, l) = nanobind::cast<double>(pyTwoBody.attr(
-                "__getitem__")(nanobind::make_tuple(i, j, k, l)));
+            twoBody(i, j, k, l) =
+                pyTwoBody.attr("__getitem__")(py::make_tuple(i, j, k, l))
+                    py::cast<double>();
 
     // return a new molecular_hamiltonian
     return molecular_hamiltonian{
         spinOp,
         std::move(oneBody),
         std::move(twoBody),
-        nanobind::cast<std::size_t>(openFermionMolecule.attr("n_electrons")),
-        nanobind::cast<std::size_t>(openFermionMolecule.attr("n_orbitals")),
-        nanobind::cast<double>(openFermionMolecule.attr("nuclear_repulsion")),
-        nanobind::cast<double>(openFermionMolecule.attr("hf_energy")),
-        nanobind::cast<double>(openFermionMolecule.attr("fci_energy"))};
+        py::cast<std::size_t>(openFermionMolecule.attr("n_electrons")),
+        py::cast<std::size_t>(openFermionMolecule.attr("n_orbitals")),
+        py::cast<double>(openFermionMolecule.attr("nuclear_repulsion")),
+        py::cast<double>(openFermionMolecule.attr("hf_energy")),
+        py::cast<double>(openFermionMolecule.attr("fci_energy"))};
   }
 };
 

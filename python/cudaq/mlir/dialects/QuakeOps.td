@@ -9,7 +9,6 @@
 #ifndef PYTHON_BINDINGS_QUAKE_OPS
 #define PYTHON_BINDINGS_QUAKE_OPS
 
-include "mlir/Bindings/Python/Attributes.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeOps.td"
 
 #endif

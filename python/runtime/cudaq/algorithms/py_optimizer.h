@@ -10,7 +10,9 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Bind the `cudaq::optimizers::` to python.
-void bindOptimizerWrapper(nanobind::module_ &mod);
+void bindOptimizerWrapper(py::module_ &mod);
 } // namespace cudaq

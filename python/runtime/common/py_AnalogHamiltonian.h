@@ -8,9 +8,11 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 
 /// @brief Binds the `cudaq::ahs` classes.
-void bindAnalogHamiltonian(nanobind::module_ &mod);
+void bindAnalogHamiltonian(py::module_ &mod);
 
 } // namespace cudaq

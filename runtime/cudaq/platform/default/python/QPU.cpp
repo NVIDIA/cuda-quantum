@@ -7,11 +7,12 @@
  ******************************************************************************/
 
 #include "QPU.h"
+#include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
-#include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
-#include "common/RuntimeTarget.h"
+#include "common/JIT.h"
+#include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -19,27 +20,16 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
-#include "cudaq/platform.h"
-#include "cudaq_internal/compiler/ArgumentConversion.h"
-#include "cudaq_internal/compiler/JIT.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 #include <unordered_set>
 
-// Declared in runtime/cudaq/algorithms/resource_estimation.h (not included
-// here to avoid pulling in cudaq/platform.h which creates circular deps).
-namespace nvqir {
-void setResourceCounts(cudaq::Resources &&);
-}
+#include <memory>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
-using cudaq::JitEngine;
 
 static void
 specializeKernel(const std::string &name, ModuleOp module,
@@ -47,7 +37,7 @@ specializeKernel(const std::string &name, ModuleOp module,
                  bool enablePythonCodegenDump = false, bool isEntryPoint = true,
                  const std::unordered_set<unsigned> &varArgIndices = {}) {
   PassManager pm(module.getContext());
-  ArgumentConverter argCon(name, module);
+  cudaq::opt::ArgumentConverter argCon(name, module);
   if (varArgIndices.empty())
     argCon.gen(name, module, rawArgs);
   else
@@ -110,79 +100,6 @@ specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Could not successfully apply argument synth.");
 }
 
-/// Replace %KEY% and %KEY:default% placeholders in a pipeline string with
-/// values from the runtime config map. If the key is in runtimeConfig, use
-/// that value. Otherwise use the inline default if provided (%KEY:val%).
-/// Keys in the pipeline are uppercase; runtimeConfig keys are lowercase.
-/// This is the Python JIT equivalent of ServerHelper::updatePassPipeline().
-static void substitutePipelinePlaceholders(
-    std::string &pipeline,
-    const std::map<std::string, std::string> &runtimeConfig) {
-  std::string::size_type pos = 0;
-  while (pos < pipeline.size()) {
-    auto start = pipeline.find('%', pos);
-    if (start == std::string::npos)
-      break;
-    auto end = pipeline.find('%', start + 1);
-    if (end == std::string::npos)
-      break;
-    auto token = pipeline.substr(start + 1, end - start - 1);
-    auto colon = token.find(':');
-    auto key = (colon != std::string::npos) ? token.substr(0, colon) : token;
-
-    // Lowercase the key to match runtimeConfig convention.
-    std::string lower;
-    for (char c : key)
-      lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    auto it = runtimeConfig.find(lower);
-
-    if (it != runtimeConfig.end()) {
-      pipeline.replace(start, end - start + 1, it->second);
-      pos = start + it->second.size();
-    } else if (colon != std::string::npos) {
-      auto defaultVal = token.substr(colon + 1);
-      pipeline.replace(start, end - start + 1, defaultVal);
-      pos = start + defaultVal.size();
-    } else {
-      pos = end + 1;
-    }
-  }
-}
-
-/// Run target-specific passes if the active target config defines a pipeline.
-/// Interleaves jit-deploy-pipeline between high and mid-level stages.
-/// specializeKernel() covers what hw-jit-prep-pipeline and
-/// jit-finalize-pipeline do (inlining, specialization, DistributedDeviceCall),
-/// so those are not interleaved here. Targets needing passes from those stages
-/// (e.g., apply-control-negations) should include them in their own config
-/// fields. Only reads top-level config:, not configuration-matrix entries.
-static void runTargetPassPipeline(ModuleOp module) {
-  auto *rt = cudaq::get_platform().get_runtime_target();
-  if (!rt)
-    return;
-  auto &cfg = rt->config;
-  if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
-    return;
-  auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
-  substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
-  auto *ctx = module.getContext();
-  auto enablePrintEachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-  auto disableThreading =
-      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  if (enablePrintEachPass || disableThreading)
-    ctx->disableMultithreading();
-  PassManager pm(ctx);
-  if (enablePrintEachPass)
-    pm.enableIRPrinting();
-  std::string errMsg;
-  llvm::raw_string_ostream errOS(errMsg);
-  if (failed(parsePassPipeline(pipeline, pm, errOS)))
-    throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
-  if (failed(pm.run(module)))
-    throw std::runtime_error("Target pass pipeline failed.");
-}
-
 /// Lowers \p module to LLVM code. The LLVM code will use "full QIR" as the
 /// transport layer. If \p kernelName and \p args are provided, they will
 /// specialize the selected entry-point kernel.
@@ -192,9 +109,8 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              const std::string &format) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
   // Translate the module to QIR transport layer (as LLVM code).
-  mergeAllCallableClosures(module, name, args.getArgs());
+  cudaq::detail::mergeAllCallableClosures(module, name, args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  runTargetPassPipeline(module);
   PassManager pm(module.getContext());
   cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -223,9 +139,8 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
   // Translate module to OpenQASM2 transport layer.
-  mergeAllCallableClosures(module, name, args.getArgs());
+  cudaq::detail::mergeAllCallableClosures(module, name, args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  runTargetPassPipeline(module);
   auto *ctx = module.getContext();
   PassManager pm(ctx);
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -266,7 +181,7 @@ static void updateExecutionContext(ModuleOp module) {
   }
 }
 
-static std::optional<JitEngine>
+static std::optional<cudaq::JitEngine>
 alreadyBuiltJITCode(const std::string &name,
                     const std::vector<void *> &rawArgs) {
   auto *currentExecCtx = cudaq::getExecutionContext();
@@ -295,7 +210,7 @@ alreadyBuiltJITCode(const std::string &name,
 /// cached so that it can be called many times in a loop without being
 /// recompiled. This exploits the fact that the arguments processed at the
 /// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-static void cacheJITForPerformance(JitEngine jit) {
+static void cacheJITForPerformance(cudaq::JitEngine jit) {
   auto *currentExecCtx = cudaq::getExecutionContext();
   if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
     if (!currentExecCtx->jitEng)
@@ -303,22 +218,9 @@ static void cacheJITForPerformance(JitEngine jit) {
   }
 }
 
-/// When the execution context is "resource-count", extract gate counts and
-/// depth metrics from the optimized MLIR IR. Pre-counted gates are erased
-/// from the module, so the subsequent JIT compiles a near-empty module.
-static void precountResources(ModuleOp module) {
-  auto *ctx = cudaq::getExecutionContext();
-  if (!ctx || ctx->name != "resource-count")
-    return;
-  auto counts = cudaq::opt::countResourcesFromIR(module);
-  if (failed(counts))
-    return;
-  nvqir::setResourceCounts(std::move(*counts));
-}
-
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::CompiledModule compileModule(const std::string &name, ModuleOp module,
+  cudaq::CompiledKernel compileModule(const std::string &name, ModuleOp module,
                                       const std::vector<void *> &rawArgs,
                                       bool isEntryPoint) override {
 
@@ -358,12 +260,11 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         varArgIndices.clear();
     }
     const bool isFullySpecialized = varArgIndices.empty();
-    auto resultInfo = createResultInfo(resultTy, isEntryPoint, module);
+    const bool hasResult = !!resultTy;
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      cudaq::CompiledModule ck(name, resultInfo);
-      ck.attachJit(*jit, isFullySpecialized);
-      return ck;
+      return cudaq::createCompiledKernel(*jit, name, hasResult && isEntryPoint,
+                                         isFullySpecialized);
     }
 
     // 1. Check that this call is sane.
@@ -371,7 +272,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       module.dump();
 
     // 2. Merge other modules (e.g., if there are device kernel calls).
-    mergeAllCallableClosures(module, name, rawArgs);
+    cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
 
     // Mark all newly merged kernels private.
     for (auto &op : module)
@@ -388,14 +289,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
                      isEntryPoint, varArgIndices);
 
-    // 3b. Run target-specific passes if configured.
-    runTargetPassPipeline(module);
-
-    // 3c. Pre-count resources from the optimized IR when resource-counting.
-    precountResources(module);
-
     // 4. Lower to QIR and JIT compile.
-    auto jit = createJITEngine(module, "qir:");
+    auto jit = cudaq::createQIRJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
     auto argsCreatorThunk = [&jit, &name]() {
       return (void *)jit.lookupRawNameOrFail(name + ".argsCreator");
@@ -403,11 +298,32 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
                                            argsCreatorThunk);
 
-    cudaq::CompiledModule ck(name, resultInfo);
-    ck.attachJit(jit, isFullySpecialized);
-    return ck;
+    return cudaq::createCompiledKernel(jit, name, hasResult && isEntryPoint,
+                                       isFullySpecialized);
   }
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::ModuleLauncher, PythonLauncher, default)
+// Register into libcudaq's ModuleLauncher registry (the one launchModule uses).
+// Do not use CUDAQ_REGISTER_TYPE here: it would instantiate the Registry template
+// in this DSO, giving a second Head/Tail, so the launcher would never be found.
+extern "C" void cudaq_add_module_launcher_node(void *node_ptr);
+
+namespace {
+struct PythonLauncherRegistration {
+  llvm::SimpleRegistryEntry<cudaq::ModuleLauncher> entry;
+  llvm::Registry<cudaq::ModuleLauncher>::node node;
+  PythonLauncherRegistration()
+      : entry("default", "", &PythonLauncherRegistration::ctorFn), node(entry) {
+    cudaq_add_module_launcher_node(&node);
+  }
+  static std::unique_ptr<cudaq::ModuleLauncher> ctorFn() {
+    return std::make_unique<PythonLauncher>();
+  }
+};
+static PythonLauncherRegistration s_pythonLauncherRegistration;
+} // namespace
+
+// Force this TU to be linked into the Python extension so the
+// PythonLauncher registration runs before any launch.
+extern "C" void cudaq_ensure_default_launcher_linked(void) {}

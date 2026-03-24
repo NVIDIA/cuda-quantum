@@ -11,7 +11,14 @@
 #include "quantum_lib/quantum_lib.h"
 #include "runtime/interop/PythonCppInterop.h"
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+
+namespace py = nanobind;
 
 NB_MODULE(cudaq_test_cpp_algo, m) {
   // Example of how to expose C++ kernels.
@@ -25,14 +32,14 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
   // Callback tests
   m.def(
       "run0",
-      [](nanobind::object qern, std::size_t qnum) {
+      [](py::object qern, std::size_t qnum) {
         cudaq::python::launch_specialized_py_decorator<cudaq::qkernel<void()>>(
             qern, cudaq::sit_and_spin_test, qnum);
       },
       "");
   m.def(
       "run0b",
-      [](nanobind::object qern, std::size_t qnum) {
+      [](py::object qern, std::size_t qnum) {
         // This idiom uses argument marshaling instead of specialization. This
         // allows `entryPoint` to be called with different arguments. Note that
         // the `decorator` must remain alive for `entryPoint` to be valid.
@@ -45,14 +52,14 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
       "");
   m.def(
       "run1",
-      [](nanobind::object qern) {
+      [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<cudaq::qkernel<void()>>(
             qern, cudaq::plug_and_chug_test);
       },
       "");
   m.def(
       "run2",
-      [](nanobind::object qern) {
+      [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<
             cudaq::qkernel<void(cudaq::qvector<> &)>>(qern,
                                                       cudaq::brain_bend_test);
@@ -60,7 +67,7 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
       "");
   m.def(
       "run3",
-      [](nanobind::object qern) {
+      [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<
             cudaq::qkernel<void(cudaq::qvector<> &, std::size_t)>>(
             qern, cudaq::most_curious_test);
@@ -68,7 +75,7 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
       "");
   m.def(
       "run4",
-      [](nanobind::object qern) {
+      [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<
             cudaq::qkernel<std::size_t(cudaq::qvector<> &, std::size_t)>>(
             qern, cudaq::callback_test);
@@ -77,7 +84,7 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
 
   m.def(
       "run5",
-      [](nanobind::object qern) {
+      [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<
             cudaq::qkernel<std::vector<float>()>>(qern, cudaq::py_ret_test1);
       },
@@ -85,7 +92,7 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
 
   m.def(
       "run6",
-      [](nanobind::object qern) {
+      [](py::object qern) {
         cudaq::python::launch_specialized_py_decorator<
             cudaq::qkernel<std::vector<float>(std::size_t)>>(
             qern, cudaq::py_ret_test2);

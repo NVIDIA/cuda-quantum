@@ -7,18 +7,17 @@
  ******************************************************************************/
 
 #include <complex>
-#include <nanobind/make_iterator.h>
+#include <nanobind/stl/complex.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
-#include <nanobind/stl/complex.h>
-#include <nanobind/stl/function.h>
-#include <nanobind/stl/map.h>
-#include <nanobind/stl/pair.h>
-#include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
-#include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/set.h>
+#include <nanobind/stl/unordered_map.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -28,8 +27,8 @@
 namespace cudaq {
 
 /// @brief Map an OpenFermion operator to our own spin operator
-spin_op fromOpenFermionQubitOperator(nanobind::object &op) {
-  if (!nanobind::hasattr(op, "terms"))
+spin_op fromOpenFermionQubitOperator(py::object &op) {
+  if (!py::hasattr(op, "terms"))
     throw std::runtime_error(
         "This is not an openfermion operator, must have 'terms' attribute.");
   std::map<std::string, std::function<spin_op_term(std::size_t)>> creatorMap{
@@ -39,19 +38,18 @@ spin_op fromOpenFermionQubitOperator(nanobind::object &op) {
   auto terms = op.attr("terms");
   auto H = spin_op::empty();
   for (auto term : terms) {
-    auto termTuple = nanobind::cast<nanobind::tuple>(term);
+    auto termTuple = py::cast<py::tuple>(term);
     auto localTerm = spin_op::identity();
-    for (auto element : termTuple) {
-      auto casted =
-          nanobind::cast<std::pair<std::size_t, std::string>>(element);
+    for (py::handle element : termTuple) {
+      auto casted = py::cast<std::pair<std::size_t, std::string>>(element);
       localTerm *= creatorMap[casted.second](casted.first);
     }
-    H += nanobind::cast<double>(terms[term]) * localTerm;
+    H += py::cast<double>(terms[term]) * localTerm;
   }
   return H;
 }
 
-void bindSpinModule(nanobind::module_ &mod) {
+void bindSpinModule(py::module_ &mod) {
   // Binding the functions in `cudaq::spin` as `_pycudaq` submodule
   // so it's accessible directly in the cudaq namespace.
   auto spin_submodule = mod.def_submodule("spin");
@@ -65,35 +63,33 @@ void bindSpinModule(nanobind::module_ &mod) {
   // here for consistency with other operators
   spin_submodule.def(
       "identity", [](std::size_t target) { return spin_op::identity(target); },
-      nanobind::arg("target"),
+      py::arg("target"),
       "Returns an identity operator on the given target index.");
   spin_submodule.def(
       "identities",
       [](std::size_t first, std::size_t last) {
         return spin_op_term(first, last);
       },
-      nanobind::arg("first"), nanobind::arg("last"),
+      py::arg("first"), py::arg("last"),
       "Creates a product operator that applies an identity operation to all "
       "degrees of "
       "freedom in the open range [first, last).");
-  spin_submodule.def("i", &spin_op::i<spin_handler>, nanobind::arg("target"),
+  spin_submodule.def("i", &spin_op::i<spin_handler>, py::arg("target"),
                      "Returns a Pauli I spin operator on the given "
                      "target qubit index.");
   spin_submodule.def(
-      "x", &spin_op::x<spin_handler>, nanobind::arg("target"),
+      "x", &spin_op::x<spin_handler>, py::arg("target"),
       "Returns a Pauli X spin operator on the given target qubit index.");
   spin_submodule.def(
-      "y", &spin_op::y<spin_handler>, nanobind::arg("target"),
+      "y", &spin_op::y<spin_handler>, py::arg("target"),
       "Returns a Pauli Y spin operator on the given target qubit index.");
   spin_submodule.def(
-      "z", &spin_op::z<spin_handler>, nanobind::arg("target"),
+      "z", &spin_op::z<spin_handler>, py::arg("target"),
       "Returns a Pauli Z spin operator on the given target qubit index.");
-  spin_submodule.def("plus", &spin_op::plus<spin_handler>,
-                     nanobind::arg("target"),
+  spin_submodule.def("plus", &spin_op::plus<spin_handler>, py::arg("target"),
                      "Return a sigma plus spin operator on the given "
                      "target qubit index.");
-  spin_submodule.def("minus", &spin_op::minus<spin_handler>,
-                     nanobind::arg("target"),
+  spin_submodule.def("minus", &spin_op::minus<spin_handler>, py::arg("target"),
                      "Return a sigma minus spin operator on the given "
                      "target qubit index.");
   spin_submodule.def(
@@ -126,55 +122,55 @@ void bindSpinModule(nanobind::module_ &mod) {
       "degrees of freedom.");
 }
 
-void bindSpinOperator(nanobind::module_ &mod) {
+void bindSpinOperator(py::module_ &mod) {
 
-  auto spin_op_class = nanobind::class_<spin_op>(mod, "SpinOperator");
-  auto spin_op_term_class =
-      nanobind::class_<spin_op_term>(mod, "SpinOperatorTerm");
+  auto spin_op_class = py::class_<spin_op>(mod, "SpinOperator");
+  auto spin_op_term_class = py::class_<spin_op_term>(mod, "SpinOperatorTerm");
 
   spin_op_class
       .def(
           "__iter__",
           [](spin_op &self) {
-            return nanobind::make_iterator(nanobind::type<spin_op>(),
-                                           "iterator", self.begin(),
-                                           self.end());
+            py::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(py::cast(*it));
+            return items.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Loop through each term of the operator.")
 
       // properties
 
       .def_prop_ro("parameters", &spin_op::get_parameter_descriptions,
-                   "Returns a dictionary that maps each parameter "
-                   "name to its description.")
+                             "Returns a dictionary that maps each parameter "
+                             "name to its description.")
       .def_prop_ro("degrees", &spin_op::degrees,
-                   "Returns a vector that lists all degrees of "
-                   "freedom that the operator targets. "
-                   "The order of degrees is from smallest to largest "
-                   "and reflects the ordering of "
-                   "the matrix returned by `to_matrix`. "
-                   "Specifically, the indices of a statevector "
-                   "with two qubits are {00, 01, 10, 11}. An "
-                   "ordering of degrees {0, 1} then indicates "
-                   "that a state where the qubit with index 0 equals "
-                   "1 with probability 1 is given by "
-                   "the vector {0., 1., 0., 0.}.")
+                             "Returns a vector that lists all degrees of "
+                             "freedom that the operator targets. "
+                             "The order of degrees is from smallest to largest "
+                             "and reflects the ordering of "
+                             "the matrix returned by `to_matrix`. "
+                             "Specifically, the indices of a statevector "
+                             "with two qubits are {00, 01, 10, 11}. An "
+                             "ordering of degrees {0, 1} then indicates "
+                             "that a state where the qubit with index 0 equals "
+                             "1 with probability 1 is given by "
+                             "the vector {0., 1., 0., 0.}.")
       .def_prop_ro("min_degree", &spin_op::min_degree,
-                   "Returns the smallest index of the degrees of "
-                   "freedom that the operator targets.")
+                             "Returns the smallest index of the degrees of "
+                             "freedom that the operator targets.")
       .def_prop_ro("max_degree", &spin_op::max_degree,
-                   "Returns the smallest index of the degrees of "
-                   "freedom that the operator targets.")
+                             "Returns the smallest index of the degrees of "
+                             "freedom that the operator targets.")
       .def_prop_ro("term_count", &spin_op::num_terms,
-                   "Returns the number of terms in the operator.")
+                             "Returns the number of terms in the operator.")
       // only exists for spin operators
-      .def_prop_ro("qubit_count", &spin_op::num_qubits<spin_handler>,
-                   "Return the number of qubits this operator acts on.")
+      .def_prop_ro(
+          "qubit_count", &spin_op::num_qubits<spin_handler>,
+          "Return the number of qubits this operator acts on.")
 
       // constructors
 
-      .def(nanobind::init<>(),
+      .def(py::init<>(),
            "Creates a default instantiated sum. A default instantiated "
            "sum has no value; it will take a value the first time an "
            "arithmetic operation "
@@ -183,31 +179,29 @@ void bindSpinOperator(nanobind::module_ &mod) {
            "identity. To construct a `0` value in the mathematical sense "
            "(neutral element "
            "for addition), use `empty()` instead.")
-      .def(nanobind::init<std::size_t>(), nanobind::arg("size"),
+      .def(py::init<std::size_t>(), py::arg("size"),
            "Creates a sum operator with no terms, reserving "
            "space for the given number of terms (size).")
       // NOTE: only supported on spin ops so far
-      .def(nanobind::init<std::vector<double> &>(), nanobind::arg("data"),
+      .def(py::init<std::vector<double> &>(), py::arg("data"),
            "Creates an operator based on a serialized data representation.")
       // NOTE: only supported on spin ops so far
-      .def(
-          "__init__",
-          [](spin_op *self, const std::string &fileName) {
-            binary_spin_op_reader reader;
-            new (self) spin_op(reader.read(fileName));
-          },
-          "Creates an operator based on a serialized data representation in "
-          "the given file.")
-      .def(nanobind::init<const spin_op_term &>(),
+      .def("__init__",
+           [](spin_op *self, const std::string &fileName) {
+             binary_spin_op_reader reader;
+             new (self) spin_op(reader.read(fileName));
+           },
+           "Creates an operator based on a serialized data representation in "
+           "the given file.")
+      .def(py::init<const spin_op_term &>(),
            "Creates a sum operator with the given term.")
-      .def(nanobind::init<const spin_op &>(), "Copy constructor.")
+      .def(py::init<const spin_op &>(), "Copy constructor.")
       // NOTE: only supported on spin ops
-      .def(
-          "__init__",
-          [](spin_op *self, nanobind::object obj) {
-            new (self) spin_op(fromOpenFermionQubitOperator(obj));
-          },
-          "Convert an OpenFermion operator to a CUDA-Q spin operator.")
+      .def("__init__",
+           [](spin_op *self, py::object obj) {
+             new (self) spin_op(fromOpenFermionQubitOperator(obj));
+           },
+           "Convert an OpenFermion operator to a CUDA-Q spin operator.")
       .def(
           "copy", [](const spin_op &self) { return spin_op(self); },
           "Creates a copy of the operator.")
@@ -218,16 +212,15 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def_static(
           "from_json",
           [](const std::string &json_str) {
-            nanobind::object json = nanobind::module_::import_("json");
-            auto data = nanobind::list(json.attr("loads")(json_str));
-            return spin_op(nanobind::cast<std::vector<double>>(data));
+            py::object json = py::module_::import_("json");
+            auto data = py::list(json.attr("loads")(json_str));
+            return spin_op(py::cast<std::vector<double>>(data));
           },
           "Convert JSON string ('[d1, d2, d3, ...]') to spin_op")
       // NOTE: only supported on spin ops
       .def_static(
-          "random", &spin_op::random<spin_handler>,
-          nanobind::arg("qubit_count"), nanobind::arg("term_count"),
-          nanobind::arg("seed") = std::random_device{}(),
+          "random", &spin_op::random<spin_handler>, py::arg("qubit_count"),
+          py::arg("term_count"), py::arg("seed") = std::random_device{}(),
           "Return a random spin operator with the given number of terms "
           "(`term_count`) where each term acts on all targets in the open "
           "range "
@@ -237,14 +230,16 @@ void bindSpinOperator(nanobind::module_ &mod) {
 
       .def(
           "to_matrix",
-          [](const spin_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const spin_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
-          nanobind::arg("invert_order") = false,
+          py::arg("dimensions").none() = py::none(),
+          py::arg("parameters").none() = py::none(),
+          py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -253,14 +248,13 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const spin_op &self, dimension_map &dimensions, bool invert_order,
-             const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const spin_op &self, dimension_map dimensions,
+             py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -268,14 +262,27 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
       .def(
-          "to_sparse_matrix",
-          [](const spin_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            return self.to_sparse_matrix(dimensions, params, invert_order);
+          "to_matrix",
+          [](const spin_op &self, py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat =
+                self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
-          nanobind::arg("invert_order") = false,
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
+      .def(
+          "to_sparse_matrix",
+          [](const spin_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            return self.to_sparse_matrix(dims, pm, invert_order);
+          },
+          py::arg("dimensions").none() = py::none(),
+          py::arg("parameters").none() = py::none(),
+          py::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -288,13 +295,12 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const spin_op &self, dimension_map &dimensions, bool invert_order,
-             const nanobind::kwargs &kwargs) {
-            return self.to_sparse_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const spin_op &self, dimension_map dimensions,
+             py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -308,7 +314,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
 
       // comparisons
 
-      .def("__eq__", &spin_op::operator==, nanobind::is_operator(),
+      .def("__eq__", &spin_op::operator==, py::is_operator(),
            "Return true if the two operators are equivalent. The equivalence "
            "check takes "
            "commutation relations into account. Operators acting on different "
@@ -320,91 +326,91 @@ void bindSpinOperator(nanobind::module_ &mod) {
           [](const spin_op &self, const spin_op_term &other) {
             return self.num_terms() == 1 && *self.begin() == other;
           },
-          nanobind::is_operator(),
-          "Return true if the two operators are equivalent.")
+          py::is_operator(), "Return true if the two operators are equivalent.")
 
       // unary operators
 
-      .def(-nanobind::self, nanobind::is_operator())
-      .def(+nanobind::self, nanobind::is_operator())
+      .def(-py::self, py::is_operator())
+      .def(+py::self, py::is_operator())
 
       // in-place arithmetics
 
-      .def(nanobind::self /= int(), nanobind::is_operator())
-      .def(nanobind::self *= int(), nanobind::is_operator())
-      .def(nanobind::self += int(), nanobind::is_operator())
-      .def(nanobind::self -= int(), nanobind::is_operator())
-      .def(nanobind::self /= double(), nanobind::is_operator())
-      .def(nanobind::self *= double(), nanobind::is_operator())
-      .def(nanobind::self += double(), nanobind::is_operator())
-      .def(nanobind::self -= double(), nanobind::is_operator())
-      .def(nanobind::self /= std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self *= std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self += std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self -= std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self /= scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self *= scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self += scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self -= scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self *= spin_op_term(), nanobind::is_operator())
-      .def(nanobind::self += spin_op_term(), nanobind::is_operator())
-      .def(nanobind::self -= spin_op_term(), nanobind::is_operator())
-      .def(nanobind::self *= nanobind::self, nanobind::is_operator())
-      .def(nanobind::self += nanobind::self, nanobind::is_operator())
+      .def(py::self /= int(), py::is_operator())
+      .def(py::self *= int(), py::is_operator())
+      .def(py::self += int(), py::is_operator())
+      .def(py::self -= int(), py::is_operator())
+      .def(py::self /= double(), py::is_operator())
+      .def(py::self *= double(), py::is_operator())
+      .def(py::self += double(), py::is_operator())
+      .def(py::self -= double(), py::is_operator())
+      .def(py::self /= std::complex<double>(), py::is_operator())
+      .def(py::self *= std::complex<double>(), py::is_operator())
+      .def(py::self += std::complex<double>(), py::is_operator())
+      .def(py::self -= std::complex<double>(), py::is_operator())
+      .def(py::self /= scalar_operator(), py::is_operator())
+      .def(py::self *= scalar_operator(), py::is_operator())
+      .def(py::self += scalar_operator(), py::is_operator())
+      .def(py::self -= scalar_operator(), py::is_operator())
+      .def(py::self *= spin_op_term(), py::is_operator())
+      .def(py::self += spin_op_term(), py::is_operator())
+      .def(py::self -= spin_op_term(), py::is_operator())
+      .def(py::self *= py::self, py::is_operator())
+      .def(py::self += py::self, py::is_operator())
+// see issue https://github.com/pybind/pybind11/issues/1893
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
 #endif
-      .def(nanobind::self -= nanobind::self, nanobind::is_operator())
+      .def(py::self -= py::self, py::is_operator())
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
       // right-hand arithmetics
 
-      .def(nanobind::self / int(), nanobind::is_operator())
-      .def(nanobind::self * int(), nanobind::is_operator())
-      .def(nanobind::self + int(), nanobind::is_operator())
-      .def(nanobind::self - int(), nanobind::is_operator())
-      .def(nanobind::self / double(), nanobind::is_operator())
-      .def(nanobind::self * double(), nanobind::is_operator())
-      .def(nanobind::self + double(), nanobind::is_operator())
-      .def(nanobind::self - double(), nanobind::is_operator())
-      .def(nanobind::self / std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self * std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self + std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self - std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self / scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self * scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self + scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self - scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self * spin_op_term(), nanobind::is_operator())
-      .def(nanobind::self + spin_op_term(), nanobind::is_operator())
-      .def(nanobind::self - spin_op_term(), nanobind::is_operator())
-      .def(nanobind::self * nanobind::self, nanobind::is_operator())
-      .def(nanobind::self + nanobind::self, nanobind::is_operator())
-      .def(nanobind::self - nanobind::self, nanobind::is_operator())
-      .def(nanobind::self * matrix_op_term(), nanobind::is_operator())
-      .def(nanobind::self + matrix_op_term(), nanobind::is_operator())
-      .def(nanobind::self - matrix_op_term(), nanobind::is_operator())
-      .def(nanobind::self * matrix_op(), nanobind::is_operator())
-      .def(nanobind::self + matrix_op(), nanobind::is_operator())
-      .def(nanobind::self - matrix_op(), nanobind::is_operator())
+      .def(py::self / int(), py::is_operator())
+      .def(py::self * int(), py::is_operator())
+      .def(py::self + int(), py::is_operator())
+      .def(py::self - int(), py::is_operator())
+      .def(py::self / double(), py::is_operator())
+      .def(py::self * double(), py::is_operator())
+      .def(py::self + double(), py::is_operator())
+      .def(py::self - double(), py::is_operator())
+      .def(py::self / std::complex<double>(), py::is_operator())
+      .def(py::self * std::complex<double>(), py::is_operator())
+      .def(py::self + std::complex<double>(), py::is_operator())
+      .def(py::self - std::complex<double>(), py::is_operator())
+      .def(py::self / scalar_operator(), py::is_operator())
+      .def(py::self * scalar_operator(), py::is_operator())
+      .def(py::self + scalar_operator(), py::is_operator())
+      .def(py::self - scalar_operator(), py::is_operator())
+      .def(py::self * spin_op_term(), py::is_operator())
+      .def(py::self + spin_op_term(), py::is_operator())
+      .def(py::self - spin_op_term(), py::is_operator())
+      .def(py::self * py::self, py::is_operator())
+      .def(py::self + py::self, py::is_operator())
+      .def(py::self - py::self, py::is_operator())
+      .def(py::self * matrix_op_term(), py::is_operator())
+      .def(py::self + matrix_op_term(), py::is_operator())
+      .def(py::self - matrix_op_term(), py::is_operator())
+      .def(py::self * matrix_op(), py::is_operator())
+      .def(py::self + matrix_op(), py::is_operator())
+      .def(py::self - matrix_op(), py::is_operator())
 
       // left-hand arithmetics
 
-      .def(int() * nanobind::self, nanobind::is_operator())
-      .def(int() + nanobind::self, nanobind::is_operator())
-      .def(int() - nanobind::self, nanobind::is_operator())
-      .def(double() * nanobind::self, nanobind::is_operator())
-      .def(double() + nanobind::self, nanobind::is_operator())
-      .def(double() - nanobind::self, nanobind::is_operator())
-      .def(std::complex<double>() * nanobind::self, nanobind::is_operator())
-      .def(std::complex<double>() + nanobind::self, nanobind::is_operator())
-      .def(std::complex<double>() - nanobind::self, nanobind::is_operator())
-      .def(scalar_operator() * nanobind::self, nanobind::is_operator())
-      .def(scalar_operator() + nanobind::self, nanobind::is_operator())
-      .def(scalar_operator() - nanobind::self, nanobind::is_operator())
+      .def(int() * py::self, py::is_operator())
+      .def(int() + py::self, py::is_operator())
+      .def(int() - py::self, py::is_operator())
+      .def(double() * py::self, py::is_operator())
+      .def(double() + py::self, py::is_operator())
+      .def(double() - py::self, py::is_operator())
+      .def(std::complex<double>() * py::self, py::is_operator())
+      .def(std::complex<double>() + py::self, py::is_operator())
+      .def(std::complex<double>() - py::self, py::is_operator())
+      .def(scalar_operator() * py::self, py::is_operator())
+      .def(scalar_operator() + py::self, py::is_operator())
+      .def(scalar_operator() - py::self, py::is_operator())
 
       // common operators
 
@@ -439,22 +445,26 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def(
           "to_json",
           [](const spin_op &self) {
-            nanobind::object json = nanobind::module_::import_("json");
+            py::object json = py::module_::import_("json");
             auto data = self.get_data_representation();
             return json.attr("dumps")(data);
           },
-          "Convert spin_op to a JSON string, e.g., '[d1, d2, d3, ...]'.")
-      .def("trim", &spin_op::trim, nanobind::arg("tol") = 0.0,
-           nanobind::arg("parameters") = parameter_map(),
-           "Removes all terms from the sum for which the absolute value of the "
+          "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
+      .def(
+          "trim",
+          [](spin_op &self, double tol, std::optional<parameter_map> params) {
+            return self.trim(tol, params.value_or(parameter_map()));
+          },
+          py::arg("tol") = 0.0,
+          py::arg("parameters").none() = py::none(),
+          "Removes all terms from the sum for which the absolute value of the "
            "coefficient is below "
            "the given tolerance.")
       .def(
           "trim",
-          [](spin_op &self, double tol, const nanobind::kwargs &kwargs) {
+          [](spin_op &self, double tol, py::kwargs kwargs) {
             return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
-          nanobind::arg("tol") = 0.0, nanobind::arg("kwargs"),
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
           "the given tolerance.")
@@ -551,27 +561,26 @@ void bindSpinOperator(nanobind::module_ &mod) {
                 1);
             new (self) spin_op(data, num_qubits);
           },
-          nanobind::arg("data"), nanobind::arg("num_qubits"),
+          py::arg("data"), py::arg("num_qubits"),
           "Deprecated - use constructor without the `num_qubits` argument "
           "instead.")
       // new constructor with deprecation warning provided only for backwards
       // compatibility (matching the deprecated data constructor for the old
       // serialization format above)
-      .def(
-          "__init__",
-          [](spin_op *self, const std::string &fileName, bool legacy) {
-            binary_spin_op_reader reader;
-            PyErr_WarnEx(
-                PyExc_DeprecationWarning,
-                "overload provided for compatibility with the deprecated "
-                "serialization format - please migrate to the new format and "
-                "use the constructor without boolean argument",
-                1);
-            new (self) spin_op(reader.read(fileName, legacy));
-          },
-          nanobind::arg("filename"), nanobind::arg("legacy"),
-          "Constructor available for loading deprecated data representations "
-          "from file - will be removed in future releases.")
+      .def("__init__",
+           [](spin_op *self, const std::string &fileName, bool legacy) {
+             binary_spin_op_reader reader;
+             PyErr_WarnEx(
+                 PyExc_DeprecationWarning,
+                 "overload provided for compatibility with the deprecated "
+                 "serialization format - please migrate to the new format and "
+                 "use the constructor without boolean argument",
+                 1);
+             new (self) spin_op(reader.read(fileName, legacy));
+           },
+           py::arg("filename"), py::arg("legacy"),
+           "Constructor available for loading deprecated data representations "
+           "from file - will be removed in future releases.")
       .def_static(
           "empty_op",
           []() {
@@ -591,28 +600,27 @@ void bindSpinOperator(nanobind::module_ &mod) {
                          1);
             return self.to_string(print_coefficient);
           },
-          nanobind::arg("print_coefficient") = true,
+          py::arg("print_coefficient") = true,
           "Deprecated - use the standard `str` conversion or `get_pauli_word` "
           "on each term instead.")
       .def(
           "for_each_term",
-          [](spin_op &self, nanobind::callable functor) {
+          [](spin_op &self, py::callable functor) {
             PyErr_WarnEx(PyExc_DeprecationWarning,
                          "use standard iteration instead", 1);
             self.for_each_term(functor);
           },
-          nanobind::arg("function"),
-          "Deprecated - use standard iteration instead.")
+          py::arg("function"), "Deprecated - use standard iteration instead.")
       .def(
           "for_each_pauli",
-          [](spin_op &self, nanobind::callable functor) {
+          [](spin_op &self, py::callable functor) {
             PyErr_WarnEx(PyExc_DeprecationWarning,
                          "iterate over the sum to get each term and then "
                          "iterate over the term(s) instead",
                          1);
             self.for_each_pauli(functor);
           },
-          nanobind::arg("function"),
+          py::arg("function"),
           "Deprecated - iterator over sum and then iterator over term "
           "instead.");
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
@@ -626,44 +634,46 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def(
           "__iter__",
           [](spin_op_term &self) {
-            return nanobind::make_iterator(nanobind::type<spin_op_term>(),
-                                           "iterator", self.begin(),
-                                           self.end());
+            py::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(py::cast(*it));
+            return items.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Loop through each term of the operator.")
 
       // properties
 
-      .def_prop_ro("parameters", &spin_op_term::get_parameter_descriptions,
-                   "Returns a dictionary that maps each parameter "
-                   "name to its description.")
+      .def_prop_ro("parameters",
+                             &spin_op_term::get_parameter_descriptions,
+                             "Returns a dictionary that maps each parameter "
+                             "name to its description.")
       .def_prop_ro("degrees", &spin_op_term::degrees,
-                   "Returns a vector that lists all degrees of "
-                   "freedom that the operator targets. "
-                   "The order of degrees is from smallest to largest "
-                   "and reflects the ordering of "
-                   "the matrix returned by `to_matrix`. "
-                   "Specifically, the indices of a statevector "
-                   "with two qubits are {00, 01, 10, 11}. An "
-                   "ordering of degrees {0, 1} then indicates "
-                   "that a state where the qubit with index 0 equals "
-                   "1 with probability 1 is given by "
-                   "the vector {0., 1., 0., 0.}.")
+                             "Returns a vector that lists all degrees of "
+                             "freedom that the operator targets. "
+                             "The order of degrees is from smallest to largest "
+                             "and reflects the ordering of "
+                             "the matrix returned by `to_matrix`. "
+                             "Specifically, the indices of a statevector "
+                             "with two qubits are {00, 01, 10, 11}. An "
+                             "ordering of degrees {0, 1} then indicates "
+                             "that a state where the qubit with index 0 equals "
+                             "1 with probability 1 is given by "
+                             "the vector {0., 1., 0., 0.}.")
       .def_prop_ro("min_degree", &spin_op_term::min_degree,
-                   "Returns the smallest index of the degrees of "
-                   "freedom that the operator targets.")
+                             "Returns the smallest index of the degrees of "
+                             "freedom that the operator targets.")
       .def_prop_ro("max_degree", &spin_op_term::max_degree,
-                   "Returns the smallest index of the degrees of "
-                   "freedom that the operator targets.")
+                             "Returns the smallest index of the degrees of "
+                             "freedom that the operator targets.")
       .def_prop_ro("ops_count", &spin_op_term::num_ops,
-                   "Returns the number of operators in the product.")
+                             "Returns the number of operators in the product.")
       .def_prop_ro(
           "term_count", [](const spin_op_term &) { return 1; },
           "Returns the number of terms in the operator. Always returns 1.")
       // only exists for spin operators
-      .def_prop_ro("qubit_count", &spin_op_term::num_qubits<spin_handler>,
-                   "Return the number of qubits this operator acts on.")
+      .def_prop_ro(
+          "qubit_count", &spin_op_term::num_qubits<spin_handler>,
+          "Return the number of qubits this operator acts on.")
       .def_prop_ro(
           "term_id", &spin_op_term::get_term_id,
           "The term id uniquely identifies the operators and targets (degrees) "
@@ -677,66 +687,63 @@ void bindSpinOperator(nanobind::module_ &mod) {
 
       // constructors
 
-      .def(nanobind::init<>(),
+      .def(py::init<>(),
            "Creates a product operator with constant value 1. The returned "
            "operator does not target any degrees of freedom but merely "
            "represents a constant.")
-      .def(nanobind::init<std::size_t, std::size_t>(),
-           nanobind::arg("first_degree"), nanobind::arg("last_degree"),
+      .def(py::init<std::size_t, std::size_t>(), py::arg("first_degree"),
+           py::arg("last_degree"),
            "Creates a product operator that applies an identity operation to "
            "all degrees of "
            "freedom in the range [first_degree, last_degree).")
       // NOTE: only supported on spin ops so far
-      .def(
-          "__init__",
-          [](spin_op_term *self, const std::vector<double> &data) {
-            spin_op op(data);
-            if (op.num_terms() != 1)
-              throw std::runtime_error(
-                  "invalid data representation for product operator");
-            new (self) spin_op_term(*op.begin());
-          },
-          nanobind::arg("data"),
-          "Creates an operator based on a serialized data representation.")
+      .def("__init__",
+           [](spin_op_term *self, const std::vector<double> &data) {
+             spin_op op(data);
+             if (op.num_terms() != 1)
+               throw std::runtime_error(
+                   "invalid data representation for product operator");
+             new (self) spin_op_term(*op.begin());
+           },
+           py::arg("data"),
+           "Creates an operator based on a serialized data representation.")
       // NOTE: only supported on spin ops so far
-      .def(
-          "__init__",
-          [](spin_op_term *self, const std::string &fileName) {
-            binary_spin_op_reader reader;
-            spin_op op = reader.read(fileName);
-            if (op.num_terms() != 1)
-              throw std::runtime_error(
-                  "invalid data representation for product operator");
-            new (self) spin_op_term(*op.begin());
-          },
-          "Creates an operator based on a serialized data representation in "
-          "the given file.")
-      .def(nanobind::init<double>(),
+      .def("__init__",
+           [](spin_op_term *self, const std::string &fileName) {
+             binary_spin_op_reader reader;
+             spin_op op = reader.read(fileName);
+             if (op.num_terms() != 1)
+               throw std::runtime_error(
+                   "invalid data representation for product operator");
+             new (self) spin_op_term(*op.begin());
+           },
+           "Creates an operator based on a serialized data representation in "
+           "the given file.")
+      .def(py::init<double>(),
            "Creates a product operator with the given constant value. "
            "The returned operator does not target any degrees of freedom.")
-      .def(nanobind::init<std::complex<double>>(),
+      .def(py::init<std::complex<double>>(),
            "Creates a product operator with the given "
            "constant value. The returned operator does not target any degrees "
            "of freedom.")
-      .def(
-          "__init__",
-          [](spin_op_term *self, const scalar_operator &scalar) {
-            new (self) spin_op_term(spin_op_term() * scalar);
-          },
-          "Creates a product operator with non-constant scalar value.")
-      .def(nanobind::init<spin_handler>(),
+      .def("__init__",
+           [](spin_op_term *self, const scalar_operator &scalar) {
+             new (self) spin_op_term(spin_op_term() * scalar);
+           },
+           "Creates a product operator with non-constant scalar value.")
+      .def(py::init<spin_handler>(),
            "Creates a product operator with the given elementary operator.")
-      .def(nanobind::init<const spin_op_term &, std::size_t>(),
-           nanobind::arg("operator"), nanobind::arg("size") = 0,
+      .def(py::init<const spin_op_term &, std::size_t>(), py::arg("operator"),
+           py::arg("size") = 0,
            "Creates a copy of the given operator and reserves space for "
            "storing the given "
            "number of product terms (if a size is provided).")
       .def_static(
           "from_json",
           [](const std::string &json_str) {
-            nanobind::object json = nanobind::module_::import_("json");
-            auto data = nanobind::list(json.attr("loads")(json_str));
-            spin_op op(nanobind::cast<std::vector<double>>(data));
+            py::object json = py::module_::import_("json");
+            auto data = py::list(json.attr("loads")(json_str));
+            spin_op op(py::cast<std::vector<double>>(data));
             if (op.num_terms() != 1)
               throw std::runtime_error(
                   "invalid data representation for product operator");
@@ -749,21 +756,27 @@ void bindSpinOperator(nanobind::module_ &mod) {
 
       // evaluations
 
-      .def("evaluate_coefficient", &spin_op_term::evaluate_coefficient,
-           nanobind::arg("parameters") = parameter_map(),
-           "Returns the evaluated coefficient of the product operator. The "
+      .def(
+          "evaluate_coefficient",
+          [](const spin_op_term &self, std::optional<parameter_map> params) {
+            return self.evaluate_coefficient(params.value_or(parameter_map()));
+          },
+          py::arg("parameters").none() = py::none(),
+          "Returns the evaluated coefficient of the product operator. The "
            "parameters is a map of parameter names to their concrete, complex "
            "values.")
       .def(
           "to_matrix",
-          [](const spin_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const spin_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
-          nanobind::arg("invert_order") = false,
+          py::arg("dimensions").none() = py::none(),
+          py::arg("parameters").none() = py::none(),
+          py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -772,14 +785,13 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const spin_op_term &self, dimension_map &dimensions,
-             bool invert_order, const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const spin_op_term &self, dimension_map dimensions,
+             py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -787,14 +799,27 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
       .def(
-          "to_sparse_matrix",
-          [](const spin_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            return self.to_sparse_matrix(dimensions, params, invert_order);
+          "to_matrix",
+          [](const spin_op_term &self, py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat =
+                self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
-          nanobind::arg("invert_order") = false,
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
+      .def(
+          "to_sparse_matrix",
+          [](const spin_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            return self.to_sparse_matrix(dims, pm, invert_order);
+          },
+          py::arg("dimensions").none() = py::none(),
+          py::arg("parameters").none() = py::none(),
+          py::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -807,13 +832,12 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const spin_op_term &self, dimension_map &dimensions,
-             bool invert_order, const nanobind::kwargs &kwargs) {
-            return self.to_sparse_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const spin_op_term &self, dimension_map dimensions,
+             py::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -827,7 +851,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
 
       // comparisons
 
-      .def("__eq__", &spin_op_term::operator==, nanobind::is_operator(),
+      .def("__eq__", &spin_op_term::operator==, py::is_operator(),
            "Return true if the two operators are equivalent. The equivalence "
            "check takes "
            "commutation relations into account. Operators acting on different "
@@ -839,78 +863,77 @@ void bindSpinOperator(nanobind::module_ &mod) {
           [](const spin_op_term &self, const spin_op &other) {
             return other.num_terms() == 1 && *other.begin() == self;
           },
-          nanobind::is_operator(),
-          "Return true if the two operators are equivalent.")
+          py::is_operator(), "Return true if the two operators are equivalent.")
 
       // unary operators
 
-      .def(-nanobind::self, nanobind::is_operator())
-      .def(+nanobind::self, nanobind::is_operator())
+      .def(-py::self, py::is_operator())
+      .def(+py::self, py::is_operator())
 
       // in-place arithmetics
 
-      .def(nanobind::self /= int(), nanobind::is_operator())
-      .def(nanobind::self *= int(), nanobind::is_operator())
-      .def(nanobind::self /= double(), nanobind::is_operator())
-      .def(nanobind::self *= double(), nanobind::is_operator())
-      .def(nanobind::self /= std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self *= std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self /= scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self *= scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self *= nanobind::self, nanobind::is_operator())
+      .def(py::self /= int(), py::is_operator())
+      .def(py::self *= int(), py::is_operator())
+      .def(py::self /= double(), py::is_operator())
+      .def(py::self *= double(), py::is_operator())
+      .def(py::self /= std::complex<double>(), py::is_operator())
+      .def(py::self *= std::complex<double>(), py::is_operator())
+      .def(py::self /= scalar_operator(), py::is_operator())
+      .def(py::self *= scalar_operator(), py::is_operator())
+      .def(py::self *= py::self, py::is_operator())
 
       // right-hand arithmetics
 
-      .def(nanobind::self / int(), nanobind::is_operator())
-      .def(nanobind::self * int(), nanobind::is_operator())
-      .def(nanobind::self + int(), nanobind::is_operator())
-      .def(nanobind::self - int(), nanobind::is_operator())
-      .def(nanobind::self / double(), nanobind::is_operator())
-      .def(nanobind::self * double(), nanobind::is_operator())
-      .def(nanobind::self + double(), nanobind::is_operator())
-      .def(nanobind::self - double(), nanobind::is_operator())
-      .def(nanobind::self / std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self * std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self + std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self - std::complex<double>(), nanobind::is_operator())
-      .def(nanobind::self / scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self * scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self + scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self - scalar_operator(), nanobind::is_operator())
-      .def(nanobind::self * nanobind::self, nanobind::is_operator())
-      .def(nanobind::self + nanobind::self, nanobind::is_operator())
-      .def(nanobind::self - nanobind::self, nanobind::is_operator())
-      .def(nanobind::self * spin_op(), nanobind::is_operator())
-      .def(nanobind::self + spin_op(), nanobind::is_operator())
-      .def(nanobind::self - spin_op(), nanobind::is_operator())
-      .def(nanobind::self * matrix_op_term(), nanobind::is_operator())
-      .def(nanobind::self + matrix_op_term(), nanobind::is_operator())
-      .def(nanobind::self - matrix_op_term(), nanobind::is_operator())
-      .def(nanobind::self * matrix_op(), nanobind::is_operator())
-      .def(nanobind::self + matrix_op(), nanobind::is_operator())
-      .def(nanobind::self - matrix_op(), nanobind::is_operator())
+      .def(py::self / int(), py::is_operator())
+      .def(py::self * int(), py::is_operator())
+      .def(py::self + int(), py::is_operator())
+      .def(py::self - int(), py::is_operator())
+      .def(py::self / double(), py::is_operator())
+      .def(py::self * double(), py::is_operator())
+      .def(py::self + double(), py::is_operator())
+      .def(py::self - double(), py::is_operator())
+      .def(py::self / std::complex<double>(), py::is_operator())
+      .def(py::self * std::complex<double>(), py::is_operator())
+      .def(py::self + std::complex<double>(), py::is_operator())
+      .def(py::self - std::complex<double>(), py::is_operator())
+      .def(py::self / scalar_operator(), py::is_operator())
+      .def(py::self * scalar_operator(), py::is_operator())
+      .def(py::self + scalar_operator(), py::is_operator())
+      .def(py::self - scalar_operator(), py::is_operator())
+      .def(py::self * py::self, py::is_operator())
+      .def(py::self + py::self, py::is_operator())
+      .def(py::self - py::self, py::is_operator())
+      .def(py::self * spin_op(), py::is_operator())
+      .def(py::self + spin_op(), py::is_operator())
+      .def(py::self - spin_op(), py::is_operator())
+      .def(py::self * matrix_op_term(), py::is_operator())
+      .def(py::self + matrix_op_term(), py::is_operator())
+      .def(py::self - matrix_op_term(), py::is_operator())
+      .def(py::self * matrix_op(), py::is_operator())
+      .def(py::self + matrix_op(), py::is_operator())
+      .def(py::self - matrix_op(), py::is_operator())
 
       // left-hand arithmetics
 
-      .def(int() * nanobind::self, nanobind::is_operator())
-      .def(int() + nanobind::self, nanobind::is_operator())
-      .def(int() - nanobind::self, nanobind::is_operator())
-      .def(double() * nanobind::self, nanobind::is_operator())
-      .def(double() + nanobind::self, nanobind::is_operator())
-      .def(double() - nanobind::self, nanobind::is_operator())
-      .def(std::complex<double>() * nanobind::self, nanobind::is_operator())
-      .def(std::complex<double>() + nanobind::self, nanobind::is_operator())
-      .def(std::complex<double>() - nanobind::self, nanobind::is_operator())
-      .def(scalar_operator() * nanobind::self, nanobind::is_operator())
-      .def(scalar_operator() + nanobind::self, nanobind::is_operator())
-      .def(scalar_operator() - nanobind::self, nanobind::is_operator())
+      .def(int() * py::self, py::is_operator())
+      .def(int() + py::self, py::is_operator())
+      .def(int() - py::self, py::is_operator())
+      .def(double() * py::self, py::is_operator())
+      .def(double() + py::self, py::is_operator())
+      .def(double() - py::self, py::is_operator())
+      .def(std::complex<double>() * py::self, py::is_operator())
+      .def(std::complex<double>() + py::self, py::is_operator())
+      .def(std::complex<double>() - py::self, py::is_operator())
+      .def(scalar_operator() * py::self, py::is_operator())
+      .def(scalar_operator() + py::self, py::is_operator())
+      .def(scalar_operator() - py::self, py::is_operator())
 
       // general utility functions
 
       .def("is_identity", &spin_op_term::is_identity,
            "Checks if all operators in the product are the identity. "
-           "Note that this function returns true regardless of the value of "
-           "the coefficient.")
+           "Note: this function returns true regardless of the value of the "
+           "coefficient.")
       .def(
           "__str__", [](const spin_op_term &self) { return self.to_string(); },
           "Returns the string representation of the operator.")
@@ -928,18 +951,18 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def(
           "to_json",
           [](const spin_op_term &self) {
-            nanobind::object json = nanobind::module_::import_("json");
+            py::object json = py::module_::import_("json");
             auto data = spin_op(self).get_data_representation();
             return json.attr("dumps")(data);
           },
-          "Convert spin_op to a JSON string, e.g., '[d1, d2, d3, ...]'.")
+          "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
       // only exists for spin operators
       .def(
           "get_pauli_word",
           [](spin_op_term &op, std::size_t pad_identities) {
             return op.get_pauli_word(pad_identities);
           },
-          nanobind::arg("pad_identities") = 0,
+          py::arg("pad_identities") = 0,
           "Gets the Pauli word representation of this product operator.")
       // only exists for spin operators
       .def("get_binary_symplectic_form",
@@ -1005,7 +1028,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
                          1);
             return self.to_string(print_coefficient);
           },
-          nanobind::arg("print_coefficient") = true,
+          py::arg("print_coefficient") = true,
           "Deprecated - use the standard `str` conversion or use "
           "`get_pauli_word` instead.")
       .def(
@@ -1017,19 +1040,18 @@ void bindSpinOperator(nanobind::module_ &mod) {
                          1);
             return spin_op(op).distribute_terms(chunks);
           },
-          nanobind::arg("chunk_count"),
+          py::arg("chunk_count"),
           "Deprecated - instantiate a `SpinOperator` from this "
           "`SpinOperatorTerm` "
           "and call distribute_terms on that.")
       .def(
           "for_each_pauli",
-          [](spin_op_term &self, nanobind::callable functor) {
+          [](spin_op_term &self, py::callable functor) {
             PyErr_WarnEx(PyExc_DeprecationWarning,
                          "use standard iteration instead", 1);
             spin_op(self).for_each_pauli(functor);
           },
-          nanobind::arg("function"),
-          "Deprecated - use standard iteration instead.");
+          py::arg("function"), "Deprecated - use standard iteration instead.");
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
@@ -1038,12 +1060,12 @@ void bindSpinOperator(nanobind::module_ &mod) {
 #endif
 }
 
-void bindSpinWrapper(nanobind::module_ &mod) {
+void bindSpinWrapper(py::module_ &mod) {
   bindSpinOperator(mod);
-  nanobind::implicitly_convertible<double, spin_op_term>();
-  nanobind::implicitly_convertible<std::complex<double>, spin_op_term>();
-  nanobind::implicitly_convertible<scalar_operator, spin_op_term>();
-  nanobind::implicitly_convertible<spin_op_term, spin_op>();
+  py::implicitly_convertible<double, spin_op_term>();
+  py::implicitly_convertible<std::complex<double>, spin_op_term>();
+  py::implicitly_convertible<scalar_operator, spin_op_term>();
+  py::implicitly_convertible<spin_op_term, spin_op>();
   bindSpinModule(mod);
 }
 

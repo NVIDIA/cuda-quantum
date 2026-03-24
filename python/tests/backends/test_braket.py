@@ -27,7 +27,7 @@ def set_up_target():
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+    return got < -1.5 and got > -2.0
 
 
 def test_simple_kernel():

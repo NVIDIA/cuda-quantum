@@ -5,17 +5,19 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
-#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 #include "common/JsonConvert.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
 #include "py_optimizer.h"
@@ -23,26 +25,56 @@
 
 namespace cudaq {
 
-/// @brief optimization_result is a typedef for std::tuple<double,
-/// std::vector<double>> which is automatically converted by nanobind's
-/// stl/tuple type caster.
-void bindOptimizationResult(nanobind::module_ &mod) {
-  mod.attr("OptimizationResult") =
-      nanobind::handle(reinterpret_cast<PyObject *>(&PyTuple_Type));
+/// Wrapper exposed as OptimizationResult so cudaq_runtime.OptimizationResult
+/// exists for re-export and type hints. optimize() returns a plain tuple
+/// (opt_value, opt_params); this type can wrap that for structured access.
+struct OptimizationResultPy {
+  double opt_value = 0.0;
+  std::vector<double> optimal_parameters;
+
+  OptimizationResultPy() = default;
+  OptimizationResultPy(double v, std::vector<double> p)
+      : opt_value(v), optimal_parameters(std::move(p)) {}
+  explicit OptimizationResultPy(const optimization_result &r)
+      : opt_value(std::get<0>(r)),
+        optimal_parameters(std::get<1>(r)) {}
+};
+
+void bindOptimizationResult(py::module_ &mod) {
+  py::class_<OptimizationResultPy>(mod, "OptimizationResult",
+                                  "Result of an optimization: (opt_value, "
+                                  "optimal_parameters). optimize() returns a "
+                                  "tuple; this type is for type hints and "
+                                  "wrapping.")
+      .def(py::init<double, std::vector<double>>(), py::arg("opt_value"),
+           py::arg("optimal_parameters"))
+      .def(py::init<const optimization_result &>(),
+           "Wrap a tuple (opt_value, optimal_parameters).")
+      .def_ro("opt_value", &OptimizationResultPy::opt_value)
+      .def_ro("optimal_parameters", &OptimizationResultPy::optimal_parameters)
+      .def("__getitem__",
+           [](const OptimizationResultPy &self, size_t i) -> py::object {
+             if (i == 0)
+               return py::cast(self.opt_value);
+             if (i == 1)
+               return py::cast(self.optimal_parameters);
+             throw std::out_of_range("OptimizationResult index out of range");
+           })
+      .def("__len__", [](const OptimizationResultPy &) { return 2; });
 }
 
-void bindGradientStrategies(nanobind::module_ &mod) {
+void bindGradientStrategies(py::module_ &mod) {
   // Binding under the `cudaq.gradients` namespace in python.
   auto gradients_submodule = mod.def_submodule("gradients");
   // Have to bind the parent class, `cudaq::gradient`, to allow
   // for the passing of arbitrary `cudaq::gradients::` around.
   // Note: this class lives under `cudaq.gradients.gradient`
   // in python.
-  nanobind::class_<gradient>(gradients_submodule, "gradient");
+  py::class_<gradient>(gradients_submodule, "gradient");
   // Gradient strategies derive from the `cudaq::gradient` class.
-  nanobind::class_<gradients::central_difference, gradient>(gradients_submodule,
-                                                            "CentralDifference")
-      .def(nanobind::init<>())
+  py::class_<gradients::central_difference, gradient>(gradients_submodule,
+                                                      "CentralDifference")
+      .def(py::init<>())
       .def(
           "to_json",
           [](const gradients::central_difference &p) { return json(p).dump(); },
@@ -58,20 +90,18 @@ void bindGradientStrategies(nanobind::module_ &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             nanobind::callable &func, double funcAtX) {
+             py::callable &func, double funcAtX) {
             auto function =
-                nanobind::cast<std::function<double(std::vector<double>)>>(
-                    func);
+                py::cast<std::function<double(std::vector<double>)>>(func);
             return grad.compute(x, function, funcAtX);
           },
-          nanobind::arg("parameter_vector"), nanobind::arg("function"),
-          nanobind::arg("funcAtX"),
+          py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
           "Compute the gradient of the provided `parameter_vector` with "
           "respect to "
           "its loss function, using the `CentralDifference` method.\n");
-  nanobind::class_<gradients::forward_difference, gradient>(gradients_submodule,
-                                                            "ForwardDifference")
-      .def(nanobind::init<>())
+  py::class_<gradients::forward_difference, gradient>(gradients_submodule,
+                                                      "ForwardDifference")
+      .def(py::init<>())
       .def(
           "to_json",
           [](const gradients::forward_difference &p) { return json(p).dump(); },
@@ -87,20 +117,18 @@ void bindGradientStrategies(nanobind::module_ &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             nanobind::callable &func, double funcAtX) {
+             py::callable &func, double funcAtX) {
             auto function =
-                nanobind::cast<std::function<double(std::vector<double>)>>(
-                    func);
+                py::cast<std::function<double(std::vector<double>)>>(func);
             return grad.compute(x, function, funcAtX);
           },
-          nanobind::arg("parameter_vector"), nanobind::arg("function"),
-          nanobind::arg("funcAtX"),
+          py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
           "Compute the gradient of the provided `parameter_vector` with "
           "respect to "
           "its loss function, using the `ForwardDifference` method.\n");
-  nanobind::class_<gradients::parameter_shift, gradient>(gradients_submodule,
-                                                         "ParameterShift")
-      .def(nanobind::init<>())
+  py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
+                                                   "ParameterShift")
+      .def(py::init<>())
       .def(
           "to_json",
           [](const gradients::parameter_shift &p) { return json(p).dump(); },
@@ -116,14 +144,12 @@ void bindGradientStrategies(nanobind::module_ &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             nanobind::callable &func, double funcAtX) {
+             py::callable &func, double funcAtX) {
             auto function =
-                nanobind::cast<std::function<double(std::vector<double>)>>(
-                    func);
+                py::cast<std::function<double(std::vector<double>)>>(func);
             return grad.compute(x, function, funcAtX);
           },
-          nanobind::arg("parameter_vector"), nanobind::arg("function"),
-          nanobind::arg("funcAtX"),
+          py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
           "Compute the gradient of the provided `parameter_vector` with "
           "respect to "
           "its loss function, using the `ParameterShift` method.\n");
@@ -134,10 +160,9 @@ void bindGradientStrategies(nanobind::module_ &mod) {
 /// Can now define its member functions on
 /// that submodule.
 template <typename OptimizerT>
-nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
-                                                       std::string &&name) {
-  return nanobind::class_<OptimizerT, optimizer>(mod, name.c_str())
-      .def(nanobind::init<>())
+py::class_<OptimizerT, optimizer> addPyOptimizer(py::module_ &mod, std::string &&name) {
+  return py::class_<OptimizerT, optimizer>(mod, name.c_str())
+      .def(py::init<>())
       .def(
           "to_json", [](const OptimizerT &p) { return json(p).dump(); },
           "Convert optimizer to JSON string")
@@ -156,8 +181,24 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
           the optimizer will perform. If not set, the optimizer may run until 
           convergence or until another stopping criterion is met.
           )doc")
-      .def_rw("initial_parameters", &OptimizerT::initial_parameters,
-              R"doc(
+      .def_prop_rw(
+          "initial_parameters",
+          [](OptimizerT &self) -> py::object {
+            if (self.initial_parameters.has_value())
+              return py::cast(self.initial_parameters.value());
+            return py::none();
+          },
+          [](OptimizerT &self, py::object vals) {
+            if (vals.is_none()) {
+              self.initial_parameters = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(py::cast<double>(val));
+            self.initial_parameters = std::move(v);
+          },
+          R"doc(
           list[float]: Initial values for the optimization parameters (optional).
 
           Provides a starting point for the optimization. If not specified, the 
@@ -170,7 +211,24 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
 
                   optimizer.initial_parameters = [0.5, -0.3, 1.2]
           )doc")
-      .def_rw("lower_bounds", &OptimizerT::lower_bounds, R"doc(
+      .def_prop_rw(
+          "lower_bounds",
+          [](OptimizerT &self) -> py::object {
+            if (self.lower_bounds.has_value())
+              return py::cast(self.lower_bounds.value());
+            return py::none();
+          },
+          [](OptimizerT &self, py::object vals) {
+            if (vals.is_none()) {
+              self.lower_bounds = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(py::cast<double>(val));
+            self.lower_bounds = std::move(v);
+          },
+          R"doc(
           list[float]: Lower bounds for optimization parameters (optional).
 
           Constrains the search space by specifying minimum allowed values for 
@@ -182,7 +240,24 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
 
                   optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
           )doc")
-      .def_rw("upper_bounds", &OptimizerT::upper_bounds, R"doc(
+      .def_prop_rw(
+          "upper_bounds",
+          [](OptimizerT &self) -> py::object {
+            if (self.upper_bounds.has_value())
+              return py::cast(self.upper_bounds.value());
+            return py::none();
+          },
+          [](OptimizerT &self, py::object vals) {
+            if (vals.is_none()) {
+              self.upper_bounds = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(py::cast<double>(val));
+            self.upper_bounds = std::move(v);
+          },
+          R"doc(
           list[float]: Upper bounds for optimization parameters (optional).
 
           Constrains the search space by specifying maximum allowed values for 
@@ -211,22 +286,21 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
           )doc")
       .def(
           "optimize",
-          [](OptimizerT &opt, const int dim, nanobind::callable &func) {
+          [](OptimizerT &opt, const int dim, py::callable &func) {
             return opt.optimize(dim, [&](std::vector<double> x,
                                          std::vector<double> &grad) {
               // Call the function.
               auto ret = func(x);
               // Does it return a tuple?
-              auto isTupleReturn = nanobind::isinstance<nanobind::tuple>(ret);
+              auto isTupleReturn = py::isinstance<py::tuple>(ret);
               // If we don't need gradients, and it does, just grab the value
               // and return.
               if (!opt.requiresGradients() && isTupleReturn)
-                return nanobind::cast<double>(
-                    nanobind::cast<nanobind::tuple>(ret)[0]);
+                return py::cast<double>(py::cast<py::tuple>(ret)[0]);
               // If we don't need gradients and it doesn't return tuple, then
               // just pass what we got.
               if (!opt.requiresGradients() && !isTupleReturn)
-                return nanobind::cast<double>(ret);
+                return py::cast<double>(ret);
 
               // Throw an error if we need gradients and they weren't provided.
               if (opt.requiresGradients() && !isTupleReturn)
@@ -235,16 +309,16 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
                     "(float, list[float]) for gradient-based optimizers");
 
               // If here, we require gradients, and the signature is right.
-              auto tuple = nanobind::cast<nanobind::tuple>(ret);
+              auto tuple = py::cast<py::tuple>(ret);
               auto val = tuple[0];
-              auto gradIn = nanobind::cast<nanobind::list>(tuple[1]);
+              auto gradIn = py::cast<py::list>(tuple[1]);
               for (std::size_t i = 0; i < gradIn.size(); i++)
-                grad[i] = nanobind::cast<double>(gradIn[i]);
+                grad[i] = py::cast<double>(gradIn[i]);
 
-              return nanobind::cast<double>(val);
+              return py::cast<double>(val);
             });
           },
-          nanobind::arg("dimensions"), nanobind::arg("function"), R"doc(
+          py::arg("dimensions"), py::arg("function"), R"doc(
 Run the optimization procedure.
 
 Args:
@@ -282,14 +356,14 @@ Example:
 )doc");
 }
 
-void bindOptimizers(nanobind::module_ &mod) {
+void bindOptimizers(py::module_ &mod) {
   // Binding the `cudaq::optimizers` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
   auto optimizers_submodule = mod.def_submodule("optimizers");
-  nanobind::class_<optimizer>(optimizers_submodule, "optimizer");
+  py::class_<optimizer>(optimizers_submodule, "optimizer");
 
   addPyOptimizer<optimizers::cobyla>(optimizers_submodule, "COBYLA")
-      .def(nanobind::init<>(), R"doc(
+      .def(py::init<>(), R"doc(
 Constrained Optimization BY Linear Approximations (COBYLA).
 
 COBYLA is a gradient-free derivative-free optimization algorithm that uses 
@@ -312,7 +386,7 @@ Example:
 )doc");
 
   addPyOptimizer<optimizers::neldermead>(optimizers_submodule, "NelderMead")
-      .def(nanobind::init<>(), R"doc(
+      .def(py::init<>(), R"doc(
 Nelder-Mead simplex optimization algorithm.
 
 The Nelder-Mead method is a gradient-free simplex-based optimization algorithm 
@@ -335,7 +409,7 @@ Example:
 )doc");
 
   addPyOptimizer<optimizers::lbfgs>(optimizers_submodule, "LBFGS")
-      .def(nanobind::init<>(), R"doc(
+      .def(py::init<>(), R"doc(
 Limited-memory Broyden-Fletcher-Goldfarb-Shanno (L-BFGS) optimizer.
 
 L-BFGS is a quasi-Newton method that approximates the Hessian matrix using 
@@ -361,7 +435,7 @@ Example:
 
   addPyOptimizer<optimizers::gradient_descent>(optimizers_submodule,
                                                "GradientDescent")
-      .def(nanobind::init<>(), R"doc(
+      .def(py::init<>(), R"doc(
 Basic gradient descent optimization algorithm.
 
 Gradient descent iteratively moves in the direction of steepest descent 
@@ -388,7 +462,7 @@ Example:
 
   // Have to bind extra optimizer parameters to the following manually:
   auto py_spsa = addPyOptimizer<optimizers::spsa>(optimizers_submodule, "SPSA")
-                     .def(nanobind::init<>(), R"doc(
+                     .def(py::init<>(), R"doc(
 Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
 
 SPSA is a gradient-free optimization algorithm that uses simultaneous 
@@ -427,7 +501,7 @@ iteration k is proportional to (A + k + 1)^(-gamma), where A is a stability
 constant. Common values are in the range [0.1, 0.6].
 )doc");
   py_spsa.def_rw("step_size", &cudaq::optimizers::spsa::eval_step_size,
-                 R"doc(
+                        R"doc(
 float: Evaluation step size for gradient approximation (default: 0.3).
 
 Controls the magnitude of perturbations used to approximate gradients.
@@ -436,7 +510,7 @@ to noise. Typical values range from 0.1 to 0.5.
 )doc");
 
   auto py_adam = addPyOptimizer<optimizers::adam>(optimizers_submodule, "Adam")
-                     .def(nanobind::init<>(), R"doc(
+                     .def(py::init<>(), R"doc(
 Adaptive Moment Estimation (Adam) optimizer.
 
 Adam is an adaptive learning rate optimization algorithm that computes 
@@ -474,7 +548,7 @@ Example:
         )
 )doc");
   py_adam.def_rw("batch_size", &cudaq::optimizers::adam::batch_size,
-                 R"doc(
+                        R"doc(
 int: Number of samples per batch (default: 1).
 
 For stochastic optimization, determines how many samples are used to 
@@ -520,7 +594,7 @@ convergence but may require more iterations.
 )doc");
 
   auto py_sgd = addPyOptimizer<optimizers::sgd>(optimizers_submodule, "SGD")
-                    .def(nanobind::init<>(), R"doc(
+                    .def(py::init<>(), R"doc(
 Stochastic Gradient Descent (SGD) optimizer.
 
 SGD is a fundamental optimization algorithm that updates parameters by taking 
@@ -581,7 +655,7 @@ gradients, convergence may be noisy.
 )doc");
 }
 
-void bindOptimizerWrapper(nanobind::module_ &mod) {
+void bindOptimizerWrapper(py::module_ &mod) {
   bindOptimizationResult(mod);
   bindGradientStrategies(mod);
   bindOptimizers(mod);

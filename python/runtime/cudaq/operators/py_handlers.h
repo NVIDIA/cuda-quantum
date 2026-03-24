@@ -8,8 +8,10 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of
 /// operator handlers to python.
-void bindHandlersWrapper(nanobind::module_ &mod);
+void bindHandlersWrapper(py::module_ &mod);
 } // namespace cudaq

@@ -8,7 +8,9 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Binds `cudaq.EvolveResult` and `cudaq.AsyncEvolveResult`.
-void bindEvolveResult(nanobind::module_ &mod);
+void bindEvolveResult(py::module_ &mod);
 } // namespace cudaq

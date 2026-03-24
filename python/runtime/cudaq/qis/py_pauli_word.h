@@ -10,7 +10,9 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
-/// @brief Bind the Quantum Instruction Set.
-void bindPauliWord(nanobind::module_ &mod);
+/// @brief Bind the pauli_word type.
+void bindPauliWord(py::module_ &mod);
 } // namespace cudaq

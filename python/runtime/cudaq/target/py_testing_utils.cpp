@@ -14,6 +14,11 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+namespace py = nanobind;
 
 namespace nvqir {
 void toggleDynamicQubitManagement();
@@ -21,7 +26,7 @@ void toggleDynamicQubitManagement();
 
 namespace cudaq {
 
-void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
+void bindTestUtils(py::module_ &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
 
   testingSubmodule.def(
@@ -34,7 +39,7 @@ void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         auto simName = holder.getTarget().simulatorName;
         return holder.getSimulator(simName)->allocateQubits(numQubits);
       },
-      nanobind::arg("numQubits"));
+      py::arg("numQubits"));
 
   testingSubmodule.def("deallocateQubits",
                        [&](const std::vector<std::size_t> &qubits) {

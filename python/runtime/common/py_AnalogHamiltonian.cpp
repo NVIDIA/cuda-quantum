@@ -9,58 +9,63 @@
 #include "py_AnalogHamiltonian.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/JsonConvert.h"
-#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
+
+namespace py = nanobind;
 
 namespace cudaq {
 
 /// @brief Binds the `cudaq::ahs` classes.
-void bindAnalogHamiltonian(nanobind::module_ &mod) {
+void bindAnalogHamiltonian(py::module_ &mod) {
 
-  nanobind::class_<cudaq::ahs::AtomArrangement>(mod, "AtomArrangement")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::AtomArrangement>(mod, "AtomArrangement")
+      .def(py::init<>())
       .def_rw("sites", &cudaq::ahs::AtomArrangement::sites)
       .def_rw("filling", &cudaq::ahs::AtomArrangement::filling);
 
-  nanobind::class_<cudaq::ahs::Setup>(mod, "SetUp")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::Setup>(mod, "SetUp")
+      .def(py::init<>())
       .def_rw("ahs_register", &cudaq::ahs::Setup::ahs_register);
 
-  nanobind::class_<cudaq::ahs::TimeSeries>(mod, "TimeSeries")
-      .def(nanobind::init<>())
-      .def(nanobind::init<std::vector<std::pair<double, double>>>())
+  py::class_<cudaq::ahs::TimeSeries>(mod, "TimeSeries")
+      .def(py::init<>())
+      .def(py::init<std::vector<std::pair<double, double>>>())
       .def_rw("values", &cudaq::ahs::TimeSeries::values)
       .def_rw("times", &cudaq::ahs::TimeSeries::times);
 
-  nanobind::class_<cudaq::ahs::FieldPattern>(mod, "FieldPattern")
+  py::class_<cudaq::ahs::FieldPattern>(mod, "FieldPattern")
       /// NOTE: Other constructors not required from Python interface
-      .def(nanobind::init<>())
+      .def(py::init<>())
       .def_rw("patternStr", &cudaq::ahs::FieldPattern::patternStr)
       .def_rw("patternVals", &cudaq::ahs::FieldPattern::patternVals);
 
-  nanobind::class_<cudaq::ahs::PhysicalField>(mod, "PhysicalField")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::PhysicalField>(mod, "PhysicalField")
+      .def(py::init<>())
       .def_rw("time_series", &cudaq::ahs::PhysicalField::time_series)
       .def_rw("pattern", &cudaq::ahs::PhysicalField::pattern);
 
-  nanobind::class_<cudaq::ahs::DrivingField>(mod, "DrivingField")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::DrivingField>(mod, "DrivingField")
+      .def(py::init<>())
       .def_rw("amplitude", &cudaq::ahs::DrivingField::amplitude)
       .def_rw("phase", &cudaq::ahs::DrivingField::phase)
       .def_rw("detuning", &cudaq::ahs::DrivingField::detuning);
 
-  nanobind::class_<cudaq::ahs::LocalDetuning>(mod, "LocalDetuning")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::LocalDetuning>(mod, "LocalDetuning")
+      .def(py::init<>())
       .def_rw("magnitude", &cudaq::ahs::LocalDetuning::magnitude);
 
-  nanobind::class_<cudaq::ahs::Hamiltonian>(mod, "Hamiltonian")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::Hamiltonian>(mod, "Hamiltonian")
+      .def(py::init<>())
       .def_rw("drivingFields", &cudaq::ahs::Hamiltonian::drivingFields)
       .def_rw("localDetuning", &cudaq::ahs::Hamiltonian::localDetuning);
 
-  nanobind::class_<cudaq::ahs::Program>(mod, "Program")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::Program>(mod, "Program")
+      .def(py::init<>())
       .def_rw("setup", &cudaq::ahs::Program::setup)
       .def_rw("hamiltonian", &cudaq::ahs::Program::hamiltonian)
       .def(
@@ -68,17 +73,17 @@ void bindAnalogHamiltonian(nanobind::module_ &mod) {
           [](const cudaq::ahs::Program &p) { return json(p).dump(); },
           "Convert Program to JSON");
 
-  nanobind::class_<cudaq::ahs::ShotMetadata>(mod, "ShotMetadata")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::ShotMetadata>(mod, "ShotMetadata")
+      .def(py::init<>())
       .def_rw("shotStatus", &cudaq::ahs::ShotMetadata::shotStatus);
 
-  nanobind::class_<cudaq::ahs::ShotResult>(mod, "ShotResult")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::ShotResult>(mod, "ShotResult")
+      .def(py::init<>())
       .def_rw("preSequence", &cudaq::ahs::ShotResult::preSequence)
       .def_rw("postSequence", &cudaq::ahs::ShotResult::postSequence);
 
-  nanobind::class_<cudaq::ahs::ShotMeasurement>(mod, "ShotMeasurement")
-      .def(nanobind::init<>())
+  py::class_<cudaq::ahs::ShotMeasurement>(mod, "ShotMeasurement")
+      .def(py::init<>())
       .def_rw("shotMetadata", &cudaq::ahs::ShotMeasurement::shotMetadata)
       .def_rw("shotResult", &cudaq::ahs::ShotMeasurement::shotResult);
 

@@ -8,8 +8,10 @@
 
 #include <nanobind/nanobind.h>
 
+namespace py = nanobind;
+
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of matrix
 /// operators to python.
-void bindOperatorsWrapper(nanobind::module_ &mod);
+void bindOperatorsWrapper(py::module_ &mod);
 } // namespace cudaq

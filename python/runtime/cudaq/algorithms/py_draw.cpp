@@ -11,12 +11,14 @@
 #include "cudaq/platform/nvqpp_interface.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 
+namespace py = nanobind;
+
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 /// \p kernel is a kernel decorator object and \p args are the arguments to
 /// launch \p kernel.
 static std::string pyDraw(const std::string &format,
                           const std::string &shortName, MlirModule mod,
-                          nanobind::args runtimeArgs) {
+                          py::args runtimeArgs) {
   if (format != "ascii" && format != "latex")
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
@@ -29,11 +31,11 @@ static std::string pyDraw(const std::string &format,
 }
 
 /// @brief Bind the draw cudaq function
-void cudaq::bindPyDraw(nanobind::module_ &mod) {
+void cudaq::bindPyDraw(py::module_ &mod) {
   mod.def(
       "draw_impl",
       [](const std::string &format, const std::string &shortName,
-         MlirModule mod, nanobind::args runtimeArgs) {
+         MlirModule mod, py::args runtimeArgs) {
         return pyDraw(format, shortName, mod, runtimeArgs);
       },
       R"#(
@@ -45,7 +47,7 @@ string.
 Args:
   format (str): The format of the output. Can be 'ascii' or 'latex'.
   kernel (:class:`Kernel`): The :class:`Kernel` to draw.
-  *arguments (Optional[Any]): The concrete values to evaluate the kernel
+  *arguments (Optional[Any]): The concrete values to evaluate the kernel 
       function at. Leave empty if the kernel doesn't accept any arguments.
 
 Returns:
@@ -64,12 +66,12 @@ Returns:
       mz(q)
   print(cudaq.draw(bell_pair))
   # Output
-  #      ╭───╮
+  #      ╭───╮     
   # q0 : ┤ h ├──●──
   #      ╰───╯╭─┴─╮
   # q1 : ─────┤ x ├
   #           ╰───╯
-
+  
   # Example with arguments
   import cudaq
   @cudaq.kernel
