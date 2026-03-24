@@ -1148,7 +1148,11 @@ class PyKernel(object):
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-                measTy = cc.StdvecType.get(measTy)
+                if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
+                    measTy = quake.MeasurementsType.get(
+                        quake.VeqType.getSize(target.mlirValue.type))
+                else:
+                    measTy = quake.MeasurementsType.get()
             if regName is not None:
                 res = quake.MzOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1195,7 +1199,11 @@ class PyKernel(object):
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-                measTy = cc.StdvecType.get(measTy)
+                if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
+                    measTy = quake.MeasurementsType.get(
+                        quake.VeqType.getSize(target.mlirValue.type))
+                else:
+                    measTy = quake.MeasurementsType.get()
             if regName is not None:
                 res = quake.MxOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1243,7 +1251,11 @@ class PyKernel(object):
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-                measTy = cc.StdvecType.get(measTy)
+                if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
+                    measTy = quake.MeasurementsType.get(
+                        quake.VeqType.getSize(target.mlirValue.type))
+                else:
+                    measTy = quake.MeasurementsType.get()
             if regName is not None:
                 res = quake.MyOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,

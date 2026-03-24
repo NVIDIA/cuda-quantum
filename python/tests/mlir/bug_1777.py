@@ -48,7 +48,7 @@ def test_bug_1777():
 # CHECK:             %[[VAL_17:.*]] = quake.discriminate %[[VAL_16]] : (!quake.measure) -> i1
 # CHECK:             %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_0]] : i1
 # CHECK:             cc.if(%[[VAL_18]]) {
-# CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "inner_mz" : (!quake.veq<2>) -> !quake.measurements<2>
 # CHECK:             } else {
 # CHECK:             }
 # CHECK:             cc.continue %[[VAL_12]], %[[VAL_12]], %[[VAL_17]] : i64, i64, i1
@@ -59,7 +59,7 @@ def test_bug_1777():
 # CHECK:           }
 # CHECK:           %[[VAL_24:.*]] = arith.cmpi eq, %[[VAL_25:.*]]#2, %[[VAL_3]] : i1
 # CHECK:           cc.if(%[[VAL_24]]) {
-# CHECK:             %[[VAL_26:.*]] = quake.mz %[[VAL_6]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:             %[[VAL_26:.*]] = quake.mz %[[VAL_6]] name "outer_mz" : (!quake.veq<2>) -> !quake.measurements<2>
 # CHECK:           } else {
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
