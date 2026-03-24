@@ -11,7 +11,7 @@ add_subdirectory(helpers)
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   add_subdirectory(custatevec)
 endif()
-add_subdirectory(remote)
+add_subdirectory(MPI)
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
 add_library(${LIBRARY_NAME}
@@ -35,6 +35,8 @@ target_link_libraries(${LIBRARY_NAME}
     CUDAQTargetConfigUtil
     pthread
 )
+
+target_link_libraries(${LIBRARY_NAME} PRIVATE mpi-decorated-qpu)
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   target_link_libraries(${LIBRARY_NAME} PRIVATE gpu-emulated-qpu)

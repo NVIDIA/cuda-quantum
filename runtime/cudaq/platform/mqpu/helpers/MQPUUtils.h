@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include "cudaq/distributed/mpi_plugin.h"
 #include <string>
+#include <vector>
 
 namespace cudaq {
 // Helper struct to start a REST server (`cudaq-qpud`) instance on a random
@@ -33,7 +35,11 @@ private:
 // If CUDA is present, returns the actual number of GPU devices. Otherwise,
 // returns 0.
 int getCudaDeviceCount();
-// Helper to retrieve the number of MPI processes in the current execution context.
-// If not running in an MPI context, returns 1.
+// Helper to retrieve the number of MPI processes in the current execution
+// context. If not running in an MPI context, returns 1.
 int getMPIProcessCount();
+
+cudaqDistributedCommunicator_t *
+splitCommunitor(const cudaqDistributedCommunicator_t *comm,
+                const std::vector<std::vector<int>> &rankGroups);
 } // namespace cudaq

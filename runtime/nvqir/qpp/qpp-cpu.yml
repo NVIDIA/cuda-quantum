@@ -11,3 +11,23 @@ description: "QPP-based CPU-only backend target"
 config:
   nvqir-simulation-backend: qpp
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+
+target-arguments:
+  - key: option
+    required: false
+    type: option-flags
+    help-string: "Specify the target options as a comma-separated list.\nSupported options are 'mqpu'.\nFor example, the 'mqpu' option if, if specified, will activate multi-QPU distribution via MPI."
+
+configuration-matrix:
+  - name: single-qpu
+    option-flags: []
+    default: true
+    config:
+      platform-library: default
+  - name: multi-qpu
+    option-flags: [mqpu]
+    config:
+      platform-library: mqpu
+      # Tell NVQ++ to generate glue code to set the target backend name
+      gen-target-backend: true
+  

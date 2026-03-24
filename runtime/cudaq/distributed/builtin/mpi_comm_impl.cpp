@@ -407,6 +407,79 @@ cudaqDistributedCommunicator_t *getMpiCommunicator() {
   return &commWorld;
 }
 
+/// @brief Wrapper MPI_Comm_group
+static int mpi_CommGroup(const cudaqDistributedCommunicator_t *comm,
+                         cudaqDistributedGroup_t *out_group) {
+  if (comm == nullptr || out_group == nullptr) {
+    return -1; // Invalid arguments
+  }
+  MPI_Group* group = new MPI_Group;
+  int res = MPI_Comm_group(unpackMpiCommunicator(comm), group);
+  if (res != MPI_SUCCESS) {
+    delete group;
+    return res; // MPI error
+  }
+  *out_group = group;
+  return MPI_SUCCESS;
+}
+
+/// @brief MPI_Group_incl
+static int mpi_GroupIncl(const cudaqDistributedGroup_t parentGroup,
+                         int32_t numRanks, const int32_t *ranks,
+                         cudaqDistributedGroup_t *newGroup) {
+  if (parentGroup == nullptr || newGroup == nullptr || ranks == nullptr) {
+    return -1; // Invalid arguments
+  }
+  MPI_Group* new_group = new MPI_Group;
+  MPI_Group* orig_group = (MPI_Group*)parentGroup;
+  int res = MPI_Group_incl(*orig_group, numRanks, ranks, new_group);
+  if (res != MPI_SUCCESS) {
+    delete new_group;
+    return res; // MPI error
+  }
+  *newGroup = new_group;
+  return MPI_SUCCESS;
+}
+
+/// @brief MPI_Comm_create_group
+static int mpi_CommCreateGroup(const cudaqDistributedCommunicator_t *parentComm,
+                               const cudaqDistributedGroup_t group, int32_t tag,
+                               cudaqDistributedCommunicator_t **newComm) {
+  if (parentComm == nullptr || newComm == nullptr || group == nullptr) {
+    return -1; // Invalid arguments
+  }
+  MPI_Comm *new_comm = new MPI_Comm;
+  int res = MPI_Comm_create_group(unpackMpiCommunicator(parentComm),
+                                  (MPI_Group)group, tag, new_comm);
+  if (res != MPI_SUCCESS) {
+    delete new_comm;
+    return res; // MPI error
+  }
+  *newComm = new cudaqDistributedCommunicator_t{new_comm, sizeof(MPI_Comm)};
+  return MPI_SUCCESS;
+}
+
+/// @brief MPI_Group_free
+static int mpi_GroupFree(cudaqDistributedGroup_t *group) {
+  if (group == nullptr) {
+    return -1; // Invalid arguments
+  }
+  int res = MPI_Group_free((MPI_Group *)group);
+  delete group;
+  return res;
+}
+
+/// @brief MPI_Comm_free
+static int mpi_CommFree(cudaqDistributedCommunicator_t **comm) {
+  if (comm == nullptr || *comm == nullptr) {
+    return -1; // Invalid arguments
+  }
+  int res = MPI_Comm_free((MPI_Comm *)&(*comm)->commPtr);
+  delete *comm;
+  *comm = nullptr;
+  return res;
+}
+
 /// @brief Return the MPI shim interface (as a function table)
 cudaqDistributedInterface_t *getDistributedInterface() {
   static cudaqDistributedInterface_t cudaqDistributedInterface{
@@ -437,6 +510,11 @@ cudaqDistributedInterface_t *getDistributedInterface() {
       mpi_TestRequest,
       mpi_Send,
       mpi_Recv,
+      mpi_CommGroup,
+      mpi_GroupIncl,
+      mpi_CommCreateGroup,
+      mpi_GroupFree,
+      mpi_CommFree
   };
   return &cudaqDistributedInterface;
 }

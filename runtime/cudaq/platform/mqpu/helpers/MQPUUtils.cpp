@@ -286,3 +286,28 @@ int cudaq::getMPIProcessCount() {
   HANDLE_MPI_ERROR(mpiInterface->getNumRanks(comm, &numRanks));
   return numRanks;
 }
+
+cudaqDistributedCommunicator_t *
+cudaq::splitCommunitor(const cudaqDistributedCommunicator_t *comm,
+                       const std::vector<std::vector<int>> &rankGroups) {
+  cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
+  if (!mpiInterface || !comm)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered in "
+                             "splitCommunicator");
+  cudaqDistributedCommunicator_t *newComm = nullptr;
+  int myRank = 0;
+  HANDLE_MPI_ERROR(mpiInterface->getProcRank(comm, &myRank));
+  int color = -1;
+  for (size_t i = 0; i < rankGroups.size(); ++i) {
+    if (std::find(rankGroups[i].begin(), rankGroups[i].end(), myRank) !=
+        rankGroups[i].end()) {
+      color = static_cast<int>(i);
+      break;
+    }
+  }
+  if (color == -1)
+    throw std::runtime_error("Current rank " + std::to_string(myRank) +
+                             " is not included in any rank group.");
+  HANDLE_MPI_ERROR(mpiInterface->CommSplit(comm, color, myRank, &newComm));
+  return newComm;
+}
