@@ -36,7 +36,7 @@ lookup_function(cudaq_function_entry_t *table, size_t count,
 }
 
 static int
-find_idle_graph_worker_for_function(const cudaq_host_dispatcher_config_t *config,
+find_idle_graph_worker_for_function(const cudaq_host_dispatch_loop_ctx_t *config,
                                     uint32_t function_id) {
   uint64_t mask = as_atomic_u64(config->idle_mask)->load(
       cuda::std::memory_order_acquire);
@@ -58,7 +58,7 @@ struct ParsedSlot {
 
 static ParsedSlot
 parse_slot_with_function_table(void *slot_host,
-                               const cudaq_host_dispatcher_config_t *config) {
+                               const cudaq_host_dispatch_loop_ctx_t *config) {
   ParsedSlot out;
   const RPCHeader *header = static_cast<const RPCHeader *>(slot_host);
   if (header->magic != RPC_MAGIC_REQUEST) {
@@ -73,7 +73,7 @@ parse_slot_with_function_table(void *slot_host,
   return out;
 }
 
-static void finish_slot_and_advance(const cudaq_host_dispatcher_config_t *config,
+static void finish_slot_and_advance(const cudaq_host_dispatch_loop_ctx_t *config,
                                     size_t &current_slot, size_t num_slots,
                                     uint64_t &packets_dispatched) {
   as_atomic_u64(config->rx_flags)[current_slot].store(
@@ -85,7 +85,7 @@ static void finish_slot_and_advance(const cudaq_host_dispatcher_config_t *config
   current_slot = (current_slot + 1) % num_slots;
 }
 
-static int acquire_graph_worker(const cudaq_host_dispatcher_config_t *config,
+static int acquire_graph_worker(const cudaq_host_dispatch_loop_ctx_t *config,
                                 bool use_function_table,
                                 const cudaq_function_entry_t *entry,
                                 uint32_t function_id) {
@@ -99,7 +99,7 @@ static int acquire_graph_worker(const cudaq_host_dispatcher_config_t *config,
   return __builtin_ffsll(static_cast<long long>(mask)) - 1;
 }
 
-static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
+static void launch_graph_worker(const cudaq_host_dispatch_loop_ctx_t *config,
                                 int worker_id, void *slot_host,
                                 size_t current_slot) {
   as_atomic_u64(config->idle_mask)
@@ -164,7 +164,7 @@ static void launch_graph_worker(const cudaq_host_dispatcher_config_t *config,
 } // anonymous namespace
 
 extern "C" void
-cudaq_host_dispatcher_loop(const cudaq_host_dispatcher_config_t *config) {
+cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *config) {
   size_t current_slot = 0;
   const size_t num_slots = config->num_slots;
   uint64_t packets_dispatched = 0;

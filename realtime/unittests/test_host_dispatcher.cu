@@ -468,7 +468,7 @@ protected:
   std::vector<WorkerInfo> worker_info_;
 
   cudaq_ringbuffer_t ringbuffer_{};
-  cudaq_host_dispatcher_config_t config_;
+  cudaq_host_dispatch_loop_ctx_t config_;
   std::thread loop_thread_;
 };
 

@@ -75,13 +75,13 @@ typedef struct {
   /// When NULL, legacy mode: raw RX slot pointer written to mailbox.
   void *io_ctxs_host; ///< host view of GraphIOContext[num_workers]
   void *io_ctxs_dev;  ///< device view of same pinned mapped memory
-} cudaq_host_dispatcher_config_t;
+} cudaq_host_dispatch_loop_ctx_t;
 
 /// Run the host-side dispatcher loop. Blocks until `*config->shutdown_flag`
 /// becomes non-zero. Call from a dedicated thread.
 /// Uses dynamic worker pool: allocates via idle_mask, tags with
 /// inflight_slot_tags.
-void cudaq_host_dispatcher_loop(const cudaq_host_dispatcher_config_t *config);
+void cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *config);
 
 #ifdef __cplusplus
 }

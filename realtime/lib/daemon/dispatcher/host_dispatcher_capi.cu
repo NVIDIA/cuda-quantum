@@ -147,7 +147,7 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   }
   handle->io_ctxs_pinned = io_ctxs_host_ptr;
 
-  cudaq_host_dispatcher_config_t host_config;
+  cudaq_host_dispatch_loop_ctx_t host_config;
   std::memset(&host_config, 0, sizeof(host_config));
   host_config.rx_flags = (void *)(uintptr_t)ringbuffer->rx_flags_host;
   host_config.tx_flags = (void *)(uintptr_t)ringbuffer->tx_flags_host;
