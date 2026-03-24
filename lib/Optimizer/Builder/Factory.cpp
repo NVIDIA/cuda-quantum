@@ -95,35 +95,42 @@ Value factory::packIsArrayAndLengthArray(Location loc,
                                          ConversionPatternRewriter &rewriter,
                                          ModuleOp parentModule,
                                          std::size_t numOperands,
-                                         ValueRange operands) {
+                                         ValueRange operands,
+                                         ValueRange originalControls) {
   // Create an integer array where the kth element is N if the kth control
   // operand is a veq<N>, and 0 otherwise.
   auto i64Type = rewriter.getI64Type();
   auto context = rewriter.getContext();
-  Value isArrayAndLengthArr = createLLVMTemporary(
-      loc, rewriter, LLVM::LLVMPointerType::get(i64Type), numOperands);
-  auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
-  Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+  auto alignment = IntegerAttr::get(i64Type, 8);
+  auto ptrTy = LLVM::LLVMPointerType::get(context);
+  Value numOpnds = arith::ConstantIntOp::create(rewriter, loc, numOperands, 64);
+  Value isArrayAndLengthArr = LLVM::AllocaOp::create(rewriter,
+      loc, ptrTy, numOpnds, alignment, TypeAttr::get(i64Type));
+  Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
   auto getSizeSymbolRef = opt::factory::createLLVMFunctionSymbol(
       opt::QIRArrayGetSize, i64Type, {opt::getArrayType(context)},
       parentModule);
   for (auto iter : llvm::enumerate(operands)) {
     auto operand = iter.value();
     auto i = iter.index();
-    Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
-    Value ptr = rewriter.create<LLVM::GEPOp>(loc, intPtrTy, isArrayAndLengthArr,
-                                             ValueRange{idx});
+    Value idx = arith::ConstantIntOp::create(rewriter, loc, i, 64);
+    Value ptr = LLVM::GEPOp::create(rewriter,
+        loc, ptrTy, i64Type, isArrayAndLengthArr, ValueRange{idx});
     Value element;
-    if (operand.getType() == opt::getQubitType(context))
+    // With opaque pointers, both qubit (RefType) and array (VeqType) convert
+    // to the same !llvm.ptr type, so we must check the original quake types
+    // to distinguish them.
+    bool isQubit = isa<quake::RefType>(originalControls[i].getType());
+    if (isQubit) {
       element = zero;
-    else
+    } else {
       // get array size with the runtime function
-      element = rewriter
-                    .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
-                                          getSizeSymbolRef, ValueRange{operand})
+      element = LLVM::CallOp::create(rewriter, loc, i64Type, getSizeSymbolRef,
+                                     ValueRange{operand})
                     .getResult();
+    }
 
-    rewriter.create<LLVM::StoreOp>(loc, element, ptr);
+    LLVM::StoreOp::create(rewriter, loc, element, ptr);
   }
   return isArrayAndLengthArr;
 }
@@ -145,7 +152,7 @@ FlatSymbolRefAttr factory::createLLVMFunctionSymbol(StringRef name,
     // Insert the function since it hasn't been seen yet
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(module.getBody());
-    rewriter.create<LLVM::LLVMFuncOp>(module->getLoc(), name, fType);
+    LLVM::LLVMFuncOp::create(rewriter, module->getLoc(), name, fType);
     symbolRef = SymbolRefAttr::get(context, name);
     rewriter.restoreInsertionPoint(insPt);
   }
@@ -166,7 +173,7 @@ func::FuncOp factory::createFunction(StringRef name, ArrayRef<Type> retTypes,
   // Insert the function since it hasn't been seen yet
   auto insPt = rewriter.saveInsertionPoint();
   rewriter.setInsertionPointToStart(module.getBody());
-  auto func = rewriter.create<func::FuncOp>(module->getLoc(), name, fType);
+  auto func = func::FuncOp::create(rewriter, module->getLoc(), name, fType);
   rewriter.restoreInsertionPoint(insPt);
   return func;
 }
@@ -199,40 +206,42 @@ void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   auto i32Ty = builder.getI32Type();
   constexpr int prio = 17;
   auto prioAttr = ArrayAttr::get(ctx, {IntegerAttr::get(i32Ty, prio)});
-  builder.create<LLVM::GlobalCtorsOp>(loc, ctorAttr, prioAttr);
+  llvm::SmallVector<mlir::Attribute> data;
+  data.push_back(mlir::LLVM::ZeroAttr::get(mod.getContext()));
+  LLVM::GlobalCtorsOp::create(builder, loc, ctorAttr, prioAttr, ArrayAttr::get(ctx, data));
 }
 
 cc::LoopOp factory::createInvariantLoop(
     OpBuilder &builder, Location loc, Value totalIterations,
     llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
         bodyBuilder) {
-  Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-  Value one = builder.create<arith::ConstantIntOp>(loc, 1, 64);
+  Value zero = arith::ConstantIntOp::create(builder, loc, 0, 64);
+  Value one = arith::ConstantIntOp::create(builder, loc, 1, 64);
   Type i64Ty = builder.getI64Type();
   SmallVector<Value> inputs = {zero};
   SmallVector<Type> resultTys = {i64Ty};
-  auto loop = builder.create<cc::LoopOp>(
+  auto loop = cc::LoopOp::create(builder, 
       loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
         auto &block = *builder.getBlock();
-        Value cmpi = builder.create<arith::CmpIOp>(
+        Value cmpi = arith::CmpIOp::create(builder, 
             loc, arith::CmpIPredicate::slt, block.getArgument(0),
             totalIterations);
-        builder.create<cc::ConditionOp>(loc, cmpi, block.getArguments());
+        cc::ConditionOp::create(builder, loc, cmpi, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
         auto &block = *builder.getBlock();
         bodyBuilder(builder, loc, region, block);
-        builder.create<cc::ContinueOp>(loc, block.getArguments());
+        cc::ContinueOp::create(builder, loc, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
         auto &block = *builder.getBlock();
         auto incr =
-            builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
-        builder.create<cc::ContinueOp>(loc, ValueRange{incr});
+            arith::AddIOp::create(builder, loc, block.getArgument(0), one);
+        cc::ContinueOp::create(builder, loc, ValueRange{incr});
       });
   loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
@@ -252,7 +261,7 @@ Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(entryBlock);
   Value len = genLlvmI64Constant(loc, builder, size);
-  return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{len});
+  return LLVM::AllocaOp::create(builder, loc, LLVM::LLVMPointerType::get(builder.getContext()), type, len);
 }
 
 Value factory::createTemporary(Location loc, OpBuilder &builder, Type type,
@@ -266,8 +275,8 @@ Value factory::createTemporary(Location loc, OpBuilder &builder, Type type,
   assert(entryBlock && "function must have an entry block");
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(entryBlock);
-  Value len = builder.create<arith::ConstantIntOp>(loc, size, 64);
-  return builder.create<cudaq::cc::AllocaOp>(loc, type, len);
+  Value len = arith::ConstantIntOp::create(builder, loc, size, 64);
+  return cudaq::cc::AllocaOp::create(builder, loc, type, len);
 }
 
 // This builder will transform the monotonic loop into an invariant loop during
@@ -284,44 +293,44 @@ cc::LoopOp factory::createMonotonicLoop(
   assert(succeeded(loadedIntrinsic) && "loading intrinsic should never fail");
   auto i64Ty = builder.getI64Type();
   Value begin =
-      builder.create<cc::CastOp>(loc, i64Ty, start, cc::CastOpMode::Signed);
+      cc::CastOp::create(builder, loc, i64Ty, start, cc::CastOpMode::Signed);
   Value stepBy =
-      builder.create<cc::CastOp>(loc, i64Ty, step, cc::CastOpMode::Signed);
+      cc::CastOp::create(builder, loc, i64Ty, step, cc::CastOpMode::Signed);
   Value end =
-      builder.create<cc::CastOp>(loc, i64Ty, stop, cc::CastOpMode::Signed);
-  Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+      cc::CastOp::create(builder, loc, i64Ty, stop, cc::CastOpMode::Signed);
+  Value zero = arith::ConstantIntOp::create(builder, loc, 0, 64);
   SmallVector<Value> inputs = {zero, begin};
   SmallVector<Type> resultTys = {i64Ty, i64Ty};
-  auto totalIters = builder.create<func::CallOp>(
+  auto totalIters = func::CallOp::create(builder, 
       loc, i64Ty, getCudaqSizeFromTriple, ValueRange{begin, end, stepBy});
-  auto loop = builder.create<cc::LoopOp>(
+  auto loop = cc::LoopOp::create(builder, 
       loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region,
                                      TypeRange{i64Ty, i64Ty});
         auto &block = *builder.getBlock();
-        Value cmpi = builder.create<arith::CmpIOp>(
+        Value cmpi = arith::CmpIOp::create(builder, 
             loc, arith::CmpIPredicate::slt, block.getArgument(0),
             totalIters.getResult(0));
-        builder.create<cc::ConditionOp>(loc, cmpi, block.getArguments());
+        cc::ConditionOp::create(builder, loc, cmpi, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region,
                                      TypeRange{i64Ty, i64Ty});
         auto &block = *builder.getBlock();
         bodyBuilder(builder, loc, region, block);
-        builder.create<cc::ContinueOp>(loc, block.getArguments());
+        cc::ContinueOp::create(builder, loc, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region,
                                      TypeRange{i64Ty, i64Ty});
         auto &block = *builder.getBlock();
-        auto one = builder.create<arith::ConstantIntOp>(loc, 1, 64);
+        auto one = arith::ConstantIntOp::create(builder, loc, 1, 64);
         Value count =
-            builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
+            arith::AddIOp::create(builder, loc, block.getArgument(0), one);
         Value incr =
-            builder.create<arith::AddIOp>(loc, block.getArgument(1), stepBy);
-        builder.create<cc::ContinueOp>(loc, ValueRange{count, incr});
+            arith::AddIOp::create(builder, loc, block.getArgument(1), stepBy);
+        cc::ContinueOp::create(builder, loc, ValueRange{count, incr});
       });
   loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
@@ -508,7 +517,7 @@ static bool shouldExpand(SmallVectorImpl<Type> &packedTys,
     } else if (theSet.size() == 1) {
       packedTys[packIdx] = theSet[0];
     } else {
-      assert(theSet[0] == FloatType::getF32(ctx) && "must be float");
+      assert(theSet[0] == Float32Type::get(ctx) && "must be float");
       packedTys[packIdx] =
           VectorType::get(ArrayRef<std::int64_t>{2}, theSet[0]);
     }
@@ -743,7 +752,7 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
     return fromValue;
   auto unit = UnitAttr::get(builder.getContext());
   UnitAttr none;
-  return builder.create<cudaq::cc::CastOp>(loc, toType, fromValue,
+  return cudaq::cc::CastOp::create(builder, loc, toType, fromValue,
                                            signExtend ? unit : none,
                                            zeroExtend ? unit : none);
 }
@@ -796,7 +805,7 @@ factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
   OpBuilder::InsertionGuard guard(build);
   build.setInsertionPointToEnd(module.getBody());
   SmallVector<NamedAttribute> attrs;
-  func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
+  func = func::FuncOp::create(build, loc, funcName, funcTy, attrs);
   func.setPrivate();
   return {func, /*defined=*/false};
 }

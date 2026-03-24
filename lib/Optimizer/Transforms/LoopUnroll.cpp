@@ -55,7 +55,7 @@ public:
       // iteratively propagated.
       do {
         progress = 0;
-        (void)applyPatternsAndFoldGreedily(op, frozen);
+        (void)applyPatternsGreedily(op, frozen);
       } while (progress);
     }
 

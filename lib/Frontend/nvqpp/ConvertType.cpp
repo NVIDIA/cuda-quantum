@@ -175,7 +175,9 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
   return nullptr;
 }
 
-bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
+bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t,
+                                            bool &ShouldVisitChildren) {
+  ShouldVisitChildren = false;
   auto *recDecl = t->getDecl();
 
   if (ignoredClass(recDecl))
@@ -222,10 +224,10 @@ std::pair<std::uint64_t, unsigned>
 QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
   auto *defn = x->getDefinition();
   assert(defn && "struct must be defined here");
-  auto *ty = defn->getTypeForDecl();
-  if (ty->isDependentType())
+  auto qualTy = getContext()->getCanonicalTagType(defn);
+  if (qualTy->isDependentType())
     return {0, 0};
-  auto ti = getContext()->getTypeInfo(ty);
+  auto ti = getContext()->getTypeInfo(qualTy);
   return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
 }
 

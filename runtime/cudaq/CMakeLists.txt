@@ -48,11 +48,16 @@ if (CUDA_FOUND)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
 
+  set(_cudaq_cuda_include_genex "")
+  foreach(_cuda_inc IN LISTS CUDAToolkit_INCLUDE_DIRS)
+    list(APPEND _cudaq_cuda_include_genex "$<BUILD_INTERFACE:${_cuda_inc}>")
+  endforeach()
+
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-            $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
+            ${_cudaq_cuda_include_genex}
     PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}

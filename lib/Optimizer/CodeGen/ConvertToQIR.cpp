@@ -8,10 +8,17 @@
 
 #include "CodeGenOps.h"
 #include "PassDetails.h"
+
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTOQIR
+#define GEN_PASS_DEF_LOWERTOCG
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
 #include "QuakeToCodegen.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -45,12 +52,6 @@
    version 0.1.
  */
 
-namespace cudaq::opt {
-#define GEN_PASS_DEF_CONVERTTOQIR
-#define GEN_PASS_DEF_LOWERTOCG
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
-} // namespace cudaq::opt
-
 using namespace mlir;
 
 #include "PeepholePatterns.inc"
@@ -61,7 +62,7 @@ static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
   RewritePatternSet patterns(ctx);
   cudaq::codegen::populateQuakeToCodegenPatterns(patterns);
   LLVM_DEBUG(llvm::dbgs() << "Before codegen dialect:\n"; module.dump());
-  if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+  if (failed(applyPatternsGreedily(module, std::move(patterns))))
     return failure();
   LLVM_DEBUG(llvm::dbgs() << "After codegen dialect:\n"; module.dump());
   return success();
@@ -120,18 +121,18 @@ public:
           auto v = [&]() -> Value {
             auto val = constantValues[idx];
             if (auto fTy = dyn_cast<FloatType>(eleTy))
-              return builder.create<arith::ConstantFloatOp>(
-                  loc, cast<FloatAttr>(val).getValue(), fTy);
+              return arith::ConstantFloatOp::create(builder, 
+                  loc, fTy, cast<FloatAttr>(val).getValue());
             if (auto iTy = dyn_cast<IntegerType>(eleTy))
-              return builder.create<arith::ConstantIntOp>(
-                  loc, cast<IntegerAttr>(val).getInt(), iTy);
+              return arith::ConstantIntOp::create(builder, 
+                  loc, iTy, cast<IntegerAttr>(val).getInt());
             auto cTy = cast<ComplexType>(eleTy);
-            return builder.create<complex::ConstantOp>(loc, cTy,
+            return complex::ConstantOp::create(builder, loc, cTy,
                                                        cast<ArrayAttr>(val));
           }();
-          Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
+          Value arrWithOffset = cudaq::cc::ComputePtrOp::create(builder, 
               loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
-          builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
+          cudaq::cc::StoreOp::create(builder, loc, v, arrWithOffset);
         }
         cleanUps.push_back(user);
       }

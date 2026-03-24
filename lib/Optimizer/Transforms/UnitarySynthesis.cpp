@@ -111,7 +111,7 @@ struct OneQubitOpZYZ : public Decomposer {
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
     auto func =
-        rewriter.create<func::FuncOp>(parentModule->getLoc(), funcName, funcTy);
+        func::FuncOp::create(rewriter, parentModule->getLoc(), funcName, funcTy);
     func.setPrivate();
     auto *block = func.addEntryBlock();
     rewriter.setInsertionPointToStart(block);
@@ -123,17 +123,17 @@ struct OneQubitOpZYZ : public Decomposer {
     if (isAboveThreshold(angles.gamma)) {
       auto gamma = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, angles.gamma, floatTy);
-      rewriter.create<quake::RzOp>(loc, gamma, ValueRange{}, arguments);
+      quake::RzOp::create(rewriter, loc, gamma, ValueRange{}, arguments);
     }
     if (isAboveThreshold(angles.beta)) {
       auto beta = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, angles.beta, floatTy);
-      rewriter.create<quake::RyOp>(loc, beta, ValueRange{}, arguments);
+      quake::RyOp::create(rewriter, loc, beta, ValueRange{}, arguments);
     }
     if (isAboveThreshold(angles.alpha)) {
       auto alpha = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, angles.alpha, floatTy);
-      rewriter.create<quake::RzOp>(loc, alpha, ValueRange{}, arguments);
+      quake::RzOp::create(rewriter, loc, alpha, ValueRange{}, arguments);
     }
     /// NOTE: Typically global phase can be ignored but, if this decomposition
     /// is applied in a kernel that is called with `cudaq::control`, the global
@@ -145,11 +145,11 @@ struct OneQubitOpZYZ : public Decomposer {
     if (isAboveThreshold(globalPhase)) {
       auto phase = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, globalPhase, floatTy);
-      Value negPhase = rewriter.create<arith::NegFOp>(loc, phase);
-      rewriter.create<quake::R1Op>(loc, phase, ValueRange{}, arguments[0]);
-      rewriter.create<quake::RzOp>(loc, negPhase, ValueRange{}, arguments[0]);
+      Value negPhase = arith::NegFOp::create(rewriter, loc, phase);
+      quake::R1Op::create(rewriter, loc, phase, ValueRange{}, arguments[0]);
+      quake::RzOp::create(rewriter, loc, negPhase, ValueRange{}, arguments[0]);
     }
-    rewriter.create<func::ReturnOp>(loc);
+    func::ReturnOp::create(rewriter, loc);
     rewriter.restoreInsertionPoint(insPt);
   }
 
@@ -356,7 +356,7 @@ struct TwoQubitOpKAK : public Decomposer {
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
     auto func =
-        rewriter.create<func::FuncOp>(parentModule->getLoc(), funcName, funcTy);
+        func::FuncOp::create(rewriter, parentModule->getLoc(), funcName, funcTy);
     func.setPrivate();
     auto *block = func.addEntryBlock();
     rewriter.setInsertionPointToStart(block);
@@ -364,55 +364,55 @@ struct TwoQubitOpKAK : public Decomposer {
     FloatType floatTy = rewriter.getF64Type();
     /// NOTE: Operator notation is right-to-left, whereas circuit notation is
     /// left-to-right. Hence, operations are applied in reverse order.
-    rewriter.create<quake::ApplyOp>(
+    quake::ApplyOp::create(rewriter, 
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "b0"), false,
         ValueRange{}, ValueRange{arguments[1]});
-    rewriter.create<quake::ApplyOp>(
+    quake::ApplyOp::create(rewriter, 
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
         ValueRange{}, ValueRange{arguments[0]});
     /// TODO: Refactor to use a transformation pass for `quake.exp_pauli`
     /// XX
     if (isAboveThreshold(components.x)) {
-      rewriter.create<quake::HOp>(loc, arguments[0]);
-      rewriter.create<quake::HOp>(loc, arguments[1]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
+      quake::HOp::create(rewriter, loc, arguments[0]);
+      quake::HOp::create(rewriter, loc, arguments[1]);
+      quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
       auto xAngle = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, -2.0 * components.x, floatTy);
-      rewriter.create<quake::RzOp>(loc, xAngle, ValueRange{}, arguments[0]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
-      rewriter.create<quake::HOp>(loc, arguments[1]);
-      rewriter.create<quake::HOp>(loc, arguments[0]);
+      quake::RzOp::create(rewriter, loc, xAngle, ValueRange{}, arguments[0]);
+      quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
+      quake::HOp::create(rewriter, loc, arguments[1]);
+      quake::HOp::create(rewriter, loc, arguments[0]);
     }
     /// YY
     if (isAboveThreshold(components.y)) {
       auto piBy2 = cudaq::opt::factory::createFloatConstant(loc, rewriter,
                                                             M_PI_2, floatTy);
-      rewriter.create<quake::RxOp>(loc, piBy2, ValueRange{}, arguments[0]);
-      rewriter.create<quake::RxOp>(loc, piBy2, ValueRange{}, arguments[1]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
+      quake::RxOp::create(rewriter, loc, piBy2, ValueRange{}, arguments[0]);
+      quake::RxOp::create(rewriter, loc, piBy2, ValueRange{}, arguments[1]);
+      quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
       auto yAngle = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, -2.0 * components.y, floatTy);
-      rewriter.create<quake::RzOp>(loc, yAngle, ValueRange{}, arguments[0]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
-      Value negPiBy2 = rewriter.create<arith::NegFOp>(loc, piBy2);
-      rewriter.create<quake::RxOp>(loc, negPiBy2, ValueRange{}, arguments[1]);
-      rewriter.create<quake::RxOp>(loc, negPiBy2, ValueRange{}, arguments[0]);
+      quake::RzOp::create(rewriter, loc, yAngle, ValueRange{}, arguments[0]);
+      quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
+      Value negPiBy2 = arith::NegFOp::create(rewriter, loc, piBy2);
+      quake::RxOp::create(rewriter, loc, negPiBy2, ValueRange{}, arguments[1]);
+      quake::RxOp::create(rewriter, loc, negPiBy2, ValueRange{}, arguments[0]);
     }
     /// ZZ
     if (isAboveThreshold(components.z)) {
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
+      quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
       auto zAngle = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, -2.0 * components.z, floatTy);
-      rewriter.create<quake::RzOp>(loc, zAngle, ValueRange{}, arguments[0]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
+      quake::RzOp::create(rewriter, loc, zAngle, ValueRange{}, arguments[0]);
+      quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
     }
-    rewriter.create<quake::ApplyOp>(
+    quake::ApplyOp::create(rewriter, 
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a0"), false,
         ValueRange{}, ValueRange{arguments[1]});
-    rewriter.create<quake::ApplyOp>(
+    quake::ApplyOp::create(rewriter, 
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[0]});
@@ -420,11 +420,11 @@ struct TwoQubitOpKAK : public Decomposer {
     if (isAboveThreshold(globalPhase)) {
       auto phase = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, globalPhase, floatTy);
-      Value negPhase = rewriter.create<arith::NegFOp>(loc, phase);
-      rewriter.create<quake::R1Op>(loc, phase, ValueRange{}, arguments[0]);
-      rewriter.create<quake::RzOp>(loc, negPhase, ValueRange{}, arguments[0]);
+      Value negPhase = arith::NegFOp::create(rewriter, loc, phase);
+      quake::R1Op::create(rewriter, loc, phase, ValueRange{}, arguments[0]);
+      quake::RzOp::create(rewriter, loc, negPhase, ValueRange{}, arguments[0]);
     }
-    rewriter.create<func::ReturnOp>(loc);
+    func::ReturnOp::create(rewriter, loc);
     rewriter.restoreInsertionPoint(insPt);
   }
 
@@ -499,7 +499,7 @@ public:
       RewritePatternSet patterns(ctx);
       patterns.insert<CustomUnitaryPattern>(ctx);
       LLVM_DEBUG(llvm::dbgs() << "Before unitary synthesis: " << func << '\n');
-      if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+      if (failed(applyPatternsGreedily(func.getOperation(),
                                               std::move(patterns))))
         signalPassFailure();
       LLVM_DEBUG(llvm::dbgs() << "After unitary synthesis: " << func << '\n');

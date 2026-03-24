@@ -187,10 +187,6 @@ public:
     applyConsumers(&clang::ASTConsumer::CompleteTentativeDefinition,
                    std::move(D));
   }
-  void CompleteExternalDeclaration(clang::VarDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::CompleteExternalDeclaration,
-                   std::move(D));
-  }
   void AssignInheritanceModel(clang::CXXRecordDecl *RD) override {
     applyConsumers(&clang::ASTConsumer::AssignInheritanceModel, std::move(RD));
   }

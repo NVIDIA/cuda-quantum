@@ -81,7 +81,7 @@ public:
             simplifyRegions(rewriter, op->getRegions());
       }
       progress = 0;
-      (void)applyPatternsAndFoldGreedily(op, frozen);
+      (void)applyPatternsGreedily(op, frozen);
     } while (progress);
   }
 
@@ -132,6 +132,9 @@ static void createClassicalOptPipeline(
   opts.allowBreak = options.allowBreak;
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
+  // Run SROA and MemToReg again after loop unrolling creates new allocas.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createSROA());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }

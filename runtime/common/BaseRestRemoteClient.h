@@ -136,13 +136,13 @@ public:
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
     mlir::ModuleOp moduleOp = [&]() {
       if constexpr (cloneAgain) {
-        auto moduleOp = builder.create<mlir::ModuleOp>();
+        auto moduleOp = mlir::ModuleOp::create(builder, builder.getLoc());
         moduleOp->setAttrs(module->getAttrDictionary());
         for (auto &op : module) {
           if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
             // Add quantum kernels defined in the module.
             if (funcOp->hasAttr(cudaq::kernelAttrName) ||
-                funcOp.getName().startswith("__nvqpp__mlirgen__") ||
+                funcOp.getName().starts_with("__nvqpp__mlirgen__") ||
                 funcOp.getBody().empty())
               moduleOp.push_back(funcOp.clone());
           }

@@ -97,8 +97,8 @@ void QuakeBridgeVisitor::addArgumentSymbols(
               quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
-        auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
-        builder.create<cc::StoreOp>(loc, entryBlock->getArgument(index),
+        auto stackSlot = cc::AllocaOp::create(builder,loc, parmTy);
+        cc::StoreOp::create(builder,loc, entryBlock->getArgument(index),
                                     stackSlot);
         symbolTable.insert(name, stackSlot);
       }
@@ -447,8 +447,10 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   skipCompoundScope = true;
 
   // Visit the trailing requires clause, if any.
-  if (auto *trailingRequiresClause = x->getTrailingRequiresClause())
-    if (!TraverseStmt(trailingRequiresClause))
+  if (const auto &trailingRequiresClause = x->getTrailingRequiresClause();
+      trailingRequiresClause.ConstraintExpr)
+    if (!TraverseStmt(
+            const_cast<clang::Expr *>(trailingRequiresClause.ConstraintExpr)))
       return false;
 
   if (auto *ctor = dyn_cast<clang::CXXConstructorDecl>(x)) {
@@ -499,8 +501,8 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
     auto loc = toLocation(x);
     SmallVector<Value> dummyResults;
     for (auto ty : funcTy.getResults())
-      dummyResults.push_back(builder.create<cc::UndefOp>(loc, ty));
-    builder.create<func::ReturnOp>(loc, dummyResults);
+      dummyResults.push_back(cc::UndefOp::create(builder,loc, ty));
+    func::ReturnOp::create(builder,loc, dummyResults);
   }
   builder.clearInsertionPoint();
   return true;
@@ -516,7 +518,7 @@ bool QuakeBridgeVisitor::VisitCXXScalarValueInitExpr(
       if (ptrTy.getElementType() == ty) {
         auto v = popValue();
         auto loc = toLocation(x);
-        return pushValue(builder.create<cc::LoadOp>(loc, v));
+        return pushValue(cc::LoadOp::create(builder,loc, v));
       }
   return true;
 }
@@ -558,12 +560,12 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
         return false;
       }
     }
-    return pushValue(builder.create<func::ConstantOp>(loc, fTy, fSym));
+    return pushValue(func::ConstantOp::create(builder,loc, fTy, fSym));
   }
   auto [funcOp, alreadyAdded] = getOrAddFunc(loc, kernName, typeFromStack);
   if (!alreadyAdded)
     funcOp.setPrivate();
-  return pushValue(builder.create<func::ConstantOp>(
+  return pushValue(func::ConstantOp::create(builder,
       loc, funcOp.getFunctionType(), funcOp.getSymNameAttr()));
 }
 
@@ -692,12 +694,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       qreg = popValue();
     } else {
       // this is a qreg<N> q;
-      auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
-          loc, qregSize, builder.getIntegerType(64));
+      auto qregSizeVal = mlir::arith::ConstantIntOp::create(builder,
+          loc, builder.getIntegerType(64), qregSize);
       if (qregSize != 0)
-        qreg = builder.create<quake::AllocaOp>(loc, qType);
+        qreg = quake::AllocaOp::create(builder,loc, qType);
       else
-        qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
+        qreg = quake::AllocaOp::create(builder,loc, qType, qregSizeVal);
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
@@ -710,12 +712,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       symbolTable.insert(name, peekValue());
       return true;
     }
-    auto zero = builder.create<mlir::arith::ConstantIntOp>(
-        loc, 0, builder.getIntegerType(64));
-    auto qregSizeOne = builder.create<quake::AllocaOp>(
+    auto zero = mlir::arith::ConstantIntOp::create(builder,
+        loc, builder.getIntegerType(64), 0);
+    auto qregSizeOne = quake::AllocaOp::create(builder,
         loc, quake::VeqType::get(builder.getContext(), 1));
     Value addressTheQubit =
-        builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
+        quake::ExtractRefOp::create(builder,loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
   }
@@ -807,7 +809,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   // slot in which to save the value. This stack slot is the variable in the
   // memory domain.
   if (!x->getInit() || x->isCXXForRangeDecl()) {
-    Value alloca = builder.create<cc::AllocaOp>(loc, type);
+    Value alloca = cc::AllocaOp::create(builder,loc, type);
     symbolTable.insert(x->getName(), alloca);
     return pushValue(alloca);
   }
@@ -826,15 +828,15 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     if (initValue.getType().getIntOrFloatBitWidth() <
         type.getIntOrFloatBitWidth()) {
       // FIXME: Use zero-extend if this is unsigned!
-      initValue = builder.create<cudaq::cc::CastOp>(
+      initValue = cudaq::cc::CastOp::create(builder,
           loc, type, initValue, cudaq::cc::CastOpMode::Signed);
     } else if (initValue.getType().getIntOrFloatBitWidth() >
                type.getIntOrFloatBitWidth()) {
-      initValue = builder.create<cudaq::cc::CastOp>(loc, type, initValue);
+      initValue = cudaq::cc::CastOp::create(builder,loc, type, initValue);
     }
   } else if (isa<IntegerType>(initValue.getType()) && isa<FloatType>(type)) {
     // FIXME: Use UIToFP if this is unsigned!
-    initValue = builder.create<cudaq::cc::CastOp>(
+    initValue = cudaq::cc::CastOp::create(builder,
         loc, type, initValue, cudaq::cc::CastOpMode::Signed);
   }
 
@@ -861,7 +863,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (isStdvecBoolReference(qualTy) || qualTy.getTypePtr()->isReferenceType()) {
     // A similar case is when the C++ variable is a reference to a subobject.
     assert(isa<cc::PointerType>(type));
-    Value cast = builder.create<cc::CastOp>(loc, type, initValue);
+    Value cast = cc::CastOp::create(builder,loc, type, initValue);
     symbolTable.insert(x->getName(), cast);
     return pushValue(cast);
   }
@@ -874,8 +876,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // Initialization expression resulted in a value. Create a variable and save
   // that value to the variable's memory address.
-  Value alloca = builder.create<cc::AllocaOp>(loc, type);
-  builder.create<cc::StoreOp>(loc, initValue, alloca);
+  Value alloca = cc::AllocaOp::create(builder,loc, type);
+  cc::StoreOp::create(builder,loc, initValue, alloca);
   symbolTable.insert(x->getName(), alloca);
   return pushValue(alloca);
 }

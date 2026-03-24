@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Target/LLVMIR/Export.h"
 

@@ -89,8 +89,7 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_22]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_24]], %[[VAL_23]] : i64, i1
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_25:.*]] = arith.cmpi eq, %[[VAL_26:.*]]#1, %[[VAL_3]] : i1
-// CHECK:           cc.if(%[[VAL_25]]) {
+// CHECK:           cc.if(%[[VAL_7]]#1) {
 // CHECK:             %[[VAL_27:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:             %[[VAL_28:.*]] = quake.discriminate %[[VAL_27]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
 // CHECK:             cc.scope {
@@ -152,8 +151,7 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CANOE:             }
 // CANOE:           } else {
 // CANOE:           }
-// CANOE:           %[[VAL_36:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_2]] : i1
-// CANOE:           cc.if(%[[VAL_36]]) {
+// CANOE:           cc.if(%[[VAL_22]]) {
 // CANOE:             %[[VAL_37:.*]] = cc.alloca !cc.array<i8 x 2>
 // CANOE:             %[[VAL_38:.*]] = quake.mz %[[VAL_3]] name "outer_mz" : (!quake.ref) -> !quake.measure
 // CANOE:             %[[VAL_39:.*]] = quake.discriminate %[[VAL_38]] : (!quake.measure) -> i1

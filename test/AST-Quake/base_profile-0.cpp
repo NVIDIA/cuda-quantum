@@ -32,8 +32,8 @@ struct kernel {
 
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
-// CHECK:         tail call void @__quantum__qis__mz__body(%{{.*}}* null, %{{.*}}* null)
-// CHECK:         tail call void @__quantum__qis__mz__body(%{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*), %{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%{{.*}}* null, i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*), i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__qis__mz__body(ptr null, ptr null)
+// CHECK:         tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull inttoptr (i64 1 to ptr))
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr null, ptr nonnull @cstr.623000)
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull @cstr.623100)
 // clang-format on

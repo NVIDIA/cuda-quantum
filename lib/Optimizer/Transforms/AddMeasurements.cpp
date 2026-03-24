@@ -77,26 +77,26 @@ addMeasurements(func::FuncOp funcOp, SmallVector<quake::AllocaOp> &allocations,
   // Replace every func.return in the function with a branch to the new block.
   for (auto returnOp : returnsToReplace) {
     OpBuilder builder(returnOp);
-    builder.create<cf::BranchOp>(returnOp.getLoc(), newBlock,
-                                 returnOp.getOperands());
+    cf::BranchOp::create(builder, returnOp.getLoc(), newBlock,
+                         returnOp.getOperands());
     returnOp.erase();
   }
 
   // Set insertion point to the new block and add measurements
   builder.setInsertionPointToEnd(newBlock);
   auto measTy = quake::MeasureType::get(builder.getContext());
-  for (auto &[index, alloca] : llvm::enumerate(allocations)) {
+  for (auto [index, alloca] : llvm::enumerate(allocations)) {
     if (isa<quake::VeqType>(alloca.getType())) {
       auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
-      builder.create<quake::MzOp>(loc, stdvecTy,
+      quake::MzOp::create(builder, loc, stdvecTy,
                                   ValueRange{alloca.getResult()});
     } else {
-      builder.create<quake::MzOp>(loc, measTy, alloca.getResult());
+      quake::MzOp::create(builder, loc, measTy, alloca.getResult());
     }
   }
 
   // Add the final return using block arguments
-  builder.create<func::ReturnOp>(loc, newBlock->getArguments());
+  func::ReturnOp::create(builder, loc, newBlock->getArguments());
 
   return success();
 }
@@ -116,8 +116,8 @@ struct AddMeasurementsPass
     /// NOTE: Having a conditional on a measurement indicates that a measurement
     /// is present, however, it does not guarantee that all the allocated qubits
     /// are measured.
-    if (auto boolAttr = func->getAttr("qubitMeasurementFeedback")
-                            .dyn_cast_or_null<mlir::BoolAttr>()) {
+    if (auto boolAttr = dyn_cast_if_present<mlir::BoolAttr>(
+            func->getAttr("qubitMeasurementFeedback"))) {
       if (boolAttr.getValue())
         return;
     }

@@ -160,7 +160,7 @@ public:
 
     // Create a quake.call_by_ref operation.
     auto callByRef = rewriter.create<quake::CallByRefOp>(
-        loc, resultTys, call.getCalleeAttr(), newArgs);
+        loc, call.getCalleeAttr(), resultTys, newArgs);
 
     // Wrap the wires and cables.
     std::size_t i = origCoarity;

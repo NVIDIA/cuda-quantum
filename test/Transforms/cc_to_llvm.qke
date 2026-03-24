@@ -48,12 +48,12 @@ func.func private @__quantum__qis__x(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 
 
 // CHECK-LABEL:   llvm.func @__nvqpp__callable.thunk.lambda.0(
-// CHECK-SAME:      %[[VAL_0:.*]]: !llvm.struct<(ptr<i8>, ptr<i8>)>) attributes {"cudaq-kernel", "qir-api", sym_visibility = "private"} {
-// CHECK:           %[[VAL_1:.*]] = llvm.extractvalue %[[VAL_0]][1] : !llvm.struct<(ptr<i8>, ptr<i8>)>
-// CHECK:           %[[VAL_2:.*]] = llvm.bitcast %[[VAL_1]] : !llvm.ptr<i8> to !llvm.ptr<struct<(i1, ptr<i1>, ptr<struct<"Qubit", opaque>>)>>
-// CHECK:           %[[VAL_3:.*]] = llvm.load %[[VAL_2]] : !llvm.ptr<struct<(i1, ptr<i1>, ptr<struct<"Qubit", opaque>>)>>
-// CHECK:           %[[VAL_4:.*]] = llvm.extractvalue %[[VAL_3]][0] : !llvm.struct<(i1, ptr<i1>, ptr<struct<"Qubit", opaque>>)>
-// CHECK:           %[[VAL_5:.*]] = llvm.extractvalue %[[VAL_3]][1] : !llvm.struct<(i1, ptr<i1>, ptr<struct<"Qubit", opaque>>)>
-// CHECK:           %[[VAL_6:.*]] = llvm.extractvalue %[[VAL_3]][2] : !llvm.struct<(i1, ptr<i1>, ptr<struct<"Qubit", opaque>>)>
-// CHECK:           llvm.store %[[VAL_4]], %[[VAL_5]] : !llvm.ptr<i1>
-// CHECK:           %[[VAL_7:.*]] = llvm.load %[[VAL_5]] : !llvm.ptr<i1>
+// CHECK-SAME:      %[[VAL_0:.*]]: !llvm.struct<(ptr, ptr)>) attributes {"cudaq-kernel", "qir-api", sym_visibility = "private"} {
+// CHECK:           %[[VAL_1:.*]] = llvm.extractvalue %[[VAL_0]][1] : !llvm.struct<(ptr, ptr)>
+// CHECK:           %[[VAL_2:.*]] = llvm.bitcast %[[VAL_1]] : !llvm.ptr to !llvm.ptr
+// CHECK:           %[[VAL_3:.*]] = llvm.load %[[VAL_2]] : !llvm.ptr -> !llvm.struct<(i1, ptr, ptr)>
+// CHECK:           %[[VAL_4:.*]] = llvm.extractvalue %[[VAL_3]][0] : !llvm.struct<(i1, ptr, ptr)>
+// CHECK:           %[[VAL_5:.*]] = llvm.extractvalue %[[VAL_3]][1] : !llvm.struct<(i1, ptr, ptr)>
+// CHECK:           %[[VAL_6:.*]] = llvm.extractvalue %[[VAL_3]][2] : !llvm.struct<(i1, ptr, ptr)>
+// CHECK:           llvm.store %[[VAL_4]], %[[VAL_5]] : i1, !llvm.ptr
+// CHECK:           %[[VAL_7:.*]] = llvm.load %[[VAL_5]] : !llvm.ptr -> i1

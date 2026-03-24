@@ -22,6 +22,7 @@ set(COMMON_RUNTIME_SRC
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
+  RestClient.cpp
   RuntimeTarget.cpp
   SampleResult.cpp
   ServerHelper.cpp
@@ -64,7 +65,6 @@ endif()
 if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
-  target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
   # --start-group is a GNU ld flag for circular dependencies; Apple's ld doesn't support it
   if(APPLE)
     target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr ZLIB::ZLIB)
@@ -153,6 +153,8 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMToLLVMIRTranslation
     cudaq-common
     cudaq-qir-verifier
+    MLIRFuncInlinerExtension
+    MLIRLLVMIRTransforms
     CUDAQTargetConfigUtil
     cudaq-logger
 )

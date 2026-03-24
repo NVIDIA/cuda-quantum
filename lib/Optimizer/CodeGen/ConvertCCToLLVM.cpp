@@ -10,9 +10,15 @@
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CCTOLLVM
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
@@ -25,11 +31,6 @@
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
-
-namespace cudaq::opt {
-#define GEN_PASS_DEF_CCTOLLVM
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
-} // namespace cudaq::opt
 
 #define DEBUG_TYPE "cc-to-llvm-pass"
 

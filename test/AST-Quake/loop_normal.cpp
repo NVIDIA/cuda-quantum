@@ -257,9 +257,9 @@ __qpu__ void linear_expr2() {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr2
-// CHECK:           %[[VAL_2:.*]] = arith.constant 7 : i32
-// CHECK:           %[[VAL_3:.*]] = arith.constant 3 : i32
-// CHECK:           %[[VAL_4:.*]] = arith.constant 2 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 7 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 3 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_7:.*]] = %
 // CHECK:             %[[VAL_8:.*]] = arith.muli %[[VAL_7]], %[[VAL_3]] : i32
 // CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_4]] : i32
@@ -276,11 +276,9 @@ __qpu__ void linear_expr3a() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3a
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 6 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant -1 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_7:.*]] = %
-// CHECK:             %[[VAL_8:.*]] = arith.muli %[[VAL_7]], %[[VAL_3]] : i32
-// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_4]] : i32
+// CHECK:             %[[VAL_9:.*]] = arith.subi %[[VAL_4]], %[[VAL_7]] : i32
 // CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
@@ -295,11 +293,9 @@ __qpu__ void linear_expr3b() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3b
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant -1 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %
-// CHECK:             %[[VAL_7:.*]] = arith.muli %[[VAL_6]], %[[VAL_2]] : i32
-// CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_3]] : i32
+// CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
 // CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_0]] : i32
 // CHECK:           } {normalized}
 
@@ -313,11 +309,9 @@ __qpu__ void linear_expr3c() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3c
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant -1 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           cc.loop while ((%[[VAL_6:.*]] = %[[VAL_0]]) -> (i32)) {
-// CHECK:             %[[VAL_7:.*]] = arith.muli %[[VAL_6]], %[[VAL_2]] : i32
-// CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_3]] : i32
+// CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
 // CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_0]] : i32
 // CHECK:           } {normalized}
 

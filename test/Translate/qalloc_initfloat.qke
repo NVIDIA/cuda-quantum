@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -18,11 +18,11 @@ func.func @__nvqpp__mlirgen__function_test._Z4testSt6vectorIfSaIfEE(%arg0: !cc.s
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__function_test.
-// CHECK-SAME:    ({ float*, i64 } %[[VAL_0:.*]]) local_unnamed_addr {
-// CHECK:         %[[VAL_1:.*]] = extractvalue { float*, i64 } %[[VAL_0]], 1
-// CHECK:         %[[VAL_2:.*]] = tail call i64 @llvm.cttz.i64(i64 %[[VAL_1]], i1 false), !range !1
-// CHECK:         %[[VAL_3:.*]] = extractvalue { float*, i64 } %[[VAL_0]], 0
-// CHECK:         %[[VAL_5:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array_with_state_fp32(i64 %[[VAL_2]], float* %[[VAL_3]])
+// CHECK-SAME:    ({ ptr, i64 } %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
+// CHECK:         %[[VAL_2:.*]] = tail call range(i64 0, 65) i64 @llvm.cttz.i64(i64 %[[VAL_1]], i1 false)
+// CHECK:         %[[VAL_3:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
+// CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array_with_state_fp32(i64 %[[VAL_2]], ptr %[[VAL_3]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(
 // CHECK:         ret void
 // CHECK:       }

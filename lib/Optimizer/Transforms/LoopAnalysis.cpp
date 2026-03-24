@@ -315,6 +315,13 @@ bool opt::isaIndefiniteCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
          isaConstant(c.compareValue);
 }
 
+bool opt::isaConstantUpperBoundLoop(cc::LoopOp loop, bool allowClosedInterval) {
+  LoopComponents c;
+  return isaInvariantLoop(loop, allowClosedInterval, /*allowEarlyExit=*/true,
+                          &c) &&
+         isaConstant(c.compareValue);
+}
+
 Value opt::LoopComponents::getCompareInduction() const {
   auto cmpOp = cast<arith::CmpIOp>(compareOp);
   return cmpOp.getLhs() == compareValue ? cmpOp.getRhs() : cmpOp.getLhs();

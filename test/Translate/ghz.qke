@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -36,10 +36,10 @@
 // CHECK-LABEL: define void @ghz(i32 
 // CHECK-SAME:      %[[VAL_0:.*]]) local_unnamed_addr {
 // CHECK:         %[[VAL_1:.*]] = zext i32 %[[VAL_0]] to i64
-// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_1]])
-// CHECK:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_3]]* %[[VAL_2]], i64 0)
-// CHECK:         %[[VAL_6:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_4]], align 8
-// CHECK:         tail call void @__quantum__qis__h(%[[VAL_5]]* %[[VAL_6]])
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 %[[VAL_1]])
+// CHECK:         %[[VAL_4:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 0)
+// CHECK:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_4]], align 8
+// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_6]])
 // CHECK:         %[[VAL_7:.*]] = add i32 %[[VAL_0]], -1
 // CHECK:         %[[VAL_8:.*]] = icmp eq i32 %[[VAL_7]], 0
 // CHECK:         br i1 %[[VAL_8]], label %[[VAL_9:.*]], label %[[VAL_10:.*]]
@@ -48,18 +48,16 @@
 // CHECK:         br label %[[VAL_13:.*]]
 // CHECK:       :                                           ; preds = %[[VAL_10]], %[[VAL_13]]
 // CHECK:         %[[VAL_14:.*]] = phi i64 [ 0, %[[VAL_10]] ], [ %[[VAL_15:.*]], %[[VAL_13]] ]
-// CHECK:         %[[VAL_16:.*]] = tail call %[[VAL_5]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_3]]* %[[VAL_2]], i64 %[[VAL_14]])
-// CHECK:         %[[VAL_17:.*]] = bitcast %[[VAL_5]]** %[[VAL_16]] to i8**
-// CHECK:         %[[VAL_18:.*]] = load i8*, i8** %[[VAL_17]], align 8
+// CHECK:         %[[VAL_16:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 %[[VAL_14]])
+// CHECK:         %[[VAL_18:.*]] = load ptr, ptr %[[VAL_16]], align 8
 // CHECK:         %[[VAL_15]] = add nuw nsw i64 %[[VAL_14]], 1
-// CHECK:         %[[VAL_19:.*]] = tail call %[[VAL_5]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_3]]* %[[VAL_2]], i64 %[[VAL_15]])
-// CHECK:         %[[VAL_20:.*]] = bitcast %[[VAL_5]]** %[[VAL_19]] to i8**
-// CHECK:         %[[VAL_21:.*]] = load i8*, i8** %[[VAL_20]], align 8
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_3]]*, %[[VAL_5]]*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_18]], i8* %[[VAL_21]])
+// CHECK:         %[[VAL_19:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 %[[VAL_15]])
+// CHECK:         %[[VAL_21:.*]] = load ptr, ptr %[[VAL_19]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_18]], ptr %[[VAL_21]])
 // CHECK:         %[[VAL_22:.*]] = icmp eq i64 %[[VAL_15]], %[[VAL_12]]
 // CHECK:         br i1 %[[VAL_22]], label %[[VAL_9]], label %[[VAL_13]]
 // CHECK:       :                                      ; preds = %[[VAL_13]], %[[VAL_11]]
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_2]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_2]])
 // CHECK:         ret void
 // CHECK:       }
 

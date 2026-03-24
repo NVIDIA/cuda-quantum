@@ -66,8 +66,7 @@ struct RegToMemAnalysis {
   unsigned getCardinality() const { return cardinality; }
 
   std::optional<unsigned> idFromValue(Value v) const {
-    auto iter = eqClasses.findValue(toOpaque(v));
-    if (iter == eqClasses.end())
+    if (!eqClasses.contains(toOpaque(v)))
       return std::nullopt;
     return setIds.find(eqClasses.getLeaderValue(toOpaque(v)))->second;
   }
@@ -87,10 +86,10 @@ private:
         auto *term = pred->getTerminator();
         auto i = successorIndex(term, block);
         Value u = cast<BranchOpInterface>(term).getSuccessorOperands(i)[argNum];
-        if (eqClasses.findValue(toOpaque(u)) == eqClasses.end())
-          insertToEqClass(u, v);
-        else
+        if (eqClasses.contains(toOpaque(u)))
           eqClasses.unionSets(toOpaque(v), toOpaque(u));
+        else
+          insertToEqClass(u, v);
       }
     }
   }
@@ -249,8 +248,8 @@ private:
     }
     unsigned id = 0;
     for (auto i = eqClasses.begin(), end = eqClasses.end(); i != end; ++i)
-      if (i->isLeader()) {
-        void *leader = const_cast<void *>(*eqClasses.findLeader(i));
+      if ((*i)->isLeader()) {
+        void *leader = const_cast<void *>(*eqClasses.findLeader(**i));
         setIds.insert(std::make_pair(leader, id++));
       }
   }
@@ -258,10 +257,10 @@ private:
   // For debugging purposes.
   void dump() const {
     for (auto i = eqClasses.begin(); i != eqClasses.end(); ++i) {
-      if (!i->isLeader())
+      if (!(*i)->isLeader())
         continue;
       llvm::errs() << "Set {\n";
-      for (auto e = eqClasses.member_begin(i); e != eqClasses.member_end(); ++e)
+      for (auto e = eqClasses.member_begin(**i); e != eqClasses.member_end(); ++e)
         llvm::errs() << "  " << Value::getFromOpaquePointer(*e) << '\n';
       llvm::errs() << "}\n";
     }
@@ -309,7 +308,7 @@ public:
       auto args = collect(op.getOperands());
       auto nameAttr = op.getRegisterNameAttr();
       eraseWrapUsers(op);
-      auto newOp = rewriter.create<OP>(
+      auto newOp = OP::create(rewriter,
           loc, ArrayRef<Type>{op.getMeasOut().getType()}, args, nameAttr);
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
       rewriter.eraseOp(op);
@@ -317,7 +316,7 @@ public:
       // Reset is a special case.
       auto targ = findLookupValue(op.getTargets());
       eraseWrapUsers(op);
-      rewriter.create<quake::ResetOp>(loc, TypeRange{}, targ);
+      quake::ResetOp::create(rewriter, loc, TypeRange{}, targ);
       rewriter.eraseOp(op);
     } else if constexpr (std::is_same_v<OP, quake::SinkOp>) {
       auto targ = findLookupValue(op.getTarget());
@@ -328,7 +327,7 @@ public:
       auto ctrls = collect(op.getControls());
       auto targs = collect(op.getTargets());
       eraseWrapUsers(op);
-      rewriter.create<OP>(loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
+      OP::create(rewriter,loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                           op.getNegatedQubitControlsAttr());
       rewriter.eraseOp(op);
     }
@@ -381,8 +380,8 @@ struct EraseWiresCondBranch : public OpRewritePattern<cf::CondBranchOp> {
         newFalseOperands.push_back(v);
     }
     rewriter.replaceOpWithNewOp<cf::CondBranchOp>(
-        branch, branch.getCondition(), newTrueOperands, newFalseOperands,
-        branch.getTrueDest(), branch.getFalseDest());
+        branch, branch.getCondition(), branch.getTrueDest(), newTrueOperands,
+        branch.getFalseDest(), newFalseOperands);
     return success();
   }
   BlockSet &blocks;
@@ -411,7 +410,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
         newIfTy.push_back(ty);
     auto origThenArgs = ifOp.getThenRegion().front().getArguments();
     auto origElseArgs = ifOp.getElseRegion().front().getArguments();
-    auto newIf = rewriter.create<cudaq::cc::IfOp>(
+    auto newIf = cudaq::cc::IfOp::create(rewriter,
         ifOp.getLoc(), newIfTy, ifOp.getCondition(),
         [&](OpBuilder &, Location, Region &region) {
           rewriter.inlineRegionBefore(ifOp.getThenRegion(), region,
@@ -433,7 +432,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
         for (auto [arg, from] : llvm::zip(entry.getArguments(), origArgs)) {
           auto id = analysis.idFromValue(from);
           assert(id);
-          auto unwrap = builder.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
+          auto unwrap = quake::UnwrapOp::create(builder, ifOp.getLoc(), wireTy,
                                                         allocas[*id]);
           arg.replaceAllUsesWith(unwrap);
         }
@@ -447,7 +446,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
             for (auto v : cont.getOperands())
               if (!quake::isLinearType(v.getType()))
                 newOpnds.push_back(v);
-            builder.create<cudaq::cc::ContinueOp>(cont.getLoc(), newOpnds);
+            cudaq::cc::ContinueOp::create(builder,cont.getLoc(), newOpnds);
             rewriter.eraseOp(cont);
           }
     };
@@ -462,7 +461,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
       if (quake::isLinearType(v.getType())) {
         auto id = analysis.idFromValue(v);
         assert(id);
-        auto unwrap = rewriter.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
+        auto unwrap = quake::UnwrapOp::create(rewriter, ifOp.getLoc(), wireTy,
                                                        allocas[*id]);
         unwraps.push_back(unwrap);
       } else {
@@ -511,7 +510,7 @@ public:
         builder.setInsertionPoint(nwire);
       auto qrefTy = quake::RefType::get(ctx);
       Value a =
-          builder.create<quake::AllocaOp>(nwire->getLoc(), qrefTy, Value{});
+          quake::AllocaOp::create(builder, nwire->getLoc(), qrefTy, Value{});
       if (fromWire)
         borrowAllocas.push_back(a);
       if (auto opt = analysis.idFromValue(nwire->getResult(0))) {
@@ -575,7 +574,7 @@ public:
       if (isa<func::ReturnOp>(op) && !borrowAllocas.empty()) {
         OpBuilder builder(op);
         for (auto v : borrowAllocas)
-          builder.create<quake::DeallocOp>(func.getLoc(), v);
+          quake::DeallocOp::create(builder, func.getLoc(), v);
       }
       return WalkResult::advance();
     });

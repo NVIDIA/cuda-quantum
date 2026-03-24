@@ -108,15 +108,13 @@ struct kernel_short_circuit_or {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_short_circuit_or() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant false
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           %[[VAL_41:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_41]] :
-// CHECK:           %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i1
-// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_5]]) -> i1 {
-// CHECK:             cc.continue %[[VAL_5]] : i1
+// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_4]]) -> i1 {
+// CHECK:             cc.continue %[[VAL_4]] : i1
 // CHECK:           } else {
 // CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<3>) -> !quake.ref
 // CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
