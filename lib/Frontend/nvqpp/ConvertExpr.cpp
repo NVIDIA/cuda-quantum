@@ -1647,13 +1647,30 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
       // Measurements always return a bool or a std::vector<bool>.
-      bool useStdvec =
+      bool useCollection =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
       auto measure = [&]() -> Value {
         Type measTy = quake::MeasureType::get(builder.getContext());
-        if (useStdvec)
-          measTy = cc::StdvecType::get(measTy);
+        if (useCollection) {
+          std::size_t totalSize = 0;
+          bool allKnown = true;
+          for (auto a : args) {
+            if (isa<quake::RefType>(a.getType())) {
+              totalSize++;
+            } else if (auto veqTy = dyn_cast<quake::VeqType>(a.getType())) {
+              if (veqTy.hasSpecifiedSize())
+                totalSize += veqTy.getSize();
+              else
+                allKnown = false;
+            }
+          }
+          if (allKnown && totalSize > 0)
+            measTy =
+                quake::MeasurementsType::get(builder.getContext(), totalSize);
+          else
+            measTy = quake::MeasurementsType::getUnsized(builder.getContext());
+        }
         if (funcName == "mx")
           return builder.create<quake::MxOp>(loc, measTy, args).getMeasOut();
         if (funcName == "my")
@@ -1661,7 +1678,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         return builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
       }();
       Type resTy = builder.getI1Type();
-      if (useStdvec)
+      if (useCollection)
         resTy = cc::StdvecType::get(resTy);
       return pushValue(
           builder.create<quake::DiscriminateOp>(loc, resTy, measure));
