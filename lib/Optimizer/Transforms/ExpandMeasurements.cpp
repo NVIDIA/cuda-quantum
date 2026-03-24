@@ -174,10 +174,9 @@ public:
 
     auto ptrArrElemTy =
         cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
-    auto buffCast =
-        rewriter.create<cudaq::cc::CastOp>(loc, ptrArrElemTy, buff);
-    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-        discOp, stdvecResTy, buffCast, totalToRead);
+    auto buffCast = rewriter.create<cudaq::cc::CastOp>(loc, ptrArrElemTy, buff);
+    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(discOp, stdvecResTy,
+                                                         buffCast, totalToRead);
     return success();
   }
 };
