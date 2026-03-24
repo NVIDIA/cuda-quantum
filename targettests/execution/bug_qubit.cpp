@@ -44,7 +44,11 @@ struct simple_x {
 int main() {
   auto result = cudaq::sample(simple_x{});
 
+#ifndef SYNTAX_CHECK
   std::cout << result.most_probable() << '\n';
   // Success is "1".
   return std::string{"1"} != result.most_probable();
+#endif
+
+  return 0;
 }
