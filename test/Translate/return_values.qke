@@ -46,8 +46,8 @@ func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.stdvec<i1> {
     %12 = arith.addi %arg1, %c1 : i64
     cc.continue %12 : i64
   } {invariant}
-  %measOut = quake.mz %3 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-  %7 = quake.discriminate %measOut : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+  %measOut = quake.mz %3 : (!quake.veq<?>) -> !quake.measurements<?>
+  %7 = quake.discriminate %measOut : (!quake.measurements<?>) -> !cc.stdvec<i1>
   %8 = cc.stdvec_data %7 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
   %9 = cc.stdvec_size %7 : (!cc.stdvec<i1>) -> i64
   %10 = call @__nvqpp_vectorCopyCtor(%8, %9, %c1_i64) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>

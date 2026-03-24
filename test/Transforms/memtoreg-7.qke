@@ -30,8 +30,8 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
     %7 = cc.load %1 : !cc.ptr<i1>
     %8 = arith.cmpi eq, %7, %false : i1
     cc.if(%8) {
-      %measOut_0 = quake.mz %0 name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-      %9 = quake.discriminate %measOut_0 : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+      %measOut_0 = quake.mz %0 name "inner_mz" : (!quake.veq<2>) -> !quake.measurements<2>
+      %9 = quake.discriminate %measOut_0 : (!quake.measurements<2>) -> !cc.stdvec<i1>
       cc.scope {
         %10 = cc.alloca !cc.stdvec<i1>
         cc.store %9, %10 : !cc.ptr<!cc.stdvec<i1>>
@@ -46,8 +46,8 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
   %3 = cc.load %1 : !cc.ptr<i1>
   %4 = arith.cmpi eq, %3, %true : i1
   cc.if(%4) {
-    %measOut = quake.mz %0 name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-    %5 = quake.discriminate %measOut : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+    %measOut = quake.mz %0 name "outer_mz" : (!quake.veq<2>) -> !quake.measurements<2>
+    %5 = quake.discriminate %measOut : (!quake.measurements<2>) -> !cc.stdvec<i1>
     cc.scope {
       %6 = cc.alloca !cc.stdvec<i1>
       cc.store %5, %6 : !cc.ptr<!cc.stdvec<i1>>
@@ -76,8 +76,8 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:             %[[VAL_17:.*]] = quake.discriminate %[[VAL_15]] : (!quake.measure) -> i1
 // CHECK:             %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_0]] : i1
 // CHECK:             cc.if(%[[VAL_18]]) {
-// CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_5]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// CHECK:               %[[VAL_20:.*]] = quake.discriminate %[[VAL_19]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_5]] name "inner_mz" : (!quake.veq<2>) -> !quake.measurements<2>
+// CHECK:               %[[VAL_20:.*]] = quake.discriminate %[[VAL_19]] : (!quake.measurements<2>) -> !cc.stdvec<i1>
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_21:.*]] = cc.undef !cc.stdvec<i1>
 // CHECK:               }
@@ -91,8 +91,8 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_25:.*]] = arith.cmpi eq, %[[VAL_26:.*]]#1, %[[VAL_3]] : i1
 // CHECK:           cc.if(%[[VAL_25]]) {
-// CHECK:             %[[VAL_27:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// CHECK:             %[[VAL_28:.*]] = quake.discriminate %[[VAL_27]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:             %[[VAL_27:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !quake.measurements<2>
+// CHECK:             %[[VAL_28:.*]] = quake.discriminate %[[VAL_27]] : (!quake.measurements<2>) -> !cc.stdvec<i1>
 // CHECK:             cc.scope {
 // CHECK:               %[[VAL_29:.*]] = cc.undef !cc.stdvec<i1>
 // CHECK:             }
