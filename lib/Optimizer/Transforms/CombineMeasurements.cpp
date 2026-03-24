@@ -109,7 +109,7 @@ public:
   // with:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !quake.measurements<4>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(quake::MzOp measure,
@@ -132,7 +132,13 @@ public:
       analysis.resultQubitVals[offset] =
           std::make_pair(idx, std::to_string(idx));
 
-      auto resultType = cudaq::cc::StdvecType::get(measure.getType(0));
+      Type resultType;
+      if (auto veqTy = dyn_cast<quake::VeqType>(veq.getType());
+          veqTy && veqTy.hasSpecifiedSize())
+        resultType = quake::MeasurementsType::get(measure->getContext(),
+                                                  veqTy.getSize());
+      else
+        resultType = quake::MeasurementsType::getUnsized(measure->getContext());
       if (measure == analysis.lastMeasurement) {
         rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
                                                  ValueRange{veq},
@@ -165,12 +171,12 @@ public:
   //   %1 = ... : !quake.veq<4>
   //   %2 = quake.subveq %1, %c1, %c2 : (!quake.veq<4>, i32, i32) ->
   //        !quake.veq<2>
-  //   %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+  //   %measOut = quake.mz %2 : (!quake.veq<2>) -> !quake.measurements<2>
   // ```
   // with:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !quake.measurements<4>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(quake::MzOp measure,
@@ -203,11 +209,20 @@ public:
         analysis.resultQubitVals[offset] = std::make_pair(i, std::to_string(i));
       }
 
-      if (measure == analysis.lastMeasurement)
-        rewriter.replaceOpWithNewOp<quake::MzOp>(
-            measure, measure.getResultTypes(), ValueRange{subveq.getVeq()},
-            measure.getRegisterNameAttr());
-      else if (measure.use_empty())
+      if (measure == analysis.lastMeasurement) {
+        auto veq = subveq.getVeq();
+        Type resultType;
+        if (auto veqTy = dyn_cast<quake::VeqType>(veq.getType());
+            veqTy && veqTy.hasSpecifiedSize())
+          resultType = quake::MeasurementsType::get(measure->getContext(),
+                                                    veqTy.getSize());
+        else
+          resultType =
+              quake::MeasurementsType::getUnsized(measure->getContext());
+        rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
+                                                 ValueRange{veq},
+                                                 measure.getRegisterNameAttr());
+      } else if (measure.use_empty())
         rewriter.eraseOp(measure);
 
       return success();
