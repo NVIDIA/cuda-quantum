@@ -8,6 +8,12 @@
 
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "PassDetails.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_QUAKEADDMETADATA
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -155,7 +161,7 @@ namespace {
 /// This pass will analyze Quake functions and attach metadata (as an MLIR
 /// function attribute) for specific features.
 class QuakeAddMetadataPass
-    : public cudaq::opt::QuakeAddMetadataBase<QuakeAddMetadataPass> {
+    : public cudaq::opt::impl::QuakeAddMetadataBase<QuakeAddMetadataPass> {
 public:
   QuakeAddMetadataPass() = default;
 

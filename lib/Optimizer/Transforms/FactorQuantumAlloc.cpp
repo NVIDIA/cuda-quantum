@@ -119,7 +119,7 @@ public:
 
     // Split the aggregate veq into a sequence of distinct alloca of ref.
     for (std::size_t i = 0; i < size; ++i)
-      newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
+      newAllocs.emplace_back(quake::AllocaOp::create(rewriter, loc, refTy));
 
     if (usesAreConvertible(allocOp)) {
       // Visit all users and replace them accordingly.
@@ -150,7 +150,7 @@ public:
         rewriter.setInsertionPoint(dealloc);
         auto deloc = dealloc.getLoc();
         for (std::size_t i = 0; i < size - 1; ++i)
-          rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
+          quake::DeallocOp::create(rewriter, deloc, newAllocs[i]);
         rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
                                                       newAllocs[size - 1]);
         continue;
@@ -215,20 +215,17 @@ public:
     }
 
     auto loc = dealloc.getLoc();
-    // 1. Split the aggregate alloc into a sequence of distinct dealloc of
-    // ref.
     if (auto veqTy = dyn_cast<quake::VeqType>(allocTy)) {
       generateDeallocs(veqTy, rewriter, loc, alloc);
     } else if (auto stqTy = dyn_cast<quake::StruqType>(allocTy)) {
-      // Process a struq in memberwise fashion.
       for (auto iter : llvm::enumerate(stqTy.getMembers())) {
         Type memTy = iter.value();
-        auto mem = rewriter.create<quake::GetMemberOp>(loc, memTy, alloc,
-                                                       iter.index());
+        auto mem = quake::GetMemberOp::create(rewriter, loc, memTy, alloc,
+                                              iter.index());
         if (auto veqTy = dyn_cast<quake::VeqType>(memTy))
           generateDeallocs(veqTy, rewriter, loc, mem);
         else
-          rewriter.create<quake::DeallocOp>(loc, mem);
+          quake::DeallocOp::create(rewriter, loc, mem);
       }
     }
 

@@ -122,10 +122,10 @@ public:
         OpBuilder builder{ctx};
         Block *splitBlock = entry.splitBlock(entry.begin());
         builder.setInsertionPointToEnd(&entry);
-        builder.create<cf::BranchOp>(func.getLoc(), &subst.getBody().front());
+        cf::BranchOp::create(builder, func.getLoc(), &subst.getBody().front());
         Operation *lastOp = &subst.getBody().front().back();
         builder.setInsertionPointToEnd(&subst.getBody().front());
-        builder.create<cf::BranchOp>(func.getLoc(), splitBlock);
+        cf::BranchOp::create(builder, func.getLoc(), splitBlock);
         func.getBlocks().splice(Region::iterator{splitBlock},
                                 subst.getBody().getBlocks());
         if (lastOp && lastOp->getResult(0).getType() ==
@@ -153,7 +153,7 @@ public:
       // breaks all calls to `func`. This practice is unnecessary and highly
       // discouraged.
       if (changeSemantics)
-        func.eraseArguments(replacedArgs);
+        (void)func.eraseArguments(replacedArgs);
     }
   }
 };

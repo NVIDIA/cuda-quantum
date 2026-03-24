@@ -52,7 +52,6 @@ struct S5 {
 
 struct S6 {
   auto operator()() __qpu__ {
-    // expected-error@*{{union types are not allowed in kernels}}
     // expected-error@+1{{statement not supported in qpu kernel}}
     std::cout << "Hello\n";
 

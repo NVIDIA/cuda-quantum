@@ -204,7 +204,6 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(module, format)))
     throw std::runtime_error("QIR conformance failed.");
   llvm::LLVMContext llvmContext;
-  llvmContext.setOpaquePointers(false);
   std::unique_ptr<llvm::Module> llvmModule =
       translateModuleToLLVMIR(module, llvmContext);
   if (!llvmModule)

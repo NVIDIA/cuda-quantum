@@ -92,8 +92,8 @@ public:
       for (auto caller : callers) {
 
         LLVM_DEBUG(llvm::dbgs() << "  Caller: " << caller.getName() << "\n\n");
-        if (auto boolAttr = callee->getAttr("qubitMeasurementFeedback")
-                                .dyn_cast_or_null<mlir::BoolAttr>()) {
+        if (auto boolAttr = dyn_cast_if_present<mlir::BoolAttr>(
+                callee->getAttr("qubitMeasurementFeedback"))) {
           if (boolAttr.getValue()) {
             LLVM_DEBUG(llvm::dbgs()
                        << "  Propagating qubitMeasurementFeedback attr: "

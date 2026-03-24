@@ -7,6 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_QUAKEADDDEALLOCS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -135,7 +141,7 @@ inline void generateDeallocsForSet(PatternRewriter &rewriter,
               dyn_cast<quake::InitializeStateOp>(*a->getUsers().begin()))
         v = initState;
     }
-    rewriter.create<quake::DeallocOp>(a->getLoc(), v);
+    quake::DeallocOp::create(rewriter, a->getLoc(), v);
   }
 }
 
@@ -144,7 +150,7 @@ template <typename RET, typename OP>
 LogicalResult addDeallocations(OP wrapper, PatternRewriter &rewriter,
                                const DeallocationAnalysisInfo &infoMap,
                                const DominanceInfo &domInfo) {
-  rewriter.startRootUpdate(wrapper);
+  rewriter.startOpModification(wrapper);
   llvm::DenseSet<Operation *> allocs;
   for (auto &[op, done] : infoMap.allocMap)
     if ((op->getParentOp() == wrapper.getOperation()) && !done)
@@ -197,9 +203,9 @@ LogicalResult addDeallocations(OP wrapper, PatternRewriter &rewriter,
   // 3) Create the deallocations.
   rewriter.setInsertionPointToEnd(exitBlock);
   generateDeallocsForSet(rewriter, allocs);
-  rewriter.create<RET>(wrapper.getLoc(), exitBlock->getArguments());
+  RET::create(rewriter, wrapper.getLoc(), exitBlock->getArguments());
 
-  rewriter.finalizeRootUpdate(wrapper);
+  rewriter.finalizeOpModification(wrapper);
   LLVM_DEBUG(llvm::dbgs() << "updated " << wrapper.getOperation() << '\n');
   return success();
 }
@@ -243,7 +249,7 @@ using ScopeDeallocPattern =
 /// dealloc ops along non-trivial control paths in the presence of global jumps.
 /// DeallocationAnalysis will flag any unwinding jumps as errors.
 class QuakeAddDeallocsPass
-    : public cudaq::opt::QuakeAddDeallocsBase<QuakeAddDeallocsPass> {
+    : public cudaq::opt::impl::QuakeAddDeallocsBase<QuakeAddDeallocsPass> {
 public:
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();

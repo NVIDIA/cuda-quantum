@@ -30,7 +30,7 @@ def QuakeDialect : Dialect {
     /// Register all Quake types.
     void registerTypes();
   }];
-  let useFoldAPI = kEmitFoldAdaptorFolder;
+  // useFoldAPI removed in LLVM 22
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE

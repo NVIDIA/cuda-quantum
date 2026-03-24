@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/Support/MD5.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeSupport.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -167,8 +168,8 @@ public:
   LogicalResult matchAndRewrite(cudaq::cc::ResolveDevicePtrOp resolve,
                                 PatternRewriter &rewriter) const override {
     auto loc = resolve.getLoc();
-    auto call = rewriter.create<func::CallOp>(
-        loc, TypeRange{cudaq::cc::PointerType::get(rewriter.getI8Type())},
+    auto call = func::CallOp::create(
+        rewriter, loc, TypeRange{cudaq::cc::PointerType::get(rewriter.getI8Type())},
         cudaq::runtime::extractDevPtr, ValueRange{resolve.getDevicePtr()});
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
         resolve, resolve.getResult().getType(), call.getResult(0));
@@ -202,7 +203,7 @@ public:
 
     patterns.add<ResolveDevicePtrOpPat>(ctx);
     patterns.insert<QIRVendorDeviceCallPat>(ctx, insertTrapImplementation);
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    if (failed(applyPatternsGreedily(module, std::move(patterns))))
       signalPassFailure();
     return;
   }

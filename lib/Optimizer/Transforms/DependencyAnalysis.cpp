@@ -653,7 +653,7 @@ protected:
     assert(qubit.has_value() && "Trying to codeGen a virtual allocation "
                                 "without a physical qubit assigned!");
     auto wirety = quake::WireType::get(builder.getContext());
-    auto alloc = builder.create<quake::BorrowWireOp>(
+    auto alloc = quake::BorrowWireOp::create(builder, 
         builder.getUnknownLoc(), wirety,
         cudaq::opt::topologyAgnosticWiresetName, qubit.value());
     wire = alloc.getResult();
@@ -760,13 +760,13 @@ protected:
   std::string getOpName() override {
     if (isa<arith::ConstantOp>(associated)) {
       if (auto cstf = dyn_cast<arith::ConstantFloatOp>(associated)) {
-        auto value = cstf.getValue().cast<FloatAttr>().getValueAsDouble();
+        auto value = cast<FloatAttr>(cstf.getValue()).getValueAsDouble();
         return std::to_string(value);
       } else if (auto cstidx = dyn_cast<arith::ConstantIndexOp>(associated)) {
-        auto value = cstidx.getValue().cast<IntegerAttr>().getInt();
+        auto value = cast<IntegerAttr>(cstidx.getValue()).getInt();
         return std::to_string(value);
       } else if (auto cstint = dyn_cast<arith::ConstantIntOp>(associated)) {
-        auto value = cstint.getValue().cast<IntegerAttr>().getInt();
+        auto value = cast<IntegerAttr>(cstint.getValue()).getInt();
         return std::to_string(value);
       }
     }
@@ -800,9 +800,9 @@ protected:
     auto oldOp = associated;
     auto operands = gatherOperands(builder);
 
-    associated =
-        Operation::create(oldOp->getLoc(), oldOp->getName(),
-                          oldOp->getResultTypes(), operands, oldOp->getAttrs());
+    associated = Operation::create(
+        oldOp->getLoc(), oldOp->getName(), oldOp->getResultTypes(), operands,
+        oldOp->getAttrs(), OpaqueProperties{nullptr});
     associated->removeAttr("dnodeid");
     builder.insert(associated);
   }
@@ -1710,7 +1710,7 @@ protected:
   void genOp(OpBuilder &builder) override {
     auto wire = dependencies[0].getValue();
     auto newOp =
-        builder.create<quake::ReturnWireOp>(builder.getUnknownLoc(), wire);
+        quake::ReturnWireOp::create(builder, builder.getUnknownLoc(), wire);
     newOp->setAttrs(associated->getAttrs());
     newOp->removeAttr("dnodeid");
     associated = newOp;
@@ -2605,7 +2605,7 @@ protected:
     }
 
     auto newIf =
-        builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
+        cudaq::cc::IfOp::create(builder, oldOp->getLoc(), results, operands);
     auto *then_region = &newIf.getThenRegion();
     then_block->codeGen(builder, then_region);
 
@@ -3137,7 +3137,7 @@ public:
     // and thus should have a memoized dnode for defOp, fail if not
     assert(defOp->hasAttr("dnodeid") && "No dnodeid found for operation");
 
-    auto id = defOp->getAttr("dnodeid").cast<IntegerAttr>().getUInt();
+    auto id = cast<IntegerAttr>(defOp->getAttr("dnodeid")).getUInt();
     auto dnode = perOp[id];
 
     if (!ifStack.empty() && defOp->getParentOp() != ifStack.back() &&

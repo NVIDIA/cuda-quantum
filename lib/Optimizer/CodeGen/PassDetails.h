@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -22,7 +23,7 @@
 
 namespace cudaq::opt {
 
-#define GEN_PASS_CLASSES
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+// Note: Individual pass implementations should define their specific pass
+// using #define GEN_PASS_DEF_<PassName> before including Passes.h.inc
 
 } // namespace cudaq::opt

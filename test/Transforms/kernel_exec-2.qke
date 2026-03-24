@@ -88,7 +88,7 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_27:.*]] = cc.load %[[VAL_26]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_28:.*]] = arith.constant false
 // CHECK:           %[[VAL_29:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<i8>) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_29]], %[[VAL_27]], %[[VAL_25]], %[[VAL_28]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_29]], %[[VAL_27]], %[[VAL_25]], %[[VAL_28]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_30]]{{\[}}%[[VAL_25]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_32:.*]] = constant @function_hawaiian.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -117,22 +117,22 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_50:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>) -> !cc.ptr<i8>
 // CHECK:           cc.store %[[VAL_50]], %[[VAL_49]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_51:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_52:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr<array<18 x i8>>
-// CHECK:           %[[VAL_53:.*]] = cc.cast %[[VAL_52]] : (!llvm.ptr<array<18 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_52:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr
+// CHECK:           %[[VAL_53:.*]] = cc.cast %[[VAL_52]] : (!llvm.ptr) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_54:.*]] = call @hybridLaunchKernel(%[[VAL_53]], %[[VAL_33]], %[[VAL_34]], %[[VAL_11]], %[[VAL_35]], %[[VAL_51]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return
 // CHECK:         }
 // CHECK:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-// CHECK:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+// CHECK:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK:         func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
 // CHECK:         func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
 // CHECK:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // CHECK:         func.func private @free(!cc.ptr<i8>)
 // CHECK:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// CHECK:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
-// CHECK:         func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
+// CHECK:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
+// CHECK:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // CHECK-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
@@ -151,11 +151,11 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_7:.*]] = call @malloc(%[[VAL_6]]) : (i64) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_9:.*]] = arith.constant false
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_7]], %[[VAL_0]], %[[VAL_1]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_7]], %[[VAL_0]], %[[VAL_1]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_12]], %[[VAL_11]], %[[VAL_5]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_12]], %[[VAL_11]], %[[VAL_5]], %[[VAL_9]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // CHECK:           %[[VAL_13:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]][0], %[[VAL_7]] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_14]][1], %[[VAL_6]] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -235,7 +235,7 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_36:.*]] = cc.load %[[VAL_35]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_37:.*]] = arith.constant false
 // CHECK:           %[[VAL_38:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<i8>) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_38]], %[[VAL_36]], %[[VAL_34]], %[[VAL_37]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_38]], %[[VAL_36]], %[[VAL_34]], %[[VAL_37]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // CHECK:           %[[VAL_39:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_40:.*]] = cc.compute_ptr %[[VAL_39]]{{\[}}%[[VAL_34]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:           cc.store %[[VAL_20]], %[[VAL_1]] : !cc.ptr<!cc.ptr<i8>>
@@ -243,13 +243,13 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:         }
 
 // CHECK-LABEL:   llvm.func @function_hawaiian.kernelRegFunc() {
-// CHECK:           %[[VAL_0:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr<array<18 x i8>>
-// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr<array<18 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_0:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr) -> !cc.ptr<i8>
 // CHECK:           func.call @cudaqRegisterKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_2:.*]] = func.constant @function_hawaiian.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
 // CHECK:           %[[VAL_3:.*]] = cc.func_ptr %[[VAL_2]] : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
 // CHECK:           func.call @cudaqRegisterArgsCreator(%[[VAL_1]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
-// CHECK:         llvm.mlir.global_ctors {ctors = [@function_hawaiian.kernelRegFunc], priorities = [17 : i32]}
+// CHECK:         llvm.mlir.global_ctors ctors = [@function_hawaiian.kernelRegFunc], priorities = [17 : i32], data = [#llvm.zero]
 

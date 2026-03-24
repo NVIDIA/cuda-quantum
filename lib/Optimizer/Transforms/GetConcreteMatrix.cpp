@@ -85,7 +85,7 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<CustomUnitaryPattern>(ctx);
     if (failed(
-            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
+            applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
 };

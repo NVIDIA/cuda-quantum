@@ -54,7 +54,7 @@ public:
         // The veq is not added the newControls, so it will be dropped
         for (size_t i = 0; i < *size; ++i) {
           auto ext =
-              rewriter.create<quake::ExtractRefOp>(op.getLoc(), veqVal, i);
+              quake::ExtractRefOp::create(rewriter, op.getLoc(), veqVal, i);
           newControls.push_back(ext);
           update = true;
         }

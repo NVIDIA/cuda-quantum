@@ -161,8 +161,10 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-em-default
     cudaq-em-photonics
     fmt::fmt-header-only
-    unzip_util
 )
+if (CUDAQ_ENABLE_REST)
+  target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE unzip_util)
+endif()
 
 ################################################################################
 # Common CAPI

@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -26,20 +26,18 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
 
 // CHECK-LABEL: define void @"__nvqpp__mlirgen__Z4mainE3$_0"(double 
 // CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
-// CHECK:         %[[VAL_1:.*]] = alloca [1 x { i8*, i64 }], align 8
-// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]* @__quantum__rt__qubit_allocate_array(i64 4)
-// CHECK:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_3]]* %[[VAL_2]], i64 0)
-// CHECK:         %[[VAL_6:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_4]], align 8
-// CHECK:         tail call void @__quantum__qis__x(%[[VAL_5]]* %[[VAL_6]])
-// CHECK:         %[[VAL_7:.*]] = tail call %[[VAL_5]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_3]]* %[[VAL_2]], i64 1)
-// CHECK:         %[[VAL_8:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_7]], align 8
-// CHECK:         tail call void @__quantum__qis__x(%[[VAL_5]]* %[[VAL_8]])
-// CHECK:         %[[VAL_9:.*]] = getelementptr inbounds [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_1]], i64 0, i64 0, i32 0
-// CHECK:         store i8* getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.5858585900, i64 0, i64 0), i8** %[[VAL_9]], align 8
-// CHECK:         %[[VAL_10:.*]] = getelementptr inbounds [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_1]], i64 0, i64 0, i32 1
-// CHECK:         store i64 4, i64* %[[VAL_10]], align 8
-// CHECK:         %[[VAL_11:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_1]] to i8*
-// CHECK:         call void @__quantum__qis__exp_pauli(double %[[VAL_0]], %[[VAL_3]]* %[[VAL_2]], i8* nonnull %[[VAL_11]])
-// CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_2]])
+// CHECK:         %[[VAL_1:.*]] = alloca [1 x { ptr, i64 }], align 8
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 4)
+// CHECK:         %[[VAL_4:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 0)
+// CHECK:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_4]], align 8
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_6]])
+// CHECK:         %[[VAL_7:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 1)
+// CHECK:         %[[VAL_8:.*]] = load ptr, ptr %[[VAL_7]], align 8
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_8]])
+// CHECK:         store ptr @cstr.5858585900, ptr %[[VAL_1]], align 8
+// CHECK:         %[[VAL_10:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_1]], i64 8
+// CHECK:         store i64 4, ptr %[[VAL_10]], align 8
+// CHECK:         call void @__quantum__qis__exp_pauli(double %[[VAL_0]], ptr %[[VAL_2]], ptr nonnull %[[VAL_1]])
+// CHECK:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_2]])
 // CHECK:         ret void
 // CHECK:       }

@@ -39,7 +39,7 @@ getConversionMap(ModuleOp module) {
           cudaq::runtime::mangledNameMap)) {
     for (auto namedAttr : mangledNameMap) {
       auto key = namedAttr.getName();
-      auto val = namedAttr.getValue().cast<StringAttr>().getValue();
+      auto val = cast<StringAttr>(namedAttr.getValue()).getValue();
       result.insert({val, key});
     }
     return result;
@@ -68,9 +68,9 @@ public:
     auto loc = call.getLoc();
     auto funcTy = call.getCalleeType();
     cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, module);
-    rewriter.startRootUpdate(call);
+    rewriter.startOpModification(call);
     call.setCalleeAttr(SymbolRefAttr::get(ctx, directName));
-    rewriter.finalizeRootUpdate(call);
+    rewriter.finalizeOpModification(call);
     LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
     return success();
   }
@@ -93,7 +93,7 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "Processing: " << module << '\n');
       RewritePatternSet patterns(ctx);
       patterns.insert<RewriteCall>(ctx, *indirectMapOpt, module);
-      if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+      if (failed(applyPatternsGreedily(module, std::move(patterns))))
         signalPassFailure();
     }
   }

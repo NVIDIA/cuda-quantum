@@ -14,6 +14,7 @@
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
+#include "llvm/IR/LLVMContext.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Parser/Parser.h"

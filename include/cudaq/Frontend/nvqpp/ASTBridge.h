@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Todo.h"
 #include "clang/AST/ASTConsumer.h"
+#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/GlobalDecl.h"
 #include "clang/AST/Mangle.h"
 #include "clang/Analysis/CallGraph.h"
@@ -371,31 +372,43 @@ public:
   // Type nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
-  bool TraverseTypedefType(clang::TypedefType *t) {
+  bool TraverseTypedefType(clang::TypedefType *t,
+                           bool &ShouldVisitChildren) {
+    ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
-  bool TraverseTypedefTypeLoc(clang::TypedefTypeLoc tl) {
+  bool TraverseTypedefTypeLoc(clang::TypedefTypeLoc tl,
+                              bool &ShouldVisitChildren) {
+    ShouldVisitChildren = false;
     return TraverseType(tl.getType());
   }
-  bool TraverseUsingType(clang::UsingType *t) {
+  bool TraverseUsingType(clang::UsingType *t, bool &ShouldVisitChildren) {
+    ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
-  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl) {
+  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl,
+                            bool &ShouldVisitChildren) {
+    ShouldVisitChildren = false;
     return TraverseType(tl.getType());
   }
-  bool
-  TraverseTemplateSpecializationType(clang::TemplateSpecializationType *t) {
+  bool TraverseTemplateSpecializationType(
+      clang::TemplateSpecializationType *t, bool &ShouldVisitChildren) {
+    ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
-  bool TraverseTypeOfExprType(clang::TypeOfExprType *t) {
+  bool TraverseTypeOfExprType(clang::TypeOfExprType *t,
+                              bool &ShouldVisitChildren) {
     // Do not visit the expression as it is has no semantics other than for
     // inferring a type.
+    ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
-  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *) {
+  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier) {
     return true;
   }
-  bool TraverseDecltypeType(clang::DecltypeType *t) {
+  bool TraverseDecltypeType(clang::DecltypeType *t,
+                            bool &ShouldVisitChildren) {
+    ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
 
@@ -413,7 +426,7 @@ public:
     return Base::WalkUpFromFieldDecl(x);
   }
 
-  bool TraverseRecordType(clang::RecordType *t);
+  bool TraverseRecordType(clang::RecordType *t, bool &ShouldVisitChildren);
   bool interceptRecordDecl(clang::RecordDecl *x);
   std::pair<std::uint64_t, unsigned> getWidthAndAlignment(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);
@@ -468,9 +481,10 @@ public:
   mlir::Value loadLValue(mlir::Value val) {
     auto valTy = val.getType();
     if (isa<cudaq::cc::PointerType>(valTy))
-      return builder.create<cudaq::cc::LoadOp>(val.getLoc(), val);
+      return cudaq::cc::LoadOp::create(builder, val.getLoc(), val);
     if (isa<mlir::LLVM::LLVMPointerType>(valTy))
-      return builder.create<mlir::LLVM::LoadOp>(val.getLoc(), val);
+      return mlir::LLVM::LoadOp::create(builder, val.getLoc(),
+                                        builder.getI8Type(), val);
     return val;
   }
 
@@ -789,7 +803,7 @@ inline bool isInNamespace(const clang::Decl *x, mlir::StringRef nsName) {
   do {
     if (const auto *nsd = dyn_cast<clang::NamespaceDecl>(declCtx))
       if (const auto *nsi = nsd->getIdentifier())
-        if (nsi->getName().equals(nsName))
+        if (nsi->getName() == nsName)
           return true;
     declCtx = declCtx->getParent();
   } while (declCtx);
@@ -804,7 +818,7 @@ inline bool isInClassInNamespace(const clang::Decl *x,
   assert(x && "decl is null");
   if (const auto *cld = dyn_cast<clang::RecordDecl>(x->getDeclContext()))
     if (const auto *cli = cld->getIdentifier())
-      return cli->getName().equals(className) && isInNamespace(cld, nsName);
+      return (cli->getName() == className) && isInNamespace(cld, nsName);
   return false;
 }
 

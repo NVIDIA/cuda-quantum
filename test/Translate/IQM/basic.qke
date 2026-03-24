@@ -1,7 +1,6 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
-// Copyright 2025 IQM Quantum Computers                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
@@ -31,16 +30,16 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
     quake.phased_rx(%cst_1, %cst_1) %q1 : (f64, f64, !quake.ref) -> ()
     quake.phased_rx(%cst_0, %cst) %q1 : (f64, f64, !quake.ref) -> ()
 
-    %8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr<i1>
+    %8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr
 
     %bit = quake.mz %q0 : (!quake.ref) -> !quake.measure
     %bits = quake.discriminate %bit : (!quake.measure) -> i1
-    llvm.store %bits, %8 : !llvm.ptr<i1>
+    llvm.store %bits, %8 : i1, !llvm.ptr
 
     %bit_4 = quake.mz %q1 : (!quake.ref) -> !quake.measure
     %bits_4 = quake.discriminate %bit_4 : (!quake.measure) -> i1
-    %9 = llvm.getelementptr %8[1] : (!llvm.ptr<i1>) -> !llvm.ptr<i1>
-    llvm.store %bits_4, %9 : !llvm.ptr<i1>
+    %9 = llvm.getelementptr %8[1] : (!llvm.ptr) -> !llvm.ptr, i1
+    llvm.store %bits_4, %9 : i1, !llvm.ptr
     return
   }
 }
@@ -52,7 +51,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                       "angle_t": 0.25,
 // CHECK:                       "phase_t": 0.25
 // CHECK:                   },
-// CHECK:                   "name": "prx",
+// CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
 // CHECK:                       "QB1"
 // CHECK:                   ]
@@ -62,7 +61,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                       "angle_t": 0.5,
 // CHECK:                       "phase_t": 0.0
 // CHECK:                   },
-// CHECK:                   "name": "prx",
+// CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
 // CHECK:                       "QB1"
 // CHECK:                   ]
@@ -72,7 +71,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                       "angle_t": 0.25,
 // CHECK:                       "phase_t": 0.25
 // CHECK:                   },
-// CHECK:                   "name": "prx",
+// CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
 // CHECK:                       "QB2"
 // CHECK:                   ]
@@ -82,7 +81,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                       "angle_t": 0.5,
 // CHECK:                       "phase_t": 0.0
 // CHECK:                   },
-// CHECK:                   "name": "prx",
+// CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
 // CHECK:                       "QB2"
 // CHECK:                   ]
@@ -100,7 +99,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                       "angle_t": 0.25,
 // CHECK:                       "phase_t": 0.25
 // CHECK:                   },
-// CHECK:                   "name": "prx",
+// CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
 // CHECK:                       "QB2"
 // CHECK:                   ]
@@ -110,7 +109,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                       "angle_t": 0.5,
 // CHECK:                       "phase_t": 0.0
 // CHECK:                   },
-// CHECK:                   "name": "prx",
+// CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
 // CHECK:                       "QB2"
 // CHECK:                   ]

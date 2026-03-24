@@ -74,12 +74,12 @@ public:
     if (auto strTy =
             dyn_cast<cudaq::cc::StructType>(allocOp.getElementType())) {
       for (auto mTy : strTy.getMembers())
-        scalars.push_back(rewriter.create<cudaq::cc::AllocaOp>(loc, mTy));
+        scalars.push_back(cudaq::cc::AllocaOp::create(rewriter, loc, mTy));
     } else if (auto arrTy =
                    dyn_cast<cudaq::cc::ArrayType>(allocOp.getElementType())) {
       Type vTy = arrTy.getElementType();
       for (cudaq::cc::ArrayType::SizeType i = 0; i < arrTy.getSize(); ++i)
-        scalars.push_back(rewriter.create<cudaq::cc::AllocaOp>(loc, vTy));
+        scalars.push_back(cudaq::cc::AllocaOp::create(rewriter, loc, vTy));
     }
 
     // Replace the cc.compute_ptr ops with forwarding.
@@ -100,19 +100,19 @@ public:
         rewriter.setInsertionPoint(loadOp);
         auto loadTy = loadOp.getType();
         auto loc = loadOp.getLoc();
-        Value result = rewriter.create<cudaq::cc::UndefOp>(loc, loadTy);
+        Value result = cudaq::cc::UndefOp::create(rewriter, loc, loadTy);
         if (auto strTy = dyn_cast<cudaq::cc::StructType>(loadTy)) {
           for (auto [i, mTy] : llvm::enumerate(strTy.getMembers())) {
-            Value loadEle = rewriter.create<cudaq::cc::LoadOp>(loc, scalars[i]);
-            result = rewriter.create<cudaq::cc::InsertValueOp>(
-                loc, loadTy, result, loadEle, i);
+            Value loadEle = cudaq::cc::LoadOp::create(rewriter, loc, scalars[i]);
+            result = cudaq::cc::InsertValueOp::create(
+                rewriter, loc, loadTy, result, loadEle, i);
           }
         } else {
           auto arrTy = cast<cudaq::cc::ArrayType>(loadTy);
           for (cudaq::cc::ArrayType::SizeType i = 0; i < arrTy.getSize(); ++i) {
-            Value loadEle = rewriter.create<cudaq::cc::LoadOp>(loc, scalars[i]);
-            result = rewriter.create<cudaq::cc::InsertValueOp>(
-                loc, loadTy, result, loadEle, i);
+            Value loadEle = cudaq::cc::LoadOp::create(rewriter, loc, scalars[i]);
+            result = cudaq::cc::InsertValueOp::create(
+                rewriter, loc, loadTy, result, loadEle, i);
           }
         }
         updates.emplace_back(loadOp, result);
@@ -211,8 +211,8 @@ public:
       auto loc = insVal.getLoc();
       auto vTy = cudaq::cc::PointerType::get(v.getType());
       auto toAddr =
-          rewriter.create<cudaq::cc::ComputePtrOp>(loc, vTy, dest, args);
-      rewriter.create<cudaq::cc::StoreOp>(loc, v, toAddr);
+          cudaq::cc::ComputePtrOp::create(rewriter, loc, vTy, dest, args);
+      cudaq::cc::StoreOp::create(rewriter, loc, v, toAddr);
     }
     LLVM_DEBUG(llvm::dbgs() << "updated: " << storeOp << '\n');
     rewriter.eraseOp(storeOp);
@@ -230,7 +230,7 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "Before SROA:\n" << *op << '\n');
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaAggregate, StoreAggregate>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(op, std::move(patterns)))) {
       signalPassFailure();
       return;
     }
