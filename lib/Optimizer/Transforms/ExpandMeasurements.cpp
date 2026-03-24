@@ -51,13 +51,22 @@ public:
             rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
       }
 
-    // 2. Create the buffer.
-    auto i1Ty = rewriter.getI1Type();
+    // 2. Determine the element type from users (default to `i1`).
+    Type elemTy = rewriter.getI1Type();
+    for (auto *user : measureOp.getMeasOut().getUsers()) {
+      if (auto disc = dyn_cast<quake::DiscriminateOp>(user))
+        if (auto svTy =
+                dyn_cast<cudaq::cc::StdvecType>(disc.getResult().getType())) {
+          elemTy = svTy.getElementType();
+          break;
+        }
+    }
+    // 3. Create the buffer.
     auto i8Ty = rewriter.getI8Type();
     Value buff =
         rewriter.template create<cudaq::cc::AllocaOp>(loc, i8Ty, totalToRead);
 
-    // 3. Measure each individual qubit and insert the result, in order, into
+    // 4. Measure each individual qubit and insert the result, in order, into
     // the buffer. For registers/vectors, loop over the entire set of qubits.
     Value buffOff = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
     Value one = rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
@@ -66,7 +75,7 @@ public:
       if (isa<quake::RefType>(v.getType())) {
         auto meas = rewriter.template create<A>(loc, measTy, v).getMeasOut();
         auto bit =
-            rewriter.template create<quake::DiscriminateOp>(loc, i1Ty, meas);
+            rewriter.template create<quake::DiscriminateOp>(loc, elemTy, meas);
         Value addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
             loc, cudaq::cc::PointerType::get(i8Ty), buff, buffOff);
         auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
@@ -84,7 +93,7 @@ public:
                   builder.template create<quake::ExtractRefOp>(loc, v, iv);
               auto meas = builder.template create<A>(loc, measTy, qv);
               auto bit = builder.template create<quake::DiscriminateOp>(
-                  loc, i1Ty, meas.getMeasOut());
+                  loc, elemTy, meas.getMeasOut());
               if (auto registerName = measureOp.getRegisterNameAttr())
                 meas.setRegisterName(registerName);
               Value offset =
@@ -99,15 +108,15 @@ public:
       }
     }
 
-    // 4. Use the buffer as an initialization expression and create the
-    // std::vec<bool> value.
-    auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
+    // 5. Use the buffer as an initialization expression and create the
+    // std::vec<iN> value.
+    auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), elemTy);
     for (auto *out : measureOp.getMeasOut().getUsers())
       if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
-        auto ptrArrI1Ty =
-            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
+        auto ptrArrTy =
+            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
         auto buffCast =
-            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrI1Ty, buff);
+            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrTy, buff);
         rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
             disc, stdvecTy, buffCast, totalToRead);
       }
@@ -119,7 +128,7 @@ public:
 
 // Expand a `quake.discriminate` on a `!quake.measurements<N>` value into
 // individual `get_measure` + `discriminate` operations, producing a
-// `!cc.stdvec<i1>`.
+// `!cc.stdvec<iK>` where K is inferred from the original result type.
 class ExpandDiscriminatePattern
     : public OpRewritePattern<quake::DiscriminateOp> {
 public:
@@ -133,7 +142,9 @@ public:
       return failure();
 
     auto loc = discOp.getLoc();
-    auto i1Ty = rewriter.getI1Type();
+    auto stdvecResTy =
+        cast<cudaq::cc::StdvecType>(discOp.getResult().getType());
+    auto elemTy = stdvecResTy.getElementType();
     auto i8Ty = rewriter.getI8Type();
     Value totalToRead;
 
@@ -150,7 +161,8 @@ public:
       std::size_t n = measTy.getSize();
       for (std::size_t i = 0; i < n; ++i) {
         Value getMeas = rewriter.create<quake::GetMeasureOp>(loc, measVal, i);
-        Value bit = rewriter.create<quake::DiscriminateOp>(loc, i1Ty, getMeas);
+        Value bit =
+            rewriter.create<quake::DiscriminateOp>(loc, elemTy, getMeas);
         Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
         Value addr = rewriter.create<cudaq::cc::ComputePtrOp>(
             loc, cudaq::cc::PointerType::get(i8Ty), buff, idx);
@@ -160,12 +172,12 @@ public:
       }
     }
 
-    auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
-    auto ptrArrI1Ty =
-        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
-    auto buffCast = rewriter.create<cudaq::cc::CastOp>(loc, ptrArrI1Ty, buff);
-    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(discOp, stdvecTy,
-                                                         buffCast, totalToRead);
+    auto ptrArrElemTy =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
+    auto buffCast =
+        rewriter.create<cudaq::cc::CastOp>(loc, ptrArrElemTy, buff);
+    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+        discOp, stdvecResTy, buffCast, totalToRead);
     return success();
   }
 };
