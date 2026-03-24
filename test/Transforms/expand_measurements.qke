@@ -1,0 +1,73 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-measurements %s | FileCheck %s
+
+func.func @discriminate_measurements_param(%ms : !quake.measurements<3>) -> !cc.stdvec<i1> {
+  %bits = quake.discriminate %ms : (!quake.measurements<3>) -> !cc.stdvec<i1>
+  return %bits : !cc.stdvec<i1>
+}
+
+// CHECK-LABEL:   func.func @discriminate_measurements_param(
+// CHECK-SAME:                                               %[[VAL_0:.*]]: !quake.measurements<3>) -> !cc.stdvec<i1> {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i8{{\[}}%[[VAL_1]] : i64]
+// CHECK:           %[[VAL_3:.*]] = quake.get_measure %[[VAL_0]][0] : (!quake.measurements<3>) -> !quake.measure
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_5:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]]{{\[}}%[[VAL_5]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_7:.*]] = cc.cast unsigned %[[VAL_4]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_7]], %[[VAL_6]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_8:.*]] = quake.get_measure %[[VAL_0]][1] : (!quake.measurements<3>) -> !quake.measure
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_10:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_2]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_9]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_12]], %[[VAL_11]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_13:.*]] = quake.get_measure %[[VAL_0]][2] : (!quake.measurements<3>) -> !quake.measure
+// CHECK:           %[[VAL_14:.*]] = quake.discriminate %[[VAL_13]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_15:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_2]]{{\[}}%[[VAL_15]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_17:.*]] = cc.cast unsigned %[[VAL_14]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_17]], %[[VAL_16]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[VAL_19:.*]] = cc.stdvec_init %[[VAL_18]], %[[VAL_1]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CHECK:           return %[[VAL_19]] : !cc.stdvec<i1>
+// CHECK:         }
+
+func.func @discriminate_single(%m : !quake.measure) -> i1 {
+  %bit = quake.discriminate %m : (!quake.measure) -> i1
+  return %bit : i1
+}
+
+// CHECK-LABEL:   func.func @discriminate_single(
+// CHECK-SAME:                                   %[[VAL_0:.*]]: !quake.measure) -> i1 {
+// CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_1]] : i1
+// CHECK:         }
+
+
+func.func @discriminate_measurements_1(%ms : !quake.measurements<1>) -> !cc.stdvec<i1> {
+  %bits = quake.discriminate %ms : (!quake.measurements<1>) -> !cc.stdvec<i1>
+  return %bits : !cc.stdvec<i1>
+}
+
+// CHECK-LABEL:   func.func @discriminate_measurements_1(
+// CHECK-SAME:                                           %[[VAL_0:.*]]: !quake.measurements<1>) -> !cc.stdvec<i1> {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i8{{\[}}%[[VAL_1]] : i64]
+// CHECK:           %[[VAL_3:.*]] = quake.get_measure %[[VAL_0]][0] : (!quake.measurements<1>) -> !quake.measure
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_5:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]]{{\[}}%[[VAL_5]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_7:.*]] = cc.cast unsigned %[[VAL_4]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_7]], %[[VAL_6]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_8]], %[[VAL_1]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CHECK:           return %[[VAL_9]] : !cc.stdvec<i1>
+// CHECK:         }

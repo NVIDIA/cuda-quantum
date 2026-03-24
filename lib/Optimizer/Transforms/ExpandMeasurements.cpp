@@ -117,6 +117,59 @@ public:
   }
 };
 
+// Expand a `quake.discriminate` on a `!quake.measurements<N>` value into
+// individual `get_measure` + `discriminate` operations, producing a
+// `!cc.stdvec<i1>`.
+class ExpandDiscriminatePattern
+    : public OpRewritePattern<quake::DiscriminateOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::DiscriminateOp discOp,
+                                PatternRewriter &rewriter) const override {
+    auto measVal = discOp.getMeasurement();
+    auto measTy = dyn_cast<quake::MeasurementsType>(measVal.getType());
+    if (!measTy)
+      return failure();
+
+    auto loc = discOp.getLoc();
+    auto i1Ty = rewriter.getI1Type();
+    auto i8Ty = rewriter.getI8Type();
+    Value totalToRead;
+
+    if (measTy.hasSpecifiedSize()) {
+      totalToRead =
+          rewriter.create<arith::ConstantIntOp>(loc, measTy.getSize(), 64);
+    } else {
+      TODO_loc(loc, "unsized measurements in `ExpandDiscriminatePattern`");
+    }
+
+    Value buff = rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, totalToRead);
+
+    if (measTy.hasSpecifiedSize()) {
+      std::size_t n = measTy.getSize();
+      for (std::size_t i = 0; i < n; ++i) {
+        Value getMeas = rewriter.create<quake::GetMeasureOp>(loc, measVal, i);
+        Value bit = rewriter.create<quake::DiscriminateOp>(loc, i1Ty, getMeas);
+        Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
+        Value addr = rewriter.create<cudaq::cc::ComputePtrOp>(
+            loc, cudaq::cc::PointerType::get(i8Ty), buff, idx);
+        auto bitByte = rewriter.create<cudaq::cc::CastOp>(
+            loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+        rewriter.create<cudaq::cc::StoreOp>(loc, bitByte, addr);
+      }
+    }
+
+    auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
+    auto ptrArrI1Ty =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
+    auto buffCast = rewriter.create<cudaq::cc::CastOp>(loc, ptrArrI1Ty, buff);
+    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(discOp, stdvecTy,
+                                                         buffCast, totalToRead);
+    return success();
+  }
+};
+
 namespace {
 using MxRewrite = ExpandRewritePattern<quake::MxOp>;
 using MyRewrite = ExpandRewritePattern<quake::MyOp>;
@@ -153,7 +206,8 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite>(ctx);
+    patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite,
+                    ExpandDiscriminatePattern>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
                            arith::ArithDialect, LLVM::LLVMDialect>();
@@ -163,6 +217,11 @@ public:
         [](quake::MyOp x) { return usesIndividualQubit(x.getMeasOut()); });
     target.addDynamicallyLegalOp<quake::MzOp>(
         [](quake::MzOp x) { return usesIndividualQubit(x.getMeasOut()); });
+    // Convert only on the `MeasurementsType` operand, otherwise legal.
+    target.addDynamicallyLegalOp<quake::DiscriminateOp>(
+        [](quake::DiscriminateOp d) {
+          return !isa<quake::MeasurementsType>(d.getMeasurement().getType());
+        });
     target.addDynamicallyLegalOp<quake::ResetOp>([](quake::ResetOp r) {
       return !isa<quake::VeqType>(r.getTargets().getType());
     });
