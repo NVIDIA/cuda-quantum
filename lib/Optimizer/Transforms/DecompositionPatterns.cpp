@@ -645,7 +645,7 @@ struct R1AdjToR1
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1", "r1");
+REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1<adj>", "r1");
 
 // quake.swap a, b
 // ───────────────────────────────────
@@ -717,6 +717,8 @@ struct CHToCX : public cudaq::DecompositionPattern<CHToCXType, quake::HOp> {
     return success();
   }
 };
+// TODO: Technically, this pattern also produces s<adj> and t<adj> ops, but we
+// currently don't treat them as distinct from their non-adjoint counterparts.
 REGISTER_DECOMPOSITION_PATTERN(CHToCX, "h(1)", "s", "h", "t", "x(1)");
 
 //===----------------------------------------------------------------------===//
@@ -1075,6 +1077,8 @@ struct CYToCX : public cudaq::DecompositionPattern<CYToCXType, quake::YOp> {
     return success();
   }
 };
+// TODO: Technically, this pattern also produces s<adj> ops, but we currently
+// don't treat it as distinct from their non-adjoint counterparts.
 REGISTER_DECOMPOSITION_PATTERN(CYToCX, "y(1)", "s", "x(1)");
 
 //===----------------------------------------------------------------------===//
@@ -1152,6 +1156,8 @@ struct CCZToCX : public cudaq::DecompositionPattern<CCZToCXType, quake::ZOp> {
     return success();
   }
 };
+// TODO: Technically, this pattern also produces t<adj> ops, but we currently
+// don't treat it as distinct from their non-adjoint counterparts.
 REGISTER_DECOMPOSITION_PATTERN(CCZToCX, "z(2)", "t", "x(1)");
 
 // quake.z [control] target
@@ -1488,7 +1494,7 @@ struct RxAdjToRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx", "rx");
+REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx<adj>", "rx");
 
 //===----------------------------------------------------------------------===//
 // RyOp decompositions
@@ -1617,7 +1623,7 @@ struct RyAdjToRy
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry", "ry");
+REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry<adj>", "ry");
 
 //===----------------------------------------------------------------------===//
 // RzOp decompositions
@@ -1757,7 +1763,7 @@ struct RzAdjToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz", "rz");
+REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz<adj>", "rz");
 
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
