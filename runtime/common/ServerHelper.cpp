@@ -41,3 +41,15 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
 } // namespace cudaq
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
+
+// Bridge so the Python extension (which has hidden-visibility Head/Tail for
+// Registry<ServerHelper>) can look up server helpers registered in this DSO's
+// unique-symbol registry (populated by dlopen'd serverhelper .so files).
+extern "C" cudaq::ServerHelper *cudaq_find_server_helper(const char *name) {
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>(std::string(name));
+  return helper.release();
+}
+
+extern "C" bool cudaq_has_server_helper(const char *name) {
+  return cudaq::registry::isRegistered<cudaq::ServerHelper>(std::string(name));
+}

@@ -12,13 +12,18 @@
 #include "cudaq/algorithms/run.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <future>
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 using namespace cudaq;
 
@@ -70,11 +75,11 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   // kernels.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(returnTy)) {
     auto elemTy = vecTy.getElementType();
-    if (elemTy.isa<cudaq::cc::StdvecType>())
+    if (mlir::isa<cudaq::cc::StdvecType>(elemTy))
       throw std::runtime_error(
           "`cudaq.run` does not yet support returning nested `list` from "
           "entry-point kernels.");
-    if (elemTy.isa<cudaq::cc::StructType>())
+    if (mlir::isa<cudaq::cc::StructType>(elemTy))
       throw std::runtime_error("`cudaq.run` does not yet support returning "
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
@@ -84,7 +89,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
       [&]() mutable {
         [[maybe_unused]] auto result = clean_launch_module(name, mod, opaques);
       },
-      platform, name, name, shots_count, layoutInfo, qpu_id, allowCaching);
+      platform, name, name, shots_count, layoutInfo, qpu_id);
 
   return results;
 }
@@ -236,7 +241,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
 }
 
 /// @brief Bind the run cudaq function.
-void cudaq::bindPyRun(py::module &mod) {
+void cudaq::bindPyRun(py::module_ &mod) {
   mod.def("run_impl", run_impl,
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
@@ -254,7 +259,7 @@ Returns:
 }
 
 /// @brief Bind the run_async cudaq function.
-void cudaq::bindPyRunAsync(py::module &mod) {
+void cudaq::bindPyRunAsync(py::module_ &mod) {
   py::class_<async_run_result>(mod, "AsyncRunResultImpl", "")
       .def(
           "get",

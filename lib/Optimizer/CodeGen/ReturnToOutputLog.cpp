@@ -194,9 +194,12 @@ public:
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(size) + std::string(">")};
     }
-    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+      if (!vecSz)
+        return {"error"};
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(*vecSz) + std::string(">")};
+    }
     return {"error"};
   }
 

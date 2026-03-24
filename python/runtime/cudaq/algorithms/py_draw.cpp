@@ -11,7 +11,7 @@
 #include "cudaq/platform/nvqpp_interface.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 /// \p kernel is a kernel decorator object and \p args are the arguments to
@@ -31,7 +31,7 @@ static std::string pyDraw(const std::string &format,
 }
 
 /// @brief Bind the draw cudaq function
-void cudaq::bindPyDraw(py::module &mod) {
+void cudaq::bindPyDraw(py::module_ &mod) {
   mod.def(
       "draw_impl",
       [](const std::string &format, const std::string &shortName,

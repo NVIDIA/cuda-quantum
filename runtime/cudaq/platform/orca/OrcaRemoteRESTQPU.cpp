@@ -10,6 +10,10 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 
+#ifdef CUDAQ_PYTHON_EXTENSION
+extern "C" cudaq::ServerHelper *cudaq_find_server_helper(const char *name);
+#endif
+
 using namespace cudaq;
 
 /// @brief This setTargetBackend override is in charge of reading the
@@ -52,7 +56,11 @@ void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   /// pipeline.
   // Set the qpu name
   qpuName = mutableBackend;
+#ifdef CUDAQ_PYTHON_EXTENSION
+  serverHelper.reset(cudaq_find_server_helper(qpuName.c_str()));
+#else
   serverHelper = registry::get<ServerHelper>(qpuName);
+#endif
   serverHelper->initialize(backendConfig);
 
   // Give the server helper to the executor
@@ -98,4 +106,23 @@ void cudaq::OrcaRemoteRESTQPU::launchKernel(const std::string &,
   throw std::runtime_error("launch kernel on raw args not implemented");
 }
 
+#ifdef CUDAQ_PYTHON_EXTENSION
+extern "C" void cudaq_add_qpu_node(void *node_ptr);
+
+namespace {
+struct OrcaQPURegistration {
+  llvm::SimpleRegistryEntry<cudaq::QPU> entry;
+  llvm::Registry<cudaq::QPU>::node node;
+  OrcaQPURegistration()
+      : entry("orca", "", &OrcaQPURegistration::ctorFn), node(entry) {
+    cudaq_add_qpu_node(&node);
+  }
+  static std::unique_ptr<cudaq::QPU> ctorFn() {
+    return std::make_unique<cudaq::OrcaRemoteRESTQPU>();
+  }
+};
+static OrcaQPURegistration s_orcaQPURegistration;
+} // namespace
+#else
 CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)
+#endif

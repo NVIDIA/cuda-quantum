@@ -6,14 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter Development)
-find_package(pybind11 CONFIG)
 find_package(CUDAToolkit REQUIRED)
 
-pybind11_add_module(nvqir_dynamics_bindings pyDynamics.cpp)
+nanobind_add_module(nvqir_dynamics_bindings pyDynamics.cpp)
 target_include_directories(nvqir_dynamics_bindings PRIVATE
-    ${PYTHON_INCLUDE_DIRS}
-    ${pybind11_INCLUDE_DIRS}
+    ${Python3_INCLUDE_DIRS}
+    ${nanobind_INCLUDE_DIR}
 )
 find_file(CUDENSITYMAT_INC
     NAMES   cudensitymat.h

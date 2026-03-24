@@ -5,11 +5,11 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 /// @brief Bind `cudaq.Resources` to python.
-void bindResources(py::module &mod);
+void bindResources(py::module_ &mod);
 } // namespace cudaq

@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of bosonic
 /// operators to python.
-void bindBosonWrapper(py::module &mod);
+void bindBosonWrapper(py::module_ &mod);
 } // namespace cudaq

@@ -5,13 +5,19 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 
 #include "common/JsonConvert.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
 #include "py_optimizer.h"
@@ -19,12 +25,45 @@
 
 namespace cudaq {
 
-/// @brief Bind the `cudaq::optimization_result` typedef.
-void bindOptimizationResult(py::module &mod) {
-  py::class_<optimization_result>(mod, "OptimizationResult");
+/// Wrapper exposed as OptimizationResult so cudaq_runtime.OptimizationResult
+/// exists for re-export and type hints. optimize() returns a plain tuple
+/// (opt_value, opt_params); this type can wrap that for structured access.
+struct OptimizationResultPy {
+  double opt_value = 0.0;
+  std::vector<double> optimal_parameters;
+
+  OptimizationResultPy() = default;
+  OptimizationResultPy(double v, std::vector<double> p)
+      : opt_value(v), optimal_parameters(std::move(p)) {}
+  explicit OptimizationResultPy(const optimization_result &r)
+      : opt_value(std::get<0>(r)),
+        optimal_parameters(std::get<1>(r)) {}
+};
+
+void bindOptimizationResult(py::module_ &mod) {
+  py::class_<OptimizationResultPy>(mod, "OptimizationResult",
+                                  "Result of an optimization: (opt_value, "
+                                  "optimal_parameters). optimize() returns a "
+                                  "tuple; this type is for type hints and "
+                                  "wrapping.")
+      .def(py::init<double, std::vector<double>>(), py::arg("opt_value"),
+           py::arg("optimal_parameters"))
+      .def(py::init<const optimization_result &>(),
+           "Wrap a tuple (opt_value, optimal_parameters).")
+      .def_ro("opt_value", &OptimizationResultPy::opt_value)
+      .def_ro("optimal_parameters", &OptimizationResultPy::optimal_parameters)
+      .def("__getitem__",
+           [](const OptimizationResultPy &self, size_t i) -> py::object {
+             if (i == 0)
+               return py::cast(self.opt_value);
+             if (i == 1)
+               return py::cast(self.optimal_parameters);
+             throw std::out_of_range("OptimizationResult index out of range");
+           })
+      .def("__len__", [](const OptimizationResultPy &) { return 2; });
 }
 
-void bindGradientStrategies(py::module &mod) {
+void bindGradientStrategies(py::module_ &mod) {
   // Binding under the `cudaq.gradients` namespace in python.
   auto gradients_submodule = mod.def_submodule("gradients");
   // Have to bind the parent class, `cudaq::gradient`, to allow
@@ -51,9 +90,9 @@ void bindGradientStrategies(py::module &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             py::function &func, double funcAtX) {
+             py::callable &func, double funcAtX) {
             auto function =
-                func.cast<std::function<double(std::vector<double>)>>();
+                py::cast<std::function<double(std::vector<double>)>>(func);
             return grad.compute(x, function, funcAtX);
           },
           py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
@@ -78,9 +117,9 @@ void bindGradientStrategies(py::module &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             py::function &func, double funcAtX) {
+             py::callable &func, double funcAtX) {
             auto function =
-                func.cast<std::function<double(std::vector<double>)>>();
+                py::cast<std::function<double(std::vector<double>)>>(func);
             return grad.compute(x, function, funcAtX);
           },
           py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
@@ -105,9 +144,9 @@ void bindGradientStrategies(py::module &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             py::function &func, double funcAtX) {
+             py::callable &func, double funcAtX) {
             auto function =
-                func.cast<std::function<double(std::vector<double>)>>();
+                py::cast<std::function<double(std::vector<double>)>>(func);
             return grad.compute(x, function, funcAtX);
           },
           py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
@@ -121,7 +160,7 @@ void bindGradientStrategies(py::module &mod) {
 /// Can now define its member functions on
 /// that submodule.
 template <typename OptimizerT>
-py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
+py::class_<OptimizerT, optimizer> addPyOptimizer(py::module_ &mod, std::string &&name) {
   return py::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(py::init<>())
       .def(
@@ -135,15 +174,31 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
             return p;
           },
           "Convert JSON string to optimizer")
-      .def_readwrite("max_iterations", &OptimizerT::max_eval, R"doc(
+      .def_rw("max_iterations", &OptimizerT::max_eval, R"doc(
           int: Maximum number of optimizer iterations (default: unlimited).
 
           Sets an upper bound on the number of function evaluations or iterations 
           the optimizer will perform. If not set, the optimizer may run until 
           convergence or until another stopping criterion is met.
           )doc")
-      .def_readwrite("initial_parameters", &OptimizerT::initial_parameters,
-                     R"doc(
+      .def_prop_rw(
+          "initial_parameters",
+          [](OptimizerT &self) -> py::object {
+            if (self.initial_parameters.has_value())
+              return py::cast(self.initial_parameters.value());
+            return py::none();
+          },
+          [](OptimizerT &self, py::object vals) {
+            if (vals.is_none()) {
+              self.initial_parameters = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(py::cast<double>(val));
+            self.initial_parameters = std::move(v);
+          },
+          R"doc(
           list[float]: Initial values for the optimization parameters (optional).
 
           Provides a starting point for the optimization. If not specified, the 
@@ -156,7 +211,24 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
 
                   optimizer.initial_parameters = [0.5, -0.3, 1.2]
           )doc")
-      .def_readwrite("lower_bounds", &OptimizerT::lower_bounds, R"doc(
+      .def_prop_rw(
+          "lower_bounds",
+          [](OptimizerT &self) -> py::object {
+            if (self.lower_bounds.has_value())
+              return py::cast(self.lower_bounds.value());
+            return py::none();
+          },
+          [](OptimizerT &self, py::object vals) {
+            if (vals.is_none()) {
+              self.lower_bounds = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(py::cast<double>(val));
+            self.lower_bounds = std::move(v);
+          },
+          R"doc(
           list[float]: Lower bounds for optimization parameters (optional).
 
           Constrains the search space by specifying minimum allowed values for 
@@ -168,7 +240,24 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
 
                   optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
           )doc")
-      .def_readwrite("upper_bounds", &OptimizerT::upper_bounds, R"doc(
+      .def_prop_rw(
+          "upper_bounds",
+          [](OptimizerT &self) -> py::object {
+            if (self.upper_bounds.has_value())
+              return py::cast(self.upper_bounds.value());
+            return py::none();
+          },
+          [](OptimizerT &self, py::object vals) {
+            if (vals.is_none()) {
+              self.upper_bounds = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(py::cast<double>(val));
+            self.upper_bounds = std::move(v);
+          },
+          R"doc(
           list[float]: Upper bounds for optimization parameters (optional).
 
           Constrains the search space by specifying maximum allowed values for 
@@ -197,7 +286,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
           )doc")
       .def(
           "optimize",
-          [](OptimizerT &opt, const int dim, py::function &func) {
+          [](OptimizerT &opt, const int dim, py::callable &func) {
             return opt.optimize(dim, [&](std::vector<double> x,
                                          std::vector<double> &grad) {
               // Call the function.
@@ -207,11 +296,11 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               // If we don't need gradients, and it does, just grab the value
               // and return.
               if (!opt.requiresGradients() && isTupleReturn)
-                return ret.cast<py::tuple>()[0].cast<double>();
+                return py::cast<double>(py::cast<py::tuple>(ret)[0]);
               // If we don't need gradients and it doesn't return tuple, then
               // just pass what we got.
               if (!opt.requiresGradients() && !isTupleReturn)
-                return ret.cast<double>();
+                return py::cast<double>(ret);
 
               // Throw an error if we need gradients and they weren't provided.
               if (opt.requiresGradients() && !isTupleReturn)
@@ -220,13 +309,13 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
                     "(float, list[float]) for gradient-based optimizers");
 
               // If here, we require gradients, and the signature is right.
-              auto tuple = ret.cast<py::tuple>();
+              auto tuple = py::cast<py::tuple>(ret);
               auto val = tuple[0];
-              auto gradIn = tuple[1].cast<py::list>();
+              auto gradIn = py::cast<py::list>(tuple[1]);
               for (std::size_t i = 0; i < gradIn.size(); i++)
-                grad[i] = gradIn[i].cast<double>();
+                grad[i] = py::cast<double>(gradIn[i]);
 
-              return val.cast<double>();
+              return py::cast<double>(val);
             });
           },
           py::arg("dimensions"), py::arg("function"), R"doc(
@@ -267,7 +356,7 @@ Example:
 )doc");
 }
 
-void bindOptimizers(py::module &mod) {
+void bindOptimizers(py::module_ &mod) {
   // Binding the `cudaq::optimizers` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
   auto optimizers_submodule = mod.def_submodule("optimizers");
@@ -404,14 +493,14 @@ Example:
             function=objective
         )
 )doc");
-  py_spsa.def_readwrite("gamma", &cudaq::optimizers::spsa::gamma, R"doc(
+  py_spsa.def_rw("gamma", &cudaq::optimizers::spsa::gamma, R"doc(
 float: Scaling exponent for the step size schedule (default: 0.101).
 
 Controls how the step size decreases over iterations. The step size at 
 iteration k is proportional to (A + k + 1)^(-gamma), where A is a stability 
 constant. Common values are in the range [0.1, 0.6].
 )doc");
-  py_spsa.def_readwrite("step_size", &cudaq::optimizers::spsa::eval_step_size,
+  py_spsa.def_rw("step_size", &cudaq::optimizers::spsa::eval_step_size,
                         R"doc(
 float: Evaluation step size for gradient approximation (default: 0.3).
 
@@ -458,7 +547,7 @@ Example:
             function=objective_with_grad
         )
 )doc");
-  py_adam.def_readwrite("batch_size", &cudaq::optimizers::adam::batch_size,
+  py_adam.def_rw("batch_size", &cudaq::optimizers::adam::batch_size,
                         R"doc(
 int: Number of samples per batch (default: 1).
 
@@ -467,28 +556,28 @@ compute each gradient estimate. Batch size of 1 corresponds to online
 learning. Larger batch sizes can provide more stable gradient estimates
 but require more computation per iteration.
 )doc");
-  py_adam.def_readwrite("beta1", &cudaq::optimizers::adam::beta1, R"doc(
+  py_adam.def_rw("beta1", &cudaq::optimizers::adam::beta1, R"doc(
 float: Exponential decay rate for the first moment estimates (default: 0.9).
 
 Controls the exponential moving average of past gradients (momentum term).
 Values are typically in the range [0.9, 0.999]. Higher values give more 
 weight to past gradients, providing smoother updates but slower adaptation.
 )doc");
-  py_adam.def_readwrite("beta2", &cudaq::optimizers::adam::beta2, R"doc(
+  py_adam.def_rw("beta2", &cudaq::optimizers::adam::beta2, R"doc(
 float: Exponential decay rate for the second moment estimates (default: 0.999).
 
 Controls the exponential moving average of past squared gradients. Values 
 are typically in the range [0.99, 0.9999]. Higher values provide more 
 stable learning rates but slower adaptation to changing gradient magnitudes.
 )doc");
-  py_adam.def_readwrite("epsilon", &cudaq::optimizers::adam::eps, R"doc(
+  py_adam.def_rw("epsilon", &cudaq::optimizers::adam::eps, R"doc(
 float: Small constant for numerical stability (default: 1e-8).
 
 Added to the denominator to prevent division by zero when computing 
 adaptive learning rates. Should be a small positive value, typically 
 between 1e-8 and 1e-6.
 )doc");
-  py_adam.def_readwrite("step_size", &cudaq::optimizers::adam::step_size, R"doc(
+  py_adam.def_rw("step_size", &cudaq::optimizers::adam::step_size, R"doc(
 float: Learning rate (step size) for parameter updates (default: 0.01).
 
 Controls the magnitude of parameter updates at each iteration. Typical 
@@ -496,7 +585,7 @@ values range from 0.001 to 0.1. The effective learning rate is adapted
 per parameter based on gradient history. Start with 0.001 or 0.01 and 
 adjust based on convergence behavior.
 )doc");
-  py_adam.def_readwrite("f_tol", &cudaq::optimizers::adam::f_tol, R"doc(
+  py_adam.def_rw("f_tol", &cudaq::optimizers::adam::f_tol, R"doc(
 float: Convergence tolerance on the objective function value (default: 1e-4).
 
 Optimization terminates when the change in objective function value between 
@@ -539,7 +628,7 @@ Example:
             function=objective_with_grad
         )
 )doc");
-  py_sgd.def_readwrite("batch_size", &cudaq::optimizers::sgd::batch_size, R"doc(
+  py_sgd.def_rw("batch_size", &cudaq::optimizers::sgd::batch_size, R"doc(
 int: Number of samples per batch (default: 1).
 
 For stochastic optimization, determines how many samples are used to 
@@ -548,7 +637,7 @@ stochastic gradient descent. Larger batch sizes (mini-batch SGD) can
 provide more stable gradient estimates but require more computation 
 per iteration.
 )doc");
-  py_sgd.def_readwrite("step_size", &cudaq::optimizers::sgd::step_size, R"doc(
+  py_sgd.def_rw("step_size", &cudaq::optimizers::sgd::step_size, R"doc(
 float: Learning rate (step size) for parameter updates (default: 0.01).
 
 Controls the magnitude of parameter updates at each iteration. The update 
@@ -556,7 +645,7 @@ rule is: x_new = x_old - step_size * gradient. Typical values range from
 0.001 to 0.1. Too large values can cause divergence, while too small values 
 lead to slow convergence.
 )doc");
-  py_sgd.def_readwrite("f_tol", &cudaq::optimizers::sgd::f_tol, R"doc(
+  py_sgd.def_rw("f_tol", &cudaq::optimizers::sgd::f_tol, R"doc(
 float: Convergence tolerance on the objective function value (default: 1e-4).
 
 Optimization terminates when the change in objective function value between 
@@ -566,7 +655,7 @@ gradients, convergence may be noisy.
 )doc");
 }
 
-void bindOptimizerWrapper(py::module &mod) {
+void bindOptimizerWrapper(py::module_ &mod) {
   bindOptimizationResult(mod);
   bindGradientStrategies(mod);
   bindOptimizers(mod);

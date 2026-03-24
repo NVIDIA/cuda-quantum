@@ -8,15 +8,15 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 
 class LinkedLibraryHolder;
 
 /// @brief Bind test utilities needed for mock QPU QIR profile simulation
-void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder);
+void bindTestUtils(py::module_ &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq

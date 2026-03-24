@@ -8,11 +8,11 @@
 
 #include "py_pauli_word.h"
 #include "cudaq/qis/pauli_word.h"
-#include <pybind11/pybind11.h>
+#include <nanobind/stl/string.h>
 
 namespace cudaq {
 
-void bindPauliWord(py::module &mod) {
+void bindPauliWord(py::module_ &mod) {
 
   py::class_<pauli_word>(mod, "pauli_word",
                          "The `pauli_word` is a thin wrapper on a Pauli tensor "

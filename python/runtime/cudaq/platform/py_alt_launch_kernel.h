@@ -12,14 +12,19 @@
 #include "cudaq/algorithms/run.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include <pybind11/complex.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/stl/complex.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/map.h>
 #include <string>
 #include <vector>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 
@@ -38,7 +43,7 @@ std::size_t byteSize(mlir::Type ty);
 py::object convertResult(mlir::ModuleOp module, mlir::Type ty, char *data);
 
 /// Create python bindings for C++ code in this compilation unit.
-void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
+void bindAltLaunchKernel(py::module_ &mod, std::function<std::string()> &&);
 
 /// Launch the kernel \p kernelName from module \p module. \p runtimeArgs are
 /// the python arguments to the kernel. Pre-condition: all arguments must be

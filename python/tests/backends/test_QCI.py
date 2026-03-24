@@ -16,7 +16,12 @@ from cudaq import spin
 from network_utils import check_server_connection
 
 try:
-    from utils.mock_qpu.qci import startServer
+    from utils.mock_qpu.qci import app
+    import uvicorn
+
+    def startServer(port):
+        cudaq.set_random_seed(13)
+        uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
 except:
     print("Mock qpu not available, skipping QCI tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)

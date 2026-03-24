@@ -8,14 +8,14 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace cudaq {
 
 class LinkedLibraryHolder;
 
-void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder);
+void bindRuntimeTarget(py::module_ &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq

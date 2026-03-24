@@ -27,6 +27,8 @@
 #include "mlir/Transforms/Passes.h"
 #include <unordered_set>
 
+#include <memory>
+
 using namespace mlir;
 
 static void
@@ -302,4 +304,26 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::ModuleLauncher, PythonLauncher, default)
+// Register into libcudaq's ModuleLauncher registry (the one launchModule uses).
+// Do not use CUDAQ_REGISTER_TYPE here: it would instantiate the Registry template
+// in this DSO, giving a second Head/Tail, so the launcher would never be found.
+extern "C" void cudaq_add_module_launcher_node(void *node_ptr);
+
+namespace {
+struct PythonLauncherRegistration {
+  llvm::SimpleRegistryEntry<cudaq::ModuleLauncher> entry;
+  llvm::Registry<cudaq::ModuleLauncher>::node node;
+  PythonLauncherRegistration()
+      : entry("default", "", &PythonLauncherRegistration::ctorFn), node(entry) {
+    cudaq_add_module_launcher_node(&node);
+  }
+  static std::unique_ptr<cudaq::ModuleLauncher> ctorFn() {
+    return std::make_unique<PythonLauncher>();
+  }
+};
+static PythonLauncherRegistration s_pythonLauncherRegistration;
+} // namespace
+
+// Force this TU to be linked into the Python extension so the
+// PythonLauncher registration runs before any launch.
+extern "C" void cudaq_ensure_default_launcher_linked(void) {}
