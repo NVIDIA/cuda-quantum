@@ -12,6 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,11 +30,11 @@ typedef enum {
   CUDAQ_ERR_CUDA = 3
 } cudaq_status_t;
 
-// Dispatcher backend: device persistent kernel vs host-side loop
+// Dispatch control path: GPU-resident persistent kernel vs CPU host loop.
 typedef enum {
-  CUDAQ_BACKEND_DEVICE_KERNEL = 0,
-  CUDAQ_BACKEND_HOST_LOOP = 1
-} cudaq_backend_t;
+  CUDAQ_DISPATCH_PATH_DEVICE = 0,
+  CUDAQ_DISPATCH_PATH_HOST = 1
+} cudaq_dispatch_path_t;
 
 // TX flag status returned by cudaq_host_ringbuffer_poll_tx_flag.
 typedef enum {
@@ -42,9 +44,6 @@ typedef enum {
   CUDAQ_TX_READY = 3
 } cudaq_tx_status_t;
 
-// RPC wire-format constants — single source of truth in rpc_wire_format.h.
-#include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
-
 // Kernel synchronization type
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
@@ -53,7 +52,7 @@ typedef enum {
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
-// For CUDAQ_BACKEND_HOST_LOOP only GRAPH_LAUNCH is dispatched; DEVICE_CALL and
+// For CUDAQ_DISPATCH_PATH_HOST only GRAPH_LAUNCH is dispatched; DEVICE_CALL and
 // HOST_CALL table entries are dropped (slot cleared and advanced).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
@@ -102,11 +101,11 @@ typedef struct {
   uint32_t vp_id;                      // virtual port ID
   cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
-  cudaq_backend_t backend; // device kernel or host loop (default DEVICE_KERNEL)
+  cudaq_dispatch_path_t dispatch_path; // GPU kernel or CPU host loop
 } cudaq_dispatcher_config_t;
 
 // GPU ring buffer pointers. For device backend use device pointers only.
-// For CUDAQ_BACKEND_HOST_LOOP, also set the _host pointers (same pinned
+// For CUDAQ_DISPATCH_PATH_HOST, also set the _host pointers (same pinned
 // mapped allocation); the host loop polls rx_flags_host and uses host data.
 typedef struct {
   volatile uint64_t *rx_flags; // device pointer
@@ -115,7 +114,7 @@ typedef struct {
   uint8_t *tx_data;            // device pointer to TX data buffer
   size_t rx_stride_sz;         // size of each RX slot in bytes
   size_t tx_stride_sz;         // size of each TX slot in bytes
-  // Host-side view (required when backend == CUDAQ_BACKEND_HOST_LOOP; NULL
+  // Host-side view (required when dispatch_path == CUDAQ_DISPATCH_PATH_HOST; NULL
   // otherwise)
   volatile uint64_t *rx_flags_host;
   volatile uint64_t *tx_flags_host;
@@ -295,16 +294,16 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
 
 //==============================================================================
-// Host dispatcher backend (CUDAQ_BACKEND_HOST_LOOP)
+// Host dispatcher path (CUDAQ_DISPATCH_PATH_HOST)
 //==============================================================================
-// When config.backend == CUDAQ_BACKEND_HOST_LOOP, start() uses these instead
+// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these instead
 // of launch_fn. The realtime lib calls them; implementation is in
 // libcudaq-realtime-host-dispatch.
 
 typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
 
 // Start the host dispatcher loop in a new thread. Call from
-// cudaq_dispatcher_start when backend is CUDAQ_BACKEND_HOST_LOOP. Returns a
+// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST. Returns a
 // handle for stop, or NULL on error. If external_mailbox is non-NULL, uses it
 // instead of allocating internally.
 cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(

@@ -508,7 +508,7 @@ protected:
     config.device_id = 0;
     config.num_slots = static_cast<uint32_t>(num_slots_);
     config.slot_size = static_cast<uint32_t>(slot_size_);
-    config.backend = CUDAQ_BACKEND_HOST_LOOP;
+    config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
     ASSERT_EQ(cudaq_dispatcher_create(manager_, &config, &dispatcher_),
               CUDAQ_OK);
 
@@ -697,7 +697,7 @@ TEST(HostDispatcherGraphLaunchTest, FullRpcRoundTripViaPinnedMailbox) {
   disp_config.device_id = 0;
   disp_config.num_slots = static_cast<uint32_t>(num_slots);
   disp_config.slot_size = static_cast<uint32_t>(slot_size);
-  disp_config.backend = CUDAQ_BACKEND_HOST_LOOP;
+  disp_config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
 
   cudaq_dispatcher_t* dispatcher = nullptr;
   ASSERT_EQ(cudaq_dispatcher_create(manager, &disp_config, &dispatcher),
@@ -1119,7 +1119,7 @@ TEST(HostDispatcherGraphIOContextTest, SeparateRxTxBuffersViaCApi) {
   disp_config.device_id = 0;
   disp_config.num_slots = static_cast<uint32_t>(num_slots);
   disp_config.slot_size = static_cast<uint32_t>(slot_size);
-  disp_config.backend = CUDAQ_BACKEND_HOST_LOOP;
+  disp_config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
 
   cudaq_dispatcher_t *dispatcher = nullptr;
   ASSERT_EQ(cudaq_dispatcher_create(manager, &disp_config, &dispatcher),

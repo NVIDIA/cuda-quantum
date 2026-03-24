@@ -73,7 +73,7 @@ if(CMAKE_CUDA_COMPILER)
   
   message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
 
-  # Host dispatcher tests (CUDAQ_BACKEND_HOST_LOOP)
+  # Host dispatcher tests (CUDAQ_DISPATCH_PATH_HOST)
   add_executable(test_host_dispatcher test_host_dispatcher.cu)
   set_target_properties(test_host_dispatcher PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON

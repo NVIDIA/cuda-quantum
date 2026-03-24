@@ -129,14 +129,20 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
     size_t io_ctxs_bytes =
         num_workers * sizeof(cudaq::realtime::GraphIOContext);
     if (cudaHostAlloc(&io_ctxs_host_ptr, io_ctxs_bytes,
-                      cudaHostAllocMapped) == cudaSuccess) {
-      std::memset(io_ctxs_host_ptr, 0, io_ctxs_bytes);
-      if (cudaHostGetDevicePointer(&io_ctxs_dev_ptr, io_ctxs_host_ptr, 0) !=
-          cudaSuccess) {
-        cudaFreeHost(io_ctxs_host_ptr);
-        io_ctxs_host_ptr = nullptr;
-        io_ctxs_dev_ptr = nullptr;
-      }
+                      cudaHostAllocMapped) != cudaSuccess) {
+      for (size_t j = 0; j < worker_idx; ++j)
+        cudaStreamDestroy(handle->workers[j].stream);
+      free_handle(handle);
+      return nullptr;
+    }
+    std::memset(io_ctxs_host_ptr, 0, io_ctxs_bytes);
+    if (cudaHostGetDevicePointer(&io_ctxs_dev_ptr, io_ctxs_host_ptr, 0) !=
+        cudaSuccess) {
+      cudaFreeHost(io_ctxs_host_ptr);
+      for (size_t j = 0; j < worker_idx; ++j)
+        cudaStreamDestroy(handle->workers[j].stream);
+      free_handle(handle);
+      return nullptr;
     }
   }
   handle->io_ctxs_pinned = io_ctxs_host_ptr;
@@ -157,6 +163,10 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   host_config.num_workers = num_workers;
   host_config.function_table = table->entries;
   host_config.function_table_count = table->count;
+  // The C API takes volatile int* for ABI stability; internally the dispatch
+  // loop accesses it via cuda::std::atomic<int>* for acquire semantics.
+  // This is safe: cuda::std::atomic<int> is lock-free and layout-compatible
+  // with int on all CUDA-supported platforms.
   host_config.shutdown_flag = (void *)(uintptr_t)shutdown_flag;
   host_config.stats_counter = stats;
   host_config.live_dispatched = nullptr;

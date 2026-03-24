@@ -64,7 +64,7 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
   if (!dispatcher->table.entries || dispatcher->table.count == 0)
     return CUDAQ_ERR_INVALID_ARG;
 
-  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+  if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
     if (!dispatcher->ringbuffer.rx_flags_host ||
         !dispatcher->ringbuffer.tx_flags_host ||
         !dispatcher->ringbuffer.rx_data_host ||
@@ -166,10 +166,10 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
-  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP &&
+  if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST &&
       launch_fn != nullptr)
     return CUDAQ_ERR_INVALID_ARG;
-  if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP && !launch_fn)
+  if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST && !launch_fn)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->launch_fn = launch_fn;
   return CUDAQ_OK;
@@ -207,7 +207,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (cudaSetDevice(device_id) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
-  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+  if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
     dispatcher->host_handle = cudaq_host_dispatcher_start_thread(
         &dispatcher->ringbuffer, &dispatcher->table, &dispatcher->config,
         dispatcher->shutdown_flag, dispatcher->stats,
@@ -256,7 +256,7 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
   if (!dispatcher->running)
     return CUDAQ_OK;
 
-  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP &&
+  if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST &&
       dispatcher->host_handle) {
     *dispatcher->shutdown_flag = 1;
     cudaq_host_dispatcher_stop(dispatcher->host_handle);
@@ -281,7 +281,7 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
   if (!dispatcher || !out_packets || !dispatcher->stats)
     return CUDAQ_ERR_INVALID_ARG;
 
-  if (dispatcher->config.backend == CUDAQ_BACKEND_HOST_LOOP) {
+  if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
     *out_packets = *dispatcher->stats;
     return CUDAQ_OK;
   }
@@ -371,7 +371,7 @@ cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
                                          int worker_id) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
-  if (dispatcher->config.backend != CUDAQ_BACKEND_HOST_LOOP ||
+  if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST ||
       !dispatcher->host_handle)
     return CUDAQ_ERR_INVALID_ARG;
   return cudaq_host_dispatcher_release_worker(dispatcher->host_handle,
