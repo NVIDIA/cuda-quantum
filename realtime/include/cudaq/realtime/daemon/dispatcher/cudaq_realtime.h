@@ -114,8 +114,8 @@ typedef struct {
   uint8_t *tx_data;            // device pointer to TX data buffer
   size_t rx_stride_sz;         // size of each RX slot in bytes
   size_t tx_stride_sz;         // size of each TX slot in bytes
-  // Host-side view (required when dispatch_path == CUDAQ_DISPATCH_PATH_HOST; NULL
-  // otherwise)
+  // Host-side view (required when dispatch_path == CUDAQ_DISPATCH_PATH_HOST;
+  // NULL otherwise)
   volatile uint64_t *rx_flags_host;
   volatile uint64_t *tx_flags_host;
   uint8_t *rx_data_host;
@@ -296,16 +296,16 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
 //==============================================================================
 // Host dispatcher path (CUDAQ_DISPATCH_PATH_HOST)
 //==============================================================================
-// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these instead
-// of launch_fn. The realtime lib calls them; implementation is in
+// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these
+// instead of launch_fn. The realtime lib calls them; implementation is in
 // libcudaq-realtime-host-dispatch.
 
 typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
 
 // Start the host dispatcher loop in a new thread. Call from
-// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST. Returns a
-// handle for stop, or NULL on error. If external_mailbox is non-NULL, uses it
-// instead of allocating internally.
+// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST.
+// Returns a handle for stop, or NULL on error. If external_mailbox is non-NULL,
+// uses it instead of allocating internally.
 cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
     const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
     const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,

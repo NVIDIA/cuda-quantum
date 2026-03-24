@@ -169,7 +169,8 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST &&
       launch_fn != nullptr)
     return CUDAQ_ERR_INVALID_ARG;
-  if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST && !launch_fn)
+  if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST &&
+      !launch_fn)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->launch_fn = launch_fn;
   return CUDAQ_OK;
