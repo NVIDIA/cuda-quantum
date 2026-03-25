@@ -349,20 +349,21 @@ protected:
     idle_mask_->store((1ULL << workers_.size()) - 1,
                       cuda::std::memory_order_release);
 
-    config_.rx_flags = (void *)(uintptr_t)rx_flags_host_;
-    config_.tx_flags = (void *)(uintptr_t)tx_flags_host_;
-    config_.rx_data_host = rx_data_host_;
-    config_.rx_data_dev = rx_data_dev_;
-    config_.tx_data_host = tx_data_host_;
-    config_.tx_data_dev = tx_data_dev_;
-    config_.tx_stride_sz = slot_size_;
-    config_.h_mailbox_bank = h_mailbox_bank_;
-    config_.num_slots = num_slots_;
-    config_.slot_size = slot_size_;
+    config_.ringbuffer.rx_flags_host = rx_flags_host_;
+    config_.ringbuffer.tx_flags_host = tx_flags_host_;
+    config_.ringbuffer.rx_data_host = rx_data_host_;
+    config_.ringbuffer.rx_data = rx_data_dev_;
+    config_.ringbuffer.tx_data_host = tx_data_host_;
+    config_.ringbuffer.tx_data = tx_data_dev_;
+    config_.ringbuffer.tx_stride_sz = slot_size_;
+    config_.ringbuffer.tx_flags = tx_flags_dev_;
+    config_.config.num_slots = static_cast<uint32_t>(num_slots_);
+    config_.config.slot_size = static_cast<uint32_t>(slot_size_);
+    config_.function_table.entries = function_table_;
+    config_.function_table.count = static_cast<uint32_t>(function_table_count_);
     config_.workers = workers_.data();
     config_.num_workers = workers_.size();
-    config_.function_table = function_table_;
-    config_.function_table_count = function_table_count_;
+    config_.h_mailbox_bank = h_mailbox_bank_;
     config_.shutdown_flag = shutdown_flag_;
     config_.stats_counter = &stats_counter_;
     config_.live_dispatched = live_dispatched_;

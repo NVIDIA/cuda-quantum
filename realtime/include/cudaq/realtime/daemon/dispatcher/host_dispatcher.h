@@ -42,32 +42,21 @@ typedef struct {
 } cudaq_host_dispatch_worker_t;
 
 typedef struct {
-  void *rx_flags; ///< opaque cuda::std::atomic<uint64_t>*
-  void *tx_flags; ///< opaque cuda::std::atomic<uint64_t>*
-  uint8_t *rx_data_host;
-  uint8_t *rx_data_dev;
-  uint8_t *tx_data_host;
-  uint8_t *tx_data_dev;
-  size_t tx_stride_sz;
-  void **h_mailbox_bank;
-  size_t num_slots;
-  size_t slot_size;
+  // Composed public API structs
+  cudaq_ringbuffer_t ringbuffer;
+  cudaq_dispatcher_config_t config;
+  cudaq_function_table_t function_table;
+
+  // Host dispatch runtime state
   cudaq_host_dispatch_worker_t *workers;
   size_t num_workers;
-  /// Host-visible function table for lookup by function_id (GRAPH_LAUNCH only;
-  /// others dropped).
-  cudaq_function_entry_t *function_table;
-  size_t function_table_count;
-  void *shutdown_flag; ///< opaque cuda::std::atomic<int>*
+  void **h_mailbox_bank;
+  void *shutdown_flag;   ///< opaque cuda::std::atomic<int>*
   uint64_t *stats_counter;
   void *live_dispatched; ///< opaque cuda::std::atomic<uint64_t>*
   void *idle_mask;       ///< opaque cuda::std::atomic<uint64_t>*, 1=free 0=busy
   int *inflight_slot_tags; ///< worker_id -> origin FPGA slot for tx_flags
                            ///< routing
-
-  /// Device view of tx_flags (needed for GraphIOContext.tx_flag).
-  /// NULL when tx_flags is already a device-accessible pointer.
-  volatile uint64_t *tx_flags_dev;
 
   /// Per-worker GraphIOContext array for separate RX/TX buffer support.
   /// When non-NULL, launch_graph_worker fills a GraphIOContext per dispatch

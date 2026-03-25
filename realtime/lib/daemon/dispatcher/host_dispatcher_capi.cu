@@ -147,37 +147,28 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   }
   handle->io_ctxs_pinned = io_ctxs_host_ptr;
 
-  cudaq_host_dispatch_loop_ctx_t host_config;
-  std::memset(&host_config, 0, sizeof(host_config));
-  host_config.rx_flags = (void *)(uintptr_t)ringbuffer->rx_flags_host;
-  host_config.tx_flags = (void *)(uintptr_t)ringbuffer->tx_flags_host;
-  host_config.rx_data_host = ringbuffer->rx_data_host;
-  host_config.rx_data_dev = ringbuffer->rx_data;
-  host_config.tx_data_host = ringbuffer->tx_data_host;
-  host_config.tx_data_dev = ringbuffer->tx_data;
-  host_config.tx_stride_sz = ringbuffer->tx_stride_sz;
-  host_config.h_mailbox_bank = handle->h_mailbox_bank;
-  host_config.num_slots = config->num_slots;
-  host_config.slot_size = config->slot_size;
-  host_config.workers = handle->workers;
-  host_config.num_workers = num_workers;
-  host_config.function_table = table->entries;
-  host_config.function_table_count = table->count;
+  cudaq_host_dispatch_loop_ctx_t ctx;
+  std::memset(&ctx, 0, sizeof(ctx));
+  ctx.ringbuffer = *ringbuffer;
+  ctx.config = *config;
+  ctx.function_table = *table;
+  ctx.workers = handle->workers;
+  ctx.num_workers = num_workers;
+  ctx.h_mailbox_bank = handle->h_mailbox_bank;
   // The C API takes volatile int* for ABI stability; internally the dispatch
   // loop accesses it via cuda::std::atomic<int>* for acquire semantics.
   // This is safe: cuda::std::atomic<int> is lock-free and layout-compatible
   // with int on all CUDA-supported platforms.
-  host_config.shutdown_flag = (void *)(uintptr_t)shutdown_flag;
-  host_config.stats_counter = stats;
-  host_config.live_dispatched = nullptr;
-  host_config.idle_mask = handle->idle_mask;
-  host_config.inflight_slot_tags = handle->inflight_slot_tags;
-  host_config.tx_flags_dev = ringbuffer->tx_flags;
-  host_config.io_ctxs_host = io_ctxs_host_ptr;
-  host_config.io_ctxs_dev = io_ctxs_dev_ptr;
+  ctx.shutdown_flag = (void *)(uintptr_t)shutdown_flag;
+  ctx.stats_counter = stats;
+  ctx.live_dispatched = nullptr;
+  ctx.idle_mask = handle->idle_mask;
+  ctx.inflight_slot_tags = handle->inflight_slot_tags;
+  ctx.io_ctxs_host = io_ctxs_host_ptr;
+  ctx.io_ctxs_dev = io_ctxs_dev_ptr;
 
   handle->thread = std::thread(
-      [cfg = host_config]() { cudaq_host_dispatcher_loop(&cfg); });
+      [cfg = ctx]() { cudaq_host_dispatcher_loop(&cfg); });
   return handle;
 }
 
