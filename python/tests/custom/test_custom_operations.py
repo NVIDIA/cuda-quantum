@@ -15,7 +15,7 @@ swap_matrix = np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1],
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def reset_and_run():
     cudaq.reset_target()
     yield
     ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954

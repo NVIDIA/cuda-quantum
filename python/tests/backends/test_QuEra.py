@@ -16,7 +16,7 @@ import pytest
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("quera")
     yield "Running the tests."
     cudaq.reset_target()
