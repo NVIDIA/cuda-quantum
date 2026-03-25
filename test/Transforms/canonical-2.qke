@@ -49,3 +49,57 @@ func.func @cast_to_stdvec() {
 // CHECK-LABEL:   func.func @cast_to_stdvec() {
 // CHECK:           return
 // CHECK:         }
+
+func.func private @utility_gate(%arg : !quake.veq<?>)
+
+func.func @apply_yski() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.concat %0 : (!quake.ref) -> !quake.veq<?>
+  call @utility_gate(%1) : (!quake.veq<?>) -> ()
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @apply_yski() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.concat %[[VAL_0]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<1>) -> !quake.veq<?>
+// CHECK:           call @utility_gate(%[[VAL_2]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+func.func @apply_kaksi() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.concat %0 : (!quake.veq<4>) -> !quake.veq<?>
+  call @utility_gate(%1) : (!quake.veq<?>) -> ()
+  quake.dealloc %0 : !quake.veq<4>
+  return
+}
+
+// CHECK-LABEL:   func.func @apply_kaksi() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<4>) -> !quake.veq<?>
+// CHECK:           call @utility_gate(%[[VAL_1]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.veq<4>
+// CHECK:           return
+// CHECK:         }
+
+func.func @apply_kolme() {
+  %0 = quake.alloca !quake.struq<!quake.ref, !quake.ref>
+  %1 = quake.concat %0 : (!quake.struq<!quake.ref, !quake.ref>) -> !quake.veq<?>
+  call @utility_gate(%1) : (!quake.veq<?>) -> ()
+  quake.dealloc %0 : !quake.struq<!quake.ref, !quake.ref>
+  return
+}
+
+// CHECK-LABEL:   func.func @apply_kolme() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.struq<!quake.ref, !quake.ref>
+// CHECK:           %[[VAL_1:.*]] = quake.get_member %[[VAL_0]][0] : (!quake.struq<!quake.ref, !quake.ref>) -> !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.get_member %[[VAL_0]][1] : (!quake.struq<!quake.ref, !quake.ref>) -> !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.concat %[[VAL_1]], %[[VAL_2]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[VAL_4:.*]] = quake.relax_size %[[VAL_3]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @utility_gate(%[[VAL_4]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.struq<!quake.ref, !quake.ref>
+// CHECK:           return
+// CHECK:         }
