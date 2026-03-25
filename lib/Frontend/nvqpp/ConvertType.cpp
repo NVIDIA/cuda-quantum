@@ -124,14 +124,12 @@ static bool isFunctionCallable(Type t) {
   return false;
 }
 
-static bool isMeasureResultType(Type t) { return isa<quake::MeasureType>(t); }
-
-static bool isMeasureResultSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
-    auto eleTy = vec.getElementType();
-    return isMeasureResultType(eleTy) || isMeasureResultSequenceType(eleTy);
-  }
-  return isMeasureResultType(t);
+static bool isMeasureType(Type t) {
+  if (isa<quake::MeasureType>(t))
+    return true;
+  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t))
+    return isMeasureType(vec.getElementType());
+  return false;
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an arithmetic
@@ -140,8 +138,7 @@ static bool isMeasureResultSequenceType(Type t) {
 /// sequence of arithmetic types is \em disallowed.
 static bool isKernelResultType(Type t) {
   return isArithmeticType(t) || isArithmeticSequenceType(t) ||
-         isStaticArithmeticProductType(t) || isMeasureResultType(t) ||
-         isMeasureResultSequenceType(t);
+         isStaticArithmeticProductType(t) || isMeasureType(t);
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
@@ -150,8 +147,7 @@ static bool isKernelResultType(Type t) {
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
-         isFunctionCallable(t) || isMeasureResultType(t) ||
-         isMeasureResultSequenceType(t) ||
+         isFunctionCallable(t) || isMeasureType(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
