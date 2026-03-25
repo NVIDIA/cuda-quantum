@@ -46,21 +46,33 @@ MpiDecoratedQPU::MpiDecoratedQPU(const std::vector<int> &globalRanks)
   // global ranks for this QPU.
   cudaqDistributedGroup_t world_group;
   HANDLE_MPI_ERROR(mpiInterface->CommGroup(worldComm, &world_group));
-  std::cout << "Creating MpiDecoratedQPU with global ranks: ";
+  std::cout << "Rank " << rank
+            << " Creating MpiDecoratedQPU with global ranks: ";
   for (int rank : globalRanks) {
     std::cout << rank << " ";
   }
   std::cout << std::endl;
   int num_ranks = 0;
   HANDLE_MPI_ERROR(mpiInterface->getNumRanks(worldComm, &num_ranks));
-  std::cout << "Total number of ranks in world communicator: " << num_ranks
+  std::cout << "Rank " << rank
+            << " Total number of ranks in world communicator: " << num_ranks
             << std::endl;
 
   HANDLE_MPI_ERROR(mpiInterface->GroupIncl(world_group, globalRanks.size(),
                                            globalRanks.data(), &qpuGroup));
-  qpuComm = new cudaqDistributedCommunicator_t;
   HANDLE_MPI_ERROR(
       mpiInterface->CommCreateGroup(worldComm, qpuGroup, 0, &qpuComm));
+
+  // {
+  //   volatile int i = 0;
+  //   char hostname[256];
+  //   gethostname(hostname, sizeof(hostname));
+  //   printf("Rank %d PID %d on %s ready for attach\n", rank,
+  //          getpid(), hostname);
+  //   fflush(stdout);
+  //   while (0 == i)
+  //     sleep(5);
+  // }
 }
 
 int MpiDecoratedQPU::getLocalMpiRank() const {
@@ -76,12 +88,6 @@ int MpiDecoratedQPU::getGlobalMpiRank() const {
 }
 
 void MpiDecoratedQPU::enqueue(cudaq::QuantumTask &task) {
-  // If this rank is not part of the QPU's communicator group, the enqueue is a
-  // no-op since this rank will not participate in execution on this QPU.
-  if (qpuComm == nullptr) {
-    return;
-  }
-
   // Note: enqueue is executed on the main thread, not the QPU execution
   // thread. Hence, do not set the CUDA device here.
   CUDAQ_INFO("Enqueue Task on QPU {}, MPI rank {} (global rank {})", qpu_id,

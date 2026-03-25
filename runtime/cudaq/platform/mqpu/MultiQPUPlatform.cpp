@@ -25,10 +25,15 @@
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
+struct MpiContext {
+  int rank;
+  std::unordered_map<int, int> localRankToQpuId;
+};
+
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<std::unique_ptr<cudaq::AutoLaunchRestServerProcess>>
       m_remoteServers;
-
+  std::optional<MpiContext> mpiContext;
 public:
   ~MultiQPUQuantumPlatform() {
     // Make sure that we clean up the client QPUs first before cleaning up the
@@ -73,6 +78,26 @@ public:
   }
 
   bool supports_task_distribution() const override { return true; }
+
+  std::future<cudaq::sample_result>
+  enqueueAsyncTask(const std::size_t qpu_id,
+                   cudaq::KernelExecutionTask &t) override {
+    if (mpiContext.has_value()) {
+      int localRank = mpiContext->rank;
+      int assignedQpuId = mpiContext->localRankToQpuId.at(localRank);
+      if (assignedQpuId != (int)qpu_id) {
+        // Add a no-op task to keep the promise alive for this rank, even though
+        // it won't do any work since it's not assigned to this QPU.
+        cudaq::KernelExecutionTask emptyTask =
+            cudaq::detail::make_copyable_function([]() mutable {
+              // No-op task
+              return cudaq::sample_result();
+            });
+        return quantum_platform::enqueueAsyncTask(qpu_id, emptyTask);
+      }
+    }
+    return quantum_platform::enqueueAsyncTask(qpu_id, t);
+  }
 
 private:
   static std::string getQpuType(const std::string &description) {
@@ -184,6 +209,8 @@ private:
       }
     }
     platformQPUs.clear();
+    mpiContext = std::nullopt; // reset any existing MPI context since we're
+                               // reconfiguring the platform
     // No QPU sub-type, i.e., simulators
     // Check for MPI first, i.e., if we're running with mpirun/mpiexec.
     const auto numMpiRanks = cudaq::getMPIProcessCount();
@@ -234,10 +261,12 @@ private:
       // For example, if we have 4 MPI ranks and 2 QPUs, ranks 0 and 1 will be
       // assigned to QPU 0 and ranks 2 and 3 will be assigned to QPU 1.
       std::vector<std::vector<int>> qpuRankAssignments(numQpus);
+      std::unordered_map<int, int> localRankToQpuId;
       for (int rank = 0; rank < numMpiRanks; ++rank) {
         qpuRankAssignments[rank % numQpus].push_back(rank);
+        localRankToQpuId[rank] = rank % numQpus;
       }
-
+      mpiContext = MpiContext{.rank = cudaq::getMPIRank(), .localRankToQpuId = localRankToQpuId};
       for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
         platformQPUs.emplace_back(
             std::make_unique<cudaq::details::MpiDecoratedQPU>(

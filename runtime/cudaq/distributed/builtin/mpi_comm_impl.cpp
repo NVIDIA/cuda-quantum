@@ -449,8 +449,9 @@ static int mpi_CommCreateGroup(const cudaqDistributedCommunicator_t *parentComm,
     return -1; // Invalid arguments
   }
   MPI_Comm *new_comm = new MPI_Comm;
+  const MPI_Group *orig_group = (const MPI_Group *)group;
   int res = MPI_Comm_create_group(unpackMpiCommunicator(parentComm),
-                                  (MPI_Group)group, tag, new_comm);
+                                  *orig_group, tag, new_comm);
   if (res != MPI_SUCCESS) {
     delete new_comm;
     return res; // MPI error

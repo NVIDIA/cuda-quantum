@@ -287,27 +287,20 @@ int cudaq::getMPIProcessCount() {
   return numRanks;
 }
 
-cudaqDistributedCommunicator_t *
-cudaq::splitCommunitor(const cudaqDistributedCommunicator_t *comm,
-                       const std::vector<std::vector<int>> &rankGroups) {
+int cudaq::getMPIRank() {
   cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
+  cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
   if (!mpiInterface || !comm)
-    throw std::runtime_error("Invalid MPI distributed plugin encountered in "
-                             "splitCommunicator");
-  cudaqDistributedCommunicator_t *newComm = nullptr;
-  int myRank = 0;
-  HANDLE_MPI_ERROR(mpiInterface->getProcRank(comm, &myRank));
-  int color = -1;
-  for (size_t i = 0; i < rankGroups.size(); ++i) {
-    if (std::find(rankGroups[i].begin(), rankGroups[i].end(), myRank) !=
-        rankGroups[i].end()) {
-      color = static_cast<int>(i);
-      break;
-    }
-  }
-  if (color == -1)
-    throw std::runtime_error("Current rank " + std::to_string(myRank) +
-                             " is not included in any rank group.");
-  HANDLE_MPI_ERROR(mpiInterface->CommSplit(comm, color, myRank, &newComm));
-  return newComm;
+    return 0; // Fallback to rank 0 if not running in an MPI context
+  int initialized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->initialized(&initialized));
+  if (!initialized)
+    return 0; // Fallback to rank 0 if MPI is not initialized
+  int finalized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->finalized(&finalized));
+  if (finalized)
+    return 0; // Fallback to rank 0 if MPI is finalized
+  int rank = 0;
+  HANDLE_MPI_ERROR(mpiInterface->getProcRank(comm, &rank));
+  return rank;
 }

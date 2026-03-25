@@ -39,7 +39,5 @@ int getCudaDeviceCount();
 // context. If not running in an MPI context, returns 1.
 int getMPIProcessCount();
 
-cudaqDistributedCommunicator_t *
-splitCommunitor(const cudaqDistributedCommunicator_t *comm,
-                const std::vector<std::vector<int>> &rankGroups);
+int getMPIRank();
 } // namespace cudaq

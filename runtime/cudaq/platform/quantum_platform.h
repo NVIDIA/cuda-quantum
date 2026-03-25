@@ -182,11 +182,11 @@ public:
   void endExecution();
 
   /// Enqueue an asynchronous sampling task.
-  std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
+  virtual std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
                                               KernelExecutionTask &t);
 
   /// @brief Enqueue a general task that runs on the specified QPU
-  void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
+  virtual void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   /// @brief Launch a VQE operation on the platform.
   void launchVQE(const std::string kernelName, const void *kernelArgs,
