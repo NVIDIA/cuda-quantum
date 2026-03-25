@@ -10,10 +10,10 @@ from itertools import combinations
 
 import matplotlib.pyplot as plt
 
-
 # =====================================================================
 #  Measurement helpers
 # =====================================================================
+
 
 def get_basis_states_as_array(results, num_spins):
 
@@ -39,7 +39,9 @@ def calculate_cumulative_results(all_measurement_results):
 #  Hamiltonian construction
 # =====================================================================
 
-def create_heisenberg_hamiltonian(n_spins: int, Jx: float, Jy: float, Jz: float):
+
+def create_heisenberg_hamiltonian(n_spins: int, Jx: float, Jy: float,
+                                  Jz: float):
 
     ham = 0
 
@@ -71,22 +73,23 @@ def extract_coeffs_and_paulis(H: cudaq.SpinOperator):
 
 
 # =====================================================================
-#  Projected Hamiltonian — CSR (vectorized GPU/CPU)
+#  Projected Hamiltonian — CSR (`vectorized` GPU/CPU)
 # =====================================================================
+
 
 def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
                                      hamiltonian_coefficients_numpy, use_gpu):
     """
-    GPU-accelerated, vectorized implementation of projected_hamiltonian.
+    GPU-accelerated, `vectorized` implementation of projected_hamiltonian.
     
     Uses CuPy when GPU is available, otherwise falls back to NumPy.
     Produces bit-for-bit identical results to the original function.
     
     Args:
         basis_states: (n_basis, n_qubits) array of basis state bit vectors
-        hamiltonian_pauli_words: list of Pauli strings (e.g., ['XYZII', 'ZZXYI'])
-        hamiltonian_coefficients_numpy: array of coefficients for each Pauli term
-        use_gpu: True (force GPU), or False (force CPU)
+        `hamiltonian_pauli_words`: list of Pauli strings (e.g., `['XYZII', 'ZZXYI']`)
+        `hamiltonian_coefficients_numpy`: array of coefficients for each Pauli term
+        `use_gpu`: True (force GPU), or False (force CPU)
     
     Returns:
         matrix_rows, matrix_cols, matrix_elements: lists matching original function
@@ -121,8 +124,7 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
     y_mask = (pauli_expanded == 2)
     z_mask = (pauli_expanded == 3)
 
-    n_y0 = xp.sum(y_mask & (states_expanded == 0), axis=2,
-                  dtype=xp.int32)
+    n_y0 = xp.sum(y_mask & (states_expanded == 0), axis=2, dtype=xp.int32)
     n_y1 = xp.sum(y_mask & (states_expanded == 1), axis=2, dtype=xp.int32)
     n_z1 = xp.sum(z_mask & (states_expanded == 1), axis=2, dtype=xp.int32)
 
@@ -138,8 +140,7 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
     powers_of_2 = xp.asarray(
         1 << np.arange(n_qubits - 1, -1, -1, dtype=np.int64))
 
-    basis_ints = xp.sum(basis_states_xp.astype(xp.int64) * powers_of_2,
-                        axis=1)
+    basis_ints = xp.sum(basis_states_xp.astype(xp.int64) * powers_of_2, axis=1)
 
     transformed_ints = xp.empty((n_basis, n_terms), dtype=xp.int64)
     for start in range(0, n_basis, 4096):
@@ -181,8 +182,9 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
 #  Projected Hamiltonian — CSR (naive loop, CPU reference)
 # =====================================================================
 
+
 def projected_hamiltonian_cpu(basis_states, hamiltonian_pauli_words,
-                          hamiltonian_coefficients_numpy):
+                              hamiltonian_coefficients_numpy):
 
     matrix_rows, matrix_cols, matrix_elements = [], [], []
 
@@ -198,7 +200,6 @@ def projected_hamiltonian_cpu(basis_states, hamiltonian_pauli_words,
 
             transformed_state = initial_state.copy()
             phase_factor = 1.0 + 0j
-
 
             for qubit_position, pauli_op in enumerate(
                     pauli_operator
@@ -226,7 +227,6 @@ def projected_hamiltonian_cpu(basis_states, hamiltonian_pauli_words,
                     if transformed_state[qubit_position] == 1:
                         phase_factor *= -1
 
-
             hamiltonian_element = coefficient * phase_factor
 
             matches = np.all(basis_states == transformed_state, axis=1)
@@ -238,7 +238,6 @@ def projected_hamiltonian_cpu(basis_states, hamiltonian_pauli_words,
                 matrix_elements.append(hamiltonian_element)
 
     return matrix_rows, matrix_cols, matrix_elements
-
 
 
 def _eigsh_solve_ritz(alpha, beta, beta_k, k, which):
@@ -274,12 +273,27 @@ def _eigsh_solve_ritz(alpha, beta, beta_k, k, which):
 #  Utility
 # =====================================================================
 
-def plot_skqd_convergence(csr_energies, lo_energies, dims, exact_ground_state_energy):
+
+def plot_skqd_convergence(csr_energies, lo_energies, dims,
+                          exact_ground_state_energy):
     plt.figure(figsize=(5, 4))
 
-    plt.plot(dims, csr_energies, 'o-', linewidth=2, markersize=8, label='CSR eigsh')
-    plt.plot(dims, lo_energies, 's--', linewidth=2, markersize=8, label='Matrix-free Lanczos')
-    plt.plot(dims, [exact_ground_state_energy] * len(dims), 'g', linewidth=2, label='Exact ground state')
+    plt.plot(dims,
+             csr_energies,
+             'o-',
+             linewidth=2,
+             markersize=8,
+             label='CSR eigsh')
+    plt.plot(dims,
+             lo_energies,
+             's--',
+             linewidth=2,
+             markersize=8,
+             label='Matrix-free Lanczos')
+    plt.plot(dims, [exact_ground_state_energy] * len(dims),
+             'g',
+             linewidth=2,
+             label='Exact ground state')
 
     plt.xticks(list(dims))
     plt.xlabel("Krylov Subspace Dimension", fontsize=12)
@@ -289,11 +303,16 @@ def plot_skqd_convergence(csr_energies, lo_energies, dims, exact_ground_state_en
     plt.grid(True, alpha=0.3)
 
     max_diff = max(abs(a - b) for a, b in zip(csr_energies, lo_energies))
-    plt.text(0.02, 0.98, f'Max solver difference: {max_diff:.2e}\nExact energy: {exact_ground_state_energy:.6f}',
-             transform=plt.gca().transAxes, verticalalignment='top',
-             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    plt.text(
+        0.02,
+        0.98,
+        f'Max solver difference: {max_diff:.2e}\nExact energy: {exact_ground_state_energy:.6f}',
+        transform=plt.gca().transAxes,
+        verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
     plt.tight_layout()
     plt.show()
+
 
 def binary_strings_fixed_hamming_weight(n, k):
     """Generate all binary strings of length n with exactly k ones."""
@@ -363,21 +382,19 @@ def build_gpu_hash_table(basis_ints_gpu, n_basis):
 
     threads = 256
     blocks = (n_basis + threads - 1) // threads
-    _hash_build_kernel(
-        (blocks,), (threads,),
-        (basis_ints_gpu, hash_keys, hash_vals,
-         np.int32(n_basis), np.int32(hash_size))
-    )
+    _hash_build_kernel((blocks,), (threads,),
+                       (basis_ints_gpu, hash_keys, hash_vals, np.int32(n_basis),
+                        np.int32(hash_size)))
     cp.cuda.Device().synchronize()
 
     return hash_keys, hash_vals, hash_size
 
 
 # =====================================================================
-#  Row-Partitioned Tiled Matvec Kernel
+#  Row-Partitioned Tiled `Matvec` Kernel
 #
 #  Each thread processes TILE_SIZE Pauli terms for a single row.
-#  Accumulates in registers and does a single atomicAdd per tile,
+#  Accumulates in registers and does a single `atomicAdd` per tile,
 #  reducing contention by tile_size factor.
 #
 #  Row-partitioning means each GPU writes to disjoint result elements,
@@ -473,10 +490,10 @@ void row_partitioned_matvec(
 
 _row_kernel = cp.RawKernel(_ROW_KERNEL_CODE, 'row_partitioned_matvec')
 
-
 # =====================================================================
 #  Hamiltonian Data Preparation
 # =====================================================================
+
 
 def prepare_hamiltonian_data(basis_states, hamiltonian_pauli_words,
                              hamiltonian_coefficients_numpy):
@@ -511,23 +528,22 @@ def prepare_hamiltonian_data(basis_states, hamiltonian_pauli_words,
     flip_ints = cp.sum(
         ((pauli_ops == 1) | (pauli_ops == 2)).astype(cp.int64) * powers_of_2,
         axis=1)
-    y_mask_ints = cp.sum(
-        (pauli_ops == 2).astype(cp.int64) * powers_of_2, axis=1)
-    z_mask_ints = cp.sum(
-        (pauli_ops == 3).astype(cp.int64) * powers_of_2, axis=1)
+    y_mask_ints = cp.sum((pauli_ops == 2).astype(cp.int64) * powers_of_2,
+                         axis=1)
+    z_mask_ints = cp.sum((pauli_ops == 3).astype(cp.int64) * powers_of_2,
+                         axis=1)
     del pauli_ops, powers_of_2
 
-    _popcount_and = cp.ElementwiseKernel(
-        'int64 a, int64 b', 'int32 y',
-        'y = __popcll(a & b)', 'popcount_and')
+    _popcount_and = cp.ElementwiseKernel('int64 a, int64 b', 'int32 y',
+                                         'y = __popcll(a & b)', 'popcount_and')
     n_y_total = _popcount_and(y_mask_ints, y_mask_ints)
 
-    coeffs_np = np.ascontiguousarray(
-        hamiltonian_coefficients_numpy, dtype=np.complex128)
-    coeff_re = cp.ascontiguousarray(
-        cp.asarray(coeffs_np.real, dtype=cp.float64))
-    coeff_im = cp.ascontiguousarray(
-        cp.asarray(coeffs_np.imag, dtype=cp.float64))
+    coeffs_np = np.ascontiguousarray(hamiltonian_coefficients_numpy,
+                                     dtype=np.complex128)
+    coeff_re = cp.ascontiguousarray(cp.asarray(coeffs_np.real,
+                                               dtype=cp.float64))
+    coeff_im = cp.ascontiguousarray(cp.asarray(coeffs_np.imag,
+                                               dtype=cp.float64))
 
     cp.get_default_memory_pool().free_all_blocks()
 
@@ -548,27 +564,37 @@ def prepare_hamiltonian_data(basis_states, hamiltonian_pauli_words,
 
 
 # =====================================================================
-#  Distributed Eigsh (Memory-Efficient Multi-GPU Lanczos)
+#  Distributed `Eigsh` (Memory-Efficient Multi-GPU `Lanczos`)
 #
-#  Lanczos vectors are partitioned across GPUs so each GPU stores only
+#  `Lanczos` vectors are partitioned across GPUs so each GPU stores only
 #  its row-partition chunk: V_local[ncv, chunk_size] instead of
 #  V[ncv, n_basis].  This reduces per-GPU memory from O(ncv * n_basis)
-#  to O(ncv * n_basis / n_gpus), enabling much larger problem sizes.
+#  to O(ncv * n_basis / `n_gpus`), enabling much larger problem sizes.
 #
-#  Scalar Lanczos quantities (alpha, beta) are kept identical on all
-#  ranks via NCCL AllReduce, so every rank follows the same convergence
+#  Scalar `Lanczos` quantities (alpha, beta) are kept identical on all
+#  ranks via NCCL `AllReduce`, so every rank follows the same convergence
 #  path and issues the same number of collective calls (deadlock-free).
 # =====================================================================
 
-def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
-                      k=1, which='SA', ncv=None, maxiter=None, tol=0,
-                      v0_full=None, tile_size=32, return_eigenvectors=False):
-    """Distributed thick-restart Lanczos with row-partitioned matvec.
+
+def distributed_eigsh(ham_data,
+                      rank,
+                      size,
+                      nccl_comm_obj,
+                      k=1,
+                      which='SA',
+                      ncv=None,
+                      maxiter=None,
+                      tol=0,
+                      v0_full=None,
+                      tile_size=32,
+                      return_eigenvectors=False):
+    """Distributed thick-restart `Lanczos` with row-partitioned `matvec`.
 
     Returns
     -------
-    eigenvalues : cupy array of shape (k,)
-    (eigenvectors_local : cupy array, only if return_eigenvectors=True)
+    eigenvalues : `cupy` array of shape (k,)
+    (eigenvectors_local : `cupy` array, only if return_eigenvectors=True)
     """
     n_basis = ham_data['n_basis']
     n_terms = ham_data['n_terms']
@@ -631,12 +657,10 @@ def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
             _send_im[my_n_rows:] = 0
 
         if size > 1:
-            nccl_comm_obj.allGather(
-                _send_re.data.ptr, v_re_full.data.ptr,
-                chunk_size, _nccl.NCCL_FLOAT64, stream_ptr)
-            nccl_comm_obj.allGather(
-                _send_im.data.ptr, v_im_full.data.ptr,
-                chunk_size, _nccl.NCCL_FLOAT64, stream_ptr)
+            nccl_comm_obj.allGather(_send_re.data.ptr, v_re_full.data.ptr,
+                                    chunk_size, _nccl.NCCL_FLOAT64, stream_ptr)
+            nccl_comm_obj.allGather(_send_im.data.ptr, v_im_full.data.ptr,
+                                    chunk_size, _nccl.NCCL_FLOAT64, stream_ptr)
             cp.cuda.Device().synchronize()
         else:
             v_re_full[:n_basis] = v_loc[:n_basis].real
@@ -646,25 +670,19 @@ def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
         _result_im[:my_n_rows] = 0
 
         if my_n_rows > 0 and n_terms > 0:
-            _row_kernel(
-                (grid_x, grid_y), (tpb,),
-                (ham_data['basis_ints'], ham_data['hash_keys'],
-                 ham_data['hash_vals'],
-                 ham_data['flip_ints'], ham_data['y_mask_ints'],
-                 ham_data['z_mask_ints'],
-                 ham_data['n_y_total'], ham_data['coeff_re'],
-                 ham_data['coeff_im'],
-                 v_re_full, v_im_full,
-                 _result_re, _result_im,
-                 np.int32(n_terms), np.int32(my_start),
-                 np.int32(my_n_rows),
-                 np.int32(ham_data['hash_size']),
-                 np.int32(tile_size)))
+            _row_kernel((grid_x, grid_y), (tpb,),
+                        (ham_data['basis_ints'], ham_data['hash_keys'],
+                         ham_data['hash_vals'], ham_data['flip_ints'],
+                         ham_data['y_mask_ints'], ham_data['z_mask_ints'],
+                         ham_data['n_y_total'], ham_data['coeff_re'],
+                         ham_data['coeff_im'], v_re_full, v_im_full, _result_re,
+                         _result_im, np.int32(n_terms), np.int32(my_start),
+                         np.int32(my_n_rows), np.int32(
+                             ham_data['hash_size']), np.int32(tile_size)))
         cp.cuda.Device().synchronize()
 
         out = cp.zeros(chunk_size, dtype=dtype)
-        out[:my_n_rows] = (
-            _result_re[:my_n_rows] + 1j * _result_im[:my_n_rows])
+        out[:my_n_rows] = (_result_re[:my_n_rows] + 1j * _result_im[:my_n_rows])
         return out
 
     def _dotc(a_loc, b_loc):
@@ -672,21 +690,20 @@ def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
         if size > 1:
             _scalar_buf[0] = val.real
             _scalar_buf[1] = val.imag
-            nccl_comm_obj.allReduce(
-                _scalar_buf.data.ptr, _scalar_buf.data.ptr,
-                2, _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM, stream_ptr)
+            nccl_comm_obj.allReduce(_scalar_buf.data.ptr, _scalar_buf.data.ptr,
+                                    2, _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM,
+                                    stream_ptr)
             cp.cuda.Device().synchronize()
             return _scalar_buf[0] + 1j * _scalar_buf[1]
         return val
 
     def _nrm2(a_loc):
-        sq = cp.sum(a_loc[:my_n_rows].real ** 2
-                    + a_loc[:my_n_rows].imag ** 2)
+        sq = cp.sum(a_loc[:my_n_rows].real**2 + a_loc[:my_n_rows].imag**2)
         if size > 1:
             _norm_buf[0] = sq
-            nccl_comm_obj.allReduce(
-                _norm_buf.data.ptr, _norm_buf.data.ptr,
-                1, _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM, stream_ptr)
+            nccl_comm_obj.allReduce(_norm_buf.data.ptr, _norm_buf.data.ptr, 1,
+                                    _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM,
+                                    stream_ptr)
             cp.cuda.Device().synchronize()
             return cp.sqrt(_norm_buf[0])
         return cp.sqrt(sq)
@@ -697,10 +714,9 @@ def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
             uu_flat = cp.empty(nv * 2, dtype=rdtype)
             uu_flat[0::2] = uu_loc.real
             uu_flat[1::2] = uu_loc.imag
-            nccl_comm_obj.allReduce(
-                uu_flat.data.ptr, uu_flat.data.ptr,
-                nv * 2, _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM,
-                stream_ptr)
+            nccl_comm_obj.allReduce(uu_flat.data.ptr, uu_flat.data.ptr, nv * 2,
+                                    _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM,
+                                    stream_ptr)
             cp.cuda.Device().synchronize()
             uu = uu_flat[0::2] + 1j * uu_flat[1::2]
         else:
@@ -713,10 +729,9 @@ def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
             buf = cp.empty(nv * 2, dtype=rdtype)
             buf[0::2] = vec.real
             buf[1::2] = vec.imag
-            nccl_comm_obj.allReduce(
-                buf.data.ptr, buf.data.ptr,
-                nv * 2, _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM,
-                stream_ptr)
+            nccl_comm_obj.allReduce(buf.data.ptr, buf.data.ptr, nv * 2,
+                                    _nccl.NCCL_FLOAT64, _nccl.NCCL_SUM,
+                                    stream_ptr)
             cp.cuda.Device().synchronize()
             return buf[0::2] + 1j * buf[1::2]
         return vec
@@ -725,8 +740,8 @@ def distributed_eigsh(ham_data, rank, size, nccl_comm_obj,
         v_cur[:my_n_rows] = v0_full[my_start:my_end]
     else:
         cp.random.seed(42)
-        v_cur[:my_n_rows] = cp.random.random(
-            my_n_rows, dtype=rdtype).astype(dtype)
+        v_cur[:my_n_rows] = cp.random.random(my_n_rows,
+                                             dtype=rdtype).astype(dtype)
     nrm = _nrm2(v_cur)
     V_local[0] = v_cur / nrm
 
