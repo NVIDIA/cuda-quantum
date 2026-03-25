@@ -690,6 +690,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
             loc, cc::StdvecType::get(i1Type), sub));
 
     // Handle pointer to `measure_result` (from vector element access)
+    // TODO: Revisit after https://github.com/NVIDIA/cuda-quantum/pull/4208
     if (auto ptrTy = dyn_cast<cc::PointerType>(sub.getType()))
       if (ptrTy.getElementType() == measTy) {
         auto loaded = builder.create<cc::LoadOp>(loc, sub);
@@ -2201,14 +2202,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName == "toInteger" || funcName == "to_integer") {
       auto arg = args[0];
-      // Insert discriminate if input is `!cc.stdvec<!quake.measure>`
-      if (auto vecTy = dyn_cast<cc::StdvecType>(arg.getType())) {
-        if (vecTy.getElementType() == measTy) {
-          auto i1Ty = builder.getI1Type();
-          arg = builder.create<quake::DiscriminateOp>(
-              loc, cc::StdvecType::get(i1Ty), arg);
-        }
-      }
+      auto vecTy = dyn_cast<cc::StdvecType>(arg.getType());
+      assert(vecTy && vecTy.getElementType() == measTy &&
+             "`to_integer` requires vector of `measure` as argument");
+      auto i1Ty = builder.getI1Type();
+      arg = builder.create<quake::DiscriminateOp>(
+          loc, cc::StdvecType::get(i1Ty), arg);
       IRBuilder irBuilder(builder.getContext());
       if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
@@ -2223,16 +2222,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "to_bool_vector") {
-      // `args[0]` is `!cc.stdvec<!quake.measure>`
       auto arg = args[0];
-      // Insert discriminate if needed
-      if (auto vecTy = dyn_cast<cc::StdvecType>(arg.getType())) {
-        if (vecTy.getElementType() == measTy) {
-          auto i1Ty = builder.getI1Type();
-          arg = builder.create<quake::DiscriminateOp>(
-              loc, cc::StdvecType::get(i1Ty), arg);
-        }
-      }
+      auto vecTy = dyn_cast<cc::StdvecType>(arg.getType());
+      assert(vecTy && vecTy.getElementType() == measTy &&
+             "to_bool_vector requires stdvec<measure> argument");
+      auto i1Ty = builder.getI1Type();
+      arg = builder.create<quake::DiscriminateOp>(
+          loc, cc::StdvecType::get(i1Ty), arg);
       return pushValue(arg);
     }
 
@@ -3352,6 +3348,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   }
 
   // Handle `measure_result` copy and move constructors
+  // TODO: Revisit after https://github.com/NVIDIA/cuda-quantum/pull/4208
   if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
       isInClassInNamespace(ctor, "measure_result", "cudaq")) {
     // The source is a pointer to measure_result (!cc.ptr<!quake.measure>)
