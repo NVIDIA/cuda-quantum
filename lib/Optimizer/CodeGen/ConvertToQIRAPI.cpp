@@ -148,16 +148,14 @@ struct QIRAPITypeConverter : public TypeConverter {
       return cudaq::cc::ArrayType::get(newEleTy);
     });
     addConversion([&](cudaq::cc::StructType ty) -> Type {
+      if (ty.getOpaque())
+        return ty;
       SmallVector<Type> members;
       for (auto memTy : ty.getMembers())
         members.push_back(convertType(memTy));
-      if (ty.getName())
-        return cudaq::cc::StructType::get(ty.getContext(), ty.getName(),
-                                          members, ty.getBitSize(),
-                                          ty.getAlignment(), ty.getPacked());
-      return cudaq::cc::StructType::get(ty.getContext(), members,
-                                        ty.getBitSize(), ty.getAlignment(),
-                                        ty.getPacked());
+      return cudaq::cc::StructType::get(ty.getContext(), ty.getName(), members,
+                                        /*opaque=*/false, ty.getPacked(),
+                                        ty.getBitSize(), ty.getAlignment());
     });
   }
 
@@ -1733,24 +1731,6 @@ struct OpInterfacePattern : public OpConversionPattern<OP> {
   matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto newResultTy = getTypeConverter()->convertType(op.getType());
-
-    // Check if result type changed
-    bool resultChanged = (newResultTy != op.getType());
-
-    // Check if any operand types changed
-    bool operandsChanged = false;
-    for (auto [oldOp, newOp] :
-         llvm::zip(op->getOperands(), adaptor.getOperands())) {
-      if (oldOp.getType() != newOp.getType()) {
-        operandsChanged = true;
-        break;
-      }
-    }
-
-    // Only convert if something actually changed
-    if (!resultChanged && !operandsChanged)
-      return failure();
-
     rewriter.replaceOpWithNewOp<OP>(op, newResultTy, adaptor.getOperands(),
                                     op->getAttrs());
     return success();
@@ -1799,6 +1779,8 @@ struct StoreOpPattern : public OpConversionPattern<cudaq::cc::StoreOp> {
   }
 };
 
+// Not an OpInterfacePattern: LogOutputOp has no result type, so op.getType()
+// is not available. Same zero-result pattern as StoreOpPattern above.
 struct LogOutputOpPattern : public OpConversionPattern<cudaq::cc::LogOutputOp> {
   using OpConversionPattern::OpConversionPattern;
 
