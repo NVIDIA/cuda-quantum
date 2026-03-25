@@ -232,9 +232,15 @@ TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
 
   for (auto &entry : patternEntries) {
     auto patternName = entry.getName();
-    // Create the pattern
-    auto patternType = cudaq::registry::get<cudaq::DecompositionPatternType>(
-        patternName.str());
+    std::unique_ptr<cudaq::DecompositionPatternType> patternType;
+    for (auto it = cudaq::DecompositionPatternType::RegistryType::begin(),
+              ie = cudaq::DecompositionPatternType::RegistryType::end();
+         it != ie; ++it) {
+      if (patternName == it->getName()) {
+        patternType = it->instantiate();
+        break;
+      }
+    }
     ASSERT_NE(patternType, nullptr)
         << "Failed to recover registered pattern type: " << patternName.str();
 
@@ -264,15 +270,12 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
 
-    // Source gate should not be empty
     EXPECT_FALSE(sourceGate.empty())
         << "Pattern '" << patternName << "' has empty source gate";
 
-    // Target gates should not be empty
     EXPECT_FALSE(targetGates.empty())
         << "Pattern '" << patternName << "' has empty target gates";
 
-    // All target gates should be non-empty
     for (auto targetGate : targetGates) {
       EXPECT_FALSE(targetGate.empty())
           << "Pattern '" << patternName << "' has empty target gate in list";

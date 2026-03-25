@@ -332,7 +332,8 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
       return pattern;                                                          \
     }                                                                          \
   };                                                                           \
-  CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, PATTERN##Type, PATTERN)
+  static cudaq::DecompositionPatternType::RegistryType::Add<PATTERN##Type>     \
+      decomp_reg_##PATTERN(#PATTERN, "")
 
 // TODO: The decomposition patterns "SToR1", "TToR1", "R1ToU3", "U3ToRotations"
 // can handle arbitrary number of controls, but currently metadata cannot
