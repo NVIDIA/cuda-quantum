@@ -313,7 +313,8 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
       moduleOp.getContext()->disableMultithreading();
     if (enablePrintMLIREachPass)
       pm.enableIRPrinting();
-    cudaq_internal::maybeLogPassPipeline(pm, kernelName + ":quake-synth");
+    cudaq_internal::maybeLogPassPipeline(
+        pm, cudaq_internal::buildLabel(kernelName, "quake-synth"));
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error("Could not successfully apply quake-synth.");
   }
@@ -373,8 +374,9 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     pm.addPass(mlir::createCanonicalizerPass());
     if (enablePrintMLIREachPass)
       pm.enableIRPrinting();
-    cudaq_internal::maybeLogPassPipeline(pm, kernelName +
-                                                 ":resource-count-preprocess");
+    cudaq_internal::maybeLogPassPipeline(
+        pm,
+        cudaq_internal::buildLabel(kernelName, "resource-count-preprocess"));
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
           "Could not successfully apply resource count preprocess.");
@@ -456,7 +458,8 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
         tmpModuleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
         pm.enableIRPrinting();
-      cudaq_internal::maybeLogPassPipeline(pm, kernelName + ":observe-ansatz");
+      cudaq_internal::maybeLogPassPipeline(
+          pm, cudaq_internal::buildLabel(kernelName, "observe-ansatz"));
       if (failed(pm.run(tmpModuleOp)))
         throw std::runtime_error("Could not apply measurements to ansatz.");
       // The full pass pipeline was run above, but the ansatz pass can

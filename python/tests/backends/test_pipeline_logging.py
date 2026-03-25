@@ -15,7 +15,6 @@ from cudaq import spin
 
 @pytest.fixture(autouse=True)
 def reset_target():
-    cudaq.reset_target()
     yield
     cudaq.reset_target()
 
@@ -52,10 +51,13 @@ def observe_kernel():
     h(qubit)
 
 
+PIPELINE_FILE = "pipeline.jsonl"
+
+
 @pytest.mark.parametrize("target,target_kwargs,supports_run", TARGET_CONFIGS)
 def test_pipeline_logging_decorator(tmp_path, monkeypatch, target,
                                     target_kwargs, supports_run):
-    log_path = tmp_path / "pipeline.jsonl"
+    log_path = tmp_path / PIPELINE_FILE
     monkeypatch.setenv("CUDAQ_PIPELINE_LOG", str(log_path))
 
     if not cudaq.has_target(target):
@@ -82,7 +84,7 @@ def test_pipeline_logging_decorator(tmp_path, monkeypatch, target,
 
 
 def test_pipeline_logging_builder_default(tmp_path, monkeypatch):
-    log_path = tmp_path / "pipeline.jsonl"
+    log_path = tmp_path / PIPELINE_FILE
     monkeypatch.setenv("CUDAQ_PIPELINE_LOG", str(log_path))
 
     kernel = cudaq.make_kernel()

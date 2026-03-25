@@ -95,7 +95,8 @@ specializeKernel(const std::string &name, ModuleOp module,
     module.getContext()->disableMultithreading();
     pm.enableIRPrinting();
   }
-  cudaq_internal::maybeLogPassPipeline(pm, name + ":python-specialize");
+  cudaq_internal::maybeLogPassPipeline(
+      pm, cudaq_internal::buildLabel(name, "python-specialize"));
   if (failed(pm.run(module)))
     throw std::runtime_error("Could not successfully apply argument synth.");
 }
@@ -115,7 +116,8 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
-  cudaq_internal::maybeLogPassPipeline(pm, name + ":python-qir");
+  cudaq_internal::maybeLogPassPipeline(
+      pm, cudaq_internal::buildLabel(name, "python-qir"));
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to " + format + " failed.");
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(module, format)))
@@ -154,7 +156,8 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
     ctx->disableMultithreading();
     pm.enableIRPrinting();
   }
-  cudaq_internal::maybeLogPassPipeline(pm, name + ":python-openqasm");
+  cudaq_internal::maybeLogPassPipeline(
+      pm, cudaq_internal::buildLabel(name, "python-openqasm"));
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to OpenQASM failed.");
   std::string result;

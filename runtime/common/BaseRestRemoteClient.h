@@ -206,8 +206,9 @@ public:
         moduleOp.getContext()->disableMultithreading();
         pm.enableIRPrinting();
       }
-      cudaq_internal::maybeLogPassPipeline(pm,
-                                           name + ":" + passName + "-synth");
+
+      cudaq_internal::maybeLogPassPipeline(
+          pm, cudaq_internal::buildLabel(name, passName + "-synth"));
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply " + passName +
                                  " synth.");
@@ -250,7 +251,8 @@ public:
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    cudaq_internal::maybeLogPassPipeline(pm, name + ":client");
+    cudaq_internal::maybeLogPassPipeline(
+        pm, cudaq_internal::buildLabel(name, "client"));
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
           "Remote rest platform: applying IR passes failed.");
@@ -304,7 +306,8 @@ public:
     mlir::PassManager pm(ctx);
     // For now, the server side expects full-QIR.
     opt::addAOTPipelineConvertToQIR(pm);
-    cudaq_internal::maybeLogPassPipeline(pm, name + ":aot-qir");
+    cudaq_internal::maybeLogPassPipeline(
+        pm, cudaq_internal::buildLabel(name, "aot-qir"));
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(

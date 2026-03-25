@@ -27,4 +27,9 @@ std::string getPipelineLogPath();
 ///       This is the results of actually executing the passes
 void maybeLogPassPipeline(mlir::PassManager &pm, llvm::StringRef label = {});
 
+std::string buildLabel(const std::string &pipeline_name,
+                       const std::string &specifics) {
+  return pipeline_name + ":" + specifics;
+}
+
 } // namespace cudaq_internal
