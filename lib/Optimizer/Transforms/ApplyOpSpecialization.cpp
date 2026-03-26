@@ -105,15 +105,15 @@ private:
   void performAnalysis(Operation *op) {
     op->walk([&](quake::ApplyOp apply) {
       if (constProp) {
-        // If some of the arguments in getArgs() are constants, then materialize
-        // those constants in a clone of the variant. The specialized variant
-        // will then be able to perform better constant propagation even if not
-        // inlined.
+        // If some of the arguments in getActuals() are constants, then
+        // materialize those constants in a clone of the variant. The
+        // specialized variant will then be able to perform better constant
+        // propagation even if not inlined.
         auto calleeName = apply.getCallee()->getRootReference().str();
         if (func::FuncOp genericFunc =
                 module.lookupSymbol<func::FuncOp>(calleeName)) {
           SmallVector<Value> newArgs;
-          newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+          newArgs.append(apply.getActuals().begin(), apply.getActuals().end());
           IRMapping mapper;
           SmallVector<Value> preservedArgs;
           SmallVector<Type> inputTys;
@@ -314,8 +314,12 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
     std::string calleeOrigName;
-    if (apply.getCallee()) {
-      calleeOrigName = apply.getCallee()->getRootReference().str();
+    FunctionType calleeSignature;
+    if (auto callee = apply.getCallee()) {
+      calleeOrigName = callee->getRootReference().str();
+      auto fn =
+          SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, *callee);
+      calleeSignature = fn.getFunctionType();
     } else {
       // Check if the first argument is a func.ConstantOp.
       auto calleeVals = apply.getIndirectCallee();
@@ -326,27 +330,31 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
       if (!fc)
         return failure();
       calleeOrigName = fc.getValue().str();
+      calleeSignature = dyn_cast<FunctionType>(fc.getResult().getType());
     }
     auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
-    auto consTy = quake::VeqType::getUnsized(ctx);
+    auto unsizedVeqTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
-      auto consOp = rewriter.create<quake::ConcatOp>(apply.getLoc(), consTy,
-                                                     apply.getControls());
+      auto consOp = rewriter.create<quake::ConcatOp>(
+          apply.getLoc(), unsizedVeqTy, apply.getControls());
       newArgs.push_back(consOp);
     }
-    if (constProp) {
-      for (auto v : apply.getArgs()) {
-        if (auto c = v.getDefiningOp<arith::ConstantOp>())
-          continue;
-        newArgs.emplace_back(v);
-      }
-    } else {
-      newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+    for (auto [v, toTy] :
+         llvm::zip(apply.getActuals(), calleeSignature.getInputs())) {
+      if (constProp && v.getDefiningOp<arith::ConstantOp>())
+        continue;
+      Value arg = v;
+      if (arg.getType() != toTy)
+        arg =
+            rewriter.create<quake::ConcatOp>(apply.getLoc(), unsizedVeqTy, arg);
+      newArgs.emplace_back(arg);
     }
-    rewriter.replaceOpWithNewOp<func::CallOp>(apply, apply.getResultTypes(),
-                                              calleeName, newArgs);
+    LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
+    [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<func::CallOp>(
+        apply, apply.getResultTypes(), calleeName, newArgs);
+    LLVM_DEBUG(llvm::dbgs() << "with " << result << '\n');
     return success();
   }
 
@@ -363,16 +371,18 @@ struct FoldCallable : public OpRewritePattern<quake::ApplyOp> {
       return failure();
 
     Value ind = apply.getIndirectCallee()[0];
-    if (auto callee = ind.getDefiningOp<cudaq::cc::InstantiateCallableOp>()) {
-      auto sym = callee.getCallee();
-      SmallVector<Value> newArguments = {ind};
-      newArguments.append(apply.getArgs().begin(), apply.getArgs().end());
-      rewriter.replaceOpWithNewOp<quake::ApplyOp>(
-          apply, apply.getResultTypes(), sym, apply.getIsAdj(),
-          apply.getControls(), newArguments);
-      return success();
-    }
-    return failure();
+    auto callee = ind.getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!callee)
+      return failure();
+    auto sym = callee.getCallee();
+    SmallVector<Value> newArguments = {ind};
+    newArguments.append(apply.getActuals().begin(), apply.getActuals().end());
+    LLVM_DEBUG(llvm::dbgs() << "replacing " << apply << '\n');
+    [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<quake::ApplyOp>(
+        apply, apply.getResultTypes(), sym, apply.getIsAdj(),
+        apply.getControls(), newArguments);
+    LLVM_DEBUG(llvm::dbgs() << "as " << result << '\n');
+    return success();
   }
 };
 
@@ -529,7 +539,7 @@ public:
                            apply.getControls().end());
         auto newApply = builder.create<quake::ApplyOp>(
             apply.getLoc(), apply.getResultTypes(), apply.getCalleeAttr(),
-            apply.getIsAdjAttr(), newControls, apply.getArgs());
+            apply.getIsAdjAttr(), newControls, apply.getActuals());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
       } else if (isQuantumKernelCall(op)) {

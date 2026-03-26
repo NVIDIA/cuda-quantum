@@ -316,25 +316,45 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
     if (concat.getType().hasSpecifiedSize())
       return failure();
 
+    auto *ctx = rewriter.getContext();
+    auto loc = concat.getLoc();
+    auto refTy = quake::RefType::get(ctx);
     // Walk the arguments and sum them, if possible.
     std::size_t sum = 0;
+    SmallVector<Value> targets;
     for (auto opnd : concat.getTargets()) {
       if (auto veqTy = dyn_cast<quake::VeqType>(opnd.getType())) {
         if (!veqTy.hasSpecifiedSize())
           return failure();
         sum += veqTy.getSize();
+        targets.push_back(opnd);
         continue;
       }
-      assert(isa<quake::RefType>(opnd.getType()));
-      sum++;
+      if (auto stqTy = dyn_cast<quake::StruqType>(opnd.getType())) {
+        if (!stqTy.hasSpecifiedSize())
+          return failure();
+        sum += quake::getAllocationSize(stqTy);
+        auto arity = stqTy.getArity();
+        if (*arity) {
+          // Get each member for IR legalization.
+          for (auto [i, memTy] : llvm::enumerate(stqTy.getMembers())) {
+            auto mem = rewriter.create<quake::GetMemberOp>(loc, memTy, opnd, i);
+            targets.push_back(mem);
+          }
+        }
+        continue;
+      }
+      if (opnd.getType() == refTy) {
+        sum++;
+        targets.push_back(opnd);
+        continue;
+      }
+      return failure();
     }
 
     // Leans into the relax_size canonicalization pattern.
-    auto *ctx = rewriter.getContext();
-    auto loc = concat.getLoc();
     auto newTy = quake::VeqType::get(ctx, sum);
-    Value newOp =
-        rewriter.create<quake::ConcatOp>(loc, newTy, concat.getTargets());
+    Value newOp = rewriter.create<quake::ConcatOp>(loc, newTy, targets);
     auto noSizeTy = quake::VeqType::getUnsized(ctx);
     rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(concat, noSizeTy, newOp);
     return success();

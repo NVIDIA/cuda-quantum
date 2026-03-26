@@ -397,27 +397,29 @@ def quake_ApplyOp : QuakeOp<"apply",
     Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
-    Variadic<AnyType>:$args
+    Variadic<AnyType>:$actuals
   );
   let results = (outs Variadic<AnyType>);
 
   let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::SymbolRefAttr":$callee,
                    "mlir::UnitAttr":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
-                   is_adj, controls, args);
+      return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
+                   args);
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::SymbolRefAttr":$callee,
                    "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
-                   is_adj, controls, args);
+      return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
+                   args);
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
@@ -446,7 +448,7 @@ def quake_ApplyOp : QuakeOp<"apply",
     operand_range getArgOperands() {
       if (getControls().empty())
         return {operand_begin(), operand_end()};
-      return {getArgs().begin(), getArgs().end()};
+      return {getActuals().begin(), getActuals().end()};
     }
 
     bool applyToVariant() {
