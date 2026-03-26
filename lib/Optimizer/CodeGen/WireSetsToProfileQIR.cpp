@@ -71,7 +71,7 @@ struct QuakeTypeConverter : public TypeConverter {
       return cudaq::opt::getResultType(ty.getContext());
     });
     addConversion([](quake::MeasurementsType ty) {
-      return LLVM::LLVMPointerType::get(ty.getContext());
+      return cudaq::opt::getArrayType(ty.getContext());
     });
   }
 };

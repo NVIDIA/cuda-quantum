@@ -136,10 +136,7 @@ struct QIRAPITypeConverter : public TypeConverter {
     addConversion(
         [&](quake::MeasureType ty) { return getResultType(ty.getContext()); });
     addConversion([&](quake::MeasurementsType ty) {
-      // `MeasurementsType` should be eliminated before codegen.
-      // This fallback uses an opaque pointer to avoid crashing if
-      // the type leaks through unexpectedly.
-      return LLVM::LLVMPointerType::get(ty.getContext());
+      return getArrayType(ty.getContext());
     });
     addConversion([&](quake::StruqType ty) { return convertStruqType(ty); });
   }

@@ -153,6 +153,10 @@ Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
   return array;
 }
 
+Array *__quantum__rt__result_array_create_1d(int64_t count) {
+  return __quantum__rt__array_create_1d(sizeof(void *), count);
+}
+
 int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx) {
   Array &arr = *q;
   int8_t *ptr = arr[idx];
