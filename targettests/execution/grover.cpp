@@ -32,7 +32,7 @@ struct run_grover {
   template <typename CallableKernel>
   __qpu__ auto operator()(const int n_qubits, const long target_state,
                           CallableKernel &&oracle) {
-    int n_iterations = round(0.25 * M_PI * sqrt(2 ^ n_qubits));
+    int n_iterations = round(0.25 * M_PI * sqrt(std::pow(2, n_qubits)));
 
     cudaq::qvector qs(n_qubits);
     h(qs);
