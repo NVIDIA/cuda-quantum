@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "MPI/MpiDecoratedQPU.h"
+#include "MPI/QpuProcessGroup.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "common/NoiseModel.h"
@@ -25,21 +25,64 @@
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
-struct MpiContext {
-  int rank;
-  std::unordered_map<int, int> localRankToQpuId;
+
+class DefaultQPU : public cudaq::QPU {
+public:
+  DefaultQPU() = default;
+  virtual ~DefaultQPU() = default;
+
+  void enqueue(cudaq::QuantumTask &task) override {
+    execution_queue->enqueue(task);
+  }
+
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
+    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
+    return kernelFunc(args, /*isRemote=*/false);
+  }
+
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
+    ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
+                           context.name);
+    if (noiseModel)
+      context.noiseModel = noiseModel;
+
+    context.executionManager = cudaq::getDefaultExecutionManager();
+    context.executionManager->configureExecutionContext(context);
+  }
+
+  void beginExecution() override {
+    cudaq::getExecutionContext()->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    cudaq::getExecutionContext()->executionManager->endExecution();
+  }
+
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
+    ScopedTraceWithContext(
+        context.name == "observe" ? cudaq::TIMING_OBSERVE : 0,
+        "DefaultPlatform::finalizeExecutionContext", context.name);
+    handleObservation(context);
+
+    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
+        context);
+  }
 };
 
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
-  std::vector<std::unique_ptr<cudaq::AutoLaunchRestServerProcess>>
-      m_remoteServers;
-  std::optional<MpiContext> mpiContext;
+  std::vector<cudaq::details::QpuProcessGroup> m_qpuProcessGroups;
+
 public:
   ~MultiQPUQuantumPlatform() {
     // Make sure that we clean up the client QPUs first before cleaning up the
     // remote servers.
     platformQPUs.clear();
-    m_remoteServers.clear();
+    m_qpuProcessGroups.clear();
   }
 
   MultiQPUQuantumPlatform() {
@@ -82,10 +125,10 @@ public:
   std::future<cudaq::sample_result>
   enqueueAsyncTask(const std::size_t qpu_id,
                    cudaq::KernelExecutionTask &t) override {
-    if (mpiContext.has_value()) {
-      int localRank = mpiContext->rank;
-      int assignedQpuId = mpiContext->localRankToQpuId.at(localRank);
-      if (assignedQpuId != (int)qpu_id) {
+    if (!m_qpuProcessGroups.empty()) {
+      const int localRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
+      const auto& qpuProcessGroup = m_qpuProcessGroups[qpu_id];
+      if (!qpuProcessGroup.contains(localRank)) {
         // Add a no-op task to keep the promise alive for this rank, even though
         // it won't do any work since it's not assigned to this QPU.
         cudaq::KernelExecutionTask emptyTask =
@@ -209,11 +252,9 @@ private:
       }
     }
     platformQPUs.clear();
-    mpiContext = std::nullopt; // reset any existing MPI context since we're
-                               // reconfiguring the platform
     // No QPU sub-type, i.e., simulators
     // Check for MPI first, i.e., if we're running with mpirun/mpiexec.
-    const auto numMpiRanks = cudaq::getMPIProcessCount();
+    const auto numMpiRanks = cudaq::details::QpuProcessGroup::getNumMpiRanks();
     std::cout << "Detected " << numMpiRanks
               << " MPI ranks in the environment. Configuring platform QPUs for "
                  "MPI-based distributed execution."
@@ -266,11 +307,9 @@ private:
         qpuRankAssignments[rank % numQpus].push_back(rank);
         localRankToQpuId[rank] = rank % numQpus;
       }
-      mpiContext = MpiContext{.rank = cudaq::getMPIRank(), .localRankToQpuId = localRankToQpuId};
       for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
-        platformQPUs.emplace_back(
-            std::make_unique<cudaq::details::MpiDecoratedQPU>(
-                qpuRankAssignments[qId]));
+        m_qpuProcessGroups.emplace_back(qpuRankAssignments[qId]);
+        platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
         platformQPUs.back()->setId(qId);
         platformQPUs.back()->setTargetBackend(description);
       }

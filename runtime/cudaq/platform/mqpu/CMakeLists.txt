@@ -36,7 +36,7 @@ target_link_libraries(${LIBRARY_NAME}
     pthread
 )
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE mpi-decorated-qpu)
+target_link_libraries(${LIBRARY_NAME} PRIVATE qpu-mpi-process-group)
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   target_link_libraries(${LIBRARY_NAME} PRIVATE gpu-emulated-qpu)

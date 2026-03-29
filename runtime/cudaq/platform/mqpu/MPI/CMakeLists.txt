@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_library(mpi-decorated-qpu OBJECT MpiDecoratedQPU.cpp)
-target_link_libraries(mpi-decorated-qpu PUBLIC 
+add_library(qpu-mpi-process-group OBJECT QpuProcessGroup.cpp)
+target_link_libraries(qpu-mpi-process-group PUBLIC 
                         cudaq-common 
                         cudaq-logger 
 )
-target_include_directories(mpi-decorated-qpu PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
+target_include_directories(qpu-mpi-process-group PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)

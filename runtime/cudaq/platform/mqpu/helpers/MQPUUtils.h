@@ -35,9 +35,4 @@ private:
 // If CUDA is present, returns the actual number of GPU devices. Otherwise,
 // returns 0.
 int getCudaDeviceCount();
-// Helper to retrieve the number of MPI processes in the current execution
-// context. If not running in an MPI context, returns 1.
-int getMPIProcessCount();
-
-int getMPIRank();
 } // namespace cudaq

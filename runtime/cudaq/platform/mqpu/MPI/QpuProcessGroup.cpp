@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "MpiDecoratedQPU.h"
+#include "QpuProcessGroup.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "cudaq/platform/quantum_platform.h"
@@ -24,16 +24,44 @@
     }                                                                          \
   };
 
+namespace {
+static cudaq::MPIPlugin *g_mpiPlugin = nullptr;
+static cudaqDistributedCommunicator_t *worldComm = nullptr;
+static cudaqDistributedInterface_t *mpiInterface = nullptr;
+static const bool initialized = []() {
+  g_mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!g_mpiPlugin) {
+    throw std::runtime_error("Failed to retrieve MPI plugin");
+  }
+  mpiInterface = g_mpiPlugin->get();
+  worldComm = g_mpiPlugin->getComm();
+  return true;
+}();
+} // namespace
+
 namespace cudaq {
 namespace details {
 
-MpiDecoratedQPU::MpiDecoratedQPU(const std::vector<int> &globalRanks)
-    : cudaq::QPU() {
-  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
-  mpiInterface = mpiPlugin->get();
-  worldComm = mpiPlugin->getComm();
+QpuProcessGroup::QpuProcessGroup(const std::vector<int> &globalRanks)
+    : globalRanks(globalRanks) {
   int rank = 0;
   HANDLE_MPI_ERROR(mpiInterface->getProcRank(worldComm, &rank));
+
+  {
+    volatile int i = 5;
+    // ENV variable to control whether to wait for attach
+    const char *envVal = std::getenv("CUDAQ_MQPU_WAIT_FOR_ATTACH");
+    if (envVal != nullptr) {
+      i = 0;
+    }
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    printf("Rank %d PID %d on %s ready for attach\n", rank, getpid(), hostname);
+    fflush(stdout);
+    while (0 == i)
+      sleep(5);
+  }
+
   if (std::find(globalRanks.begin(), globalRanks.end(), rank) ==
       globalRanks.end()) {
     // This rank is not part of this QPU's communicator group, so we can skip
@@ -47,7 +75,7 @@ MpiDecoratedQPU::MpiDecoratedQPU(const std::vector<int> &globalRanks)
   cudaqDistributedGroup_t world_group;
   HANDLE_MPI_ERROR(mpiInterface->CommGroup(worldComm, &world_group));
   std::cout << "Rank " << rank
-            << " Creating MpiDecoratedQPU with global ranks: ";
+            << " Creating QpuProcessGroup with global ranks: ";
   for (int rank : globalRanks) {
     std::cout << rank << " ";
   }
@@ -62,94 +90,39 @@ MpiDecoratedQPU::MpiDecoratedQPU(const std::vector<int> &globalRanks)
                                            globalRanks.data(), &qpuGroup));
   HANDLE_MPI_ERROR(
       mpiInterface->CommCreateGroup(worldComm, qpuGroup, 0, &qpuComm));
-
-  // {
-  //   volatile int i = 0;
-  //   char hostname[256];
-  //   gethostname(hostname, sizeof(hostname));
-  //   printf("Rank %d PID %d on %s ready for attach\n", rank,
-  //          getpid(), hostname);
-  //   fflush(stdout);
-  //   while (0 == i)
-  //     sleep(5);
-  // }
 }
 
-int MpiDecoratedQPU::getLocalMpiRank() const {
+int QpuProcessGroup::getLocalMpiRank() const {
   int rank = 0;
   HANDLE_MPI_ERROR(mpiInterface->getProcRank(qpuComm, &rank));
   return rank;
 }
 
-int MpiDecoratedQPU::getGlobalMpiRank() const {
+int QpuProcessGroup::getGlobalMpiRank() {
+  int initialized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->initialized(&initialized));
+  if (!initialized)
+    return 0;
+
   int rank = 0;
   HANDLE_MPI_ERROR(mpiInterface->getProcRank(worldComm, &rank));
   return rank;
 }
 
-void MpiDecoratedQPU::enqueue(cudaq::QuantumTask &task) {
-  // Note: enqueue is executed on the main thread, not the QPU execution
-  // thread. Hence, do not set the CUDA device here.
-  CUDAQ_INFO("Enqueue Task on QPU {}, MPI rank {} (global rank {})", qpu_id,
-             getLocalMpiRank(), getGlobalMpiRank());
+int QpuProcessGroup::getNumMpiRanks() {
+  int initialized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->initialized(&initialized));
+  if (!initialized)
+    return 1;
 
-  execution_queue->enqueue(task);
+  int size = 0;
+  HANDLE_MPI_ERROR(mpiInterface->getNumRanks(worldComm, &size));
+  return size;
 }
 
-cudaq::KernelThunkResultType MpiDecoratedQPU::launchKernel(
-    const std::string &name, cudaq::KernelThunkType kernelFunc, void *args,
-    std::uint64_t, std::uint64_t, const std::vector<void *> &rawArgs) {
-  if (qpuComm == nullptr) {
-    return cudaq::KernelThunkResultType{nullptr, 0};
-  }
-  CUDAQ_INFO("QPU::launchKernel GPU {}, MPI rank {} (global rank {})", qpu_id,
-             getLocalMpiRank(), getGlobalMpiRank());
-
-  return kernelFunc(args, /*differentMemorySpace=*/false);
-}
-
-void MpiDecoratedQPU::configureExecutionContext(
-    cudaq::ExecutionContext &context) const {
-  if (qpuComm == nullptr) {
-    return;
-  }
-  CUDAQ_INFO("MultiQPUPlatform::configureExecutionContext QPU {}, MPI rank {} "
-             "(global rank {})",
-             qpu_id, getLocalMpiRank(), getGlobalMpiRank());
-  if (noiseModel)
-    context.noiseModel = noiseModel;
-
-  context.executionManager = cudaq::getDefaultExecutionManager();
-  context.executionManager->configureExecutionContext(context);
-}
-
-void MpiDecoratedQPU::beginExecution() {
-  if (qpuComm == nullptr) {
-    return;
-  }
-  cudaq::getExecutionContext()->executionManager->beginExecution();
-}
-
-void MpiDecoratedQPU::endExecution() {
-  if (qpuComm == nullptr) {
-    return;
-  }
-  cudaq::getExecutionContext()->executionManager->endExecution();
-}
-
-void MpiDecoratedQPU::finalizeExecutionContext(
-    cudaq::ExecutionContext &context) const {
-  if (qpuComm == nullptr) {
-    return;
-  }
-  CUDAQ_INFO("MultiQPUPlatform::finalizeExecutionContext QPU {}, MPI rank {} "
-             "(global rank {})",
-             qpu_id, getLocalMpiRank(), getGlobalMpiRank());
-
-  handleObservation(context);
-
-  cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
-      context);
+bool QpuProcessGroup::contains(int globalRank) const {
+  return std::find(globalRanks.begin(), globalRanks.end(), globalRank) !=
+         globalRanks.end();
 }
 } // namespace details
 } // namespace cudaq
