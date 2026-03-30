@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/test_trotter.cpp"
+#include "../execution/trotter.cpp"
