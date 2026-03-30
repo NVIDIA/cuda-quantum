@@ -36,8 +36,6 @@ static constexpr const char NVQIR_SIMULATION_BACKEND[] =
 static constexpr const char IS_FP64_SIMULATION[] =
     "CUDAQ_SIMULATION_SCALAR_FP64";
 
-// Defined in cudaq.h / cudaq.cpp. Uses cudaGetDeviceCount() directly,
-// avoiding the overhead of spawning nvidia-smi subprocesses.
 int num_available_gpus();
 
 void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,

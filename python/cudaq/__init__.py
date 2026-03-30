@@ -325,10 +325,7 @@ def __getattr__(name):
 
     # Fallback: try deferred star-import modules.
     for mod_path in _DEFERRED_STAR_MODULES:
-        try:
-            mod = importlib.import_module(mod_path, __name__)
-        except ImportError:
-            continue
+        mod = importlib.import_module(mod_path, __name__)
         if hasattr(mod, name):
             val = getattr(mod, name)
             globals()[name] = val
