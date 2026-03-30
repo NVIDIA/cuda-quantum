@@ -60,6 +60,7 @@ LONG_RUNNING_NOTEBOOKS = [
     "unitary_compilation_diffusion_models.ipynb",
     "qm_mm_pe.ipynb",
     "qsci.ipynb",
+    "uccsd_wf_ansatz.ipynb",
     "vqe_advanced.ipynb",
 ]
 
