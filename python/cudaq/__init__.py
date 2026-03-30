@@ -325,16 +325,25 @@ def __getattr__(name):
 
     # Fallback: try deferred star-import modules.
     for mod_path in _DEFERRED_STAR_MODULES:
-        mod = importlib.import_module(mod_path, __name__)
+        try:
+            mod = importlib.import_module(mod_path, __name__)
+        except ImportError:
+            continue
         if hasattr(mod, name):
             val = getattr(mod, name)
             globals()[name] = val
             return val
 
-    raise AttributeError(f"module 'cudaq' has no attribute {name}")
+    raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
 
 
 def __dir__():
+    """Includes lazy-loaded names so tab-completion matches pre-lazy behavior.
+
+    This triggers the deferred star-module imports (e.g. scipy via
+    dynamics.integrators) on first tab-completion, so there is a one-time
+    performance cost in interactive sessions.
+    """
     import importlib
     names = list(globals().keys())
     names.extend(_LAZY_ATTRS.keys())
