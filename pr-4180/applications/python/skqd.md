@@ -894,17 +894,35 @@ pr-4180
         -   [Classical Post-Processing and
             Diagonalization](#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](#Results-Analysis-and-Convergence){.reference
             .internal}
             -   [What to Expect:](#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
             .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](#Saving-Hamiltonian-Data){.reference .internal}
+            -   [Running the Distributed
+                Solver](#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](#Summary){.reference .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -2081,24 +2099,24 @@ challenges:
 
 SKQD addresses these fundamental limitations:
 
--   ✅ **No optimization required**: Uses deterministic quantum time
+-   **No optimization required**: Uses deterministic quantum time
     evolution instead of variational circuits
 
--   ✅ **Provable convergence**: Theoretical guarantees based on the
+-   **Provable convergence**: Theoretical guarantees based on the
     Rayleigh-Ritz variational principle
 
--   ✅ **Measurement efficient**: Only requires computational basis
+-   **Measurement efficient**: Only requires computational basis
     measurements (Z-basis), the most natural measurement on quantum
     hardware
 
--   ✅ **Noise resilient**: Can filter out problematic measurement
-    outcomes and handle finite sampling
+-   **Noise resilient**: Can filter out problematic measurement outcomes
+    and handle finite sampling
 
--   ✅ **Systematic improvement**: Increasing Krylov dimension
+-   **Systematic improvement**: Increasing Krylov dimension
     monotonically improves ground state estimates
 
--   ✅ **Hardware friendly**: Time evolution circuits are more amenable
-    to near-term quantum devices than deep variational ansätze
+-   **Hardware friendly**: Time evolution circuits are more amenable to
+    near-term quantum devices than deep variational ansätze
 :::
 
 ::: {#Understanding-Krylov-Subspaces .section}
@@ -2132,7 +2150,7 @@ subspace classically
 This approach is much more efficient than computing matrix elements via
 quantum measurements!
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [1]:
@@ -2142,24 +2160,51 @@ quantum measurements!
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     import cudaq
-    import matplotlib.pyplot as plt
-    import cupy as cp
     import numpy as np
+    import cupy as cp
+    import pickle
+
     from skqd_src.pre_and_postprocessing import *
 
-    use_gpu = True #this is for postprocessing, the quantum circuit simulation is done on GPU via the nvidia target using CUDA-Q
-    if use_gpu == True:
-        from cupyx.scipy.sparse import csr_matrix
-        from cupyx.scipy.sparse.linalg import eigsh
+    from scipy.sparse import csr_matrix as sp_csr_matrix
+    from scipy.sparse.linalg import eigsh as sp_eigsh
+
+    from cupyx.scipy.sparse import csr_matrix as cp_csr_matrix
+    from cupyx.scipy.sparse.linalg import eigsh as cp_eigsh
+
+    if cudaq.num_available_gpus() > 0 and cudaq.has_target("nvidia"):
+        cudaq.set_target("nvidia")
     else:
-        from scipy.sparse import csr_matrix
-        from scipy.sparse.linalg import eigsh
+        cudaq.set_target("qpp-cpu")
 
-
-    cudaq.set_target('nvidia')
     cudaq.set_random_seed(42)
     np.random.seed(43)
     cp.random.seed(44)
+
+    print("Using:", cudaq.__version__)
+:::
+:::
+:::
+
+::: {.nboutput .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .stderr .docutils .container}
+::: highlight
+    /usr/local/lib/python3.12/dist-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+      from .autonotebook import tqdm as notebook_tqdm
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    Using: CUDA-Q Version 0.14.0 (https://github.com/NVIDIA/cuda-quantum d84568366c3f9e9a33b3829ff43fb794b3a703ab)
 :::
 :::
 :::
@@ -2169,13 +2214,12 @@ quantum measurements!
 ::: {#Problem-Setup:-22-Qubit-Heisenberg-Model .section}
 ## Problem Setup: 22-Qubit Heisenberg Model[¶](#Problem-Setup:-22-Qubit-Heisenberg-Model "Permalink to this heading"){.headerlink}
 
-We'll demonstrate SKQD on a 1D Heisenberg spin chain with 22 qubits:
+We demonstrate SKQD on a 1D Heisenberg spin chain with 22 qubits:
 
 ::: {.math .notranslate .nohighlight}
 \\\[H = \\sum\_{i} \\left(J_x \\sigma_i\^x \\sigma\_{i+1}\^x + J_y
 \\sigma_i\^y \\sigma\_{i+1}\^y + J_z \\sigma_i\^z
-\\sigma\_{i+1}\^z\\right) + \\sum_i \\left(h_x \\sigma_i\^x + h_y
-\\sigma_i\^y + h_z \\sigma_i\^z\\right)\\\]
+\\sigma\_{i+1}\^z\\right)\\\]
 :::
 
 ::: {.nbinput .nblast .docutils .container}
@@ -2200,13 +2244,8 @@ We'll demonstrate SKQD on a 1D Heisenberg spin chain with 22 qubits:
 
     max_k = 12  # largest k for U^k
 
-    eigenvalue_solver_options = {"k": 2, "which": "SA"}  # Find 2 smallest eigenvalues
-
-
-
     Jx, Jy, Jz = 1.0, 1.0, 1.0
-    h_x, h_y, h_z = np.ones(num_spins), np.ones(num_spins), np.ones(num_spins)
-    H = create_heisenberg_hamiltonian(num_spins, Jx, Jy, Jz, h_x, h_y, h_z)
+    H = create_heisenberg_hamiltonian(num_spins, Jx, Jy, Jz)
     exact_ground_state_energy = -38.272304 # Computed via exact diagonalization
     hamiltonian_coefficients, pauli_words = extract_coeffs_and_paulis(H)
     hamiltonian_coefficients_numpy = np.array(hamiltonian_coefficients)
@@ -2296,11 +2335,11 @@ Accumulate measurement statistics across all Krylov powers
 ::: {#The-Sampling-Process .section}
 ### The Sampling Process[¶](#The-Sampling-Process "Permalink to this heading"){.headerlink}
 
-For each krylov power \$ = 0, 1, 2, [\\ldots]{.math}, k-1\$: 1.
-**Prepare** the state [\\(U\^k\|\\psi\\rangle\\)]{.math .notranslate
-.nohighlight} using our quantum circuit 2. **Measure** in the
-computational basis many times 3. **Collect** the resulting bitstring
-counts
+For each Krylov power [\\(k = 0, 1, 2, \\ldots, K-1\\)]{.math
+.notranslate .nohighlight}: 1. **Prepare** the state
+[\\(U\^k\|\\psi_0\\rangle\\)]{.math .notranslate .nohighlight} using our
+quantum circuit 2. **Measure** in the computational basis many times 3.
+**Collect** the resulting bitstring counts
 
 The key insight: these measurement outcomes give us a statistical
 representation of each Krylov state, which we can then use to construct
@@ -2331,7 +2370,6 @@ our computational subspace classically.
             shots_count=shots)
 
         all_measurement_results.append(dict(sampling_result.items()))
-
 
     cumulative_results = calculate_cumulative_results(all_measurement_results)
 :::
@@ -2378,8 +2416,8 @@ subspace.
 
 4.  **Extract ground state energy** estimate
 
-::: {#The-SKQD-Algorithm:-Matrix-Construction-Details .section}
-### The SKQD Algorithm: Matrix Construction Details[¶](#The-SKQD-Algorithm:-Matrix-Construction-Details "Permalink to this heading"){.headerlink}
+::: {#Matrix-Construction-Details .section}
+### Matrix Construction Details[¶](#Matrix-Construction-Details "Permalink to this heading"){.headerlink}
 
 The core of SKQD is constructing the effective Hamiltonian matrix within
 the computational subspace:
@@ -2397,7 +2435,7 @@ the computational subspace:
     \\\[H = \\sum_k h_k P_k\\\]
     :::
 
-    We compute matrix elements: [\\(\\langle s_i \| P_k \| s_j
+    We compute matrix elements [\\(\\langle s_i \| P_k \| s_j
     \\rangle\\)]{.math .notranslate .nohighlight} by applying the Pauli
     string [\\(P_k\\)]{.math .notranslate .nohighlight} to each basis
     state [\\(\|s_j\\rangle\\)]{.math .notranslate .nohighlight}.
@@ -2409,6 +2447,17 @@ the computational subspace:
     \\rangle\\\]
     :::
 
+We demonstrate two eigenvalue solver approaches below: an explicit CSR
+sparse matrix and a matrix-free Lanczos iteration.
+:::
+
+::: {#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix .section}
+### Approach 1: GPU-Vectorized CSR Sparse Matrix[¶](#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix "Permalink to this heading"){.headerlink}
+
+We build the projected Hamiltonian as a CuPy CSR sparse matrix on the
+GPU and solve with [`cupyx.scipy.sparse.linalg.eigsh`{.docutils .literal
+.notranslate}]{.pre}.
+
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
@@ -2418,7 +2467,7 @@ the computational subspace:
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    energies = []
+    csr_energies = []
 
     for k in range(1, max_k):
 
@@ -2427,14 +2476,74 @@ the computational subspace:
         subspace_dimension = len(cumulative_subspace_results)
         assert len(cumulative_subspace_results) == basis_states.shape[0]
 
-        # matrix_rows, matrix_cols, matrix_elements = projected_hamiltonian(basis_states, pauli_words, hamiltonian_coefficients_numpy, verbose) #slower non-vectorized implementation
+        # #slower non-vectorized  CPU implementation with CSR matrix input
+        # matrix_rows, matrix_cols, matrix_elements = projected_hamiltonian_cpu(basis_states, pauli_words, hamiltonian_coefficients_numpy)
+        # projected_hamiltonian = sp_csr_matrix((matrix_elements, (matrix_rows, matrix_cols)), shape=(subspace_dimension, subspace_dimension))
+        # eigenvalue = sp_eigsh(projected_hamiltonian, return_eigenvectors=False, **eigenvalue_solver_options)
 
-        #if use_gpu is True, the projected hamiltonian & eigenvalue solver are computed on the GPU
-        matrix_rows, matrix_cols, matrix_elements = vectorized_projected_hamiltonian(basis_states, pauli_words, hamiltonian_coefficients_numpy, use_gpu)
-        projected_hamiltonian = csr_matrix((matrix_elements, (matrix_rows, matrix_cols)), shape=(subspace_dimension, subspace_dimension))
-        eigenvalue = eigsh(projected_hamiltonian, return_eigenvectors=False, **eigenvalue_solver_options)
+        v0_np = np.random.random((subspace_dimension,)).astype(np.float64)
+        v0_np = v0_np / np.linalg.norm(v0_np)
+        v0 = cp.asarray(v0_np, dtype=cp.complex128)
 
-        energies.append(np.min(eigenvalue).item())
+        vectorized_pj_on_gpu = True
+        matrix_rows, matrix_cols, matrix_elements = vectorized_projected_hamiltonian(
+            basis_states, pauli_words, hamiltonian_coefficients_numpy, vectorized_pj_on_gpu)
+
+        projected_hamiltonian = cp_csr_matrix(
+            (matrix_elements, (matrix_rows, matrix_cols)),
+            shape=(subspace_dimension, subspace_dimension))
+
+        eigenvalue = cp_eigsh(projected_hamiltonian, return_eigenvectors=False,
+                              k=1, which='SA', v0=v0)
+
+        csr_energies.append(np.min(eigenvalue).item())
+:::
+:::
+:::
+:::
+
+::: {#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh .section}
+### Approach 2: Matrix-Free Lanczos via [`distributed_eigsh`{.docutils .literal .notranslate}]{.pre}[¶](#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh "Permalink to this heading"){.headerlink}
+
+Instead of explicitly constructing the projected Hamiltonian as a sparse
+matrix, we can apply the Hamiltonian as a linear operator during Lanczos
+iteration. This matrix-free approach avoids storing the full sparse
+matrix and naturally extends to multiple GPUs (demonstrated in the
+multi-GPU section below).
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [6]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    lo_energies = []
+
+    for k in range(1, max_k):
+
+        cumulative_subspace_results = cumulative_results[k]
+        basis_states = get_basis_states_as_array(cumulative_subspace_results, num_spins)
+        subspace_dimension = len(cumulative_subspace_results)
+
+        v0_np = np.random.random((subspace_dimension,)).astype(np.float64)
+        v0_np = v0_np / np.linalg.norm(v0_np)
+        v0 = cp.asarray(v0_np, dtype=cp.complex128)
+
+        ham_data = prepare_hamiltonian_data(basis_states, pauli_words, hamiltonian_coefficients_numpy)
+        cp.get_default_memory_pool().free_all_blocks()
+        ncv = min(20, subspace_dimension - 1)
+
+        eigenvalues, = distributed_eigsh(
+            ham_data, rank=0, size=1, nccl_comm_obj=None,
+            k=1, which='SA', ncv=ncv, v0_full=v0,
+            tile_size=32, return_eigenvectors=False)
+
+        eigenvalue = eigenvalues[0]
+        eigenvalue_real = float(cp.asnumpy(eigenvalue).real)
+        lo_energies.append(eigenvalue_real)
 :::
 :::
 :::
@@ -2445,8 +2554,7 @@ the computational subspace:
 ## Results Analysis and Convergence[¶](#Results-Analysis-and-Convergence "Permalink to this heading"){.headerlink}
 
 Let's visualize our results and analyze how SKQD converges to the true
-ground state energy. This is the moment of truth - does our
-quantum-classical hybrid algorithm work?
+ground state energy.
 
 ::: {#What-to-Expect: .section}
 ### What to Expect:[¶](#What-to-Expect: "Permalink to this heading"){.headerlink}
@@ -2467,34 +2575,13 @@ reference for comparison with SKQD results.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [7]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    # Create visualization of SKQD convergence
-
-    plt.figure(figsize=(5, 4))
-    all_dims = range(1, max_k)
-
-    plt.plot(all_dims, energies, 'o-', linewidth=2, markersize=8, label='SKQD')
-    plt.plot(all_dims, [exact_ground_state_energy] * (max_k-1), 'g', linewidth=2, label='Exact ground state')
-
-    plt.xticks(all_dims)
-    plt.xlabel("Krylov Subspace Dimension", fontsize=12)
-    plt.ylabel("Ground State Energy", fontsize=12)
-    plt.title("Ground State Energy vs Krylov Dimension", fontsize=14, pad=20)
-    plt.legend(fontsize=11)
-    plt.grid(True, alpha=0.3)
-
-    final_error = abs(energies[-1] - exact_ground_state_energy)
-    plt.text(0.02, 0.98, f'Final error: {final_error:.6f}\nExact energy: {exact_ground_state_energy:.6f}',
-             transform=plt.gca().transAxes, verticalalignment='top',
-             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-    plt.tight_layout()
-
-    plt.show()
+    plot_skqd_convergence(csr_energies, lo_energies, range(1, max_k), exact_ground_state_energy)
 :::
 :::
 :::
@@ -2504,60 +2591,26 @@ reference for comparison with SKQD results.
 :::
 
 ::: {.output_area .docutils .container}
-![](../../_images/applications_python_skqd_12_0.png)
+![](../../_images/applications_python_skqd_14_0.png)
 :::
 :::
 :::
 :::
 
-::: {#GPU-Acceleration-for-Postprocessing .section}
-## GPU Acceleration for Postprocessing[¶](#GPU-Acceleration-for-Postprocessing "Permalink to this heading"){.headerlink}
+::: {#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU .section}
+## Postprocessing Acceleration: CSR matrix approach, single GPU vs CPU[¶](#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU "Permalink to this heading"){.headerlink}
 
-The critical postprocessing operations are:
-
-1.  Hamiltonian projection onto computational subspace
-
-[`matrix_rows,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`matrix_cols,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`matrix_elements`{.docutils .literal
+The data in the plot below was gathered by averaging over 5 runs on a
+NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads.
+The only thing that changed between the 2 data points was
+[`vectorized_pj_on_gpu`{.docutils .literal
 .notranslate}]{.pre}` `{.docutils .literal .notranslate}[`=`{.docutils
 .literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`vectorized_projected_hamiltonian(basis_states,`{.docutils
-.literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`pauli_words,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`hamiltonian_coefficients_numpy,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`use_gpu)`{.docutils .literal .notranslate}]{.pre}
-
-2.  Sparse matrix construction
-
-[`projected_hamiltonian`{.docutils .literal
+.notranslate}[`True`{.docutils .literal .notranslate}]{.pre} and
+[`vectorized_pj_on_gpu`{.docutils .literal
 .notranslate}]{.pre}` `{.docutils .literal .notranslate}[`=`{.docutils
 .literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`csr_matrix((matrix_elements,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`(matrix_rows,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`matrix_cols)),`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`shape=(subspace_dimension,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`subspace_dimension))`{.docutils .literal
-.notranslate}]{.pre}
-
-3.  Eigenvalue computation
-
-[`eigenvalue`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`=`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`eigsh(projected_hamiltonian,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`return_eigenvectors=False,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`**eigenvalue_solver_options)`{.docutils .literal
-.notranslate}]{.pre}
+.notranslate}[`False`{.docutils .literal .notranslate}]{.pre}
 
 This substantial acceleration comes from: - **Parallel Pauli string
 evaluation** across thousands of basis states simultaneously -
@@ -2571,52 +2624,179 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-**Note**: Set [`use_gpu`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`=`{.docutils
-.literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`True`{.docutils .literal .notranslate}]{.pre} at the
-beginning of the notebook to enable GPU acceleration for postprocessing.
-The quantum circuit simulation uses the NVIDIA target in CUDA-Q
-regardless of this flag.
+![2b005d19d5dc44a39db8b655fc5a111b](../../_images/speedup.png){.no-scaled-link
+style="width: 500px;"}
+:::
 
-The data in the plot below was gathered by averaging over 5 runs on a
-NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads.
-The only thing that changed between the 2 data points was
-[`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`=`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`True`{.docutils .literal .notranslate}]{.pre}
-and [`use_gpu`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`=`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`False`{.docutils .literal .notranslate}]{.pre}.
+::: {#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node .section}
+## Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node[¶](#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node "Permalink to this heading"){.headerlink}
 
-![f5cdb4c8b93f4a01ac5e1b0d87ebc5d3](../../_images/speedup.png){.no-scaled-link
-style="width: 600px;"}
+The plots below were generated using [`distributed_eigsh()`{.docutils
+.literal .notranslate}]{.pre} with the Hamiltonian of an active site of
+a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling
+behavior on a problem with a much larger computational subspace than the
+22-qubit demo above.
 
-::: {.nbinput .docutils .container}
+::: {style="display: flex; gap: 10px;"}
+![82ceb1ad604f4a878f8b62911973fb9c](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+style="width: 450px;"}
+![8b9fdd0037214ab79d294c34fdd7fc04](../../_images/efficiency.jpeg){.no-scaled-link
+style="width: 450px;"}
+:::
+
+::: {#Saving-Hamiltonian-Data .section}
+### Saving Hamiltonian Data[¶](#Saving-Hamiltonian-Data "Permalink to this heading"){.headerlink}
+
+To run the multi-GPU solver, we first save the Hamiltonian data (pauli
+words, coefficients) and the sampled basis states so they can be loaded
+by each MPI rank.
+
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [8]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    print("Using:", cudaq.__version__)
+    # # uncomment this to save the data
+
+    # cumulative_subspace_results = cumulative_results[max_k-1]
+    # basis_states = get_basis_states_as_array(cumulative_subspace_results, num_spins)
+
+    # with open('skqd_data.pkl', 'wb') as f:
+    #     pickle.dump({
+    #         'basis_states': basis_states,
+    #         'pauli_words': pauli_words,
+    #         'hamiltonian_coefficients': hamiltonian_coefficients_numpy,
+    #     }, f)
+:::
 :::
 :::
 :::
 
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
+::: {#Running-the-Distributed-Solver .section}
+### Running the Distributed Solver[¶](#Running-the-Distributed-Solver "Permalink to this heading"){.headerlink}
 
-::: {.output_area .docutils .container}
+Save the code below as [`distributed_postprocessing.py`{.docutils
+.literal .notranslate}]{.pre} and launch it with MPI. For example, on a
+system with 8 GPUs:
+
+::: {.highlight-bash .notranslate}
 ::: highlight
-    Using: CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 4509f3fced5e25e14d357e643fb247e09b2075d6)
+    mpirun -np 8 --bind-to none --allow-run-as-root python distributed_postprocessing.py
+:::
+:::
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [9]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    """
+    Multi-GPU SKQD Eigenvalue Solver
+
+    Usage:
+        Save the code below in a distributed_postprocessing.py file
+        Execute with the command below, for example on a system with 8 GPUs:
+        mpirun -np 8 --bind-to none --allow-run-as-root python distributed_postprocessing.py
+    """
+
+    import numpy as np
+    import cupy as cp
+    from skqd_src.pre_and_postprocessing import *
+    from mpi4py import MPI
+    import pickle
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    n_devices = cp.cuda.runtime.getDeviceCount()
+    my_gpu = rank % n_devices
+    cp.cuda.Device(my_gpu).use()
+
+    tile_size = 32
+
+    #uncomment this to load the data
+    # with open('skqd_data.pkl', 'rb') as f:
+    #     data = pickle.load(f)
+    #     basis_states = data['basis_states']
+    #     pauli_words = data['pauli_words']
+    #     hamiltonian_coefficients_numpy = data['hamiltonian_coefficients']
+
+
+
+    subspace_dimension = basis_states.shape[0]
+
+    ham_data = prepare_hamiltonian_data(basis_states, pauli_words, hamiltonian_coefficients_numpy)
+    cp.cuda.Device(my_gpu).synchronize()
+
+    nccl_comm_obj = None
+    if size > 1:
+        from cupy.cuda import nccl
+        if rank == 0:
+            nccl_id = nccl.get_unique_id()
+        else:
+            nccl_id = None
+        nccl_id = comm.bcast(nccl_id, root=0)
+        nccl_comm_obj = nccl.NcclCommunicator(size, nccl_id, rank)
+
+    np.random.seed(42)
+    v0_np = np.random.random((subspace_dimension,)).astype(np.float64)
+    v0_np = v0_np / np.linalg.norm(v0_np)
+    v0 = cp.asarray(v0_np, dtype=cp.complex128)
+
+    cp.get_default_memory_pool().free_all_blocks()
+
+    ncv = min(20, subspace_dimension - 1)
+
+    eigenvalues, = distributed_eigsh(
+        ham_data, rank, size, nccl_comm_obj,
+        k=1, which='SA', ncv=ncv, v0_full=v0,
+        tile_size=tile_size, return_eigenvectors=False)
+
+    eigenvalue = eigenvalues[0]
+    cp.cuda.Device(my_gpu).synchronize()
+    eigenvalue_real = float(cp.asnumpy(eigenvalue).real)
+
+    MPI.Finalize()
 :::
 :::
 :::
+:::
+:::
+
+::: {#Summary .section}
+## Summary[¶](#Summary "Permalink to this heading"){.headerlink}
+
+In this notebook we demonstrated the **Sample-Based Krylov Quantum
+Diagonalization (SKQD)** algorithm using CUDA-Q:
+
+1.  **Quantum phase**: Generated a sequence of Krylov states
+    [\\(U\^k\|\\psi_0\\rangle\\)]{.math .notranslate .nohighlight} via
+    Trotterized time evolution on a 22-qubit Heisenberg model, and
+    sampled each state in the computational basis.
+
+2.  **Classical post-processing**: Projected the Hamiltonian onto the
+    computational subspace defined by the measurement outcomes, and
+    extracted the ground state energy via eigenvalue solvers.
+
+3.  **Two solver approaches**: Compared an explicit GPU-accelerated CSR
+    sparse matrix solver with a matrix-free Lanczos iteration
+    ([`distributed_eigsh`{.docutils .literal .notranslate}]{.pre}),
+    showing both converge to the same result.
+
+4.  **GPU acceleration**: Demonstrated significant speedup of the
+    classical post-processing when using GPU-vectorized operations
+    compared to CPU.
+
+5.  **Multi-GPU scaling**: Showed how the matrix-free Lanczos solver
+    scales across multiple GPUs using NCCL for distributed computation.
 :::
 :::
 :::

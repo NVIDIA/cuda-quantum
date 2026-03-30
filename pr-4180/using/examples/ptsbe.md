@@ -907,8 +907,15 @@ pr-4180
         -   [Classical Post-Processing and
             Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](../../applications/python/skqd.html#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
@@ -916,8 +923,21 @@ pr-4180
             -   [What to
                 Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
+            .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](../../applications/python/skqd.html#Saving-Hamiltonian-Data){.reference
+                .internal}
+            -   [Running the Distributed
+                Solver](../../applications/python/skqd.html#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](../../applications/python/skqd.html#Summary){.reference
             .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference

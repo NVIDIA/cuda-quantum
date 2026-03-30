@@ -567,14 +567,22 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Matrix-Construction-Details">Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix">Approach 1: GPU-Vectorized CSR Sparse Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh">Approach 2: Matrix-Free Lanczos via <code class="docutils literal notranslate"><span class="pre">distributed_eigsh</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU">Postprocessing Acceleration: CSR matrix approach, single GPU vs CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Saving-Hamiltonian-Data">Saving Hamiltonian Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Running-the-Distributed-Solver">Running the Distributed Solver</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1228,7 +1236,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="6ae20f1adb9e409e9b64a8c3f6e551c3" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="51a47b88545e45b4aec40a54b39b4a2c" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>
