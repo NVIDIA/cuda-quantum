@@ -124,5 +124,27 @@ bool QpuProcessGroup::contains(int globalRank) const {
   return std::find(globalRanks.begin(), globalRanks.end(), globalRank) !=
          globalRanks.end();
 }
+
+void QpuProcessGroup::broadcast(cudaq::sample_result &data, const QpuProcessGroup &rootGroup) {
+  const bool isInGroup = rootGroup.contains(getGlobalMpiRank());
+  std::vector<std::size_t> serializedData;
+  const auto sourceRank = rootGroup.globalRanks.front();
+  if (isInGroup) {
+    serializedData = data.serialize();
+    int size = serializedData.size();
+    HANDLE_MPI_ERROR(
+        mpiInterface->Bcast(worldComm, &size, 1, INT_32, sourceRank));
+    HANDLE_MPI_ERROR(mpiInterface->Bcast(worldComm, serializedData.data(), size,
+                                         INT_64, sourceRank));
+  } else {
+    int size = 0;
+    HANDLE_MPI_ERROR(mpiInterface->Bcast(worldComm, &size, 1, INT_32, sourceRank));
+    serializedData.resize(size);
+    HANDLE_MPI_ERROR(
+        mpiInterface->Bcast(worldComm, serializedData.data(), size, INT_64, sourceRank));
+    data.deserialize(serializedData);
+  }
+}
+
 } // namespace details
 } // namespace cudaq

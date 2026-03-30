@@ -76,7 +76,7 @@ public:
 
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<cudaq::details::QpuProcessGroup> m_qpuProcessGroups;
-
+  bool m_broadcastKernelResults = true;
 public:
   ~MultiQPUQuantumPlatform() {
     // Make sure that we clean up the client QPUs first before cleaning up the
@@ -86,6 +86,20 @@ public:
   }
 
   MultiQPUQuantumPlatform() {
+    // Environment variable CUDAQ_MQPU_BROADCAST_RESULTS controls whether QPUs
+    // on different ranks should broadcast their kernel results to each other.
+    // This might be useful for users (all ranks have the same results), but can
+    // be turned off for platforms where this is not necessary to avoid the
+    // overhead of broadcasting.
+    const char *broadcastEnvVal = std::getenv("CUDAQ_MQPU_BROADCAST_RESULTS");
+    if (broadcastEnvVal != nullptr) {
+      const std::string valStr = broadcastEnvVal;
+      if (valStr == "0" || valStr == "false" || valStr == "False" ||
+          valStr == "FALSE" || valStr == "off" || valStr == "OFF") {
+        m_broadcastKernelResults = false;
+      }
+    }
+
     //   if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
     //     int nDevices = cudaq::getCudaDeviceCount();
     //     // Skipped if CUDA-Q was built with CUDA but no devices present at
@@ -129,16 +143,48 @@ public:
       const int localRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
       const auto& qpuProcessGroup = m_qpuProcessGroups[qpu_id];
       if (!qpuProcessGroup.contains(localRank)) {
-        // Add a no-op task to keep the promise alive for this rank, even though
-        // it won't do any work since it's not assigned to this QPU.
-        cudaq::KernelExecutionTask emptyTask =
-            cudaq::detail::make_copyable_function([]() mutable {
-              // No-op task
-              return cudaq::sample_result();
-            });
-        return quantum_platform::enqueueAsyncTask(qpu_id, emptyTask);
+        if (!m_broadcastKernelResults) {
+          // Add a no-op task to keep the promise alive for this rank, even
+          // though it won't do any work since it's not assigned to this QPU.
+          cudaq::KernelExecutionTask emptyTask =
+              cudaq::detail::make_copyable_function([]() mutable {
+                // No-op task
+                return cudaq::sample_result();
+              });
+          return quantum_platform::enqueueAsyncTask(qpu_id, emptyTask);
+        } else {
+          cudaq::KernelExecutionTask waitForBroadcastTask =
+              cudaq::detail::make_copyable_function([&qpuProcessGroup]() mutable {
+                cudaq::sample_result result;
+                // Wait for the result to be broadcasted from the ranks that execute the task.
+                cudaq::details::QpuProcessGroup::broadcast(result, qpuProcessGroup);
+                return result;
+              });
+          return quantum_platform::enqueueAsyncTask(qpu_id, waitForBroadcastTask);
+        }
+      } else {
+        // Execute then broadcast results among ranks in the same QPU process group.
+        auto future = quantum_platform::enqueueAsyncTask(qpu_id, t);
+        if (m_broadcastKernelResults) {
+          // As std::future doesn't support continuations (i.e., `then()`), we
+          // need to wrap the future in another one to broadcast the results
+          // after the task is done.
+          cudaq::KernelExecutionTask wrappedTask =
+              cudaq::detail::make_copyable_function(
+                  [&qpuProcessGroup, future = std::move(future)]() mutable {
+                    auto result = future.get(); // Wait for the original task to
+                                                // complete and get the result.
+                    // Broadcast the result to other ranks in the same QPU
+                    // process group.
+                    cudaq::details::QpuProcessGroup::broadcast(result, qpuProcessGroup);
+                    return result;
+                  });
+          return quantum_platform::enqueueAsyncTask(qpu_id, wrappedTask);
+        } else {
+          return future;
+        }
       }
-    }
+    }    
     return quantum_platform::enqueueAsyncTask(qpu_id, t);
   }
 
