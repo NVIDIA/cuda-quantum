@@ -284,12 +284,12 @@ def __clearKernelRegistries():
     globalRegisteredOperations.clear()
 
 
-# Lazy-loaded modules. The dynamics, kernels, and domains subpackages pull in
-# heavy dependencies like scipy that most users don't need on every import.
-# Rather than importing them eagerly, we defer them until first access via
-# __getattr__ (PEP 562). Known names are mapped explicitly below; star-import
-# names (like integrator classes) fall through to _DEFERRED_STAR_MODULES so
-# new exports are picked up automatically.
+# Lazy-loaded modules. The `dynamics`, `kernels`, and `domains` packages pull
+# in heavy dependencies that most users don't need on every import. Rather
+# than importing them eagerly, we defer them until first access via
+# `__getattr__` (PEP 562). Known names are mapped explicitly below;
+# star-import names (like integrator classes) fall through to
+# `_DEFERRED_STAR_MODULES` so new exports are picked up automatically.
 
 _LAZY_ATTRS = {
     'Schedule': '.dynamics.schedule',
@@ -340,8 +340,8 @@ def __getattr__(name):
 def __dir__():
     """Includes lazy-loaded names so tab-completion matches pre-lazy behavior.
 
-    This triggers the deferred star-module imports (e.g. scipy via
-    dynamics.integrators) on first tab-completion, so there is a one-time
+    This triggers the deferred star-module imports (e.g.
+    ``dynamics.integrators``) on first tab-completion, so there is a one-time
     performance cost in interactive sessions.
     """
     import importlib
