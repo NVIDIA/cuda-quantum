@@ -51,7 +51,7 @@ typedef struct {
   cudaq_host_dispatch_worker_t *workers;
   size_t num_workers;
   void **h_mailbox_bank;
-  void *shutdown_flag;   ///< opaque cuda::std::atomic<int>*
+  void *shutdown_flag; ///< opaque cuda::std::atomic<int>*
   uint64_t *stats_counter;
   void *live_dispatched; ///< opaque cuda::std::atomic<uint64_t>*
   void *idle_mask;       ///< opaque cuda::std::atomic<uint64_t>*, 1=free 0=busy
