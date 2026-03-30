@@ -133,8 +133,7 @@ public:
           std::make_pair(idx, std::to_string(idx));
 
       Type resultType;
-      if (auto veqTy = dyn_cast<quake::VeqType>(veq.getType());
-          veqTy && veqTy.hasSpecifiedSize())
+      if (auto veqTy = quake::isConstantQuantumRefType(veq.getType()))
         resultType = quake::MeasurementsType::get(measure->getContext(),
                                                   veqTy.getSize());
       else
@@ -222,8 +221,9 @@ public:
         rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
                                                  ValueRange{veq},
                                                  measure.getRegisterNameAttr());
-      } else if (measure.use_empty())
-        rewriter.eraseOp(measure);
+      } else if (measure.use_empty()) {
+rewriter.eraseOp(measure);
+}
 
       return success();
     }

@@ -153,7 +153,7 @@ Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
   return array;
 }
 
-Array *__quantum__rt__result_array_create_1d(int64_t count) {
+Array *__quantum__rt__result_array_create_1d(std::int64_t count) {
   return __quantum__rt__array_create_1d(sizeof(void *), count);
 }
 
