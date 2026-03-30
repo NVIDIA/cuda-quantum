@@ -138,5 +138,6 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
   add_subdirectory(unittests)
 endif()
 
+
 # Install the LICENSE and NOTICE files
 install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
