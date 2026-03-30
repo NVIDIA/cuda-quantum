@@ -21,7 +21,7 @@ else:
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("dynamics")
     yield
     cudaq.reset_target()

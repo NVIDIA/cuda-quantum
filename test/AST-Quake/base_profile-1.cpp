@@ -225,20 +225,22 @@ struct comprehensive {
 // FULL:         %[[VAL_8:.*]] = load i8*, i8** %[[VAL_7]], align 8
 // FULL:         %[[VAL_9:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
 // FULL:         %[[VAL_10:.*]] = load %Qubit*, %Qubit** %[[VAL_9]], align 8
-// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_10]])
-// FULL:         %[[VAL_11:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 6)
-// FULL:         %[[VAL_12:.*]] = load %Qubit*, %Qubit** %[[VAL_11]], align 8
-// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_12]])
-// FULL:         %[[VAL_13:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 7)
-// FULL:         %[[VAL_14:.*]] = load %Qubit*, %Qubit** %[[VAL_13]], align 8
-// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_14]])
-// FULL:         %[[VAL_15:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 8)
-// FULL:         %[[VAL_16:.*]] = load %Qubit*, %Qubit** %[[VAL_15]], align 8
-// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_16]])
+// FULL:         %[[VAL_21:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 3)
+// FULL:         %[[VAL_22:.*]] = load %Qubit*, %Qubit** %[[VAL_21]], align 8
 // FULL:         %[[VAL_17:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 4)
 // FULL:         %[[VAL_18:.*]] = load %Qubit*, %Qubit** %[[VAL_17]], align 8
 // FULL:         %[[VAL_19:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 5)
 // FULL:         %[[VAL_20:.*]] = load %Qubit*, %Qubit** %[[VAL_19]], align 8
+// FULL:         %[[VAL_11:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 6)
+// FULL:         %[[VAL_12:.*]] = load %Qubit*, %Qubit** %[[VAL_11]], align 8
+// FULL:         %[[VAL_13:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 7)
+// FULL:         %[[VAL_14:.*]] = load %Qubit*, %Qubit** %[[VAL_13]], align 8
+// FULL:         %[[VAL_15:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 8)
+// FULL:         %[[VAL_16:.*]] = load %Qubit*, %Qubit** %[[VAL_15]], align 8
+// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_10]])
+// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_12]])
+// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_14]])
+// FULL:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_16]])
 // FULL:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_18]], %Qubit* %[[VAL_20]], i8* %[[VAL_8]])
 // FULL:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__h__ctl to i8*), i8* %[[VAL_8]], %Qubit* %[[VAL_10]])
 // FULL:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_18]], %Qubit* %[[VAL_20]], i8* %[[VAL_8]])
@@ -246,8 +248,6 @@ struct comprehensive {
 // FULL:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_12]])
 // FULL:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_14]])
 // FULL:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_16]])
-// FULL:         %[[VAL_21:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 3)
-// FULL:         %[[VAL_22:.*]] = load %Qubit*, %Qubit** %[[VAL_21]], align 8
 // FULL:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_20]])
 // FULL:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_20]], %Qubit* %[[VAL_16]], %Qubit* %[[VAL_22]])
 // FULL:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_20]])

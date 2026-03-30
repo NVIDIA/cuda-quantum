@@ -189,6 +189,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ vars.preview_branch }}
+          fetch-depth: 0
 
       - name: Delete preview folder for closed PR
         if: github.event_name == 'pull_request_target'

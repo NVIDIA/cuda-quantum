@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/qspan_slices.cpp"
+#include "../execution/sudoku_2x2-bit_name.cpp"

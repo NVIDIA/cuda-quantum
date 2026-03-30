@@ -176,7 +176,7 @@ static LogicalResult emitOperation(Emitter &emitter, quake::ApplyOp op) {
   // Separate classical and quantum arguments.
   SmallVector<Value> parameters;
   SmallVector<Value> targets;
-  for (auto arg : op.getArgs()) {
+  for (auto arg : op.getActuals()) {
     if (isa<quake::RefType, quake::VeqType>(arg.getType()))
       targets.push_back(arg);
     else
