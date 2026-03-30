@@ -44,6 +44,35 @@ deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
   stride += nBs * 3;
 }
 
+static std::optional<double>
+deserializeExpectationValue(std::vector<std::size_t> &data,
+                            std::size_t &stride) {
+  auto hasExpectationValue = data[stride++];
+  if (hasExpectationValue) {
+    static_assert(
+        sizeof(double) == sizeof(std::size_t),
+        "This deserialization logic assumes double and size_t are the "
+        "same size");
+    const double expectationValue =
+        *reinterpret_cast<const double *>(&data[stride++]);
+    return expectationValue;
+  }
+  return std::nullopt;
+}
+
+static void
+deserializeSequentialData(std::vector<std::size_t> &data, std::size_t &stride,
+                          std::vector<std::string> &sequentialData) {
+  auto nSequentialData = data[stride++];
+  for (std::size_t j = stride; j < stride + nSequentialData * 2; j += 2) {
+    auto bitstring_as_long = data[j];
+    auto size_of_bitstring = data[j + 1];
+    auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
+    sequentialData.push_back(bs);
+  }
+  stride += nSequentialData * 2;
+}
+
 static std::string extractNameFromData(std::vector<std::size_t> &data,
                                        std::size_t &stride) {
   auto nChars = data[stride++];
@@ -64,6 +93,11 @@ ExecutionResult::ExecutionResult(CountsDictionary c, std::string name)
     : counts(c), registerName(name) {}
 ExecutionResult::ExecutionResult(CountsDictionary c, std::string name, double e)
     : counts(c), expectationValue(e), registerName(name) {}
+ExecutionResult::ExecutionResult(CountsDictionary c, std::string name,
+                                 std::optional<double> exp,
+                                 const std::vector<std::string> &sequentialData)
+    : counts(c), expectationValue(exp), registerName(name),
+      sequentialData(sequentialData) {}
 
 ExecutionResult::ExecutionResult(CountsDictionary c, double e)
     : counts(c), expectationValue(e) {}
@@ -114,6 +148,25 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
     retData.push_back(bits.length());
     retData.push_back(count);
   }
+  // Encode the optional expectationValue
+  retData.push_back(expectationValue.has_value() ? 1 : 0);
+  // Store double as int64_t
+  if (expectationValue.has_value()) {
+    static_assert(sizeof(double) == sizeof(std::size_t),
+                  "This serialization logic assumes double and size_t are the "
+                  "same size");
+    retData.push_back(
+        *reinterpret_cast<const std::size_t *>(&expectationValue.value()));
+  }
+
+  // Store the sequential data
+  retData.push_back(sequentialData.size());
+  for (const auto &bitString : sequentialData) {
+    auto l = std::stol(bitString, NULL, 2);
+    retData.push_back(l);
+    retData.push_back(bitString.length());
+  }
+
   return retData;
 }
 
@@ -128,6 +181,8 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
     for (const auto &entry : localCounts) {
       counts.insert({entry.first, entry.second});
     }
+    expectationValue = deserializeExpectationValue(data, stride);
+    deserializeSequentialData(data, stride, sequentialData);
   }
 }
 
@@ -152,7 +207,10 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
     std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
 
-    sampleResults.insert({name, ExecutionResult{localCounts, name}});
+    std::optional<double> expectationValue = deserializeExpectationValue(data, stride);
+    std::vector<std::string> sequentialData;
+    deserializeSequentialData(data, stride, sequentialData);
+    sampleResults.insert({name, ExecutionResult{localCounts, name, expectationValue, sequentialData}});
 
     if (stride >= data.size()) {
       totalShots = std::accumulate(
