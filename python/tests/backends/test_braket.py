@@ -19,7 +19,7 @@ pytestmark = pytest.mark.skip("Amazon Braket credentials required")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("braket")
     yield "Running the tests."
     cudaq.__clearKernelRegistries()
