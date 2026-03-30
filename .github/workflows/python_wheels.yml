@@ -257,16 +257,14 @@ jobs:
               exit 1
             fi
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
-            for backendTest in /tmp/tests/backends/*.py; do 
-              python${{ inputs.python_version }} -m pytest $backendTest
-              pytest_status=$?
-              # Exit code 5 indicates that no tests were collected,
-              # i.e. all tests in this file were skipped.
-              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "::error file=python_wheel.yml::Python $backendTest tests failed with status $pytest_status."
-                exit 1
-              fi
-            done
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/backends
+            pytest_status=$?
+            # Exit code 5 indicates that no tests were collected,
+            # i.e. all tests in this file were skipped.
+            if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
+              echo "::error file=python_wheel.yml::Python backend tests failed with status $pytest_status."
+              exit 1
+            fi
 
       # TODO: enable
       # if: matrix.os_image == 'redhat/ubi9:9.2'

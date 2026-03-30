@@ -150,7 +150,7 @@ jobs:
           bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Build CUDA-Q
-        run: bash scripts/build_cudaq.sh -v
+        run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
 
       - name: Run tests
         run: bash scripts/run_tests.sh -v
@@ -327,7 +327,7 @@ jobs:
           bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Build CUDA-Q
-        run: bash scripts/build_cudaq.sh -v
+        run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
 
       - name: Build installer
         run: |
