@@ -52,7 +52,7 @@ RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
-        bash scripts/build_cudaq.sh -v; \
+        bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
         elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \

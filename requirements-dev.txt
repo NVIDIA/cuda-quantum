@@ -12,6 +12,7 @@ delocate; sys_platform == "darwin"
 auditwheel; sys_platform == "linux"
 lit==18.1.4
 pytest==8.3.0
+pytest-xdist==3.8.0
 psutil
 numpy==1.26.4
 notebook==7.5.2
