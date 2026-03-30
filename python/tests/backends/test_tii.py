@@ -21,7 +21,7 @@ SHOTS = 50
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("tii",
                      device="tii-sim",
                      project=os.environ.get("TII_PROJECT", None))

@@ -397,27 +397,29 @@ def quake_ApplyOp : QuakeOp<"apply",
     Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
-    Variadic<AnyType>:$args
+    Variadic<AnyType>:$actuals
   );
   let results = (outs Variadic<AnyType>);
 
   let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::SymbolRefAttr":$callee,
                    "mlir::UnitAttr":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
-                   is_adj, controls, args);
+      return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
+                   args);
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::SymbolRefAttr":$callee,
                    "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
-                   is_adj, controls, args);
+      return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
+                   args);
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
@@ -446,7 +448,7 @@ def quake_ApplyOp : QuakeOp<"apply",
     operand_range getArgOperands() {
       if (getControls().empty())
         return {operand_begin(), operand_end()};
-      return {getArgs().begin(), getArgs().end()};
+      return {getActuals().begin(), getActuals().end()};
     }
 
     bool applyToVariant() {
@@ -1152,6 +1154,64 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// GetMeasureOp
+//===----------------------------------------------------------------------===//
+
+def quake_GetMeasureOp : QuakeOp<"get_measure", [Pure]> {
+  let summary =
+    "Extract a single measurement from a measurements collection.";
+  let description = [{
+    Extracts a single `!quake.measure` value from a `!quake.measurements<N>`
+    collection by index. This is analogous to `quake.extract_ref` for qubits.
+
+    Example:
+    ```mlir
+      %m = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
+    ```
+  }];
+
+  let arguments = (ins
+    MeasurementsType:$measurements,
+    Optional<AnySignlessIntegerOrIndex>:$index,
+    I64Attr:$rawIndex
+  );
+  let results = (outs MeasureType:$measure);
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index,
+                   "mlir::IntegerAttr":$rawIndex), [{
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, index, rawIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index), [{
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, index, GetMeasureOp::kDynamicIndex);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$measurements, "std::size_t":$rawIndex), [{
+      auto i64Ty = $_builder.getI64Type();
+      return build($_builder, $_state, $_builder.getType<MeasureType>(),
+                   measurements, mlir::Value{},
+                   mlir::IntegerAttr::get(i64Ty, rawIndex));
+    }]>
+  ];
+
+  let assemblyFormat = [{
+    $measurements `[` custom<RawIndex>($index, $rawIndex) `]` `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    static constexpr std::size_t kDynamicIndex =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasConstantIndex() { return !getIndex(); }
+    std::size_t getConstantIndex() { return getRawIndex(); }
+  }];
 }
 
 //===----------------------------------------------------------------------===//

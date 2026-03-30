@@ -6,14 +6,14 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Regression test for a bug where veq type specialization caused type mismatches
-// when creating control variants of functions that have inner calls to other
-// kernels expecting dynamic !quake.veq<?> types.
+// Regression test for a bug where veq type specialization caused type
+// mismatches when creating control variants of functions that have inner calls
+// to other kernels expecting dynamic !quake.veq<?> types.
 //
 // The bug scenario:
 // 1. main_kernel allocates !quake.veq<2> and relaxes it to !quake.veq<?>
 // 2. A controlled apply to thunk_kernel with a constant argument triggers
-//    constant propagation which would un-relax the veq type back to !quake.veq<2>
+// constant propagation which would un-relax the veq type back to !quake.veq<2>
 // 3. The thunk calls inner_kernel which expects !quake.veq<?>
 // 4. When the .ctrl variant is created, the inner call has a type mismatch
 //
