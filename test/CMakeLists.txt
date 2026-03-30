@@ -75,6 +75,16 @@ endif()
 add_test(NAME ctest-nvqpp
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-nvqpp
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+# This test runs llvm-lit internally with parallelism, so have ctest
+# reserve all processors to prevent concurrent scheduling.
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NPROC EQUAL 0)
+  set(NPROC 1)
+endif()
+set_tests_properties(ctest-nvqpp PROPERTIES
+  TIMEOUT 3600
+  PROCESSORS ${NPROC})
 
 # Setup an alias for 'check-all'.
 add_custom_target(check)
