@@ -133,9 +133,9 @@ public:
           std::make_pair(idx, std::to_string(idx));
 
       Type resultType;
-      if (auto veqTy = quake::isConstantQuantumRefType(veq.getType()))
-        resultType = quake::MeasurementsType::get(measure->getContext(),
-                                                  veqTy.getSize());
+      if (quake::isConstantQuantumRefType(veq.getType()))
+        resultType = quake::MeasurementsType::get(
+            measure->getContext(), quake::getAllocationSize(veq.getType()));
       else
         resultType = quake::MeasurementsType::getUnsized(measure->getContext());
       if (measure == analysis.lastMeasurement) {
@@ -211,10 +211,9 @@ public:
       if (measure == analysis.lastMeasurement) {
         auto veq = subveq.getVeq();
         Type resultType;
-        if (auto veqTy = dyn_cast<quake::VeqType>(veq.getType());
-            veqTy && veqTy.hasSpecifiedSize())
-          resultType = quake::MeasurementsType::get(measure->getContext(),
-                                                    veqTy.getSize());
+        if (quake::isConstantQuantumRefType(veq.getType()))
+          resultType = quake::MeasurementsType::get(
+              measure->getContext(), quake::getAllocationSize(veq.getType()));
         else
           resultType =
               quake::MeasurementsType::getUnsized(measure->getContext());
@@ -222,8 +221,8 @@ public:
                                                  ValueRange{veq},
                                                  measure.getRegisterNameAttr());
       } else if (measure.use_empty()) {
-rewriter.eraseOp(measure);
-}
+        rewriter.eraseOp(measure);
+      }
 
       return success();
     }

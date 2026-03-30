@@ -1647,23 +1647,19 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
       // Measurements always return a bool or a std::vector<bool>.
-      bool useCollection =
+      bool useMeasurements =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
       auto measure = [&]() -> Value {
         Type measTy = quake::MeasureType::get(builder.getContext());
-        if (useCollection) {
+        if (useMeasurements) {
           std::size_t totalSize = 0;
           bool allKnown = true;
           for (auto a : args) {
-            if (isa<quake::RefType>(a.getType())) {
-              totalSize++;
-            } else if (auto veqTy = dyn_cast<quake::VeqType>(a.getType())) {
-              if (veqTy.hasSpecifiedSize())
-                totalSize += veqTy.getSize();
-              else
-                allKnown = false;
-            }
+            if (quake::isConstantQuantumRefType(a.getType()))
+              totalSize += quake::getAllocationSize(a.getType());
+            else
+              allKnown = false;
           }
           if (allKnown && totalSize > 0)
             measTy =
@@ -1678,7 +1674,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         return builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
       }();
       Type resTy = builder.getI1Type();
-      if (useCollection)
+      if (useMeasurements)
         resTy = cc::StdvecType::get(resTy);
       return pushValue(
           builder.create<quake::DiscriminateOp>(loc, resTy, measure));
