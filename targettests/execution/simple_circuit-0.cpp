@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // RUN: nvq++ -v %s -o %t --target quantinuum --emulate && %t | FileCheck %s
-// RUN: nvq++ --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>

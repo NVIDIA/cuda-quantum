@@ -201,6 +201,55 @@ quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
 // Apply
 //===----------------------------------------------------------------------===//
 
+LogicalResult quake::ApplyOp::verify() {
+  FunctionType asSig;
+  if (auto callee = getCallee()) {
+    auto fn =
+        SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, *callee);
+    if (!fn)
+      return emitOpError("callee must be declared");
+    asSig = fn.getFunctionType();
+  } else {
+    Value callable = getIndirectCallee().front();
+    asSig = cast<cudaq::cc::CallableType>(callable.getType()).getSignature();
+  }
+
+  // Arity of callee's signature must be equal to number of arguments provided.
+  bool callingCallable = false;
+  if (getActuals().size() == asSig.getInputs().size() + 1) {
+    callingCallable = true;
+    if (!isa<cudaq::cc::CallableType>(getActuals().front().getType()))
+      return emitOpError("hidden argument must be callable");
+  } else if (getActuals().size() != asSig.getInputs().size()) {
+    return emitOpError("number of arguments must be consistent");
+  }
+
+  // Quantum reference type values are allowed to implicitly coerce to a relaxed
+  // veq type when they appear as arguments to a `quake.apply` op. Specifically,
+  // lowering the apply op is required to add a `quake.concat` op to manifest
+  // the type conversion.
+  auto isRelaxedVeq = [](Type ty1, Type ty2) {
+    if (auto veq2 = dyn_cast<quake::VeqType>(ty2))
+      return quake::isQuantumReferenceType(ty1) && !veq2.hasSpecifiedSize();
+    return false;
+  };
+
+  SmallVector<Type> actualTypes{getActuals().getTypes().begin() +
+                                    (callingCallable ? 1 : 0),
+                                getActuals().getTypes().end()};
+  // The args are the formal arguments and they must match.
+  for (auto [ty1, ty2] : llvm::zip(actualTypes, asSig.getInputs()))
+    if (ty1 != ty2 && !isRelaxedVeq(ty1, ty2))
+      return emitOpError("argument types must match");
+
+  // The results are the formal results and they must match.
+  for (auto [ty1, ty2] : llvm::zip(getResultTypes(), asSig.getResults()))
+    if (ty1 != ty2 && !isRelaxedVeq(ty1, ty2))
+      return emitOpError("result types must match");
+
+  return success();
+}
+
 void quake::ApplyOp::print(OpAsmPrinter &p) {
   if (getIsAdj())
     p << "<adj>";
@@ -213,7 +262,7 @@ void quake::ApplyOp::print(OpAsmPrinter &p) {
   p << ' ';
   if (!getControls().empty())
     p << '[' << getControls() << "] ";
-  p << getArgs() << " : ";
+  p << getActuals() << " : ";
   SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(ArrayRef<Type>{operandTys}.drop_front(isDirect ? 0 : 1),
@@ -229,13 +278,14 @@ ParseResult quake::ApplyOp::parse(OpAsmParser &parser, OperationState &result) {
       return failure();
     result.addAttribute("is_adj", parser.getBuilder().getUnitAttr());
   }
+  OpAsmParser::UnresolvedOperand calleeOpnd;
   SmallVector<OpAsmParser::UnresolvedOperand> calleeOperand;
-  if (parser.parseOperandList(calleeOperand))
-    return failure();
-  bool isDirect = calleeOperand.empty();
-  if (calleeOperand.size() > 1)
-    return failure();
-  if (isDirect) {
+  bool isDirect;
+  if (parser.parseOptionalOperand(calleeOpnd).has_value()) {
+    isDirect = false;
+    calleeOperand.push_back(calleeOpnd);
+  } else {
+    isDirect = true;
     NamedAttrList attrs;
     SymbolRefAttr funcAttr;
     if (parser.parseCustomAttributeWithFallback(
@@ -413,7 +463,33 @@ LogicalResult quake::BorrowWireOp::verify() {
 
 void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
+  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern>(
+      context);
+}
+
+LogicalResult quake::ConcatOp::verify() {
+  bool isUnspecified = false;
+  std::size_t size = 0;
+  for (auto tq : getTargets()) {
+    Type ty = tq.getType();
+    if (auto veq = dyn_cast<quake::VeqType>(ty);
+        veq && !veq.hasSpecifiedSize()) {
+      isUnspecified = true;
+      break;
+    }
+    if (auto struq = dyn_cast<quake::StruqType>(ty);
+        struq && !struq.hasSpecifiedSize()) {
+      isUnspecified = true;
+      break;
+    }
+    size += getAllocationSize(ty);
+  }
+  auto resTy = cast<quake::VeqType>(getType());
+  if (isUnspecified && resTy.hasSpecifiedSize())
+    return emitOpError("veq size must be non-constant");
+  if (resTy.hasSpecifiedSize() && resTy.getSize() != size)
+    return emitOpError("veq size must equal size of aggregate operands");
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -504,7 +580,8 @@ void printRawIndex(OpAsmPrinter &printer, OP refOp, Value index,
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
-               ForwardConcatExtractPattern>(context);
+               ForwardConcatExtractPattern, ExtractRefFromSubVeqPattern>(
+      context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
@@ -546,6 +623,30 @@ LogicalResult quake::GetMemberOp::verify() {
 void quake::GetMemberOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<BypassMakeStruq>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// GetMeasureOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::GetMeasureOp::verify() {
+  if (getIndex()) {
+    if (getRawIndex() != kDynamicIndex)
+      return emitOpError(
+          "must not have both a constant index and an index argument.");
+  } else {
+    if (getRawIndex() == kDynamicIndex) {
+      return emitOpError("invalid constant index value");
+    } else {
+      auto msSize = getMeasurements().getType().getSize();
+      if (getMeasurements().getType().hasSpecifiedSize() &&
+          getRawIndex() >= msSize)
+        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
+                           "] because >= size [" + std::to_string(msSize) +
+                           "]");
+    }
+  }
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -642,7 +743,7 @@ LogicalResult quake::SubVeqOp::verify() {
 void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
   patterns.add<FixUnspecifiedSubveqPattern, FuseConstantToSubveqPattern,
-               RemoveSubVeqNoOpPattern>(context);
+               RemoveSubVeqNoOpPattern, CombineSubVeqsPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/qspan_slices.cpp"
+#include "../execution/int8_t_free_func.cpp"

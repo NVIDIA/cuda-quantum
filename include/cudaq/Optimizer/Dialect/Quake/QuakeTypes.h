@@ -31,7 +31,8 @@ inline bool isQuantumType(mlir::Type ty) {
 /// \returns true if \p `ty` is a Quake type.
 inline bool isQuakeType(mlir::Type ty) {
   // This should correspond to the registered types in QuakeTypes.cpp.
-  return isQuantumType(ty) || mlir::isa<quake::MeasureType>(ty);
+  return isQuantumType(ty) ||
+         mlir::isa<quake::MeasureType, quake::MeasurementsType>(ty);
 }
 
 /// \returns true if \p ty is a quantum reference type, excluding `struq`.
