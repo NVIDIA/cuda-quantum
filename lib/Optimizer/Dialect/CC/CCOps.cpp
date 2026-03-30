@@ -197,8 +197,8 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 
 LogicalResult cudaq::cc::AllocaOp::verify() {
   // It is deeply incorrect to allocate storage for quake abstract types.
-   if (quake::isQuakeType(getElementType()))
-      return emitOpError("cannot classically allocate quake abstract type");
+  if (quake::isQuakeType(getElementType()))
+    return emitOpError("cannot classically allocate quake abstract type");
   return success();
 }
 
