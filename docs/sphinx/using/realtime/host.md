@@ -167,8 +167,8 @@ registers before the handler runs.
 
 For example, the `HSB`/`DOCA` transport implementation polls a `DOCA` completion
 queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
-receive `WQE` in step 6.  Other transports would substitute their own receive and
-send primitives.
+receive `WQE` in step 6.  Other transport implementations would substitute
+their own receive and send primitives.
 
 ### Transport-Agnostic Design
 
