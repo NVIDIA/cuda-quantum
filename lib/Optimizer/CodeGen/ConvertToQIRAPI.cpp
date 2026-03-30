@@ -1602,19 +1602,6 @@ struct AllocaOpPattern : public OpConversionPattern<cudaq::cc::AllocaOp> {
     if (eleTy == newEleTy)
       return failure();
     Value ss = alloc.getSeqSize();
-
-    // Dynamic alloca of `MeasureType` elements should use the result-array
-    // runtime call.
-    if (isa<quake::MeasureType>(eleTy) && ss) {
-      auto *ctx = rewriter.getContext();
-      auto arrayTy = getTypeConverter()->convertType(
-          quake::MeasurementsType::getUnsized(ctx));
-      rewriter.replaceOpWithNewOp<func::CallOp>(
-          alloc, TypeRange{arrayTy}, cudaq::opt::QIRResultArrayCreate,
-          ValueRange{ss});
-      return success();
-    }
-
     if (ss)
       rewriter.replaceOpWithNewOp<cudaq::cc::AllocaOp>(alloc, newEleTy, ss);
     else
