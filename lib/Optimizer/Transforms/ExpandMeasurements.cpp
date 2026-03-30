@@ -54,12 +54,17 @@ public:
     // 2. Determine the element type from users (default to `i1`).
     Type elemTy = rewriter.getI1Type();
     for (auto *user : measureOp.getMeasOut().getUsers()) {
-      if (auto disc = dyn_cast<quake::DiscriminateOp>(user))
-        if (auto svTy =
-                dyn_cast<cudaq::cc::StdvecType>(disc.getResult().getType())) {
+      if (auto disc = dyn_cast<quake::DiscriminateOp>(user)) {
+        auto resTy = disc.getResult().getType();
+        if (auto svTy = dyn_cast<cudaq::cc::StdvecType>(resTy)) {
           elemTy = svTy.getElementType();
           break;
         }
+        if (isa<IntegerType>(resTy)) {
+          elemTy = resTy;
+          break;
+        }
+      }
     }
     // 3. Create the buffer.
     auto i8Ty = rewriter.getI8Type();
