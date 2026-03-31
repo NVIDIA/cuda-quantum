@@ -19,12 +19,23 @@
 #include <sstream>
 #include <string>
 
-// Our hook into configuring the NVQIR backend.
+// Our hooks into configuring the NVQIR backend.
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+void __nvqir__setSimulatorInitCallback(void (*)());
 }
 
+// Our hook into configuring the quantum platform.
+extern "C" void setQuantumPlatformInitCallback(void (*)());
+
 namespace cudaq {
+
+// File-scoped pointer for the NVQIR/platform lazy init callbacks.
+static LinkedLibraryHolder *activeHolder = nullptr;
+static void lazyInitSimulator() {
+  if (activeHolder && !activeHolder->isTargetInitialized())
+    activeHolder->resetTarget();
+}
 void setQuantumPlatformInternal(quantum_platform *p);
 
 void setExecutionManagerInternal(ExecutionManager *em);
@@ -246,13 +257,27 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     }
   } // end scan_simulator_filenames
 
-  // Default to qpp-cpu. The full resolution (GPU detection, simulator
-  // validation) is deferred to first use via resetTarget().
+  // Capture CUDAQ_DEFAULT_SIMULATOR now so it is visible when
+  // resolveDefaultTarget() runs later during deferred initialization.
+  // This must happen at import time because the env var may be set
+  // programmatically before import (e.g., in test files).
+  auto envSim = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
+  if (envSim)
+    cachedDefaultSimulatorEnv = envSim;
+
+  // Default to qpp-cpu. The full target resolution (GPU detection, simulator
+  // loading) is deferred to first use via the NVQIR callback or getTarget().
   defaultTarget = "qpp-cpu";
   currentTarget = defaultTarget;
+  activeHolder = this;
+  __nvqir__setSimulatorInitCallback(lazyInitSimulator);
+  setQuantumPlatformInitCallback(lazyInitSimulator);
 }
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
+  activeHolder = nullptr;
+  __nvqir__setSimulatorInitCallback(nullptr);
+  setQuantumPlatformInitCallback(nullptr);
   for (auto &[name, handle] : libHandles) {
     if (handle)
       dlclose(handle);
@@ -308,8 +333,8 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
 }
 
 /// @brief Determine the best default target based on GPU availability and
-/// installed simulators. This is a cheap check (no dlopen). The actual
-/// simulator loading and validation happens in resetTarget() via setTarget().
+/// installed simulators. No simulator dlopen, but the first call triggers
+/// CUDA driver init via `num_available_gpus()` for GPU detection.
 std::string LinkedLibraryHolder::resolveDefaultTarget() {
   ScopedTraceWithContext("resolveDefaultTarget");
   std::string resolved = "qpp-cpu";
@@ -326,7 +351,12 @@ std::string LinkedLibraryHolder::resolveDefaultTarget() {
     }
   }
 
-  auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
+  // Check env var: use the cached value from import time if available,
+  // otherwise read live (for C++ callers that don't go through the
+  // constructor).
+  auto env = cachedDefaultSimulatorEnv.empty()
+                 ? std::getenv("CUDAQ_DEFAULT_SIMULATOR")
+                 : cachedDefaultSimulatorEnv.c_str();
   if (env) {
     CUDAQ_INFO("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
     auto iter = simulationTargets.find(env);
@@ -357,10 +387,8 @@ void LinkedLibraryHolder::resetTarget() {
 }
 
 RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) {
-  if (!targetInitialized) {
-    ScopedTraceWithContext("deferred_resetTarget");
+  if (!targetInitialized)
     resetTarget();
-  }
   auto iter = targets.find(name);
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + name + ").");
@@ -369,10 +397,8 @@ RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) {
 }
 
 RuntimeTarget LinkedLibraryHolder::getTarget() {
-  if (!targetInitialized) {
-    ScopedTraceWithContext("deferred_resetTarget");
+  if (!targetInitialized)
     resetTarget();
-  }
   auto iter = targets.find(currentTarget);
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + currentTarget + ").");
@@ -417,6 +443,9 @@ void LinkedLibraryHolder::setTarget(
   if (simName.empty()) {
     // This target doesn't have a simulator defined, e.g., hardware targets.
     // We still need a simulator in case of local emulation.
+    // Ensure defaultTarget is fully resolved (it may still be the initial
+    // "qpp-cpu" if deferred initialization hasn't run yet).
+    defaultTarget = resolveDefaultTarget();
     auto &defaultTargetInfo = targets[defaultTarget];
     simName = defaultTargetInfo.simulatorName;
 
@@ -469,6 +498,9 @@ void LinkedLibraryHolder::setTarget(
     resetExecutionManagerInternal();
   }
   targetInitialized = true;
+  // Deregister lazy init callbacks now that a target is configured.
+  __nvqir__setSimulatorInitCallback(nullptr);
+  setQuantumPlatformInitCallback(nullptr);
 }
 
 std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {

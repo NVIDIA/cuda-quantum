@@ -69,8 +69,11 @@ protected:
   /// @brief Store the name of the current target
   std::string currentTarget;
 
-  /// @brief Whether the target has been initialized (deferred to first use)
+  /// @brief Whether the full target setup (resetTarget) has run
   bool targetInitialized = false;
+
+  /// @brief CUDAQ_DEFAULT_SIMULATOR captured at import time
+  std::string cachedDefaultSimulatorEnv;
 
   /// @brief Load a library on demand if not already loaded.
   void ensureLibLoaded(const std::filesystem::path &path);
@@ -82,6 +85,9 @@ protected:
 public:
   LinkedLibraryHolder();
   ~LinkedLibraryHolder();
+
+  /// @brief Whether the full target setup has completed.
+  bool isTargetInitialized() const { return targetInitialized; }
 
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);
