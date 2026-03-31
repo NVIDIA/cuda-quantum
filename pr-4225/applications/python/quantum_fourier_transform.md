@@ -1169,8 +1169,8 @@ pr-4225
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2453,7 +2453,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum f1e0e161ac6a47d989a4218d2ccece7dbfb6aaa7)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum fa86db5c24ed64387417f7a71d54ee5590a0e374)
 :::
 :::
 :::

@@ -1166,8 +1166,8 @@ pr-4225
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2113,7 +2113,7 @@ mutual polarization.
 
 <div>
 
-![402b4c9ec01047cca76ca7ce0900e235](../../_images/qm-mm-pe.png){.no-scaled-link
+![49ddeaa6215345be8047e1ae8a1e90a1](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>
