@@ -34,7 +34,7 @@ from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
                     recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    mlirTryCreateStructType, isCudaqModuleName)
 
 State = cudaq_runtime.State
 
@@ -2183,7 +2183,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                         node.attr), node)
                 return
 
-            if node.value.id == 'cudaq':
+            if isCudaqModuleName(node.value.id, self.defFrame):
                 if node.attr in [
                         'DepolarizationChannel', 'AmplitudeDampingChannel',
                         'PhaseFlipChannel', 'BitFlipChannel', 'PhaseDamping',
@@ -2655,7 +2655,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
             if hasattr(
                     node.func.value, 'id'
-            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+            ) and isCudaqModuleName(node.func.value.id,
+                                    self.defFrame) and node.func.attr == 'kernel':
                 return
 
             devKey, name = resolveQualifiedName(node.func)
@@ -3334,7 +3335,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                if node.func.value.id == 'cudaq':
+                if isCudaqModuleName(node.func.value.id, self.defFrame):
                     if node.func.attr == 'complex':
                         self.__groupValues(node.args, [0])
                         self.pushValue(self.simulationDType())
@@ -3562,7 +3563,9 @@ class PyASTBridge(ast.NodeVisitor):
                         # The first argument must be the Kraus channel
                         numParams, key = 0, None
                         if (isinstance(node.args[0], ast.Attribute) and
-                                node.args[0].value.id == 'cudaq' and
+                                isCudaqModuleName(
+                                    node.args[0].value.id,
+                                    self.defFrame) and
                                 node.args[0].attr in supportedChannels):
 
                             cudaq_module = importlib.import_module('cudaq')

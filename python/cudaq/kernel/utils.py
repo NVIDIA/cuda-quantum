@@ -290,6 +290,25 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
 
 
+def isCudaqModuleName(name, frame=None):
+    """Check if `name` refers to the cudaq module, including aliases like
+    `import cudaq as cq`."""
+    if name == 'cudaq':
+        return True
+    # Check the provided frame first
+    if frame is not None:
+        obj = frame.f_locals.get(name) or frame.f_globals.get(name)
+        if obj is not None and getattr(obj, '__name__', None) == 'cudaq':
+            return True
+    # Fall back to walking the stack to find the alias binding
+    for frameinfo in inspect.stack():
+        f = frameinfo.frame
+        obj = f.f_locals.get(name) or f.f_globals.get(name)
+        if obj is not None and getattr(obj, '__name__', None) == 'cudaq':
+            return True
+    return False
+
+
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
     Return the MLIR Type corresponding to the given kernel function argument
@@ -312,7 +331,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     with ctx:
 
         if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
-            if annotation.value.id == 'cudaq':
+            if isCudaqModuleName(annotation.value.id):
                 if annotation.attr in ['qview', 'qvector']:
                     return quake.VeqType.get()
                 if annotation.attr in ['State']:
