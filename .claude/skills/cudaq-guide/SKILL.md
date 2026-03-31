@@ -91,16 +91,18 @@ See the docs above for Bell state examples in Python and C++.
 
 Docs `docs/sphinx/using/backends/sims/svsims.rst`, `docs/sphinx/using/examples/multi_gpu_workflows.rst`
 
+To recommend the best simulation backend for the user, consult the full comparison table at https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html
+
 ### Available GPU Targets
 
-| Target | Description |
-|---|---|
-| `nvidia` (default) | Single-GPU state vector via cuStateVec (up to ~30 qubits) |
-| `nvidia --target-option fp64` | Double-precision single GPU |
-| `nvidia --target-option mgpu` | Multi-GPU pools memory across GPUs (>30 qubits) |
-| `nvidia --target-option mqpu` | Multi-QPU one virtual QPU per GPU, parallel execution |
-| `tensornet` | Tensor network simulator for shallow wide circuits |
-| `qpp-cpu` | CPU-only fallback (OpenMP), for testing |
+| Target | Description | Use when |
+|---|---|---|
+| `nvidia` (default) | Single-GPU state vector via cuStateVec (up to ~30 qubits) | Default choice for most simulations on a single GPU |
+| `nvidia --target-option fp64` | Double-precision single GPU | Higher numerical precision needed (e.g. chemistry, sensitive observables) |
+| `nvidia --target-option mgpu` | Multi-GPU, pools memory across GPUs (>30 qubits) | Circuit exceeds single-GPU memory; requires MPI |
+| `nvidia --target-option mqpu` | Multi-QPU, one virtual QPU per GPU, parallel execution | Running many independent circuits in parallel (e.g. parameter sweeps, VQE gradients) |
+| `tensornet` | Tensor network simulator | Shallow or low-entanglement circuits; qubit count exceeds statevector feasibility |
+| `qpp-cpu` | CPU-only fallback (OpenMP) | No GPU available; macOS; small circuits for testing |
 
 See the docs above for single-GPU, multi-GPU (mgpu), and multi-QPU (mqpu) code examples.
 
