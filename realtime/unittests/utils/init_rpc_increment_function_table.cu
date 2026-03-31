@@ -18,9 +18,9 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 
-#include <cuda_runtime.h>
 #include <cstdint>
 #include <cstring> // std::memset
+#include <cuda_runtime.h>
 #include <stdexcept>
 
 namespace {
@@ -118,8 +118,8 @@ __global__ void graph_increment_kernel(void **mailbox_slot_ptr) {
 /// Creates an executable graph that runs graph_increment_kernel with
 /// kernel arg = d_mailbox_bank (device pointer to first mailbox slot).
 /// Caller must cudaGraphExecDestroy / cudaGraphDestroy.
-bool create_increment_graph(void** d_mailbox_bank, cudaGraph_t* graph_out,
-                            cudaGraphExec_t* exec_out) {
+bool create_increment_graph(void **d_mailbox_bank, cudaGraph_t *graph_out,
+                            cudaGraphExec_t *exec_out) {
   cudaGraph_t graph = nullptr;
   if (cudaGraphCreate(&graph, 0) != cudaSuccess)
     return false;
@@ -127,8 +127,8 @@ bool create_increment_graph(void** d_mailbox_bank, cudaGraph_t* graph_out,
   // kernelParams[i] must be a *pointer to* the i-th argument value.
   // The kernel takes void** so we pass &d_mailbox_bank (a void***).
   cudaKernelNodeParams params = {};
-  void* kernel_args[] = {&d_mailbox_bank};
-  params.func = reinterpret_cast<void*>(graph_increment_kernel);
+  void *kernel_args[] = {&d_mailbox_bank};
+  params.func = reinterpret_cast<void *>(graph_increment_kernel);
   params.gridDim = dim3(1, 1, 1);
   params.blockDim = dim3(32, 1, 1);
   params.sharedMemBytes = 0;
@@ -164,12 +164,14 @@ setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries) {
   cudaDeviceSynchronize();
 }
 
-extern "C" void
-setup_rpc_graph_increment_function_table(cudaq_function_entry_t *h_entries, void** d_mailbox_bank, cudaGraph_t* graph_out,
-                            cudaGraphExec_t* exec_out) {
-  const bool graph_created = create_increment_graph(d_mailbox_bank, graph_out, exec_out);
+extern "C" void setup_rpc_graph_increment_function_table(
+    cudaq_function_entry_t *h_entries, void **d_mailbox_bank,
+    cudaGraph_t *graph_out, cudaGraphExec_t *exec_out) {
+  const bool graph_created =
+      create_increment_graph(d_mailbox_bank, graph_out, exec_out);
   if (!graph_created) {
-    throw std::runtime_error("Failed to create CUDA graph for the increment function.");
+    throw std::runtime_error(
+        "Failed to create CUDA graph for the increment function.");
   }
 
   // --- Function table (one GRAPH_LAUNCH entry) ---

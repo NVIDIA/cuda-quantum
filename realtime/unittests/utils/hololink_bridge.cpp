@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
         cudaFree(d_function_entries);
       };
     } else {
-      // Host dispatch path: set up increment RPC function table on host. 
+      // Host dispatch path: set up increment RPC function table on host.
       err =
           cudaHostAlloc(&config.h_mailbox, sizeof(void *), cudaHostAllocMapped);
       if (err != cudaSuccess) {
