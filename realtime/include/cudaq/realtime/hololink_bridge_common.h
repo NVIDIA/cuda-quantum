@@ -136,11 +136,11 @@ struct BridgeConfig {
   /// Default: cudaq_launch_dispatch_kernel_regular
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
 
-  // HOST_LOOP graph launch mode -- CPU-side dispatcher that polls Hololink
-  // ring flags and launches CUDA graphs.  Requires a Grace-based system
-  // (Grace-Hopper / DGX Spark, Grace-Blackwell / GB200) where GPU memory is
-  // CPU-accessible via NVLink-C2C, since the HOST_LOOP thread reads DOCA
-  // GPU ring flags directly from the CPU.
+  // Set this to CUDAQ_DISPATCH_PATH_HOST for the HOST_LOOP graph launch mode --
+  // CPU-side dispatcher that polls Hololink ring flags and launches CUDA
+  // graphs.  Requires a Grace-based system (Grace-Hopper / DGX Spark,
+  // Grace-Blackwell / GB200) where GPU memory is CPU-accessible via NVLink-C2C,
+  // since the HOST_LOOP thread reads DOCA GPU ring flags directly from the CPU.
   cudaq_dispatch_path_t dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
 
   /// Host-side function table for GRAPH_LAUNCH entries (HOST_LOOP only).
