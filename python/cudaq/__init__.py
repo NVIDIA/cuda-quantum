@@ -331,6 +331,16 @@ def __getattr__(name):
             globals()[name] = val
             return val
 
+    # Fallback: try importing as a cudaq submodule (e.g., `cudaq.kernels``,
+    # `cudaq.dynamics``). This handles sub-packages that were previously
+    # accessible as side effects of eager imports.
+    try:
+        mod = importlib.import_module(f'.{name}', __name__)
+        globals()[name] = mod
+        return mod
+    except ImportError:
+        pass
+
     raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
 
 
