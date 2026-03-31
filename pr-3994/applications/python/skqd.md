@@ -1167,8 +1167,8 @@ pr-3994
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2624,7 +2624,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![3a7141e834204cff9512ee1dbc06cd34](../../_images/speedup.png){.no-scaled-link
+![86fc554d60074d3b9f21e3cf0e18e0bb](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2638,9 +2638,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![1e1126e0587d46f2bdcb7ea86f79578e](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![0fac41b0ce8a4acf93d623dec71dd9bc](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![25e9e196cc7447f697c80ce48a65b29b](../../_images/efficiency.jpeg){.no-scaled-link
+![f3b32ad39f574365bf9c5714f73cdd8a](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

@@ -1169,8 +1169,8 @@ pr-3994
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2154,7 +2154,7 @@ explained above.
 
 <div>
 
-![800c61adc85147cdb1396c5ccb07e85d](../../_images/adapt-qaoa.png){.no-scaled-link
+![b52ee716281f4a81bd9985eb4623e101](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
