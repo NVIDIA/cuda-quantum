@@ -53,93 +53,27 @@ Specialized skills
 
 Docs `docs/sphinx/using/install/install.rst`, `docs/sphinx/using/quick_start.rst`
 
-### Python (recommended for beginners)
+Instructions
 
-```bash
-pip install cudaq
-# Verify GPU support is available
-python3 -c "import cudaq; print(cudaq.get_target())"
-```
-
-For GPU acceleration on Linux, also install the CUDA Toolkit.
-
-### C++
-
-```bash
-# Download install_cuda_quantum from GitHub Releases, then
-sudo -E bash install_cuda_quantum*.$(uname -m) --accept
-. /etc/profile
-# Custom path (no sudo)
-bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
-```
+- Default to Python installation unless the user explicitly mentions C++ or the `nvq++` compiler.
+- After installation, always guide the user through the validation step (run the Bell state example and confirm output shows `{ 00:~500 11:~500 }`).
+- Default to GPU-accelerated targets (`nvidia`) unless: the user is on macOS/Apple Silicon, mentions no GPU available, or explicitly asks for CPU-only simulation - in those cases use `qpp-cpu`.
+- Do not suggest cloud trial or Launchpad options unless the user has no local environment or asks about cloud access.
 
 Platform notes
 
-- Linux (x86_64, ARM64): full GPU support
-- macOS (ARM64/Apple Silicon): CPU simulation only
-- Windows: use WSL
+- Linux (x86_64, ARM64): full GPU support - `pip install cudaq` + CUDA Toolkit
+- macOS (ARM64/Apple Silicon): CPU simulation only - `pip install cudaq` (no CUDA Toolkit needed)
+- Windows: use WSL, then follow Linux instructions
+- C++ (no sudo): `bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq`
 
-Validate
-
-```bash
-python3 -c "
-import cudaq
-@cudaq.kernel
-def bell():
-    q = cudaq.qvector(2)
-    h(q[0])
-    cx(q[0], q[1])
-    mz(q)
-print(cudaq.sample(bell))
-"
-```
+See the docs above for full install commands and validation steps.
 
 ---
 
 ## First Program
 
 Docs `docs/sphinx/using/basics/kernel_intro.rst`, `docs/sphinx/using/basics/build_kernel.rst`
-
-### Python Bell State
-
-```python
-import cudaq
-
-@cudaq.kernel
-def bell_state():
-    q = cudaq.qvector(2)  # allocate 2 qubits
-    h(q[0])               # Hadamard on qubit 0
-    cx(q[0], q[1])        # CNOT gate with source as q[0] and target as q[1]
-    mz(q)                 # measure both
-
-# Sample 1000 shots
-result = cudaq.sample(bell_state, shots_count=1000)
-print(result)  # |00> ~50%, |11> ~50%
-```
-
-### C++ Bell State
-
-```cpp
-#include <cudaq.h>
-
-struct bell_state {
-  void operator()() __qpu__ {
-    cudaq::qvector q(2);
-    h(q[0]);
-    x<cudaq::ctrl>(q[0], q[1]);
-    mz(q);
-  }
-};
-
-int main() {
-  auto result = cudaq::sample(bell_state{});
-  result.dump();
-}
-```
-
-```bash
-nvq++ bell.cpp -o bell.x && ./bell.x
-```
 
 Key concepts to explain
 
@@ -148,6 +82,8 @@ Key concepts to explain
 - `cudaq.sample()` runs the kernel multiple times and returns a `SampleResult`
 - `cudaq.observe()` computes ⟨H⟩ for a spin operator
 - `cudaq.get_state()` returns the full statevector
+
+See the docs above for Bell state examples in Python and C++.
 
 ---
 
@@ -166,36 +102,7 @@ Docs `docs/sphinx/using/backends/sims/svsims.rst`, `docs/sphinx/using/examples/m
 | `tensornet` | Tensor network simulator for shallow wide circuits |
 | `qpp-cpu` | CPU-only fallback (OpenMP), for testing |
 
-### Single GPU
-
-```python
-cudaq.set_target('nvidia')          # fp32 (default)
-cudaq.set_target('nvidia', option='fp64')  # fp64
-```
-
-```bash
-python3 program.py --target nvidia
-nvq++ program.cpp --target nvidia -o program.x
-```
-
-### Multi-GPU (pool memory for large circuits)
-
-```bash
-# Span 4 GPUs for a single simulation
-mpiexec -np 4 python3 program.py --target nvidia --target-option mgpu
-```
-
-### Multi-QPU (parallel async sampling)
-
-```python
-cudaq.set_target('nvidia', option='mqpu')
-platform = cudaq.get_platform()
-n_qpus = platform.num_qpus()
-
-# Dispatch tasks asynchronously
-futures = [cudaq.sample_async(kernel, qpu_id=i) for i in range(n_qpus)]
-results = [f.get() for f in futures]
-```
+See the docs above for single-GPU, multi-GPU (mgpu), and multi-QPU (mqpu) code examples.
 
 ---
 
@@ -215,39 +122,13 @@ Docs `docs/sphinx/using/backends/hardware.rst`, `docs/sphinx/using/backends/clou
 | AWS Braket | `braket` | Multi-platform |
 | Scaleway | `scaleway` | Cloud QPU |
 
-### Running on QPU
+Key points
 
-```python
-import cudaq, os
+- Set credentials via environment variables (e.g. `IONQ_API_KEY`)
+- Use `cudaq.sample_async()` for non-blocking QPU submission
+- Test with a noise model locally before submitting to real hardware
 
-# Set credentials (as per hardware provider)
-os.environ["IONQ_API_KEY"] = "your-key"
-cudaq.set_target("ionq", qpu="aria-1")
-
-@cudaq.kernel
-def ghz(n: int):
-    q = cudaq.qvector(n)
-    h(q[0])
-    for i in range(n - 1):
-        cx(q[i], q[i + 1])
-    mz(q)
-
-# Async submission to real hardware
-future = cudaq.sample_async(ghz, 5, shots_count=100)
-result = future.get()
-print(result)
-```
-
-### Noise-Aware Simulation
-
-Before running on QPU, test with a noise model
-
-```python
-noise = cudaq.NoiseModel()
-noise.add_channel('x', [0], cudaq.BitFlipChannel(0.01))
-cudaq.set_target('qpp-cpu')
-result = cudaq.sample(kernel, noise_model=noise)
-```
+See the docs above for QPU connection and noise model examples.
 
 ---
 
@@ -255,7 +136,7 @@ result = cudaq.sample(kernel, noise_model=noise)
 
 Docs `docs/sphinx/using/applications.rst`
 
-CUDA-Q ships with 27+ ready-to-run application notebooks
+CUDA-Q ships with ready-to-run application notebooks
 
 | Category | Examples |
 |---|---|
