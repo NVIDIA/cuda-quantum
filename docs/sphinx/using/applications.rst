@@ -45,7 +45,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/qm_mm_pe
    /applications/python/skqd
    /applications/python/entanglement_acc_hamiltonian_simulation
-   /applications/python/ptsbe_end_to_end_workflow
+   /applications/python/ptsbe
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -291,7 +291,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/quantum_pagerank_preview.png" alt="Quantum Pagerank Preview" class="notebook-image">
     </div> 
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
         <div class="notebook-content">
             Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
@@ -307,7 +307,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
         <div class="notebook-content">
             Learn how to implement QM/MM with PE framework using CUDA-Q.
@@ -316,7 +316,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noisy,gpu">
-        <a href="../applications/python/ptsbe_end_to_end_workflow.html" class="notebook-title">Noisy Circuit Simulation with PTSBE</a>
+        <a href="../applications/python/ptsbe.html" class="notebook-title">Noisy Circuit Simulation with PTSBE</a>
         <div class="notebook-content">
             Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method for sampling from noisy quantum circuits. Rather than simulating the full density matrix, PTSBE pre-samples unique noise trajectories and batches many shots across them, yielding orders-of-magnitude speedups for large shot counts. Based on the SC25 paper by Patti et al. (https://arxiv.org/abs/2504.16297).
         </div>

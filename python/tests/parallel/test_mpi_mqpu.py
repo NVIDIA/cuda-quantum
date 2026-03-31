@@ -23,7 +23,7 @@ def mpi_init_finalize():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target('nvidia-mqpu')
     yield
     cudaq.__clearKernelRegistries()

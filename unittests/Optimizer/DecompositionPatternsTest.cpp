@@ -296,10 +296,10 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
 
     // Apply the decomposition pass with only this pattern enabled
     PassManager pm(context.get());
-    cudaq::opt::DecompositionPassOptions options;
+    cudaq::opt::DecompositionOptions options;
     std::string ownedEnabledPatterns[]{patternName};
     options.enabledPatterns = ownedEnabledPatterns;
-    pm.addPass(cudaq::opt::createDecompositionPass(options));
+    pm.addPass(cudaq::opt::createDecomposition(options));
 
     // Run the pass
     auto result = pm.run(module);
