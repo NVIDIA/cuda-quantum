@@ -208,61 +208,27 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
               return a.path().filename() < b.path().filename();
             });
 
-  // Search for all simulators and create / store them
+  // Discover available simulators and platforms by scanning filenames.
+  // Libraries are loaded on demand in getSimulator()/getPlatform() rather than
+  // eagerly here, to avoid the cost of dlopen'ing all .so files at import time.
   for (const auto &library : entries) {
     auto path = library.path();
     auto fileName = path.filename().string();
     if (fileName.find("nvqir-") != std::string::npos) {
-
-      // Extract and process the simulator name
       auto simName = std::regex_replace(fileName, std::regex("libnvqir-"), "");
       simName = std::regex_replace(simName, std::regex("-"), "_");
-      // Remove the suffix from the library
       auto idx = simName.find_last_of(".");
       simName = simName.substr(0, idx);
-
-      // Store the dlopen handles
-      auto iter = libHandles.find(path.string());
-      bool loadFailed = false;
-      if (iter == libHandles.end()) {
-        void *simLibHandle =
-            dlopen(path.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-        // Add simulator lib if successfully loaded.
-        // Note: there could be potential dlopen failures due to missing
-        // dependencies.
-        if (simLibHandle)
-          libHandles.emplace(path.string(), simLibHandle);
-        else {
-          loadFailed = true;
-          // Retrieve the error message
-          char *error_msg = dlerror();
-          CUDAQ_INFO("Failed to load NVQIR backend '{}' from {}. Error: {}",
-                     simName, path.string(),
-                     (error_msg ? std::string(error_msg) : "unknown."));
-        }
-      }
-
-      if (!loadFailed) {
-        // Load the plugin and get the CircuitSimulator.
-        // Skip adding simulator name to the availableSimulators list if failed
-        // to load.
-        CUDAQ_INFO("Found simulator plugin {}.", simName);
-        availableSimulators.push_back(simName);
-      }
+      simulatorLibPaths.emplace(simName, path);
+      availableSimulators.push_back(simName);
+      CUDAQ_INFO("Found simulator plugin {}.", simName);
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
-      // store all available platforms.
-      // Extract and process the platform name
       auto platformName =
           std::regex_replace(fileName, std::regex("libcudaq-platform-"), "");
       platformName = std::regex_replace(platformName, std::regex("-"), "_");
-      // Remove the suffix from the library
       auto idx = platformName.find_last_of(".");
       platformName = platformName.substr(0, idx);
-      auto iter = libHandles.find(path.string());
-      if (iter == libHandles.end())
-        libHandles.emplace(path.string(), dlopen(path.string().c_str(),
-                                                 RTLD_GLOBAL | RTLD_NOW));
-      // Load the plugin and get the CircuitSimulator.
+      platformLibPaths.emplace(platformName, path);
       availablePlatforms.push_back(platformName);
       CUDAQ_INFO("Found platform plugin {}.", platformName);
     }
@@ -274,22 +240,28 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   // default to 'nvidia', else to 'qpp-cpu'
   defaultTarget = "qpp-cpu";
   if (num_available_gpus() > 0) {
-    // Before setting the defaultTarget to nvidia, make sure the simulator is
-    // available.
-    const std::string nvidiaTarget = "nvidia";
-    auto iter = targets.find(nvidiaTarget);
-    if (iter != targets.end()) {
-      auto target = iter->second;
-      if (std::find(availableSimulators.begin(), availableSimulators.end(),
-                    target.simulatorName) != availableSimulators.end())
-        defaultTarget = nvidiaTarget;
-      else
-        CUDAQ_INFO(
-            "GPU(s) found but cannot select nvidia target because simulator "
-            "is not available. Are all dependencies installed?");
+    auto iter = targets.find("nvidia");
+    if (iter == targets.end()) {
+      CUDAQ_INFO("GPU(s) found but nvidia target not found.");
     } else {
-      CUDAQ_INFO("GPU(s) found but cannot select nvidia target because nvidia "
-                 "target not found.");
+      // Verify the simulator .so can actually be loaded before selecting
+      // nvidia as default. Missing dependencies (e.g., cuStateVec) should
+      // fall back to qpp-cpu, not crash.
+      auto simPathIter = simulatorLibPaths.find(iter->second.simulatorName);
+      if (simPathIter == simulatorLibPaths.end()) {
+        CUDAQ_INFO("GPU(s) found but simulator '{}' not available.",
+                   iter->second.simulatorName);
+      } else {
+        void *handle = dlopen(simPathIter->second.string().c_str(),
+                              RTLD_GLOBAL | RTLD_NOW);
+        if (handle) {
+          libHandles.emplace(simPathIter->second.string(), handle);
+          defaultTarget = "nvidia";
+        } else {
+          CUDAQ_INFO("GPU(s) found but nvidia simulator failed to load: {}",
+                     dlerror());
+        }
+      }
     }
   }
   auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
@@ -317,12 +289,34 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
   }
 }
 
+/// @brief Ensure a library is loaded, dlopen'ing it on demand if needed.
+void LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
+  auto pathStr = path.string();
+  if (libHandles.count(pathStr))
+    return;
+  void *handle = dlopen(pathStr.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (!handle) {
+    char *error_msg = dlerror();
+    throw std::runtime_error(
+        fmt::format("Failed to load library '{}': {}", pathStr,
+                    (error_msg ? std::string(error_msg) : "unknown")));
+  }
+  libHandles.emplace(pathStr, handle);
+}
+
 nvqir::CircuitSimulator *
 LinkedLibraryHolder::getSimulator(const std::string &simName) {
   auto end = availableSimulators.end();
   auto iter = std::find(availableSimulators.begin(), end, simName);
   if (iter == end)
     throw std::runtime_error("Invalid simulator requested: " + simName);
+
+  // Ensure the simulator library is loaded on demand. Since ensureLibLoaded
+  // uses RTLD_GLOBAL, the symbols are globally visible and
+  // getUniquePluginInstance can find them via dlopen(nullptr).
+  auto pathIter = simulatorLibPaths.find(simName);
+  if (pathIter != simulatorLibPaths.end())
+    ensureLibLoaded(pathIter->second);
 
   return getUniquePluginInstance<nvqir::CircuitSimulator>(
       std::string("getCircuitSimulator_") + simName);
@@ -334,6 +328,10 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
   auto iter = std::find(availablePlatforms.begin(), end, platformName);
   if (iter == end)
     throw std::runtime_error("Invalid platform requested: " + platformName);
+
+  auto pathIter = platformLibPaths.find(platformName);
+  if (pathIter != platformLibPaths.end())
+    ensureLibLoaded(pathIter->second);
 
   return getUniquePluginInstance<quantum_platform>(
       std::string("getQuantumPlatform_") + platformName);
@@ -411,6 +409,10 @@ void LinkedLibraryHolder::setTarget(
   }
   __nvqir__setCircuitSimulator(getSimulator(simName));
   auto *platform = getPlatform(target.platformName);
+
+  // Provide the already-parsed target config so that
+  // DefaultQuantumPlatform::setTargetBackend can skip re-reading the YAML.
+  platform->runtimeTarget = std::make_unique<cudaq::RuntimeTarget>(target);
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;

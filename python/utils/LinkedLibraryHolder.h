@@ -51,6 +51,12 @@ protected:
   /// @brief Vector of available platforms
   std::vector<std::string> availablePlatforms;
 
+  /// @brief Map simulator names to their library paths (for on-demand loading)
+  std::unordered_map<std::string, std::filesystem::path> simulatorLibPaths;
+
+  /// @brief Map platform names to their library paths (for on-demand loading)
+  std::unordered_map<std::string, std::filesystem::path> platformLibPaths;
+
   /// @brief Map of available targets.
   std::unordered_map<std::string, RuntimeTarget> targets;
 
@@ -62,6 +68,9 @@ protected:
 
   /// @brief Store the name of the current target
   std::string currentTarget;
+
+  /// @brief Load a library on demand if not already loaded.
+  void ensureLibLoaded(const std::filesystem::path &path);
 
 public:
   LinkedLibraryHolder();
