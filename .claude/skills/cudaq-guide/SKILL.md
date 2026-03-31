@@ -92,9 +92,23 @@ Key concepts to explain
 
 - `@cudaq.kernel` / `__qpu__` marks a quantum kernel - compiled to Quake MLIR
 - `cudaq.qvector(N)` allocates N qubits in |0⟩
-- `cudaq.sample()` runs the kernel multiple times and returns a `SampleResult`
-- `cudaq.observe()` computes ⟨H⟩ for a spin operator
-- `cudaq.get_state()` returns the full statevector
+- `cudaq.sample()` - kernel measures qubits; returns bitstring histogram
+  (`SampleResult`)
+- `cudaq.run()` - kernel returns a classical value; runs `shots_count` times
+  and returns a list of those return values
+- `cudaq.observe()` - computes expectation value ⟨H⟩ for a spin operator
+- `cudaq.get_state()` - returns the full statevector (simulator only)
+
+Kernel restrictions
+
+- Only a restricted Python subset is valid inside a kernel - it compiles to
+  Quake MLIR, not regular Python.
+- NumPy and SciPy cannot be used inside a kernel. Use them outside the kernel
+  for classical pre/post-processing.
+- Kernels can call other kernels; the callee must also be a `@cudaq.kernel`.
+
+For compiler internals (`inspect` module -> `ast_bridge.py` -> Quake MLIR ->
+QIR -> JIT), route to `/cudaq-compiler`.
 
 See the docs above for Bell state examples in Python and C++.
 
@@ -107,7 +121,7 @@ Docs `docs/sphinx/using/backends/sims/svsims.rst`,
 
 To recommend the best simulation backend for the user, consult the full
 comparison table at
-https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html
+<https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html>
 
 ### Available GPU Targets
 
