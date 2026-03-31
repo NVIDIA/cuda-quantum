@@ -43,6 +43,13 @@ extern "C" void
 setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries);
 
 //==============================================================================
+// Increment RPC Handler Graph Function Table
+//==============================================================================
+extern "C" void setup_rpc_graph_increment_function_table(
+    cudaq_function_entry_t *h_entries, void **d_mailbox_bank,
+    cudaGraph_t *graph_out, cudaGraphExec_t *exec_out);
+
+//==============================================================================
 // Main
 //==============================================================================
 
@@ -74,7 +81,9 @@ int main(int argc, char *argv[]) {
           << "  --forward             Use Hololink forward kernel (echo) "
              "instead of dispatch\n"
           << "  --unified             Use unified dispatch kernel (RX + "
-             "dispatch + TX in one kernel)\n";
+             "dispatch + TX in one kernel)\n"
+          << "  --cpu                 Use host dispatch with CUDA graph "
+             "launch.\n";
       return 0;
     }
   }
@@ -100,22 +109,58 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    // Set up increment RPC function table on GPU
-    cudaq_function_entry_t *d_function_entries = nullptr;
-    err = cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t));
-    if (err != cudaSuccess) {
-      std::cerr << "ERROR: cudaMalloc failed: " << cudaGetErrorString(err)
-                << std::endl;
-      return 1;
-    }
-    setup_rpc_increment_function_table(d_function_entries);
+    if (config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST) {
+      // Normal device dispatch path: set up increment RPC function table on GPU
+      cudaq_function_entry_t *d_function_entries = nullptr;
+      err = cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t));
+      if (err != cudaSuccess) {
+        std::cerr << "ERROR: cudaMalloc failed: " << cudaGetErrorString(err)
+                  << std::endl;
+        return 1;
+      }
+      setup_rpc_increment_function_table(d_function_entries);
 
-    config.d_function_entries = d_function_entries;
-    config.func_count = 1;
-    config.launch_fn = &cudaq::realtime::bridge_launch_dispatch_kernel;
-    config.cleanup_fn = [d_function_entries]() {
-      cudaFree(d_function_entries);
-    };
+      config.d_function_entries = d_function_entries;
+      config.func_count = 1;
+      config.launch_fn = &cudaq::realtime::bridge_launch_dispatch_kernel;
+      config.cleanup_fn = [d_function_entries]() {
+        cudaFree(d_function_entries);
+      };
+    } else {
+      // Host dispatch path: set up increment RPC function table on host. 
+      err =
+          cudaHostAlloc(&config.h_mailbox, sizeof(void *), cudaHostAllocMapped);
+      if (err != cudaSuccess) {
+        std::cerr << "ERROR: cudaHostAlloc failed: " << cudaGetErrorString(err)
+                  << std::endl;
+        return 1;
+      }
+      std::memset(config.h_mailbox, 0, sizeof(void *));
+      err = cudaHostGetDevicePointer((void **)&config.d_mailbox,
+                                     config.h_mailbox, 0);
+      if (err != cudaSuccess) {
+        std::cerr << "ERROR: cudaHostGetDevicePointer failed: "
+                  << cudaGetErrorString(err) << std::endl;
+        return 1;
+      }
+      constexpr std::size_t num_func = 1;
+      cudaGraph_t graph = nullptr;
+      cudaGraphExec_t graph_exec = nullptr;
+      cudaq_function_entry_t *h_function_entries =
+          new cudaq_function_entry_t[num_func];
+      setup_rpc_graph_increment_function_table(
+          h_function_entries, config.d_mailbox, &graph, &graph_exec);
+
+      config.h_function_entries = h_function_entries;
+      config.h_func_count = num_func;
+      config.cleanup_fn = [graph, graph_exec, h_function_entries,
+                           h_mailbox_bank = config.h_mailbox]() {
+        delete[] h_function_entries;
+        cudaGraphExecDestroy(graph_exec);
+        cudaGraphDestroy(graph);
+        cudaFreeHost(h_mailbox_bank);
+      };
+    }
 
     return cudaq::realtime::bridge_run(config);
 
