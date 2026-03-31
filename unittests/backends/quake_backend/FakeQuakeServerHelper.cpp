@@ -18,7 +18,7 @@
 namespace cudaq {
 
 class QuakeServerHelper : public ServerHelper, public QirServerHelper {
-  std::string url = "http://localhost:62452";
+  std::string url = "http://localhost:62453";
 
 public:
   const std::string name() const override { return "quake_fake"; }
