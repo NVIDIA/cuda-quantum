@@ -221,3 +221,8 @@ func.func private @wonk(!quake.veq<18>, i32) -> f64
 %2 = quake.alloca !quake.veq<18>
 // expected-error@+1 {{result types must match}}
 %3 = quake.apply @wonk %2, %1 : (!quake.veq<18>, i32) -> i8
+
+// -----
+
+// expected-error@+1 {{cannot classically allocate quake abstract type}}
+%0 = cc.alloca !quake.measure
