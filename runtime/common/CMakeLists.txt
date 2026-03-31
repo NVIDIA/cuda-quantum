@@ -27,6 +27,7 @@ set(COMMON_RUNTIME_SRC
   ServerHelper.cpp
   Trace.cpp
   CompiledKernel.cpp
+  "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp"
 )
 
 # Create the cudaq-common library

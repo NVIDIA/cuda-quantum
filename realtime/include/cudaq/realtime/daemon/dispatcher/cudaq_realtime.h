@@ -102,6 +102,12 @@ typedef struct {
   cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
   cudaq_dispatch_path_t dispatch_path; // GPU kernel or CPU host loop
+  int skip_tx_markers; // when non-zero, the host dispatcher will NOT write
+                       // sentinel markers (CUDAQ_TX_FLAG_IN_FLIGHT) to
+                       // tx_flags before graph launch.  Set this when an
+                       // external GPU kernel (e.g. Hololink TX) polls the
+                       // same tx_flags array; the sentinel would be
+                       // misinterpreted as a valid address.
 } cudaq_dispatcher_config_t;
 
 // GPU ring buffer pointers. For device backend use device pointers only.
