@@ -818,6 +818,8 @@ def cc_AllocaOp : CCOp<"alloca", [
 
   let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+
   let builders = [
     OpBuilder<(ins "mlir::Type":$elementType, "mlir::Value":$seqSize), [{
       auto resTy = cudaq::cc::PointerType::get(seqSize ?

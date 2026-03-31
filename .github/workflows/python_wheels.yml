@@ -43,7 +43,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
@@ -121,6 +121,21 @@ jobs:
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-wheel
+          registry-token: ${{ github.token }}
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -146,11 +161,36 @@ jobs:
         with:
           context: .
           file: ./docker/release/cudaq.wheel.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.cudaq_version }}
             python_version=${{ inputs.python_version }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Extract ccache from build
+        run: |
+          # The final image is scratch with only the .whl, so we target the
+          # ccache-export stage. Uses buildx to hit the same builder cache
+          # as the step above; only the COPY runs.
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/release/cudaq.wheel.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
+            --build-arg release_version=${{ steps.prereqs.outputs.cudaq_version }} \
+            --build-arg python_version=${{ inputs.python_version }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-wheel
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Upload wheel
         uses: actions/upload-artifact@v4

@@ -129,7 +129,7 @@ jobs:
             cd /workspace/realtime
             bash scripts/install_dev_prerequisites.sh
             # Build HSB (GPU RoCE transceiver and hololink_core)
-            export CUDA_NATIVE_ARCH=${{ (contains(matrix.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}
+            export CUDA_NATIVE_ARCH="${{ (contains(matrix.cuda_version, '12') && '80-real;90') || '80-real;90-real;100f-real;110-real;120-real;100-virtual' }}"
             cd /workspace/ && git clone -b release-2.6.0-EA https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge 
             cmake -G Ninja -S /workspace/holoscan-sensor-bridge -B /workspace/holoscan-sensor-bridge/build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF
             cmake --build /workspace/holoscan-sensor-bridge/build --target roce_receiver gpu_roce_transceiver hololink_core
