@@ -163,6 +163,10 @@ int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx) {
   return ptr;
 }
 
+int8_t *__quantum__rt__result_array_get_element_ptr_1d(Array *q, uint64_t idx) {
+  return __quantum__rt__array_get_element_ptr_1d(q, idx);
+}
+
 int64_t __quantum__rt__array_get_size_1d(Array *state1) {
   if (state1 == nullptr)
     return 0;
