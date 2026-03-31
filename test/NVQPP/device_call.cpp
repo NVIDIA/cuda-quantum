@@ -15,8 +15,8 @@
 // These should fail to compile because the device call cannot be resolved for
 // local execution targets.
 // clang-format off
-// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR
-// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR
+// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --ignore-case --check-prefix=COMPILE_ERROR
+// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --ignore-case --check-prefix=COMPILE_ERROR
 // clang-format on
 
 // This should compile successfully because the trap implementation will be

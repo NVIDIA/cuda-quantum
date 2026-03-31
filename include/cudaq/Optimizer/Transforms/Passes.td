@@ -425,7 +425,9 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
 
   let options = [
     Option<"insertTrapImplementation", "insert-trap", "bool", /*default=*/"false",
-      "Enable pass to insert a default implementation (runtime trap) for device call (default=false). The default implementation has weak linkage, i.e., allowed to be overridden at link time.">
+      "Enable pass to insert a default implementation (runtime trap) for device call "
+      "(default=false). The default implementation has weak linkage, i.e., " 
+      "allowed to be overridden at link time.">
   ];
 }
 

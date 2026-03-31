@@ -35,7 +35,6 @@ class QIRVendorDeviceCallPat
 
 public:
   using OpRewritePattern::OpRewritePattern;
-  static constexpr const char TrapFuncAttr[] = "cudaq-trap-device-call-impl";
 
   QIRVendorDeviceCallPat(MLIRContext *context, bool insertTrapImpl)
       : OpRewritePattern(context), insertTrapImplementation(insertTrapImpl) {}
@@ -69,27 +68,10 @@ public:
       // Rather, these functions will only be resolved at runtime by the remote
       // provider's runtime library.
 
-      // Add an attribute to the declaration to indicate that this function is
-      // an unresolved device function and the trap implementation is inserted
-      // for it. We will use this attribute to identify and remove these
-      // declarations later.
-      devFunc->setAttr(TrapFuncAttr, rewriter.getUnitAttr());
-      // (1) Create a trap function that has the same signature as the device
-      // function.
+      // (1) Add a trap implementation for this device function declaration.
       auto insPt = rewriter.saveInsertionPoint();
-      rewriter.setInsertionPointToStart(module.getBody());
-      auto trapFunc = rewriter.create<func::FuncOp>(
-          devcall.getLoc(), devFuncName, devFunc.getFunctionType());
-      trapFunc.setPrivate();
-      // Set weak_odr linkage to allow multiple definitions across translation
-      // units without linker errors. e.g., compiling for a remote hardware
-      // provider with the actual device call library linkage (even though
-      // unused) should not cause any problems.
-      auto weakOdrLinkage = mlir::LLVM::linkage::Linkage::WeakODR;
-      auto linkage =
-          mlir::LLVM::LinkageAttr::get(rewriter.getContext(), weakOdrLinkage);
-      trapFunc->setAttr("llvm.linkage", linkage);
-      auto &entryBlock = *trapFunc.addEntryBlock();
+      // Add an entry block
+      auto &entryBlock = *devFunc.addEntryBlock();
       rewriter.setInsertionPointToStart(&entryBlock);
       // Create a call to the trap intrinsic.
       // Error code 2 is used to indicate illegal execution of unreachable code.
@@ -101,7 +83,8 @@ public:
       // For return (after the trap), load from nullptr to create return value
       // of the same type as the device function, i.e., `return *(T*)nullptr;`
       // for return type `T`.
-      // Note: this will never be executed because of the trap above.
+      // Note: this will never be executed because of the trap above. It's only
+      // to create a valid IR with the correct return type for the function.
       SmallVector<Value> trapResults;
       for (Type resTy : devFunc.getFunctionType().getResults()) {
         auto nullPtr = rewriter.create<arith::ConstantOp>(
@@ -118,11 +101,23 @@ public:
       rewriter.create<func::ReturnOp>(devcall.getLoc(), trapResults);
       rewriter.restoreInsertionPoint(insPt);
 
-      // (2) Replace the device call with a call to the trap function.
-      // Prevent inlining of the trap function.
+      // (2) Set this trap function as private and weak_odr linkage, to allow
+      // multiple definitions across translation units without linker errors.
+      // For example, compiling for a remote hardware provider with the actual
+      // device call library linkage (even though unused) should not cause any
+      // problems.
+      devFunc.setPrivate();
+      auto weakOdrLinkage = mlir::LLVM::linkage::Linkage::WeakODR;
+      auto linkage =
+          mlir::LLVM::LinkageAttr::get(rewriter.getContext(), weakOdrLinkage);
+      devFunc->setAttr("llvm.linkage", linkage);
+
+      // (3) Replace the device call with a no-inline call to prevent inlining
+      // of the trap function.
       rewriter.replaceOpWithNewOp<cudaq::cc::NoInlineCallOp>(
-          devcall, trapFunc.getFunctionType().getResults(),
-          trapFunc.getSymNameAttr(), devcall.getArgs());
+          devcall, devFunc.getFunctionType().getResults(), devFuncName,
+          devcall.getArgs());
+
       return success();
     }
 
@@ -174,26 +169,6 @@ public:
   }
 };
 
-// Remove device call declarations that we have already inserted trap
-// implementations for, to avoid duplicate declarations of the same device
-// function.
-class RemoveDuplicateDeviceCallDeclaration
-    : public OpRewritePattern<func::FuncOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(func::FuncOp func,
-                                PatternRewriter &rewriter) const override {
-    if (func.isDeclaration() &&
-        func->hasAttr(QIRVendorDeviceCallPat::TrapFuncAttr)) {
-      rewriter.eraseOp(func);
-      return success();
-    }
-
-    return failure();
-  }
-};
-
 class DistributedDeviceCallPass
     : public cudaq::opt::impl::DistributedDeviceCallBase<
           DistributedDeviceCallPass> {
@@ -220,8 +195,6 @@ public:
 
     patterns.add<ResolveDevicePtrOpPat>(ctx);
     patterns.insert<QIRVendorDeviceCallPat>(ctx, insertTrapImplementation);
-    if (insertTrapImplementation)
-      patterns.add<RemoveDuplicateDeviceCallDeclaration>(ctx);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     return;
