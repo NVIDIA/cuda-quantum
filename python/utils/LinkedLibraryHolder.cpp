@@ -143,6 +143,7 @@ void findAvailableTargets(
 }
 
 LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
+  ScopedTraceWithContext("LinkedLibraryHolder::constructor");
   CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
   if (!cudaq::__internal__::canModifyTarget())
@@ -165,8 +166,11 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   }
 
   // Populate the map of available targets.
-  auto targetPath = cudaqLibPath.parent_path() / "targets";
-  findAvailableTargets(targetPath, targets, simulationTargets);
+  {
+    ScopedTraceWithContext("findAvailableTargets");
+    auto targetPath = cudaqLibPath.parent_path() / "targets";
+    findAvailableTargets(targetPath, targets, simulationTargets);
+  }
 
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
@@ -186,16 +190,19 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   }
 
   // Load all the defaults
-  for (auto &p : libPaths) {
-    void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-    libHandles.emplace(p.string(), libHandle);
+  {
+    ScopedTraceWithContext("dlopen_core_and_dynlibs");
+    for (auto &p : libPaths) {
+      void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+      libHandles.emplace(p.string(), libHandle);
 
-    if (!libHandle) {
-      char *error_msg = dlerror();
-      CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
-                 (error_msg ? std::string(error_msg) : "unknown."));
+      if (!libHandle) {
+        char *error_msg = dlerror();
+        CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
+                   (error_msg ? std::string(error_msg) : "unknown."));
+      }
     }
-  }
+  } // end dlopen_core_and_dynlibs
 
   // directory_iterator ordering is unspecified, so sort it to make it
   // repeatable and consistent.
@@ -208,78 +215,40 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
               return a.path().filename() < b.path().filename();
             });
 
-  // Discover available simulators and platforms by scanning filenames.
-  // Libraries are loaded on demand in getSimulator()/getPlatform() rather than
-  // eagerly here, to avoid the cost of dlopen'ing all .so files at import time.
-  for (const auto &library : entries) {
-    auto path = library.path();
-    auto fileName = path.filename().string();
-    if (fileName.find("nvqir-") != std::string::npos) {
-      auto simName = std::regex_replace(fileName, std::regex("libnvqir-"), "");
-      simName = std::regex_replace(simName, std::regex("-"), "_");
-      auto idx = simName.find_last_of(".");
-      simName = simName.substr(0, idx);
-      simulatorLibPaths.emplace(simName, path);
-      availableSimulators.push_back(simName);
-      CUDAQ_INFO("Found simulator plugin {}.", simName);
-    } else if (fileName.find("cudaq-platform-") != std::string::npos) {
-      auto platformName =
-          std::regex_replace(fileName, std::regex("libcudaq-platform-"), "");
-      platformName = std::regex_replace(platformName, std::regex("-"), "_");
-      auto idx = platformName.find_last_of(".");
-      platformName = platformName.substr(0, idx);
-      platformLibPaths.emplace(platformName, path);
-      availablePlatforms.push_back(platformName);
-      CUDAQ_INFO("Found platform plugin {}.", platformName);
-    }
-  }
-
-  // Set the default target
-  // If environment variable set with a valid value, use it
-  // Otherwise, if GPU(s) available and other dependencies are satisfied, set
-  // default to 'nvidia', else to 'qpp-cpu'
-  defaultTarget = "qpp-cpu";
-  if (num_available_gpus() > 0) {
-    auto iter = targets.find("nvidia");
-    if (iter == targets.end()) {
-      CUDAQ_INFO("GPU(s) found but nvidia target not found.");
-    } else {
-      // Verify the simulator .so can actually be loaded before selecting
-      // nvidia as default. Missing dependencies (e.g., cuStateVec) should
-      // fall back to qpp-cpu, not crash.
-      auto simPathIter = simulatorLibPaths.find(iter->second.simulatorName);
-      if (simPathIter == simulatorLibPaths.end()) {
-        CUDAQ_INFO("GPU(s) found but simulator '{}' not available.",
-                   iter->second.simulatorName);
-      } else {
-        void *handle = dlopen(simPathIter->second.string().c_str(),
-                              RTLD_GLOBAL | RTLD_NOW);
-        if (handle) {
-          libHandles.emplace(simPathIter->second.string(), handle);
-          defaultTarget = "nvidia";
-        } else {
-          CUDAQ_INFO("GPU(s) found but nvidia simulator failed to load: {}",
-                     dlerror());
-        }
+  {
+    ScopedTraceWithContext("scan_simulator_filenames");
+    // Discover available simulators and platforms by scanning filenames.
+    // Libraries are loaded on demand in getSimulator()/getPlatform() rather
+    // than eagerly here, to avoid the cost of dlopen'ing all .so files at
+    // import time.
+    for (const auto &library : entries) {
+      auto path = library.path();
+      auto fileName = path.filename().string();
+      if (fileName.find("nvqir-") != std::string::npos) {
+        auto simName =
+            std::regex_replace(fileName, std::regex("libnvqir-"), "");
+        simName = std::regex_replace(simName, std::regex("-"), "_");
+        auto idx = simName.find_last_of(".");
+        simName = simName.substr(0, idx);
+        simulatorLibPaths.emplace(simName, path);
+        availableSimulators.push_back(simName);
+        CUDAQ_INFO("Found simulator plugin {}.", simName);
+      } else if (fileName.find("cudaq-platform-") != std::string::npos) {
+        auto platformName =
+            std::regex_replace(fileName, std::regex("libcudaq-platform-"), "");
+        platformName = std::regex_replace(platformName, std::regex("-"), "_");
+        auto idx = platformName.find_last_of(".");
+        platformName = platformName.substr(0, idx);
+        platformLibPaths.emplace(platformName, path);
+        availablePlatforms.push_back(platformName);
+        CUDAQ_INFO("Found platform plugin {}.", platformName);
       }
     }
-  }
-  auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
-  if (env) {
-    CUDAQ_INFO("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
-    auto iter = simulationTargets.find(env);
-    if (iter != simulationTargets.end()) {
-      CUDAQ_INFO("Valid target");
-      defaultTarget = iter->second.name;
-    }
-  }
+  } // end scan_simulator_filenames
 
-  // Initialize current target to default, may be overridden by command line
-  // argument or set_target() API
-  currentTarget = defaultTarget;
-
-  // We'll always start off with the default target
-  resetTarget();
+  // Default target selection and initialization are deferred to first use.
+  // resolveDefaultTarget() handles the GPU detection, simulator validation,
+  // and fallback logic when resetTarget() is first called.
 }
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
@@ -337,9 +306,55 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
       std::string("getQuantumPlatform_") + platformName);
 }
 
-void LinkedLibraryHolder::resetTarget() { setTarget(defaultTarget); }
+std::string LinkedLibraryHolder::resolveDefaultTarget() {
+  ScopedTraceWithContext("resolveDefaultTarget");
+  std::string resolved = "qpp-cpu";
 
-RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) const {
+  if (num_available_gpus() > 0) {
+    auto iter = targets.find("nvidia");
+    if (iter == targets.end()) {
+      CUDAQ_INFO("GPU(s) found but nvidia target not found.");
+    } else {
+      auto simPathIter = simulatorLibPaths.find(iter->second.simulatorName);
+      if (simPathIter == simulatorLibPaths.end()) {
+        CUDAQ_INFO("GPU(s) found but simulator '{}' not available.",
+                   iter->second.simulatorName);
+      } else {
+        try {
+          ensureLibLoaded(simPathIter->second);
+          resolved = "nvidia";
+        } catch (...) {
+          CUDAQ_INFO("GPU(s) found but nvidia simulator failed to load. "
+                     "Falling back to qpp-cpu.");
+        }
+      }
+    }
+  }
+
+  auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
+  if (env) {
+    CUDAQ_INFO("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
+    auto iter = simulationTargets.find(env);
+    if (iter != simulationTargets.end()) {
+      CUDAQ_INFO("Valid target");
+      resolved = iter->second.name;
+    }
+  }
+
+  return resolved;
+}
+
+void LinkedLibraryHolder::resetTarget() {
+  defaultTarget = resolveDefaultTarget();
+  currentTarget = defaultTarget;
+  setTarget(defaultTarget);
+}
+
+RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) {
+  if (!targetInitialized) {
+    ScopedTraceWithContext("deferred_resetTarget");
+    resetTarget();
+  }
   auto iter = targets.find(name);
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + name + ").");
@@ -347,7 +362,11 @@ RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) const {
   return iter->second;
 }
 
-RuntimeTarget LinkedLibraryHolder::getTarget() const {
+RuntimeTarget LinkedLibraryHolder::getTarget() {
+  if (!targetInitialized) {
+    ScopedTraceWithContext("deferred_resetTarget");
+    resetTarget();
+  }
   auto iter = targets.find(currentTarget);
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + currentTarget + ").");
@@ -443,6 +462,7 @@ void LinkedLibraryHolder::setTarget(
   } else {
     resetExecutionManagerInternal();
   }
+  targetInitialized = true;
 }
 
 std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {

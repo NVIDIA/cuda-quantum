@@ -69,8 +69,15 @@ protected:
   /// @brief Store the name of the current target
   std::string currentTarget;
 
+  /// @brief Whether the target has been initialized (deferred to first use)
+  bool targetInitialized = false;
+
   /// @brief Load a library on demand if not already loaded.
   void ensureLibLoaded(const std::filesystem::path &path);
+
+  /// @brief Determine the default target by checking GPU availability and
+  /// simulator loadability. Falls back to qpp-cpu if nvidia can't load.
+  std::string resolveDefaultTarget();
 
 public:
   LinkedLibraryHolder();
@@ -84,10 +91,10 @@ public:
 
   /// @brief Return the available runtime target with given name.
   /// Throws an exception if no target available with that name.
-  RuntimeTarget getTarget(const std::string &name) const;
+  RuntimeTarget getTarget(const std::string &name);
 
   /// @brief Return the current target.
-  RuntimeTarget getTarget() const;
+  RuntimeTarget getTarget();
 
   /// @brief Return all available runtime targets
   std::vector<RuntimeTarget> getTargets() const;
