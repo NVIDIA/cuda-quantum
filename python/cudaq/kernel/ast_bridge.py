@@ -2941,11 +2941,15 @@ class PyASTBridge(ast.NodeVisitor):
                     measTy = quake.MeasureType.get()
                     resTy = self.getIntegerType(1)
                 else:
-                    if len(qubits) == 1 and quake.VeqType.isinstance(
-                            qubits[0].type) and quake.VeqType.hasSpecifiedSize(
-                                qubits[0].type):
-                        measTy = quake.MeasurementsType.get(
-                            quake.VeqType.getSize(qubits[0].type))
+                    total_size = 0
+                    all_known = True
+                    for q in qubits:
+                        if quake.isConstantQuantumRefType(q.type):
+                            total_size += quake.getAllocationSize(q.type)
+                        else:
+                            all_known = False
+                    if all_known and total_size > 0:
+                        measTy = quake.MeasurementsType.get(total_size)
                     else:
                         measTy = quake.MeasurementsType.get()
                     resTy = cc.StdvecType.get(self.getIntegerType(1))

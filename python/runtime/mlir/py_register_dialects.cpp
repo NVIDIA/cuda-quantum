@@ -113,6 +113,18 @@ void registerQuakeDialectAndTypes(py::module &m) {
           },
           py::arg("veqTypeInstance"));
 
+  quakeMod.def(
+      "isConstantQuantumRefType",
+      [](MlirType type) {
+        return quake::isConstantQuantumRefType(unwrap(type));
+      },
+      py::arg("type"));
+
+  quakeMod.def(
+      "getAllocationSize",
+      [](MlirType type) { return quake::getAllocationSize(unwrap(type)); },
+      py::arg("type"));
+
   mlir_type_subclass(
       quakeMod, "StruqType",
       [](MlirType type) { return unwrap(type).isa<quake::StruqType>(); })
