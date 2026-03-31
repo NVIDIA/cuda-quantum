@@ -194,9 +194,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     ScopedTraceWithContext("dlopen_core_and_dynlibs");
     for (auto &p : libPaths) {
       void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-      libHandles.emplace(p.string(), libHandle);
-
-      if (!libHandle) {
+      if (libHandle) {
+        libHandles.emplace(p.string(), libHandle);
+      } else {
         char *error_msg = dlerror();
         CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
                    (error_msg ? std::string(error_msg) : "unknown."));
@@ -246,9 +246,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     }
   } // end scan_simulator_filenames
 
-  // Default target selection and initialization are deferred to first use.
-  // resolveDefaultTarget() handles the GPU detection, simulator validation,
-  // and fallback logic when resetTarget() is first called.
+  // Default to qpp-cpu. The full resolution (GPU detection, simulator
+  // validation) is deferred to first use via resetTarget().
+  defaultTarget = "qpp-cpu";
+  currentTarget = defaultTarget;
 }
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
@@ -306,6 +307,9 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
       std::string("getQuantumPlatform_") + platformName);
 }
 
+/// @brief Determine the best default target based on GPU availability and
+/// installed simulators. This is a cheap check (no dlopen). The actual
+/// simulator loading and validation happens in resetTarget() via setTarget().
 std::string LinkedLibraryHolder::resolveDefaultTarget() {
   ScopedTraceWithContext("resolveDefaultTarget");
   std::string resolved = "qpp-cpu";
@@ -314,20 +318,11 @@ std::string LinkedLibraryHolder::resolveDefaultTarget() {
     auto iter = targets.find("nvidia");
     if (iter == targets.end()) {
       CUDAQ_INFO("GPU(s) found but nvidia target not found.");
+    } else if (simulatorLibPaths.count(iter->second.simulatorName)) {
+      resolved = "nvidia";
     } else {
-      auto simPathIter = simulatorLibPaths.find(iter->second.simulatorName);
-      if (simPathIter == simulatorLibPaths.end()) {
-        CUDAQ_INFO("GPU(s) found but simulator '{}' not available.",
-                   iter->second.simulatorName);
-      } else {
-        try {
-          ensureLibLoaded(simPathIter->second);
-          resolved = "nvidia";
-        } catch (...) {
-          CUDAQ_INFO("GPU(s) found but nvidia simulator failed to load. "
-                     "Falling back to qpp-cpu.");
-        }
-      }
+      CUDAQ_INFO("GPU(s) found but simulator '{}' not available.",
+                 iter->second.simulatorName);
     }
   }
 
@@ -335,10 +330,8 @@ std::string LinkedLibraryHolder::resolveDefaultTarget() {
   if (env) {
     CUDAQ_INFO("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
     auto iter = simulationTargets.find(env);
-    if (iter != simulationTargets.end()) {
-      CUDAQ_INFO("Valid target");
+    if (iter != simulationTargets.end())
       resolved = iter->second.name;
-    }
   }
 
   return resolved;
@@ -347,7 +340,20 @@ std::string LinkedLibraryHolder::resolveDefaultTarget() {
 void LinkedLibraryHolder::resetTarget() {
   defaultTarget = resolveDefaultTarget();
   currentTarget = defaultTarget;
-  setTarget(defaultTarget);
+  try {
+    setTarget(defaultTarget);
+  } catch (const std::runtime_error &e) {
+    if (defaultTarget != "qpp-cpu") {
+      CUDAQ_INFO("Failed to activate default target '{}': {}. "
+                 "Falling back to qpp-cpu.",
+                 defaultTarget, e.what());
+      defaultTarget = "qpp-cpu";
+      currentTarget = defaultTarget;
+      setTarget(defaultTarget);
+    } else {
+      throw;
+    }
+  }
 }
 
 RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) {

@@ -75,8 +75,8 @@ protected:
   /// @brief Load a library on demand if not already loaded.
   void ensureLibLoaded(const std::filesystem::path &path);
 
-  /// @brief Determine the default target by checking GPU availability and
-  /// simulator loadability. Falls back to qpp-cpu if nvidia can't load.
+  /// @brief Determine the default target based on available GPUs and
+  /// simulators.
   std::string resolveDefaultTarget();
 
 public:
