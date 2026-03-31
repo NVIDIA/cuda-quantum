@@ -1192,8 +1192,8 @@ pr-4224
             Mode](host.html#unified-dispatch-mode){.reference .internal}
             -   [Architecture](host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](host.html#when-to-use-which-mode){.reference
