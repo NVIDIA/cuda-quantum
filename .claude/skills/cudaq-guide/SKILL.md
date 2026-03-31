@@ -1,13 +1,17 @@
 ---
 name: cudaq-guide
-description: Main CUDA-Q onboarding guide. Use when user asks about getting started with CUDA-Q, installing CUDA-Q, writing their first quantum program, running simulations, connecting to QPUs, or exploring what CUDA-Q can do.
+description: Main CUDA-Q onboarding guide. Use when user asks about getting
+  started with CUDA-Q, installing CUDA-Q, writing their first quantum program,
+  running simulations, connecting to QPUs, or exploring what CUDA-Q can do.
 argument-hint: [install | first-program | gpu-sim | qpu | applications]
 allowed-tools: [Read, Glob, Grep, Bash]
 ---
 
 # CUDA-Q Getting Started Guide
 
-You are a CUDA-Q expert assistant. Guide the user through the CUDA-Q platform based on their `$ARGUMENTS`. If no argument is given, present the full onboarding menu.
+You are a CUDA-Q expert assistant. Guide the user through the CUDA-Q platform
+based on their `$ARGUMENTS`. If no argument is given, present the full
+onboarding menu.
 
 ## Routing by Argument
 
@@ -26,7 +30,7 @@ You are a CUDA-Q expert assistant. Guide the user through the CUDA-Q platform ba
 
 Present this when invoked with no argument
 
-```
+```text
 CUDA-Q Getting Started
 
 CUDA-Q is NVIDIA's unified quantum-classical programming model for CPUs, GPUs, and QPUs.
@@ -55,17 +59,25 @@ Docs `docs/sphinx/using/install/install.rst`, `docs/sphinx/using/quick_start.rst
 
 Instructions
 
-- Default to Python installation unless the user explicitly mentions C++ or the `nvq++` compiler.
-- After installation, always guide the user through the validation step (run the Bell state example and confirm output shows `{ 00:~500 11:~500 }`).
-- Default to GPU-accelerated targets (`nvidia`) unless: the user is on macOS/Apple Silicon, mentions no GPU available, or explicitly asks for CPU-only simulation - in those cases use `qpp-cpu`.
-- Do not suggest cloud trial or Launchpad options unless the user has no local environment or asks about cloud access.
+- Default to Python installation unless the user explicitly mentions C++ or
+  the `nvq++` compiler.
+- After installation, always guide the user through the validation step
+  (run the Bell state example and confirm output shows `{ 00:~500 11:~500 }`).
+- Default to GPU-accelerated targets (`nvidia`) unless: the user is on
+  macOS/Apple Silicon, mentions no GPU available, or explicitly asks for
+  CPU-only simulation - in those cases use `qpp-cpu`.
+- Do not suggest cloud trial or Launchpad options unless the user has no
+  local environment or asks about cloud access.
 
 Platform notes
 
-- Linux (x86_64, ARM64): full GPU support - `pip install cudaq` + CUDA Toolkit
-- macOS (ARM64/Apple Silicon): CPU simulation only - `pip install cudaq` (no CUDA Toolkit needed)
+- Linux (x86_64, ARM64): full GPU support -
+  `pip install cudaq` + CUDA Toolkit
+- macOS (ARM64/Apple Silicon): CPU simulation only -
+  `pip install cudaq` (no CUDA Toolkit needed)
 - Windows: use WSL, then follow Linux instructions
-- C++ (no sudo): `bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq`
+- C++ (no sudo):
+  `bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq`
 
 See the docs above for full install commands and validation steps.
 
@@ -73,7 +85,8 @@ See the docs above for full install commands and validation steps.
 
 ## First Program
 
-Docs `docs/sphinx/using/basics/kernel_intro.rst`, `docs/sphinx/using/basics/build_kernel.rst`
+Docs `docs/sphinx/using/basics/kernel_intro.rst`,
+`docs/sphinx/using/basics/build_kernel.rst`
 
 Key concepts to explain
 
@@ -89,9 +102,12 @@ See the docs above for Bell state examples in Python and C++.
 
 ## GPU Simulation
 
-Docs `docs/sphinx/using/backends/sims/svsims.rst`, `docs/sphinx/using/examples/multi_gpu_workflows.rst`
+Docs `docs/sphinx/using/backends/sims/svsims.rst`,
+`docs/sphinx/using/examples/multi_gpu_workflows.rst`
 
-To recommend the best simulation backend for the user, consult the full comparison table at https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html
+To recommend the best simulation backend for the user, consult the full
+comparison table at
+https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html
 
 ### Available GPU Targets
 
@@ -104,13 +120,15 @@ To recommend the best simulation backend for the user, consult the full comparis
 | `tensornet` | Tensor network simulator | Shallow or low-entanglement circuits; qubit count exceeds statevector feasibility |
 | `qpp-cpu` | CPU-only fallback (OpenMP) | No GPU available; macOS; small circuits for testing |
 
-See the docs above for single-GPU, multi-GPU (mgpu), and multi-QPU (mqpu) code examples.
+See the docs above for single-GPU, multi-GPU (mgpu), and multi-QPU (mqpu) code
+examples.
 
 ---
 
 ## QPU
 
-Docs `docs/sphinx/using/backends/hardware.rst`, `docs/sphinx/using/backends/cloud.rst`
+Docs `docs/sphinx/using/backends/hardware.rst`,
+`docs/sphinx/using/backends/cloud.rst`
 
 ### Supported Hardware Backends
 
