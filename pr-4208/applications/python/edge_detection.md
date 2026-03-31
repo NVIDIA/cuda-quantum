@@ -1168,8 +1168,8 @@ pr-4208
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2155,7 +2155,7 @@ each pixel with its position
 
 <div>
 
-![7a680b7e869d4583a1f7ec9b5bcd25eb](../../_images/pixels-img.png){.no-scaled-link
+![4cadddffe5b74b72b88518cc705a321e](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>
