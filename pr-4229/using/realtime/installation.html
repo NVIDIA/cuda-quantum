@@ -1246,7 +1246,8 @@ The validation includes checking the data correctness and measuring the round-tr
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Using Holoscan Sensor Bridge</label><div class="tab-content docutils">
 <p>The validation script has three defined kernel modes, one for a unified kernel (enabled with <code class="code docutils literal notranslate"><span class="pre">--unified</span></code>), one for a forward kernel
-(enabled with <code class="code docutils literal notranslate"><span class="pre">--forward</span></code>), and a 3-kernel setup (used by default). The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.</p>
+(enabled with <code class="code docutils literal notranslate"><span class="pre">--forward</span></code>), one for host-dispatch (enabled with <code class="code docutils literal notranslate"><span class="pre">--cpu</span></code>), and a 3-kernel setup (used by default).
+The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified</span>
 </pre></div>
 </div>
@@ -1258,7 +1259,7 @@ The validation includes checking the data correctness and measuring the round-tr
 - <code class="code docutils literal notranslate"><span class="pre">--fpga-ip</span></code> is the IP address of the <code class="code docutils literal notranslate"><span class="pre">HSB</span></code> FPGA.
 - <code class="code docutils literal notranslate"><span class="pre">--bridge-ip</span></code> is the IP address of the NIC on the host machine.
 - <code class="code docutils literal notranslate"><span class="pre">--page-size</span></code> is the ring buffer slot size in bytes.
-- <code class="code docutils literal notranslate"><span class="pre">--unified</span></code> or <code class="code docutils literal notranslate"><span class="pre">--forward</span></code> are the mutually exclusive flags to enable the unified or forward dispatch mode.</p>
+- <code class="code docutils literal notranslate"><span class="pre">--unified</span></code>, <code class="code docutils literal notranslate"><span class="pre">--forward</span></code>, or <code class="code docutils literal notranslate"><span class="pre">--cpu</span></code> are the mutually exclusive flags to enable the unified, forward, or host-dispatch mode.</p>
 </div>
 <p>Upon successful completion, the above validation script should
 print out something similar to the following:</p>
