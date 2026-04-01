@@ -1,4 +1,5 @@
 import cudaq
+import math
 
 # Test all gates on the quantum machines target.
 # The default executor is mock, use executor name to run on another backend (real or simulator).

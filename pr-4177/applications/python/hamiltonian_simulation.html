@@ -36,7 +36,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Quantum Fourier Transform" href="quantum_fourier_transform.html" />
-    <link rel="prev" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" href="logical_aim_sqale.html" /> 
+    <link rel="prev" title="Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements" href="hadamard_test.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -207,17 +207,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html">   PTSBE End-to-End Workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -369,14 +369,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
-</ul>
-</li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
@@ -442,20 +434,6 @@
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_transformer.html">Quantum Transformer</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Installation">Installation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Usage">Usage</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Model-Training">Model Training</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -589,14 +567,22 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Matrix-Construction-Details">Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix">Approach 1: GPU-Vectorized CSR Sparse Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh">Approach 2: Matrix-Free Lanczos via <code class="docutils literal notranslate"><span class="pre">distributed_eigsh</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU">Postprocessing Acceleration: CSR matrix approach, single GPU vs CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Saving-Hamiltonian-Data">Saving Hamiltonian Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#Running-the-Distributed-Solver">Running the Distributed Solver</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -620,6 +606,20 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ptsbe.html">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ptsbe.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling">Performance of PTSBE vs standard noisy sampling</a></li>
 </ul>
 </li>
 </ul>
@@ -711,6 +711,107 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#batch-simulation">Batch simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/realtime.html">   Realtime</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/installation.html">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/host.html">Host API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-is-hsb">What is HSB?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#transport-mechanisms">Transport Mechanisms</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#supported-transport-options">Supported Transport Options</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture">The 3-Kernel Architecture (HSB Example) {#three-kernel-architecture}</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#data-flow-summary">Data Flow Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#why-3-kernels">Why 3 Kernels?</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#unified-dispatch-mode">Unified Dispatch Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#architecture">Architecture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#transport-agnostic-design">Transport-Agnostic Design</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#when-to-use-which-mode">When to Use Which Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#host-api-extensions">Host API Extensions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-this-api-does-in-one-paragraph">What This API Does (In One Paragraph)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#scope">Scope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#terms-and-components">Terms and Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#schema-data-structures">Schema Data Structures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#type-descriptors">Type Descriptors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#handler-schema">Handler Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#rpc-messaging-protocol">RPC Messaging Protocol</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#host-api-overview">Host API Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#manager-and-dispatcher-topology">Manager and Dispatcher Topology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#host-api-functions">Host API Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#occupancy-query-and-eager-module-loading">Occupancy Query and Eager Module Loading</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-based-dispatch-functions">Graph-Based Dispatch Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#kernel-launch-helper-functions">Kernel Launch Helper Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#memory-layout-and-ring-buffer-wiring">Memory Layout and Ring Buffer Wiring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#step-by-step-wiring-the-host-api-minimal">Step-by-Step: Wiring the Host API (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#device-handler-and-function-id">Device Handler and Function ID</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#multi-argument-handler-example">Multi-Argument Handler Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#cuda-graph-dispatch-mode">CUDA Graph Dispatch Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#requirements">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-based-dispatch-api">Graph-Based Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-handler-setup-example">Graph Handler Setup Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-capture-and-instantiation">Graph Capture and Instantiation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#when-to-use-graph-dispatch">When to Use Graph Dispatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#graph-vs-device-call-dispatch">Graph vs Device Call Dispatch</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#building-and-sending-an-rpc-message">Building and Sending an RPC Message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#reading-the-response">Reading the Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#schema-driven-argument-parsing">Schema-Driven Argument Parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#hsb-3-kernel-workflow-primary">HSB 3-Kernel Workflow (Primary)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7">NIC-Free Testing (No HSB / No ConnectX-7)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/protocol.html">Messaging Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#scope">Scope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#rpc-header-response">RPC Header / Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#request-id-semantics">Request ID Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#ptp-timestamp-semantics"><code class="docutils literal notranslate"><span class="pre">PTP</span></code> Timestamp Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#function-id-semantics">Function ID Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#schema-and-payload-interpretation">Schema and Payload Interpretation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#type-system">Type System</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#payload-encoding">Payload Encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#single-argument-payloads">Single-Argument Payloads</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#multi-argument-payloads">Multi-Argument Payloads</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#size-constraints">Size Constraints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#encoding-examples">Encoding Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#bit-packed-data-encoding">Bit-Packed Data Encoding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#multi-bit-measurement-encoding">Multi-Bit Measurement Encoding</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#response-encoding">Response Encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#single-result-response">Single-Result Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#multi-result-response">Multi-Result Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#status-codes">Status Codes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/protocol.html#qec-specific-usage-example">QEC-Specific Usage Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#qec-terminology">QEC Terminology</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#qec-decoder-handler">QEC Decoder Handler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#decoding-rounds">Decoding Rounds</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/cudaqx/cudaqx.html">   CUDA-QX</a><ul>
@@ -886,6 +987,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/python_api.html">Python API</a><ul>
@@ -991,6 +1102,15 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -1051,7 +1171,7 @@
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="logical_aim_sqale.html" class="btn btn-neutral float-left" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -1514,7 +1634,7 @@ CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum d5e0513d54809
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="logical_aim_sqale.html" class="btn btn-neutral float-left" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
