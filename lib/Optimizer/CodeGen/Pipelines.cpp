@@ -99,6 +99,8 @@ void createTargetCodegenPipeline(PassManager &pm,
                                  const TargetCodegenPipelineOptions &options) {
   createCommonTargetCodegenPipeline<isJIT>(pm, options);
   ::addQIRConversionPipeline(pm, options.target);
+  // QIR conversion may introduce cc.loop, lower to cf.
+  cudaq::opt::addLowerToCFG(pm);
   pm.addPass(cudaq::opt::createReturnToOutputLog());
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());

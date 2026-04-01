@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CodeGenOps.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
@@ -634,6 +635,43 @@ struct DeallocOpErase : public OpConversionPattern<quake::DeallocOp> {
   }
 };
 
+// Lower `quake.get_measure` to `result_array_get_element_ptr_1d`.
+struct GetMeasureOpRewrite : public OpConversionPattern<quake::GetMeasureOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::GetMeasureOp getMeas, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = getMeas.getLoc();
+    auto i64Ty = rewriter.getI64Type();
+    Value index;
+    if (!adaptor.getIndex()) {
+      index =
+          rewriter.create<arith::ConstantIntOp>(loc, getMeas.getRawIndex(), 64);
+    } else {
+      index = adaptor.getIndex();
+      if (isa<IndexType>(index.getType())) {
+        index = rewriter.create<arith::IndexCastOp>(loc, i64Ty, index);
+      } else if (index.getType().isIntOrFloat()) {
+        auto width = cast<IntegerType>(index.getType()).getWidth();
+        if (width < 64)
+          index = rewriter.create<cudaq::cc::CastOp>(
+              loc, i64Ty, index, cudaq::cc::CastOpMode::Unsigned);
+        else if (width > 64)
+          index = rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, index);
+      }
+    }
+    auto resultTy =
+        getTypeConverter()->convertType(getMeas.getMeasure().getType());
+    auto ptrResultTy = cudaq::cc::PointerType::get(resultTy);
+    auto call = rewriter.create<func::CallOp>(
+        loc, TypeRange{ptrResultTy}, cudaq::opt::QIRResultArrayGetElementPtr1d,
+        ArrayRef<Value>{adaptor.getMeasurements(), index});
+    rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(getMeas, call.getResult(0));
+    return success();
+  }
+};
+
 struct DiscriminateOpRewrite
     : public OpConversionPattern<quake::DiscriminateOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -643,9 +681,67 @@ struct DiscriminateOpRewrite
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
     Value m = adaptor.getMeasurement();
-    auto i1PtrTy = cudaq::cc::PointerType::get(rewriter.getI1Type());
-    auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
-    rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, cast);
+
+    auto i1Ty = rewriter.getI1Type();
+    auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
+
+    // If the original measurement type is `MeasurementsType`, loop over the
+    // elements and read each result.
+    if (isa<quake::MeasurementsType>(disc.getMeasurement().getType())) {
+      auto i8Ty = rewriter.getI8Type();
+      auto i64Ty = rewriter.getI64Type();
+      auto resultTy = cudaq::cg::getResultType(rewriter.getContext());
+      auto ptrResultTy = cudaq::cc::PointerType::get(resultTy);
+
+      Value arraySize =
+          rewriter
+              .create<func::CallOp>(loc, i64Ty, cudaq::opt::QIRArrayGetSize,
+                                    ValueRange{m})
+              .getResult(0);
+      Value buff = rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, arraySize);
+
+      cudaq::opt::factory::createInvariantLoop(
+          rewriter, loc, arraySize,
+          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+            Value iv = block.getArgument(0);
+            Value elemPtr = builder
+                                .create<func::CallOp>(
+                                    loc, ptrResultTy,
+                                    cudaq::opt::QIRResultArrayGetElementPtr1d,
+                                    ValueRange{m, iv})
+                                .getResult(0);
+            Value resultVal = builder.create<cudaq::cc::LoadOp>(loc, elemPtr);
+            Value bitPtr =
+                builder.create<cudaq::cc::CastOp>(loc, i1PtrTy, resultVal);
+            Value bit = builder.create<cudaq::cc::LoadOp>(loc, bitPtr);
+            Value addr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(i8Ty), buff, iv);
+            Value bitByte = builder.create<cudaq::cc::CastOp>(
+                loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+            builder.create<cudaq::cc::StoreOp>(loc, bitByte, addr);
+          });
+
+      auto stdvecResTy = cast<cudaq::cc::StdvecType>(
+          getTypeConverter()->convertType(disc.getResult().getType()));
+      auto elemTy = stdvecResTy.getElementType();
+      auto ptrArrElemTy =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
+      auto buffCast =
+          rewriter.create<cudaq::cc::CastOp>(loc, ptrArrElemTy, buff);
+      rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(disc, stdvecResTy,
+                                                           buffCast, arraySize);
+      return success();
+    }
+
+    auto ptrCast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
+    Value loaded = rewriter.create<cudaq::cc::LoadOp>(loc, ptrCast);
+    // Zero-extend i1 to iN when the discriminate result is wider than i1.
+    auto origResTy = disc.getResult().getType();
+    if (auto intTy = dyn_cast<IntegerType>(origResTy);
+        intTy && intTy.getWidth() > 1) {
+      loaded = rewriter.create<arith::ExtUIOp>(loc, origResTy, loaded);
+    }
+    rewriter.replaceOp(disc, loaded);
     return success();
   }
 };
@@ -661,26 +757,32 @@ struct DiscriminateOpToCallRewrite
   LogicalResult
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    auto loc = disc.getLoc();
+    auto i1Ty = rewriter.getI1Type();
+    Value loaded;
     if constexpr (M::discriminateToClassical) {
-      if constexpr (M::qirVersion == QirVersion::version_1_0) {
-        rewriter.replaceOpWithNewOp<func::CallOp>(
-            disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
-            adaptor.getOperands());
-      } else {
-        rewriter.replaceOpWithNewOp<func::CallOp>(
-            disc, rewriter.getI1Type(), cudaq::opt::qir0_1::ReadResultBody,
-            adaptor.getOperands());
-      }
+      StringRef readFn = M::qirVersion == QirVersion::version_1_0
+                             ? cudaq::opt::qir1_0::ReadResult
+                             : cudaq::opt::qir0_1::ReadResultBody;
+      auto call = rewriter.create<func::CallOp>(loc, i1Ty, readFn,
+                                                adaptor.getOperands());
+      loaded = call.getResult(0);
     } else {
-      auto loc = disc.getLoc();
       // NB: the double cast here is to avoid folding the pointer casts.
       auto i64Ty = rewriter.getI64Type();
       auto unu =
           rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, adaptor.getOperands());
-      auto ptrI1Ty = cudaq::cc::PointerType::get(rewriter.getI1Type());
+      auto ptrI1Ty = cudaq::cc::PointerType::get(i1Ty);
       auto du = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty, unu);
-      rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, du);
+      loaded = rewriter.create<cudaq::cc::LoadOp>(loc, du);
     }
+    auto origResTy = disc.getResult().getType();
+    // Zero-extend i1 to iN when the discriminate result is wider than i1.
+    if (auto intTy = dyn_cast<IntegerType>(origResTy);
+        intTy && intTy.getWidth() > 1) {
+      loaded = rewriter.create<arith::ExtUIOp>(loc, origResTy, loaded);
+    }
+    rewriter.replaceOp(disc, loaded);
     return success();
   }
 
@@ -1190,9 +1292,12 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
     SmallVector<Value> args;
     args.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
     auto functionName = M::getQIRMeasure();
-
+    bool isMultiQubit = isa<quake::MeasurementsType>(mz.getMeasOut().getType());
     // Are we using the measurement that returns a result?
     if constexpr (M::mzReturnsResultType) {
+      if (isMultiQubit)
+        return rewriteMultiQubitMeasurement(mz, adaptor, rewriter, loc,
+                                            regNameAttr);
       // Yes, the measurement results the result, so we can use a
       // straightforward codegen pattern. Use either the mz or the
       // mz_to_register call (with the name as an extra argument) and forward
@@ -1246,6 +1351,112 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       }
       rewriter.replaceOp(mz, res);
     }
+    return success();
+  }
+
+private:
+  LogicalResult
+  rewriteMultiQubitMeasurement(quake::MzOp mz, OpAdaptor adaptor,
+                               ConversionPatternRewriter &rewriter,
+                               Location loc, StringAttr regNameAttr) const {
+    auto *ctx = rewriter.getContext();
+    auto i64Ty = rewriter.getI64Type();
+    auto resultTy = M::getResultType(ctx);
+    auto arrayTy = M::getArrayType(ctx);
+    auto qubitTy = M::getQubitType(ctx);
+    auto ptrQubitTy = cudaq::cc::PointerType::get(qubitTy);
+    auto ptrResultTy = cudaq::cc::PointerType::get(resultTy);
+
+    // Compute total number of qubits across all targets.
+    Value totalQubits = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    for (auto [origTarget, convTarget] :
+         llvm::zip(mz.getTargets(), adaptor.getTargets())) {
+      if (isa<quake::RefType>(origTarget.getType())) {
+        Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+        totalQubits = rewriter.create<arith::AddIOp>(loc, totalQubits, one);
+      } else {
+        Value sz =
+            rewriter
+                .create<func::CallOp>(loc, i64Ty, cudaq::opt::QIRArrayGetSize,
+                                      ValueRange{convTarget})
+                .getResult(0);
+        totalQubits = rewriter.create<arith::AddIOp>(loc, totalQubits, sz);
+      }
+    }
+
+    // Allocate the result array.
+    Value resultArray = rewriter
+                            .create<func::CallOp>(
+                                loc, arrayTy, cudaq::opt::QIRResultArrayCreate,
+                                ValueRange{totalQubits})
+                            .getResult(0);
+
+    auto functionName = M::getQIRMeasure();
+    Value cstringGlobal;
+    if (mz->getAttr(cudaq::opt::MzAssignedNameAttrName)) {
+      functionName = cudaq::opt::QIRMeasureToRegister;
+      cstringGlobal =
+          createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
+    }
+
+    auto getResultSlot = [&](OpBuilder &builder, Location loc, Value array,
+                             Value index) -> Value {
+      return builder
+          .create<func::CallOp>(loc, ptrResultTy,
+                                cudaq::opt::QIRResultArrayGetElementPtr1d,
+                                ValueRange{array, index})
+          .getResult(0);
+    };
+
+    // Iterate over targets, measure each qubit, store Result* in the array.
+    Value offset = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    for (auto [origTarget, convTarget] :
+         llvm::zip(mz.getTargets(), adaptor.getTargets())) {
+      if (isa<quake::RefType>(origTarget.getType())) {
+        SmallVector<Value> mzArgs{convTarget};
+        if (cstringGlobal)
+          mzArgs.push_back(cstringGlobal);
+        Value result =
+            rewriter.create<func::CallOp>(loc, resultTy, functionName, mzArgs)
+                .getResult(0);
+        Value slot = getResultSlot(rewriter, loc, resultArray, offset);
+        rewriter.create<cudaq::cc::StoreOp>(loc, result, slot);
+        offset = rewriter.create<arith::AddIOp>(loc, offset, one);
+      } else {
+        Value veqSize =
+            rewriter
+                .create<func::CallOp>(loc, i64Ty, cudaq::opt::QIRArrayGetSize,
+                                      ValueRange{convTarget})
+                .getResult(0);
+        auto savedOffset = offset;
+        cudaq::opt::factory::createInvariantLoop(
+            rewriter, loc, veqSize,
+            [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+              Value iv = block.getArgument(0);
+              Value qubitPtr =
+                  builder
+                      .create<func::CallOp>(loc, ptrQubitTy,
+                                            cudaq::opt::QIRArrayGetElementPtr1d,
+                                            ValueRange{convTarget, iv})
+                      .getResult(0);
+              Value qubit = builder.create<cudaq::cc::LoadOp>(loc, qubitPtr);
+              SmallVector<Value> mzArgs{qubit};
+              if (cstringGlobal)
+                mzArgs.push_back(cstringGlobal);
+              Value result =
+                  builder
+                      .create<func::CallOp>(loc, resultTy, functionName, mzArgs)
+                      .getResult(0);
+              Value idx = builder.create<arith::AddIOp>(loc, savedOffset, iv);
+              Value slot = getResultSlot(builder, loc, resultArray, idx);
+              builder.create<cudaq::cc::StoreOp>(loc, result, slot);
+            });
+        offset = rewriter.create<arith::AddIOp>(loc, offset, veqSize);
+      }
+    }
+
+    rewriter.replaceOp(mz, resultArray);
     return success();
   }
 };
@@ -1845,9 +2056,9 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMemberOpRewrite,
-                  MakeStruqOpRewrite, ReturnOpPattern, RelaxSizeOpErase,
-                  VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMeasureOpRewrite,
+                  GetMemberOpRewrite, MakeStruqOpRewrite, ReturnOpPattern,
+                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
