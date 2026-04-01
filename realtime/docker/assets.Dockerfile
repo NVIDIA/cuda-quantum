@@ -90,6 +90,7 @@ ENV CUDA_NATIVE_ARCH=${cuda_native_arg}
 ARG hsb_version="release-2.6.0-EA"
 # Build HSB
 RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge && \
+    for p in /cuda-quantum/realtime/scripts/hololink-patches/*.patch; do echo "Applying: $(basename $p)"; git apply "$p"; done && \
     cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF && \
     cmake --build build --target roce_receiver gpu_roce_transceiver hololink_core
 
