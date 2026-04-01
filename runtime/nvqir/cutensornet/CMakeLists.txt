@@ -7,9 +7,6 @@
 # ============================================================================ #
 
 # Find CUDA Toolkit for CUDA libs, e.g., cudart.
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
-
 message (STATUS "CUTENSORNET_ROOT and CUDA_FOUND - building tensornet NVQIR backends.")
 
 find_library(CUTENSOR_LIB
