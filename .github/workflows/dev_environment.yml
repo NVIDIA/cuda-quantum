@@ -143,10 +143,13 @@ jobs:
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${build_config_id:+$build_config_id-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }} || ${{ github.event.pull_request.number != '' }}; then
-            pr_number=${{ inputs.pull_request_number || github.event.pull_request.number}}
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+          # PR number detection (also handles merge queue refs)
+          if ${{ inputs.pull_request_number != '' }}; then
+            pr_number=${{ inputs.pull_request_number }}
+          elif ${{ github.event.pull_request.number != '' }}; then
+            pr_number=${{ github.event.pull_request.number }}
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
           fi
 
           if [ -n "$pr_number" ]; then

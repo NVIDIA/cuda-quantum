@@ -80,8 +80,8 @@ jobs:
             pr_number=${{ inputs.pull_request_number }}
           elif ${{ github.event.pull_request.number != '' }}; then
             pr_number=${{ github.event.pull_request.number }}
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=$(echo ${{ github.ref_name }} | cut -d / -f2)
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
           fi
           echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
