@@ -748,9 +748,14 @@ struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
     for (unsigned i = 1; i < measOp->getNumResults(); ++i)
       resultTypes.push_back(measOp->getResult(i).getType());
 
-    rewriter.replaceOpWithNewOp<MeasOp>(measOp, TypeRange{resultTypes},
-                                        measOp.getTargets(),
-                                        measOp.getRegisterNameAttr());
+    auto oldAttrs = measOp->getAttrs();
+    auto newOp = rewriter.replaceOpWithNewOp<MeasOp>(measOp,
+                                                     TypeRange{resultTypes},
+                                                     measOp.getTargets(),
+                                                     measOp.getRegisterNameAttr());
+    for (auto &attr : oldAttrs)
+      if (!newOp->getAttr(attr.getName()))
+        newOp->setAttr(attr.getName(), attr.getValue());
     return success();
   }
 };

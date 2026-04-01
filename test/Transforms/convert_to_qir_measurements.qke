@@ -78,3 +78,38 @@ func.func @caller(%ms : !quake.measurements<?>) -> i1 attributes {"cudaq-kernel"
 // CHECK:           %[[VAL_1:.*]] = call @callee(%[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> i1
 // CHECK:           return %[[VAL_1]] : i1
 // CHECK:         }
+
+
+func.func @discriminate_unsized(%ms : !quake.measurements<?>) -> !cc.stdvec<i1> attributes {"cudaq-kernel"} {
+  %bits = quake.discriminate %ms : (!quake.measurements<?>) -> !cc.stdvec<i1>
+  return %bits : !cc.stdvec<i1>
+}
+
+// CHECK-LABEL:   func.func @discriminate_unsized(
+// CHECK-SAME:                                    %[[VAL_0:.*]]: !cc.ptr<!llvm.struct<"Array", opaque>>) -> !cc.stdvec<i1> attributes {"cudaq-kernel", "qir-api"} {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_3:.*]] = call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> i64
+// CHECK:           %[[VAL_4:.*]] = cc.alloca i8{{\[}}%[[VAL_3]] : i64]
+// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_3]] : i64
+// CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:             %[[VAL_9:.*]] = func.call @__quantum__rt__result_array_get_element_ptr_1d(%[[VAL_0]], %[[VAL_8]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
+// CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i1>
+// CHECK:             %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_4]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[VAL_14:.*]] = cc.cast unsigned %[[VAL_12]] : (i1) -> i8
+// CHECK:             cc.store %[[VAL_14]], %[[VAL_13]] : !cc.ptr<i8>
+// CHECK:             cc.continue %[[VAL_8]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_15:.*]]: i64):
+// CHECK:             %[[VAL_16:.*]] = arith.addi %[[VAL_15]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_16]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[VAL_18:.*]] = cc.stdvec_init %[[VAL_17]], %[[VAL_3]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CHECK:           return %[[VAL_18]] : !cc.stdvec<i1>
+// CHECK:         }

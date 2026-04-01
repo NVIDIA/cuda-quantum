@@ -685,20 +685,29 @@ struct DiscriminateOpRewrite
     auto i1Ty = rewriter.getI1Type();
     auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
 
-    // If the original measurement type is `MeasurementsType`, loop over the
-    // elements and read each result.
-    if (isa<quake::MeasurementsType>(disc.getMeasurement().getType())) {
-      auto i8Ty = rewriter.getI8Type();
+    // If the result is a stdvec (indicating a `MeasurementsType` input), loop
+    // over the result array and read each result. NB: we check the result type
+    // rather than the operand type because the type converter has already
+    // remapped the operand from MeasurementsType to Array*.
+    if (isa<cudaq::cc::StdvecType>(disc.getResult().getType())) {
       auto i64Ty = rewriter.getI64Type();
       auto resultTy = cudaq::cg::getResultType(rewriter.getContext());
       auto ptrResultTy = cudaq::cc::PointerType::get(resultTy);
+
+      auto stdvecResTy = cast<cudaq::cc::StdvecType>(
+          getTypeConverter()->convertType(disc.getResult().getType()));
+      auto elemTy = stdvecResTy.getElementType();
+      unsigned elemWidth = cast<IntegerType>(elemTy).getWidth();
+      Type bufElemTy =
+          elemWidth > 8 ? elemTy : static_cast<Type>(rewriter.getI8Type());
 
       Value arraySize =
           rewriter
               .create<func::CallOp>(loc, i64Ty, cudaq::opt::QIRArrayGetSize,
                                     ValueRange{m})
               .getResult(0);
-      Value buff = rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, arraySize);
+      Value buff =
+          rewriter.create<cudaq::cc::AllocaOp>(loc, bufElemTy, arraySize);
 
       cudaq::opt::factory::createInvariantLoop(
           rewriter, loc, arraySize,
@@ -715,15 +724,17 @@ struct DiscriminateOpRewrite
                 builder.create<cudaq::cc::CastOp>(loc, i1PtrTy, resultVal);
             Value bit = builder.create<cudaq::cc::LoadOp>(loc, bitPtr);
             Value addr = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, cudaq::cc::PointerType::get(i8Ty), buff, iv);
-            Value bitByte = builder.create<cudaq::cc::CastOp>(
-                loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
-            builder.create<cudaq::cc::StoreOp>(loc, bitByte, addr);
+                loc, cudaq::cc::PointerType::get(bufElemTy), buff, iv);
+            Value stored = (i1Ty != bufElemTy)
+                               ? builder
+                                     .create<cudaq::cc::CastOp>(
+                                         loc, bufElemTy, bit,
+                                         cudaq::cc::CastOpMode::Unsigned)
+                                     .getResult()
+                               : static_cast<Value>(bit);
+            builder.create<cudaq::cc::StoreOp>(loc, stored, addr);
           });
 
-      auto stdvecResTy = cast<cudaq::cc::StdvecType>(
-          getTypeConverter()->convertType(disc.getResult().getType()));
-      auto elemTy = stdvecResTy.getElementType();
       auto ptrArrElemTy =
           cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
       auto buffCast =
@@ -757,6 +768,9 @@ struct DiscriminateOpToCallRewrite
   LogicalResult
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    // This pattern handles single-qubit MeasureType only.
+    if (isa<cudaq::cc::StdvecType>(disc.getResult().getType()))
+      return failure();
     auto loc = disc.getLoc();
     auto i1Ty = rewriter.getI1Type();
     Value loaded;
@@ -1367,13 +1381,15 @@ private:
     auto ptrQubitTy = cudaq::cc::PointerType::get(qubitTy);
     auto ptrResultTy = cudaq::cc::PointerType::get(resultTy);
 
-    // Compute total number of qubits across all targets.
+    // Compute total number of qubits across all targets, caching veq sizes.
+    SmallVector<Value> veqSizes;
     Value totalQubits = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
     for (auto [origTarget, convTarget] :
          llvm::zip(mz.getTargets(), adaptor.getTargets())) {
       if (isa<quake::RefType>(origTarget.getType())) {
         Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
         totalQubits = rewriter.create<arith::AddIOp>(loc, totalQubits, one);
+        veqSizes.push_back(Value{});
       } else {
         Value sz =
             rewriter
@@ -1381,6 +1397,7 @@ private:
                                       ValueRange{convTarget})
                 .getResult(0);
         totalQubits = rewriter.create<arith::AddIOp>(loc, totalQubits, sz);
+        veqSizes.push_back(sz);
       }
     }
 
@@ -1411,6 +1428,7 @@ private:
     // Iterate over targets, measure each qubit, store Result* in the array.
     Value offset = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
     Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    unsigned sizeIdx = 0;
     for (auto [origTarget, convTarget] :
          llvm::zip(mz.getTargets(), adaptor.getTargets())) {
       if (isa<quake::RefType>(origTarget.getType())) {
@@ -1423,12 +1441,9 @@ private:
         Value slot = getResultSlot(rewriter, loc, resultArray, offset);
         rewriter.create<cudaq::cc::StoreOp>(loc, result, slot);
         offset = rewriter.create<arith::AddIOp>(loc, offset, one);
+        ++sizeIdx;
       } else {
-        Value veqSize =
-            rewriter
-                .create<func::CallOp>(loc, i64Ty, cudaq::opt::QIRArrayGetSize,
-                                      ValueRange{convTarget})
-                .getResult(0);
+        Value veqSize = veqSizes[sizeIdx++];
         auto savedOffset = offset;
         cudaq::opt::factory::createInvariantLoop(
             rewriter, loc, veqSize,
