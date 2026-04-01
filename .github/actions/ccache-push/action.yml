@@ -83,9 +83,9 @@ runs:
         fi
         echo "Cache delta: ${new_files} new files (${delta_pct}% change, ${restore_count} -> ${current_count})"
 
-        # Always push on the default branch (or merge queue targeting it)
-        # to keep the baseline fresh. Merge queue is the only CI path that
-        # updates the main ccache since no workflow triggers on push-to-main.
+        # Always push on the default branch to keep the baseline fresh.
+        # This includes merge queue runs, which are the only path into
+        # main (no workflow triggers on direct push-to-main).
         default_branch="${{ github.event.repository.default_branch }}"
         default_branch="${default_branch:-main}"
         if [ "${{ github.event_name }}" = "merge_group" ] || [ "${{ github.ref_name }}" = "$default_branch" ]; then
@@ -116,29 +116,29 @@ runs:
         image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
         cache_key="${{ inputs.cache-key }}"
 
-        # Auto-detect PR number from ref name if not provided.
-        # Supports: pull-request/XXXX, gh-readonly-queue/BRANCH/pr-XXXX-SHA
-        pr_number="${{ inputs.pr-number }}"
-        if [ -z "$pr_number" ]; then
-          pr_number="${{ github.event.pull_request.number }}"
-        fi
-        if [ -z "$pr_number" ] && \
-           [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
-          pr_number="${BASH_REMATCH[2]}"
-        fi
-
-        # Merge queue: tag with target branch to keep baseline fresh.
-        # Merge queue is the only CI path that can update the main ccache.
+        # Merge queue runs tag with the target branch (e.g. "main") so
+        # the baseline cache stays fresh for future builds.
         if [ "${{ github.event_name }}" = "merge_group" ]; then
+          # base_ref looks like "refs/heads/main"; strip the prefix
           merge_target="${{ github.event.merge_group.base_ref }}"
-          merge_target="${merge_target#refs/heads/}"
-          merge_target="${merge_target:-main}"
-          tag="${cache_key}-$(echo "${merge_target}" | tr '/' '-')"
-        elif [ -n "$pr_number" ]; then
-          tag="${cache_key}-pr-${pr_number}"
+          tag="${cache_key}-$(echo "${merge_target#refs/heads/}" | tr '/' '-')"
         else
-          # Sanitize: OCI tags only allow [a-zA-Z0-9_.-]
-          tag="${cache_key}-$(echo "${{ inputs.ref-name }}" | tr '/' '-')"
+          # Try to find a PR number: check the input, then the event
+          # context, then parse it from the ref name. Ref names can be
+          # pull-request/XXXX or gh-readonly-queue/BRANCH/pr-XXXX-SHA.
+          pr_number="${{ inputs.pr-number }}"
+          pr_number="${pr_number:-${{ github.event.pull_request.number }}}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          if [ -n "$pr_number" ]; then
+            tag="${cache_key}-pr-${pr_number}"
+          else
+            # Replace slashes so the tag is valid for OCI registries
+            tag="${cache_key}-$(echo "${{ inputs.ref-name }}" | tr '/' '-')"
+          fi
         fi
 
         # Tar the contents of the cache directory (not the directory itself)
