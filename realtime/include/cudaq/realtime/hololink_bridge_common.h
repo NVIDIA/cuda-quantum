@@ -199,6 +199,8 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.forward = true;
     else if (arg == "--unified")
       config.unified = true;
+    else if (arg == "--cpu")
+      config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   }
 
   config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
