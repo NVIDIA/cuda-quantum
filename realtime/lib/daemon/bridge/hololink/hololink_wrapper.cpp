@@ -100,6 +100,13 @@ void hololink_blocking_monitor(hololink_transceiver_t handle) {
   }
 }
 
+void hololink_set_cpu_ring_buffers(hololink_transceiver_t handle, int enable) {
+  if (handle) {
+    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    impl->transceiver->set_cpu_ring_buffers(enable != 0);
+  }
+}
+
 //==============================================================================
 // QP information
 //==============================================================================
