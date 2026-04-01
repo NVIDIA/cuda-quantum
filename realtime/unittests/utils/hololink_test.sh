@@ -211,6 +211,14 @@ do_build() {
         target_arch="arm64"
     fi
 
+    # Ensure nvcc is on PATH for detect_cuda_arch() and cmake check_language(CUDA).
+    if [[ -x /usr/local/cuda/bin/nvcc ]]; then
+        case ":$PATH:" in
+            *":/usr/local/cuda/bin:"*) ;;
+            *) export PATH="/usr/local/cuda/bin:$PATH" ;;
+        esac
+    fi
+
     # Detect highest CUDA arch supported by nvcc
     local cuda_arch
     cuda_arch=$(detect_cuda_arch)

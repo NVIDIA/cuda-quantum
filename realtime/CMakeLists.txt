@@ -84,7 +84,22 @@ if(CMAKE_CUDA_COMPILER)
     endif()
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")
+  set(_host_compiler_opts "-fPIC")
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    # -mno-amx-tile alone is insufficient with GCC 13+: the AMX intrinsic
+    # headers use #pragma GCC target("amx-tile") which re-enables the
+    # builtins that nvcc cannot parse.  Pre-define the include guards to
+    # prevent these headers from being processed at all.
+    string(APPEND _host_compiler_opts ",-mno-amx-tile")
+    foreach(_amx_guard _AMXTILEINTRIN_H_INCLUDED
+                       _AMXBF16INTRIN_H_INCLUDED
+                       _AMXINT8INTRIN_H_INCLUDED
+                       _AMXFP16INTRIN_H_INCLUDED
+                       _AMXCOMPLEXINTRIN_H_INCLUDED)
+      string(APPEND _host_compiler_opts ",-D${_amx_guard}")
+    endforeach()
+  endif()
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
 
   enable_language(CUDA)
   set(CUDA_FOUND TRUE)
@@ -122,6 +137,7 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
   )
   add_subdirectory(unittests)
 endif()
+
 
 # Install the LICENSE and NOTICE files
 install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})

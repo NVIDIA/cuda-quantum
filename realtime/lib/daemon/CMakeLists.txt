@@ -30,6 +30,8 @@ if(CUDA_FOUND)
   target_link_libraries(cudaq-realtime 
     PUBLIC 
       CUDA::cudart_static
+    PRIVATE
+      cudaq-realtime-host-dispatch
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
@@ -62,12 +64,11 @@ if(CUDA_FOUND)
       $<INSTALL_INTERFACE:include>
   )
 
-  # Link CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
   find_library(CUDADEVRT_LIBRARY cudadevrt
     HINTS ${CUDAToolkit_LIBRARY_DIR}
     REQUIRED
   )
-  
+
   target_link_libraries(cudaq-realtime-dispatch
     PUBLIC
       CUDA::cudart_static
@@ -85,6 +86,37 @@ if(CUDA_FOUND)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 
+  # ============================================================================
+  # Host-side graph dispatcher (optional, for Grace Hopper / Grace Blackwell etc.)
+  # ============================================================================
+  # Compiled with nvcc so libcu++ (<cuda/std/atomic>) works without extra
+  # include paths. Host-only code; no device code in this TU.
+  add_library(cudaq-realtime-host-dispatch STATIC
+    dispatcher/host_dispatcher.cu
+    dispatcher/host_dispatcher_capi.cu
+  )
+
+  target_include_directories(cudaq-realtime-host-dispatch
+    PUBLIC
+      $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:include>
+  )
+
+  target_link_libraries(cudaq-realtime-host-dispatch
+    PUBLIC
+      CUDA::cudart_static
+  )
+
+  set_target_properties(cudaq-realtime-host-dispatch PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+  )
+
+  install(TARGETS cudaq-realtime-host-dispatch
+    COMPONENT realtime-lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
   if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
     add_subdirectory(bridge/hololink)
   endif()

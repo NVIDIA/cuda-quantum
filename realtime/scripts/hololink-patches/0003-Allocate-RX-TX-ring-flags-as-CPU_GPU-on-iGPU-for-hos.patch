@@ -1,0 +1,108 @@
+From 407d74a469ab6aca6b11f1b68fc0ff5b1e8e47d1 Mon Sep 17 00:00:00 2001
+From: Chuck Ketcham <cketcham@nvidia.com>
+Date: Mon, 23 Mar 2026 22:30:09 +0000
+Subject: [PATCH 3/4] Allocate RX/TX ring flags as CPU_GPU on iGPU for
+ host-side polling
+
+On integrated GPU systems (Grace-Hopper, Grace-Blackwell), the HOST_LOOP
+dispatcher polls DOCA ring flags from the CPU. The flags were
+unconditionally allocated as DOCA_GPU_MEM_TYPE_GPU, causing a segfault
+when the CPU thread attempted an atomic load. When umem_cpu is set
+(iGPU), allocate flags with DOCA_GPU_MEM_TYPE_CPU_GPU and use memset
+instead of cudaMemset for zero-initialization.
+
+Signed-off-by: Chuck Ketcham <cketcham@nvidia.com>
+---
+ .../gpu_roce_transceiver_doca.cpp             | 60 +++++++++++++------
+ 1 file changed, 42 insertions(+), 18 deletions(-)
+
+diff --git a/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver_doca.cpp b/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver_doca.cpp
+index 707119e2..12039fa5 100644
+--- a/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver_doca.cpp
++++ b/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver_doca.cpp
+@@ -528,21 +528,33 @@ doca_error_t DocaQp::create_ring(size_t stride_sz, unsigned stride_num, struct i
+         return DOCA_ERROR_NOT_SUPPORTED;
+     }
+ 
+-    result = doca_gpu_mem_alloc(gdev,
+-        sizeof(uint64_t) * gpu_rx_ring.stride_num,
+-        get_page_size(),
+-        DOCA_GPU_MEM_TYPE_GPU,
+-        (void**)&(gpu_rx_ring.flag),
+-        nullptr);
++    if (umem_cpu) {
++        result = doca_gpu_mem_alloc(gdev,
++            sizeof(uint64_t) * gpu_rx_ring.stride_num,
++            get_page_size(),
++            DOCA_GPU_MEM_TYPE_CPU_GPU,
++            (void**)&(gpu_rx_ring.flag),
++            (void**)&(gpu_rx_ring.flag));
++    } else {
++        result = doca_gpu_mem_alloc(gdev,
++            sizeof(uint64_t) * gpu_rx_ring.stride_num,
++            get_page_size(),
++            DOCA_GPU_MEM_TYPE_GPU,
++            (void**)&(gpu_rx_ring.flag),
++            nullptr);
++    }
+     if (result != DOCA_SUCCESS || gpu_rx_ring.flag == nullptr) {
+         HSB_LOG_ERROR("Failed to alloc rx flag ring buffer: {}", doca_error_get_descr(result));
+         goto exit;
+     }
+-
+-    result_cuda = cudaMemset(gpu_rx_ring.flag, 0, sizeof(uint64_t) * gpu_rx_ring.stride_num);
+-    if (result_cuda != cudaSuccess) {
+-        HSB_LOG_ERROR("cudaMemset returned error {}", (int)result_cuda);
+-        goto exit;
++    if (umem_cpu) {
++        memset(gpu_rx_ring.flag, 0, sizeof(uint64_t) * gpu_rx_ring.stride_num);
++    } else {
++        result_cuda = cudaMemset(gpu_rx_ring.flag, 0, sizeof(uint64_t) * gpu_rx_ring.stride_num);
++        if (result_cuda != cudaSuccess) {
++            HSB_LOG_ERROR("cudaMemset returned error {}", (int)result_cuda);
++            goto exit;
++        }
+     }
+ 
+     gpu_tx_ring.stride_sz = stride_sz;
+@@ -597,18 +609,30 @@ doca_error_t DocaQp::create_ring(size_t stride_sz, unsigned stride_num, struct i
+         return DOCA_ERROR_NOT_SUPPORTED;
+     }
+ 
+-    result = doca_gpu_mem_alloc(gdev,
+-        sizeof(uint64_t) * gpu_tx_ring.stride_num,
+-        get_page_size(),
+-        DOCA_GPU_MEM_TYPE_GPU,
+-        (void**)&(gpu_tx_ring.flag),
+-        nullptr);
++    if (umem_cpu) {
++        result = doca_gpu_mem_alloc(gdev,
++            sizeof(uint64_t) * gpu_tx_ring.stride_num,
++            get_page_size(),
++            DOCA_GPU_MEM_TYPE_CPU_GPU,
++            (void**)&(gpu_tx_ring.flag),
++            (void**)&(gpu_tx_ring.flag));
++    } else {
++        result = doca_gpu_mem_alloc(gdev,
++            sizeof(uint64_t) * gpu_tx_ring.stride_num,
++            get_page_size(),
++            DOCA_GPU_MEM_TYPE_GPU,
++            (void**)&(gpu_tx_ring.flag),
++            nullptr);
++    }
+     if (result != DOCA_SUCCESS || gpu_tx_ring.flag == nullptr) {
+         HSB_LOG_ERROR("Failed to alloc tx flag ring buffer: {}", doca_error_get_descr(result));
+         goto exit;
+     }
+ 
+-    cudaMemset(gpu_tx_ring.flag, 0, sizeof(uint64_t) * gpu_tx_ring.stride_num);
++    if (umem_cpu)
++        memset(gpu_tx_ring.flag, 0, sizeof(uint64_t) * gpu_tx_ring.stride_num);
++    else
++        cudaMemset(gpu_tx_ring.flag, 0, sizeof(uint64_t) * gpu_tx_ring.stride_num);
+ 
+     return DOCA_SUCCESS;
+ 
+-- 
+2.43.0
+
