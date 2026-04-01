@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
                   << std::endl;
         return 1;
       }
-      config.h_mailbox = nullptr;
+      *config.h_mailbox = nullptr;
       err = cudaHostGetDevicePointer((void **)&config.d_mailbox,
                                      config.h_mailbox, 0);
       if (err != cudaSuccess) {
