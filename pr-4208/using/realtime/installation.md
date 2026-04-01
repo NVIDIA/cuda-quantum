@@ -2203,10 +2203,11 @@ Using Holoscan Sensor Bridge
 The validation script has three defined kernel modes, one for a unified
 kernel (enabled with [`--unified`{.code .docutils .literal
 .notranslate}]{.pre}), one for a forward kernel (enabled with
-[`--forward`{.code .docutils .literal .notranslate}]{.pre}), and a
-3-kernel setup (used by default). The forward kernel skips the RPC
-callback to measure the raw latency without any compute performed on the
-GPU.
+[`--forward`{.code .docutils .literal .notranslate}]{.pre}), one for
+host-dispatch (enabled with [`--cpu`{.code .docutils .literal
+.notranslate}]{.pre}), and a 3-kernel setup (used by default). The
+forward kernel skips the RPC callback to measure the raw latency without
+any compute performed on the GPU.
 
 ::: {.highlight-console .notranslate}
 ::: highlight
@@ -2228,9 +2229,10 @@ callback on. - [`--fpga-ip`{.code .docutils .literal
 .literal .notranslate}]{.pre} is the IP address of the NIC on the host
 machine. - [`--page-size`{.code .docutils .literal .notranslate}]{.pre}
 is the ring buffer slot size in bytes. - [`--unified`{.code .docutils
-.literal .notranslate}]{.pre} or [`--forward`{.code .docutils .literal
+.literal .notranslate}]{.pre}, [`--forward`{.code .docutils .literal
+.notranslate}]{.pre}, or [`--cpu`{.code .docutils .literal
 .notranslate}]{.pre} are the mutually exclusive flags to enable the
-unified or forward dispatch mode.
+unified, forward, or host-dispatch mode.
 :::
 
 Upon successful completion, the above validation script should print out
