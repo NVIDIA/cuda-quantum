@@ -10,7 +10,7 @@ import cudaq, pytest
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -331,3 +331,24 @@ def test_py_kernel_from_cpp_with_returns():
         return [f, 2.0, 3.0]
 
     cudaq_test_cpp_algo.run6(foo)
+
+
+def test_cpp_kernel_from_builder_apply_call():
+    """Test that a kernel builder can call a decorator that itself calls C++ kernels."""
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    from cudaq_test_cpp_algo import qstd
+
+    @cudaq.kernel(defer_compilation=False)
+    def cppCaller():
+        q = cudaq.qvector(4)
+        qstd.qft(q)
+        h(q)
+        qstd.another(q, 2)
+
+    kernel = cudaq.make_kernel()
+    kernel.apply_call(cppCaller)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert len(counts) == 1 and '0010' in counts

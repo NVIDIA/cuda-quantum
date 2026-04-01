@@ -56,6 +56,10 @@ on:
         required: false
         type: string
         description: The key to use for the json entry in the output of the cloudposse GitHub action (only needed when the workflow runs as part of a matrix job).
+      matrix_step_name:
+        required: false
+        type: string
+        description: Override the step name used when writing matrix outputs (enables split config so downstream jobs can start as soon as their deps are ready).
       environment:
         required: false
         type: string
@@ -472,7 +476,7 @@ jobs:
       - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         id: write_json
         with:
-          matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
+          matrix-step-name: ${{ inputs.matrix_step_name || (inputs.matrix_key && 'dev_environment') }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
             image_hash: ${{ needs.build.outputs.image_hash }}

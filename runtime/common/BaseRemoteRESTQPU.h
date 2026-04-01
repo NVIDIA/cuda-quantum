@@ -291,10 +291,9 @@ public:
     return {};
   }
 
-  KernelThunkResultType launchModule(const std::string &kernelName,
-                                     mlir::ModuleOp module,
-                                     const std::vector<void *> &rawArgs,
-                                     mlir::Type resTy) override {
+  KernelThunkResultType
+  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
 
     auto executionContext = cudaq::getExecutionContext();
@@ -314,7 +313,7 @@ public:
   }
 
   void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         const std::vector<void *> &rawArgs,
                          std::optional<cudaq::JitEngine> &cachedEngine,
                          bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
@@ -364,6 +363,13 @@ public:
     // the simulator
     cudaq::details::future future;
     if (emulate) {
+
+      // TODO: This assert demonstrates that we are never expected to return a
+      // future in emulation mode. We are launching a new thread just to wait
+      // for its execution to finish below. We need to make this work without
+      // the thread as the executionContext is crossing the thread boundary
+      // which is not thread safe in the general case.
+      assert(!executionContext->asyncExec);
 
       // Fetch the thread-specific seed outside and then pass it inside.
       std::size_t seed = cudaq::get_random_seed();

@@ -21,7 +21,7 @@ pytestmark = pytest.mark.skip("Scaleway credentials required")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("scaleway",
                      machine="EMU-CUDAQ-64C-512M",
                      max_duration="5m",
@@ -507,9 +507,10 @@ def test_toffoli():
         x.ctrl([q[0], q[1]], q[2])
         mz(q)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
-    assert "Unsupported gate: ccx" in str(e.value)
+    counts = cudaq.sample(kernel, shots_count=DEFAULT_SHOT_COUNT)
+    counts.dump()
+    assert len(counts) == 1
+    assert '110' in counts
 
 
 def test_state_prep():

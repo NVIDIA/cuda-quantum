@@ -12,6 +12,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
+#include "common/LayoutInfo.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -167,31 +168,6 @@ py::args cudaq::simplifiedValidateInputArguments(py::args &args) {
   }
 
   return processed;
-}
-
-std::pair<std::size_t, std::vector<std::size_t>>
-cudaq::getTargetLayout(mlir::ModuleOp mod, cudaq::cc::StructType structTy) {
-  mlir::StringRef dataLayoutSpec = "";
-  if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-    dataLayoutSpec = mlir::cast<mlir::StringAttr>(attr);
-  else
-    throw std::runtime_error("No data layout attribute is set on the module.");
-
-  auto dataLayout = llvm::DataLayout(dataLayoutSpec);
-  // Convert bufferTy to llvm.
-  llvm::LLVMContext context;
-  mlir::LLVMTypeConverter converter(structTy.getContext());
-  cudaq::opt::initializeTypeConversions(converter);
-  auto llvmDialectTy = converter.convertType(structTy);
-  mlir::LLVM::TypeToLLVMIRTranslator translator(context);
-  auto *llvmStructTy =
-      mlir::cast<llvm::StructType>(translator.translateType(llvmDialectTy));
-  auto *layout = dataLayout.getStructLayout(llvmStructTy);
-  auto strSize = layout->getSizeInBytes();
-  std::vector<std::size_t> fieldOffsets;
-  for (std::size_t i = 0, I = structTy.getMembers().size(); i != I; ++i)
-    fieldOffsets.emplace_back(layout->getElementOffset(i));
-  return {strSize, fieldOffsets};
 }
 
 void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
@@ -626,75 +602,11 @@ cudaq::OpaqueArguments *cudaq::toOpaqueArgs(py::args &args, MlirModule mod,
 static void appendTheResultValue(ModuleOp module, const std::string &name,
                                  cudaq::OpaqueArguments &runtimeArgs,
                                  Type returnType) {
-  TypeSwitch<Type, void>(returnType)
-      .Case([&](IntegerType type) {
-        if (type.getIntOrFloatBitWidth() == 1) {
-          bool *ourAllocatedArg = new bool();
-          *ourAllocatedArg = 0;
-          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<bool *>(ptr);
-          });
-          return;
-        }
-
-        long *ourAllocatedArg = new long();
-        *ourAllocatedArg = 0;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<long *>(ptr);
-        });
-      })
-      .Case([&](ComplexType type) {
-        Py_complex *ourAllocatedArg = new Py_complex();
-        ourAllocatedArg->real = 0.0;
-        ourAllocatedArg->imag = 0.0;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<Py_complex *>(ptr);
-        });
-      })
-      .Case([&](Float64Type type) {
-        double *ourAllocatedArg = new double();
-        *ourAllocatedArg = 0.;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<double *>(ptr);
-        });
-      })
-      .Case([&](Float32Type type) {
-        float *ourAllocatedArg = new float();
-        *ourAllocatedArg = 0.;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<float *>(ptr);
-        });
-      })
-      .Case([&](cudaq::cc::StdvecType ty) {
-        // Vector is a span: `{ data, length }`.
-        struct vec {
-          char *data;
-          std::size_t length;
-        };
-        vec *ourAllocatedArg = new vec{nullptr, 0};
-        runtimeArgs.emplace_back(
-            ourAllocatedArg, [](void *ptr) { delete static_cast<vec *>(ptr); });
-      })
-      .Case([&](cudaq::cc::StructType ty) {
-        auto [size, offsets] = cudaq::getTargetLayout(module, ty);
-        auto ourAllocatedArg = std::malloc(size);
-        runtimeArgs.emplace_back(ourAllocatedArg,
-                                 [](void *ptr) { std::free(ptr); });
-      })
-      .Case([&](cudaq::cc::CallableType ty) {
-        // Callables may not be returned from entry-point kernels. Append a
-        // dummy value as a placeholder.
-        runtimeArgs.emplace_back(nullptr, [](void *) {});
-      })
-      .Default([](Type ty) {
-        std::string msg;
-        {
-          llvm::raw_string_ostream os(msg);
-          ty.print(os);
-        }
-        throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
-                                 msg + ".\n");
-      });
+  auto [bufferSize, offsets] = cudaq::getResultBufferLayout(module, returnType);
+  if (bufferSize == 0)
+    return;
+  auto *buf = std::calloc(1, bufferSize);
+  runtimeArgs.emplace_back(buf, [](void *ptr) { std::free(ptr); });
 }
 
 // Launching the module \p mod will modify its content, such as by argument
@@ -702,9 +614,9 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
 // preserve (cache) the IR, and erase the clone after the kernel is done.
 static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
-               const std::vector<void *> &rawArgs, Type resultTy) {
+               const std::vector<void *> &rawArgs) {
   auto clone = mod.clone();
-  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs, resultTy);
+  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs);
   clone.erase();
   return res;
 }
@@ -899,18 +811,19 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
 static const std::vector<void *> &
 appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
                          ModuleOp module, const std::string &name) {
-  if (returnType && !isa<NoneType>(returnType))
+  if (returnType)
     appendTheResultValue(module, name, runtimeArgs, returnType);
   return runtimeArgs.getArgs();
 }
 
 cudaq::KernelThunkResultType
-cudaq::clean_launch_module(const std::string &name, ModuleOp mod, Type retTy,
+cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
                            cudaq::OpaqueArguments &args) {
+  auto kernelFunc = getKernelFuncOp(mod, name);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
-  return pyLaunchModule(name, mod, rawArgs, resTy);
+  return pyLaunchModule(name, mod, rawArgs);
 }
 
 cudaq::OpaqueArguments
@@ -928,17 +841,16 @@ cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
 
 py::object cudaq::marshal_and_launch_module(const std::string &name,
                                             MlirModule module,
-                                            MlirType returnType,
                                             py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_launch_module", name);
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
-  Type retTy = unwrap(returnType);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
-  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, retTy, args);
+  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
   // FIXME: handle dynamic sized results!
 
-  if (isa<NoneType>(retTy))
+  if (!retTy)
     return py::none();
   return cudaq::convertResult(mod, retTy,
                               reinterpret_cast<char *>(args.getArgs().back()));
@@ -951,23 +863,21 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
 // `delete_cache_execution_engine` with the cache key.
 static std::pair<void *, std::size_t>
 marshal_and_retain_module(const std::string &name, MlirModule module,
-                          MlirType returnType, bool isEntryPoint,
-                          py::args runtimeArgs) {
+                          bool isEntryPoint, py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
   std::optional<cudaq::JitEngine> cachedEngine;
 
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
-  Type retTy = unwrap(returnType);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args =
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
   auto clone = mod.clone();
   // Returns the pointer to the JITted LLVM code for the entry point function.
   void *funcPtr = cudaq::streamlinedSpecializeModule(
-      name, clone, rawArgs, resTy, cachedEngine, isEntryPoint);
+      name, clone, rawArgs, cachedEngine, isEntryPoint);
   clone.erase();
   // `streamlinedSpecializeModule` should always set the cached engine pointer
   if (!cachedEngine)

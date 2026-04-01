@@ -25,7 +25,6 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/divisive_clustering_coresets
    /applications/python/hybrid_quantum_neural_networks
    /applications/python/hadamard_test
-   /applications/python/logical_aim_sqale
    /applications/python/hamiltonian_simulation
    /applications/python/quantum_fourier_transform
    /applications/python/quantum_teleportation
@@ -33,7 +32,6 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/readout_error_mitigation
    /applications/python/unitary_compilation_diffusion_models
    /applications/python/vqe_advanced
-   /applications/python/quantum_transformer
    /applications/python/afqmc
    /applications/python/adapt_qaoa
    /applications/python/adapt_vqe
@@ -47,6 +45,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/qm_mm_pe
    /applications/python/skqd
    /applications/python/entanglement_acc_hamiltonian_simulation
+   /applications/python/ptsbe
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -172,14 +171,6 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/hadamard_preview.png" alt="Hadamard Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
-        <a href="../applications/python/logical_aim_sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
-        <div class="notebook-content">
-            A collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU. (https://arxiv.org/abs/2412.07670)
-        </div>
-        <img src="../_static/app_title_images/aim_preview.png" alt="AIM Preview" class="notebook-image">
-    </div>
-
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
         <a href="../applications/python/hamiltonian_simulation.html" class="notebook-title">Trotterized Hamiltonian Simulation</a>
         <div class="notebook-content">
@@ -234,14 +225,6 @@ This page contains a number of different applications implemented using CUDA-Q. 
             The variational quantum eigensolver is a hybrid quantum classical algorithm for predicting the ground state of a Hamiltonian. Learn how to predict molecular energies with the VQE in CUDA-Q using active spaces, how to parallelize gradient evaluation, and how to use performance optimizations like gate fusion.
         </div>
         <img src="../_static/app_title_images/vqe_preview.png" alt="VQE Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,collab,qforai,noiseless,gpu">
-        <a href="../applications/python/quantum_transformer.html" class="notebook-title">Quantum Transformer Model for Generating Molecules</a>
-        <div class="notebook-content">
-            Learn how to implement a hybrid quantum transformer model for generating molecules. The tutorial is based off a collaboration between NVIDIA and Yale. (https://arxiv.org/pdf/2502.19214)
-        </div>
-        <img src="../_static/app_title_images/quantum_transformer_preview.png" alt="Transformer Preview" class="notebook-image">
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
@@ -308,7 +291,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/quantum_pagerank_preview.png" alt="Quantum Pagerank Preview" class="notebook-image">
     </div> 
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
         <div class="notebook-content">
             Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
@@ -324,12 +307,19 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
         <div class="notebook-content">
             Learn how to implement QM/MM with PE framework using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="fundamental,noisy,gpu">
+        <a href="../applications/python/ptsbe.html" class="notebook-title">Noisy Circuit Simulation with PTSBE</a>
+        <div class="notebook-content">
+            Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method for sampling from noisy quantum circuits. Rather than simulating the full density matrix, PTSBE pre-samples unique noise trajectories and batches many shots across them, yielding orders-of-magnitude speedups for large shot counts. Based on the SC25 paper by Patti et al. (https://arxiv.org/abs/2504.16297).
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="gpu, dynamics, noiseless">

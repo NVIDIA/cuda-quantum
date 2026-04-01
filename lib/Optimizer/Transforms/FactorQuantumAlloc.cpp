@@ -10,7 +10,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -22,8 +22,58 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+static bool allocaOfVeqStruq(quake::AllocaOp alloc) {
+  return isa<quake::VeqType, quake::StruqType>(alloc.getType());
+}
+
+static bool allocaOfUnspecifiedSize(quake::AllocaOp alloc) {
+  if (auto veqTy = dyn_cast<quake::VeqType>(alloc.getType()))
+    return !veqTy.hasSpecifiedSize();
+  if (auto ty = dyn_cast<quake::StruqType>(alloc.getType()))
+    return !ty.hasSpecifiedSize();
+  return false;
+}
+
+static bool isUseConvertible(Operation *op) {
+  if (isa<quake::DeallocOp, quake::GetMemberOp>(op))
+    return true;
+
+  // extract_ref is ok, iff it has a constant offset
+  if (auto ext = dyn_cast<quake::ExtractRefOp>(op))
+    return ext.hasConstantIndex();
+
+  auto sub = dyn_cast<quake::SubVeqOp>(op);
+  if (!sub)
+    return false;
+
+  // op must be a SubVeqOp
+  auto lowInt = [&]() -> std::optional<std::int32_t> {
+    if (sub.hasConstantLowerBound())
+      return {sub.getConstantLowerBound()};
+    return cudaq::opt::factory::getIntIfConstant(sub.getLower());
+  }();
+  auto upInt = [&]() -> std::optional<std::int32_t> {
+    if (sub.hasConstantUpperBound())
+      return {sub.getConstantUpperBound()};
+    return cudaq::opt::factory::getIntIfConstant(sub.getUpper());
+  }();
+  if (!(lowInt && upInt))
+    return false;
+  for (auto *subUser : sub->getUsers())
+    if (!isUseConvertible(subUser))
+      return false;
+  return true;
+}
+
+static bool usesAreConvertible(quake::AllocaOp alloc) {
+  for (auto *users : alloc->getUsers())
+    if (!isUseConvertible(users))
+      return false;
+  return true;
+}
+
 namespace {
-class AllocaPat : public OpRewritePattern<quake::AllocaOp> {
+class AllocaPattern : public OpRewritePattern<quake::AllocaOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -32,92 +82,171 @@ public:
   /// the factoring of the allocation.
   LogicalResult matchAndRewrite(quake::AllocaOp allocOp,
                                 PatternRewriter &rewriter) const override {
-    auto veqTy = cast<quake::VeqType>(allocOp.getType());
     auto loc = allocOp.getLoc();
+
+    // 0. Check necessary preconditions hold.
+    if (!allocaOfVeqStruq(allocOp) || allocaOfUnspecifiedSize(allocOp) ||
+        allocOp.hasInitializedState())
+      return failure();
+
+    if (auto stqTy = dyn_cast<quake::StruqType>(allocOp.getType())) {
+      // allocOp is a struq.
+      // 1. Convert the allocation into a member by member allocation.
+      SmallVector<Value> memAllocs;
+      for (auto memTy : stqTy.getMembers())
+        memAllocs.emplace_back(
+            rewriter.create<quake::AllocaOp>(loc, memTy).getResult());
+      // 2. Create a value of the original struq type using quake.make_struq.
+      auto aggregate =
+          rewriter.create<quake::MakeStruqOp>(loc, stqTy, memAllocs);
+      // 3. Walk all the uses. If they are quake.get_member operations, replace
+      // them with direct uses.
+      for (auto *user : llvm::make_early_inc_range(allocOp->getUsers()))
+        if (auto getMem = dyn_cast<quake::GetMemberOp>(user)) {
+          auto index = getMem.getIndex();
+          rewriter.replaceOp(getMem, memAllocs[index]);
+        }
+      rewriter.replaceOp(allocOp, aggregate.getResult());
+      return success();
+    }
+
+    // allocOp must be a veq.
+    auto veqTy = cast<quake::VeqType>(allocOp.getType());
     std::size_t size = veqTy.getSize();
     SmallVector<quake::AllocaOp> newAllocs;
     auto *ctx = rewriter.getContext();
     auto refTy = quake::RefType::get(ctx);
 
-    // 1. Split the aggregate veq into a sequence of distinct alloca of ref.
+    // Split the aggregate veq into a sequence of distinct alloca of ref.
     for (std::size_t i = 0; i < size; ++i)
       newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
 
-    std::function<LogicalResult(Operation *, std::int64_t)> rewriteOpAndUsers =
-        [&](Operation *op, std::int64_t start) -> LogicalResult {
-      // First handle the users. Note that this can recurse.
-      for (auto *user : op->getUsers()) {
-        if (auto dealloc = dyn_cast<quake::DeallocOp>(user)) {
-          rewriter.setInsertionPoint(dealloc);
-          auto deloc = dealloc.getLoc();
-          for (std::size_t i = 0; i < size - 1; ++i)
-            rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
-          rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
-                                                        newAllocs[size - 1]);
-          continue;
-        }
-        if (auto subveq = dyn_cast<quake::SubVeqOp>(user)) {
-          auto lowInt = [&]() -> std::optional<std::int32_t> {
-            if (subveq.hasConstantLowerBound())
-              return {subveq.getConstantLowerBound()};
-            return cudaq::opt::factory::getIntIfConstant(subveq.getLower());
-          }();
-          if (!lowInt)
-            return failure();
-          for (auto *subUser : subveq->getUsers())
-            if (failed(rewriteOpAndUsers(subUser, *lowInt)))
-              return failure();
-          rewriter.eraseOp(subveq);
-          continue;
-        }
-        if (auto ext = dyn_cast<quake::ExtractRefOp>(user)) {
-          auto index = ext.getConstantIndex();
-          rewriter.replaceOp(ext, newAllocs[start + index].getResult());
-        }
+    if (usesAreConvertible(allocOp)) {
+      // Visit all users and replace them accordingly.
+      if (failed(rewriteOpAndUsers(allocOp, 0, rewriter, size, newAllocs)))
+        return failure();
+      // Remove the original alloca operation.
+      rewriter.eraseOp(allocOp);
+    } else {
+      // Uses are more complex so just concat the refs together.
+      SmallVector<Value> theRefs;
+      std::for_each(newAllocs.begin(), newAllocs.end(), [&](quake::AllocaOp a) {
+        theRefs.push_back(a.getResult());
+      });
+      rewriter.replaceOpWithNewOp<quake::ConcatOp>(allocOp, veqTy, theRefs);
+    }
+    return success();
+  }
+
+  static LogicalResult
+  rewriteOpAndUsers(Operation *op, std::int64_t start,
+                    PatternRewriter &rewriter, std::size_t size,
+                    SmallVector<quake::AllocaOp> &newAllocs) {
+    // First handle the users. Note that this can recurse.
+    SmallVector<Operation *> users{op->getUsers().begin(),
+                                   op->getUsers().end()};
+    for (auto *user : users) {
+      if (auto dealloc = dyn_cast<quake::DeallocOp>(user)) {
+        rewriter.setInsertionPoint(dealloc);
+        auto deloc = dealloc.getLoc();
+        for (std::size_t i = 0; i < size - 1; ++i)
+          rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
+        rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
+                                                      newAllocs[size - 1]);
+        continue;
       }
-      // Now handle the base operation.
-      if (isa<quake::SubVeqOp>(op))
-        rewriter.eraseOp(op);
-      else if (auto ext = dyn_cast<quake::ExtractRefOp>(op)) {
+      if (auto subveq = dyn_cast<quake::SubVeqOp>(user)) {
+        auto lowInt = [&]() -> std::optional<std::int32_t> {
+          if (subveq.hasConstantLowerBound())
+            return {subveq.getConstantLowerBound()};
+          return cudaq::opt::factory::getIntIfConstant(subveq.getLower());
+        }();
+        if (!lowInt)
+          return failure();
+        SmallVector<Operation *> subUsers{subveq->getUsers().begin(),
+                                          subveq->getUsers().end()};
+        for (auto *subUser : subUsers)
+          if (failed(rewriteOpAndUsers(subUser, *lowInt, rewriter, size,
+                                       newAllocs)))
+            return failure();
+        rewriter.eraseOp(subveq);
+        continue;
+      }
+      if (auto ext = dyn_cast<quake::ExtractRefOp>(user)) {
         auto index = ext.getConstantIndex();
         rewriter.replaceOp(ext, newAllocs[start + index].getResult());
       }
-      return success();
-    };
+    }
 
-    // 2. Visit all users and replace them accordingly.
-    if (failed(rewriteOpAndUsers(allocOp, 0)))
-      return failure();
-
-    // 3. Remove the original alloca operation.
-    rewriter.eraseOp(allocOp);
-
+    // Now handle the base operation.
+    if (isa<quake::SubVeqOp>(op)) {
+      rewriter.eraseOp(op);
+    } else if (auto ext = dyn_cast<quake::ExtractRefOp>(op)) {
+      auto index = ext.getConstantIndex();
+      rewriter.replaceOp(ext, newAllocs[start + index].getResult());
+    }
     return success();
   }
 };
 
-class DeallocPat : public OpRewritePattern<quake::DeallocOp> {
+class DeallocPattern : public OpRewritePattern<quake::DeallocOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(quake::DeallocOp dealloc,
                                 PatternRewriter &rewriter) const override {
-    auto veq = dealloc.getReference();
-    auto veqTy = cast<quake::VeqType>(veq.getType());
-    auto loc = dealloc.getLoc();
-    assert(veqTy.hasSpecifiedSize());
-    std::size_t size = veqTy.getSize();
+    // 0. Check necessary preconditions. Must be a Veq or Struq with a constant
+    // size.
+    Value alloc = dealloc.getReference();
+    if (!alloc)
+      return failure();
+    auto allocTy = alloc.getType();
+    if (alloc.getDefiningOp<quake::InitializeStateOp>())
+      return failure();
+    if (auto ty = dyn_cast<quake::VeqType>(allocTy)) {
+      if (!ty.hasSpecifiedSize())
+        return failure();
+    } else if (auto ty = dyn_cast<quake::StruqType>(allocTy)) {
+      if (!ty.hasSpecifiedSize())
+        return failure();
+    } else {
+      // not a Veq or Struq, so nothing to do.
+      return failure();
+    }
 
-    // 1. Split the aggregate veq into a sequence of distinct dealloc of ref.
-    for (std::size_t i = 0; i < size; ++i) {
-      Value r = rewriter.create<quake::ExtractRefOp>(loc, veq, i);
-      rewriter.create<quake::DeallocOp>(loc, r);
+    auto loc = dealloc.getLoc();
+    // 1. Split the aggregate alloc into a sequence of distinct dealloc of
+    // ref.
+    if (auto veqTy = dyn_cast<quake::VeqType>(allocTy)) {
+      generateDeallocs(veqTy, rewriter, loc, alloc);
+    } else if (auto stqTy = dyn_cast<quake::StruqType>(allocTy)) {
+      // Process a struq in memberwise fashion.
+      for (auto iter : llvm::enumerate(stqTy.getMembers())) {
+        Type memTy = iter.value();
+        auto mem = rewriter.create<quake::GetMemberOp>(loc, memTy, alloc,
+                                                       iter.index());
+        if (auto veqTy = dyn_cast<quake::VeqType>(memTy))
+          generateDeallocs(veqTy, rewriter, loc, mem);
+        else
+          rewriter.create<quake::DeallocOp>(loc, mem);
+      }
     }
 
     // 2. Remove the original dealloc operation.
     rewriter.eraseOp(dealloc);
     return success();
   }
+
+  static void generateDeallocs(quake::VeqType veqTy, PatternRewriter &rewriter,
+                               Location loc, Value alloc) {
+    assert(veqTy.hasSpecifiedSize());
+    std::size_t size = veqTy.getSize();
+
+    for (std::size_t i = 0; i < size; ++i) {
+      Value r = rewriter.create<quake::ExtractRefOp>(loc, alloc, i);
+      rewriter.create<quake::DeallocOp>(loc, r);
+    }
+  };
 };
 
 class FactorQuantumAllocationsPass
@@ -131,126 +260,43 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "Function before factoring quake alloca:\n"
                             << func << "\n\n");
 
-    // 1) Factor (expand) any deallocations that are veqs of constant size.
-    if (failed(factorDeallocations()))
+    // 1) Factor any deallocations that are struqs or veqs of constant size. Do
+    // this first to simplify preconditions for step 2.
+    if (failed(factorDeallocations())) {
+      if (enableFailures)
+        signalPassFailure();
       return;
-
-    // 2) Run an analysis to find the allocations to factor (expand).
-    SmallVector<quake::AllocaOp> allocations;
-    if (failed(runAnalysis(allocations)))
-      return;
-
-    // 3) Factor (expand) any allocations that are veqs of constant size.
-    factorAllocations(allocations);
-  }
-
-  LogicalResult factorDeallocations() {
-    auto *ctx = &getContext();
-    func::FuncOp func = getOperation();
-    RewritePatternSet patterns(ctx);
-    patterns.insert<DeallocPat>(ctx);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect>();
-    target.addDynamicallyLegalOp<quake::DeallocOp>([](quake::DeallocOp d) {
-      if (d.getReference().getDefiningOp<quake::InitializeStateOp>())
-        return true;
-      if (auto ty = dyn_cast<quake::VeqType>(d.getReference().getType()))
-        return !ty.hasSpecifiedSize();
-      return true;
-    });
-    if (failed(applyPartialConversion(func.getOperation(), target,
-                                      std::move(patterns)))) {
-      signalPassFailure();
-      return failure();
     }
-    return success();
-  }
 
-  void factorAllocations(const SmallVector<quake::AllocaOp> &allocations) {
-    auto *ctx = &getContext();
-    func::FuncOp func = getOperation();
-    RewritePatternSet patterns(ctx);
-    patterns.insert<AllocaPat>(ctx);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect>();
-    target.addDynamicallyLegalOp<quake::AllocaOp>([&](quake::AllocaOp alloc) {
-      return std::find(allocations.begin(), allocations.end(), alloc) ==
-             allocations.end();
-    });
-    target.addDynamicallyLegalOp<quake::DeallocOp>([](quake::DeallocOp d) {
-      if (d.getReference().getDefiningOp<quake::InitializeStateOp>())
-        return true;
-      if (auto ty = dyn_cast<quake::VeqType>(d.getReference().getType()))
-        return !ty.hasSpecifiedSize();
-      return true;
-    });
-    if (failed(applyPartialConversion(func.getOperation(), target,
-                                      std::move(patterns)))) {
-      func.emitOpError("factoring quantum allocations failed");
-      signalPassFailure();
+    // 2) Factor any allocations that are struqs or veqs of constant size.
+    if (failed(factorAllocations())) {
+      if (enableFailures)
+        signalPassFailure();
+      return;
     }
 
     LLVM_DEBUG(llvm::dbgs() << "Function after factoring quake alloca:\n"
                             << func << "\n\n");
   }
 
-  LogicalResult runAnalysis(SmallVector<quake::AllocaOp> &allocations) {
-    auto func = getOperation();
-    std::function<bool(Operation *)> isUseConvertible =
-        [&](Operation *op) -> bool {
-      if (isa<quake::DeallocOp>(op))
-        return true;
-      if (auto ext = dyn_cast<quake::ExtractRefOp>(op))
-        if (ext.hasConstantIndex())
-          return true;
-      if (auto sub = dyn_cast<quake::SubVeqOp>(op)) {
-        auto lowInt = [&]() -> std::optional<std::int32_t> {
-          if (sub.hasConstantLowerBound())
-            return {sub.getConstantLowerBound()};
-          return cudaq::opt::factory::getIntIfConstant(sub.getLower());
-        }();
-        auto upInt = [&]() -> std::optional<std::int32_t> {
-          if (sub.hasConstantUpperBound())
-            return {sub.getConstantUpperBound()};
-          return cudaq::opt::factory::getIntIfConstant(sub.getUpper());
-        }();
-        if (!(lowInt && upInt))
-          return false;
-        for (auto *subUser : sub->getUsers())
-          if (!isUseConvertible(subUser))
-            return false;
-        return true;
-      }
-      return false;
-    };
-    func.walk([&](quake::AllocaOp alloc) {
-      if (!allocaOfVeq(alloc) || allocaOfUnspecifiedSize(alloc) ||
-          alloc.hasInitializedState())
-        return;
-      bool usesAreConvertible = [&]() {
-        for (auto *users : alloc->getUsers()) {
-          if (isUseConvertible(users))
-            continue;
-          return false;
-        }
-        return true;
-      }();
-      if (usesAreConvertible)
-        allocations.push_back(alloc);
-    });
-    if (allocations.empty())
+  LogicalResult factorDeallocations() {
+    auto *ctx = &getContext();
+    func::FuncOp func = getOperation();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<DeallocPattern>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       return failure();
     return success();
   }
 
-  static bool allocaOfVeq(quake::AllocaOp alloc) {
-    return isa<quake::VeqType>(alloc.getType());
-  }
-
-  static bool allocaOfUnspecifiedSize(quake::AllocaOp alloc) {
-    if (auto veqTy = dyn_cast<quake::VeqType>(alloc.getType()))
-      return !veqTy.hasSpecifiedSize();
-    return false;
+  LogicalResult factorAllocations() {
+    auto *ctx = &getContext();
+    func::FuncOp func = getOperation();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<AllocaPattern>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+      return failure();
+    return success();
   }
 };
 } // namespace

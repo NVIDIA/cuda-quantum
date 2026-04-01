@@ -103,6 +103,17 @@ done
 
 echo "Environment sanitized (unset: $SANITIZE_VARS)"
 
+# Limit OpenMP threads: pytest-xdist handles process-level parallelism,
+# so each worker only needs 1 OMP thread for small test simulations.
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+
+# Parallel job count for snippet/example execution (xargs -P)
+if [ "$(uname)" = "Darwin" ]; then
+    parallel_jobs=$(sysctl -n hw.ncpu)
+else
+    parallel_jobs=$(nproc)
+fi
+
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
     # Try to find repo root
@@ -176,7 +187,7 @@ requires_unavailable_gpu_target() {
     for t in $targets; do
         case "$t" in
             nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
-                echo "Skipping $file (requires GPU target '$t')"
+                echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
         esac
@@ -205,7 +216,8 @@ if [ -n "${extra_packages}" ]; then
 fi
 
 if $is_macos; then
-    # macOS: use venv (simpler, no conda ToS issues, no MPI needed for CPU-only)
+    # macOS: extract install commands from README markers, matching the Linux
+    # pattern.
     venv_dir="$HOME/.venv/cudaq-validation"
 
     if $fresh_venv && [ -d "$venv_dir" ]; then
@@ -213,36 +225,45 @@ if $is_macos; then
         rm -rf "$venv_dir"
     fi
 
-    if [ -d "$venv_dir" ]; then
-        echo "Reusing existing venv at $venv_dir (use -F to start fresh)"
-    else
-        echo "Creating venv at $venv_dir"
-        python3 -m venv "$venv_dir"
+    macos_script="$(awk '/(Begin macos install)/{flag=1;next}/(End macos install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')"
+    if [ -z "$macos_script" ]; then
+        echo -e "\e[01;31mNo macOS install instructions found in $readme_file (missing Begin/End macos install markers).\e[0m" >&2
+        (return 0 2>/dev/null) && return 100 || exit 100
     fi
-    source "$venv_dir/bin/activate"
 
-    # Install cudaq. When a metapackage sdist is present in the packages
-    # directory, install via the metapackage so pip resolves the correct
-    # platform-specific wheel automatically. Otherwise fall back to
-    # direct wheel install (e.g. ci_macos.yml where only the wheel exists).
+    # Build the pip install replacement for the README's "pip install cudaq".
+    # When a local packages dir is provided (-i), install the wheel file
+    # directly since the wheel's distribution name (cuda_quantum) differs
+    # from the metapackage name (cudaq).
     if [ -n "${extra_packages}" ]; then
         metapackage=$(ls "${extra_packages}"/cudaq-*.tar.gz 2>/dev/null | head -1)
         if [ -n "$metapackage" ]; then
-            echo "Installing via metapackage: $metapackage"
-            pip install "cudaq==${cudaq_version}" --find-links "${extra_packages}"
+            pip_install_replacement="pip install --force-reinstall cudaq==${cudaq_version} --find-links ${extra_packages}"
         else
             wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
             if [ -n "$wheel_file" ]; then
-                echo "Installing wheel: $wheel_file"
-                pip install --force-reinstall "$wheel_file"
+                pip_install_replacement="pip install --force-reinstall $wheel_file"
             else
-                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}. Refusing to install from PyPI when -i is set.\e[0m" >&2
+                echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}.\e[0m" >&2
                 (return 0 2>/dev/null) && return 100 || exit 100
             fi
         fi
     else
-        pip install --upgrade cudaq==${cudaq_version}
+        pip_install_replacement="pip install cudaq==${cudaq_version}"
     fi
+
+    while IFS= read -r line; do
+        # Redirect venv creation into the CI-managed venv_dir
+        line=$(echo "$line" | sed -E "s|python3 -m venv [^ ]+|python3 -m venv $venv_dir|g")
+        line=$(echo "$line" | sed -E "s|source [^ ]+/bin/activate|source $venv_dir/bin/activate|g")
+        # Replace 'pip install cudaq' with versioned install + local wheel path
+        line=$(echo "$line" | sed -E 's/\$\{\{\s*[^}]+\s*\}\}/cudaq/g')
+        line=$(echo "$line" | sed -E "s|pip install cudaq|${pip_install_replacement}|g")
+        if [ -n "$(echo $line | tr -d '[:space:]')" ]; then
+            echo "+ $line"
+            eval "$line"
+        fi
+    done <<<"$macos_script"
 
     # Install test/dev dependencies (pytest, etc.)
     echo "Installing dev/test dependencies..."
@@ -250,6 +271,10 @@ if $is_macos; then
 else
     # Linux: full conda setup with CUDA and MPI
     conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')"
+    if [ -z "$conda_script" ]; then
+        echo -e "\e[01;31mNo conda install instructions found in $readme_file (missing Begin/End conda install markers).\e[0m" >&2
+        (return 0 2>/dev/null) && return 100 || exit 100
+    fi
 
     while IFS= read -r line; do
         line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")
@@ -272,7 +297,7 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
-    pip install pytest
+    pip install pytest pytest-xdist
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -308,7 +333,7 @@ fi
 
 # Run core tests
 echo "Running core tests."
-python3 -m pytest -v "$root_folder/tests" \
+python3 -m pytest -v -n auto "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
@@ -326,19 +351,15 @@ if $quick_test; then
     (return 0 2>/dev/null) && return $status_sum || exit $status_sum
 fi
 
-# Run backend tests
+# Run backend tests (single invocation with xdist; --rootdir matches upstream import layout)
 echo "Running backend tests."
-for backendTest in "$root_folder/tests/backends"/*.py; do
-    python3 -m pytest -v $backendTest
-    # Exit code 5 indicates that no tests were collected,
-    # i.e. all tests in this file were skipped, which is the case
-    # for the mock server tests since they are not included.
-    status=$?
-    if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
-        echo -e "\e[01;31mPython backend test $backendTest failed with code $status.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-done
+python3 -m pytest -v -n auto --rootdir "$root_folder/tests" "$root_folder/tests/backends"
+status=$?
+# Exit code 5 indicates that no tests were collected.
+if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
+    echo -e "\e[01;31mPython backend tests failed with code $status.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Run platform tests (Linux only - requires MPI)
 if $is_macos; then
@@ -346,7 +367,7 @@ if $is_macos; then
 else
     echo "Running platform tests."
     for parallelTest in "$root_folder/tests/parallel"/*.py; do
-        python3 -m pytest -v $parallelTest
+        python3 -m pytest -v --rootdir "$root_folder/tests" $parallelTest
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mPython platform test $parallelTest failed.\e[0m" >&2
             status_sum=$((status_sum + 1))
@@ -371,23 +392,26 @@ else
 fi
 
 # Run snippets in docs
+snippet_list=$(mktemp)
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
-    if requires_unavailable_gpu_target "$ex"; then
-        continue
+    if ! requires_unavailable_gpu_target "$ex"; then
+        printf '%s\0' "$ex"
     fi
-    echo "Executing $ex"
-    python3 "$ex"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+done > "$snippet_list"
+if [ -s "$snippet_list" ]; then
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
+        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+        < "$snippet_list"
+    if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
     fi
-done
+fi
+[ -f "$snippet_list" ] && rm -f "$snippet_list"
 
-# Run examples
+# Run examples (pre-filter sequentially, execute in parallel)
+example_list=$(mktemp)
 for ex in $(find "$root_folder/examples" -name '*.py'); do
-    if requires_unavailable_gpu_target "$ex"; then
-        continue
-    fi
+    if requires_unavailable_gpu_target "$ex"; then continue; fi
     skip_example=false
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
@@ -400,14 +424,18 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
         fi
     done
     if ! $skip_example; then
-        echo "Executing $ex"
-        python3 "$ex"
-        if [ ! $? -eq 0 ]; then
-            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-            status_sum=$((status_sum + 1))
-        fi
+        printf '%s\0' "$ex"  # don't split on spaces
     fi
-done
+done > "$example_list"
+if [ -s "$example_list" ]; then
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
+        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+        < "$example_list"
+    if [ $? -ne 0 ]; then
+        status_sum=$((status_sum + 1))
+    fi
+fi
+[ -f "$example_list" ] && rm -f "$example_list"
 
 snippet_count=$(find "$root_folder/snippets" -name '*.py' 2>/dev/null | wc -l)
 example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
@@ -416,19 +444,15 @@ if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
     status_sum=$((status_sum + 1))
 fi
 
-# Run target tests if target folder exists.
+# Run target tests if target folder exists (pre-filter, execute in parallel).
 if [ -d "$root_folder/targets" ]; then
+    target_list=$(mktemp)
     for ex in $(find "$root_folder/targets" -name '*.py'); do
-        if requires_unavailable_gpu_target "$ex"; then
-            continue
-        fi
+        if requires_unavailable_gpu_target "$ex"; then continue; fi
         skip_example=false
-        # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
-    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
+        explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
         for t in $explicit_targets; do
             if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
-                # Skipped because GitHub does not have the necessary authentication token
-                # to submit a (paid) job to Amazon Braket (includes QuEra).
                 echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
                 skip_example=true
             elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
@@ -449,21 +473,23 @@ if [ -d "$root_folder/targets" ]; then
             elif [ "$t" == "tii" ] || [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || \
                  [ "$t" == "quantinuum" ] || [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
                  [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
-                # These targets require remote backends that are not available
-                # in CI or local dev without explicit setup.
-                echo "Skipping $ex (remote target '$t' not available)"
+                echo "Skipping $ex (remote target '$t' not available)" >&2
                 skip_example=true
             fi
         done
         if ! $skip_example; then
-            echo "Executing $ex"
-            python3 "$ex"
-            if [ ! $? -eq 0 ]; then
-                echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-                status_sum=$((status_sum + 1))
-            fi
+            printf '%s\0' "$ex"  # don't split on spaces
         fi
-    done
+    done > "$target_list"
+    if [ -s "$target_list" ]; then
+        xargs -0 -P "$parallel_jobs" -n 1 bash -c \
+            'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+            < "$target_list"
+        if [ $? -ne 0 ]; then
+            status_sum=$((status_sum + 1))
+        fi
+    fi
+    [ -f "$target_list" ] && rm -f "$target_list"
 fi
 
 # Run remote-mqpu platform test (Linux only - requires GPU and MPI)

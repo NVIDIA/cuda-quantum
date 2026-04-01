@@ -20,7 +20,7 @@ from test_helpers import h2_hamiltonian_4q
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -2819,6 +2819,38 @@ def test_named_reg_in_sample(capfd):
     cudaq.sample(baz)
     captured = capfd.readouterr()
     assert "WARNING" in captured.err
+
+
+# TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
+# See: https://github.com/NVIDIA/cuda-quantum/issues/3818
+@pytest.mark.xfail(raises=RuntimeError)
+@pytest.mark.skip_macos_arm64_jit
+def test_adjoint_bug():
+    num_electrons = 2
+    num_qubits = 8
+
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
+
+    @cudaq.kernel
+    def kernel(withAdj: bool):
+        qubits = cudaq.qvector(num_qubits)
+        for i in range(num_electrons):
+            x(qubits[i])
+        cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        if withAdj:
+            cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
+                          num_qubits)
+
+    cudaq.sample(kernel, True, shots_count=1000)
 
 
 @pytest.mark.skip_macos_arm64_jit

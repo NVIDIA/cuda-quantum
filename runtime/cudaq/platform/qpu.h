@@ -9,6 +9,7 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/CompiledKernel.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "common/Timing.h"
@@ -205,11 +206,11 @@ public:
 
   [[nodiscard]] virtual KernelThunkResultType
   launchModule(const std::string &name, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, mlir::Type resultTy);
+               const std::vector<void *> &rawArgs);
 
   [[nodiscard]] virtual void *
   specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
+                   const std::vector<void *> &rawArgs,
                    std::optional<cudaq::JitEngine> &cachedEngine,
                    bool isEntryPoint);
 
@@ -221,15 +222,12 @@ public:
 struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
   virtual ~ModuleLauncher() = default;
 
-  virtual KernelThunkResultType launchModule(const std::string &name,
-                                             mlir::ModuleOp module,
-                                             const std::vector<void *> &rawArgs,
-                                             mlir::Type resultTy) = 0;
-  virtual void *specializeModule(const std::string &name, mlir::ModuleOp module,
-                                 const std::vector<void *> &rawArgs,
-                                 mlir::Type resultTy,
-                                 std::optional<cudaq::JitEngine> &cachedEngine,
-                                 bool isEntryPoint) = 0;
+  /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
+  /// CompiledKernel.
+  virtual CompiledKernel compileModule(const std::string &name,
+                                       mlir::ModuleOp module,
+                                       const std::vector<void *> &rawArgs,
+                                       bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

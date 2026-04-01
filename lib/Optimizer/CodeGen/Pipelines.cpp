@@ -34,7 +34,7 @@ static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-base") {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurements());
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-adaptive") {
@@ -146,8 +146,8 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(createMultiControlDecompositionPass());
-  pm.addPass(createDecompositionPass(
+  pm.addNestedPass<func::FuncOp>(createMultiControlDecomposition());
+  pm.addPass(createDecomposition(
       {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
                            "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
                            "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",

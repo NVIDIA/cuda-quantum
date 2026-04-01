@@ -1,0 +1,148 @@
+name: ccache-push
+description: Push ccache data to GHCR via ORAS
+
+inputs:
+  cache-key:
+    description: 'Tag prefix for the ccache artifact, e.g. arm64-build, amd64-devenv'
+    required: true
+  cache-path:
+    description: 'Path to the ccache data directory to push (e.g. ~/.ccache)'
+    required: true
+  registry-token:
+    description: 'GitHub token for GHCR authentication'
+    required: true
+  pr-number:
+    description: 'PR number for tag. Auto-detected from ref_name when empty.'
+    required: false
+    default: ''
+  delta-threshold:
+    description: 'Skip push if cache file count changed by less than this percentage. Set to 0 to always push.'
+    required: false
+    default: '10'
+  ref-name:
+    description: 'Branch name used for tag when not a PR build'
+    required: false
+    default: ${{ github.ref_name }}
+  upload-log:
+    description: 'Upload the ccache log file as a short-lived artifact for debugging'
+    required: false
+    default: 'false'
+
+outputs:
+  pushed:
+    description: 'Whether the ccache artifact was pushed'
+    value: ${{ steps.push.outputs.pushed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push ccache to GHCR
+      id: push
+      continue-on-error: true
+      shell: bash
+      run: |
+        cache_path="${{ inputs.cache-path }}"
+        delta_threshold="${{ inputs.delta-threshold }}"
+
+        # Validate cache path has content
+        if [ ! -d "$cache_path" ] || [ -z "$(ls -A "$cache_path" 2>/dev/null)" ]; then
+          echo "No ccache data found at $cache_path; skipping push."
+          echo "pushed=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Print stats for visibility: prefer _build_stats.txt from Docker
+        # export, fall back to querying ccache on the host (native builds).
+        stats_file="$cache_path/_build_stats.txt"
+        if [ -f "$stats_file" ]; then
+          echo "=== ccache stats (from Docker build) ==="
+          cat "$stats_file"
+        elif command -v ccache &>/dev/null; then
+          echo "=== ccache stats ==="
+          ccache -s 2>/dev/null || true
+        fi
+
+        # Compute cache delta: compare current file count to the baseline
+        # recorded at restore time. This measures how much the cache
+        # actually changed, regardless of whether the build ran natively
+        # or inside Docker.
+        restore_count_file="$cache_path/_restore_file_count.txt"
+        current_count=$(find "$cache_path" -type f | wc -l | tr -d ' ')
+        if [ -f "$restore_count_file" ]; then
+          restore_count=$(cat "$restore_count_file" | tr -d ' ')
+        else
+          restore_count=0
+        fi
+        new_files=$((current_count - restore_count))
+        if [ "$restore_count" -gt 0 ]; then
+          delta_pct=$((new_files * 100 / restore_count))
+        elif [ "$current_count" -gt 0 ]; then
+          delta_pct=100
+        else
+          delta_pct=0
+        fi
+        echo "Cache delta: ${new_files} new files (${delta_pct}% change, ${restore_count} -> ${current_count})"
+
+        # Always push on the default branch to keep the baseline fresh
+        default_branch="${{ github.event.repository.default_branch }}"
+        default_branch="${default_branch:-main}"
+        is_default_branch=$( [ "${{ github.ref_name }}" = "$default_branch" ] && echo true || echo false )
+
+        if $is_default_branch; then
+          echo "On default branch ($default_branch); always pushing to keep baseline fresh."
+        elif [ "$delta_threshold" -gt 0 ] 2>/dev/null && [ "$delta_pct" -lt "$delta_threshold" ]; then
+          echo "Cache changed by ${delta_pct}% (threshold: ${delta_threshold}%); skipping push."
+          echo "pushed=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Extract log and stats from cache dir before tarring so they
+        # don't bloat the GHCR artifact. The log is placed where the
+        # upload-artifact step expects it.
+        if [ -f "$cache_path/ccache.log" ]; then
+          mv "$cache_path/ccache.log" "${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
+        fi
+        rm -f "$stats_file" "$restore_count_file"
+
+        # Determine tag
+        repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
+        image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
+        cache_key="${{ inputs.cache-key }}"
+
+        # Auto-detect PR number from ref name if not provided
+        pr_number="${{ inputs.pr-number }}"
+        if [ -z "$pr_number" ]; then
+          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
+          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
+        fi
+
+        if [ -n "$pr_number" ]; then
+          tag="${cache_key}-pr-${pr_number}"
+        else
+          tag="${cache_key}-${{ inputs.ref-name }}"
+        fi
+
+        # Tar the contents of the cache directory (not the directory itself)
+        tar -czf ccache-data.tar.gz -C "$cache_path" .
+        echo "ccache tarball size: $(du -sh ccache-data.tar.gz | cut -f1) (uncompressed: $(du -sh "$cache_path" | cut -f1))"
+        echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+        oras push "$image:$tag" ccache-data.tar.gz
+        rm -f ccache-data.tar.gz
+        echo "Pushed ccache to $image:$tag"
+        echo "pushed=true" >> $GITHUB_OUTPUT
+
+    - name: Generate unique artifact name
+      if: always() && inputs.upload-log == 'true'
+      id: artifact
+      shell: bash
+      run: echo "name=ccache-log-${{ inputs.cache-key }}-$RANDOM" >> $GITHUB_OUTPUT
+
+    - name: Upload ccache log
+      if: always() && inputs.upload-log == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.artifact.outputs.name }}
+        path: ${{ github.workspace }}/ccache.log
+        retention-days: 1
+        if-no-files-found: ignore
