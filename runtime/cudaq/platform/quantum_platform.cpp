@@ -19,6 +19,8 @@
 #include <thread>
 #include <unordered_map>
 
+using namespace cudaq_internal::compiler;
+
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace cudaq {
@@ -222,11 +224,12 @@ KernelThunkResultType quantum_platform::launchModule(
   return qpu->launchModule(kernelName, module, rawArgs);
 }
 
-void *quantum_platform::specializeModule(
-    const std::string &kernelName, mlir::ModuleOp module,
-    const std::vector<void *> &rawArgs,
-    std::optional<cudaq::JitEngine> &cachedEngine, std::size_t qpu_id,
-    bool isEntryPoint) {
+void *quantum_platform::specializeModule(const std::string &kernelName,
+                                         mlir::ModuleOp module,
+                                         const std::vector<void *> &rawArgs,
+                                         std::optional<JitEngine> &cachedEngine,
+                                         std::size_t qpu_id,
+                                         bool isEntryPoint) {
   validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
   return qpu->specializeModule(kernelName, module, rawArgs, cachedEngine,
@@ -325,10 +328,11 @@ cudaq::streamlinedLaunchModule(const std::string &kernelName,
   return platform.launchModule(kernelName, moduleOp, rawArgs, qpu_id);
 }
 
-void *cudaq::streamlinedSpecializeModule(
-    const std::string &kernelName, mlir::ModuleOp moduleOp,
-    const std::vector<void *> &rawArgs,
-    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint) {
+void *cudaq::streamlinedSpecializeModule(const std::string &kernelName,
+                                         mlir::ModuleOp moduleOp,
+                                         const std::vector<void *> &rawArgs,
+                                         std::optional<JitEngine> &cachedEngine,
+                                         bool isEntryPoint) {
   ScopedTraceWithContext("streamlinedSpecializeModule", kernelName,
                          rawArgs.size());
 

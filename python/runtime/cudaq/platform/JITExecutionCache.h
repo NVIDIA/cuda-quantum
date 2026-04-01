@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/JIT.h"
+#include "cudaq_internal/compiler/JIT.h"
 #include <list>
 #include <mutex>
 #include <unordered_map>
@@ -27,7 +27,7 @@ protected:
   // the execution engine and to the LRU iterator that is used to track which
   // engine is the least recently used.
   struct MapItemType {
-    JitEngine execEngine;
+    cudaq_internal::compiler::JitEngine execEngine;
     std::list<std::size_t>::iterator lruListIt;
   };
   std::unordered_map<std::size_t, MapItemType> cacheMap;
@@ -38,10 +38,10 @@ public:
   JITExecutionCache() = default;
   ~JITExecutionCache();
 
-  void cache(std::size_t hash, JitEngine);
+  void cache(std::size_t hash, cudaq_internal::compiler::JitEngine);
   bool hasJITEngine(std::size_t hash);
   void deleteJITEngine(std::size_t hash);
-  JitEngine getJITEngine(std::size_t hash);
+  cudaq_internal::compiler::JitEngine getJITEngine(std::size_t hash);
   static JITExecutionCache &getJITCache();
 };
 } // namespace cudaq

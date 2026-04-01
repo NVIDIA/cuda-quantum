@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "py_run.h"
-#include "common/LayoutInfo.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -21,6 +21,7 @@
 #include <pybind11/stl.h>
 
 using namespace cudaq;
+using namespace cudaq_internal::compiler;
 
 static std::vector<py::object> readRunResults(mlir::ModuleOp module,
                                               mlir::Type ty,

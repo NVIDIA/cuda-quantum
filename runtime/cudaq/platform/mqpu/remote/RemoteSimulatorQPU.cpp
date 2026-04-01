@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/BaseRemoteSimulatorQPU.h"
-#include "common/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 
 using namespace mlir;
 
@@ -19,7 +19,7 @@ class RemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
 
 public:
   RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {
-    m_mlirContext = cudaq::getOwningMLIRContext();
+    m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
   }
 
   RemoteSimulatorQPU(RemoteSimulatorQPU &&) = delete;
