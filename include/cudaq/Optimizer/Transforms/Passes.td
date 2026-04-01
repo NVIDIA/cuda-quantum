@@ -479,20 +479,19 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
     multi-qubit measurements into individual single-qubit measurements in two
     steps.
 
-    First, any `quake.discriminate` on a `!quake.measurements<N>` value is
-    expanded into N individual `quake.get_measure` + `quake.discriminate`
-    operations on single `!quake.measure` values, with results collected into
-    a `!cc.stdvec<iK>`.
+    Step 1: Any `quake.discriminate` on a sized `!quake.measurements<N>`
+    value is expanded into N individual `quake.get_measure` +
+    `quake.discriminate` operations on single `!quake.measure` values, with
+    results collected into a `!cc.stdvec<iK>`.
 
-    Second, multi-qubit `mx`, `my`, `mz` ops that have `get_measure` users
-    are replaced with individual per-qubit measurements. For `veq<N>` targets
-    with known size, the qubits are extracted via `quake.extract_ref` and
-    measured individually. Multi-qubit measurements without local discriminate
-    users (e.g. returned to a caller) are left intact.
-
-    Multi-qubit measurements with dynamically-sized targets (`veq<?>`) or
-    unsized measurement results (`measurements<?>`) are left intact for
-    downstream codegen passes to lower with loops.
+    Step 2: Multi-qubit `mx`, `my`, `mz` ops are replaced with individual
+    per-qubit measurements. For `veq<N>` targets with known size, the qubits
+    are extracted via `quake.extract_ref` and measured individually. For
+    `veq<?>` targets with dynamically-sized targets, a loop is generated
+    using `quake.veq_size` to compute the iteration count and individual
+    qubits are extracted via `quake.extract_ref` within the loop body.
+    
+    Multi-qubit measurements without local discriminate users are left intact.
 
     The `reset` op can also take a veq argument and this pass will expand that
     to a loop of `reset` operations on individual qubits.
