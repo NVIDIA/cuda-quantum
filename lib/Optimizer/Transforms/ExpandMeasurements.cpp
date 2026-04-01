@@ -46,6 +46,13 @@ public:
     if (!hasUnsizedTarget)
       return failure();
 
+    // Only expand if every user of the measurement result is a DiscriminateOp.
+    for (auto *user : measureOp.getMeasOut().getUsers())
+      if (!isa<quake::DiscriminateOp>(user))
+        return failure();
+    if (measureOp.getMeasOut().use_empty())
+      return failure();
+
     auto loc = measureOp.getLoc();
 
     // 1. Determine the total number of qubits we need to measure. This
@@ -161,6 +168,27 @@ public:
     if (getMeasureOps.empty() && !measureOp.getMeasOut().use_empty())
       return failure();
 
+    // Validate that all `get_measure` ops have constant indices and all
+    // the veq targets have known sizes.
+    for (auto gm : getMeasureOps)
+      if (!gm.hasConstantIndex())
+        return failure();
+    std::size_t totalMeasures = 0;
+    for (auto v : measureOp.getTargets()) {
+      if (isa<quake::RefType>(v.getType())) {
+        ++totalMeasures;
+      } else {
+        auto veqTy = cast<quake::VeqType>(v.getType());
+        if (!veqTy.hasSpecifiedSize())
+          return failure();
+        totalMeasures += veqTy.getSize();
+      }
+    }
+    // Bounds check
+    for (auto gm : getMeasureOps)
+      if (gm.getConstantIndex() >= totalMeasures)
+        return failure();
+
     auto loc = measureOp.getLoc();
     auto measTy = quake::MeasureType::get(rewriter.getContext());
 
@@ -172,10 +200,7 @@ public:
           meas.setRegisterName(registerName);
         individualMeasures.push_back(meas.getMeasOut());
       } else {
-        assert(isa<quake::VeqType>(v.getType()));
         auto veqTy = cast<quake::VeqType>(v.getType());
-        if (!veqTy.hasSpecifiedSize())
-          return failure();
         for (std::size_t i = 0; i < veqTy.getSize(); ++i) {
           Value idx =
               rewriter.template create<arith::ConstantIntOp>(loc, i, 64);
@@ -188,11 +213,8 @@ public:
       }
     }
 
-    for (auto gm : getMeasureOps) {
-      if (!gm.hasConstantIndex())
-        return failure();
+    for (auto gm : getMeasureOps)
       rewriter.replaceOp(gm, individualMeasures[gm.getConstantIndex()]);
-    }
 
     if (measureOp.getMeasOut().use_empty())
       rewriter.eraseOp(measureOp);

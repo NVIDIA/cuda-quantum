@@ -283,3 +283,25 @@ func.func @veq_to_measurements(%veq : !quake.veq<?>) -> !quake.measurements<?> {
 // CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !quake.measurements<?>
 // CHECK:           return %[[VAL_1]] : !quake.measurements<?>
 // CHECK:         }
+
+func.func @dynamic_get_measure_used(%idx: i64, %ptr: !cc.ptr<i1>) {
+  %veq = quake.alloca !quake.veq<3>
+  %m = quake.mz %veq : (!quake.veq<3>) -> !quake.measurements<3>
+  %gm = quake.get_measure %m[%idx] : (!quake.measurements<3>, i64) -> !quake.measure
+  %bit = quake.discriminate %gm : (!quake.measure) -> i1
+  cc.store %bit, %ptr : !cc.ptr<i1>
+  quake.dealloc %veq : !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @dynamic_get_measure_used(
+// CHECK-SAME:                                        %[[VAL_0:.*]]: i64,
+// CHECK-SAME:                                        %[[VAL_1:.*]]: !cc.ptr<i1>) {
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<3>) -> !quake.measurements<3>
+// CHECK:           %[[VAL_4:.*]] = quake.get_measure %[[VAL_3]]{{\[}}%[[VAL_0]]] : (!quake.measurements<3>, i64) -> !quake.measure
+// CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
+// CHECK:           cc.store %[[VAL_5]], %[[VAL_1]] : !cc.ptr<i1>
+// CHECK:           quake.dealloc %[[VAL_2]] : !quake.veq<3>
+// CHECK:           return
+// CHECK:         }
