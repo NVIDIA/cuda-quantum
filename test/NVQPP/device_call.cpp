@@ -15,8 +15,13 @@
 // These should fail to compile because the device call cannot be resolved for
 // local execution targets.
 // clang-format off
-// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --ignore-case --check-prefix=COMPILE_ERROR
-// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --ignore-case --check-prefix=COMPILE_ERROR
+// RUN: if [[ "$OSTYPE" == "darwin"* ]]; then \
+// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR_MACOS ; \
+// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR_MACOS ; \
+// RUN: else \
+// RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR ; \
+// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR ; \
+// RUN: fi
 // clang-format on
 
 // This should compile successfully because the trap implementation will be
@@ -52,3 +57,4 @@ int main() {
 // toolchain.
 
 // COMPILE_ERROR: undefined {{.*}}add_op
+// COMPILE_ERROR_MACOS: Undefined symbols for architecture
