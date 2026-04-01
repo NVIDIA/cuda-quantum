@@ -51,9 +51,6 @@ struct QuakeTypeConverter : public TypeConverter {
     addConversion([](quake::MeasureType ty) {
       return IntegerType::get(ty.getContext(), 64);
     });
-    addConversion([](quake::MeasurementsType ty) {
-      return cudaq::cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
-    });
   }
 };
 
