@@ -3432,9 +3432,13 @@ class PyASTBridge(ast.NodeVisitor):
                             arrTy = cc.ArrayType.get(eleTy)
                             ptrArrTy = cc.PointerType.get(arrTy)
                             data = cc.StdvecDataOp(ptrArrTy, value).result
-                            size = cc.StdvecSizeOp(self.getIntegerType(),
-                                                   value).result
-                            numQubits = math.CountTrailingZerosOp(size).result
+                            intTy = self.getIntegerType()
+                            size = cc.StdvecSizeOp(intTy, value).result
+                            stateTy = cc.PointerType.get(cc.StateType.get())
+                            state = quake.CreateStateOp(stateTy, data,
+                                                        size).result
+                            numQubits = quake.GetNumberOfQubitsOp(intTy,
+                                                                  state).result
                             # Dynamic checking that the state is normalized is
                             # done at the library layer.
                             veqTy = quake.VeqType.get()
@@ -3442,6 +3446,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                     size=numQubits).result
                             init = quake.InitializeStateOp(veqTy, qubits,
                                                            data).result
+                            deleteState = quake.DeleteStateOp(state)
                             self.pushValue(init)
                             return
 
