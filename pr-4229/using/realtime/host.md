@@ -1190,8 +1190,8 @@ pr-4229
         -   [Unified Dispatch Mode](#unified-dispatch-mode){.reference
             .internal}
             -   [Architecture](#architecture){.reference .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](#when-to-use-which-mode){.reference .internal}
@@ -2196,10 +2196,10 @@ height="886"}
     [`libibverbs`{.docutils .literal .notranslate}]{.pre}, or
     proprietary transports
 
-For use cases where latency is more important than transport
-independence, see [[Unified Dispatch Mode]{.std
-.std-ref}](#unified-dispatch-mode){.reference .internal} which combines
-all three kernels into one.
+For use cases where lowest possible latency is needed, see [[Unified
+Dispatch Mode]{.std .std-ref}](#unified-dispatch-mode){.reference
+.internal} which combines all three kernels into one while retaining
+transport independence through a pluggable launch function.
 :::
 :::
 
@@ -2208,19 +2208,18 @@ all three kernels into one.
 
 The **unified dispatch mode** ([`CUDAQ_KERNEL_UNIFIED`{.docutils
 .literal .notranslate}]{.pre}) is an alternative to the 3-kernel
-architecture that combines RDMA receive, RPC dispatch, and RDMA transmit
-into a single GPU kernel. By eliminating the inter-kernel ring-buffer
-flag hand-off between RX, dispatch, and TX kernels, the unified kernel
-reduces round-trip latency for simple (non-cooperative) RPC handlers.
+architecture that combines receive, RPC dispatch, and transmit into a
+single GPU kernel. By eliminating the inter-kernel ring-buffer flag
+handoff between RX, dispatch, and TX kernels, the unified kernel reduces
+round-trip latency for simple (non-cooperative) RPC handlers.
 
 ::: {#architecture .section}
 ### Architecture[¶](#architecture "Permalink to this heading"){.headerlink}
 
-In unified mode, a single GPU thread:
+In unified mode, a single GPU thread runs a transport-provided kernel
+that combines receive, dispatch, and transmit into one tight loop:
 
-1.  Polls the [`DOCA`{.docutils .literal .notranslate}]{.pre} completion
-    queue ([`CQ`{.docutils .literal .notranslate}]{.pre}) for an
-    incoming RDMA message
+1.  Polls for an incoming message (transport-specific mechanism)
 
 2.  Parses the [`RPCHeader`{.docutils .literal .notranslate}]{.pre} from
     the receive buffer
@@ -2230,25 +2229,37 @@ In unified mode, a single GPU thread:
 4.  Writes the [`RPCResponse`{.docutils .literal .notranslate}]{.pre}
     header (overwriting the request header)
 
-5.  Sends the response via [`DOCA`{.docutils .literal
-    .notranslate}]{.pre} [`BlueFlame`{.docutils .literal
-    .notranslate}]{.pre}
+5.  Sends the response (transport-specific mechanism)
 
-6.  Re-posts the receive work queue entry ([`WQE`{.docutils .literal
-    .notranslate}]{.pre})
+6.  Re-posts the receive buffer for the next message
 
 The symmetric ring layout means the response overwrites the request in
 the same buffer slot. [`RPCHeader`{.docutils .literal
 .notranslate}]{.pre} fields ([`request_id`{.docutils .literal
 .notranslate}]{.pre}, [`ptp_timestamp`{.docutils .literal
 .notranslate}]{.pre}) are saved to registers before the handler runs.
+
+For example, the [`HSB`{.docutils .literal
+.notranslate}]{.pre}/[`DOCA`{.docutils .literal .notranslate}]{.pre}
+transport implementation polls a [`DOCA`{.docutils .literal
+.notranslate}]{.pre} completion queue ([`CQ`{.docutils .literal
+.notranslate}]{.pre}) in step 1, sends via [`DOCA`{.docutils .literal
+.notranslate}]{.pre} [`BlueFlame`{.docutils .literal
+.notranslate}]{.pre} in step 5, and re-posts a [`DOCA`{.docutils
+.literal .notranslate}]{.pre} receive [`WQE`{.docutils .literal
+.notranslate}]{.pre} in step 6. Other transport implementations would
+substitute their own receive and send primitives.
 :::
 
-::: {#transport-agnostic-api-transport-specific-implementation .section}
-### Transport-Agnostic API, Transport-Specific Implementation[¶](#transport-agnostic-api-transport-specific-implementation "Permalink to this heading"){.headerlink}
+::: {#transport-agnostic-design .section}
+### Transport-Agnostic Design[¶](#transport-agnostic-design "Permalink to this heading"){.headerlink}
 
-The dispatcher host API remains transport-agnostic. Unified mode
-introduces:
+The unified dispatch mode is fully transport-agnostic, just like the
+3-kernel mode. The core dispatcher library
+([`libcudaq-realtime.so`{.docutils .literal .notranslate}]{.pre}) has no
+dependency on any specific transport (no [`DOCA`{.docutils .literal
+.notranslate}]{.pre}, no [`HSB`{.docutils .literal
+.notranslate}]{.pre}). Unified mode introduces:
 
 -   [`CUDAQ_KERNEL_UNIFIED`{.docutils .literal .notranslate}]{.pre} -- a
     new [`cudaq_kernel_type_t`{.docutils .literal .notranslate}]{.pre}
@@ -2264,20 +2275,23 @@ introduces:
     .notranslate}]{.pre} -- wires the launch function and transport
     context to the dispatcher
 
-The transport-specific details ([`DOCA`{.docutils .literal
-.notranslate}]{.pre} [`QP`{.docutils .literal .notranslate}]{.pre}
-handles, memory keys, ring buffer addresses) are packed into an opaque
-struct ([`HSB_doca_transport_ctx`{.docutils .literal
-.notranslate}]{.pre} for the HSB/[`DOCA`{.docutils .literal
-.notranslate}]{.pre} implementation) and passed through the
-[`void*`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+Transport-specific details are packed into an opaque struct and passed
+through the [`void*`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`transport_ctx`{.docutils .literal .notranslate}]{.pre}
-pointer. A different transport could define its own context struct and
-launch function, and the dispatcher would manage it identically. The
-bridge returns a [`cudaq_unified_dispatch_ctx_t`{.docutils .literal
-.notranslate}]{.pre} bundle containing the launch function pointer and
-the opaque transport context, keeping the dispatcher API fully
-transport-agnostic.
+pointer. The transport provider supplies both the context struct and the
+launch function implementation. For example, the [`HSB`{.docutils
+.literal .notranslate}]{.pre}/[`DOCA`{.docutils .literal
+.notranslate}]{.pre} transport packs [`DOCA`{.docutils .literal
+.notranslate}]{.pre} [`QP`{.docutils .literal .notranslate}]{.pre}
+handles, memory keys, and ring buffer addresses into a
+[`doca_transport_ctx`{.docutils .literal .notranslate}]{.pre} and
+provides [`hololink_launch_unified_dispatch`{.docutils .literal
+.notranslate}]{.pre} as the launch function (compiled into
+[`libcudaq-realtime-bridge-hololink.so`{.docutils .literal
+.notranslate}]{.pre}). A different transport would define its own
+context struct and launch function; the dispatcher manages them
+identically without any transport-specific knowledge.
 :::
 
 ::: {#when-to-use-which-mode .section}
@@ -2293,15 +2307,19 @@ transport-agnostic.
 -   Required for cooperative handlers that use [`grid.sync()`{.docutils
     .literal .notranslate}]{.pre}
 
--   Best choice when transport independence is a priority
+-   Supports [`CUDAQ_DISPATCH_GRAPH_LAUNCH`{.docutils .literal
+    .notranslate}]{.pre} mode
 
 **Unified mode** ([`CUDAQ_KERNEL_UNIFIED`{.docutils .literal
 .notranslate}]{.pre}):
 
 -   Lowest latency for regular (non-cooperative) handlers
 
--   Transport-specific kernel implementation (currently
-    [`DOCA`{.docutils .literal .notranslate}]{.pre}/HSB)
+-   Transport-agnostic API -- the transport provides a pluggable launch
+    function and opaque context (e.g., [`HSB`{.docutils .literal
+    .notranslate}]{.pre}/[`DOCA`{.docutils .literal .notranslate}]{.pre}
+    supplies [`hololink_launch_unified_dispatch`{.docutils .literal
+    .notranslate}]{.pre})
 
 -   Single-thread, single-block kernel -- no inter-kernel
     synchronization overhead
@@ -2365,12 +2383,12 @@ When [`kernel_type`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     // Pack DOCA transport handles
-    HSB_doca_transport_ctx ctx;
-    ctx.gpu_dev_qp     = HSB_get_gpu_dev_qp(transceiver);
-    ctx.rx_ring_data   = HSB_get_rx_ring_data_addr(transceiver);
-    ctx.rx_ring_stride_sz  = HSB_get_page_size(transceiver);
-    ctx.rx_ring_mkey   = htonl(HSB_get_rkey(transceiver));
-    ctx.rx_ring_stride_num = HSB_get_num_pages(transceiver);
+    hololink_doca_transport_ctx ctx;
+    ctx.gpu_dev_qp     = hololink_get_gpu_dev_qp(transceiver);
+    ctx.rx_ring_data   = hololink_get_rx_ring_data_addr(transceiver);
+    ctx.rx_ring_stride_sz  = hololink_get_page_size(transceiver);
+    ctx.rx_ring_mkey   = htonl(hololink_get_rkey(transceiver));
+    ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
     ctx.frame_size     = frame_size;
 
     // Configure dispatcher for unified mode
@@ -2381,7 +2399,7 @@ When [`kernel_type`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 
     cudaq_dispatcher_create(manager, &config, &dispatcher);
     cudaq_dispatcher_set_unified_launch(
-        dispatcher, &HSB_launch_unified_dispatch, &ctx);
+        dispatcher, &hololink_launch_unified_dispatch, &ctx);
     cudaq_dispatcher_set_function_table(dispatcher, &table);
     cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
     cudaq_dispatcher_start(dispatcher);
@@ -2400,9 +2418,9 @@ proprietary transport) places incoming RPC messages into RX slots and
 retrieves responses from TX slots. The dispatcher polls RX flags (see
 Message completion note), looks up a handler by [`function_id`{.docutils
 .literal .notranslate}]{.pre}, executes it on the GPU, and writes a
-response into the same slot. [`HSB`{.docutils .literal
-.notranslate}]{.pre}'s RX/TX kernels handle device I/O; the dispatch
-kernel sits in the middle and runs the decoder handler.
+response into the same slot. The transport's RX/TX components handle
+I/O; the dispatch kernel sits in the middle and runs the decoder
+handler.
 :::
 
 ::: {#scope .section}

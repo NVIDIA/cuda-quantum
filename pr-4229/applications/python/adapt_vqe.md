@@ -1161,8 +1161,8 @@ pr-4229
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2122,7 +2122,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![2cdf94fe63d048fc938165b1c0e8ff4b](../../_images/adapt-vqe.png){.no-scaled-link
+![3c66b58075bf471ca5647bb7dd951b39](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>
