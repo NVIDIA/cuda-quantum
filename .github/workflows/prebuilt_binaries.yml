@@ -223,7 +223,7 @@ jobs:
         run: |
           build_cache=`echo "${{ inputs.build_cache }}" | sed 's/prereqs/openmpi/g'`
           # Match dev_environment: zstd for smaller, faster-to-pull registry caches.
-          cache_to="${build_cache},mode=max,compression=zstd,compression-level=15,force-compression=true,oci-mediatypes=true,ignore-error=false"
+          cache_to="${build_cache},mode=max,compression=zstd,compression-level=3,force-compression=true,oci-mediatypes=true,ignore-error=false"
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
 
