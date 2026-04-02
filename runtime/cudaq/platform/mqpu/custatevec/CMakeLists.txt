@@ -5,8 +5,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
 add_library(gpu-emulated-qpu OBJECT GPUEmulatedQPU.cpp)
 target_link_libraries(gpu-emulated-qpu PUBLIC 
                         cudaq-common 
