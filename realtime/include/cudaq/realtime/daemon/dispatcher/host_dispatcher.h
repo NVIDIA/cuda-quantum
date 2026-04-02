@@ -64,6 +64,10 @@ typedef struct {
   /// When NULL, legacy mode: raw RX slot pointer written to mailbox.
   void *io_ctxs_host; ///< host view of GraphIOContext[num_workers]
   void *io_ctxs_dev;  ///< device view of same pinned mapped memory
+
+  /// When true, skip cudaStreamQuery-based worker recycling in the dispatch
+  /// loop (caller is responsible for returning workers via idle_mask).
+  bool skip_stream_sweep;
 } cudaq_host_dispatch_loop_ctx_t;
 
 /// Run the host-side dispatcher loop. Blocks until `*config->shutdown_flag`
