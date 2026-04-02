@@ -62,10 +62,18 @@ public:
   /// @brief Return the total number of operations
   std::size_t count() const;
 
-  /// @brief Append the instruction with the given name and number of controls
-  /// to the resource estimate.
+  /// @brief Append instruction by name and control count. Updates gate
+  /// counts but not depth metrics (no qubit index information). Used by
+  /// MLIR-level resource counting (ResourceCountPreprocess pass).
   void appendInstruction(const std::string &name, std::size_t nControls,
                          std::size_t count = 1);
+
+  /// @brief Append instruction with qubit indices. Updates gate counts
+  /// and depth metrics (total depth, 2Q depth, 2Q gate count). Used by
+  /// ResourceCounter during simulation-based resource estimation.
+  void appendInstruction(const std::string &name,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets);
 
   /// @brief Dump resource count to the given output stream
   void dump(std::ostream &os) const;
@@ -80,6 +88,19 @@ public:
   /// @brief Returns a dictionary mapping gate names to counts
   std::unordered_map<std::string, std::size_t> gateCounts() const;
 
+  /// @brief Return the total number of qubits used.
+  std::size_t getNumQubits() const;
+
+  /// @brief Return the circuit depth (longest gate chain on any qubit).
+  std::size_t getCircuitDepth() const;
+
+  /// @brief Return the 2-qubit circuit depth (longest chain of 2-qubit
+  /// gates on any qubit path, ignoring single-qubit gates).
+  std::size_t getCircuitDepth2Q() const;
+
+  /// @brief Return the total number of 2-qubit gates.
+  std::size_t getTwoQubitGateCount() const;
+
 private:
   /// @brief Map of Instructions in the current kernel to the
   /// number of times the Instruction is used.
@@ -91,6 +112,13 @@ private:
 
   /// @brief Keep track of the total number of qubits used.
   std::size_t numQubits = 0;
+
+  /// @brief Per-qubit depth maps for incremental depth tracking.
+  std::unordered_map<std::size_t, std::size_t> perQubitDepth;
+  std::unordered_map<std::size_t, std::size_t> perQubitDepth2Q;
+
+  /// @brief Total number of 2-qubit gates.
+  std::size_t twoQubitGateCount = 0;
 };
 
 } // namespace cudaq

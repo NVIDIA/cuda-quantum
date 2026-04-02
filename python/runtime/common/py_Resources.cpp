@@ -59,6 +59,18 @@ This includes all gate counts.)#")
           "to_dict", [](Resources &self) { return self.gateCounts(); },
           "Return a dictionary of the raw resource counts that are stored in "
           "`self`.\n")
+      .def_property_readonly("num_qubits", &Resources::getNumQubits,
+                             "The total number of qubits used in the kernel.\n")
+      .def_property_readonly(
+          "depth", &Resources::getCircuitDepth,
+          "The circuit depth (longest gate chain on any qubit).\n")
+      .def_property_readonly(
+          "depth_2q", &Resources::getCircuitDepth2Q,
+          "The 2-qubit circuit depth (longest chain of 2-qubit gates on any "
+          "qubit path).\n")
+      .def_property_readonly("two_qubit_gate_count",
+                             &Resources::getTwoQubitGateCount,
+                             "The total number of 2-qubit gates.\n")
       .def("clear", &Resources::clear, "Clear out all metadata from `self`.\n");
 }
 

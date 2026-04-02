@@ -25,7 +25,8 @@ protected:
   void applyGate(const GateApplicationTask &task) override {
     CUDAQ_INFO("Applying {} with {} controls", task.operationName,
                task.controls.size());
-    resourceCounts.appendInstruction(task.operationName, task.controls.size());
+    resourceCounts.appendInstruction(task.operationName, task.controls,
+                                     task.targets);
   }
 
   /// @brief Measure the qubit and return the result. Collapse the
@@ -54,7 +55,7 @@ public:
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
-    resourceCounts.appendInstruction("reset", 0);
+    resourceCounts.appendInstruction("reset", {}, {index});
   }
 
   /// @brief Sample the multi-qubit state.
