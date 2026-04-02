@@ -8,14 +8,13 @@
 
 name: remote-mqpu
 description:
-  "The remote-mqpu target provides locally-hosted CUDA-Q simulator runtime services."
+  "The remote-mqpu target provides MPI-based CUDA-Q multi-QPU simulator runtime services."
 
 config:
   gen-target-backend: true
   platform-library: mqpu
-  platform-qpu: RemoteSimulatorQPU
-  preprocessor-defines: ["-D CUDAQ_REMOTE_SIM"]
-  link-libs: ["-lcudaq-remote-simulator-qpu"]
+  preprocessor-defines: []
+  link-libs: []
   library-mode: false
 
 target-arguments:
@@ -24,13 +23,8 @@ target-arguments:
     type: string
     platform-arg: backend 
     help-string: "Specify the remote simulator backend."
-  - key: url
-    required: false
-    type: string
-    platform-arg: url 
-    help-string: "Specify the URL of the server."
-  - key: auto-launch
+  - key: nqpus
     required: false
     type: integer
-    platform-arg: auto_launch 
-    help-string: "Specify the number of server instances to be launched and shut down automatically."
+    platform-arg: nqpus
+    help-string: "Specify the number of QPU instances."

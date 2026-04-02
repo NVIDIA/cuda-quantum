@@ -96,26 +96,7 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
 /// runtime arguments.
 template <typename QuantumKernel, typename... Args>
 auto get_state(QuantumKernel &&kernel, Args &&...args) {
-#if defined(CUDAQ_REMOTE_SIM) && !defined(CUDAQ_LIBRARY_MODE)
-  // If this is a kernel that we cannot retrieve a name at runtime (C-type
-  // function), we cannot use lazy evaluation since the kernel name/quake code
-  // is not retrievable. This needs to be directed to the `altLaunchKernel`
-  // function, whereby the bridge has generated code to construct the kernel
-  // name at runtime.
-  if (cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
-    return details::extractState(
-        [&]() mutable { kernel(std::forward<Args>(args)...); });
-
-  return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
-                                         std::forward<Args>(args)...));
-#else
-#if defined(CUDAQ_REMOTE_SIM)
-  // Kernel builder is MLIR-based kernel.
-  if constexpr (has_name<QuantumKernel>::value) {
-    return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
-                                           std::forward<Args>(args)...));
-  }
-#elif defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
+#if defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
   // Store kernel name and arguments for quantum states.
   const auto kernelName =
       details::getKernelName(std::forward<QuantumKernel>(kernel));
@@ -132,7 +113,7 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   }
   throw std::runtime_error(
       "could not create state in library mode for quantum devices");
-#endif
+#else
   return details::extractState(
       [&]() mutable { kernel(std::forward<Args>(args)...); });
 #endif
