@@ -57,9 +57,9 @@ func.func @discriminate_i4(%m : !quake.measure) -> i4 attributes {"cudaq-kernel"
 
 // CHECK-LABEL:   func.func @discriminate_i4(
 // CHECK-SAME:                               %[[VAL_0:.*]]: !cc.ptr<!llvm.struct<"Result", opaque>>) -> i4 attributes {"cudaq-kernel", "qir-api"} {
-// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_3:.*]] = arith.extui %[[VAL_2]] : i1 to i4
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (i8) -> i4
 // CHECK:           return %[[VAL_3]] : i4
 // CHECK:         }
 

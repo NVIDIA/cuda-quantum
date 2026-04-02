@@ -89,6 +89,13 @@ struct comprehensive {
   }
 };
 
+struct adapt_mz_read {
+  bool operator()() __qpu__ {
+    cudaq::qubit q;
+    return static_cast<bool>(mz(q));
+  }
+};
+
 // clang-format off
 
 // BASE-LABEL: define void @__nvqpp__mlirgen__comprehensive()
@@ -208,6 +215,14 @@ struct comprehensive {
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 6 to %Qubit*), %Result* nonnull inttoptr (i64 6 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 6 to %Result*), i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.7472697000, i64 0, i64 0))
 // ADAPT:         ret void
+// ADAPT:       }
+
+// ADAPT-LABEL: define i1 @__nvqpp__mlirgen__adapt_mz_read()
+// ADAPT:         tail call void @__quantum__qis__mz__body(%[[VAL_2:.*]]* null, %[[VAL_3:.*]]* null)
+// ADAPT:         tail call void @__quantum__rt__array_record_output(i64 1, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// ADAPT:         tail call void @__quantum__rt__result_record_output(%[[VAL_3]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// ADAPT:         %[[VAL_4:.*]] = tail call i1 @__quantum__qis__read_result__body(%[[VAL_3]]* null)
+// ADAPT:         ret i1 %[[VAL_4]]
 // ADAPT:       }
 
 // FULL-LABEL: define void @__nvqpp__mlirgen__comprehensive()

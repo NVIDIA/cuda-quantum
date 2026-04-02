@@ -652,7 +652,7 @@ struct GetMeasureOpRewrite : public OpConversionPattern<quake::GetMeasureOp> {
       index = adaptor.getIndex();
       if (isa<IndexType>(index.getType())) {
         index = rewriter.create<arith::IndexCastOp>(loc, i64Ty, index);
-      } else if (index.getType().isIntOrFloat()) {
+      } else if (isa<IntegerType>(index.getType())) {
         auto width = cast<IntegerType>(index.getType()).getWidth();
         if (width < 64)
           index = rewriter.create<cudaq::cc::CastOp>(
@@ -744,13 +744,18 @@ struct DiscriminateOpRewrite
       return success();
     }
 
-    auto ptrCast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
-    Value loaded = rewriter.create<cudaq::cc::LoadOp>(loc, ptrCast);
-    // Zero-extend i1 to iN when the discriminate result is wider than i1.
     auto origResTy = disc.getResult().getType();
+    Value loaded;
     if (auto intTy = dyn_cast<IntegerType>(origResTy);
         intTy && intTy.getWidth() > 1) {
-      loaded = rewriter.create<arith::ExtUIOp>(loc, origResTy, loaded);
+      auto i8Ty = rewriter.getI8Type();
+      auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
+      auto bytePtr = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, m);
+      Value byteVal = rewriter.create<cudaq::cc::LoadOp>(loc, bytePtr);
+      loaded = rewriter.create<cudaq::cc::CastOp>(loc, origResTy, byteVal);
+    } else {
+      auto ptrCast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
+      loaded = rewriter.create<cudaq::cc::LoadOp>(loc, ptrCast);
     }
     rewriter.replaceOp(disc, loaded);
     return success();
@@ -786,15 +791,25 @@ struct DiscriminateOpToCallRewrite
       auto i64Ty = rewriter.getI64Type();
       auto unu =
           rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, adaptor.getOperands());
-      auto ptrI1Ty = cudaq::cc::PointerType::get(i1Ty);
-      auto du = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty, unu);
-      loaded = rewriter.create<cudaq::cc::LoadOp>(loc, du);
+      auto origResTy = disc.getResult().getType();
+      if (auto intTy = dyn_cast<IntegerType>(origResTy);
+          intTy && intTy.getWidth() > 1) {
+        auto i8Ty = rewriter.getI8Type();
+        auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
+        auto du = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, unu);
+        Value byteVal = rewriter.create<cudaq::cc::LoadOp>(loc, du);
+        loaded = rewriter.create<cudaq::cc::CastOp>(loc, origResTy, byteVal);
+      } else {
+        auto ptrI1Ty = cudaq::cc::PointerType::get(i1Ty);
+        auto du = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty, unu);
+        loaded = rewriter.create<cudaq::cc::LoadOp>(loc, du);
+      }
     }
     auto origResTy = disc.getResult().getType();
-    // Zero-extend i1 to iN when the discriminate result is wider than i1.
-    if (auto intTy = dyn_cast<IntegerType>(origResTy);
-        intTy && intTy.getWidth() > 1) {
-      loaded = rewriter.create<arith::ExtUIOp>(loc, origResTy, loaded);
+    if constexpr (M::discriminateToClassical) {
+      if (auto intTy = dyn_cast<IntegerType>(origResTy);
+          intTy && intTy.getWidth() > 1)
+        loaded = rewriter.create<arith::ExtUIOp>(loc, origResTy, loaded);
     }
     rewriter.replaceOp(disc, loaded);
     return success();
@@ -825,7 +840,7 @@ struct ExtractRefOpRewrite : public OpConversionPattern<quake::ExtractRefOp> {
           loc, extract.getConstantIndex(), 64);
     } else {
       index = adaptor.getIndex();
-      if (index.getType().isIntOrFloat()) {
+      if (isa<IntegerType>(index.getType())) {
         if (cast<IntegerType>(index.getType()).getWidth() < 64)
           index = rewriter.create<cudaq::cc::CastOp>(
               loc, i64Ty, index, cudaq::cc::CastOpMode::Unsigned);
