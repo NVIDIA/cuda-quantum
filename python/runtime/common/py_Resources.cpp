@@ -71,6 +71,20 @@ This includes all gate counts.)#")
       .def_property_readonly("two_qubit_gate_count",
                              &Resources::getTwoQubitGateCount,
                              "The total number of 2-qubit gates.\n")
+      .def_property_readonly(
+          "per_qubit_depth",
+          [](Resources &self) {
+            return py::dict(py::cast(self.getPerQubitDepth()));
+          },
+          "Per-qubit circuit depth (all gates), as a dict mapping qubit "
+          "index to depth.\n")
+      .def_property_readonly(
+          "per_qubit_depth_2q",
+          [](Resources &self) {
+            return py::dict(py::cast(self.getPerQubitDepth2Q()));
+          },
+          "Per-qubit 2-qubit depth, as a dict mapping qubit index to "
+          "2Q depth.\n")
       .def("clear", &Resources::clear, "Clear out all metadata from `self`.\n");
 }
 

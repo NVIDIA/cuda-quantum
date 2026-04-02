@@ -119,6 +119,16 @@ std::size_t Resources::getTwoQubitGateCount() const {
   return twoQubitGateCount;
 }
 
+const std::unordered_map<std::size_t, std::size_t> &
+Resources::getPerQubitDepth() const {
+  return perQubitDepth;
+}
+
+const std::unordered_map<std::size_t, std::size_t> &
+Resources::getPerQubitDepth2Q() const {
+  return perQubitDepth2Q;
+}
+
 void Resources::dump(std::ostream &os) const {
   os << "Total # of gates: " << totalGates;
   os << ", total # of qubits: " << numQubits;

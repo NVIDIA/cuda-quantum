@@ -101,6 +101,13 @@ public:
   /// @brief Return the total number of 2-qubit gates.
   std::size_t getTwoQubitGateCount() const;
 
+  /// @brief Return the per-qubit depth map (all gates).
+  const std::unordered_map<std::size_t, std::size_t> &getPerQubitDepth() const;
+
+  /// @brief Return the per-qubit 2-qubit depth map.
+  const std::unordered_map<std::size_t, std::size_t> &
+  getPerQubitDepth2Q() const;
+
 private:
   /// @brief Map of Instructions in the current kernel to the
   /// number of times the Instruction is used.

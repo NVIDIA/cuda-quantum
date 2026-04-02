@@ -95,6 +95,8 @@ def test_mixed_gates():
     assert resources.depth == 4
     assert resources.two_qubit_gate_count == 3
     assert resources.depth_2q == 3
+    assert resources.per_qubit_depth == {0: 2, 1: 3, 2: 4, 3: 4}
+    assert resources.per_qubit_depth_2q == {0: 1, 1: 2, 2: 3, 3: 3}
 
 
 def test_controlled_h_is_two_qubit():
