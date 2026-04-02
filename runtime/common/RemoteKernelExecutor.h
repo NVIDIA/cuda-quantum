@@ -15,14 +15,15 @@
 #pragma once
 
 #include "common/Registry.h"
-#include "common/RuntimeMLIR.h"
 #include "cudaq/remote_capabilities.h"
 #include <optional>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace mlir {
 class MLIRContext;
+class ModuleOp;
 class Operation;
 } // namespace mlir
 

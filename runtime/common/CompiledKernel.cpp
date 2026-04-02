@@ -8,6 +8,8 @@
 
 #include "CompiledKernel.h"
 
+using namespace cudaq_internal::compiler;
+
 cudaq::CompiledKernel::CompiledKernel(
     JitEngine engine, std::string kernelName, void (*entryPoint)(),
     int64_t (*argsCreator)(const void *, void **), bool hasResult)
@@ -37,4 +39,4 @@ cudaq::CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
 
 void (*cudaq::CompiledKernel::getEntryPoint() const)() { return entryPoint; }
 
-cudaq::JitEngine cudaq::CompiledKernel::getEngine() const { return engine; }
+JitEngine cudaq::CompiledKernel::getEngine() const { return engine; }
