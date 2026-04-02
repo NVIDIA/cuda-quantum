@@ -283,7 +283,7 @@ jobs:
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
-            cache_to="${build_cache},mode=max,ignore-error=false"
+            cache_to="${build_cache},mode=max,ignore-error=false,compression=zstd"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
@@ -291,11 +291,11 @@ jobs:
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           elif ${{ needs.metadata.outputs.pr_number != '' }}; then
             # for PRs, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           elif ${{ github.event_name == 'merge_group' }}; then
             # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"

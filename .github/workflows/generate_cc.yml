@@ -43,6 +43,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-cc
+          registry-token: ${{ github.token }}
+
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_cache && inputs.devdeps_archive
@@ -90,21 +105,34 @@ jobs:
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
           echo "devdeps_tag=$devdeps_tag" >> $GITHUB_OUTPUT
 
+          # Build coverage and extract files in one invocation to avoid
+          # re-running the build (ADD . invalidates across separate invocations).
+          mkdir -p ${{ github.workspace }}/shared
           docker buildx build --progress=plain --platform ${{ inputs.platform }} \
             -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
-            --build-arg run_coverage=true \
-            --target coverage
-
-      - name: Extract coverage files
-        run: |
-          mkdir -p ${{ github.workspace }}/shared
-          docker buildx build --platform ${{ inputs.platform }} \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-arg base_image=${{ steps.cudaq_build.outputs.base_image }} \
             --build-arg run_coverage=true \
             --target coverage-export \
             --output type=local,dest=${{ github.workspace }}/shared
+
+      - name: Extract ccache from build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.cudaq_build.outputs.base_image }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-cc
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Upload C/C++ & Python Coverage To Codecov
         uses: codecov/codecov-action@v4
@@ -123,6 +151,7 @@ jobs:
 
           docker buildx build --platform ${{ inputs.platform }} \
             --load -t cuda-quantum-cc:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.cudaq_build.outputs.base_image }}
 
           docker run --name cuda-quantum-cc cuda-quantum-cc:local
