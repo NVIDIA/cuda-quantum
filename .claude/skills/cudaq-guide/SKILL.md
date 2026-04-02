@@ -159,7 +159,7 @@ Instead, follow this two-step dialogue:
 
 Step 1 - ask which technology they want
 
-```
+```text
 Which QPU technology are you targeting?
   1. Ion trap       (IonQ, Quantinuum)
   2. Superconducting (IQM, OQC, Anyon, TII, QCI)
