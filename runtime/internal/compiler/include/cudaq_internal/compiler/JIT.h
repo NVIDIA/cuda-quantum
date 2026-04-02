@@ -48,15 +48,28 @@ createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
 /// class. Memory management for of the mlir::ExecutionEngine is handled
 /// internally.
 class JitEngine {
+  using RawFnPtr = void (*)();
+  using LookupFn = std::function<RawFnPtr(const std::string &)>;
+
+  struct Base {
+    LookupFn lookupFn;
+    std::function<void(const std::string &)> runFn;
+  };
+
 public:
   JitEngine(std::unique_ptr<mlir::ExecutionEngine>);
-  void run(const std::string &kernelName) const;
-  void (*lookupRawNameOrFail(const std::string &kernelName) const)();
+
+  void run(const std::string &kernelName) const { impl->runFn(kernelName); }
+
+  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
+    return impl->lookupFn(kernelName);
+  }
+
   std::size_t getKey() const;
 
 private:
   class Impl;
-  std::shared_ptr<Impl> impl;
+  std::shared_ptr<Base> impl;
 };
 
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.

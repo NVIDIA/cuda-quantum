@@ -372,25 +372,24 @@ cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(Type resultTy,
   return info;
 }
 
-class JitEngine::Impl {
+class JitEngine::Impl : public JitEngine::Base {
 public:
   Impl(std::unique_ptr<ExecutionEngine> jitEngine)
-      : jitEngine(std::move(jitEngine)) {}
-  void run(const std::string &kernelName) const {
-    auto funcPtr = lookupRawNameOrFail(
-        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
-    funcPtr();
+      : jitEngine(std::move(jitEngine)) {
+    lookupFn = [this](const std::string &name) -> RawFnPtr {
+      auto funcPtr = this->jitEngine->lookup(name);
+      if (!funcPtr)
+        throw std::runtime_error("Failed looking function up in jitted module");
+      return reinterpret_cast<RawFnPtr>(*funcPtr);
+    };
+    runFn = [this](const std::string &kernelName) {
+      auto funcPtr = lookupFn(std::string(cudaq::runtime::cudaqGenPrefixName) +
+                              kernelName);
+      funcPtr();
+    };
   }
 
-  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
-    auto funcPtr = jitEngine->lookup(kernelName);
-    if (!funcPtr) {
-      throw std::runtime_error("Failed looking function up in jitted module");
-    }
-    return reinterpret_cast<void (*)()>(*funcPtr);
-  }
-
-  std::size_t getKey() {
+  std::size_t getKey() const {
     return reinterpret_cast<std::size_t>(jitEngine.get());
   }
 
@@ -401,12 +400,6 @@ private:
 JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
     : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
 
-void JitEngine::run(const std::string &kernelName) const {
-  return impl->run(kernelName);
-}
-
-std::size_t JitEngine::getKey() const { return impl->getKey(); }
-
-void (*JitEngine::lookupRawNameOrFail(const std::string &kernelName) const)() {
-  return impl->lookupRawNameOrFail(kernelName);
+std::size_t JitEngine::getKey() const {
+  return static_cast<const Impl *>(impl.get())->getKey();
 }
