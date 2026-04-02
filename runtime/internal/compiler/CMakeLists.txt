@@ -13,7 +13,6 @@ include(HandleLLVMOptions)
 add_library(cudaq-mlir-runtime-headers INTERFACE)
 target_include_directories(cudaq-mlir-runtime-headers INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
@@ -30,20 +29,6 @@ add_library(cudaq-mlir-runtime
     LayoutInfo.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
-
-set_source_files_properties(
-  Compiler.cpp
-  JIT.cpp
-  RuntimeMLIR.cpp
-)
-
-target_include_directories(cudaq-mlir-runtime
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
-    ${CMAKE_SOURCE_DIR}/tpls/fmt/include
-    ${CMAKE_SOURCE_DIR}/runtime
-    ${CMAKE_SOURCE_DIR}/runtime/common
-)
 
 target_link_libraries(cudaq-mlir-runtime
   PUBLIC
@@ -69,15 +54,15 @@ target_link_libraries(cudaq-mlir-runtime
     cudaq-qir-verifier
     CUDAQTargetConfigUtil
     cudaq-logger
+    fmt::fmt-header-only
 )
 
 install(TARGETS cudaq-mlir-runtime-headers
-        EXPORT cudaq-mlir-runtime-targets
-        DESTINATION include)
+        EXPORT cudaq-mlir-runtime-targets)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
         DESTINATION include)
-        
+
 install(TARGETS cudaq-mlir-runtime
         EXPORT cudaq-mlir-runtime-targets
         DESTINATION lib)
