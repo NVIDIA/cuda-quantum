@@ -361,7 +361,7 @@ jobs:
       - name: Install dependencies
         run: |
           CCACHE_DISABLE=1 pip install -r requirements-dev.txt
-          brew install makeself
+          brew install makeself pigz
 
       - name: Build MLIR Python bindings
         run: |
