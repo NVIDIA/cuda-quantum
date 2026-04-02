@@ -1,0 +1,14 @@
+.git
+build
+Build
+__pycache__
+*.o
+*.a
+*.so
+.cache
+.vscode
+.idea
+dist
+wheelhouse
+docs/sphinx/_doxygen
+docs/sphinx/_mdgen

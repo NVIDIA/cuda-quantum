@@ -86,10 +86,16 @@ jobs:
           enable-apt: true
 
       - name: Build CUDA Quantum
+        id: build
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            # The buildx docker-container driver cannot access images in
+            # the local Docker daemon store. Push the archive-loaded image
+            # to GHCR so buildx can pull it.
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -97,23 +103,33 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}"
 
-      - name: Extract ccache from image
-        uses: ./.github/actions/ccache-extract-docker
-        with:
-          image: cuda-quantum-dev:local
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+
+      - name: Extract ccache from build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
-          cache-path: /tmp/ccache-out/.ccache
+          cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
       - name: Test CUDA Quantum
@@ -246,6 +262,8 @@ jobs:
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -253,8 +271,8 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image
 
@@ -322,16 +340,20 @@ jobs:
             fi
 
       - name: Extract ccache from container
-        uses: ./.github/actions/ccache-extract-docker
-        with:
-          image: dev_env:local
-          from-container: 'true'
+        run: |
+          # The Python build runs inside a container (via run-in-docker),
+          # so ccache data is in the most recently stopped container.
+          mkdir -p /tmp/ccache-export/ccache
+          container=$(docker ps -a -q --filter ancestor=dev_env:local --latest)
+          if [ -n "$container" ]; then
+            docker cp "$container:/root/.ccache/." /tmp/ccache-export/ccache/ 2>/dev/null || true
+          fi
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
-          cache-path: /tmp/ccache-out/.ccache
+          cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
       - name: Save environment

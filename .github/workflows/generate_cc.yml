@@ -28,7 +28,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
 
     steps:
       - name: Checkout Repository
@@ -76,6 +76,8 @@ jobs:
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -83,8 +85,8 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t cuda-quantum-cc:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t cuda-quantum-cc:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image
 
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`

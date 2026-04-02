@@ -29,11 +29,7 @@ ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 ENV PATH="$CUDAQ_INSTALL_PREFIX/bin:${PATH}"
 ENV PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
-ARG workspace=.
-ARG destination="$CUDAQ_REPO_ROOT"
-ADD "$workspace" "$destination"
-WORKDIR "$destination"
-
+# Install MPI before ADD so this layer is cached across source changes.
 # mpich or openmpi
 ARG mpi=
 RUN if [ -n "$mpi" ]; \
@@ -44,6 +40,11 @@ RUN if [ -n "$mpi" ]; \
 			apt update && apt install -y lib$mpi-dev ; \
 		fi \
     fi
+
+ARG workspace=.
+ARG destination="$CUDAQ_REPO_ROOT"
+ADD "$workspace" "$destination"
+WORKDIR "$destination"
 
 # Configuring a base image that contains the necessary dependencies for GPU
 # accelerated components and passing a build argument 
