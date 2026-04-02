@@ -1,4 +1,8 @@
+# Exclude .git objects but keep paths needed by devdeps.Dockerfile
+# and assets.Dockerfile for submodule HEAD refs and index.
 .git
+!.git/modules/
+!.git/index
 build
 Build
 __pycache__

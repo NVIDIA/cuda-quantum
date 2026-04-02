@@ -91,9 +91,6 @@ jobs:
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
-            # The buildx docker-container driver cannot access images in
-            # the local Docker daemon store. Push the archive-loaded image
-            # to GHCR so buildx can pull it.
             docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
@@ -103,14 +100,38 @@ jobs:
             exit 1
           fi
 
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+
           docker buildx build --platform ${{ inputs.platform }} \
-            --load -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+            -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}"
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target devbuild
 
-          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+      - name: Test CUDA Quantum
+        run: |
+          docker buildx build --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test
+
+      - name: Test CUDA Quantum MPI Plugin Activation
+        run: |
+          docker buildx build --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-mpi
 
       - name: Extract ccache from build
         run: |
@@ -132,47 +153,6 @@ jobs:
           cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
-      - name: Test CUDA Quantum
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            set -euo pipefail
-            cd $CUDAQ_REPO_ROOT
-            python3 -m pip install -r requirements-tests-backend.txt --break-system-packages
-            bash scripts/run_tests.sh -v
-
-      - name: Test CUDA Quantum MPI Plugin Activation
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            # Set MPI_PATH depending on OMPI/MPICH
-            has_ompiinfo=$(which ompi_info || true)
-            if [[ ! -z $has_ompiinfo ]]; then
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/openmpi/"
-            else
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
-            fi
-            # Run the activation script
-            source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh
-            external_plugin_build_status=$?
-            if [ ! $external_plugin_build_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed to activate the plugin with status $external_plugin_build_status."
-              exit 1
-            fi
-            echo $CUDAQ_MPI_COMM_LIB
-            # Rerun the MPI plugin test
-            cd $CUDAQ_REPO_ROOT
-            ctest --test-dir build -R MPIApiTest -V
-            external_plugin_status=$?
-            if [ ! $external_plugin_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
-              exit 1
-            fi
-
       - name: Save environment
         id: env_save
         if: inputs.export_environment
@@ -180,6 +160,15 @@ jobs:
           output_directory=/tmp
           platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           filename=${platform_id}_debug_build
+
+          # Export the image to Docker daemon only when needed.
+          # Reuses the BuildKit cache so only the export runs.
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}"
 
           docker run --name cuda-quantum-dev cuda-quantum-dev:local
           docker export cuda-quantum-dev > $output_directory/$filename.tar

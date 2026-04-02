@@ -86,6 +86,32 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 
+# CI test stages. Build with --target test or --target test-mpi to run
+# tests inside BuildKit without exporting the image. The run_tests arg
+# defaults to false so non-CI builds skip these stages entirely.
+FROM devbuild AS test
+ARG run_tests=false
+RUN if [ "$run_tests" = "true" ]; then \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install -r requirements-tests-backend.txt --break-system-packages && \
+        bash scripts/run_tests.sh -v; \
+    fi
+
+FROM test AS test-mpi
+ARG run_tests=false
+ARG mpi=
+RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
+        has_ompiinfo=$(which ompi_info || true) && \
+        if [ -n "$has_ompiinfo" ]; then \
+            export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/openmpi/"; \
+        else \
+            export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"; \
+        fi && \
+        source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh && \
+        cd $CUDAQ_REPO_ROOT && \
+        ctest --test-dir build -R MPIApiTest -V; \
+    fi
+
 # Export ccache data so CI can extract it for persistence.
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
 FROM scratch AS ccache-export
