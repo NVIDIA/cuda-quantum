@@ -105,8 +105,11 @@ specializeKernel(const std::string &name, ModuleOp module,
 
 /// Run target-specific passes if the active target config defines a pipeline.
 /// Interleaves jit-deploy-pipeline between high and mid-level stages.
-/// specializeKernel() covers what hw-jit-prep-pipeline and most of
-/// jit-finalize-pipeline do, so those are not interleaved here.
+/// specializeKernel() covers what hw-jit-prep-pipeline and
+/// jit-finalize-pipeline do (inlining, specialization, DistributedDeviceCall),
+/// so those are not interleaved here. Targets needing passes from those stages
+/// (e.g., apply-control-negations) should include them in their own config
+/// fields. Only reads top-level config:, not configuration-matrix entries.
 static void runTargetPassPipeline(ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)

@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 name: circuit-opt-bench
-description: "Comprehensive optimization pipeline for compiler benchmarking"
+description: "CX-basis decomposition pipeline for compiler benchmarking"
 
 config:
   nvqir-simulation-backend: qpp
