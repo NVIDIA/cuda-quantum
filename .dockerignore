@@ -1,8 +1,9 @@
-# Exclude .git objects but keep paths needed by devdeps.Dockerfile
-# and assets.Dockerfile for submodule HEAD refs and index.
-.git
-!.git/modules/
-!.git/index
+# Exclude heavy .git storage but keep the repo skeleton so
+# git rev-parse works inside the container and devdeps.Dockerfile
+# / assets.Dockerfile can read submodule HEAD refs.
+.git/objects/
+.git/hooks/
+.git/logs/
 build
 Build
 __pycache__
