@@ -154,25 +154,41 @@ examples.
 Docs `docs/sphinx/using/backends/hardware.rst`,
 `docs/sphinx/using/backends/cloud.rst`
 
-### Supported Hardware Backends
+When the user invokes this section, do not dump all providers at once.
+Instead, follow this two-step dialogue:
 
-| Provider | Target Name | Technology |
+Step 1 - ask which technology they want
+
+```
+Which QPU technology are you targeting?
+  1. Ion trap       (IonQ, Quantinuum)
+  2. Superconducting (IQM, OQC, Anyon, TII, QCI)
+  3. Neutral atom   (QuEra, Infleqtion, Pasqal)
+  4. Cloud / multi-platform (AWS Braket, Scaleway)
+```
+
+Step 2 - once they pick a technology, ask which provider, then read the
+corresponding doc file and walk the user through it step by step.
+
+| Technology | Provider | Doc file |
 |---|---|---|
-| IQM | `iqm` | Superconducting |
-| IonQ | `ionq` | Trapped ion |
-| QuEra | `quera` | Neutral atom |
-| OQC | `oqc` | Superconducting |
-| Infleqtion | `infleqtion` | Neutral atom |
-| AWS Braket | `braket` | Multi-platform |
-| Scaleway | `scaleway` | Cloud QPU |
+| Ion trap | IonQ | `docs/sphinx/using/backends/hardware/iontrap.rst` (IonQ section) |
+| Ion trap | Quantinuum | `docs/sphinx/using/backends/hardware/iontrap.rst` (Quantinuum section) |
+| Superconducting | IQM | `docs/sphinx/using/backends/hardware/superconducting.rst` (IQM section) |
+| Superconducting | OQC | `docs/sphinx/using/backends/hardware/superconducting.rst` (OQC section) |
+| Superconducting | Anyon | `docs/sphinx/using/backends/hardware/superconducting.rst` (Anyon section) |
+| Superconducting | TII | `docs/sphinx/using/backends/hardware/superconducting.rst` (TII section) |
+| Superconducting | QCI | `docs/sphinx/using/backends/hardware/superconducting.rst` (QCI section) |
+| Neutral atom | Infleqtion | `docs/sphinx/using/backends/hardware/neutralatom.rst` (Infleqtion section) |
+| Neutral atom | QuEra | `docs/sphinx/using/backends/hardware/neutralatom.rst` (QuEra section) |
+| Neutral atom | Pasqal | `docs/sphinx/using/backends/hardware/neutralatom.rst` (Pasqal section) |
+| Cloud | AWS Braket | `docs/sphinx/using/backends/cloud/braket.rst` |
+| Cloud | Scaleway | `docs/sphinx/using/backends/cloud/scaleway.rst` |
 
-Key points
+After walking through the provider steps, always close with
 
-- Set credentials via environment variables (e.g. `IONQ_API_KEY`)
-- Use `cudaq.sample_async()` for non-blocking QPU submission
-- Test with a noise model locally before submitting to real hardware
-
-See the docs above for QPU connection and noise model examples.
+- Test locally first with `emulate=True` before submitting to real hardware.
+- Use `cudaq.sample_async()` / `cudaq.observe_async()` for non-blocking submission.
 
 ---
 
