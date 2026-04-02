@@ -7,8 +7,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/JIT.h"
 #include "common/ThunkInterface.h"
+#include "cudaq_internal/compiler/JIT.h"
 #include <string>
 #include <vector>
 
@@ -20,9 +20,12 @@ namespace cudaq {
 /// type-erased pointers to JIT-related types.
 ///
 /// The constructor is private; use the factory function in
-/// `runtime/common/JIT.h` to construct instances.
+/// `cudaq_internal/compiler/JIT.h`
+/// (`cudaq_internal::compiler::createCompiledKernel`) to construct instances.
 class CompiledKernel {
 public:
+  using JitEngine = cudaq_internal::compiler::JitEngine;
+
   /// @brief Execute the JIT-ed kernel.
   ///
   /// If the kernel has a return type, the caller must have appended a result
@@ -51,10 +54,9 @@ private:
 
   // Use the following factory function (compiled into cudaq-mlir-runtime) to
   // construct CompiledKernels.
-  friend CompiledKernel createCompiledKernel(JitEngine engine,
-                                             std::string kernelName,
-                                             bool hasResult,
-                                             bool isFullySpecialized);
+  friend cudaq::CompiledKernel cudaq_internal::compiler::createCompiledKernel(
+      JitEngine engine, std::string kernelName, bool hasResult,
+      bool isFullySpecialized);
 
   JitEngine engine;
   std::string name;
@@ -66,11 +68,4 @@ private:
   bool hasResult;
 };
 
-/// @brief Create a CompiledKernel from JIT-compiled code.
-///
-/// `hasResult` and `isFullySpecialized` affect how the mangled kernel name
-/// and the arguments buffer passed to the compiled kernel are constructed.
-/// See `CompiledKernel::getEntryPoint` for more details.
-CompiledKernel createCompiledKernel(JitEngine engine, std::string kernelName,
-                                    bool hasResult, bool isFullySpecialized);
 } // namespace cudaq

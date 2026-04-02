@@ -6,14 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-get_filename_component(CUDAQ_COMMON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(CUDAQ_MLIR_RUNTIME_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQLogger REQUIRED)
-
-set (CUDAQMlirRuntime_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
-find_dependency(CUDAQMlirRuntime REQUIRED)
-
-if(NOT TARGET cudaq::cudaq-common)
-  include("${CUDAQ_COMMON_CMAKE_DIR}/CUDAQCommonTargets.cmake")
+if(NOT TARGET cudaq::cudaq-mlir-runtime)
+  include("${CUDAQ_MLIR_RUNTIME_CMAKE_DIR}/CUDAQMlirRuntimeTargets.cmake")
 endif()

@@ -9,13 +9,13 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/LayoutInfo.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/kernel_utils.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include <cstdint>
 
 extern "C" {
@@ -42,12 +42,12 @@ struct RunResultSpan {
 // logically executed \p shots times, which can result in up to \p shots
 // distinct result values. The results are returned in a span, which is a
 // pointer to a buffer and the size of that buffer in bytes.
-RunResultSpan runTheKernel(std::function<void()> &&kernel,
-                           quantum_platform &platform,
-                           const std::string &kernel_name,
-                           const std::string &original_name, std::size_t shots,
-                           const LayoutInfoType &layoutInfo,
-                           std::size_t qpu_id = 0, bool allowCaching = true);
+RunResultSpan
+runTheKernel(std::function<void()> &&kernel, quantum_platform &platform,
+             const std::string &kernel_name, const std::string &original_name,
+             std::size_t shots,
+             const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
+             std::size_t qpu_id = 0, bool allowCaching = true);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
@@ -131,7 +131,8 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
 #else
   // Launch the kernel in the appropriate context.
   std::string kernelName{details::getKernelName(kernel)};
-  LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
+  cudaq_internal::compiler::LayoutInfoType layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(kernelName);
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
         auto *runKernel =
@@ -184,7 +185,8 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
   // Launch the kernel in the appropriate context.
   platform.set_noise(&noise_model);
   std::string kernelName{details::getKernelName(kernel)};
-  LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
+  cudaq_internal::compiler::LayoutInfoType layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(kernelName);
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
         auto *runKernel =
@@ -245,7 +247,8 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         p.set_value(std::move(res));
 #else
         const std::string kernelName{details::getKernelName(kernel)};
-        LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
+        cudaq_internal::compiler::LayoutInfoType layoutInfo =
+            cudaq_internal::compiler::getLayoutInfo(kernelName);
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               auto *runKernel =
@@ -317,7 +320,8 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #else
         platform.set_noise(&noise_model);
         const std::string kernelName{details::getKernelName(kernel)};
-        LayoutInfoType layoutInfo = getLayoutInfo(kernelName);
+        cudaq_internal::compiler::LayoutInfoType layoutInfo =
+            cudaq_internal::compiler::getLayoutInfo(kernelName);
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               auto *runKernel =
