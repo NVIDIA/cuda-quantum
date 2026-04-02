@@ -56,9 +56,7 @@ public:
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
     resourceCounts.appendInstruction("reset", {},
-                                     {
-                                         index,
-                                     });
+                                     std::vector<std::size_t>{index});
   }
 
   /// @brief Sample the multi-qubit state.
