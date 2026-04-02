@@ -733,10 +733,11 @@ struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
 
     std::size_t totalSize = 0;
     for (auto target : measOp.getTargets()) {
-      if (quake::isConstantQuantumRefType(target.getType()))
+      if (quake::isConstantQuantumRefType(target.getType())) {
         totalSize += quake::getAllocationSize(target.getType());
-      else
-        return failure();
+        continue;
+      }
+      return failure();
     }
     if (totalSize == 0)
       return failure();
