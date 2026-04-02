@@ -19,7 +19,7 @@ class MLIRContext;
 class ModuleOp;
 } // namespace mlir
 
-namespace cudaq {
+namespace cudaq_internal::compiler {
 
 /// @brief Function to lower MLIR to target
 /// @param op MLIR operation
@@ -92,15 +92,15 @@ private:
   llvm::StringRef description;
 };
 
-cudaq::Translation &getTranslation(llvm::StringRef name);
+Translation &getTranslation(llvm::StringRef name);
 
 struct TranslateFromMLIRRegistration {
+  TranslateFromMLIRRegistration(llvm::StringRef name,
+                                llvm::StringRef description,
+                                const TranslateFromMLIRFunction &function);
   TranslateFromMLIRRegistration(
       llvm::StringRef name, llvm::StringRef description,
-      const cudaq::TranslateFromMLIRFunction &function);
-  TranslateFromMLIRRegistration(
-      llvm::StringRef name, llvm::StringRef description,
-      const cudaq::TranslateFromMLIRFunctionExtended &function);
+      const TranslateFromMLIRFunctionExtended &function);
 };
 
 /// This is misnamed. This function returns the name of the .thunk unmarshalling
@@ -109,4 +109,4 @@ std::optional<std::string>
 getEntryPointName(mlir::OwningOpRef<mlir::ModuleOp> &module);
 
 void initializeLangMLIR();
-} // namespace cudaq
+} // namespace cudaq_internal::compiler

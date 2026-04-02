@@ -12,6 +12,7 @@ set(CONFIG_FILES
   CUDAQNloptConfig.cmake
   CUDAQOperatorConfig.cmake
   CUDAQLoggerConfig.cmake
+  CUDAQMlirRuntimeConfig.cmake
   CUDAQConfig.cmake
   CUDAQEnsmallenConfig.cmake
   CUDAQPlatformDefaultConfig.cmake
@@ -34,12 +35,12 @@ execute_process(
 # Configure the file
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/NVQIRConfig.cmake.in
-  ${CMAKE_BINARY_DIR}/cmake/Modules/NVQIRConfig.cmake
+  ${CMAKE_BINARY_DIR}/cmake/modules/NVQIRConfig.cmake
   @ONLY
 )
 
 install(FILES ${CONFIG_FILES} DESTINATION lib/cmake/cudaq)
 install(FILES ${LANG_FILES} DESTINATION lib/cmake/cudaq)
-install(FILES ${CMAKE_BINARY_DIR}/cmake/Modules/NVQIRConfig.cmake DESTINATION lib/cmake/nvqir)
+install(FILES ${CMAKE_BINARY_DIR}/cmake/modules/NVQIRConfig.cmake DESTINATION lib/cmake/nvqir)
 # Note: we split the default target config generation into a separate file so that we can test it independently.
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/NVQIRTargetConfigGen.cmake DESTINATION lib/cmake/nvqir)

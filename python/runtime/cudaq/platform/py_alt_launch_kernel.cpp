@@ -9,10 +9,8 @@
 #include "py_alt_launch_kernel.h"
 #include "JITExecutionCache.h"
 #include "common/AnalogHamiltonian.h"
-#include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
-#include "common/LayoutInfo.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -22,6 +20,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -47,6 +47,7 @@
 
 namespace py = pybind11;
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
@@ -602,7 +603,7 @@ cudaq::OpaqueArguments *cudaq::toOpaqueArgs(py::args &args, MlirModule mod,
 static void appendTheResultValue(ModuleOp module, const std::string &name,
                                  cudaq::OpaqueArguments &runtimeArgs,
                                  Type returnType) {
-  auto [bufferSize, offsets] = cudaq::getResultBufferLayout(module, returnType);
+  auto [bufferSize, offsets] = getResultBufferLayout(module, returnType);
   if (bufferSize == 0)
     return;
   auto *buf = std::calloc(1, bufferSize);
@@ -865,7 +866,7 @@ static std::pair<void *, std::size_t>
 marshal_and_retain_module(const std::string &name, MlirModule module,
                           bool isEntryPoint, py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
-  std::optional<cudaq::JitEngine> cachedEngine;
+  std::optional<JitEngine> cachedEngine;
 
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
@@ -928,7 +929,7 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  cudaq::opt::ArgumentConverter argCon(name, mod);
+  ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());
 
   // Store kernel and substitution strings on the stack.

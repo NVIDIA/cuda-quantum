@@ -6,26 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Development dependencies for building and testing CUDA-Q
-build
-delocate; sys_platform == "darwin"
-auditwheel; sys_platform == "linux"
-lit==18.1.4
-pytest==8.3.0
-pytest-xdist==3.8.0
-psutil
-numpy==1.26.4
-notebook==7.5.2
-nbconvert==7.17.0
-llvmlite==0.44.0
-scipy==1.16.3
-requests==2.33.1
-fastapi==0.111.0
-uvicorn==0.29.0
-pydantic==2.12.5
-openfermionpyscf==0.5
-h5py==3.12.1
-matplotlib
-pyspelling==2.10
-pymdown-extensions==10.16.1
-yapf==0.43.0
+get_filename_component(CUDAQ_COMMON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQLogger REQUIRED)
+
+set (CUDAQMlirRuntime_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
+find_dependency(CUDAQMlirRuntime REQUIRED)
+
+if(NOT TARGET cudaq::cudaq-common)
+  include("${CUDAQ_COMMON_CMAKE_DIR}/CUDAQCommonTargets.cmake")
+endif()

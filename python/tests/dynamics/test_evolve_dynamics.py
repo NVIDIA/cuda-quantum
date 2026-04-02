@@ -15,6 +15,7 @@ else:
     # Note: the test model may create state, hence need to set the target to "dynamics"
     cudaq.set_target("dynamics")
     from system_models import *
+    cudaq.reset_target()
 
 
 @pytest.fixture(autouse=True)
