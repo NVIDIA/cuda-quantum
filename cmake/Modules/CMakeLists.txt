@@ -12,6 +12,7 @@ set(CONFIG_FILES
   CUDAQNloptConfig.cmake
   CUDAQOperatorConfig.cmake
   CUDAQLoggerConfig.cmake
+  CUDAQMlirRuntimeConfig.cmake
   CUDAQConfig.cmake
   CUDAQEnsmallenConfig.cmake
   CUDAQPlatformDefaultConfig.cmake

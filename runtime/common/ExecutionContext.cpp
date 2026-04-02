@@ -11,6 +11,8 @@
 #include <cstring>
 #include <string>
 
+using namespace cudaq_internal::compiler;
+
 namespace nvqir {
 bool isUsingResourceCounterSimulator();
 } // namespace nvqir
@@ -28,8 +30,7 @@ thread_local bool reuseArtifact = false;
 class SavedCompilerArtifact {
 public:
   void saveArtifact(const std::string &kernelName,
-                    const std::vector<void *> &args,
-                    const cudaq::JitEngine &engine,
+                    const std::vector<void *> &args, const JitEngine &engine,
                     std::function<void *()> argsCreatorThunk) {
     if (jitEng.has_value()) {
       throw std::runtime_error(
@@ -46,7 +47,7 @@ public:
 
   void checkArtifactReuse(const std::string &kernelName,
                           const std::vector<void *> &args,
-                          const cudaq::JitEngine &engine,
+                          const JitEngine &engine,
                           std::function<void *()> argsCreatorThunk) {
     if (!jitEng.has_value()) {
       saveArtifact(kernelName, args, engine, argsCreatorThunk);
@@ -97,7 +98,7 @@ public:
   }
 
 private:
-  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  std::optional<JitEngine> jitEng = std::nullopt;
   // This is actually going to be a pointer into the jitEng,
   // but we have to store it explicitly due to linking issues.
   int64_t (*argsCreator)(const void *, void **);

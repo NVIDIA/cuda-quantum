@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace llvm {
 class StringRef;
@@ -26,6 +27,10 @@ class ModuleOp;
 } // namespace mlir
 
 namespace cudaq {
+class CompiledKernel;
+}
+
+namespace cudaq_internal::compiler {
 
 /// Util to create a wrapped kernel defined by LLVM IR with serialized
 /// arguments.
@@ -56,4 +61,14 @@ private:
 JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
                              llvm::StringRef convertTo);
 
-} // namespace cudaq
+/// @brief Create a CompiledKernel from JIT-compiled code.
+///
+/// `hasResult` and `isFullySpecialized` affect how the mangled kernel name
+/// and the arguments buffer passed to the compiled kernel are constructed.
+/// See `CompiledKernel::getEntryPoint` for more details.
+cudaq::CompiledKernel createCompiledKernel(JitEngine engine,
+                                           std::string kernelName,
+                                           bool hasResult,
+                                           bool isFullySpecialized);
+
+} // namespace cudaq_internal::compiler
