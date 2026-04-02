@@ -80,6 +80,14 @@ Platform notes
 - Windows: use WSL, then follow Linux instructions
 - C++ (no sudo):
   `bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq`
+- Brev (cloud, no local setup): Log in at the NVIDIA Application Hub,
+  open a CUDA-Q workspace, then SSH in with the Brev CLI:
+
+  ```bash
+  brev open <workspace-name>
+  ```
+
+  CUDA-Q and the CUDA Toolkit are pre-installed.
 
 See the docs above for full install commands and validation steps.
 
