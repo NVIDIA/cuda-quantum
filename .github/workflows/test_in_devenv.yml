@@ -113,7 +113,7 @@ jobs:
 
       - name: Test CUDA Quantum
         run: |
-          docker buildx build --platform ${{ inputs.platform }} \
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
             -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.build.outputs.base_image }} \
@@ -124,7 +124,7 @@ jobs:
 
       - name: Test CUDA Quantum MPI Plugin Activation
         run: |
-          docker buildx build --platform ${{ inputs.platform }} \
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
             -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.build.outputs.base_image }} \

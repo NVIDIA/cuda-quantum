@@ -112,6 +112,20 @@ RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
         ctest --test-dir build -R MPIApiTest -V; \
     fi
 
+# CI coverage stage. Build with --target coverage to generate code
+# coverage inside BuildKit. The run_coverage arg defaults to false
+# so non-CI builds skip this stage entirely.
+FROM devbuild AS coverage
+ARG run_coverage=false
+RUN if [ "$run_coverage" = "true" ]; then \
+        cd $CUDAQ_REPO_ROOT && \
+        bash scripts/generate_cc.sh -v -c -p; \
+    fi
+
+FROM scratch AS coverage-export
+COPY --from=coverage /workspaces/cuda-quantum/build/ccoverage/coverage.txt /coverage.txt
+COPY --from=coverage /workspaces/cuda-quantum/build/pycoverage/coverage.xml /coverage.xml
+
 # Export ccache data so CI can extract it for persistence.
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
 FROM scratch AS ccache-export
