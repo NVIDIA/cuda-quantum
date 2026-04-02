@@ -3,7 +3,7 @@ name: cudaq-guide
 description: Main CUDA-Q onboarding guide. Use when user asks about getting
   started with CUDA-Q, installing CUDA-Q, writing their first quantum program,
   running simulations, connecting to QPUs, or exploring what CUDA-Q can do.
-argument-hint: [install | first-program | gpu-sim | qpu | applications]
+argument-hint: [install | test program | gpu-sim | qpu | applications | parallelize]
 allowed-tools: [Read, Glob, Grep, Bash]
 ---
 
@@ -18,10 +18,11 @@ onboarding menu.
 | Argument | Action |
 |---|---|
 | `install` | Walk through installation (see Install section) |
-| `first-program` | Build and run a Bell state kernel (see First Program section) |
+| `test program` | Build and run a Bell state kernel to verify CUDA-Q is working properly |
 | `gpu-sim` | Explain GPU-accelerated simulation targets (see GPU Simulation section) |
 | `qpu` | Explain how to run on real QPU hardware (see QPU section) |
 | `applications` | Showcase what can be built with CUDA-Q (see Applications section) |
+| `parallelize` | Show how to run circuits in parallel across multiple QPUs (see Parallelize section) |
 | _(none)_ | Print the full menu below and ask what they'd like to explore |
 
 ---
@@ -42,6 +43,7 @@ Choose a topic
   /cudaq-guide gpu-sim         Accelerate simulation on NVIDIA GPUs
   /cudaq-guide qpu             Connect to real QPU hardware
   /cudaq-guide applications    Explore what you can build
+  /cudaq-guide parallelize     Run circuits in parallel across multiple QPUs
 
 Specialized skills
   /cudaq-qec        Quantum Error Correction memory experiments
@@ -187,3 +189,53 @@ Point to sub-skills for specialized topics
 - `/cudaq-qec` - full QEC memory experiment walkthrough
 - `/cudaq-chemistry` - VQE and ADAPT-VQE for molecular energies
 - `/cudaq-benchmark` - performance profiling and multi-GPU scaling
+
+---
+
+## Parallelize
+
+Docs `docs/sphinx/using/examples/multi_gpu_workflows.rst`
+
+CUDA-Q supports two distinct multi-GPU parallelization strategies - pick based
+on what you are trying to scale.
+
+| Goal | Strategy | Target option |
+|---|---|---|
+| Single circuit too large for one GPU | Pool GPU memory | `nvidia --target-option mgpu` |
+| Many independent circuits at once | Run circuits in parallel | `nvidia --target-option mqpu` |
+| Large Hamiltonian expectation value | Distribute terms across GPUs | `mqpu` + `execution=cudaq.parallel.thread` |
+
+### Circuit batching with mqpu (`sample_async` / `observe_async`)
+
+The `mqpu` option maps one virtual QPU to each GPU. Dispatch circuits
+asynchronously with `qpu_id` to all GPUs simultaneously.
+
+```python
+import cudaq
+
+cudaq.set_target("nvidia", option="mqpu")
+n_qpus = cudaq.get_platform().num_qpus()
+
+futures = [
+    cudaq.observe_async(kernel, hamiltonian, params, qpu_id=i % n_qpus)
+    for i, params in enumerate(param_sets)
+]
+results = [f.get().expectation() for f in futures]
+```
+
+### Hamiltonian batching
+
+For a single kernel with a large Hamiltonian, add `execution=` to
+`cudaq.observe` — no other code change needed.
+
+```python
+# Single node, multiple GPUs
+result = cudaq.observe(kernel, hamiltonian, *args,
+                       execution=cudaq.parallel.thread)
+
+# Multi-node via MPI
+result = cudaq.observe(kernel, hamiltonian, *args,
+                       execution=cudaq.parallel.mpi)
+```
+
+See the docs above for complete working examples of both patterns.
