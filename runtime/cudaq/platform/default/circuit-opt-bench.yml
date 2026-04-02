@@ -1,0 +1,23 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: circuit-opt-bench
+description: "Comprehensive optimization pipeline for compiler benchmarking"
+
+config:
+  nvqir-simulation-backend: qpp
+  # Staged pipeline (runs after specializeKernel in QPU.cpp, with
+  # jit-deploy-pipeline interleaved between high and mid stages).
+  # Synthesis: loop unrolling, matrix concretization, unitary synthesis.
+  # memtoreg is omitted (introduces quake.unwrap that QIR JIT cannot lower).
+  jit-high-level-pipeline: "func.func(cc-loop-normalize,cc-loop-unroll,canonicalize,lift-array-alloc),globalize-array-values,func.func(canonicalize),get-concrete-matrix,unitary-synthesis"
+  # Gate decomposition to CX + rotation basis.
+  jit-mid-level-pipeline: "decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,R1AdjToR1,SwapToCX,ExpPauliDecomposition}"
+  # Cleanup (includes apply-control-negations from jit-finalize-pipeline)
+  jit-low-level-pipeline: "func.func(apply-control-negations,canonicalize,cse)"
+  library-mode: false

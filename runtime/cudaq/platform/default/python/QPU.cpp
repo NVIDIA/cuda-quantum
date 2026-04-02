@@ -11,6 +11,7 @@
 #include "common/CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
+#include "common/RuntimeTarget.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -19,6 +20,7 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
+#include "cudaq/platform.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -101,6 +103,27 @@ specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Could not successfully apply argument synth.");
 }
 
+/// Run target-specific passes if the active target config defines a pipeline.
+/// Interleaves jit-deploy-pipeline between high and mid-level stages.
+/// specializeKernel() covers what hw-jit-prep-pipeline and most of
+/// jit-finalize-pipeline do, so those are not interleaved here.
+static void runTargetPassPipeline(ModuleOp module) {
+  auto *rt = cudaq::get_platform().get_runtime_target();
+  if (!rt)
+    return;
+  auto &cfg = rt->config;
+  if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
+    return;
+  auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
+  PassManager pm(module.getContext());
+  std::string errMsg;
+  llvm::raw_string_ostream errOS(errMsg);
+  if (failed(parsePassPipeline(pipeline, pm, errOS)))
+    throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
+  if (failed(pm.run(module)))
+    throw std::runtime_error("Target pass pipeline failed.");
+}
+
 /// Lowers \p module to LLVM code. The LLVM code will use "full QIR" as the
 /// transport layer. If \p kernelName and \p args are provided, they will
 /// specialize the selected entry-point kernel.
@@ -112,6 +135,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   // Translate the module to QIR transport layer (as LLVM code).
   mergeAllCallableClosures(module, name, args.getArgs());
   specializeKernel(name, module, args.getArgs());
+  runTargetPassPipeline(module);
   PassManager pm(module.getContext());
   cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -143,6 +167,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   // Translate module to OpenQASM2 transport layer.
   mergeAllCallableClosures(module, name, args.getArgs());
   specializeKernel(name, module, args.getArgs());
+  runTargetPassPipeline(module);
   auto *ctx = module.getContext();
   PassManager pm(ctx);
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -291,6 +316,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       module.dump();
     specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
                      isEntryPoint, varArgIndices);
+
+    // 3b. Run target-specific passes if configured.
+    runTargetPassPipeline(module);
 
     // 4. Lower to QIR and JIT compile.
     auto jit = createJITEngine(module, "qir:");
