@@ -130,7 +130,7 @@ struct BackendEndConfigEntry {
   /// Returns true if any pass pipeline fields are configured.
   bool hasPassPipeline() const;
 
-  /// Build the target pass pipeline string from config fields.
+  /// Build the target pass pipeline string from configuration fields.
   /// If TargetPassPipeline is set, returns it directly (full override,
   /// interleave stages are ignored).
   /// Otherwise builds: [high] [,deployStage] [,mid] [,finalizeStage] [,low]
