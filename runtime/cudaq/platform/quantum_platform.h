@@ -121,10 +121,20 @@ public:
     };
 
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
-      detail::try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+      detail::try_finally(
+          [&] {
+            if (filterExecutionContext(ctx))
+              f(std::forward<Args>(args)...);
+          },
+          cleanup);
     } else {
-      return detail::try_finally([&] { return f(std::forward<Args>(args)...); },
-                                 cleanup);
+      return detail::try_finally(
+          [&] {
+            if (filterExecutionContext(ctx))
+              return f(std::forward<Args>(args)...);
+            return std::invoke_result_t<Callable, Args...>{};
+          },
+          cleanup);
     }
   }
 
@@ -245,6 +255,13 @@ protected:
   /// override
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
+
+  /// @brief Filter the execution context before execution.
+  /// @param ctx The execution context to filter.
+  /// @return True if the execution context should be executed, false otherwise.
+  virtual bool filterExecutionContext(const ExecutionContext &ctx) const {
+    return true;
+  }
 
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;

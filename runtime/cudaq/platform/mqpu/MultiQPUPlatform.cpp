@@ -187,6 +187,20 @@ public:
     }    
     return quantum_platform::enqueueAsyncTask(qpu_id, t);
   }
+protected:
+  bool filterExecutionContext(const cudaq::ExecutionContext &ctx) const override {
+    const auto qpuId = ctx.qpuId;
+    if (!m_qpuProcessGroups.empty()) {
+      const int myRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
+      const auto& qpuProcessGroup = m_qpuProcessGroups[qpuId];
+      if (!qpuProcessGroup.contains(myRank)) {
+        CUDAQ_INFO("Filtering out execution context '{}' on rank {} since it's not part of the assigned QPU process group for QPU ID {}",
+                   ctx.name, myRank, qpuId);
+        return false;
+      }
+    }
+    return true;
+  }
 
 private:
   static std::string getQpuType(const std::string &description) {

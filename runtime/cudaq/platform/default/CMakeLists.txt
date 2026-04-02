@@ -38,7 +38,6 @@ install(EXPORT cudaq-platform-default-targets
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
-  add_subdirectory(rest_server)
 endif()
   
 add_target_config(opt-test)
