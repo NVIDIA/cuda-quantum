@@ -27,16 +27,12 @@ declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQuantumPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
   TD_FILE dialects/QuakeOps.td
-  SOURCES
-    dialects/quake.py
   DIALECT_NAME quake)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQuantumPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
   TD_FILE dialects/CCOps.td
-  SOURCES
-    dialects/cc.py
   DIALECT_NAME cc)
 
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
@@ -84,13 +80,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
-    ../../runtime/common/ArgumentConversion.cpp
     ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/common/LayoutInfo.cpp
-    ../../runtime/common/RuntimeMLIR.cpp
-    ../../runtime/common/RuntimePyMLIR.cpp
-    ../../runtime/common/JIT.cpp
-    ../../runtime/common/Compiler.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
@@ -102,6 +92,12 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
     ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
+    ../../runtime/internal/compiler/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/LayoutInfo.cpp
+    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ../../runtime/internal/compiler/RuntimePyMLIR.cpp
+    ../../runtime/internal/compiler/JIT.cpp
+    ../../runtime/internal/compiler/Compiler.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI

@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -46,12 +46,26 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
-        if: inputs.devdeps_image != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -72,10 +86,13 @@ jobs:
           enable-apt: true
 
       - name: Build CUDA Quantum
+        id: build
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -83,52 +100,58 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+
+          docker buildx build --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}"
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target devbuild
 
       - name: Test CUDA Quantum
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            set -euo pipefail
-            cd $CUDAQ_REPO_ROOT
-            python3 -m pip install -r requirements-tests-backend.txt --break-system-packages
-            bash scripts/run_tests.sh -v
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test
 
       - name: Test CUDA Quantum MPI Plugin Activation
-        uses: ./.github/actions/run-in-docker
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-mpi
+
+      - name: Extract ccache from build
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>/dev/null || true
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
         with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            # Set MPI_PATH depending on OMPI/MPICH
-            has_ompiinfo=$(which ompi_info || true)
-            if [[ ! -z $has_ompiinfo ]]; then
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/openmpi/"
-            else
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
-            fi
-            # Run the activation script
-            source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh
-            external_plugin_build_status=$?
-            if [ ! $external_plugin_build_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed to activate the plugin with status $external_plugin_build_status."
-              exit 1
-            fi
-            echo $CUDAQ_MPI_COMM_LIB
-            # Rerun the MPI plugin test
-            cd $CUDAQ_REPO_ROOT
-            ctest --test-dir build -R MPIApiTest -V
-            external_plugin_status=$?
-            if [ ! $external_plugin_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
-              exit 1
-            fi
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Save environment
         id: env_save
@@ -137,6 +160,15 @@ jobs:
           output_directory=/tmp
           platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           filename=${platform_id}_debug_build
+
+          # Export the image to Docker daemon only when needed.
+          # Reuses the BuildKit cache so only the export runs.
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}"
 
           docker run --name cuda-quantum-dev cuda-quantum-dev:local
           docker export cuda-quantum-dev > $output_directory/$filename.tar
@@ -158,7 +190,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -174,12 +206,26 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
-        if: inputs.devdeps_image != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -205,6 +251,8 @@ jobs:
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -212,8 +260,9 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image
 
       - name: Setup proxy cache
@@ -241,8 +290,8 @@ jobs:
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
               exit 1
             fi
-            python -m pip install pytest
-            python -m pytest -v --durations=0  python/tests/ \
+            python -m pip install pytest pytest-xdist
+            python -m pytest -v --durations=0 -n auto python/tests/ \
               --ignore python/tests/backends \
               --ignore python/tests/contrib
             pytest_status=$?
@@ -278,6 +327,23 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python contrib tests failed with status $pytest_status."
               exit 1
             fi
+
+      - name: Extract ccache from container
+        run: |
+          # The Python build runs inside a container (via run-in-docker),
+          # so ccache data is in the most recently stopped container.
+          mkdir -p /tmp/ccache-export/ccache
+          container=$(docker ps -a -q --filter ancestor=dev_env:local --latest)
+          if [ -n "$container" ]; then
+            docker cp "$container:/root/.ccache/." /tmp/ccache-export/ccache/ 2>/dev/null || true
+          fi
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Save environment
         id: env_save

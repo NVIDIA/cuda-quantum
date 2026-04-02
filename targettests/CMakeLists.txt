@@ -50,9 +50,18 @@ endif()
 add_custom_target(nvqpp-targettest-depends DEPENDS ${CUDAQ_TEST_DEPENDS})
 set_target_properties(nvqpp-targettest-depends PROPERTIES FOLDER "TargetTests")
 
-# Limit the number of llvm-lit worker threads because running too many of these
-# tests in parallel can consume all the GPU resources.
-set(CUDAQ_LIT_JOBS "8" CACHE STRING "Number of parallel lit test jobs")
+# Cap parallel lit workers to avoid GPU memory contention.
+# Default: min(nproc, 8). Override with -DCUDAQ_LIT_JOBS=<n>.
+include(ProcessorCount)
+ProcessorCount(CUDAQ_DEFAULT_LIT_JOBS)
+if(CUDAQ_DEFAULT_LIT_JOBS LESS 1)
+  set(CUDAQ_DEFAULT_LIT_JOBS 1)
+endif()
+if(CUDAQ_DEFAULT_LIT_JOBS GREATER 8)
+  set(CUDAQ_DEFAULT_LIT_JOBS 8)
+endif()
+set(CUDAQ_LIT_JOBS "${CUDAQ_DEFAULT_LIT_JOBS}" CACHE STRING
+  "Number of parallel lit test jobs")
 set(LIT_ARGS "-j ${CUDAQ_LIT_JOBS}")
 
 add_lit_testsuite(check-targets "Running the end-to-end target tests"
@@ -74,4 +83,12 @@ add_lit_testsuites(CUDAQ ${CMAKE_CURRENT_SOURCE_DIR}
 add_test(NAME ctest-targettests
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-targets
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-set_tests_properties(ctest-targettests PROPERTIES TIMEOUT 3600)
+# This test runs llvm-lit internally with parallelism, so have ctest
+# reserve all processors to prevent concurrent scheduling.
+ProcessorCount(NPROC)
+if(NPROC LESS 1)
+  set(NPROC 1)
+endif()
+set_tests_properties(ctest-targettests PROPERTIES
+  TIMEOUT 3600
+  PROCESSORS ${NPROC})

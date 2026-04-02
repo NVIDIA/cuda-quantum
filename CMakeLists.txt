@@ -449,7 +449,7 @@ set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 include(TableGen)
 include(AddLLVM)
@@ -528,8 +528,8 @@ execute_process(COMMAND git rev-parse --verify HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
-               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
+               "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp" @ONLY)
 
 # Check optional dependencies
 # ==============================================================================

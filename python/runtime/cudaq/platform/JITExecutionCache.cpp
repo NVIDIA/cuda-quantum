@@ -7,6 +7,7 @@
  ******************************************************************************/
 #include "JITExecutionCache.h"
 
+using namespace cudaq_internal::compiler;
 using namespace mlir;
 
 namespace cudaq {

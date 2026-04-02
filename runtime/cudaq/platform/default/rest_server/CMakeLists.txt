@@ -111,8 +111,6 @@ target_link_libraries(rest-remote-platform-server
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
   target_compile_definitions(rest-remote-platform-server PRIVATE CUDAQ_ENABLE_CUDA)
   target_link_libraries(rest-remote-platform-server PRIVATE CUDA::cudart_static)
 endif()

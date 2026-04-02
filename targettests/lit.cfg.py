@@ -60,7 +60,8 @@ if platform.system() == 'Darwin' and platform.machine() == 'arm64':
     config.available_features.add('darwin-arm64')
 
 # Propagate some variables from the host environment.
-llvm_config.with_system_environment(['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
+llvm_config.with_system_environment(
+    ['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP', 'OMP_NUM_THREADS'])
 
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
