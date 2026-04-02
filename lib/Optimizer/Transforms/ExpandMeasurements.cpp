@@ -157,15 +157,18 @@ public:
     // std::vec<bool> value.
     if (hasDiscriminateUsers) {
       auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), elemTy);
+      SmallVector<quake::DiscriminateOp> discs;
       for (auto *out : measureOp.getMeasOut().getUsers())
-        if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
-          auto ptrArrTy =
-              cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
-          auto buffCast =
-              rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrTy, buff);
-          rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-              disc, stdvecTy, buffCast, totalToRead);
-        }
+        if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out))
+          discs.push_back(disc);
+      for (auto disc : discs) {
+        auto ptrArrTy =
+            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
+        auto buffCast =
+            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrTy, buff);
+        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            disc, stdvecTy, buffCast, totalToRead);
+      }
     }
 
     rewriter.eraseOp(measureOp);
