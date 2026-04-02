@@ -41,13 +41,13 @@ install(TARGETS ${LIBRARY_NAME}
 add_subdirectory(qpp)
 add_subdirectory(stim)
 
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+if (cuStateVec_FOUND)
   add_subdirectory(custatevec)
-endif() 
-if (CUTENSORNET_ROOT AND CUDA_FOUND)
-  add_subdirectory(cutensornet)  
 endif()
-if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
+if (cuTensorNet_FOUND)
+  add_subdirectory(cutensornet)
+endif()
+if (cuDensityMat_FOUND)
   add_subdirectory(cudensitymat)
 endif()
 
