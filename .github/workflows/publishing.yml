@@ -30,6 +30,8 @@ on:
       - Deployments
     types:
       - completed
+    # NOTE: If you add branches here, also update the branch check in
+    # check_publishing_requested (the elif glob pattern list).
     branches:
       - 'main'
       - 'releases/*'
@@ -49,7 +51,10 @@ jobs:
     steps:
       - id: check
         run: |
+          branch="${{ github.event.workflow_run.head_branch || github.ref_name }}"
           if [ "${{ github.event_name }}" != "workflow_run" ]; then
+            echo "run_publishing=true" >> $GITHUB_OUTPUT
+          elif [[ "$branch" == "main" || "$branch" == releases/* || "$branch" == staging/* || "$branch" == experimental/* ]]; then
             echo "run_publishing=true" >> $GITHUB_OUTPUT
           else
             artifacts_url='${{ github.event.workflow_run.artifacts_url }}'
