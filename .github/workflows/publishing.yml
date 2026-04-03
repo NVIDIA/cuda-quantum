@@ -30,6 +30,8 @@ on:
       - Deployments
     types:
       - completed
+    # NOTE: If you add branches here, also update the branch check in
+    # check_publishing_requested (the elif glob pattern list).
     branches:
       - 'main'
       - 'releases/*'
@@ -49,11 +51,12 @@ jobs:
     steps:
       - id: check
         run: |
-          if [ "${{ github.event_name }}" != "workflow_run" ]; then
+          if [ "$EVENT_NAME" != "workflow_run" ]; then
+            echo "run_publishing=true" >> $GITHUB_OUTPUT
+          elif [[ "$HEAD_BRANCH" == "main" || "$HEAD_BRANCH" == releases/* || "$HEAD_BRANCH" == staging/* || "$HEAD_BRANCH" == experimental/* ]]; then
             echo "run_publishing=true" >> $GITHUB_OUTPUT
           else
-            artifacts_url='${{ github.event.workflow_run.artifacts_url }}'
-            artifact_url=$(gh api "$artifacts_url" --paginate -q '.artifacts[] | select(.name=="publishing_requested") | .archive_download_url' | head -1)
+            artifact_url=$(gh api "$ARTIFACTS_URL" --paginate -q '.artifacts[] | select(.name=="publishing_requested") | .archive_download_url' | head -1)
             if [ -n "$artifact_url" ]; then
               gh api "$artifact_url" -o publishing_requested.zip
               unzip -o publishing_requested.zip
@@ -65,6 +68,9 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          ARTIFACTS_URL: ${{ github.event.workflow_run.artifacts_url }}
 
   assets:
     name: Assets
