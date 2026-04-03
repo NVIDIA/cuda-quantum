@@ -177,7 +177,7 @@ jobs:
           reactions-edit-mode: append
           reactions: hooray
 
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment

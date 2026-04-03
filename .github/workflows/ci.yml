@@ -203,7 +203,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment_devdeps
@@ -215,7 +215,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment_wheeldeps
@@ -228,7 +228,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment_source_build
