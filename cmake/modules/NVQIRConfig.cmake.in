@@ -36,7 +36,6 @@ include("${NVQIR_CMAKE_DIR}/NVQIRTargetConfigGen.cmake")
 
 function(nvqir_add_backend BackendName GPURequirements)
   set(LIBRARY_NAME nvqir-${BackendName})
-  set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
   add_library(${LIBRARY_NAME} SHARED ${ARGN})
   target_link_libraries(${LIBRARY_NAME} PRIVATE nvqir::nvqir)

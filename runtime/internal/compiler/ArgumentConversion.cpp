@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "ArgumentConversion.h"
-#include "ArgumentWrapper.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "common/ArgumentWrapper.h"
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -22,6 +22,7 @@
 #include "mlir/Parser/Parser.h"
 
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
@@ -342,8 +343,7 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                          llvm::DataLayout &layout, StringRef kernelName,
-                         ModuleOp substMod,
-                         cudaq::opt::ArgumentConverter &converter) {
+                         ModuleOp substMod, ArgumentConverter &converter) {
   auto ctx = builder.getContext();
   auto loc = builder.getUnknownLoc();
   auto simState =
@@ -842,17 +842,16 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 
 //===----------------------------------------------------------------------===//
 
-cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                                 ModuleOp sourceModule)
+ArgumentConverter::ArgumentConverter(StringRef kernelName,
+                                     ModuleOp sourceModule)
     : sourceModule(sourceModule), kernelName(kernelName) {}
 
-void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
+void ArgumentConverter::gen(const std::vector<void *> &arguments) {
   gen(kernelName, sourceModule, arguments);
 }
 
-void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
-                                        ModuleOp sourceModule,
-                                        const std::vector<void *> &arguments) {
+void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
+                            const std::vector<void *> &arguments) {
   auto *ctx = sourceModule.getContext();
   OpBuilder builder(ctx);
   ModuleOp substModule =
@@ -878,7 +877,7 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
     auto buildSubst = [&, i = i]<typename... Ts>(Ts &&...ts) {
       builder.setInsertionPointToEnd(substModule.getBody());
       auto loc = builder.getUnknownLoc();
-      auto result = builder.create<cc::ArgumentSubstitutionOp>(loc, i);
+      auto result = builder.create<cudaq::cc::ArgumentSubstitutionOp>(loc, i);
       auto *block = new Block();
       result.getBody().push_back(block);
       builder.setInsertionPointToEnd(block);
@@ -893,8 +892,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
     llvm::DataLayout dataLayout{dataLayoutSpec};
 
     auto subst =
-        TypeSwitch<Type, cc::ArgumentSubstitutionOp>(argTy)
-            .Case([&](IntegerType intTy) -> cc::ArgumentSubstitutionOp {
+        TypeSwitch<Type, cudaq::cc::ArgumentSubstitutionOp>(argTy)
+            .Case([&](IntegerType intTy) -> cudaq::cc::ArgumentSubstitutionOp {
               auto width = intTy.getIntOrFloatBitWidth();
               switch (width) {
               case 1:
@@ -922,36 +921,38 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               assert(fltTy.getIntOrFloatBitWidth() > 64);
               return buildSubst(fltTy, static_cast<long double *>(argPtr));
             })
-            .Case([&](ComplexType cmplxTy) -> cc::ArgumentSubstitutionOp {
+            .Case([&](ComplexType cmplxTy)
+                      -> cudaq::cc::ArgumentSubstitutionOp {
               if (cmplxTy.getElementType() == Float32Type::get(ctx))
                 return buildSubst(*static_cast<std::complex<float> *>(argPtr));
               if (cmplxTy.getElementType() == Float64Type::get(ctx))
                 return buildSubst(*static_cast<std::complex<double> *>(argPtr));
               return {};
             })
-            .Case([&](cc::CharspanType strTy) {
+            .Case([&](cudaq::cc::CharspanType strTy) {
               return buildSubst(static_cast<cudaq::pauli_word *>(argPtr)->str(),
                                 substModule);
             })
-            .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
+            .Case([&](cudaq::cc::PointerType ptrTy)
+                      -> cudaq::cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == quake::StateType::get(ctx))
-                return buildSubst(static_cast<const state *>(argPtr),
+                return buildSubst(static_cast<const cudaq::state *>(argPtr),
                                   dataLayout, kernelName, substModule, *this);
               return {};
             })
-            .Case([&](cc::StdvecType ty) {
+            .Case([&](cudaq::cc::StdvecType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
-            .Case([&](cc::StructType ty) {
+            .Case([&](cudaq::cc::StructType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
-            .Case([&](cc::ArrayType ty) {
+            .Case([&](cudaq::cc::ArrayType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
-            .Case([&](cc::IndirectCallableType ty) {
+            .Case([&](cudaq::cc::IndirectCallableType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
-            .Case([&](cc::CallableType ty) {
+            .Case([&](cudaq::cc::CallableType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Default({});
@@ -960,9 +961,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
   }
 }
 
-void cudaq::opt::ArgumentConverter::gen(
-    const std::vector<void *> &arguments,
-    const std::unordered_set<unsigned> &exclusions) {
+void ArgumentConverter::gen(const std::vector<void *> &arguments,
+                            const std::unordered_set<unsigned> &exclusions) {
   std::vector<void *> partialArgs;
   for (auto iter : llvm::enumerate(arguments)) {
     if (exclusions.contains(iter.index())) {
@@ -974,8 +974,8 @@ void cudaq::opt::ArgumentConverter::gen(
   gen(partialArgs);
 }
 
-void cudaq::opt::ArgumentConverter::gen_drop_front(
-    const std::vector<void *> &arguments, unsigned numDrop) {
+void ArgumentConverter::gen_drop_front(const std::vector<void *> &arguments,
+                                       unsigned numDrop) {
   // If we're dropping all the arguments, we're done.
   if (numDrop >= arguments.size())
     return;
@@ -992,7 +992,7 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
   gen(partialArgs);
 }
 
-bool cudaq::detail::mergeAllCallableClosures(
+bool cudaq_internal::compiler::mergeAllCallableClosures(
     ModuleOp intoModule, const std::string &shortName,
     const std::vector<void *> &rawArgs, std::optional<unsigned> betaRedux) {
   if (rawArgs.empty())
@@ -1023,7 +1023,7 @@ bool cudaq::detail::mergeAllCallableClosures(
   unsigned offset = betaRedux ? *betaRedux : 0;
   for (auto [i, ty] :
        llvm::enumerate(entryPointTy.getInputs().drop_front(offset))) {
-    if (isa<cc::CallableType>(ty)) {
+    if (isa<cudaq::cc::CallableType>(ty)) {
       hasCallableArg = true;
       if (!rawArgs[i]) {
         Value arg = entryPoint.getBody().front().getArgument(i);
@@ -1044,9 +1044,10 @@ bool cudaq::detail::mergeAllCallableClosures(
   // converter above.
   for (auto [i, ty] :
        llvm::enumerate(entryPointTy.getInputs().drop_front(offset))) {
-    if (isa<cc::CallableType>(ty)) {
+    if (isa<cudaq::cc::CallableType>(ty)) {
       auto &closure =
-          *reinterpret_cast<runtime::CallableClosureArgument *>(rawArgs[i]);
+          *reinterpret_cast<cudaq::runtime::CallableClosureArgument *>(
+              rawArgs[i]);
       auto dup = intoModule.lookupSymbol<func::FuncOp>(
           cudaq::runtime::cudaqGenPrefixName + closure.getShortName());
       if (dup) {
@@ -1056,7 +1057,7 @@ bool cudaq::detail::mergeAllCallableClosures(
         // But erase any declaration so we can merge the definition cleanly.
         dup.erase();
       }
-      opt::factory::mergeModules(intoModule, closure.getModule());
+      cudaq::opt::factory::mergeModules(intoModule, closure.getModule());
       // recursive step.
       [[maybe_unused]] bool mergeResult = mergeAllCallableClosures(
           intoModule, closure.getShortName(), closure.getArgs(),

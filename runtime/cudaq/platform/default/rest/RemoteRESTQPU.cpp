@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "common/BaseRemoteRESTQPU.h"
-#include "common/RuntimeMLIR.h"
 
 using namespace mlir;
 
