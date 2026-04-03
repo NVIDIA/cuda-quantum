@@ -352,7 +352,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -417,7 +417,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -503,7 +503,7 @@ jobs:
           echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
-        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
         with:
           matrix-step-name: stitched_devdeps_images
           matrix-key: cu${{ matrix.cuda }}
@@ -543,7 +543,7 @@ jobs:
     steps:
       - name: Read matrix outputs
         id: read
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         with:
           matrix-step-name: docker_images
 
@@ -696,7 +696,7 @@ jobs:
           echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
-        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
         with:
           matrix-step-name: stitched_cudaq_images
           matrix-key: cu${{ matrix.cuda }}
@@ -715,13 +715,13 @@ jobs:
     steps:
       - name: Read matrix outputs (devdeps)
         id: read_devdeps
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         with:
           matrix-step-name: stitched_devdeps_images
 
       - name: Read matrix outputs (CUDA-Q)
         id: read_cudaq
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         with:
           matrix-step-name: stitched_cudaq_images
 

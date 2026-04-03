@@ -469,7 +469,7 @@ jobs:
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
-      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_step_name || (inputs.matrix_key && 'dev_environment') }}
