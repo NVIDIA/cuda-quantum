@@ -56,7 +56,7 @@ jobs:
 
       - name: React to comment
         if: needs.preprocessing.outputs.react == 'true'
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           body: |
@@ -68,7 +68,7 @@ jobs:
 
       - name: Dispatch
         id: dispatch
-        uses: peter-evans/slash-command-dispatch@v3
+        uses: peter-evans/slash-command-dispatch@v5
         with:
           token: ${{ github.token }}
           config-from-file: /tmp/command_dispatch_config.json
@@ -76,7 +76,7 @@ jobs:
 
       - name: Edit comment with error message
         if: steps.dispatch.outputs.error-message
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           body: |
@@ -91,7 +91,7 @@ jobs:
 
       - name: Indicate dispatch failure
         if: ${{ needs.preprocessing.outputs.react == 'true' && steps.dispatch.outcome == 'failure' && ! steps.dispatch.outputs.error-message }}
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           body: |
@@ -105,7 +105,7 @@ jobs:
 
       - name: Indicate successful dispatch
         if: ${{ needs.preprocessing.outputs.command_type != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           body: |
