@@ -125,7 +125,7 @@ jobs:
             echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
             apt update && apt install -y kitware-archive-keyring
             # Build 
-            apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp
+            apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp pkg-config
             cd /workspace/realtime
             bash scripts/install_dev_prerequisites.sh
             # Build HSB (GPU RoCE transceiver and hololink_core)

@@ -53,7 +53,7 @@ ENV CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 
 ## [nvComp] 
 # For Hololink
-RUN dnf -y install nvcomp
+RUN dnf -y install nvcomp pkgconfig
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 
