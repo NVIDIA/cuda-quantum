@@ -48,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.14.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -564,14 +564,22 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Matrix-Construction-Details">Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix">Approach 1: GPU-Vectorized CSR Sparse Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh">Approach 2: Matrix-Free Lanczos via <code class="docutils literal notranslate"><span class="pre">distributed_eigsh</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU">Postprocessing Acceleration: CSR matrix approach, single GPU vs CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Saving-Hamiltonian-Data">Saving Hamiltonian Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Running-the-Distributed-Solver">Running the Distributed Solver</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -597,17 +605,18 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe.html">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling">Performance of PTSBE vs standard noisy sampling</a></li>
 </ul>
 </li>
 </ul>
@@ -721,7 +730,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#unified-dispatch-mode">Unified Dispatch Mode</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#architecture">Architecture</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#transport-agnostic-api-transport-specific-implementation">Transport-Agnostic API, Transport-Specific Implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#transport-agnostic-design">Transport-Agnostic Design</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#when-to-use-which-mode">When to Use Which Mode</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#host-api-extensions">Host API Extensions</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
@@ -1299,36 +1308,44 @@ RX/TX kernels can be replaced with different transport mechanisms</p></li>
 <li><p><strong>Transport independence</strong>:
 The protocol works with HSB, <code class="docutils literal notranslate"><span class="pre">libibverbs</span></code>, or proprietary transports</p></li>
 </ol>
-<p>For use cases where latency is more important than transport independence, see
+<p>For use cases where lowest possible latency is needed, see
 <a class="reference internal" href="#unified-dispatch-mode"><span class="std std-ref">Unified Dispatch Mode</span></a> which combines all three kernels
-into one.</p>
+into one while retaining transport independence through a pluggable launch
+function.</p>
 </section>
 </section>
 <section id="unified-dispatch-mode">
 <h2>Unified Dispatch Mode<a class="headerlink" href="#unified-dispatch-mode" title="Permalink to this heading">¶</a></h2>
 <p>The <strong>unified dispatch mode</strong> (<code class="docutils literal notranslate"><span class="pre">CUDAQ_KERNEL_UNIFIED</span></code>) is an alternative to the
-3-kernel architecture that combines RDMA receive, RPC dispatch, and RDMA transmit
-into a single GPU kernel.  By eliminating the inter-kernel ring-buffer flag
-hand-off between RX, dispatch, and TX kernels, the unified kernel reduces
-round-trip latency for simple (non-cooperative) RPC handlers.</p>
+3-kernel architecture that combines receive, RPC dispatch, and transmit into a
+single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
+between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
+latency for simple (non-cooperative) RPC handlers.</p>
 <section id="architecture">
 <h3>Architecture<a class="headerlink" href="#architecture" title="Permalink to this heading">¶</a></h3>
-<p>In unified mode, a single GPU thread:</p>
+<p>In unified mode, a single GPU thread runs a transport-provided kernel that
+combines receive, dispatch, and transmit into one tight loop:</p>
 <ol class="arabic simple">
-<li><p>Polls the <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> completion queue (<code class="docutils literal notranslate"><span class="pre">CQ</span></code>) for an incoming RDMA message</p></li>
+<li><p>Polls for an incoming message (transport-specific mechanism)</p></li>
 <li><p>Parses the <code class="docutils literal notranslate"><span class="pre">RPCHeader</span></code> from the receive buffer</p></li>
 <li><p>Looks up and calls the registered handler in-place</p></li>
 <li><p>Writes the <code class="docutils literal notranslate"><span class="pre">RPCResponse</span></code> header (overwriting the request header)</p></li>
-<li><p>Sends the response via <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">BlueFlame</span></code></p></li>
-<li><p>Re-posts the receive work queue entry (<code class="docutils literal notranslate"><span class="pre">WQE</span></code>)</p></li>
+<li><p>Sends the response (transport-specific mechanism)</p></li>
+<li><p>Re-posts the receive buffer for the next message</p></li>
 </ol>
 <p>The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  <code class="docutils literal notranslate"><span class="pre">RPCHeader</span></code> fields (<code class="docutils literal notranslate"><span class="pre">request_id</span></code>, <code class="docutils literal notranslate"><span class="pre">ptp_timestamp</span></code>) are saved to
 registers before the handler runs.</p>
+<p>For example, the <code class="docutils literal notranslate"><span class="pre">HSB</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> transport implementation polls a <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> completion
+queue (<code class="docutils literal notranslate"><span class="pre">CQ</span></code>) in step 1, sends via <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">BlueFlame</span></code> in step 5, and re-posts a <code class="docutils literal notranslate"><span class="pre">DOCA</span></code>
+receive <code class="docutils literal notranslate"><span class="pre">WQE</span></code> in step 6.  Other transport implementations would substitute
+their own receive and send primitives.</p>
 </section>
-<section id="transport-agnostic-api-transport-specific-implementation">
-<h3>Transport-Agnostic API, Transport-Specific Implementation<a class="headerlink" href="#transport-agnostic-api-transport-specific-implementation" title="Permalink to this heading">¶</a></h3>
-<p>The dispatcher host API remains transport-agnostic.  Unified mode introduces:</p>
+<section id="transport-agnostic-design">
+<h3>Transport-Agnostic Design<a class="headerlink" href="#transport-agnostic-design" title="Permalink to this heading">¶</a></h3>
+<p>The unified dispatch mode is fully transport-agnostic, just like the 3-kernel
+mode.  The core dispatcher library (<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime.so</span></code>) has no dependency
+on any specific transport (no <code class="docutils literal notranslate"><span class="pre">DOCA</span></code>, no <code class="docutils literal notranslate"><span class="pre">HSB</span></code>).  Unified mode introduces:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_KERNEL_UNIFIED</span></code> – a new <code class="docutils literal notranslate"><span class="pre">cudaq_kernel_type_t</span></code> enum value</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cudaq_unified_launch_fn_t</span></code> – a launch function type that receives an opaque
@@ -1336,13 +1353,15 @@ registers before the handler runs.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch()</span></code> – wires the launch function and
 transport context to the dispatcher</p></li>
 </ul>
-<p>The transport-specific details (<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">QP</span></code> handles, memory keys, ring buffer
-addresses) are packed into an opaque struct (<code class="docutils literal notranslate"><span class="pre">HSB_doca_transport_ctx</span></code> for the
-HSB/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> implementation) and passed through the <code class="docutils literal notranslate"><span class="pre">void*</span> <span class="pre">transport_ctx</span></code>
-pointer.  A different transport could define its own context struct and launch
-function, and the dispatcher would manage it identically.  The bridge returns a
-<code class="docutils literal notranslate"><span class="pre">cudaq_unified_dispatch_ctx_t</span></code> bundle containing the launch function pointer
-and the opaque transport context, keeping the dispatcher API fully transport-agnostic.</p>
+<p>Transport-specific details are packed into an opaque struct and passed through
+the <code class="docutils literal notranslate"><span class="pre">void*</span> <span class="pre">transport_ctx</span></code> pointer.  The transport provider supplies both the
+context struct and the launch function implementation.  For example, the
+<code class="docutils literal notranslate"><span class="pre">HSB</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> transport packs <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">QP</span></code> handles, memory keys, and ring buffer
+addresses into a <code class="docutils literal notranslate"><span class="pre">doca_transport_ctx</span></code> and provides
+<code class="docutils literal notranslate"><span class="pre">hololink_launch_unified_dispatch</span></code> as the launch function (compiled into
+<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime-bridge-hololink.so</span></code>).  A different transport would define
+its own context struct and launch function; the dispatcher manages them
+identically without any transport-specific knowledge.</p>
 </section>
 <section id="when-to-use-which-mode">
 <h3>When to Use Which Mode<a class="headerlink" href="#when-to-use-which-mode" title="Permalink to this heading">¶</a></h3>
@@ -1351,12 +1370,13 @@ and the opaque transport context, keeping the dispatcher API fully transport-agn
 <li><p>Transport-agnostic – works with any transport that implements the ring-buffer
 flag protocol</p></li>
 <li><p>Required for cooperative handlers that use <code class="docutils literal notranslate"><span class="pre">grid.sync()</span></code></p></li>
-<li><p>Best choice when transport independence is a priority</p></li>
+<li><p>Supports <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_GRAPH_LAUNCH</span></code> mode</p></li>
 </ul>
 <p><strong>Unified mode</strong> (<code class="docutils literal notranslate"><span class="pre">CUDAQ_KERNEL_UNIFIED</span></code>):</p>
 <ul class="simple">
 <li><p>Lowest latency for regular (non-cooperative) handlers</p></li>
-<li><p>Transport-specific kernel implementation (currently <code class="docutils literal notranslate"><span class="pre">DOCA</span></code>/HSB)</p></li>
+<li><p>Transport-agnostic API – the transport provides a pluggable launch function
+and opaque context (e.g., <code class="docutils literal notranslate"><span class="pre">HSB</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> supplies <code class="docutils literal notranslate"><span class="pre">hololink_launch_unified_dispatch</span></code>)</p></li>
 <li><p>Single-thread, single-block kernel – no inter-kernel synchronization overhead</p></li>
 <li><p>Not compatible with cooperative handlers or <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_GRAPH_LAUNCH</span></code></p></li>
 </ul>
@@ -1393,12 +1413,12 @@ are <strong>not required</strong> (the unified kernel handles transport internal
 <section id="wiring-example-unified-mode-with-hsb">
 <h3>Wiring Example (Unified Mode with HSB)<a class="headerlink" href="#wiring-example-unified-mode-with-hsb" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Pack DOCA transport handles</span>
-<span class="n">HSB_doca_transport_ctx</span><span class="w"> </span><span class="n">ctx</span><span class="p">;</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">gpu_dev_qp</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">HSB_get_gpu_dev_qp</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_data</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">HSB_get_rx_ring_data_addr</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_stride_sz</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">HSB_get_page_size</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_mkey</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">htonl</span><span class="p">(</span><span class="n">HSB_get_rkey</span><span class="p">(</span><span class="n">transceiver</span><span class="p">));</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_stride_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HSB_get_num_pages</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
+<span class="n">hololink_doca_transport_ctx</span><span class="w"> </span><span class="n">ctx</span><span class="p">;</span>
+<span class="n">ctx</span><span class="p">.</span><span class="n">gpu_dev_qp</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">hololink_get_gpu_dev_qp</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
+<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_data</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">hololink_get_rx_ring_data_addr</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
+<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_stride_sz</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">hololink_get_page_size</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
+<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_mkey</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">htonl</span><span class="p">(</span><span class="n">hololink_get_rkey</span><span class="p">(</span><span class="n">transceiver</span><span class="p">));</span>
+<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_stride_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hololink_get_num_pages</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
 <span class="n">ctx</span><span class="p">.</span><span class="n">frame_size</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">frame_size</span><span class="p">;</span>
 
 <span class="c1">// Configure dispatcher for unified mode</span>
@@ -1409,7 +1429,7 @@ are <strong>not required</strong> (the unified kernel handles transport internal
 
 <span class="n">cudaq_dispatcher_create</span><span class="p">(</span><span class="n">manager</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dispatcher</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_set_unified_launch</span><span class="p">(</span>
-<span class="w">    </span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">HSB_launch_unified_dispatch</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">hololink_launch_unified_dispatch</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ctx</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_set_function_table</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">table</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_set_control</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="n">d_shutdown_flag</span><span class="p">,</span><span class="w"> </span><span class="n">d_stats</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_start</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">);</span>
@@ -1425,7 +1445,7 @@ proprietary transport) places incoming RPC messages into RX slots and retrieves
 responses from TX slots.
 The dispatcher polls RX flags (see Message completion note), looks up a
 handler by <code class="docutils literal notranslate"><span class="pre">function_id</span></code>, executes it on the GPU, and writes a response into the
-same slot. <code class="docutils literal notranslate"><span class="pre">HSB</span></code>’s RX/TX kernels handle device I/O; the dispatch kernel sits
+same slot. The transport’s RX/TX components handle I/O; the dispatch kernel sits
 in the middle and runs the decoder handler.</p>
 </section>
 <section id="scope">
@@ -2132,10 +2152,10 @@ when consuming TX slots in a HSB deployment.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">/// @brief Read response from TX buffer.</span>
 <span class="c1">/// Responses are written by the dispatch kernel to the TX ring buffer; read from tx_data, not rx_data.</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">read_rpc_response</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">slot</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&amp;</span><span class="w"> </span><span class="n">correction</span><span class="p">,</span>
-<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">int32_t</span><span class="o">*</span><span class="w"> </span><span class="n">status_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span>
-<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span><span class="o">*</span><span class="w"> </span><span class="n">result_len_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span>
-<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span><span class="o">*</span><span class="w"> </span><span class="n">request_id_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span>
-<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">uint64_t</span><span class="o">*</span><span class="w"> </span><span class="n">ptp_timestamp_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">int32_t</span><span class="o">*</span><span class="w"> </span><span class="n">status_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span><span class="o">*</span><span class="w"> </span><span class="n">result_len_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span><span class="o">*</span><span class="w"> </span><span class="n">request_id_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">uint64_t</span><span class="o">*</span><span class="w"> </span><span class="n">ptp_timestamp_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">__sync_synchronize</span><span class="p">();</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">slot_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">const_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">tx_data_host_</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">slot</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">slot_size_</span><span class="p">;</span>
 

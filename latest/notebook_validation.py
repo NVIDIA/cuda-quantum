@@ -56,10 +56,12 @@ GPU_REQUIRED_NOTEBOOKS = [
 
 # Notebooks for which we set a longer timeout.
 LONG_RUNNING_NOTEBOOKS = [
+    "divisive_clustering_coresets.ipynb",
     "hybrid_quantum_neural_networks.ipynb",
     "unitary_compilation_diffusion_models.ipynb",
     "qm_mm_pe.ipynb",
     "qsci.ipynb",
+    "uccsd_wf_ansatz.ipynb",
     "vqe_advanced.ipynb",
 ]
 
@@ -107,15 +109,13 @@ def validate(notebook_filename, available_backends):
     return any(target in available_backends for target in targets_found)
 
 
-def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=None):
+def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
     """Execute a notebook with timeout."""
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     notebook_basename = os.path.basename(notebook_filename)
-    if not timeout_seconds:
-        timeout_seconds = 300
-        if notebook_basename in LONG_RUNNING_NOTEBOOKS:
-            timeout_seconds = 1500
+    if notebook_basename in LONG_RUNNING_NOTEBOOKS:
+        timeout_seconds = 2100
 
     try:
         start_time = time.perf_counter()
@@ -195,11 +195,7 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
 
-        ## `quantum_transformer`:
-        ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
-        notebooks_skipped = [
-            'quantum_transformer.ipynb', 'logical_aim_sqale.ipynb'
-        ]
+        notebooks_skipped = []
 
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)

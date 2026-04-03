@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.14.0
+latest
 :::
 
 ::: {role="search"}
@@ -896,17 +896,36 @@
         -   [Classical Post-Processing and
             Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](skqd.html#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
             .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](skqd.html#Saving-Hamiltonian-Data){.reference
+                .internal}
+            -   [Running the Distributed
+                Solver](skqd.html#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](skqd.html#Summary){.reference .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -952,7 +971,8 @@
         -   [6. References and further
             reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
-    -   [PTSBE end-to-end workflow](#){.current .reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](#){.current .reference .internal}
         -   [Set up the environment](#Set-up-the-environment){.reference
             .internal}
         -   [Define the circuit and noise
@@ -968,6 +988,9 @@
                 .internal}
         -   [Inspecting trajectories with execution
             data](#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
+        -   [Performance of PTSBE vs standard noisy
+            sampling](#Performance-of-PTSBE-vs-standard-noisy-sampling){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1145,8 +1168,8 @@
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2027,7 +2050,7 @@
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q Applications](../../using/applications.html)
--   PTSBE end-to-end workflow
+-   Pre-Trajectory Sampling with Batch Execution (PTSBE)
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
@@ -2044,8 +2067,8 @@ aria-hidden="true"}](../../using/backends/backends.html "CUDA-Q Backends"){.btn
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#PTSBE-end-to-end-workflow .section}
-# PTSBE end-to-end workflow[¶](#PTSBE-end-to-end-workflow "Permalink to this heading"){.headerlink}
+::: {#Pre-Trajectory-Sampling-with-Batch-Execution-(PTSBE) .section}
+# Pre-Trajectory Sampling with Batch Execution (PTSBE)[¶](#Pre-Trajectory-Sampling-with-Batch-Execution-(PTSBE) "Permalink to this heading"){.headerlink}
 
 PTSBE (Pre-Trajectory Sampling with Batch Execution) is a method for
 sampling from noisy quantum circuits efficiently. Instead of simulating
@@ -2087,24 +2110,6 @@ call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
-:::
-:::
-
-::: {.input_area .highlight-ipython3 .notranslate}
-::: highlight
-    import sys, os
-    _root = os.path.join(os.path.expanduser("~/Devel/cudaq-pstbe/vendor/cuda-quantum"), "build")
-    sys.path.insert(0, os.path.join(_root, "python"))
-    _build_lib = os.path.join(_root, "lib")
-    os.environ["LD_LIBRARY_PATH"] = _build_lib + ":" + os.environ.get("LD_LIBRARY_PATH", "")
-:::
-:::
-:::
-
-::: {.nbinput .nblast .docutils .container}
-::: {.prompt .highlight-none .notranslate}
-::: highlight
     [2]:
 :::
 :::
@@ -2113,7 +2118,7 @@ call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 ::: highlight
     import cudaq
 
-    cudaq.set_target("qpp-cpu")
+    cudaq.set_target("nvidia")
     cudaq.set_random_seed(42)
 :::
 :::
@@ -2206,7 +2211,7 @@ model-attached noise.
 ::: {.output_area .docutils .container}
 ::: highlight
     Inline apply_noise result:
-    { 00:4873 01:74 10:74 11:4979 }
+    { 00:5007 01:79 10:69 11:4845 }
 :::
 :::
 :::
@@ -2315,18 +2320,16 @@ Optional arguments are:
         max_trajectories=max_traj,
     )
 
-    cudaq.set_target("density-matrix-cpu")
     result_standard = cudaq.sample(
         bell_with_noise,
         noise_model=noise,
         shots_count=shots,
     )
-    cudaq.set_target("qpp-cpu")
 
     print(f"Comparison with same shots={shots}, max_trajectories={max_traj}")
     print_result("PTSBE (ordered + low-weight bias)", result_biased)
     print_result("PTSBE (ordered + proportional)", result_unbiased)
-    print_result("Density-matrix noisy sample", result_standard)
+    print_result("Standard noisy sample", result_standard)
 :::
 :::
 :::
@@ -2338,11 +2341,11 @@ Optional arguments are:
 ::: {.output_area .docutils .container}
 ::: highlight
     Comparison with same shots=10000, max_trajectories=16
-    PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5045 01:6 10:4 11:4945 }
+    PTSBE (ordered + low-weight bias)    shots= 10000  counts={ 00:5044 01:5 10:5 11:4946 }
 
-    PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4877 01:49 10:55 11:5019 }
+    PTSBE (ordered + proportional)       shots= 10000  counts={ 00:4919 01:45 10:59 11:4977 }
 
-    Density-matrix noisy sample          shots= 10000  counts={ 00:4943 01:83 10:98 11:4876 }
+    Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 11:4804 }
 :::
 :::
 :::
@@ -2489,7 +2492,7 @@ Note: this is an experimental API and may change in future releases.
 ::: {.output_area .docutils .container}
 ::: highlight
     Trajectories: 147, Total shots: 1,000,000
-    [2026-03-16 19:30:25.561] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
+    [2026-03-16 15:10:06.241] [warning] [PTSBESampleResult.cpp:20] PTSBE execution data API is experimental and may change in a future release.
 
     Top 5 trajectories (highest probability):
       #1: p_theory=0.886385, p_empirical=0.888297, shots=888,297, errors=0, cumulative shots=88.8%
@@ -2538,6 +2541,82 @@ Note: this is an experimental API and may change in future releases.
       1 errors: 126 trajectories, 103,948 shots (10.4%)
       2 errors: 19 trajectories, 7,396 shots (0.7%)
       3 errors: 1 trajectories, 359 shots (0.0%)
+:::
+:::
+:::
+:::
+
+::: {#Performance-of-PTSBE-vs-standard-noisy-sampling .section}
+## Performance of PTSBE vs standard noisy sampling[¶](#Performance-of-PTSBE-vs-standard-noisy-sampling "Permalink to this heading"){.headerlink}
+
+The table below times compares the performance of standard trajectory
+sampling with PTSBE on the 12-qubit GHZ circuit at increasing shot
+counts.
+
+::: {.nbinput .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [9]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    import time
+
+    shot_counts = [1_000, 10_000, 100_000, 1_000_000]
+    max_traj = 64
+
+    print(f"{'shots':>10}  {'standard (s)':>14}  {'PTSBE (s)':>12}  {'speedup':>8}")
+    print("-" * 52)
+
+    for shots in shot_counts:
+        # Standard noisy sampling (one trajectory per shot)
+        t0 = time.perf_counter()
+        cudaq.sample(ghz, n_qubits, noise_model=ghz_noise, shots_count=shots)
+        t_standard = time.perf_counter() - t0
+
+        # PTSBE (batched trajectories)
+        t0 = time.perf_counter()
+        cudaq.ptsbe.sample(
+            ghz, n_qubits,
+            noise_model=ghz_noise,
+            shots_count=shots,
+            max_trajectories=max_traj,
+        )
+        t_ptsbe = time.perf_counter() - t0
+
+        speedup = t_standard / t_ptsbe if t_ptsbe > 0 else float('inf')
+        print(f"{shots:>10,}  {t_standard:>14.3f}  {t_ptsbe:>12.3f}  {speedup:>7.1f}x")
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+         shots    standard (s)     PTSBE (s)   speedup
+    ----------------------------------------------------
+         1,000           0.043         0.024      1.8x
+        10,000           0.119         0.024      4.9x
+       100,000           0.739         0.029     25.8x
+     1,000,000           5.800         0.051    113.1x
+:::
+:::
+:::
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [ ]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
 :::
 :::
 :::

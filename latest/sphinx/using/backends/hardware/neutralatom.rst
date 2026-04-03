@@ -140,13 +140,9 @@ arrays to bring a practical quantum advantage to its customers and address real-
 The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
 portal.
 
-In order to access Pasqal's devices you to sign up for an account on
+In order to access Pasqal's devices you need to sign up for an account on
 `Pasqal's cloud platform <https://portal.pasqal.cloud>`__.
-
-Although a different SDK, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
-resource for getting started with analog neutral atom quantum computing.
 For support you can also join the `Pasqal Community <https://community.pasqal.com/>`__.
-
 
 .. _pasqal-backend:
 
@@ -178,27 +174,12 @@ Alternatively, users can set the following environment variables directly.
   export PASQAL_AUTH_TOKEN=<>
   export PASQAL_PROJECT_ID=<>
 
-Pasqal via QRMI
-```````````````
+Submitting via Pasqal Cloud (Direct)
+````````````````````````````````````
 
-CUDA-Q's ``pasqal`` target for routing Pasqal jobs through the vendor agnostic
-Quantum Resource Management Interface (QRMI), by specifying ``machine`` as ``qrmi``.
-This target enables integration with resource managers like Slurm for scheduling.
-Select the Pasqal backend with the ``--qpu`` option in ``sbatch`` and let QRMI
-handle submission.
-
-
-For this route, credentials and project id are read by QRMI using either
-``~/.pasqal/config`` or other methods supported by your cluster's QRMI setup.
-
-The job submission process is the same as for the ``pasqal`` target. For example:
-
-
-Submitting
-`````````````````````````
 .. tab:: Python
 
-        The target to which quantum kernels are submitted 
+        The target to which quantum kernels are submitted
         can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
@@ -206,14 +187,20 @@ Submitting
             cudaq.set_target('pasqal')
 
 
-        This accepts an optional argument, ``machine``, which is used in the cloud platform to
-        select the corresponding Pasqal QPU or emulator to execute on.
+        This accepts an optional argument, ``machine``, which selects the
+        Pasqal QPU or emulator to execute on.
         See the `Pasqal cloud portal <https://portal.pasqal.cloud/>`__ for an up to date list.
         The default value is ``EMU_MPS`` which is an open-source tensor network emulator based on the
         Matrix Product State formalism running in Pasqal's cloud platform. You can see the
         documentation for the publicly accessible emulator `here <https://pasqal-io.github.io/emulators/latest/emu_mps/>`__.
 
-        To target the QPU use the FRESNEL machine name. Note that there are restrictions
+        To target the QPU, pass the ``FRESNEL`` machine name:
+
+        .. code:: python
+
+            cudaq.set_target('pasqal', machine='FRESNEL')
+
+        Note that there are restrictions
         regarding the values of the pulses as well as the register layout. We invite you to
         consult our `documentation <https://docs.pasqal.com/cloud/fresnel-job>`__. Note that
         the CUDA-Q integration currently only works with `arbitrary layouts <https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts>`__
@@ -295,6 +282,42 @@ Submitting
 
 
 To see a complete example, take a look at :ref:`Pasqal examples <pasqal-examples>`.
+
+
+Submitting via QRMI
+````````````````````
+
+.. note::
+
+    QRMI mode is available only in Linux x86_64 builds of CUDA-Q,
+    via the Python wheel or source build.
+
+CUDA-Q's ``pasqal`` target supports routing Pasqal jobs through the vendor-agnostic
+Quantum Resource Management Interface (QRMI), by specifying ``machine`` as ``qrmi``.
+This enables integration with resource managers like Slurm for scheduling.
+When configuring Slurm, select the Pasqal backend with the ``--qpu`` option in ``sbatch``
+and let QRMI handle submission.
+
+For this route, credentials and project ID are read by QRMI using either
+``~/.pasqal/config`` or other methods supported by your cluster's QRMI setup.
+
+The job submission process is the same as for the ``pasqal`` target.
+
+.. code:: bash
+
+    export SLURM_JOB_QPU_RESOURCES=EMU_FREE
+
+.. tab:: Python
+
+        .. code:: python
+
+            cudaq.set_target('pasqal', machine='qrmi')
+
+.. tab:: C++
+
+        .. code:: bash
+
+            nvq++ --target pasqal --pasqal-machine qrmi src.cpp
 
 
 .. note:: 

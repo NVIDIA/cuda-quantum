@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.14.0
+latest
 :::
 
 ::: {role="search"}
@@ -926,8 +926,15 @@
         -   [Classical Post-Processing and
             Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](../../applications/python/skqd.html#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
@@ -935,8 +942,21 @@
             -   [What to
                 Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
+            .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](../../applications/python/skqd.html#Saving-Hamiltonian-Data){.reference
+                .internal}
+            -   [Running the Distributed
+                Solver](../../applications/python/skqd.html#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](../../applications/python/skqd.html#Summary){.reference
             .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
@@ -983,26 +1003,29 @@
         -   [6. References and further
             reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
-    -   [PTSBE end-to-end
-        workflow](../../applications/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](../../applications/python/ptsbe.html){.reference
         .internal}
         -   [Set up the
-            environment](../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            environment](../../applications/python/ptsbe.html#Set-up-the-environment){.reference
             .internal}
         -   [Define the circuit and noise
-            model](../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            model](../../applications/python/ptsbe.html#Define-the-circuit-and-noise-model){.reference
             .internal}
             -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .notranslate}]{.pre}](../../applications/python/ptsbe.html#Inline-noise-with-apply_noise){.reference
                 .internal}
         -   [Run PTSBE
-            sampling](../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            sampling](../../applications/python/ptsbe.html#Run-PTSBE-sampling){.reference
             .internal}
             -   [Larger circuit for execution
-                data](../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                data](../../applications/python/ptsbe.html#Larger-circuit-for-execution-data){.reference
                 .internal}
         -   [Inspecting trajectories with execution
-            data](../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            data](../../applications/python/ptsbe.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
+        -   [Performance of PTSBE vs standard noisy
+            sampling](../../applications/python/ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1180,8 +1203,8 @@
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2109,14 +2132,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![adc3d0c7283142d5a028be9343843f1c](../../_images/gate-fuse.png)
+![48dc0d8346c84e6d91f84c2b3add7a73](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![7e7604d3672e4e97a7133dc80818d24f](../../_images/gatefusion.png)
+![b7bc401bf4744be2aec3b6238a46e006](../../_images/gatefusion.png)
 :::
 :::
 :::

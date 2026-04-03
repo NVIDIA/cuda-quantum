@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.14.0
+latest
 :::
 
 ::: {role="search"}
@@ -896,17 +896,36 @@
         -   [Classical Post-Processing and
             Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](skqd.html#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
             .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](skqd.html#Saving-Hamiltonian-Data){.reference
+                .internal}
+            -   [Running the Distributed
+                Solver](skqd.html#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](skqd.html#Summary){.reference .internal}
     -   [Entanglement Accelerates Quantum Simulation](#){.current
         .reference .internal}
         -   [2. Model Definition](#2.-Model-Definition){.reference
@@ -945,25 +964,28 @@
         -   [6. References and further
             reading](#6.-References-and-further-reading){.reference
             .internal}
-    -   [PTSBE end-to-end
-        workflow](ptsbe_end_to_end_workflow.html){.reference .internal}
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](ptsbe.html){.reference .internal}
         -   [Set up the
-            environment](ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            environment](ptsbe.html#Set-up-the-environment){.reference
             .internal}
         -   [Define the circuit and noise
-            model](ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            model](ptsbe.html#Define-the-circuit-and-noise-model){.reference
             .internal}
             -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .notranslate}]{.pre}](ptsbe.html#Inline-noise-with-apply_noise){.reference
                 .internal}
         -   [Run PTSBE
-            sampling](ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            sampling](ptsbe.html#Run-PTSBE-sampling){.reference
             .internal}
             -   [Larger circuit for execution
-                data](ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                data](ptsbe.html#Larger-circuit-for-execution-data){.reference
                 .internal}
         -   [Inspecting trajectories with execution
-            data](ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            data](ptsbe.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
+        -   [Performance of PTSBE vs standard noisy
+            sampling](ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling){.reference
             .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1141,8 +1163,8 @@
             .internal}
             -   [Architecture](../../using/realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../using/realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../using/realtime/host.html#when-to-use-which-mode){.reference
@@ -2031,7 +2053,7 @@
 Previous](skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQD)"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
+aria-hidden="true"}](ptsbe.html "Pre-Trajectory Sampling with Batch Execution (PTSBE)"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2723,7 +2745,7 @@ experimenting with:
 Previous](skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQD)"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](ptsbe_end_to_end_workflow.html "PTSBE end-to-end workflow"){.btn
+aria-hidden="true"}](ptsbe.html "Pre-Trajectory Sampling with Batch Execution (PTSBE)"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

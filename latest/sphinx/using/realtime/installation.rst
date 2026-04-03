@@ -6,9 +6,9 @@ We provide pre-built installers for CUDA-Q Realtime that can be downloaded from 
 The binaries are available for `x86_64`, and `ARM64` Linux system with CUDA Versions 12.6+ (Driver 560.35.05+) and 13.x (Driver 580.65.06+). Instructions for building CUDA-Q Realtime from source can be found on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/docs/>`__.
 
 CUDA-Q Realtime has been tested with the following NVIDIA products:
-- `NVIDIA IGX Thor <https://www.nvidia.com/en-au/edge-computing/products/igx/>`_
-- `NVIDIA GB200 <https://www.nvidia.com/en-us/products/workstations/gb200-developer-kit/>`
-- `NVIDIA DGX Spark <https://www.nvidia.com/en-us/products/workstations/dgx-spark/>`_
+- `NVIDIA IGX Thor <https://www.nvidia.com/en-au/edge-computing/products/igx/>`__
+- `NVIDIA GB200 <https://www.nvidia.com/en-us/products/workstations/gb200-developer-kit/>`__
+- `NVIDIA DGX Spark <https://www.nvidia.com/en-us/products/workstations/dgx-spark/>`__
 
 Prerequisites
 ---------------------
@@ -70,7 +70,8 @@ The validation includes checking the data correctness and measuring the round-tr
 .. tab:: Using Holoscan Sensor Bridge
   
   The validation script has three defined kernel modes, one for a unified kernel (enabled with `--unified`), one for a forward kernel
-  (enabled with `--forward`), and a 3-kernel setup (used by default). The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.
+  (enabled with `--forward`), one for host-dispatch (enabled with `--cpu`), and a 3-kernel setup (used by default).
+  The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.
 
   .. code-block:: console
 
@@ -84,7 +85,7 @@ The validation includes checking the data correctness and measuring the round-tr
     - `--fpga-ip` is the IP address of the `HSB` FPGA.
     - `--bridge-ip` is the IP address of the NIC on the host machine.
     - `--page-size` is the ring buffer slot size in bytes.
-    - `--unified` or `--forward` are the mutually exclusive flags to enable the unified or forward dispatch mode.
+    - `--unified`, `--forward`, or `--cpu` are the mutually exclusive flags to enable the unified, forward, or host-dispatch mode.
   
   Upon successful completion, the above validation script should
   print out something similar to the following:

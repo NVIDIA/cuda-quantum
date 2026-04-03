@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../../index.html){.icon .icon-home}
 
 ::: version
-0.14.0
+latest
 :::
 
 ::: {role="search"}
@@ -934,8 +934,15 @@
         -   [Classical Post-Processing and
             Diagonalization](../../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](../../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](../../../applications/python/skqd.html#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](../../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](../../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](../../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
@@ -943,8 +950,21 @@
             -   [What to
                 Expect:](../../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](../../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](../../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
+            .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](../../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](../../../applications/python/skqd.html#Saving-Hamiltonian-Data){.reference
+                .internal}
+            -   [Running the Distributed
+                Solver](../../../applications/python/skqd.html#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](../../../applications/python/skqd.html#Summary){.reference
             .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
@@ -991,26 +1011,29 @@
         -   [6. References and further
             reading](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
             .internal}
-    -   [PTSBE end-to-end
-        workflow](../../../applications/python/ptsbe_end_to_end_workflow.html){.reference
+    -   [Pre-Trajectory Sampling with Batch Execution
+        (PTSBE)](../../../applications/python/ptsbe.html){.reference
         .internal}
         -   [Set up the
-            environment](../../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment){.reference
+            environment](../../../applications/python/ptsbe.html#Set-up-the-environment){.reference
             .internal}
         -   [Define the circuit and noise
-            model](../../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model){.reference
+            model](../../../applications/python/ptsbe.html#Define-the-circuit-and-noise-model){.reference
             .internal}
             -   [Inline noise with [`apply_noise`{.docutils .literal
-                .notranslate}]{.pre}](../../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise){.reference
+                .notranslate}]{.pre}](../../../applications/python/ptsbe.html#Inline-noise-with-apply_noise){.reference
                 .internal}
         -   [Run PTSBE
-            sampling](../../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling){.reference
+            sampling](../../../applications/python/ptsbe.html#Run-PTSBE-sampling){.reference
             .internal}
             -   [Larger circuit for execution
-                data](../../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data){.reference
+                data](../../../applications/python/ptsbe.html#Larger-circuit-for-execution-data){.reference
                 .internal}
         -   [Inspecting trajectories with execution
-            data](../../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data){.reference
+            data](../../../applications/python/ptsbe.html#Inspecting-trajectories-with-execution-data){.reference
+            .internal}
+        -   [Performance of PTSBE vs standard noisy
+            sampling](../../../applications/python/ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling){.reference
             .internal}
 -   [Backends](../backends.html){.reference .internal}
     -   [Circuit Simulation](../simulators.html){.reference .internal}
@@ -1157,8 +1180,8 @@
             .internal}
             -   [Architecture](../../realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../realtime/host.html#when-to-use-which-mode){.reference
@@ -2264,14 +2287,9 @@ problems. The currently available Pasqal QPUs are analog quantum
 computers, and one, named Fresnel, is available through our cloud
 portal.
 
-In order to access Pasqal's devices you to sign up for an account on
-[Pasqal's cloud platform](https://portal.pasqal.cloud){.reference
-.external}.
-
-Although a different SDK, [Pasqal's Pulser
-library](https://pulser.readthedocs.io/en/latest/){.reference
-.external}, is a good resource for getting started with analog neutral
-atom quantum computing. For support you can also join the [Pasqal
+In order to access Pasqal's devices you need to sign up for an account
+on [Pasqal's cloud platform](https://portal.pasqal.cloud){.reference
+.external}. For support you can also join the [Pasqal
 Community](https://community.pasqal.com/){.reference .external}.
 
 ::: {#pasqal-backend .section}
@@ -2312,28 +2330,8 @@ directly.
 :::
 :::
 
-::: {#pasqal-via-qrmi .section}
-### Pasqal via QRMI[¶](#pasqal-via-qrmi "Permalink to this heading"){.headerlink}
-
-CUDA-Q's [`pasqal`{.docutils .literal .notranslate}]{.pre} target for
-routing Pasqal jobs through the vendor agnostic Quantum Resource
-Management Interface (QRMI), by specifying [`machine`{.docutils .literal
-.notranslate}]{.pre} as [`qrmi`{.docutils .literal .notranslate}]{.pre}.
-This target enables integration with resource managers like Slurm for
-scheduling. Select the Pasqal backend with the [`--qpu`{.docutils
-.literal .notranslate}]{.pre} option in [`sbatch`{.docutils .literal
-.notranslate}]{.pre} and let QRMI handle submission.
-
-For this route, credentials and project id are read by QRMI using either
-[`~/.pasqal/config`{.docutils .literal .notranslate}]{.pre} or other
-methods supported by your cluster's QRMI setup.
-
-The job submission process is the same as for the [`pasqal`{.docutils
-.literal .notranslate}]{.pre} target. For example:
-:::
-
-::: {#id2 .section}
-### Submitting[¶](#id2 "Permalink to this heading"){.headerlink}
+::: {#submitting-via-pasqal-cloud-direct .section}
+### Submitting via Pasqal Cloud (Direct)[¶](#submitting-via-pasqal-cloud-direct "Permalink to this heading"){.headerlink}
 
 ::: {.tab-set .docutils}
 Python
@@ -2350,10 +2348,10 @@ function.
 :::
 
 This accepts an optional argument, [`machine`{.docutils .literal
-.notranslate}]{.pre}, which is used in the cloud platform to select the
-corresponding Pasqal QPU or emulator to execute on. See the [Pasqal
-cloud portal](https://portal.pasqal.cloud/){.reference .external} for an
-up to date list. The default value is [`EMU_MPS`{.docutils .literal
+.notranslate}]{.pre}, which selects the Pasqal QPU or emulator to
+execute on. See the [Pasqal cloud
+portal](https://portal.pasqal.cloud/){.reference .external} for an up to
+date list. The default value is [`EMU_MPS`{.docutils .literal
 .notranslate}]{.pre} which is an open-source tensor network emulator
 based on the Matrix Product State formalism running in Pasqal's cloud
 platform. You can see the documentation for the publicly accessible
@@ -2361,9 +2359,17 @@ emulator
 [here](https://pasqal-io.github.io/emulators/latest/emu_mps/){.reference
 .external}.
 
-To target the QPU use the FRESNEL machine name. Note that there are
-restrictions regarding the values of the pulses as well as the register
-layout. We invite you to consult our
+To target the QPU, pass the [`FRESNEL`{.docutils .literal
+.notranslate}]{.pre} machine name:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('pasqal', machine='FRESNEL')
+:::
+:::
+
+Note that there are restrictions regarding the values of the pulses as
+well as the register layout. We invite you to consult our
 [documentation](https://docs.pasqal.com/cloud/fresnel-job){.reference
 .external}. Note that the CUDA-Q integration currently only works with
 [arbitrary
@@ -2494,6 +2500,62 @@ The number of shots for a kernel execution can be set through the
 To see a complete example, take a look at [[Pasqal examples]{.std
 .std-ref}](../../examples/hardware_providers.html#pasqal-examples){.reference
 .internal}.
+:::
+
+::: {#submitting-via-qrmi .section}
+### Submitting via QRMI[¶](#submitting-via-qrmi "Permalink to this heading"){.headerlink}
+
+::: {.admonition .note}
+Note
+
+QRMI mode is available only in Linux x86_64 builds of CUDA-Q, via the
+Python wheel or source build.
+:::
+
+CUDA-Q's [`pasqal`{.docutils .literal .notranslate}]{.pre} target
+supports routing Pasqal jobs through the vendor-agnostic Quantum
+Resource Management Interface (QRMI), by specifying [`machine`{.docutils
+.literal .notranslate}]{.pre} as [`qrmi`{.docutils .literal
+.notranslate}]{.pre}. This enables integration with resource managers
+like Slurm for scheduling. When configuring Slurm, select the Pasqal
+backend with the [`--qpu`{.docutils .literal .notranslate}]{.pre} option
+in [`sbatch`{.docutils .literal .notranslate}]{.pre} and let QRMI handle
+submission.
+
+For this route, credentials and project ID are read by QRMI using either
+[`~/.pasqal/config`{.docutils .literal .notranslate}]{.pre} or other
+methods supported by your cluster's QRMI setup.
+
+The job submission process is the same as for the [`pasqal`{.docutils
+.literal .notranslate}]{.pre} target.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    export SLURM_JOB_QPU_RESOURCES=EMU_FREE
+:::
+:::
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('pasqal', machine='qrmi')
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target pasqal --pasqal-machine qrmi src.cpp
+:::
+:::
+:::
+:::
 
 ::: {.admonition .note}
 Note
@@ -2509,7 +2571,7 @@ flag is not yet supported on the [`pasqal`{.code .docutils .literal
 ## QuEra Computing[¶](#quera-computing "Permalink to this heading"){.headerlink}
 
 ::: {#quera-backend .section}
-[]{#id3}
+[]{#id2}
 
 ### Setting Credentials[¶](#quera-backend "Permalink to this heading"){.headerlink}
 
@@ -2551,8 +2613,8 @@ Refer to QuEra's
 .external} for details.
 :::
 
-::: {#id4 .section}
-### Submitting[¶](#id4 "Permalink to this heading"){.headerlink}
+::: {#id3 .section}
+### Submitting[¶](#id3 "Permalink to this heading"){.headerlink}
 
 ::: {.tab-set .docutils}
 Python

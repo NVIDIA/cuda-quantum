@@ -50,7 +50,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.14.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -566,14 +566,22 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Matrix-Construction-Details">Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix">Approach 1: GPU-Vectorized CSR Sparse Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh">Approach 2: Matrix-Free Lanczos via <code class="docutils literal notranslate"><span class="pre">distributed_eigsh</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU">Postprocessing Acceleration: CSR matrix approach, single GPU vs CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Saving-Hamiltonian-Data">Saving Hamiltonian Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Running-the-Distributed-Solver">Running the Distributed Solver</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -599,17 +607,18 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html">PTSBE end-to-end workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Set-up-the-environment">Set up the environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe.html">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe_end_to_end_workflow.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling">Performance of PTSBE vs standard noisy sampling</a></li>
 </ul>
 </li>
 </ul>
@@ -723,7 +732,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#unified-dispatch-mode">Unified Dispatch Mode</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#architecture">Architecture</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#transport-agnostic-api-transport-specific-implementation">Transport-Agnostic API, Transport-Specific Implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#transport-agnostic-design">Transport-Agnostic Design</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#when-to-use-which-mode">When to Use Which Mode</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#host-api-extensions">Host API Extensions</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
@@ -1175,9 +1184,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="adc3d0c7283142d5a028be9343843f1c" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="48dc0d8346c84e6d91f84c2b3add7a73" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="7e7604d3672e4e97a7133dc80818d24f" src="../../_images/gatefusion.png" /></p>
+<p><img alt="b7bc401bf4744be2aec3b6238a46e006" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 
