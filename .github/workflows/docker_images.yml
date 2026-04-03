@@ -106,14 +106,14 @@ jobs:
           persist-credentials: false
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.registry }}
           username: ${{ github.actor }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.build_info.outputs.image_name }}
           flavor:
@@ -158,7 +158,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -175,7 +175,7 @@ jobs:
 
       - name: Build Open MPI
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/devcontainer.Dockerfile
@@ -205,7 +205,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ steps.build_info.outputs.tar_archive }}
           key: ${{ steps.build_info.outputs.tar_cache }}
@@ -243,13 +243,13 @@ jobs:
           persist-credentials: false
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -257,7 +257,7 @@ jobs:
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.registry }}
           username: ${{ github.actor }}
@@ -266,7 +266,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -315,7 +315,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -341,7 +341,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
           flavor: latest=false
@@ -352,7 +352,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -412,7 +412,7 @@ jobs:
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -452,13 +452,13 @@ jobs:
           persist-credentials: false
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -466,7 +466,7 @@ jobs:
   
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.registry }}
           username: ${{ github.actor }}
@@ -475,7 +475,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore_devdeps
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -484,7 +484,7 @@ jobs:
       - name: Restore Open MPI dependencies
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
           key: ${{ needs.ompi_image.outputs.tar_cache }}
@@ -575,7 +575,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -601,7 +601,7 @@ jobs:
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.prereqs.outputs.dev_image_name }}
           flavor: |
@@ -615,7 +615,7 @@ jobs:
       - name: Build cuda-quantum-dev image (release)
         id: release_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -665,7 +665,7 @@ jobs:
 
       - name: Log in to NGC
         if: needs.metadata.outputs.push_to_ngc == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: nvcr.io
           username: '$oauthtoken'
@@ -673,7 +673,7 @@ jobs:
 
       - name: Extract cuda-quantum metadata
         id: cudaq_metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
           flavor: |
@@ -692,7 +692,7 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/release/cudaq.Dockerfile
@@ -719,7 +719,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -767,7 +767,7 @@ jobs:
           persist-credentials: false
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -775,7 +775,7 @@ jobs:
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.registry }}
           username: ${{ github.actor }}
@@ -784,7 +784,7 @@ jobs:
       - name: Restore CUDA Quantum build
         id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
@@ -793,7 +793,7 @@ jobs:
       - name: Restore CUDA Quantum image
         id: restore_cudaq
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
@@ -841,7 +841,7 @@ jobs:
 
       - name: Upload build artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: /tmp/build
@@ -849,7 +849,7 @@ jobs:
 
       - name: Upload documentation
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cuda_quantum_docs # changing the artifact name requires updating other workflows
           path: docs
@@ -886,7 +886,7 @@ jobs:
           persist-credentials: false
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -894,7 +894,7 @@ jobs:
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.registry }}
           username: ${{ github.actor }}
@@ -903,7 +903,7 @@ jobs:
       - name: Load cuda-quantum image
         id: restore
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
@@ -959,7 +959,7 @@ jobs:
 
       - name: Upload job summary
         if: steps.job_summary.outputs.validation_summary != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
@@ -1002,7 +1002,7 @@ jobs:
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}
@@ -1026,7 +1026,7 @@ jobs:
           echo "$keys" >> cache_keys.txt
           echo "artifact_name=${{ needs.validation.outputs.artifact_id }}_cache_keys" >> $GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.workflow_inputs.outputs.artifact_name }}
           path: cache_keys.txt

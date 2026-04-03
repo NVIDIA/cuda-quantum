@@ -38,7 +38,7 @@ jobs:
 
       - name: Add reaction
         if: inputs.comment_id
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ inputs.comment_id }}
           body: |
@@ -171,7 +171,7 @@ jobs:
     steps:
       - name: Add reaction to comment
         if: inputs.comment_id && success()
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ inputs.comment_id }}
           reactions-edit-mode: append

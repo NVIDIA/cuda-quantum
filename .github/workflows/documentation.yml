@@ -190,7 +190,7 @@ jobs:
       - name: Comment on PR
         if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
         continue-on-error: true # PR may be locked by the time this workflow runs if auto-merge is set to true
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
           body: ${{ steps.push_docs.outputs.pr_comment }}

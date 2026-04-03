@@ -87,7 +87,7 @@ jobs:
           delete-only-untagged-versions: 'true'
 
       - name: Log in to the container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -152,7 +152,7 @@ jobs:
       deployments: write
 
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         with:
           script: |
             const deployments = await github.rest.repos.listDeployments({

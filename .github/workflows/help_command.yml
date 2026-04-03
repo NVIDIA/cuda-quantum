@@ -31,7 +31,7 @@ jobs:
           echo "help_text=$help_text" >> $GITHUB_OUTPUT
 
       - name: Show help
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
           comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
