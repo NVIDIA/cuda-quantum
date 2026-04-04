@@ -125,7 +125,7 @@ static bool isFunctionCallable(Type t) {
 }
 
 static bool isMeasureType(Type t) {
-  if (isa<quake::MeasureType>(t))
+  if (isa<quake::MeasureType, quake::MeasurementsType>(t))
     return true;
   if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t))
     return isMeasureType(vec.getElementType());
@@ -457,7 +457,8 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
-          quake::VeqType, quake::RefType, quake::StruqType>(eleTy))
+          quake::VeqType, quake::RefType, quake::StruqType,
+          quake::MeasurementsType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -470,7 +471,8 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
           cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
-          quake::StruqType, LLVM::LLVMStructType>(eleTy))
+          quake::StruqType, quake::MeasurementsType, LLVM::LLVMStructType>(
+          eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }

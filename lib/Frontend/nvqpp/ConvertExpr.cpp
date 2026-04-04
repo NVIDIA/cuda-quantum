@@ -555,6 +555,14 @@ SmallVector<Value> QuakeBridgeVisitor::convertKernelArgs(
           continue;
         }
       }
+    if (auto vMeasTy = dyn_cast<quake::MeasurementsType>(vTy))
+      if (auto kMeasTy = dyn_cast<quake::MeasurementsType>(kTy))
+        if (vMeasTy.hasSpecifiedSize() && !kMeasTy.hasSpecifiedSize()) {
+          auto cast =
+              builder.create<UnrealizedConversionCastOp>(loc, kMeasTy, v);
+          result.push_back(cast.getResult(0));
+          continue;
+        }
 
     LLVM_DEBUG(llvm::dbgs() << "convert: " << v << "\nto:" << kTy << '\n');
     TODO_loc(loc, "argument type conversion");
@@ -684,10 +692,9 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     }
 
     // Handle conversion of `std::vector<measure_result>` to `std::vector<bool>`
-    if (auto vecTy = dyn_cast<cc::StdvecType>(sub.getType()))
-      if (vecTy.getElementType() == measTy)
-        return pushValue(builder.create<quake::DiscriminateOp>(
-            loc, cc::StdvecType::get(i1Type), sub));
+    if (isa<quake::MeasurementsType>(sub.getType()))
+      return pushValue(builder.create<quake::DiscriminateOp>(
+          loc, cc::StdvecType::get(i1Type), sub));
 
     // Handle pointer to `measure_result` (from vector element access)
     // TODO: Revisit after https://github.com/NVIDIA/cuda-quantum/pull/4208
@@ -1047,7 +1054,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
   if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType,
-          quake::StateType, quake::MeasureType>(ty))
+          quake::StateType, quake::MeasureType, quake::MeasurementsType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1724,20 +1731,32 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      bool useStdvec =
+      bool useMeasurements =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
       auto measure = [&]() -> Value {
         Type measTy = quake::MeasureType::get(builder.getContext());
-        if (useStdvec)
-          measTy = cc::StdvecType::get(measTy);
+        if (useMeasurements) {
+          std::size_t totalSize = 0;
+          bool allKnown = true;
+          for (auto a : args) {
+            if (quake::isConstantQuantumRefType(a.getType()))
+              totalSize += quake::getAllocationSize(a.getType());
+            else
+              allKnown = false;
+          }
+          if (allKnown && totalSize > 0)
+            measTy =
+                quake::MeasurementsType::get(builder.getContext(), totalSize);
+          else
+            measTy = quake::MeasurementsType::getUnsized(builder.getContext());
+        }
         if (funcName == "mx")
           return builder.create<quake::MxOp>(loc, measTy, args).getMeasOut();
         if (funcName == "my")
           return builder.create<quake::MyOp>(loc, measTy, args).getMeasOut();
         return builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
       }();
-      // No more discrimination needed, just return the measurement.
       return pushValue(measure);
     }
 
@@ -2198,13 +2217,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return true;
     }
 
-    auto measTy = quake::MeasureType::get(builder.getContext());
-
     if (funcName == "toInteger" || funcName == "to_integer") {
       auto arg = args[0];
-      auto vecTy = dyn_cast<cc::StdvecType>(arg.getType());
-      assert(vecTy && vecTy.getElementType() == measTy &&
-             "`to_integer` requires vector of `measure` as argument");
+      assert(isa<quake::MeasurementsType>(arg.getType()) &&
+             "`to_integer` requires measurements type as argument");
       auto i1Ty = builder.getI1Type();
       arg = builder.create<quake::DiscriminateOp>(
           loc, cc::StdvecType::get(i1Ty), arg);
@@ -2223,9 +2239,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName == "to_bool_vector") {
       auto arg = args[0];
-      auto vecTy = dyn_cast<cc::StdvecType>(arg.getType());
-      assert(vecTy && vecTy.getElementType() == measTy &&
-             "to_bool_vector requires stdvec<measure> argument");
+      assert(isa<quake::MeasurementsType>(arg.getType()) &&
+             "to_bool_vector requires measurements type argument");
       auto i1Ty = builder.getI1Type();
       arg = builder.create<quake::DiscriminateOp>(
           loc, cc::StdvecType::get(i1Ty), arg);
@@ -2626,6 +2641,10 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto svec = popValue();
       if (isa<cc::PointerType>(svec.getType()))
         svec = builder.create<cc::LoadOp>(loc, svec);
+      if (isa<quake::MeasurementsType>(svec.getType())) {
+        auto getMeas = builder.create<quake::GetMeasureOp>(loc, svec, indexVar);
+        return replaceTOSValue(getMeas);
+      }
       if (!isa<cc::StdvecType>(svec.getType())) {
         TODO_x(loc, x, mangler, "vector dereference");
         return false;
@@ -3351,14 +3370,13 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   // TODO: Revisit after https://github.com/NVIDIA/cuda-quantum/pull/4208
   if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
       isInClassInNamespace(ctor, "measure_result", "cudaq")) {
-    // The source is a pointer to measure_result (!cc.ptr<!quake.measure>)
-    // Just load and return the value
     assert(x->getNumArgs() == 1);
-    auto srcPtr = popValue();
-    if (auto ptrTy = dyn_cast<cc::PointerType>(srcPtr.getType())) {
-      auto measTy = quake::MeasureType::get(builder.getContext());
-      if (ptrTy.getElementType() == measTy)
-        return pushValue(builder.create<cc::LoadOp>(loc, srcPtr));
+    auto src = popValue();
+    if (isa<quake::MeasureType>(src.getType()))
+      return pushValue(src);
+    if (auto ptrTy = dyn_cast<cc::PointerType>(src.getType())) {
+      if (isa<quake::MeasureType>(ptrTy.getElementType()))
+        return pushValue(builder.create<cc::LoadOp>(loc, src));
     }
   }
 

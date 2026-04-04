@@ -29,26 +29,18 @@ __qpu__ int compare_kernel() {
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_4]] name "a" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_6:.*]] = cc.alloca !quake.measure
-// CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] name "b" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_9:.*]] = cc.alloca !quake.measure
-// CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_6]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_9]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_13:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_12]], %[[VAL_13]] : i1
-// CHECK:           cc.if(%[[VAL_14]]) {
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] name "b" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_10:.*]] = arith.cmpi eq, %[[VAL_8]], %[[VAL_9]] : i1
+// CHECK:           cc.if(%[[VAL_10]]) {
 // CHECK:             cc.unwind_return %[[VAL_1]] : i32
 // CHECK:           }
-// CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_6]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_9]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_17:.*]] = quake.discriminate %[[VAL_15]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_18:.*]] = quake.discriminate %[[VAL_16]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_19:.*]] = arith.cmpi ne, %[[VAL_17]], %[[VAL_18]] : i1
-// CHECK:           cc.if(%[[VAL_19]]) {
+// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_13:.*]] = arith.cmpi ne, %[[VAL_11]], %[[VAL_12]] : i1
+// CHECK:           cc.if(%[[VAL_13]]) {
 // CHECK:             cc.unwind_return %[[VAL_2]] : i32
 // CHECK:           }
 // CHECK:           return %[[VAL_0]] : i32
@@ -74,18 +66,14 @@ __qpu__ int compare_with_bool_kernel() {
 // CHECK:           %[[VAL_4:.*]] = arith.constant true
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] name "a" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_7:.*]] = cc.alloca !quake.measure
-// CHECK:           cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_7]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_10:.*]] = arith.cmpi eq, %[[VAL_9]], %[[VAL_4]] : i1
-// CHECK:           cc.if(%[[VAL_10]]) {
+// CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_8:.*]] = arith.cmpi eq, %[[VAL_7]], %[[VAL_4]] : i1
+// CHECK:           cc.if(%[[VAL_8]]) {
 // CHECK:             cc.unwind_return %[[VAL_3]] : i32
 // CHECK:           }
-// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_7]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_13:.*]] = arith.cmpi ne, %[[VAL_12]], %[[VAL_2]] : i1
-// CHECK:           cc.if(%[[VAL_13]]) {
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i1
+// CHECK:           cc.if(%[[VAL_10]]) {
 // CHECK:             cc.unwind_return %[[VAL_1]] : i32
 // CHECK:           }
 // CHECK:           return %[[VAL_0]] : i32

@@ -22,57 +22,42 @@ struct t1 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1(
-// CHECK-SAME:                                    %[[VAL_0:.*]]: !cc.stdvec<f64>) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
-// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
-// CHECK:           return %[[VAL_6]] : i1
+// CHECK:           quake.mz
+// CHECK:           quake.get_measure
+// CHECK:           quake.discriminate
+// CHECK:           return
 // CHECK:         }
 // CHECK-NOT:     func.func private @_ZNKSt14_Bit_referencecvbEv() -> i1
 // clang-format on
 
 struct VectorBoolReturn {
-  std::vector<bool> operator()() __qpu__ {
+   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(4);
-    return cudaq::to_bool_vector(mz(q));
+    auto res = mz(q);
+    return cudaq::to_bool_vector(res);
   }
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorBoolReturn() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<i1>) -> i64
-// CHECK:           %[[VAL_6:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_4]], %[[VAL_5]], %[[VAL_0]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_7:.*]] = cc.stdvec_init %[[VAL_6]], %[[VAL_5]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
-// CHECK:           return %[[VAL_7]] : !cc.stdvec<i1>
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorBoolReturn()
+// CHECK:           quake.mz
+// CHECK:           quake.discriminate
+// CHECK:           return
 // CHECK:         }
 // clang-format on
 
-struct VectorBoolResult {
-  std::vector<bool> operator()() __qpu__ {
+struct VectorMeasureResult {
+   std::vector<cudaq::measure_result> operator()() __qpu__ {
     cudaq::qvector q(4);
-    std::vector<bool> vec = cudaq::to_bool_vector(mz(q));
-    return vec;
+    return mz(q);
   }
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorBoolResult() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<i1>) -> i64
-// CHECK:           %[[VAL_6:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_4]], %[[VAL_5]], %[[VAL_0]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_7:.*]] = cc.stdvec_init %[[VAL_6]], %[[VAL_5]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
-// CHECK:           return %[[VAL_7]] : !cc.stdvec<i1>
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorMeasureResult()
+// CHECK-NOT:     cudaq-entrypoint
+// CHECK:           quake.mz
+// CHECK-NOT:       quake.discriminate
+// CHECK:           return
 // CHECK:         }
 // clang-format on

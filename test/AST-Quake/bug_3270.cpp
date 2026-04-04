@@ -26,15 +26,8 @@ __qpu__ void foo() {
 // CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<!quake.measure x 3>
-// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] name "result%[[VAL_0]]" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!quake.measure>
-// CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_2]] name "result%[[VAL_1]]" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!quake.measure>
-// CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<!quake.measure>
-// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_3]] name "result%[[VAL_2]]" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_4]][2] : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!quake.measure>
-// CHECK:           cc.store %[[VAL_9]], %[[VAL_10]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "result%[[VAL_0]]" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "result%[[VAL_1]]" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_3]] name "result%[[VAL_2]]" : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }

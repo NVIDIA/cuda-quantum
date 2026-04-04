@@ -46,20 +46,24 @@ struct kernel {
 // CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_8]])
 // CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_10:.*]]* @__quantum__qis__mz__to__register(%[[VAL_3]]* %[[VAL_8]], i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
 // CHECK:         %[[VAL_11:.*]] = tail call %[[VAL_10]]* @__quantum__qis__mz__to__register(%[[VAL_3]]* %[[VAL_4]], i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
-// CHECK:         %[[VAL_12:.*]] = bitcast %[[VAL_10]]* %[[VAL_11]] to i1*
-// CHECK:         %[[VAL_13:.*]] = load i1, i1* %[[VAL_12]], align 1
-// CHECK:         br i1 %[[VAL_13]], label %[[VAL_14:.*]], label %[[VAL_15:.*]]
-// CHECK:       12:                                               ; preds = %[[VAL_16:.*]]
+// CHECK:         %[[VAL_12:.*]] = bitcast %[[VAL_10]]* %[[VAL_11]] to i8*
+// CHECK:         %[[VAL_13:.*]] = load i8, i8* %[[VAL_12]], align 1
+// CHECK:         %[[VAL_14:.*]] = and i8 %[[VAL_13]], 1
+// CHECK:         %.not = icmp eq i8 %[[VAL_14]], 0
+// CHECK:         br i1 %.not, label %[[VAL_15:.*]], label %[[VAL_16:.*]]
+// CHECK:       {{[0-9]+}}:
 // CHECK:         tail call void @__quantum__qis__x(%[[VAL_3]]* %[[VAL_6]])
 // CHECK:         br label %[[VAL_15]]
-// CHECK:       13:                                               ; preds = %[[VAL_14]], %[[VAL_16]]
-// CHECK:         %[[VAL_17:.*]] = bitcast %[[VAL_10]]* %[[VAL_9]] to i1*
-// CHECK:         %[[VAL_18:.*]] = load i1, i1* %[[VAL_17]], align 1
-// CHECK:         br i1 %[[VAL_18]], label %[[VAL_19:.*]], label %[[VAL_20:.*]]
-// CHECK:       16:                                               ; preds = %[[VAL_15]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_17:.*]] = bitcast %[[VAL_10]]* %[[VAL_9]] to i8*
+// CHECK:         %[[VAL_18:.*]] = load i8, i8* %[[VAL_17]], align 1
+// CHECK:         %[[VAL_19:.*]] = and i8 %[[VAL_18]], 1
+// CHECK:         %.not1 = icmp eq i8 %[[VAL_19]], 0
+// CHECK:         br i1 %.not1, label %[[VAL_20:.*]], label %[[VAL_21:.*]]
+// CHECK:       {{[0-9]+}}:
 // CHECK:         tail call void @__quantum__qis__z(%[[VAL_3]]* %[[VAL_6]])
 // CHECK:         br label %[[VAL_20]]
-// CHECK:       17:                                               ; preds = %[[VAL_19]], %[[VAL_15]]
+// CHECK:       {{[0-9]+}}:
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }

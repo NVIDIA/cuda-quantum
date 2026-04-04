@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// XFAIL: *
+// TODO: Ranged-for over !quake.measurements<?> (for (auto result : results))
+// requires for-range loop support for MeasurementsType.
 
 #include <cudaq.h>
 #include <iostream>

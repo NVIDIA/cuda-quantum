@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 // Simple test using a type inferenced return value type.
 
@@ -21,20 +21,12 @@ struct ak2 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
-// CHECK-SAME: () -> !cc.stdvec<!quake.measure> attributes
-// CHECK-NOT: cudaq-entrypoint
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 16 : i64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<5>
-// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_4]] : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<!quake.measure>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_14:.*]] = cc.stdvec_size %[[VAL_12]] : (!cc.stdvec<!quake.measure>) -> i64
-// CHECK:           %[[VAL_15:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_13]], %[[VAL_14]], %[[VAL_1]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_16:.*]] = cc.stdvec_init %[[VAL_15]], %[[VAL_14]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<!quake.measure>
-// CHECK:           return %[[VAL_16]] : !cc.stdvec<!quake.measure>
+// CHECK-SAME:      () -> !quake.measurements<?> attributes
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           cc.loop while
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<5>) -> !quake.measurements<5>
+// CHECK:           %[[VAL_2:.*]] = builtin.unrealized_conversion_cast %[[VAL_1]] : !quake.measurements<5> to !quake.measurements<?>
+// CHECK:           return %[[VAL_2]] : !quake.measurements<?>
 // CHECK:         }
 // CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1
-// CHECK-LABEL: func.func private @__nvqpp_vectorCopyCtor(
-// CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1
+

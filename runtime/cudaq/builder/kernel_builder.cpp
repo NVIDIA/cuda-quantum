@@ -784,7 +784,12 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   Type measTy = quake::MeasureType::get(builder.getContext());
   if (!isa<quake::RefType>(type)) {
     resTy = cc::StdvecType::get(resTy);
-    measTy = cc::StdvecType::get(measTy);
+    if (auto veqTy = dyn_cast<quake::VeqType>(type);
+        veqTy && veqTy.hasSpecifiedSize())
+      measTy =
+          quake::MeasurementsType::get(builder.getContext(), veqTy.getSize());
+    else
+      measTy = quake::MeasurementsType::getUnsized(builder.getContext());
   }
   Value measureResult;
   if (strAttr)

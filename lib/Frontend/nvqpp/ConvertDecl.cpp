@@ -93,8 +93,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto parmTy = entryBlock->getArgument(index).getType();
       if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
               cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
-              quake::ControlType, quake::RefType, quake::StruqType,
-              quake::VeqType, quake::WireType>(parmTy)) {
+              quake::ControlType, quake::MeasureType, quake::MeasurementsType,
+              quake::RefType, quake::StruqType, quake::VeqType,
+              quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
@@ -191,6 +192,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
                               "std::vector element type is not supported");
         return false;
       }
+      if (isa<quake::MeasureType>(ty))
+        return pushType(quake::MeasurementsType::getUnsized(ctx));
       return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
@@ -735,7 +738,17 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return true;
   }
 
-  // Here we maybe have something like auto var = mz(qreg)
+  if (isa<quake::MeasureType, quake::MeasurementsType>(type)) {
+    if (x->getInit()) {
+      auto initVal = popValue();
+      symbolTable.insert(x->getName(), initVal);
+      if (auto meas = initVal.getDefiningOp<quake::MeasurementInterface>())
+        meas.setRegisterName(builder.getStringAttr(x->getName()));
+      return true;
+    }
+    symbolTable.insert(name, peekValue());
+    return true;
+  }
   if (auto vecType = dyn_cast<cc::StdvecType>(type)) {
     // Variable is of !cc.stdvec type.
     if (x->getInit()) {

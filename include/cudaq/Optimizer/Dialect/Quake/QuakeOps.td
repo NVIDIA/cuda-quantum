@@ -1066,7 +1066,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     OptionalAttr<StrAttr>:$registerName
   );
   let results = (outs
-    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measOut,
+    AnyTypeOf<[MeasureType, MeasurementsType]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -1083,13 +1083,15 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   }];
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 }
 
 def MxOp : Measurement<"mx"> {
   let summary = "Measurement along the x-axis";
   let description = [{
-    The `mx` operation measures the state of qubits into classical bits
-    represented by a `i1` (or a vector of `i1`), along the x-axis.
+    The `mx` operation measures the state of qubits along the x-axis. For a
+    single qubit the result is `!quake.measure`; for multiple qubits the result
+    is `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
 
     The state of the qubits is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1102,8 +1104,9 @@ def MxOp : Measurement<"mx"> {
 def MyOp : Measurement<"my"> {
   let summary = "Measurement along the y-axis";
   let description = [{
-    The `my` operation measures the state of qubits into classical bits
-    represented by a `i1` (or a vector of `i1`), along the y-axis.
+    The `my` operation measures the state of qubits along the y-axis. For a
+    single qubit the result is `!quake.measure`; for multiple qubits the result
+    is `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
 
     The state of the qubit is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1116,9 +1119,10 @@ def MyOp : Measurement<"my"> {
 def MzOp : Measurement<"mz"> {
   let summary = "Measurement along the z-axis";
   let description = [{
-    The `mz` operation measures the state of qubits into a classical bits
-    represented by a `i1` (or a vector of `i1`), along the z-axis---the
-    so-called computational basis.
+    The `mz` operation measures the state of qubits along the z-axis---the
+    so-called computational basis. For a single qubit the result is
+    `!quake.measure`; for multiple qubits the result is
+    `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
 
     The state of the qubit is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1143,7 +1147,7 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measurement
+    AnyTypeOf<[MeasureType, MeasurementsType]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>

@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
 
 #define DEBUG_TYPE "lower-ast-stmt"
 
@@ -334,6 +335,24 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
         auto i1Ty = builder.getI1Type();
         if (fnTy.getNumResults() == 1 && fnTy.getResult(0) == i1Ty)
           result = builder.create<cc::CastOp>(loc, i1Ty, result);
+      }
+    }
+    // Relax sized measurements to unsized when the function expects unsized.
+    if (auto measTy = dyn_cast<quake::MeasurementsType>(result.getType())) {
+      auto *parentOp = builder.getBlock()->getParentOp();
+      auto funcOp = dyn_cast<func::FuncOp>(parentOp);
+      if (!funcOp)
+        funcOp = parentOp->getParentOfType<func::FuncOp>();
+      if (funcOp) {
+        auto fnTy = funcOp.getFunctionType();
+        if (fnTy.getNumResults() == 1)
+          if (auto fnResMeasTy =
+                  dyn_cast<quake::MeasurementsType>(fnTy.getResult(0)))
+            if (measTy != fnResMeasTy)
+              result = builder
+                           .create<UnrealizedConversionCastOp>(loc, fnResMeasTy,
+                                                               result)
+                           .getResult(0);
       }
     }
     if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {

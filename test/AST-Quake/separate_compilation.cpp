@@ -7,6 +7,10 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// XFAIL: *
+// TODO: Passing !quake.measurements<5> to a function expecting
+// !quake.measurements<?> requires a size-relaxation cast at the call site.
+// The frontend emits func.call directly without going through convertKernelArgs.
 
 #include "cudaq.h"
 

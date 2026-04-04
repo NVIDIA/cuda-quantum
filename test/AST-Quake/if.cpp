@@ -153,7 +153,5 @@ struct kernel_ternary {
 // CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.ref) -> !quake.measure
 // CHECK:             cc.continue %[[VAL_9]] : !quake.measure
 // CHECK:           }
-// CHECK:           %[[VAL_10:.*]] = cc.alloca !quake.measure
-// CHECK:           cc.store %[[VAL_11:.*]], %[[VAL_10]] : !cc.ptr<!quake.measure>
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
