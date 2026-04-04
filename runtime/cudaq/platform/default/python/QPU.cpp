@@ -103,6 +103,27 @@ specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Could not successfully apply argument synth.");
 }
 
+/// Replace %KEY% placeholders in a pipeline string with values from the
+/// runtime config map. Keys are matched case-insensitively: runtimeConfig
+/// entry "device" matches placeholder %DEVICE%. This is the Python JIT path
+/// equivalent of ServerHelper::updatePassPipeline() used by REST QPU targets.
+static void substitutePipelinePlaceholders(
+    std::string &pipeline,
+    const std::map<std::string, std::string> &runtimeConfig) {
+  for (const auto &[key, value] : runtimeConfig) {
+    std::string upper;
+    upper.reserve(key.size());
+    for (char c : key)
+      upper += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    std::string placeholder = "%" + upper + "%";
+    std::string::size_type pos = 0;
+    while ((pos = pipeline.find(placeholder, pos)) != std::string::npos) {
+      pipeline.replace(pos, placeholder.size(), value);
+      pos += value.size();
+    }
+  }
+}
+
 /// Run target-specific passes if the active target config defines a pipeline.
 /// Interleaves jit-deploy-pipeline between high and mid-level stages.
 /// specializeKernel() covers what hw-jit-prep-pipeline and
@@ -118,6 +139,7 @@ static void runTargetPassPipeline(ModuleOp module) {
   if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
     return;
   auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
+  substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
   PassManager pm(module.getContext());
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
