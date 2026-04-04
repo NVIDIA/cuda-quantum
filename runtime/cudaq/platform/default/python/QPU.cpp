@@ -103,23 +103,41 @@ specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Could not successfully apply argument synth.");
 }
 
-/// Replace %KEY% placeholders in a pipeline string with values from the
-/// runtime config map. Keys are matched case-insensitively: runtimeConfig
-/// entry "device" matches placeholder %DEVICE%. This is the Python JIT path
-/// equivalent of ServerHelper::updatePassPipeline() used by REST QPU targets.
+/// Replace %KEY% and %KEY:default% placeholders in a pipeline string with
+/// values from the runtime config map. If the key is in runtimeConfig, use
+/// that value. Otherwise use the inline default if provided (%KEY:val%).
+/// Keys in the pipeline are uppercase; runtimeConfig keys are lowercase.
+/// This is the Python JIT equivalent of ServerHelper::updatePassPipeline().
 static void substitutePipelinePlaceholders(
     std::string &pipeline,
     const std::map<std::string, std::string> &runtimeConfig) {
-  for (const auto &[key, value] : runtimeConfig) {
-    std::string upper;
-    upper.reserve(key.size());
+  std::string::size_type pos = 0;
+  while (pos < pipeline.size()) {
+    auto start = pipeline.find('%', pos);
+    if (start == std::string::npos)
+      break;
+    auto end = pipeline.find('%', start + 1);
+    if (end == std::string::npos)
+      break;
+    auto token = pipeline.substr(start + 1, end - start - 1);
+    auto colon = token.find(':');
+    auto key = (colon != std::string::npos) ? token.substr(0, colon) : token;
+
+    // Lowercase the key to match runtimeConfig convention.
+    std::string lower;
     for (char c : key)
-      upper += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    std::string placeholder = "%" + upper + "%";
-    std::string::size_type pos = 0;
-    while ((pos = pipeline.find(placeholder, pos)) != std::string::npos) {
-      pipeline.replace(pos, placeholder.size(), value);
-      pos += value.size();
+      lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    auto it = runtimeConfig.find(lower);
+
+    if (it != runtimeConfig.end()) {
+      pipeline.replace(start, end - start + 1, it->second);
+      pos = start + it->second.size();
+    } else if (colon != std::string::npos) {
+      auto defaultVal = token.substr(colon + 1);
+      pipeline.replace(start, end - start + 1, defaultVal);
+      pos = start + defaultVal.size();
+    } else {
+      pos = end + 1;
     }
   }
 }

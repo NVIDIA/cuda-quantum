@@ -42,7 +42,6 @@ endif()
   
 add_target_config(opt-test)
 add_target_config(circuit-opt-bench)
-add_target_config(circuit-opt-bench-routed)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_target_config(nvidia)
