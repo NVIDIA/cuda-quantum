@@ -118,8 +118,12 @@ run_impl(const std::string &shortName, MlirModule module,
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
-  auto span = pyRunTheKernel(shortName, platform, mod, shots_count, qpu_id,
-                             opaques, true);
+  details::RunResultSpan span;
+  {
+    nanobind::gil_scoped_release release;
+    span = pyRunTheKernel(shortName, platform, mod, shots_count, qpu_id,
+                          opaques, true);
+  }
   auto results = pyReadResults(span, mod, shots_count, shortName);
 
   if (noise_model.has_value())

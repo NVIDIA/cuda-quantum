@@ -920,7 +920,14 @@ nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
-  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
+
+  {
+    // Release the GIL for MLIR compilation + JIT. This allows Python signal
+    // handling (Ctrl-C) via addPythonSignalInstrumentation which uses
+    // PyGILState_Ensure from the compilation thread.
+    nanobind::gil_scoped_release release;
+    [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
+  }
 
   if (!retTy)
     return nanobind::none();
