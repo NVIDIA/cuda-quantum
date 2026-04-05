@@ -69,6 +69,27 @@ llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
 
 # Generate test cases
 
+# Generate compile check tests
+gen_compile_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'check-compile')
+os.makedirs(gen_compile_dir, exist_ok=True)
+check_compile_src = os.path.join(config.cudaq_src_dir, 'targettests', 'TargetConfig', 'check_compile.cpp.inc')
+nvqpp = shutil.which('nvq++', path=config.cudaq_tools_dir)
+if not nvqpp:
+    raise RuntimeError('nvq++ not found on PATH')
+targets_output = subprocess.check_output([nvqpp, '--list-targets'], text=True).strip()
+targets = [t.strip() for t in targets_output.split('\n') if t.strip()]
+with open(check_compile_src) as src:
+    source_code = src.read()
+for old in os.listdir(gen_compile_dir):
+    os.remove(os.path.join(gen_compile_dir, old))
+for target in targets:
+    with open(os.path.join(gen_compile_dir, f'check_compile_{target}.cpp'), 'w') as f:
+        f.write(f'// Auto-generated compile check for target: {target}\n')
+        f.write(f'// RUN: nvq++ --library-mode --target {target} %s\n')
+        f.write(f'// RUN: nvq++ --enable-mlir --target {target} %s\n\n')
+        f.write(source_code)
+
+# Generate phase-folding tests
 gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'phase-folding')
 os.makedirs(gen_tests_dir, exist_ok=True) # mode=0o777
 def generate_phasefolding_test(filename, seed, min_block_length, max_block_length, rz_weight):
