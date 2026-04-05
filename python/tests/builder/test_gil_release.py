@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                        #
 #                                                                             #
 # This source code and the accompanying materials are made available under    #
@@ -35,9 +35,9 @@ def _assert_sigalrm_fires_during(compile_and_run):
 
 
 def test_gil_release_estimate_resources():
-    cudaq.set_target('circuit-opt-bench', device='path(50)')
+    cudaq.set_target('circuit-opt-bench', device='path(200)')
     kernel = cudaq.make_kernel()
-    q = kernel.qalloc(50)
-    for i in range(49):
-        kernel.cx(q[i], q[(i + 2) % 50])
+    q = kernel.qalloc(200)
+    for i in range(199):
+        kernel.cx(q[i], q[(i + 3) % 200])
     _assert_sigalrm_fires_during(lambda: cudaq.estimate_resources(kernel))

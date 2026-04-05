@@ -22,6 +22,7 @@
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
@@ -1012,6 +1013,7 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   SmallVector<StringRef> substRefs{substs.begin(), substs.end()};
 
   PassManager pm(context);
+  cudaq::addPythonSignalInstrumentation(pm);
   pm.addPass(cudaq::opt::createArgumentSynthesisPass(
       kernelRefs, substRefs, /*changeSemantics=*/false));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -1053,13 +1055,12 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  if (failed(pm.run(cloned))) {
-    engine.eraseHandler(handlerId);
-    throw std::runtime_error(
-        "failed to JIT compile the Quake representation\n" + error_msg);
-  }
+  bool pmFailed = failed(pm.run(cloned));
   timingScope.stop();
   engine.eraseHandler(handlerId);
+  if (pmFailed)
+    throw std::runtime_error(
+        "failed to JIT compile the Quake representation\n" + error_msg);
   return wrap(cloned);
 }
 
@@ -1087,12 +1088,12 @@ static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
 
-  if (failed(pm.run(mod))) {
-    engine.eraseHandler(handlerId);
+  bool pmFailed = failed(pm.run(mod));
+  timingScope.stop();
+  engine.eraseHandler(handlerId);
+  if (pmFailed)
     throw std::runtime_error(
         "failed to JIT compile the Quake representation\n" + error_msg);
-  }
-  timingScope.stop();
   engine.eraseHandler(handlerId);
 }
 
@@ -1103,6 +1104,7 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     // arguments will be resolved and marshaled at the kernel call site.
     auto *ctx = mod.getContext();
     PassManager pm(ctx);
+    cudaq::addPythonSignalInstrumentation(pm);
     std::string transport = getTransportLayer();
     cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
     executeMLIRPassManager(mod, pm);
@@ -1251,6 +1253,7 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
         auto m = unwrap(modA);
         auto context = m.getContext();
         PassManager pm(context);
+        cudaq::addPythonSignalInstrumentation(pm);
         pm.addNestedPass<func::FuncOp>(
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),

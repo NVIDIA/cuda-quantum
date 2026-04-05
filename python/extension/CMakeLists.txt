@@ -98,6 +98,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
+    ../runtime/cudaq/platform/JITExecutionCache.cpp
+    ../runtime/cudaq/platform/PythonSignalCheck.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_pauli_word.cpp
@@ -149,6 +151,14 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    cudaq-qir-verifier
    cudaq-mlir-runtime-headers
 )
+
+# MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses
+# mlir::PassInstrumentation, so it must match LLVM's RTTI setting.
+set_source_files_properties(
+    ../runtime/cudaq/platform/PythonSignalCheck.cpp
+    PROPERTIES COMPILE_FLAGS "-fno-rtti -fno-exceptions"
+)
+
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
     ${CMAKE_SOURCE_DIR}/python
