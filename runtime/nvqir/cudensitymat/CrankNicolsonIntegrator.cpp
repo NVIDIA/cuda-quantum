@@ -14,6 +14,9 @@
 namespace cudaq {
 namespace integrators {
 
+// Crank-Nicolson predictor-corrector method.
+// Reference: https://en.wikipedia.org/wiki/Crank%E2%80%93Nicolson_method
+
 using cudmIntHelp = CuDensityMatIntegratorHelper;
 
 crank_nicolson::crank_nicolson(int num_corrector_steps,

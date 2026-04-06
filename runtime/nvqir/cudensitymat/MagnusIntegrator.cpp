@@ -14,6 +14,9 @@
 namespace cudaq {
 namespace integrators {
 
+// Magnus expansion integrator (first-order / midpoint approximation).
+// Reference: https://en.wikipedia.org/wiki/Magnus_expansion
+
 using cudmIntHelp = CuDensityMatIntegratorHelper;
 
 magnus_expansion::magnus_expansion(int num_taylor_terms,
