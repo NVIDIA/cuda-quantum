@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
@@ -36,6 +37,18 @@ struct ResourceCountPreprocessPass
   using ResourceCountPreprocessBase::ResourceCountPreprocessBase;
   SetVector<Operation *> to_erase;
 
+  /// Resolve a quake value to a concrete qubit index. Handles both reference
+  /// semantics (extract_ref with constant index) and wire semantics
+  /// (BorrowWireOp with identity attribute).
+  static std::optional<std::size_t> resolveQubitIndex(Value v) {
+    if (auto extractRef = v.getDefiningOp<quake::ExtractRefOp>())
+      if (extractRef.hasConstantIndex())
+        return extractRef.getConstantIndex();
+    if (auto borrow = v.getDefiningOp<quake::BorrowWireOp>())
+      return static_cast<std::size_t>(borrow.getIdentity());
+    return std::nullopt;
+  }
+
   bool preCount(Operation *op, size_t to_add) {
     if (!isQuakeOperation(op))
       return false;
@@ -51,13 +64,20 @@ struct ResourceCountPreprocessPass
 
     auto name = op->getName().stripDialect();
 
-    size_t controls = opi.getControls().size();
+    std::vector<std::size_t> controlIndices, targetIndices;
+    for (auto ctrl : opi.getControls())
+      if (auto idx = resolveQubitIndex(ctrl))
+        controlIndices.push_back(*idx);
+    for (auto tgt : opi.getTargets())
+      if (auto idx = resolveQubitIndex(tgt))
+        targetIndices.push_back(*idx);
 
     if (dumpPreprocessed)
-      llvm::outs() << "Preprocessing " << name << "(" << controls << ")"
+      llvm::outs() << "Preprocessing " << name << "(" << controlIndices.size()
+                   << ")"
                    << " for " << to_add << " counts\n";
 
-    countGate(name.str(), controls, to_add);
+    countGate(name.str(), controlIndices, targetIndices, to_add);
     to_erase.insert(op);
     return true;
   }

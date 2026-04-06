@@ -64,6 +64,7 @@ add_cudaq_library(OptTransforms
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
+  ResourceCount.cpp
   ResourceCountPreprocess.cpp
   SROA.cpp
   StackFramePrealloc.cpp

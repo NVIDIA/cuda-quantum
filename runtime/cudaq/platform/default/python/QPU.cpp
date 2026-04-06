@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
@@ -29,6 +30,10 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 #include <unordered_set>
+
+namespace nvqir {
+void setResourceCounts(cudaq::Resources &&);
+}
 
 using namespace mlir;
 using namespace cudaq_internal::compiler;
@@ -288,6 +293,19 @@ static void cacheJITForPerformance(JitEngine jit) {
   }
 }
 
+/// When the execution context is "resource-count", extract gate counts and
+/// depth metrics from the optimized MLIR IR. Pre-counted gates are erased
+/// from the module, so the subsequent JIT compiles a near-empty module.
+static void precountResources(ModuleOp module) {
+  auto *ctx = cudaq::getExecutionContext();
+  if (!ctx || ctx->name != "resource-count")
+    return;
+  auto counts = cudaq::opt::countResourcesFromIR(module);
+  if (failed(counts))
+    throw std::runtime_error("Resource count preprocessing failed.");
+  nvqir::setResourceCounts(std::move(*counts));
+}
+
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
   cudaq::CompiledKernel compileModule(const std::string &name, ModuleOp module,
@@ -362,6 +380,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     // 3b. Run target-specific passes if configured.
     runTargetPassPipeline(module);
+
+    // 3c. Pre-count resources from the optimized IR when resource-counting.
+    precountResources(module);
 
     // 4. Lower to QIR and JIT compile.
     auto jit = createJITEngine(module, "qir:");
