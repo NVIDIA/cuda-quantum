@@ -6,16 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CuDensityMatContext.h"
-#include "CuDensityMatErrorHandling.h"
-#include "CuDensityMatState.h"
-#include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatIntegratorBase.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 namespace integrators {
+
+using H = CuDensityMatIntegratorHelper;
 
 magnus_expansion::magnus_expansion(int num_taylor_terms,
                                    const std::optional<double> &max_step_size)
@@ -36,83 +35,34 @@ std::shared_ptr<base_integrator> magnus_expansion::clone() {
   return clone;
 }
 
-void magnus_expansion::setState(const cudaq::state &initial_state, double t0) {
-  auto *simState = cudaq::state_helper::getSimulationState(
-      const_cast<cudaq::state *>(&initial_state));
-  auto *cudmState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!cudmState)
-    throw std::runtime_error("Invalid state.");
-  m_state = std::make_shared<cudaq::state>(
-      CuDensityMatState::clone(*cudmState).release());
-  m_t = t0;
+void magnus_expansion::setState(const cudaq::state &initialState, double t0) {
+  H::setState(m_state, m_t, initialState, t0);
 }
 
 std::pair<double, cudaq::state> magnus_expansion::getState() {
-  auto *simState = cudaq::state_helper::getSimulationState(m_state.get());
-  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!castSimState)
-    throw std::runtime_error("Invalid state.");
-  return std::make_pair(
-      m_t, cudaq::state(CuDensityMatState::clone(*castSimState).release()));
+  return H::getState(m_state, m_t);
 }
 
 void magnus_expansion::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "magnus_expansion::integrate");
-
-  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
-    auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
-    auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-    if (!castSimState)
-      throw std::runtime_error("Invalid state.");
-    return castSimState;
-  };
-
-  std::unordered_map<std::string, std::complex<double>> params;
-
-  if (!m_stepper) {
-    auto &castSimState = *asCudmState(*m_state);
-    for (const auto &param : m_schedule.get_parameters())
-      params[param] = m_schedule.get_value_function()(param, 0.0);
-
-    auto liouvillian =
-        m_system.superOp.has_value()
-            ? cudaq::dynamics::Context::getCurrentContext()
-                  ->getOpConverter()
-                  .constructLiouvillian({m_system.superOp.value()},
-                                        m_system.modeExtents, params)
-            : cudaq::dynamics::Context::getCurrentContext()
-                  ->getOpConverter()
-                  .constructLiouvillian({m_system.hamiltonian},
-                                        {m_system.collapseOps},
-                                        m_system.modeExtents, params,
-                                        castSimState.is_density_matrix());
-    m_stepper = std::make_unique<CuDensityMatTimeStepper>(
-        asCudmState(*m_state)->get_handle(), liouvillian);
-  }
+  H::ensureStepper(m_stepper, m_state, m_system, m_schedule);
 
   while (m_t < targetTime) {
-    const double step_size =
-        std::min(m_dt.value_or(targetTime - m_t), targetTime - m_t);
+    const double step_size = H::computeStepSize(m_t, targetTime, m_dt);
+    auto &castSimState = *H::asCudmState(*m_state);
 
-    auto &castSimState = *asCudmState(*m_state);
-
-    std::unordered_map<std::string, std::complex<double>> params_mid;
-    for (const auto &param : m_schedule.get_parameters())
-      params_mid[param] =
-          m_schedule.get_value_function()(param, m_t + step_size / 2.0);
     const double t_mid = m_t + step_size / 2.0;
+    auto params_mid = H::scheduleParamsAt(m_schedule, t_mid);
 
     auto result = CuDensityMatState::clone(castSimState);
-
     cudaq::state v(CuDensityMatState::clone(castSimState).release());
 
     for (int k = 1; k <= m_num_taylor_terms; ++k) {
       auto Lv = m_stepper->compute(v, t_mid, params_mid);
-      auto &Lv_cudm = *asCudmState(Lv);
+      auto &Lv_cudm = *H::asCudmState(Lv);
 
       Lv_cudm *= (step_size / static_cast<double>(k));
-
       result->accumulate_inplace(Lv_cudm, 1.0);
 
       v = std::move(Lv);

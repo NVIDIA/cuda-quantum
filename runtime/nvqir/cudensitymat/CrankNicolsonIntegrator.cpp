@@ -6,16 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CuDensityMatContext.h"
-#include "CuDensityMatErrorHandling.h"
-#include "CuDensityMatState.h"
-#include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatIntegratorBase.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 namespace integrators {
+
+using H = CuDensityMatIntegratorHelper;
 
 crank_nicolson::crank_nicolson(int num_corrector_steps,
                                const std::optional<double> &max_step_size)
@@ -37,76 +36,28 @@ std::shared_ptr<base_integrator> crank_nicolson::clone() {
   return clone;
 }
 
-void crank_nicolson::setState(const cudaq::state &initial_state, double t0) {
-  auto *simState = cudaq::state_helper::getSimulationState(
-      const_cast<cudaq::state *>(&initial_state));
-  auto *cudmState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!cudmState)
-    throw std::runtime_error("Invalid state.");
-  m_state = std::make_shared<cudaq::state>(
-      CuDensityMatState::clone(*cudmState).release());
-  m_t = t0;
+void crank_nicolson::setState(const cudaq::state &initialState, double t0) {
+  H::setState(m_state, m_t, initialState, t0);
 }
 
 std::pair<double, cudaq::state> crank_nicolson::getState() {
-  auto *simState = cudaq::state_helper::getSimulationState(m_state.get());
-  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!castSimState)
-    throw std::runtime_error("Invalid state.");
-  return std::make_pair(
-      m_t, cudaq::state(CuDensityMatState::clone(*castSimState).release()));
+  return H::getState(m_state, m_t);
 }
 
 void crank_nicolson::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "crank_nicolson::integrate");
-
-  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
-    auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
-    auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-    if (!castSimState)
-      throw std::runtime_error("Invalid state.");
-    return castSimState;
-  };
-
-  std::unordered_map<std::string, std::complex<double>> params;
-
-  if (!m_stepper) {
-    auto &castSimState = *asCudmState(*m_state);
-    for (const auto &param : m_schedule.get_parameters())
-      params[param] = m_schedule.get_value_function()(param, 0.0);
-
-    auto liouvillian =
-        m_system.superOp.has_value()
-            ? cudaq::dynamics::Context::getCurrentContext()
-                  ->getOpConverter()
-                  .constructLiouvillian({m_system.superOp.value()},
-                                        m_system.modeExtents, params)
-            : cudaq::dynamics::Context::getCurrentContext()
-                  ->getOpConverter()
-                  .constructLiouvillian({m_system.hamiltonian},
-                                        {m_system.collapseOps},
-                                        m_system.modeExtents, params,
-                                        castSimState.is_density_matrix());
-    m_stepper = std::make_unique<CuDensityMatTimeStepper>(
-        asCudmState(*m_state)->get_handle(), liouvillian);
-  }
+  H::ensureStepper(m_stepper, m_state, m_system, m_schedule);
 
   while (m_t < targetTime) {
-    const double step_size =
-        std::min(m_dt.value_or(targetTime - m_t), targetTime - m_t);
+    const double step_size = H::computeStepSize(m_t, targetTime, m_dt);
+    auto &castSimState = *H::asCudmState(*m_state);
 
-    auto &castSimState = *asCudmState(*m_state);
-
-    for (const auto &param : m_schedule.get_parameters())
-      params[param] = m_schedule.get_value_function()(param, m_t);
+    auto params = H::scheduleParamsAt(m_schedule, m_t);
     auto k1State = m_stepper->compute(*m_state, m_t, params);
-    auto &k1 = *asCudmState(k1State);
+    auto &k1 = *H::asCudmState(k1State);
 
-    std::unordered_map<std::string, std::complex<double>> params_next;
-    for (const auto &param : m_schedule.get_parameters())
-      params_next[param] =
-          m_schedule.get_value_function()(param, m_t + step_size);
+    auto params_next = H::scheduleParamsAt(m_schedule, m_t + step_size);
 
     auto rho_iter_ptr = CuDensityMatState::clone(castSimState);
     rho_iter_ptr->accumulate_inplace(k1, step_size);
@@ -115,7 +66,7 @@ void crank_nicolson::integrate(double targetTime) {
     for (int iter = 0; iter < m_num_corrector_steps; ++iter) {
       auto k2State =
           m_stepper->compute(*rho_iter, m_t + step_size, params_next);
-      auto &k2 = *asCudmState(k2State);
+      auto &k2 = *H::asCudmState(k2State);
 
       auto rho_next = CuDensityMatState::clone(castSimState);
       rho_next->accumulate_inplace(k1, step_size / 2.0);
