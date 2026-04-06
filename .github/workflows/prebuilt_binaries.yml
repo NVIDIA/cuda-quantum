@@ -169,6 +169,8 @@ jobs:
       - name: Build assets
         id: docker_build
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/build/assets.Dockerfile
@@ -221,6 +223,8 @@ jobs:
 
       - name: Build installer
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/installer.Dockerfile
@@ -292,6 +296,8 @@ jobs:
 
       - name: Build OpenMPI
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/test/installer/linux.Dockerfile

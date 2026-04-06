@@ -146,6 +146,8 @@ jobs:
       - name: Push image to GHCR
         id: docker_build
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ${{ steps.metadata.outputs.dockerfile }}

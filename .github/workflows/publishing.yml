@@ -497,6 +497,8 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/cudaq.ext.Dockerfile
@@ -651,6 +653,8 @@ jobs:
 
       - name: Build installer
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/installer.Dockerfile
@@ -793,6 +797,8 @@ jobs:
       - name: Build cuda-quantum wheel
         id: build_wheel
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/cudaq.wheel.Dockerfile

@@ -158,6 +158,8 @@ jobs:
       - name: Build wheel
         id: wheel_build
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/cudaq.wheel.Dockerfile
