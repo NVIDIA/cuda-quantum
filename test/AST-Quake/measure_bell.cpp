@@ -52,7 +52,7 @@ struct bell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
 // CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
 // CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
@@ -119,7 +119,7 @@ struct libertybell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
 // CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
 // CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
@@ -183,7 +183,7 @@ struct tinkerbell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
 // CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
 // CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>

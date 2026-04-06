@@ -68,6 +68,18 @@ void registerQuakeDialectAndTypes(py::module &m) {
           py::arg("cls"), py::arg("context") = py::none());
 
   mlir_type_subclass(
+      quakeMod, "MeasurementsType",
+      [](MlirType type) { return unwrap(type).isa<quake::MeasurementsType>(); })
+      .def_classmethod(
+          "get",
+          [](py::object cls, std::size_t size, MlirContext context) {
+            return wrap(quake::MeasurementsType::get(unwrap(context), size));
+          },
+          py::arg("cls"),
+          py::arg("size") = quake::MeasurementsType::kDynamicSize,
+          py::arg("context") = py::none());
+
+  mlir_type_subclass(
       quakeMod, "VeqType",
       [](MlirType type) { return unwrap(type).isa<quake::VeqType>(); })
       .def_classmethod(
@@ -100,6 +112,18 @@ void registerQuakeDialectAndTypes(py::module &m) {
             return veqTy.getSize();
           },
           py::arg("veqTypeInstance"));
+
+  quakeMod.def(
+      "isConstantQuantumRefType",
+      [](MlirType type) {
+        return quake::isConstantQuantumRefType(unwrap(type));
+      },
+      py::arg("type"));
+
+  quakeMod.def(
+      "getAllocationSize",
+      [](MlirType type) { return quake::getAllocationSize(unwrap(type)); },
+      py::arg("type"));
 
   mlir_type_subclass(
       quakeMod, "StruqType",
