@@ -82,8 +82,8 @@ __qpu__ uint64_t foo() {
 // CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_10]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_3]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_3]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measurements<2>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_13:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer.
 // CHECK:           return %[[VAL_13]] : i64
 // CHECK:         }

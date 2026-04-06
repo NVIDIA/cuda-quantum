@@ -8,7 +8,6 @@
 
 set(LIBRARY_NAME cudaq)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
 add_library(${LIBRARY_NAME}
@@ -44,9 +43,6 @@ add_library(${LIBRARY_NAME}
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 if (CUDA_FOUND)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
-
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -61,8 +57,8 @@ if (CUDA_FOUND)
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
     PRIVATE
+      MLIRIR
       nvqir
       cudaq-logger
       fmt::fmt-header-only
@@ -85,8 +81,8 @@ else()
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
     PRIVATE
+      MLIRIR
       nvqir
       cudaq-logger
       fmt::fmt-header-only

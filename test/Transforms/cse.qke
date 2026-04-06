@@ -63,13 +63,13 @@ func.func private @device_kernel(!quake.veq<?>)
 func.func @canonicalize_concat() {
   %q1 = quake.alloca !quake.ref
   %q2 = quake.concat %q1 : (!quake.ref) -> !quake.veq<1>
-  %b1 = quake.mz %q2 : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+  %b1 = quake.mz %q2 : (!quake.veq<1>) -> !quake.measurements<1>
   %q3 = quake.alloca !quake.veq<1>
   %q4 = quake.concat %q3 : (!quake.veq<1>) -> !quake.veq<1>
-  %b2 = quake.mz %q4 : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+  %b2 = quake.mz %q4 : (!quake.veq<1>) -> !quake.measurements<1>
   %q5 = quake.alloca !quake.veq<1>
   %q6 = quake.concat %q5 : (!quake.veq<1>) -> !quake.veq<?>
-  %b3 = quake.mz %q6 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+  %b3 = quake.mz %q6 : (!quake.veq<?>) -> !quake.measurements<?>
   %q7 = quake.alloca !quake.veq<2>
   %q8 = quake.concat %q7 : (!quake.veq<2>) -> !quake.veq<?>
   call @device_kernel(%q8) : (!quake.veq<?>) -> ()
@@ -83,11 +83,11 @@ func.func @canonicalize_concat() {
 // CHECK-LABEL:   func.func @canonicalize_concat() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.concat %[[VAL_0]] : (!quake.ref) -> !quake.veq<1>
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<1>) -> !quake.measurements<1>
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<1>) -> !quake.measurements<1>
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<1>) -> !quake.measurements<1>
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_8:.*]] = quake.relax_size %[[VAL_7]] : (!quake.veq<2>) -> !quake.veq<?>
 // CHECK:           call @device_kernel(%[[VAL_8]]) : (!quake.veq<?>) -> ()
@@ -101,13 +101,13 @@ func.func @canonicalize_multiple_concat() {
   %q1 = quake.alloca !quake.ref
   %p1 = quake.alloca !quake.ref
   %q2 = quake.concat %q1, %p1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
-  %b1 = quake.mz %q2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+  %b1 = quake.mz %q2 : (!quake.veq<2>) -> !quake.measurements<2>
   %q3 = quake.alloca !quake.veq<1>
   %q4 = quake.concat %q1, %p1, %q3 : (!quake.ref, !quake.ref, !quake.veq<1>) -> !quake.veq<3>
-  %b2 = quake.mz %q4 : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+  %b2 = quake.mz %q4 : (!quake.veq<3>) -> !quake.measurements<3>
   %q5 = quake.alloca !quake.veq<1>
   %q6 = quake.concat %q3, %q5 : (!quake.veq<1>, !quake.veq<1>) -> !quake.veq<?>
-  %b3 = quake.mz %q6 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+  %b3 = quake.mz %q6 : (!quake.veq<?>) -> !quake.measurements<?>
   %q7 = quake.alloca !quake.veq<2>
   %q8 = quake.concat %q3, %q7 : (!quake.veq<1>, !quake.veq<2>) -> !quake.veq<?>
   call @device_kernel(%q8) : (!quake.veq<?>) -> ()
@@ -122,13 +122,13 @@ func.func @canonicalize_multiple_concat() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !quake.measurements<2>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<1>
 // CHECK:           %[[VAL_5:.*]] = quake.concat %[[VAL_0]], %[[VAL_1]], %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.veq<1>) -> !quake.veq<3>
-// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<3>) -> !quake.measurements<3>
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<1>
 // CHECK:           %[[VAL_8:.*]] = quake.concat %[[VAL_4]], %[[VAL_7]] : (!quake.veq<1>, !quake.veq<1>) -> !quake.veq<2>
-// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<2>) -> !quake.measurements<2>
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_11:.*]] = quake.concat %[[VAL_4]], %[[VAL_10]] : (!quake.veq<1>, !quake.veq<2>) -> !quake.veq<3>
 // CHECK:           %[[VAL_12:.*]] = quake.relax_size %[[VAL_11]] : (!quake.veq<3>) -> !quake.veq<?>

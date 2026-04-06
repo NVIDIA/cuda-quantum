@@ -12,9 +12,9 @@
 #include "NoiseModel.h"
 #include "SampleResult.h"
 #include "Trace.h"
-#include "common/JIT.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
+#include "cudaq_internal/compiler/JIT.h"
 #include <optional>
 #include <string_view>
 
@@ -166,7 +166,7 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq_internal::compiler::JitEngine> jitEng = std::nullopt;
 
   /// @endcond
 };
@@ -223,11 +223,12 @@ bool isPersistingJITEngine();
 ///
 /// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
 void checkArtifactReuse(const std::string kernelName,
-                        const std::vector<void *> &args, const JitEngine jit,
+                        const std::vector<void *> &args,
+                        const cudaq_internal::compiler::JitEngine jit,
                         std::function<void *()> argsCreatorThunk);
 
 void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
-                  const JitEngine jit,
+                  const cudaq_internal::compiler::JitEngine jit,
                   std::function<void *()> argsCreatorThunk);
 }; // namespace compiler_artifact
 } // namespace cudaq

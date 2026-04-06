@@ -6,10 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
-
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(LIBRARY_NAME nvqir-dynamics)
 message (STATUS "CUDENSITYMAT_ROOT and CUDA_FOUND - building dynamics NVQIR backend.")
 

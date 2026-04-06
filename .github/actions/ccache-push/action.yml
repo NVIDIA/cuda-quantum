@@ -83,10 +83,16 @@ runs:
         fi
         echo "Cache delta: ${new_files} new files (${delta_pct}% change, ${restore_count} -> ${current_count})"
 
-        # Always push on the default branch to keep the baseline fresh
+        # Always push on the default branch to keep the baseline fresh.
+        # This includes merge queue runs, which are the only path into
+        # main (no workflow triggers on direct push-to-main).
         default_branch="${{ github.event.repository.default_branch }}"
         default_branch="${default_branch:-main}"
-        is_default_branch=$( [ "${{ github.ref_name }}" = "$default_branch" ] && echo true || echo false )
+        if [ "${{ github.event_name }}" = "merge_group" ] || [ "${{ github.ref_name }}" = "$default_branch" ]; then
+          is_default_branch=true
+        else
+          is_default_branch=false
+        fi
 
         if $is_default_branch; then
           echo "On default branch ($default_branch); always pushing to keep baseline fresh."
@@ -110,17 +116,29 @@ runs:
         image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
         cache_key="${{ inputs.cache-key }}"
 
-        # Auto-detect PR number from ref name if not provided
-        pr_number="${{ inputs.pr-number }}"
-        if [ -z "$pr_number" ]; then
-          pr_number=$(echo "${{ github.ref_name }}" | grep pull-request/ | grep -o '[0-9]*' || true)
-          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
-        fi
-
-        if [ -n "$pr_number" ]; then
-          tag="${cache_key}-pr-${pr_number}"
+        # Merge queue runs tag with the target branch (e.g. "main") so
+        # the baseline cache stays fresh for future builds.
+        if [ "${{ github.event_name }}" = "merge_group" ]; then
+          # base_ref looks like "refs/heads/main"; strip the prefix
+          merge_target="${{ github.event.merge_group.base_ref }}"
+          tag="${cache_key}-$(echo "${merge_target#refs/heads/}" | tr '/' '-')"
         else
-          tag="${cache_key}-${{ inputs.ref-name }}"
+          # Try to find a PR number: check the input, then the event
+          # context, then parse it from the ref name. Ref names can be
+          # pull-request/XXXX or gh-readonly-queue/BRANCH/pr-XXXX-SHA.
+          pr_number="${{ inputs.pr-number }}"
+          pr_number="${pr_number:-${{ github.event.pull_request.number }}}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          if [ -n "$pr_number" ]; then
+            tag="${cache_key}-pr-${pr_number}"
+          else
+            # Replace slashes so the tag is valid for OCI registries
+            tag="${cache_key}-$(echo "${{ inputs.ref-name }}" | tr '/' '-')"
+          fi
         fi
 
         # Tar the contents of the cache directory (not the directory itself)
