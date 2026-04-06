@@ -5,9 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "Compiler.h"
-#include "ServerHelper.h"
-#include "common/ArgumentConversion.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "common/CodeGenConfig.h"
 #include "common/DeviceCodeRegistry.h"
 #include "common/Environment.h"
@@ -15,7 +13,7 @@
 #include "common/FmtCore.h"
 #include "common/NoiseModel.h"
 #include "common/Resources.h"
-#include "common/RuntimeMLIR.h"
+#include "common/ServerHelper.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
@@ -23,6 +21,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
@@ -43,6 +43,7 @@
 #include <regex>
 
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
@@ -89,12 +90,10 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
 }
 } // namespace
 
-namespace cudaq {
-
 std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
 Compiler::extractQuakeCodeAndContext(const std::string &kernelName,
                                      void *data) {
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
 
   // Get the quake representation of the kernel
   auto quakeCode = cudaq::get_quake_by_name(kernelName);
@@ -105,24 +104,24 @@ Compiler::extractQuakeCodeAndContext(const std::string &kernelName,
   return std::make_tuple(m_module.release(), std::move(context), data);
 }
 
-Compiler::Compiler(ServerHelper *serverHelper,
+Compiler::Compiler(cudaq::ServerHelper *serverHelper,
                    const std::map<std::string, std::string> &backendConfig,
-                   config::TargetConfig &config, const noise_model *noiseModel,
-                   bool emulate)
+                   cudaq::config::TargetConfig &config,
+                   const cudaq::noise_model *noiseModel, bool emulate)
     : emulate(emulate) {
 
-  cudaq::initializeMLIR();
+  initializeMLIR();
 
   // Print the IR if requested
-  printIR = getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
+  printIR = cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
 
   // Get additional debug values
   disableMLIRthreading =
-      getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
+      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
   enablePrintMLIREachPass =
-      getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
   enablePassStatistics =
-      getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
+      cudaq::getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
 
   // If the very verbose enablePrintMLIREachPass flag is set, then
   // multi-threading must be disabled.
@@ -136,7 +135,7 @@ Compiler::Compiler(ServerHelper *serverHelper,
       CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
       codegenTranslation = codeGenSpec;
       // Validate codegen configuration.
-      parseCodeGenTranslation(codegenTranslation);
+      cudaq::parseCodeGenTranslation(codegenTranslation);
     }
 
     const std::string allowEarlyExitSetting =
@@ -225,7 +224,7 @@ Compiler::Compiler(ServerHelper *serverHelper,
 Compiler::~Compiler() = default;
 
 std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
-    ExecutionContext *executionContext, const std::string &kernelName,
+    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
     void *kernelArgs, const std::vector<void *> &rawArgs,
     mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr, void *updatedArgs) {
   // Extract the kernel name
@@ -256,11 +255,11 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
 
   auto epFunc =
       moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
-  const bool isPython = moduleOp->hasAttr(runtime::pythonUniqueAttrName);
+  const bool isPython = moduleOp->hasAttr(cudaq::runtime::pythonUniqueAttrName);
   if (!rawArgs.empty() || updatedArgs) {
     mlir::PassManager pm(contextPtr);
     if (isPython)
-      detail::mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
+      mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
 
     // Mark all newly merged kernels private, and leave the entry point alone.
     for (auto &op : moduleOp)
@@ -273,7 +272,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
-      cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
+      ArgumentConverter argCon(kernelName, moduleOp);
       argCon.gen(rawArgs);
 
       // Store kernel and substitution strings on the stack.
@@ -295,7 +294,8 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
                                                     kernels.end()};
       mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
                                                    substs.end()};
-      pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+      pm.addPass(
+          cudaq::opt::createArgumentSynthesisPass(kernelRefs, substRefs));
       pm.addNestedPass<mlir::func::FuncOp>(mlir::createCanonicalizerPass());
       pm.addPass(
           cudaq::opt::createLambdaLifting({.constantPropagation = true}));
@@ -306,7 +306,8 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
       pm.addPass(
           cudaq::opt::createApplySpecialization({.constantPropagation = true}));
       cudaq::opt::addAggressiveInlining(pm);
-      pm.addNestedPass<mlir::func::FuncOp>(opt::createReplaceStateWithKernel());
+      pm.addNestedPass<mlir::func::FuncOp>(
+          cudaq::opt::createReplaceStateWithKernel());
       cudaq::opt::addAggressiveInlining(pm);
       pm.addPass(mlir::createSymbolDCEPass());
     } else if (updatedArgs) {
@@ -360,9 +361,9 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
-  std::unique_ptr<Resources> resourceCounts;
+  std::unique_ptr<cudaq::Resources> resourceCounts;
   if (executionContext && executionContext->name == "resource-count") {
-    resourceCounts = std::make_unique<Resources>();
+    resourceCounts = std::make_unique<cudaq::Resources>();
     // Each pass may run in a separate thread, so we have to make sure to
     // grab this reference in this thread
     std::function<void(std::string, size_t, size_t)> f =
@@ -373,7 +374,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     cudaq::opt::ResourceCountPreprocessOptions opt{f};
     mlir::PassManager pm(moduleOp.getContext());
     pm.addNestedPass<mlir::func::FuncOp>(
-        opt::createResourceCountPreprocess(opt));
+        cudaq::opt::createResourceCountPreprocess(opt));
     pm.addPass(mlir::createCanonicalizerPass());
     if (enablePrintMLIREachPass)
       pm.enableIRPrinting();
@@ -484,7 +485,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
       jitEngines.emplace_back(
-          cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
+          createQIRJITEngine(clonedModule, codegenTranslation));
     }
   }
 
@@ -493,7 +494,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
       runPassPipeline("func.func(combine-measurements)", module);
 
   // Get the code gen translation
-  auto translation = cudaq::getTranslation(codegenTranslation);
+  auto translation = getTranslation(codegenTranslation);
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
@@ -537,7 +538,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
 /// lowering process is controllable via the configuration file in the
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, void *kernelArgs,
                          const std::vector<void *> &rawArgs) {
 
@@ -548,20 +549,20 @@ Compiler::lowerQuakeCode(ExecutionContext *executionContext,
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, void *kernelArgs) {
   return lowerQuakeCode(executionContext, kernelName, kernelArgs, {});
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName,
                          const std::vector<void *> &rawArgs) {
   return lowerQuakeCode(executionContext, kernelName, nullptr, rawArgs);
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(ExecutionContext *executionContext,
+Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs) {
   return lowerQuakeCodePart2(executionContext, kernelName, nullptr, rawArgs,
@@ -689,5 +690,3 @@ mlir::ModuleOp Compiler::lowerQuakeCodeBuildModule(
   }
   return moduleOp;
 }
-
-} // namespace cudaq

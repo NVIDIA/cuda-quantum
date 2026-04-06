@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "JIT.h"
-#include "CompiledKernel.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "common/CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -48,11 +48,13 @@
 #define DEBUG_TYPE "cudaq-qpud"
 
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
-cudaq::createWrappedKernel(std::string_view irString,
-                           const std::string &entryPointFn, void *args,
-                           std::uint64_t argsSize) {
+cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
+                                              const std::string &entryPointFn,
+                                              void *args,
+                                              std::uint64_t argsSize) {
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
@@ -238,8 +240,9 @@ void insertSetupAndCleanupOperations(Operation *module) {
 }
 } // namespace
 
-cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
-                                           llvm::StringRef convertTo) {
+JitEngine
+cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
+                                             llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createQIRJITEngine");
@@ -279,7 +282,7 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
     }
 
     auto enablePrintMLIREachPass =
-        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
     if (enablePrintMLIREachPass) {
       module->getContext()->disableMultithreading();
       pm.enableIRPrinting();
@@ -333,10 +336,9 @@ cudaq::JitEngine cudaq::createQIRJITEngine(ModuleOp &moduleOp,
   return JitEngine(std::move(jitOrError.get()));
 }
 
-cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
-                                                  std::string kernelName,
-                                                  bool hasResult,
-                                                  bool isFullySpecialized) {
+cudaq::CompiledKernel cudaq_internal::compiler::createCompiledKernel(
+    JitEngine engine, std::string kernelName, bool hasResult,
+    bool isFullySpecialized) {
   std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
   std::string entryName =
       (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
@@ -349,7 +351,7 @@ cudaq::CompiledKernel cudaq::createCompiledKernel(JitEngine engine,
                                argsCreator, hasResult);
 }
 
-class cudaq::JitEngine::Impl {
+class JitEngine::Impl {
 public:
   Impl(std::unique_ptr<ExecutionEngine> jitEngine)
       : jitEngine(std::move(jitEngine)) {}
@@ -375,16 +377,15 @@ private:
   std::unique_ptr<ExecutionEngine> jitEngine;
 };
 
-cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
+JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
     : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
 
-void cudaq::JitEngine::run(const std::string &kernelName) const {
+void JitEngine::run(const std::string &kernelName) const {
   return impl->run(kernelName);
 }
 
-std::size_t cudaq::JitEngine::getKey() const { return impl->getKey(); }
+std::size_t JitEngine::getKey() const { return impl->getKey(); }
 
-void (*cudaq::JitEngine::lookupRawNameOrFail(const std::string &kernelName)
-          const)() {
+void (*JitEngine::lookupRawNameOrFail(const std::string &kernelName) const)() {
   return impl->lookupRawNameOrFail(kernelName);
 }

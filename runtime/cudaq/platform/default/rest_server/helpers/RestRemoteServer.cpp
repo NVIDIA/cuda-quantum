@@ -7,11 +7,9 @@
  ******************************************************************************/
 
 #include "common/FmtCore.h"
-#include "common/JIT.h"
 #include "common/JsonConvert.h"
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
-#include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -22,6 +20,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Verifier/NVQIRCalls.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
 #include "llvm/ADT/ScopeExit.h"
@@ -60,6 +60,7 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 
 namespace {
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 // Encapsulates a dynamically-loaded NVQIR simulator library
 struct SimulatorHandle {
   std::string name;
@@ -210,7 +211,7 @@ public:
 
           return resultJs;
         });
-    m_mlirContext = cudaq::getOwningMLIRContext();
+    m_mlirContext = getOwningMLIRContext();
     m_hasMpi = cudaq::mpi::is_initialized();
   }
 
@@ -349,7 +350,7 @@ public:
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
-        std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+        std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
             ir, std::string(kernelName), kernelArgs, argsSize);
         invokeWrappedKernel(wrappedKernel, context);
         // In trace mode, if we have a measure result
@@ -368,7 +369,7 @@ public:
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+          std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
               ir, std::string(kernelName), kernelArgs, argsSize);
           invokeWrappedKernel(wrappedKernel, io_context, io_context.shots,
                               [&](std::size_t i) {
@@ -384,12 +385,12 @@ public:
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
-          std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+          std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
               ir, std::string(kernelName), kernelArgs, argsSize);
           invokeWrappedKernel(wrappedKernel, io_context);
         }
       } else {
-        std::tie(llvmJit, wrappedKernel) = cudaq::createWrappedKernel(
+        std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
             ir, std::string(kernelName), kernelArgs, argsSize);
         invokeWrappedKernel(wrappedKernel, io_context);
       }

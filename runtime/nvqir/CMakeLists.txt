@@ -10,8 +10,6 @@ set(LIBRARY_NAME nvqir)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
 set(NVQIR_RUNTIME_SRC
   QIRTypes.cpp
   NVQIR.cpp

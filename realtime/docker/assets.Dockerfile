@@ -53,7 +53,7 @@ ENV CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 
 ## [nvComp] 
 # For Hololink
-RUN dnf -y install nvcomp
+RUN dnf -y install nvcomp pkgconfig
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 
@@ -87,7 +87,7 @@ ADD realtime /cuda-quantum/realtime
 # [HSB]
 ARG cuda_native_arg="80-real;90"
 ENV CUDA_NATIVE_ARCH=${cuda_native_arg}
-ARG hsb_version="release-2.6.0-EA"
+ARG hsb_version="2.6.0-EA2"
 # Build HSB
 RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git && cd holoscan-sensor-bridge && \
     cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DHOLOLINK_BUILD_ONLY_NATIVE=OFF -DHOLOLINK_BUILD_PYTHON=OFF -DHOLOLINK_BUILD_TESTS=OFF -DHOLOLINK_BUILD_TOOLS=OFF -DHOLOLINK_BUILD_EXAMPLES=OFF -DHOLOLINK_BUILD_EMULATOR=OFF && \

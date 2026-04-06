@@ -6,10 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-namespace cudaq {
+#include "cudaq/Optimizer/InitAllPasses.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetSelect.h"
 
-// Pass registration is done through the 'register_dialect' python call.
-// The native target initialization is built into the MLIR python extension.
-void initializeLangMLIR() {}
-
-} // namespace cudaq
+void cudaq_internal::compiler::initializeLangMLIR() {
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  cudaq::registerAllPasses();
+}

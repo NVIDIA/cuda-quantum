@@ -887,16 +887,10 @@ TEST_F(HostDispatcherLoopTest, BackpressureWhenAllBusy) {
   SignalSlot(0);
   SignalSlot(1);
 
+  // sweep_completed_workers auto-releases workers, so both slots
+  // complete without an explicit RestoreWorker call.
   ASSERT_TRUE(PollTxFlag(0)) << "Timeout on slot 0";
-  ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
-
-  // Slot 1 should still be pending — worker is busy.
-  EXPECT_EQ(tx_flags_host_[1], 0u)
-      << "Slot 1 should stall while worker is busy";
-
-  RestoreWorker(0);
-
-  ASSERT_TRUE(PollTxFlag(1)) << "Timeout on slot 1 after restoring worker";
+  ASSERT_TRUE(PollTxFlag(1)) << "Timeout on slot 1";
   ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
 
   const std::uint8_t expected0[] = {1, 2, 3, 4};

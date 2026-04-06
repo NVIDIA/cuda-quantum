@@ -35,6 +35,7 @@ target_link_libraries(cudaq-serverhelper-scaleway
     cudaq-logger
   PRIVATE
     LLVMSupport
+    ZLIB::ZLIB
 )
 
 install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib)

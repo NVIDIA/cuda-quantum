@@ -70,6 +70,9 @@ struct QuakeTypeConverter : public TypeConverter {
     addConversion([](quake::MeasureType ty) {
       return cudaq::opt::getResultType(ty.getContext());
     });
+    addConversion([](quake::MeasurementsType ty) {
+      return cudaq::opt::getArrayType(ty.getContext());
+    });
   }
 };
 } // namespace

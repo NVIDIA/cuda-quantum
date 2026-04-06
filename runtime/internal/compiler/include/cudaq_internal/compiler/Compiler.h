@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "JIT.h"
+#include "cudaq_internal/compiler/JIT.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -33,7 +33,7 @@ class FuncOp;
 }
 } // namespace mlir
 
-namespace cudaq {
+namespace cudaq_internal::compiler {
 
 class Compiler {
 
@@ -73,7 +73,7 @@ class Compiler {
   bool printIR = false;
 
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCodePart2(ExecutionContext *executionContext,
+  lowerQuakeCodePart2(cudaq::ExecutionContext *executionContext,
                       const std::string &kernelName, void *kernelArgs,
                       const std::vector<void *> &rawArgs,
                       mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr,
@@ -85,8 +85,8 @@ class Compiler {
 public:
   Compiler(cudaq::ServerHelper *,
            const std::map<std::string, std::string> &backendConfig,
-           config::TargetConfig &config, const noise_model *noiseModel,
-           bool emulate);
+           cudaq::config::TargetConfig &config,
+           const cudaq::noise_model *noiseModel, bool emulate);
   ~Compiler();
 
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
@@ -99,16 +99,16 @@ public:
   /// lowering process is controllable via the configuration file in the
   /// platform directory for the targeted backend.
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(ExecutionContext *executionContext,
+  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs);
 
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(ExecutionContext *executionContext,
+  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, void *kernelArgs);
 
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(ExecutionContext *executionContext,
+  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName,
                  const std::vector<void *> &rawArgs);
 
@@ -121,8 +121,8 @@ public:
   // of this launch instance) and disposable. It can be modified by this call in
   // any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(ExecutionContext *executionContext,
+  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, mlir::ModuleOp module,
                  const std::vector<void *> &rawArgs);
 };
-} // namespace cudaq
+} // namespace cudaq_internal::compiler

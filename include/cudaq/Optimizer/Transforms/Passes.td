@@ -219,7 +219,7 @@ def CombineMeasurements :
       %1 = ... : !quake.veq<4>
       %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
             !quake.veq<2>
-      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !quake.measurements<2>
     }
     ```
     with:
@@ -227,7 +227,7 @@ def CombineMeasurements :
     func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
     "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
       %1 = ... : !quake.veq<4>
-      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !quake.measurements<4>
     }
     ```
   }];
@@ -478,15 +478,30 @@ def ExpandControlVeqs: Pass<"expand-control-veqs", "mlir::func::FuncOp"> {
 }
 
 def ExpandMeasurements : Pass<"expand-measurements"> {
-  let summary = "Expand multi-ref measurements to series on single refs.";
+  let summary = "Expand multi-qubit measurements to individual qubit ops.";
   let description = [{
-    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments.
-    The target may only support measuring a single qubit however. This pass
-    expands these ops in list format into a series of measurements (including
-    loops) on individual qubits and into a single `std::vector<bool>` result.
+    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments
+    and return a `!quake.measurements<N>` collection. The target may only
+    support measuring a single qubit however. This pass expands these
+    multi-qubit measurements into individual single-qubit measurements in two
+    steps.
 
-    The `reset` op can also take a veq argument and this pass will also expand
-    that to a series of `reset` operations on single qubits.
+    Step 1: Any `quake.discriminate` on a sized `!quake.measurements<N>`
+    value is expanded into N individual `quake.get_measure` +
+    `quake.discriminate` operations on single `!quake.measure` values, with
+    results collected into a `!cc.stdvec<iK>`.
+
+    Step 2: Multi-qubit `mx`, `my`, `mz` ops are replaced with individual
+    per-qubit measurements. For `veq<N>` targets with known size, the qubits
+    are extracted via `quake.extract_ref` and measured individually. For
+    `veq<?>` targets with dynamically-sized targets, a loop is generated
+    using `quake.veq_size` to compute the iteration count and individual
+    qubits are extracted via `quake.extract_ref` within the loop body.
+    
+    Multi-qubit measurements without local discriminate users are left intact.
+
+    The `reset` op can also take a veq argument and this pass will expand that
+    to a loop of `reset` operations on individual qubits.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];

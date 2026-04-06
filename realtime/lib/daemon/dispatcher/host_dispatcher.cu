@@ -102,6 +102,21 @@ static int acquire_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
   return __builtin_ffsll(static_cast<long long>(mask)) - 1;
 }
 
+static void
+sweep_completed_workers(const cudaq_host_dispatch_loop_ctx_t *ctx) {
+  uint64_t busy =
+      ~as_atomic_u64(ctx->idle_mask)->load(cuda::std::memory_order_acquire);
+  busy &= (1ULL << ctx->num_workers) - 1;
+  while (busy != 0) {
+    int w = __builtin_ffsll(static_cast<long long>(busy)) - 1;
+    if (cudaStreamQuery(ctx->workers[w].stream) == cudaSuccess) {
+      as_atomic_u64(ctx->idle_mask)
+          ->fetch_or(1ULL << w, cuda::std::memory_order_release);
+    }
+    busy &= ~(1ULL << w);
+  }
+}
+
 static void launch_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
                                 int worker_id, void *slot_host,
                                 size_t current_slot) {
@@ -129,8 +144,10 @@ static void launch_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
     void *d_ctx = d_ctxs + worker_id * sizeof(GraphIOContext);
     ctx->h_mailbox_bank[worker_id] = d_ctx;
 
-    as_atomic_u64(ctx->ringbuffer.tx_flags_host)[current_slot].store(
-        CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
+    if (!ctx->config.skip_tx_markers) {
+      as_atomic_u64(ctx->ringbuffer.tx_flags_host)[current_slot].store(
+          CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
+    }
     __sync_synchronize();
   } else {
     ctx->h_mailbox_bank[worker_id] = data_dev;
@@ -154,7 +171,7 @@ static void launch_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
     if (ctx->workers[w].post_launch_fn)
       ctx->workers[w].post_launch_fn(ctx->workers[w].post_launch_data,
                                         data_dev, ctx->workers[w].stream);
-    if (ctx->io_ctxs_host == nullptr) {
+    if (ctx->io_ctxs_host == nullptr && !ctx->config.skip_tx_markers) {
       as_atomic_u64(ctx->ringbuffer.tx_flags_host)[current_slot].store(
           CUDAQ_TX_FLAG_IN_FLIGHT, cuda::std::memory_order_release);
     }
@@ -178,6 +195,8 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
             cuda::std::memory_order_acquire);
 
     if (rx_value == 0) {
+      if (!ctx->skip_stream_sweep)
+        sweep_completed_workers(ctx);
       CUDAQ_REALTIME_CPU_RELAX();
       continue;
     }
@@ -206,6 +225,8 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
       continue;
     }
 
+    if (!ctx->skip_stream_sweep)
+      sweep_completed_workers(ctx);
     int worker_id =
         acquire_graph_worker(ctx, use_function_table, entry, function_id);
     if (worker_id < 0) {
