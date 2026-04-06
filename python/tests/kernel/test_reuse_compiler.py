@@ -39,8 +39,8 @@ def test_reuse():
         res = cudaq.sample(simple, 4, shots_count=1)
         assert (res.count("1111") == 1)
 
-        with pytest.raises(RuntimeError):
-            res = cudaq.sample(simple, 5, shots_count=1)
+        res = cudaq.sample(simple, 5, shots_count=1)
+        assert (res.count("11111") == 1)
 
         @cudaq.kernel
         def simple(numQubits: int):
@@ -51,7 +51,7 @@ def test_reuse():
 
         simple = nop
         with pytest.raises(RuntimeError):
-            res = cudaq.sample(simple, 5, shots_count=1)
+            res = cudaq.sample(simple, 4, shots_count=1)
     res = cudaq.sample(simple, 6, shots_count=1)
     assert (res.count("000000") == 1)
 
@@ -119,8 +119,7 @@ def test_reuse_complex_arguments():
                            same_angles_different_value,
                            shots_count=1)
         assert (res.count("11") == 1)
-        with pytest.raises(RuntimeError):
-            cudaq.sample(apply_complex_angles, different_angles, shots_count=1)
+        cudaq.sample(apply_complex_angles, different_angles, shots_count=1)
 
 
 def test_different_launch_mode():

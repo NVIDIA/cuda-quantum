@@ -129,6 +129,28 @@ void cudaq::opt::marshal::genReturnOffsetFunction(
   builder.create<func::ReturnOp>(loc, result);
 }
 
+void cudaq::opt::marshal::genResultSizeFunction(
+    Location loc, OpBuilder &builder, FunctionType devKernelTy,
+    cudaq::cc::StructType msgStructTy, const std::string &classNameStr) {
+  auto *ctx = builder.getContext();
+  auto i64Ty = builder.getI64Type();
+  auto funcTy = FunctionType::get(ctx, {}, {i64Ty});
+  auto resultSizeFunc =
+      builder.create<func::FuncOp>(loc, classNameStr + ".resultSize", funcTy);
+  OpBuilder::InsertionGuard guard(builder);
+  auto *entry = resultSizeFunc.addEntryBlock();
+  builder.setInsertionPointToStart(entry);
+  Value result;
+  if (devKernelTy.getNumResults() == 0) {
+    result = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+  } else {
+    unsigned numInputs = devKernelTy.getNumInputs();
+    auto resTy = msgStructTy.getMember(numInputs);
+    result = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, resTy);
+  }
+  builder.create<func::ReturnOp>(loc, result);
+}
+
 static cudaq::cc::PointerType getByteAddressableType(OpBuilder &builder) {
   return cudaq::cc::PointerType::get(
       cudaq::cc::ArrayType::get(builder.getI8Type()));

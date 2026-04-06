@@ -343,12 +343,22 @@ cudaq::CompiledKernel cudaq_internal::compiler::createCompiledKernel(
   std::string entryName =
       (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  int64_t (*argsCreator)(const void *, void **) = nullptr;
-  if (!isFullySpecialized)
-    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
+  ArgsCreatorFunc argsCreator = nullptr;
+  ReturnOffsetFunc returnOffset = nullptr;
+  ResultSizeFunc resultSize = nullptr;
+  if (!isFullySpecialized) {
+    argsCreator = reinterpret_cast<ArgsCreatorFunc>(
         engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
+    returnOffset = reinterpret_cast<ReturnOffsetFunc>(
+        engine.lookupRawNameOrFail(kernelName + ".returnOffset"));
+    resultSize = reinterpret_cast<ResultSizeFunc>(
+        engine.lookupRawNameOrFail(kernelName + ".resultSize"));
+  }
+  auto hybridLauncher = reinterpret_cast<HybridLaunchFunc>(
+      engine.lookupRawNameOrFail("hybridLaunchKernel"));
   return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
-                               argsCreator, hasResult);
+                               argsCreator, returnOffset, resultSize,
+                               hybridLauncher, hasResult);
 }
 
 class JitEngine::Impl {

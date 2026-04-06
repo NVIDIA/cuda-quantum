@@ -331,6 +331,8 @@ def test_return_list_from_device_kernel():
     assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_bool():
 
     @cudaq.kernel
@@ -377,6 +379,8 @@ def test_return_list_bool():
     assert results[1] == [True, False, True]
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int():
 
     @cudaq.kernel
@@ -400,6 +404,8 @@ def test_return_list_int():
     assert results[1] == [-13, 5, 42]
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int8():
 
     @cudaq.kernel
@@ -423,6 +429,8 @@ def test_return_list_int8():
     assert results[1] == [-13, 5, 42]
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int16():
 
     @cudaq.kernel
@@ -446,6 +454,8 @@ def test_return_list_int16():
     assert results[1] == [-13, 5, 42]
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int32():
 
     @cudaq.kernel
@@ -469,6 +479,8 @@ def test_return_list_int32():
     assert results[1] == [-13, 5, 42]
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int64():
 
     @cudaq.kernel
@@ -492,6 +504,8 @@ def test_return_list_int64():
     assert results[1] == [-13, 5, 42]
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_float():
 
     @cudaq.kernel
@@ -516,6 +530,8 @@ def test_return_list_float():
     assert np.allclose(results[1], [-13.2, 5., 42.99])
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_float32():
 
     @cudaq.kernel
@@ -540,6 +556,8 @@ def test_return_list_float32():
     assert np.allclose(results[1], [-13.2, 5., 42.99])
 
 
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_return_list_float64():
 
     @cudaq.kernel

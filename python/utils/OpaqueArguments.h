@@ -114,20 +114,35 @@ std::string mlirTypeToString(mlir::Type ty);
 /// For the current struct member variable type, insert the value into the
 /// dynamically constructed struct.
 void handleStructMemberVariable(void *data, std::size_t offset,
-                                mlir::Type memberType, py::object value);
+                                mlir::Type memberType, py::object value,
+                                bool specialize = true);
 
 /// For the current vector element type, insert the value into the dynamically
 /// constructed vector.
-void *handleVectorElements(mlir::Type eleTy, py::list list);
+void *handleVectorElements(mlir::Type eleTy, py::list list,
+                           bool specialize = true);
 
 /// Take a list of python objects (the arguments) and convert them to C++
 /// objects on the heap. The results are returned in \p argData and include
 /// special `deletors` so that the argument data is cleaned up correctly.
+///
+/// There are two execution paths that pack arguments differently:
+///
+///  - Specialize path (\p specialize = true, default): used for most targets.
+///    The packed values are consumed by the MLIR argument-synthesis pass
+///    (`ArgumentConverter`), which substitutes them as constants into the
+///    kernel IR before JIT compilation. The exact in-memory layout is not
+///    observable at runtime, so a simpler encoding is used.
+///
+///  - Direct-launch path (\p specialize = false): used for local simulation.
+///    The packed values are placed into a message buffer passed directly to
+///    the generated `.thunk` at runtime (e.g. via `marshal_and_launch_module`),
+///    so the encoding must match the ABI the thunk expects exactly.
 void packArgs(OpaqueArguments &argData, py::list args,
               mlir::ArrayRef<mlir::Type> mlirTys,
               const std::function<bool(OpaqueArguments &, py::object &,
                                        unsigned)> &backupHandler,
-              mlir::func::FuncOp kernelFuncOp);
+              mlir::func::FuncOp kernelFuncOp, bool specialize = true);
 
 /// This overload handles dropping the front \p startingArgIdx arguments on the
 /// floor. They are not packed in \p argData and are simply ignored.
@@ -135,7 +150,7 @@ void packArgs(OpaqueArguments &argData, py::args args,
               mlir::func::FuncOp kernelFuncOp,
               const std::function<bool(OpaqueArguments &, py::object &,
                                        unsigned)> &backupHandler,
-              std::size_t startingArgIdx = 0);
+              std::size_t startingArgIdx = 0, bool specialize = true);
 
 /// Return `true` if the given \p args represents a request for broadcasting
 /// sample or observe over all argument sets. \p args types can be `int`,

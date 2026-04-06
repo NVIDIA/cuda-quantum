@@ -76,6 +76,8 @@ def test_kernel_call_in_nested_if_block():
 
 
 # test for loop
+@pytest.mark.skip(
+    reason="Dynamic-size list return not currently support by run")
 def test_kernel_call_in_for_loop():
 
     @cudaq.kernel

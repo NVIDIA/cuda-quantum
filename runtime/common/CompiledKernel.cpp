@@ -7,33 +7,52 @@
  ******************************************************************************/
 
 #include "CompiledKernel.h"
+#include <cstring>
 
 using namespace cudaq_internal::compiler;
 
 cudaq::CompiledKernel::CompiledKernel(
     JitEngine engine, std::string kernelName, void (*entryPoint)(),
-    int64_t (*argsCreator)(const void *, void **), bool hasResult)
+    ArgsCreatorFunc argsCreator, ReturnOffsetFunc returnOffset,
+    ResultSizeFunc resultSize, HybridLaunchFunc hybridLauncher, bool hasResult)
     : engine(engine), name(std::move(kernelName)), entryPoint(entryPoint),
-      argsCreator(argsCreator), hasResult(hasResult) {}
+      argsCreator(argsCreator), returnOffset(returnOffset),
+      resultSize(resultSize), hybridLauncher(hybridLauncher),
+      hasResult(hasResult) {}
 
 cudaq::KernelThunkResultType
 cudaq::CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
-  auto funcPtr = getEntryPoint();
+  auto kernelThunk = reinterpret_cast<KernelThunkType>(getEntryPoint());
+  // If there's a result, we must go through the hybrid launcher
   if (hasResult) {
-    void *buff = const_cast<void *>(rawArgs.back());
-    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
-  }
-  if (argsCreator) {
+    // TODO: Is this performance hack really buying us anything?
+    if (!argsCreator) {
+      void *buff = const_cast<void *>(rawArgs.back());
+      return kernelThunk(buff, /*client_server=*/false);
+    }
+
     void *buff = nullptr;
-    argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
-    reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
+    auto buffSize =
+        argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
+    auto resSize = resultSize();
+    auto offset = returnOffset();
+    hybridLauncher(name.c_str(), kernelThunk, buff, buffSize, offset, rawArgs);
+    memcpy(rawArgs.back(), (char *)buff + offset, resSize);
     std::free(buff);
     return {nullptr, 0};
   }
 
-  funcPtr();
+  // No return value, build the argument message buffer and launch the thunk
+  if (argsCreator) {
+    void *buff = nullptr;
+    argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
+    kernelThunk(buff, false);
+    std::free(buff);
+    return {nullptr, 0};
+  }
+
+  // No return value or arguments, just launch the entry function directly
+  getEntryPoint()();
   return {nullptr, 0};
 }
 
