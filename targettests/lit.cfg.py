@@ -11,6 +11,7 @@ import platform
 import subprocess
 import shutil
 import bisect
+import yaml
 
 import lit.util
 from lit.llvm import llvm_config
@@ -66,6 +67,42 @@ llvm_config.with_system_environment(
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+# Generate test cases
+
+# Generate per-target execution tests from YAML configuration
+exec_yaml_path = os.path.join(config.cudaq_src_dir, 'targettests', 'execution', 'execution_tests.yaml')
+gen_exec_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'execution')
+os.makedirs(gen_exec_dir, exist_ok=True)
+for old in os.listdir(gen_exec_dir):
+    os.remove(os.path.join(gen_exec_dir, old))
+with open(exec_yaml_path) as f:
+    exec_tests = yaml.safe_load(f)
+for test in exec_tests['tests']:
+    inc_path = os.path.join(config.cudaq_src_dir, 'targettests', 'execution', test['source'])
+    with open(inc_path) as src:
+        source_code = src.read()
+    base_name = test['source'].replace('.cpp.inc', '')
+    for tgt in test['targets']:
+        target_name = tgt['name']
+        out_name = f'{base_name}_{target_name}.cpp'
+        with open(os.path.join(gen_exec_dir, out_name), 'w') as f:
+            f.write(f'// Auto-generated execution test: {base_name} with target {target_name}\n')
+            if 'requires' in tgt:
+                f.write(f'// REQUIRES: {tgt["requires"]}\n')
+            f.write(f'// RUN: {tgt["compile"]}\n')
+            for run_cmd in tgt['run']:
+                f.write(f'// RUN: {run_cmd}\n')
+            f.write('\n')
+            f.write(source_code)
+    for variant_name, run_cmds in test.get('extra_runs', {}).items():
+        out_name = f'{base_name}_{variant_name}.cpp'
+        with open(os.path.join(gen_exec_dir, out_name), 'w') as f:
+            f.write(f'// Auto-generated execution test: {base_name} ({variant_name})\n')
+            for run_cmd in run_cmds:
+                f.write(f'// RUN: {run_cmd}\n')
+            f.write('\n')
+            f.write(source_code)
 
 # Generate phase-folding tests
 gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'phase-folding')
