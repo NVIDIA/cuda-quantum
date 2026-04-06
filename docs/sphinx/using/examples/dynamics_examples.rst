@@ -100,7 +100,7 @@ Numerical Integrators
 
 CUDA-Q provides three numerical integrators for the ``dynamics`` target.
 
-The following example shows how to use these integrator on the same single-qubit problem:
+The following example shows how to use these integrators on the same single-qubit problem:
 
 .. literalinclude:: ../../snippets/cpp/using/backends/dynamics_integrators.cpp
    :language: cpp
