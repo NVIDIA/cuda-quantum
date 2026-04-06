@@ -14,7 +14,7 @@
 namespace cudaq {
 namespace integrators {
 
-using H = CuDensityMatIntegratorHelper;
+using cudmIntHelp = CuDensityMatIntegratorHelper;
 
 magnus_expansion::magnus_expansion(int num_taylor_terms,
                                    const std::optional<double> &max_step_size)
@@ -36,31 +36,32 @@ std::shared_ptr<base_integrator> magnus_expansion::clone() {
 }
 
 void magnus_expansion::setState(const cudaq::state &initialState, double t0) {
-  H::setState(m_state, m_t, initialState, t0);
+  cudmIntHelp::setState(m_state, m_t, initialState, t0);
 }
 
 std::pair<double, cudaq::state> magnus_expansion::getState() {
-  return H::getState(m_state, m_t);
+  return cudmIntHelp::getState(m_state, m_t);
 }
 
 void magnus_expansion::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "magnus_expansion::integrate");
-  H::ensureStepper(m_stepper, m_state, m_system, m_schedule);
+  cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
 
   while (m_t < targetTime) {
-    const double step_size = H::computeStepSize(m_t, targetTime, m_dt);
-    auto &castSimState = *H::asCudmState(*m_state);
+    const double step_size =
+        cudmIntHelp::computeStepSize(m_t, targetTime, m_dt);
+    auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
 
     const double t_mid = m_t + step_size / 2.0;
-    auto params_mid = H::scheduleParamsAt(m_schedule, t_mid);
+    auto params_mid = cudmIntHelp::scheduleParamsAt(m_schedule, t_mid);
 
     auto result = CuDensityMatState::clone(castSimState);
     cudaq::state v(CuDensityMatState::clone(castSimState).release());
 
     for (int k = 1; k <= m_num_taylor_terms; ++k) {
       auto Lv = m_stepper->compute(v, t_mid, params_mid);
-      auto &Lv_cudm = *H::asCudmState(Lv);
+      auto &Lv_cudm = *cudmIntHelp::asCudmState(Lv);
 
       Lv_cudm *= (step_size / static_cast<double>(k));
       result->accumulate_inplace(Lv_cudm, 1.0);
