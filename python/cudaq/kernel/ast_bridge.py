@@ -2620,7 +2620,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return None
 
             # Check if we can find the desired name among the modules
-            for module_name, module in sys.modules.items():
+            for module_name, module in list(sys.modules.items()):
                 if module_name.split('.')[-1] == moduleNames[0]:
                     try:
                         obj = module
@@ -2941,7 +2941,17 @@ class PyASTBridge(ast.NodeVisitor):
                     measTy = quake.MeasureType.get()
                     resTy = self.getIntegerType(1)
                 else:
-                    measTy = cc.StdvecType.get(quake.MeasureType.get())
+                    total_size = 0
+                    all_known = True
+                    for q in qubits:
+                        if quake.isConstantQuantumRefType(q.type):
+                            total_size += quake.getAllocationSize(q.type)
+                        else:
+                            all_known = False
+                    if all_known and total_size > 0:
+                        measTy = quake.MeasurementsType.get(total_size)
+                    else:
+                        measTy = quake.MeasurementsType.get()
                     resTy = cc.StdvecType.get(self.getIntegerType(1))
                 measureResult = processQuantumOperation(
                     node.func.id.title(), [],

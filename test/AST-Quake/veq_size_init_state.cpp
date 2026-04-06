@@ -38,6 +38,6 @@ struct kernel {
 // CHECK:           quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_11]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_9]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_9]] : (!quake.veq<2>) -> !quake.measurements<2>
 // CHECK:           return
 // CHECK:         }
