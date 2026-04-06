@@ -7,9 +7,6 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
-// XFAIL: *
-// TODO: Ranged-for over !quake.measurements<?> (for (auto result : results))
-// requires for-range loop support for MeasurementsType.
 
 #include <cudaq.h>
 #include <iostream>
@@ -76,27 +73,31 @@ int main() {
 // CHECK:               cc.store %[[VAL_23]], %[[VAL_10]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_24:.*]] = quake.mz %[[VAL_8]] name "results" : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_24:.*]] = quake.mz %[[VAL_8]] name "results" : (!quake.veq<?>) -> !quake.measurements<?>
 // CHECK:           %[[VAL_25:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_25]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_26:.*]] = cc.stdvec_size %[[VAL_24]] : (!cc.stdvec<!quake.measure>) -> i64
-// CHECK:           %[[VAL_27:.*]] = cc.stdvec_data %[[VAL_24]] : (!cc.stdvec<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
-// CHECK:           %[[VAL_28:.*]] = cc.loop while ((%[[VAL_29:.*]] = %[[VAL_2]]) -> (i64)) {
-// CHECK:             %[[VAL_30:.*]] = arith.cmpi slt, %[[VAL_29]], %[[VAL_26]] : i64
-// CHECK:             cc.condition %[[VAL_30]](%[[VAL_29]] : i64)
+// CHECK:           %[[VAL_26:.*]] = quake.veq_size %[[VAL_8]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_27:.*]] = cc.loop while ((%[[VAL_28:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_29:.*]] = arith.cmpi slt, %[[VAL_28]], %[[VAL_26]] : i64
+// CHECK:             cc.condition %[[VAL_29]](%[[VAL_28]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_31:.*]]: i64):
-// CHECK:             cc.scope {
-// CHECK:               %[[VAL_32:.*]] = cc.compute_ptr %[[VAL_27]]{{\[}}%[[VAL_31]]] : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_33:.*]] = cc.alloca !quake.measure
-// CHECK:               %[[VAL_34:.*]] = cc.load %[[VAL_32]] : !cc.ptr<!quake.measure>
-// CHECK:               cc.store %[[VAL_34]], %[[VAL_33]] : !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_35:.*]] = cc.load %[[VAL_33]] : !cc.ptr<!quake.measure>
-// CHECK:               %[[VAL_36:.*]] = quake.discriminate %[[VAL_35]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_37:.*]] = cc.if(%[[VAL_36]]) -> i32 {
-// CHECK:                 cc.continue %[[VAL_3]] : i32
-// CHECK:               } else {
-// CHECK:                 cc.continue %[[VAL_4]] : i32
-// CHECK:               }
+// CHECK:           ^bb0(%[[VAL_30:.*]]: i64):
+// CHECK:             %[[VAL_31:.*]] = quake.get_measure %[[VAL_24]]{{\[}}%[[VAL_30]]] : (!quake.measurements<?>, i64) -> !quake.measure
+// CHECK:             %[[VAL_32:.*]] = quake.discriminate %[[VAL_31]] : (!quake.measure) -> i1
+// CHECK:             %[[VAL_33:.*]] = cc.if(%[[VAL_32]]) -> i32 {
+// CHECK:               cc.continue %[[VAL_3]] : i32
+// CHECK:             } else {
+// CHECK:               cc.continue %[[VAL_4]] : i32
 // CHECK:             }
-// CHECK:             cc.continue %{{.*}} : i64
+// CHECK:             %[[VAL_34:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i32>
+// CHECK:             %[[VAL_35:.*]] = arith.addi %[[VAL_34]], %[[VAL_33]] : i32
+// CHECK:             cc.store %[[VAL_35]], %[[VAL_25]] : !cc.ptr<i32>
+// CHECK:             cc.continue %[[VAL_30]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_36:.*]]: i64):
+// CHECK:             %[[VAL_37:.*]] = arith.addi %[[VAL_36]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_37]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[VAL_38:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i32>
+// CHECK:           return %[[VAL_38]] : i32
+// CHECK:         }

@@ -264,6 +264,47 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
     auto idxIters = builder.create<cudaq::cc::CastOp>(
         loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
+  } else if (auto measTy =
+                 dyn_cast<quake::MeasurementsType>(buffer.getType())) {
+    Value iters;
+    if (measTy.hasSpecifiedSize()) {
+      iters =
+          builder.create<arith::ConstantIntOp>(loc, measTy.getSize(), i64Ty);
+    } else if (auto measIface = dyn_cast_or_null<quake::MeasurementInterface>(
+                   buffer.getDefiningOp())) {
+      // Derive the iteration count from the measurement op's qubit targets.
+      for (auto target : measIface.getTargets()) {
+        Value count;
+        if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
+          if (veqTy.hasSpecifiedSize())
+            count = builder.create<arith::ConstantIntOp>(loc, veqTy.getSize(),
+                                                         i64Ty);
+          else
+            count = builder.create<quake::VeqSizeOp>(loc, i64Ty, target);
+        } else {
+          count = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+        }
+        iters =
+            iters ? builder.create<arith::AddIOp>(loc, iters, count).getResult()
+                  : count;
+      }
+    } else {
+      TODO_x(toLocation(x), x, mangler,
+             "ranged for statement over unsized measurements");
+    }
+    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
+                           Block &block) {
+      OpBuilder::InsertionGuard guard(builder);
+      builder.setInsertionPointToStart(&block);
+      Value index = block.getArgument(0);
+      Value measure = builder.create<quake::GetMeasureOp>(loc, buffer, index);
+      symbolTable.insert(loopVar->getName(), measure);
+      if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
+        result = false;
+    };
+    auto idxIters = builder.create<cudaq::cc::CastOp>(
+        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
+    opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");
   }
