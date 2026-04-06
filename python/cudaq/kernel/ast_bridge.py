@@ -1261,9 +1261,9 @@ class PyASTBridge(ast.NodeVisitor):
         msg = None
         try:
             return mlirTypeFromAnnotation(annotation,
-                                                self.ctx,
-                                                raiseError=True,
-                                                cudaqAliases=self.cudaqAliases)
+                                          self.ctx,
+                                          raiseError=True,
+                                          cudaqAliases=self.cudaqAliases)
         except RuntimeError as e:
             msg = str(e)
 
@@ -1663,9 +1663,8 @@ class PyASTBridge(ast.NodeVisitor):
             for decorator in getattr(node, 'decorator_list', []):
                 qname = _get_qualified_name(decorator)
                 if qname == 'kernel' or (
-                        qname is not None and qname.endswith('.kernel')
-                        and self.isCudaqName(
-                            qname[:qname.rfind('.kernel')])):
+                        qname is not None and qname.endswith('.kernel') and
+                        self.isCudaqName(qname[:qname.rfind('.kernel')])):
                     self.emitFatalError(
                         "nested @cudaq.kernel definitions are not allowed",
                         node)
@@ -2669,9 +2668,8 @@ class PyASTBridge(ast.NodeVisitor):
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
-            if hasattr(
-                    node.func.value, 'id'
-            ) and self.isCudaqName(node.func.value.id) and node.func.attr == 'kernel':
+            if hasattr(node.func.value, 'id') and self.isCudaqName(
+                    node.func.value.id) and node.func.attr == 'kernel':
                 return
 
             devKey, name = resolveQualifiedName(node.func)
