@@ -137,6 +137,9 @@ Common
 .. doxygenstruct:: cudaq::SimulationState::Tensor
     :members:
 
+.. doxygenstruct:: cudaq::SimulationState::HostBuffer
+    :members:
+
 .. doxygenenum:: cudaq::SimulationState::precision
 
 .. doxygenenum:: cudaq::simulation_precision

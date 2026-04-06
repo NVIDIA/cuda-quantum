@@ -116,6 +116,9 @@ public:
   // Copy the state device data to the user-provided host data pointer.
   void toHost(std::complex<float> *userData,
               std::size_t numElements) const override;
+  // Allocate a pinned host buffer and copy state data into it.
+  HostBuffer toHostBuffer(std::size_t numElements) const override;
+
   // Free the device data.
   void destroyState() override;
 

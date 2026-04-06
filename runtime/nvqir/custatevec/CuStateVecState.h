@@ -284,6 +284,31 @@ public:
     return;
   }
 
+  /// @brief Allocate a pinned host buffer and copy state data into it.
+  /// Pinned memory enables direct DMA transfers, significantly improving
+  /// bandwidth compared to non-pinned memory for large device-to-host copies.
+  HostBuffer toHostBuffer(std::size_t numElements) const override {
+    if (numElements != size)
+      throw std::runtime_error(
+          "[custatevec-state] toHostBuffer: invalid number of elements.");
+    checkAndSetDevice();
+    std::size_t numBytes = numElements * sizeof(std::complex<ScalarType>);
+    void *pinnedPtr = nullptr;
+    auto err = cudaMallocHost(&pinnedPtr, numBytes);
+    if (err != cudaSuccess) {
+      // Fallback to non-pinned allocation if pinning fails (e.g., very large
+      // states that exceed the OS limit for pinned memory).
+      return SimulationState::toHostBuffer(numElements);
+    }
+    auto cpyErr =
+        cudaMemcpy(pinnedPtr, devicePtr, numBytes, cudaMemcpyDeviceToHost);
+    if (cpyErr != cudaSuccess) {
+      cudaFreeHost(pinnedPtr);
+      HANDLE_CUDA_ERROR(cpyErr);
+    }
+    return {pinnedPtr, [](void *p) { cudaFreeHost(p); }};
+  }
+
   /// @brief Free the device data.
   void destroyState() override {
     if (!ownsDevicePtr)

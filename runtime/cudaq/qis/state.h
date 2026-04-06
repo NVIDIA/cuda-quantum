@@ -143,6 +143,12 @@ public:
     internal->toHost(hostPtr, numElements);
   }
 
+  /// @brief Allocate a host buffer and copy state data from device.
+  /// GPU backends use pinned memory for optimal transfer speed.
+  SimulationState::HostBuffer toHostBuffer(std::size_t numElements) const {
+    return internal->toHostBuffer(numElements);
+  }
+
   /// @brief Dump the state to standard out
   void dump() const;
 

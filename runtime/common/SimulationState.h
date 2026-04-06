@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <bitset>
 #include <complex>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <variant>
@@ -254,6 +255,30 @@ public:
                       std::size_t numElements) const {
     throw std::runtime_error(
         "SimulationState::toHost complex64 not implemented.");
+  }
+
+  /// @brief A host-side buffer with a custom cleanup function.
+  struct HostBuffer {
+    void *data = nullptr;
+    std::function<void(void *)> deleter;
+  };
+
+  /// @brief Allocate a host buffer and copy all state data into it.
+  /// GPU-backed states should override to use pinned memory for faster
+  /// device-to-host transfers. Returns a HostBuffer that knows how to
+  /// free the memory correctly.
+  virtual HostBuffer toHostBuffer(std::size_t numElements) const {
+    auto prec = getPrecision();
+    if (prec == precision::fp32) {
+      auto *ptr = new std::complex<float>[numElements];
+      toHost(ptr, numElements);
+      return {ptr,
+              [](void *p) { delete[] static_cast<std::complex<float> *>(p); }};
+    }
+    auto *ptr = new std::complex<double>[numElements];
+    toHost(ptr, numElements);
+    return {ptr,
+            [](void *p) { delete[] static_cast<std::complex<double> *>(p); }};
   }
 
   /// @brief Destructor
