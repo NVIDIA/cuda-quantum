@@ -183,8 +183,8 @@ class PyKernelDecorator(object):
             # Detect aliases for the cudaq module (e.g. `import cudaq as cq`).
             # Collect all names that refer to the cudaq module so the AST
             # bridge can recognize them alongside the canonical 'cudaq' name.
-            # Check both locals and globals since the alias may be at module
-            # level while the kernel is defined inside a function.
+            # Check both local and global scope since the alias may be at
+            # module level while the kernel is defined inside a function.
             self.cudaqAliases = {'cudaq'}
             for scope in (parentVars, self.parentFrame.f_globals):
                 for vname, var in scope.items():
