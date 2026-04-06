@@ -2620,7 +2620,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return None
 
             # Check if we can find the desired name among the modules
-            for module_name, module in sys.modules.items():
+            for module_name, module in list(sys.modules.items()):
                 if module_name.split('.')[-1] == moduleNames[0]:
                     try:
                         obj = module
