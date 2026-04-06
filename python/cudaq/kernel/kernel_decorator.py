@@ -9,6 +9,7 @@
 import ast
 import inspect
 import json
+import types
 from functools import wraps
 from cudaq.kernel.utils import emitWarning
 import numpy as np
@@ -179,9 +180,22 @@ class PyKernelDecorator(object):
             for name, var in parentVars.items():
                 self._add_global_scoped_var(name, var)
 
+            # Detect aliases for the cudaq module (e.g. `import cudaq as cq`).
+            # Collect all names that refer to the cudaq module so the AST
+            # bridge can recognize them alongside the canonical 'cudaq' name.
+            # Check both locals and globals since the alias may be at module
+            # level while the kernel is defined inside a function.
+            self.cudaqAliases = {'cudaq'}
+            for scope in (parentVars, self.parentFrame.f_globals):
+                for vname, var in scope.items():
+                    if (isinstance(var, types.ModuleType)
+                            and getattr(var, '__name__', None) == 'cudaq'
+                            and vname != 'cudaq'):
+                        self.cudaqAliases.add(vname)
+
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
             self.signature = KernelSignature.parse_from_ast(
-                self.astModule, self.name)
+                self.astModule, self.name, cudaqAliases=self.cudaqAliases)
             self.uniqueId = id(self)
             self.uniqName = self.name + ".." + hex(self.uniqueId)
 
@@ -263,7 +277,8 @@ class PyKernelDecorator(object):
             verbose=self.verbose,
             location=self.location,
             kernelName=self.name,
-            kernelModuleName=self.kernelModuleName)
+            kernelModuleName=self.kernelModuleName,
+            cudaqAliases=getattr(self, 'cudaqAliases', None))
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:
