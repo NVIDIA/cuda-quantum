@@ -477,7 +477,8 @@ std::vector<measure_result> mz(QubitRange &qr, Qs &&...qs) {
   if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
-    result.insert(result.end(), rest.begin(), rest.end());
+    for (const auto &r : rest)
+      result.push_back(r);
   }
   return result;
 }
@@ -489,7 +490,8 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
   if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
-    result.insert(result.end(), rest.begin(), rest.end());
+    for (const auto &r : rest)
+      result.push_back(r);
   }
   return result;
 }

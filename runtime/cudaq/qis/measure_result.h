@@ -30,8 +30,14 @@ public:
   /// INT64_MAX means unassigned; negative values are valid
   std::int64_t unique_id = std::numeric_limits<std::int64_t>::max();
 
-  // Constructors
-  measure_result() = default;
+  // No default construction (measurements must come from mz/mx/my).
+  // No assignment (measurement collections are immutable).
+  measure_result() = delete;
+  measure_result(const measure_result &) = default;
+  measure_result(measure_result &&) = default;
+  measure_result &operator=(const measure_result &) = delete;
+  measure_result &operator=(measure_result &&) = delete;
+
   explicit measure_result(int64_t val) : value(val) {}
   explicit measure_result(int64_t val, int64_t id)
       : value(val), unique_id(id) {}

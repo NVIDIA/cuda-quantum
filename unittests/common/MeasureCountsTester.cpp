@@ -66,8 +66,11 @@ CUDAQ_TEST(MeasureCountsTester, checkMeasureCountsSerialize) {
 }
 
 CUDAQ_TEST(MeasureResultTester, checkConstructors) {
-  cudaq::measure_result r0;
-  EXPECT_EQ(static_cast<int>(r0), 0);
+  static_assert(!std::is_default_constructible_v<cudaq::measure_result>);
+  static_assert(std::is_copy_constructible_v<cudaq::measure_result>);
+  static_assert(std::is_move_constructible_v<cudaq::measure_result>);
+  static_assert(!std::is_copy_assignable_v<cudaq::measure_result>);
+  static_assert(!std::is_move_assignable_v<cudaq::measure_result>);
 
   cudaq::measure_result r1(int64_t(1));
   EXPECT_EQ(static_cast<int>(r1), 1);
@@ -77,6 +80,12 @@ CUDAQ_TEST(MeasureResultTester, checkConstructors) {
   EXPECT_EQ(static_cast<int>(r2), 0);
   EXPECT_FALSE(static_cast<bool>(r2));
   EXPECT_NEAR(static_cast<double>(r2), 0.0, 1e-9);
+
+  cudaq::measure_result r3(r1);
+  EXPECT_EQ(static_cast<int>(r3), 1);
+
+  cudaq::measure_result r4(std::move(r1));
+  EXPECT_EQ(static_cast<int>(r4), 1);
 }
 
 CUDAQ_TEST(MeasureResultTester, checkComparisons) {

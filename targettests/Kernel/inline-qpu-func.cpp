@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 // RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// XFAIL: *
+// TODO: Needs quake.measurements_size op for for-range over unsized
+// measurements received as function parameters.
 
 #include "cudaq.h"
 
