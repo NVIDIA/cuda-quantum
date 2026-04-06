@@ -566,10 +566,10 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   return success();
 }
 
-// A codegen translation to Quake MLIR
+// A codegen translation that simply dumps the CUDA-Q MLIR
 static void registerToQuakeTranslation() {
-  cudaq::TranslateFromMLIRRegistration reg(
-      "quake", "translate to raw Quake MLIR string",
+  cudaq_internal::compiler::TranslateFromMLIRRegistration reg(
+      "nop", "dump raw CUDA-Q MLIR string",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR, bool printStats) {

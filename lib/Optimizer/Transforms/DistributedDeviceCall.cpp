@@ -69,38 +69,40 @@ public:
       // provider's runtime library.
 
       // (1) Add a trap implementation for this device function declaration.
-      auto insPt = rewriter.saveInsertionPoint();
-      // Add an entry block
-      auto &entryBlock = *devFunc.addEntryBlock();
-      rewriter.setInsertionPointToStart(&entryBlock);
-      // Create a call to the trap intrinsic.
-      // Error code 2 is used to indicate illegal execution of unreachable code.
-      Value errorCodeTwo =
-          rewriter.create<arith::ConstantIntOp>(devcall.getLoc(), 2, 64);
-      rewriter.create<func::CallOp>(devcall.getLoc(), TypeRange{},
-                                    cudaq::opt::QISTrap,
-                                    ValueRange{errorCodeTwo});
-      // For return (after the trap), load from nullptr to create return value
-      // of the same type as the device function, i.e., `return *(T*)nullptr;`
-      // for return type `T`.
-      // Note: this will never be executed because of the trap above. It's only
-      // to create a valid IR with the correct return type for the function.
-      SmallVector<Value> trapResults;
-      for (Type resTy : devFunc.getFunctionType().getResults()) {
-        auto nullPtr = rewriter.create<arith::ConstantOp>(
-            devcall.getLoc(),
-            rewriter.getZeroAttr(rewriter.getIntegerType(64)));
-        auto ptrTy = cudaq::cc::PointerType::get(resTy);
-        auto castedNullPtr = rewriter.create<cudaq::cc::CastOp>(
-            devcall.getLoc(), ptrTy, nullPtr);
-        auto loadedVal =
-            rewriter.create<cudaq::cc::LoadOp>(devcall.getLoc(), castedNullPtr);
-        trapResults.push_back(loadedVal);
+      {
+        OpBuilder::InsertionGuard guard(rewriter);
+        // Add an entry block
+        auto &entryBlock = *devFunc.addEntryBlock();
+        rewriter.setInsertionPointToStart(&entryBlock);
+        // Create a call to the trap intrinsic.
+        // Error code 2 is used to indicate illegal execution of unreachable
+        // code.
+        Value errorCodeTwo =
+            rewriter.create<arith::ConstantIntOp>(devcall.getLoc(), 2, 64);
+        rewriter.create<func::CallOp>(devcall.getLoc(), TypeRange{},
+                                      cudaq::opt::QISTrap,
+                                      ValueRange{errorCodeTwo});
+        // For return (after the trap), load from nullptr to create return value
+        // of the same type as the device function, i.e., `return *(T*)nullptr;`
+        // for return type `T`.
+        // Note: this will never be executed because of the trap above. It's
+        // only to create a valid IR with the correct return type for the
+        // function.
+        SmallVector<Value> trapResults;
+        for (Type resTy : devFunc.getFunctionType().getResults()) {
+          auto nullPtr = rewriter.create<arith::ConstantOp>(
+              devcall.getLoc(),
+              rewriter.getZeroAttr(rewriter.getIntegerType(64)));
+          auto ptrTy = cudaq::cc::PointerType::get(resTy);
+          auto castedNullPtr = rewriter.create<cudaq::cc::CastOp>(
+              devcall.getLoc(), ptrTy, nullPtr);
+          auto loadedVal = rewriter.create<cudaq::cc::LoadOp>(devcall.getLoc(),
+                                                              castedNullPtr);
+          trapResults.push_back(loadedVal);
+        }
+
+        rewriter.create<func::ReturnOp>(devcall.getLoc(), trapResults);
       }
-
-      rewriter.create<func::ReturnOp>(devcall.getLoc(), trapResults);
-      rewriter.restoreInsertionPoint(insPt);
-
       // (2) Set this trap function as private and weak_odr linkage, to allow
       // multiple definitions across translation units without linker errors.
       // For example, compiling for a remote hardware provider with the actual
@@ -114,6 +116,11 @@ public:
 
       // (3) Replace the device call with a no-inline call to prevent inlining
       // of the trap function.
+      // We use a no-inline call here to ensure that the call to the device
+      // function is preserved as a call in the IR (even in the presence of the
+      // trap implementation). If the actual implementation is provided at link
+      // time, it will be used instead of the trap implementation due to the
+      // weak_odr linkage.
       rewriter.replaceOpWithNewOp<cudaq::cc::NoInlineCallOp>(
           devcall, devFunc.getFunctionType().getResults(), devFuncName,
           devcall.getArgs());
