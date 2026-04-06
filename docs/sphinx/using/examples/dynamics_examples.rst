@@ -23,6 +23,7 @@ Download the notebooks below `here <https://github.com/NVIDIA/cuda-quantum/tree/
       Trapped Ion Qubits <../../examples/python/dynamics/iontrap.ipynb>
       Control <../../examples/python/dynamics/control.ipynb>
 
+.. |:spellcheck-disable:| replace:: \
 C++ Examples
 --------------
 
@@ -119,3 +120,5 @@ The Magnus expansion integrator:
    :language: cpp
    :start-after: [Begin MagnusExpansion]
    :end-before: [End MagnusExpansion]
+
+.. |:spellcheck-enable:| replace:: \

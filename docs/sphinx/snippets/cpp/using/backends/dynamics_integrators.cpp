@@ -31,9 +31,9 @@ int main() {
   // Arguments: order (1, 2, or 4) and optional max sub-step size.
   cudaq::integrators::runge_kutta rk_integrator(/*order=*/4,
                                                 /*max_step_size=*/0.01);
-  auto rk_result =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, rk_integrator, {},
-                    observables, cudaq::IntermediateResultSave::ExpectationValue);
+  auto rk_result = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, rk_integrator, {}, observables,
+      cudaq::IntermediateResultSave::ExpectationValue);
   // [End RungeKutta]
 
   // [Begin CrankNicolson]
@@ -43,9 +43,9 @@ int main() {
   // sub-step size.
   cudaq::integrators::crank_nicolson cn_integrator(/*num_corrector_steps=*/2,
                                                    /*max_step_size=*/0.01);
-  auto cn_result =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, cn_integrator, {},
-                    observables, cudaq::IntermediateResultSave::ExpectationValue);
+  auto cn_result = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, cn_integrator, {}, observables,
+      cudaq::IntermediateResultSave::ExpectationValue);
   // [End CrankNicolson]
 
   // [Begin MagnusExpansion]

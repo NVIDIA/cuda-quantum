@@ -1,9 +1,9 @@
 // /*******************************************************************************
-//  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
-//  * All rights reserved.                                                        *
-//  *                                                                             *
-//  * This source code and the accompanying materials are made available under    *
-//  * the terms of the Apache License 2.0 which accompanies this distribution.    *
+//  * Copyright (c) 2026 NVIDIA Corporation & Affiliates. *
+//  * All rights reserved. *
+//  * *
+//  * This source code and the accompanying materials are made available under *
+//  * the terms of the Apache License 2.0 which accompanies this distribution. *
 //  ******************************************************************************/
 
 #include "CuDensityMatState.h"
@@ -80,8 +80,7 @@ TEST_F(CrankNicolsonIntegratorTest, CheckEvolve) {
       state.to_host(outVec.data(), outVec.size());
 
       EXPECT_NEAR(std::norm(outVec[0]) + std::norm(outVec[1]), 1.0, 1e-2);
-      EXPECT_NEAR(outVec[0].real(),
-                  std::cos(2.0 * M_PI * 0.1 * t), 1e-2);
+      EXPECT_NEAR(outVec[0].real(), std::cos(2.0 * M_PI * 0.1 * t), 1e-2);
     }
   }
 }
@@ -96,9 +95,8 @@ TEST_F(CrankNicolsonIntegratorTest, CloneReproducesTrajectory) {
 
   cudaq::integrators::crank_nicolson integrator(2, 0.01);
   auto initialState = cudaq::state::from_data(initialStateVec);
-  auto *castSimState =
-      dynamic_cast<CuDensityMatState *>(
-          cudaq::state_helper::getSimulationState(&initialState));
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&initialState));
   ASSERT_NE(castSimState, nullptr);
   castSimState->initialize_cudm(handle_, dims, 1);
 
@@ -106,9 +104,8 @@ TEST_F(CrankNicolsonIntegratorTest, CloneReproducesTrajectory) {
   for (double t : cudaq::linspace(0.0, 1.0, 11))
     steps.emplace_back(t, 0.0);
   cudaq::schedule schedule(
-      steps, {"t"}, [](const std::string &, const std::complex<double> &v) {
-        return v;
-      });
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &v) { return v; });
 
   integrator.setState(initialState, 0.0);
   cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
@@ -144,9 +141,8 @@ TEST_F(CrankNicolsonIntegratorTest, ConvergenceOrderVerification) {
   auto runEvolution = [&](double stepSize) -> double {
     cudaq::integrators::crank_nicolson integrator(2, stepSize);
     auto initialState = cudaq::state::from_data(initialStateVec);
-    auto *castSimState =
-        dynamic_cast<CuDensityMatState *>(
-            cudaq::state_helper::getSimulationState(&initialState));
+    auto *castSimState = dynamic_cast<CuDensityMatState *>(
+        cudaq::state_helper::getSimulationState(&initialState));
     castSimState->initialize_cudm(handle_, dims, 1);
     integrator.setState(initialState, 0.0);
 
@@ -154,8 +150,7 @@ TEST_F(CrankNicolsonIntegratorTest, ConvergenceOrderVerification) {
     for (double t : cudaq::linspace(0.0, t_final, numDataPoints))
       steps.emplace_back(t, 0.0);
     cudaq::schedule schedule(
-        steps, {"t"},
-        [](const std::string &, const std::complex<double> &val) {
+        steps, {"t"}, [](const std::string &, const std::complex<double> &val) {
           return val;
         });
     cudaq::integrator_helper::init_system_dynamics(integrator, system,
@@ -176,8 +171,7 @@ TEST_F(CrankNicolsonIntegratorTest, ConvergenceOrderVerification) {
   double estimated_order = std::log2(ratio);
 
   std::cout << "CN convergence: err(h=" << h1 << ")=" << err1
-            << ", err(h=" << h2 << ")=" << err2
-            << ", ratio=" << ratio
+            << ", err(h=" << h2 << ")=" << err2 << ", ratio=" << ratio
             << ", estimated order=" << estimated_order << "\n";
 
   EXPECT_GE(ratio, 2.0)
@@ -197,9 +191,8 @@ TEST_F(CrankNicolsonIntegratorTest, NormPreservationLargeSteps) {
   cudaq::integrators::crank_nicolson integrator(3, 0.1);
 
   auto initialState = cudaq::state::from_data(initialStateVec);
-  auto *castSimState =
-      dynamic_cast<CuDensityMatState *>(
-          cudaq::state_helper::getSimulationState(&initialState));
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&initialState));
   ASSERT_NE(castSimState, nullptr);
   castSimState->initialize_cudm(handle_, dims, 1);
 
@@ -207,9 +200,8 @@ TEST_F(CrankNicolsonIntegratorTest, NormPreservationLargeSteps) {
   for (double t : cudaq::linspace(0.0, 10.0, 101))
     steps.emplace_back(t, 0.0);
   cudaq::schedule schedule(
-      steps, {"t"}, [](const std::string &, const std::complex<double> &v) {
-        return v;
-      });
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &v) { return v; });
 
   integrator.setState(initialState, 0.0);
   cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
@@ -220,7 +212,6 @@ TEST_F(CrankNicolsonIntegratorTest, NormPreservationLargeSteps) {
     auto [t, state] = integrator.getState();
     state.to_host(outVec.data(), outVec.size());
     double norm = std::norm(outVec[0]) + std::norm(outVec[1]);
-    EXPECT_NEAR(norm, 1.0, 1e-2)
-        << "Norm should be preserved at t=" << t;
+    EXPECT_NEAR(norm, 1.0, 1e-2) << "Norm should be preserved at t=" << t;
   }
 }

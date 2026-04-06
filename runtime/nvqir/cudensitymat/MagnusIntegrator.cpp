@@ -60,8 +60,7 @@ void magnus_expansion::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "magnus_expansion::integrate");
 
-  const auto asCudmState =
-      [](cudaq::state &cudaqState) -> CuDensityMatState * {
+  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
     auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
     if (!castSimState)

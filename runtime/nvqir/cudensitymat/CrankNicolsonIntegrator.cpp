@@ -61,8 +61,7 @@ void crank_nicolson::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "crank_nicolson::integrate");
 
-  const auto asCudmState =
-      [](cudaq::state &cudaqState) -> CuDensityMatState * {
+  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
     auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
     if (!castSimState)
@@ -111,8 +110,7 @@ void crank_nicolson::integrate(double targetTime) {
 
     auto rho_iter_ptr = CuDensityMatState::clone(castSimState);
     rho_iter_ptr->accumulate_inplace(k1, step_size);
-    auto rho_iter =
-        std::make_shared<cudaq::state>(rho_iter_ptr.release());
+    auto rho_iter = std::make_shared<cudaq::state>(rho_iter_ptr.release());
 
     for (int iter = 0; iter < m_num_corrector_steps; ++iter) {
       auto k2State =

@@ -49,7 +49,7 @@ private:
   std::optional<double> m_dt;
 };
 
-/// @brief Crank-Nicolson integrator for quantum state evolution.
+/// @brief `Crank-Nicolson` integrator for quantum state evolution.
 class crank_nicolson : public cudaq::base_integrator {
 public:
   /// @brief Default number of predictor-corrector iterations.
@@ -57,7 +57,7 @@ public:
 
   /// @brief Constructor.
   /// @param num_corrector_steps Number of corrector iterations per step.
-  ///        (default: 2, i.e., one predictor + two correctors)
+  ///        (default: 2, i.e., one predictor + two `correctors`)
   /// @param max_step_size Optional maximum internal sub-step size. When
   ///        provided the integrator will sub-step by at most this amount
   ///        when integrating toward each scheduled time point.
@@ -80,7 +80,7 @@ private:
   std::optional<double> m_dt;
 };
 
-/// @brief Magnus expansion integrator for quantum state evolution.
+/// @brief `Magnus` expansion integrator for quantum state evolution.
 class magnus_expansion : public cudaq::base_integrator {
 public:
   /// @brief Default maximum number of Taylor series terms.
