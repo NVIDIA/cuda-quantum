@@ -51,7 +51,7 @@ Introduction: Cavity QED (Jaynes-Cummings Model)
 
 This example simulates a two-level atom coupled to a single-mode optical cavity, known
 as the Jaynes-Cummings model. It demonstrates how to set up composite quantum systems
-with different subsystem dimensions (atom: 2 levels, cavity: 10 Fock states).
+with different subsystem dimensions.
 
 .. literalinclude:: ../../examples/cpp/dynamics/cavity_qed.cpp
    :language: cpp
