@@ -54,9 +54,9 @@ struct CuDensityMatIntegratorHelper {
   ///
   /// Must be called at the start of integrate() before the time-stepping loop.
   static void ensureStepper(std::unique_ptr<base_time_stepper> &m_stepper,
-                             std::shared_ptr<cudaq::state> &m_state,
-                             const SystemDynamics &m_system,
-                             const cudaq::schedule &m_schedule) {
+                            std::shared_ptr<cudaq::state> &m_state,
+                            const SystemDynamics &m_system,
+                            const cudaq::schedule &m_schedule) {
     if (m_stepper)
       return;
     auto &castSimState = *asCudmState(*m_state);
