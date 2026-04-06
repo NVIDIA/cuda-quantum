@@ -18,7 +18,6 @@
 #include <regex>
 #include <sstream>
 #include <string>
-#include <unistd.h>
 
 // Our hook into configuring the NVQIR backend.
 extern "C" {
@@ -37,36 +36,7 @@ static constexpr const char NVQIR_SIMULATION_BACKEND[] =
 static constexpr const char IS_FP64_SIMULATION[] =
     "CUDAQ_SIMULATION_SCALAR_FP64";
 
-/// @brief A utility function to check availability of Nvidia GPUs and return
-/// their count.
-int countGPUs() {
-  int retCode = std::system("nvidia-smi >/dev/null 2>&1");
-  if (0 != retCode) {
-    CUDAQ_INFO("nvidia-smi: command not found");
-    return -1;
-  }
-
-  char tmpFile[] = "/tmp/.cmd.capture.XXXXXX";
-  int fileDescriptor = mkstemp(tmpFile);
-  if (-1 == fileDescriptor) {
-    CUDAQ_INFO("Failed to create a temporary file to capture output");
-    return -1;
-  }
-
-  std::string command = "nvidia-smi -L 2>/dev/null | wc -l >> ";
-  command.append(tmpFile);
-  retCode = std::system(command.c_str());
-  if (0 != retCode) {
-    CUDAQ_INFO("Encountered error while invoking 'nvidia-smi'");
-    return -1;
-  }
-
-  std::stringstream buffer;
-  buffer << std::ifstream(tmpFile).rdbuf();
-  close(fileDescriptor);
-  unlink(tmpFile);
-  return std::stoi(buffer.str());
-}
+int num_available_gpus();
 
 void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
                         RuntimeTarget &target,
@@ -303,7 +273,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   // Otherwise, if GPU(s) available and other dependencies are satisfied, set
   // default to 'nvidia', else to 'qpp-cpu'
   defaultTarget = "qpp-cpu";
-  if (countGPUs() > 0) {
+  if (num_available_gpus() > 0) {
     // Before setting the defaultTarget to nvidia, make sure the simulator is
     // available.
     const std::string nvidiaTarget = "nvidia";
