@@ -543,19 +543,6 @@ Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
 
 std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, void *kernelArgs) {
-  return lowerQuakeCode(executionContext, kernelName, kernelArgs, {});
-}
-
-std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName,
-                         const std::vector<void *> &rawArgs) {
-  return lowerQuakeCode(executionContext, kernelName, nullptr, rawArgs);
-}
-
-std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs) {
   return lowerQuakeCodePart2(executionContext, kernelName, nullptr, rawArgs,

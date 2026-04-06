@@ -93,9 +93,4 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
   return {};
 }
 
-void cudaq::OrcaRemoteRESTQPU::launchKernel(const std::string &,
-                                            const std::vector<void *> &) {
-  throw std::runtime_error("launch kernel on raw args not implemented");
-}
-
 CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)
