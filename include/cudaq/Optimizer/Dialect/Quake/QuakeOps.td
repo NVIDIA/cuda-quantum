@@ -261,21 +261,21 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
-  let summary = "Relax the constant size on a !veq to be unknown.";
+  let summary = "Relax the constant size on a sized type to be unknown.";
   let description = [{
-    At times, the IR needs to forget the length of an SSA-value of type
-    `!quake.veq<N>` and demote it to type `!quake.veq<?>` where the size is
-    said to be unknown. This demotion is required to preserve a valid,
-    strongly-typed IR.
+    Demotes a sized `!quake.veq<N>` to `!quake.veq<?>`, or a sized
+    `!quake.measurements<N>` to `!quake.measurements<?>`. Required to preserve
+    strongly-typed IR at function call/return boundaries.
 
-    Example:
+    Examples:
     ```mlir
       %uqv = quake.relax_size %qv : (!quake.veq<4>) -> !quake.veq<?>
+      %ums = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<?>
     ```
   }];
 
-  let arguments = (ins VeqType:$inputVec);
-  let results = (outs VeqType);
+  let arguments = (ins AnyTypeOf<[VeqType, MeasurementsType]>:$inputVec);
+  let results = (outs AnyTypeOf<[VeqType, MeasurementsType]>);
 
   let assemblyFormat = [{
     $inputVec `:` functional-type(operands, results) attr-dict
