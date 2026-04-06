@@ -24,6 +24,7 @@ Download the notebooks below `here <https://github.com/NVIDIA/cuda-quantum/tree/
       Control <../../examples/python/dynamics/control.ipynb>
 
 .. |:spellcheck-disable:| replace:: \
+
 C++ Examples
 --------------
 
