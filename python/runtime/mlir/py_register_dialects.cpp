@@ -77,7 +77,27 @@ void registerQuakeDialectAndTypes(py::module &m) {
           },
           py::arg("cls"),
           py::arg("size") = quake::MeasurementsType::kDynamicSize,
-          py::arg("context") = py::none());
+          py::arg("context") = py::none())
+      .def_staticmethod(
+          "hasSpecifiedSize",
+          [](MlirType type) {
+            auto msTy = dyn_cast<quake::MeasurementsType>(unwrap(type));
+            if (!msTy)
+              throw std::runtime_error(
+                  "Invalid type passed to MeasurementsType.hasSpecifiedSize()");
+            return msTy.hasSpecifiedSize();
+          },
+          py::arg("measurementsTypeInstance"))
+      .def_staticmethod(
+          "getSize",
+          [](MlirType type) {
+            auto msTy = dyn_cast<quake::MeasurementsType>(unwrap(type));
+            if (!msTy)
+              throw std::runtime_error(
+                  "Invalid type passed to MeasurementsType.getSize()");
+            return msTy.getSize();
+          },
+          py::arg("measurementsTypeInstance"));
 
   mlir_type_subclass(
       quakeMod, "VeqType",

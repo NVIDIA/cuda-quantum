@@ -1,0 +1,44 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --convert-to-qir-api %s | FileCheck --check-prefix=QIR %s
+
+func.func @test_sized(%ms : !quake.measurements<4>) -> i64 {
+  %n = quake.measurements_size %ms : (!quake.measurements<4>) -> i64
+  return %n : i64
+}
+
+func.func @test_unsized(%ms : !quake.measurements<?>) -> i64 {
+  %n = quake.measurements_size %ms : (!quake.measurements<?>) -> i64
+  return %n : i64
+}
+
+// CHECK-LABEL:   func.func @test_sized(
+// CHECK-SAME:                          %[[VAL_0:.*]]: !quake.measurements<4>) -> i64 {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 4 : i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @test_unsized(
+// CHECK-SAME:                            %[[VAL_0:.*]]: !quake.measurements<?>) -> i64 {
+// CHECK:           %[[VAL_1:.*]] = quake.measurements_size %[[VAL_0]] : (!quake.measurements<?>) -> i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// QIR-LABEL:   func.func @test_sized(
+// QIR-SAME:                          %[[VAL_0:.*]]: !cc.ptr<!llvm.struct<"Array", opaque>>) -> i64 attributes {"qir-api"} {
+// QIR:           %[[VAL_1:.*]] = call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> i64
+// QIR:           return %[[VAL_1]] : i64
+// QIR:         }
+
+// QIR-LABEL:   func.func @test_unsized(
+// QIR-SAME:                            %[[VAL_0:.*]]: !cc.ptr<!llvm.struct<"Array", opaque>>) -> i64 attributes {"qir-api"} {
+// QIR:           %[[VAL_1:.*]] = call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> i64
+// QIR:           return %[[VAL_1]] : i64
+// QIR:         }

@@ -2299,6 +2299,11 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(), value).result)
                 return
+            if quake.MeasurementsType.isinstance(value.type):
+                self.pushValue(
+                    quake.MeasurementsSizeOp(self.getIntegerType(),
+                                             value).result)
+                return
             if cc.StdvecType.isinstance(value.type):
                 self.pushValue(
                     cc.StdvecSizeOp(self.getIntegerType(), value).result)
@@ -2742,6 +2747,11 @@ class PyASTBridge(ast.NodeVisitor):
                 if quake.VeqType.isinstance(listVal.type):
                     self.pushValue(
                         quake.VeqSizeOp(self.getIntegerType(), listVal).result)
+                    return
+                if quake.MeasurementsType.isinstance(listVal.type):
+                    self.pushValue(
+                        quake.MeasurementsSizeOp(self.getIntegerType(),
+                                                 listVal).result)
                     return
 
                 self.emitFatalError(
