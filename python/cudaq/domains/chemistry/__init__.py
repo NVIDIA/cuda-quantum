@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+DATA_DIRECTORY = '.'
+
 
 def tryImport():
     """Import `openfermion` and `openfermionpyscf`."""
@@ -22,8 +24,7 @@ def create_molecular_hamiltonian(geometry: list,
                                  multiplicity=1,
                                  charge=0,
                                  n_active_electrons=None,
-                                 n_active_orbitals=None,
-                                 data_directory='.'):
+                                 n_active_orbitals=None):
     '''
     Create the molecular Hamiltonian corresponding to the provided 
     geometry, basis set, multiplicity, and charge.  One can also specify the 
@@ -48,7 +49,7 @@ def create_molecular_hamiltonian(geometry: list,
     '''
     of, ofpyscf = tryImport()
     molecule = ofpyscf.run_pyscf(of.MolecularData(
-        geometry, basis, multiplicity, charge, data_directory=data_directory),
+        geometry, basis, multiplicity, charge, data_directory=DATA_DIRECTORY),
                                  run_fci=True)
     if n_active_electrons is None:
         n_core_orbitals = 0
@@ -74,8 +75,7 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
                                                 multiplicity=1,
                                                 charge=0,
                                                 n_active_electrons=None,
-                                                n_active_orbitals=None,
-                                                data_directory='.'):
+                                                n_active_orbitals=None):
     '''
     Internal function meant for integration with CUDA-Q C++. 
     (Does not require `import cudaq`)
@@ -103,7 +103,7 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
     '''
     of, ofpyscf = tryImport()
     molecule = ofpyscf.run_pyscf(of.MolecularData(
-        geometry, basis, multiplicity, charge, data_directory=data_directory),
+        geometry, basis, multiplicity, charge, data_directory=DATA_DIRECTORY),
                                  run_fci=True)
     if n_active_electrons is None:
         n_core_orbitals = 0
