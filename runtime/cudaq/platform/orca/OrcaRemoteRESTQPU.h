@@ -111,8 +111,5 @@ public:
                const std::vector<void *> &rawArgs) override {
     return launchKernelCommon(kernelName, kernelFunc, args);
   }
-
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override;
 };
 } // namespace cudaq

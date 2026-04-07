@@ -100,6 +100,28 @@ struct ForwardConstantVeqSizePattern
   }
 };
 
+// %4 = quake.measurements_size %3 : (!quake.measurements<10>) -> i64
+// ─────────────────────────────────────────────────────────────────
+// %4 = constant 10 : i64
+struct ForwardConstantMeasurementsSizePattern
+    : public OpRewritePattern<quake::MeasurementsSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::MeasurementsSizeOp msSize,
+                                PatternRewriter &rewriter) const override {
+    auto msTy =
+        dyn_cast<quake::MeasurementsType>(msSize.getMeasurements().getType());
+    if (!msTy)
+      return failure();
+    if (!msTy.hasSpecifiedSize())
+      return failure();
+    auto resTy = msSize.getType();
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(msSize, msTy.getSize(),
+                                                      resTy);
+    return success();
+  }
+};
+
 // %2 = constant 10 : i32
 // %3 = quake.alloca !quake.veq<?>[%2 : i32]
 // ─────────────────────────────────────────

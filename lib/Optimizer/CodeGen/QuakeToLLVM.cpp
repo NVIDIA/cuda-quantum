@@ -1174,6 +1174,31 @@ public:
   }
 };
 
+class GetMeasurementsSizeOpRewrite
+    : public OpConversionPattern<quake::MeasurementsSizeOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MeasurementsSizeOp msize, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = msize->getLoc();
+    auto parentModule = msize->getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+    auto qFunctionName = cudaq::opt::QIRArrayGetSize;
+
+    auto symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        qFunctionName, rewriter.getI64Type(),
+        {cudaq::opt::getArrayType(context)}, parentModule);
+
+    auto c = rewriter.create<LLVM::CallOp>(loc, rewriter.getI64Type(),
+                                           symbolRef, adaptor.getOperands());
+    msize->getResult(0).replaceAllUsesWith(c->getResult(0));
+    rewriter.eraseOp(msize);
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Other conversion patterns.
 //===----------------------------------------------------------------------===//
@@ -1407,9 +1432,8 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                              unsigned &measureCounter) {
   auto *context = patterns.getContext();
   cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
-  patterns
-      .insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, ReturnBitRewrite>(
-          context);
+  patterns.insert<GetMeasurementsSizeOpRewrite, GetVeqSizeOpRewrite,
+                  RemoveRelaxSizeRewrite, ReturnBitRewrite>(context);
   patterns
       .insert<AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
               DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
