@@ -120,6 +120,12 @@ int QpuProcessGroup::getNumMpiRanks() {
   return size;
 }
 
+bool QpuProcessGroup::isMpiInitialized() {
+  int initialized = 0;
+  HANDLE_MPI_ERROR(mpiInterface->initialized(&initialized));
+  return initialized != 0;
+}
+
 bool QpuProcessGroup::contains(int globalRank) const {
   return std::find(globalRanks.begin(), globalRanks.end(), globalRank) !=
          globalRanks.end();

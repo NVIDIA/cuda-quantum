@@ -206,75 +206,84 @@ private:
                         qpuSubType));
       }
     }
-    platformQPUs.clear();
-    // No QPU sub-type, i.e., simulators
-    // Check for MPI first, i.e., if we're running with mpirun/mpiexec.
-    const auto numMpiRanks = cudaq::details::QpuProcessGroup::getNumMpiRanks();
-    std::cout << "Detected " << numMpiRanks
-              << " MPI ranks in the environment. Configuring platform QPUs for "
-                 "MPI-based distributed execution."
-              << std::endl;
 
-    // Default to using 1 QPU per MPI rank, but allow user to specify
-    // otherwise.
-    const auto numQpus = m_numQPUs.value_or(numMpiRanks);
-    // Number of QPUs cannot exceed number of MPI ranks
-    if (numQpus > numMpiRanks)
-      throw std::runtime_error(
-          "Number of QPUs specified in target config cannot exceed "
-          "number of MPI ranks.");
-    // If we have fewer QPUs than MPI ranks, we will assign multiple
-    // ranks to each QPU. Required that this is evenly divisible.
-    if (numMpiRanks % numQpus != 0)
-      throw std::runtime_error("Number of MPI ranks must be evenly "
-                               "divisible by the number of QPUs.");
+    if (cudaq::details::QpuProcessGroup::isMpiInitialized()) {
+      platformQPUs.clear();
+      // No QPU sub-type, i.e., simulators
+      // Check for MPI first, i.e., if we're running with mpirun/mpiexec.
+      const auto numMpiRanks =
+          cudaq::details::QpuProcessGroup::getNumMpiRanks();
+      std::cout
+          << "Detected " << numMpiRanks
+          << " MPI ranks in the environment. Configuring platform QPUs for "
+             "MPI-based distributed execution."
+          << std::endl;
 
-    platformQPUs.clear();
-    // Split the comunicator evenly across all QPUs.
-    // For example, if we have 4 MPI ranks and 2 QPUs, ranks 0 and 1 will be
-    // assigned to QPU 0 and ranks 2 and 3 will be assigned to QPU 1.
-    std::vector<std::vector<int>> qpuRankAssignments(numQpus);
-    std::unordered_map<int, int> localRankToQpuId;
-    const auto ranksPerQpu = numMpiRanks / numQpus;
-    for (int rank = 0; rank < numMpiRanks; ++rank) {
-      // QPU 0: rank 0, 1, ... rank (numMpiRanks/numQpus - 1)
-      // QPU 1: rank (numMpiRanks/numQpus) ... rank (2*numMpiRanks/numQpus - 1)
-      // ... 
-      const int qpuId = rank / ranksPerQpu;
-      qpuRankAssignments[qpuId].push_back(rank);
-      localRankToQpuId[rank] = qpuId;
-    }
-    for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
-      m_qpuProcessGroups.emplace_back(qpuRankAssignments[qId]);
-      platformQPUs.emplace_back(std::make_unique<cudaq::details::DefaultQPU>());
-      platformQPUs.back()->setId(qId);
-      platformQPUs.back()->setTargetBackend(description);
-    }
+      // Default to using 1 QPU per MPI rank, but allow user to specify
+      // otherwise.
+      const auto numQpus = m_numQPUs.value_or(numMpiRanks);
+      // Number of QPUs cannot exceed number of MPI ranks
+      if (numQpus > numMpiRanks)
+        throw std::runtime_error(
+            "Number of QPUs specified in target config cannot exceed "
+            "number of MPI ranks.");
+      // If we have fewer QPUs than MPI ranks, we will assign multiple
+      // ranks to each QPU. Required that this is evenly divisible.
+      if (numMpiRanks % numQpus != 0)
+        throw std::runtime_error("Number of MPI ranks must be evenly "
+                                 "divisible by the number of QPUs.");
 
-    auto *sim = cudaq::get_simulator();
-
-    auto mpiSimulator = dynamic_cast<nvqir::MpiCircuitSimulator *>(sim);
-    if (mpiSimulator) {
-      const auto thisRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
-      const auto thisQpuId = localRankToQpuId[thisRank];
-      auto *qpuComm = m_qpuProcessGroups[thisQpuId].getCommunicator();
-      std::cout << "Rank " << thisRank << " assigned to QPU ID " << thisQpuId
-                << " with local ranks: "
-                << m_qpuProcessGroups[thisQpuId].getLocalMpiRank() << std::endl;
-      mpiSimulator->setMpiCommunicator(qpuComm->commPtr, qpuComm->commSize);
-    } else {
-      if (ranksPerQpu > 1) {
-        CUDAQ_WARN(
-            "MPI environment detected on simulator backend '{}', which does "
-            "not support MPI communication. The number of QPUs specified is "
-            "not sufficient to take advantage of it. Detected {} MPI ranks "
-            "but only {} QPUs specified. Consider increasing the number of "
-            "QPUs or choosing a different backend that supports MPI.",
-            sim->name(), numMpiRanks, numQpus);
+      platformQPUs.clear();
+      // Split the comunicator evenly across all QPUs.
+      // For example, if we have 4 MPI ranks and 2 QPUs, ranks 0 and 1 will be
+      // assigned to QPU 0 and ranks 2 and 3 will be assigned to QPU 1.
+      std::vector<std::vector<int>> qpuRankAssignments(numQpus);
+      std::unordered_map<int, int> localRankToQpuId;
+      const auto ranksPerQpu = numMpiRanks / numQpus;
+      for (int rank = 0; rank < numMpiRanks; ++rank) {
+        // QPU 0: rank 0, 1, ... rank (numMpiRanks/numQpus - 1)
+        // QPU 1: rank (numMpiRanks/numQpus) ... rank (2*numMpiRanks/numQpus -
+        // 1)
+        // ...
+        const int qpuId = rank / ranksPerQpu;
+        qpuRankAssignments[qpuId].push_back(rank);
+        localRankToQpuId[rank] = qpuId;
       }
-    }
+      for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
+        m_qpuProcessGroups.emplace_back(qpuRankAssignments[qId]);
+        platformQPUs.emplace_back(
+            std::make_unique<cudaq::details::DefaultQPU>());
+        platformQPUs.back()->setId(qId);
+        platformQPUs.back()->setTargetBackend(description);
+      }
 
-    return;
+      auto *sim = cudaq::get_simulator();
+
+      auto mpiSimulator = dynamic_cast<nvqir::MpiCircuitSimulator *>(sim);
+      if (mpiSimulator) {
+        const auto thisRank =
+            cudaq::details::QpuProcessGroup::getGlobalMpiRank();
+        const auto thisQpuId = localRankToQpuId[thisRank];
+        auto *qpuComm = m_qpuProcessGroups[thisQpuId].getCommunicator();
+        std::cout << "Rank " << thisRank << " assigned to QPU ID " << thisQpuId
+                  << " with local ranks: "
+                  << m_qpuProcessGroups[thisQpuId].getLocalMpiRank()
+                  << std::endl;
+        mpiSimulator->setMpiCommunicator(qpuComm->commPtr, qpuComm->commSize);
+      } else {
+        if (ranksPerQpu > 1) {
+          CUDAQ_WARN(
+              "MPI environment detected on simulator backend '{}', which does "
+              "not support MPI communication. The number of QPUs specified is "
+              "not sufficient to take advantage of it. Detected {} MPI ranks "
+              "but only {} QPUs specified. Consider increasing the number of "
+              "QPUs or choosing a different backend that supports MPI.",
+              sim->name(), numMpiRanks, numQpus);
+        }
+      }
+
+      return;
+    }
   }
 };
 } // namespace
