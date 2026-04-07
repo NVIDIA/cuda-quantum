@@ -741,6 +741,17 @@ fi
 
 AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
 
+# If this is a quantum device (CUDAQ_QUANTUM_DEVICE and not CUDAQ_EMULATE_REMOTE),
+# we insert default implementation (weak linkage) for all device call declarations.
+# This allows the AOT compilation to succeed without requiring the user to link to a specific device library.
+# When submitting to a quantum device, the device call will be resolved by the provider.
+INSERT_DEFAULT_DEVICE_CALL_IMPL="insert-trap=0"
+# PREPROCESSOR_DEFINES contains 'CUDAQ_QUANTUM_DEVICE'and CUDAQ_EMULATE_REMOTE is false
+if [[ "${PREPROCESSOR_DEFINES}" == *"CUDAQ_QUANTUM_DEVICE"* && "${CUDAQ_EMULATE_REMOTE}" == "false" ]]; then
+	INSERT_DEFAULT_DEVICE_CALL_IMPL="insert-trap=1"
+fi
+
+
 RUN_OPT=false
 # NB: Keep this in synch with the PythonAOT pipeline
 OPT_PASSES=
@@ -800,7 +811,7 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
 if ${RUN_OPT}; then
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call,canonicalize,cse")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${INSERT_DEFAULT_DEVICE_CALL_IMPL}},canonicalize,cse")
 fi
 
 # If TARGET_PASS_PIPELINE is set, then use that exact pipeline (while still
