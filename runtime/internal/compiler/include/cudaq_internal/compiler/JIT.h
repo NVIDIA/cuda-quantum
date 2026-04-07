@@ -66,9 +66,8 @@ JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
 /// `hasResult` and `isFullySpecialized` affect how the mangled kernel name
 /// and the arguments buffer passed to the compiled kernel are constructed.
 /// See `CompiledKernel::getEntryPoint` for more details.
-cudaq::CompiledKernel createCompiledKernel(JitEngine engine,
-                                           std::string kernelName,
-                                           bool hasResult,
-                                           bool isFullySpecialized);
+cudaq::CompiledKernel
+createCompiledKernel(JitEngine engine, std::string kernelName, bool hasResult,
+                     bool isFullySpecialized, bool isEntryPoint);
 
 } // namespace cudaq_internal::compiler

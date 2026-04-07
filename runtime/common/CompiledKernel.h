@@ -77,7 +77,7 @@ private:
   // construct CompiledKernels.
   friend cudaq::CompiledKernel cudaq_internal::compiler::createCompiledKernel(
       JitEngine engine, std::string kernelName, bool hasResult,
-      bool isFullySpecialized);
+      bool isFullySpecialized, bool isEntryPoint);
 
   JitEngine engine;
   std::string name;

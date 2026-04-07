@@ -29,8 +29,7 @@ thread_local bool reuseArtifact = false;
 
 class SavedCompilerArtifact {
 public:
-  void saveArtifact(const std::string &kernelName,
-                    const cudaq::JitEngine &engine) {
+  void saveArtifact(const std::string &kernelName, const JitEngine engine) {
     if (jitEng.has_value()) {
       throw std::runtime_error(
           "Attempted to overwrite saved compiler artifact.");
@@ -40,7 +39,7 @@ public:
   }
 
   void checkArtifactReuse(const std::string &kernelName,
-                          const cudaq::JitEngine &engine) {
+                          const JitEngine engine) {
     if (!jitEng.has_value()) {
       saveArtifact(kernelName, engine);
       return;

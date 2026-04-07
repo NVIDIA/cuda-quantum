@@ -35,9 +35,10 @@ static void specializeKernel(const std::string &name, ModuleOp module,
                              const std::vector<void *> &rawArgs,
                              Type resultTy = {},
                              bool enablePythonCodegenDump = false,
-                             bool isEntryPoint = true) {
+                             bool isEntryPoint = true,
+                             bool isFullySpecialized = true) {
   PassManager pm(module.getContext());
-  cudaq::opt::ArgumentConverter argCon(name, module);
+  cudaq_internal::compiler::ArgumentConverter argCon(name, module);
   // Look up the kernel's type signature.
   argCon.gen(name, module, rawArgs);
   SmallVector<std::string> kernels;
@@ -70,17 +71,10 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   // Run GKE to generate `.thunk` / `.argsCreator` when the kernel has a result
-  // (so the result is properly marshaled) or when any argument was nulled out
-  // (indicating a non-callable arg that must be unpacked from the message
-  // buffer at call time).
-  bool hasNullArg = std::any_of(rawArgs.begin(), rawArgs.end(),
-                                [](void *ptr) { return ptr == nullptr; });
-  if ((resultTy && isEntryPoint) || hasNullArg) {
-    // `positNullary = true` when no args were nulled out: all remaining args
-    // are callables passed outside the message buffer, so the thunk calls the
-    // kernel directly without unpacking args from the buffer.
+  // or any unspecialized arguments so they can be properly marshaled
+  if (isEntryPoint && (resultTy || !isFullySpecialized)) {
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
-        {.positNullary = !hasNullArg, .ignoreHostFunction = true}));
+        {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
   }
   pm.addPass(createSymbolDCEPass());
   if (enablePythonCodegenDump) {
@@ -237,8 +231,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       }
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      return createCompiledKernel(*jit, name, hasResult && isEntryPoint,
-                                  isFullySpecialized);
+      return createCompiledKernel(*jit, name, hasResult, isFullySpecialized,
+                                  isEntryPoint);
     }
 
     // 1. Check that this call is sane.
@@ -262,19 +256,22 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       module.dump();
 
     auto closureArgs = rawArgs;
-    for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs()))
-      if (!isa<cudaq::cc::CallableType>(ty))
-        closureArgs[i] = nullptr;
+    // Specialization for direct calls will take care of partial specialization
+    // separately
+    if (isEntryPoint)
+      for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs()))
+        if (!isa<cudaq::cc::CallableType>(ty))
+          closureArgs[i] = nullptr;
     specializeKernel(name, module, closureArgs, resultTy,
-                     enablePythonCodegenDump, isEntryPoint);
+                     enablePythonCodegenDump, isEntryPoint, isFullySpecialized);
 
     // 4. Lower to QIR and JIT compile.
     auto jit = createQIRJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
     cudaq::compiler_artifact::saveArtifact(name, jit);
 
-    return createCompiledKernel(jit, name, hasResult && isEntryPoint,
-                                isFullySpecialized);
+    return createCompiledKernel(jit, name, hasResult, isFullySpecialized,
+                                isEntryPoint);
   }
 };
 } // namespace

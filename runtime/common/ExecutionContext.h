@@ -220,8 +220,10 @@ bool isPersistingJITEngine();
 
 /// Checks that the compiler artifact (if present) can be reused for the
 /// given kernel. Throws if a different kernel name was previously saved.
-void checkArtifactReuse(const std::string kernelName, const JitEngine jit);
+void checkArtifactReuse(const std::string kernelName,
+                        const cudaq_internal::compiler::JitEngine jit);
 
-void saveArtifact(const std::string kernelName, const JitEngine jit);
+void saveArtifact(const std::string kernelName,
+                  const cudaq_internal::compiler::JitEngine jit);
 }; // namespace compiler_artifact
 } // namespace cudaq

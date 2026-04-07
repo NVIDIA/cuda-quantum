@@ -901,8 +901,9 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
   auto &platform = cudaq::get_platform();
   bool isLocalSimulator =
       platform.is_simulator() && !cudaq::is_remote_platform();
-  auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc,
-                                                  /*specialize=*/!isLocalSimulator);
+  auto args =
+      marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc,
+                                          /*specialize=*/!isLocalSimulator);
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
 
   if (!retTy)

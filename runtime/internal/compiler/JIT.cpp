@@ -338,23 +338,23 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
 
 cudaq::CompiledKernel cudaq_internal::compiler::createCompiledKernel(
     JitEngine engine, std::string kernelName, bool hasResult,
-    bool isFullySpecialized) {
+    bool isFullySpecialized, bool isEntryPoint) {
   std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-  std::string entryName =
-      (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
+  bool useThunk = isEntryPoint && (hasResult || !isFullySpecialized);
+  std::string entryName = useThunk ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  ArgsCreatorFunc argsCreator = nullptr;
-  ReturnOffsetFunc returnOffset = nullptr;
-  ResultSizeFunc resultSize = nullptr;
-  if (!isFullySpecialized) {
-    argsCreator = reinterpret_cast<ArgsCreatorFunc>(
+  cudaq::ArgsCreatorFunc argsCreator = nullptr;
+  cudaq::ReturnOffsetFunc returnOffset = nullptr;
+  cudaq::ResultSizeFunc resultSize = nullptr;
+  if (!isFullySpecialized && isEntryPoint) {
+    argsCreator = reinterpret_cast<cudaq::ArgsCreatorFunc>(
         engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
-    returnOffset = reinterpret_cast<ReturnOffsetFunc>(
+    returnOffset = reinterpret_cast<cudaq::ReturnOffsetFunc>(
         engine.lookupRawNameOrFail(kernelName + ".returnOffset"));
-    resultSize = reinterpret_cast<ResultSizeFunc>(
+    resultSize = reinterpret_cast<cudaq::ResultSizeFunc>(
         engine.lookupRawNameOrFail(kernelName + ".resultSize"));
   }
-  auto hybridLauncher = reinterpret_cast<HybridLaunchFunc>(
+  auto hybridLauncher = reinterpret_cast<cudaq::HybridLaunchFunc>(
       engine.lookupRawNameOrFail("hybridLaunchKernel"));
   return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
                                argsCreator, returnOffset, resultSize,

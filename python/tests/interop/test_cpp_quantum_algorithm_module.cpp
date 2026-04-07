@@ -40,8 +40,7 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
         // the `decorator` must remain alive for `entryPoint` to be valid.
         cudaq::python::CppPyKernelDecorator decorator(qern);
         auto entryPoint =
-            decorator
-                .getEntryPointFunction<cudaq::qkernel<void(std::size_t)>>();
+            decorator.getDirectKernelCall<cudaq::qkernel<void(std::size_t)>>();
         marshal_test(std::move(entryPoint), qnum);
       },
       "");
