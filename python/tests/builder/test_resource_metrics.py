@@ -112,3 +112,20 @@ def test_controlled_h_is_two_qubit():
     assert resources.depth == 1
     assert resources.two_qubit_gate_count == 1
     assert resources.depth_2q == 1
+
+
+def test_dynamic_circuit_with_choice():
+    """Dynamic circuit with mid-circuit measurement produces 2Q metrics."""
+
+    @cudaq.kernel
+    def dynamic_kernel():
+        q = cudaq.qvector(3)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        m = mz(q[0])
+        if m:
+            x.ctrl(q[1], q[2])
+
+    resources = cudaq.estimate_resources(dynamic_kernel, choice=lambda: True)
+    assert resources.two_qubit_gate_count == 2
+    assert resources.num_qubits == 3

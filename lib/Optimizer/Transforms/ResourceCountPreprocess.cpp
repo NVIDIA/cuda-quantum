@@ -36,16 +36,26 @@ struct ResourceCountPreprocessPass
           ResourceCountPreprocessPass> {
   using ResourceCountPreprocessBase::ResourceCountPreprocessBase;
   SetVector<Operation *> to_erase;
+  DenseMap<Value, std::size_t> qubitIndexMap;
+  std::size_t nextQubitIndex = 0;
 
-  /// Resolve a quake value to a concrete qubit index. Handles both reference
-  /// semantics (extract_ref with constant index) and wire semantics
-  /// (BorrowWireOp with identity attribute).
-  static std::optional<std::size_t> resolveQubitIndex(Value v) {
+  /// Resolve a quake value to a concrete qubit index.
+  std::optional<std::size_t> resolveQubitIndex(Value v) {
     if (auto extractRef = v.getDefiningOp<quake::ExtractRefOp>())
       if (extractRef.hasConstantIndex())
         return extractRef.getConstantIndex();
     if (auto borrow = v.getDefiningOp<quake::BorrowWireOp>())
       return static_cast<std::size_t>(borrow.getIdentity());
+    // Single-qubit alloca: assign a unique index by declaration order.
+    if (v.getDefiningOp<quake::AllocaOp>() &&
+        isa<quake::RefType>(v.getType())) {
+      auto it = qubitIndexMap.find(v);
+      if (it != qubitIndexMap.end())
+        return it->second;
+      auto idx = nextQubitIndex++;
+      qubitIndexMap[v] = idx;
+      return idx;
+    }
     return std::nullopt;
   }
 
@@ -126,5 +136,7 @@ struct ResourceCountPreprocessPass
       op->erase();
 
     to_erase.clear();
+    qubitIndexMap.clear();
+    nextQubitIndex = 0;
   }
 };

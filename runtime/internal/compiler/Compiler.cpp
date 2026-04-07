@@ -367,7 +367,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   if (executionContext && executionContext->name == "resource-count") {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (succeeded(result))
-      resourceCounts = std::move(*result);
+      resourceCounts = std::move(result->counts);
   }
 
   assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
