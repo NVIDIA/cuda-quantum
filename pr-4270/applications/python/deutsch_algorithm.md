@@ -321,49 +321,96 @@ pr-4270
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
-        -   [Python Examples (Jupyter
-            Notebooks)](../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
+        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
             .internal}
-            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+            -   [Why dynamics simulations vs. circuit
+                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
                 .internal}
-            -   [Introduction to CUDA-Q Dynamics (Time Dependent
-                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
+            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
                 .internal}
-            -   [Superconducting
-                Qubits](../../examples/python/dynamics/superconducting.html){.reference
+            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
                 .internal}
-            -   [Spin
-                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
+            -   [Section 1 - Simulating the Jaynes-Cummings
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
-            -   [Trapped Ion
-                Qubits](../../examples/python/dynamics/iontrap.html){.reference
+            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
-            -   [Control](../../examples/python/dynamics/control.html){.reference
+            -   [Section 2 - Simulating open quantum systems with the
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
-        -   [C++
-            Examples](../../using/examples/dynamics_examples.html#c-examples){.reference
+            -   [Exercise 2 - Adding additional jump operators
+                [\\(L_i\\)]{.math .notranslate
+                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+                .internal}
+            -   [Section 3 - Many qubits coupled to the
+                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+                .internal}
+        -   [Introduction to CUDA-Q Dynamics (Time Dependent
+            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
             .internal}
-            -   [Introduction: Single Qubit
-                Dynamics](../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
+            -   [The Landau-Zener
+                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
                 .internal}
-            -   [Introduction: Cavity QED (Jaynes-Cummings
-                Model)](../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
+            -   [Section 1 - Implementing time dependent
+                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
                 .internal}
-            -   [Superconducting Qubits: Cross-Resonance
-                Gate](../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
+            -   [Section 2 - Implementing custom
+                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
                 .internal}
-            -   [Spin Qubits: Heisenberg Spin
-                Chain](../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
+            -   [Section 3 - Heisenberg Model with a time-varying
+                magnetic
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
                 .internal}
-            -   [Control: Driven
-                Qubit](../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
+            -   [Exercise 1 - Define a time-varying magnetic
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
                 .internal}
-            -   [State
-                Batching](../../using/examples/dynamics_examples.html#state-batching){.reference
+            -   [Exercise 2
+                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
                 .internal}
-            -   [Numerical
-                Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
+        -   [Superconducting
+            Qubits](../../examples/python/dynamics/superconducting.html){.reference
+            .internal}
+            -   [Cavity
+                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
+                .internal}
+            -   [Cross
+                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
+                .internal}
+            -   [Transmon
+                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
+                .internal}
+        -   [Spin
+            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
+            .internal}
+            -   [Silicon Spin
+                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
+                .internal}
+            -   [Heisenberg
+                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
+                .internal}
+        -   [Trapped Ion
+            Qubits](../../examples/python/dynamics/iontrap.html){.reference
+            .internal}
+            -   [GHZ
+                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
+                .internal}
+        -   [Control](../../examples/python/dynamics/control.html){.reference
+            .internal}
+            -   [Gate
+                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
+                .internal}
+            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
+                .internal}
+            -   [Qubit
+                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
+                .internal}
+            -   [Qubit
+                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
+                .internal}
+            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
     -   [Max-Cut with QAOA](qaoa.html){.reference .internal}
@@ -2156,7 +2203,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![fb15e0d2c8d04a0490ecb627f0e154b5](../../_images/oracle.png){.no-scaled-link
+![afa9603479da4648b44d85324a5d4811](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2262,7 +2309,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![e4b18f530d1940d08c8fb2d819487561](../../_images/deutsch.png){.no-scaled-link
+![8475328c42094df6b7aeb7dacdd0128c](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

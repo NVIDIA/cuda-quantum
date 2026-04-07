@@ -313,46 +313,91 @@ pr-4270
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
-        -   [Python Examples (Jupyter
-            Notebooks)](../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
+        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+            Model)](dynamics/dynamics_intro_1.html){.reference
             .internal}
-            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-                Model)](dynamics/dynamics_intro_1.html){.reference
+            -   [Why dynamics simulations vs. circuit
+                simulations?](dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
                 .internal}
-            -   [Introduction to CUDA-Q Dynamics (Time Dependent
-                Hamiltonians)](dynamics/dynamics_intro_2.html){.reference
+            -   [Functionality](dynamics/dynamics_intro_1.html#Functionality){.reference
                 .internal}
-            -   [Superconducting
-                Qubits](dynamics/superconducting.html){.reference
+            -   [Performance](dynamics/dynamics_intro_1.html#Performance){.reference
                 .internal}
-            -   [Spin Qubits](dynamics/spinqubits.html){.reference
+            -   [Section 1 - Simulating the Jaynes-Cummings
+                Hamiltonian](dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
-            -   [Trapped Ion Qubits](dynamics/iontrap.html){.reference
+            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
+                Hamiltonian](dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
-            -   [Control](dynamics/control.html){.reference .internal}
-        -   [C++
-            Examples](../../using/examples/dynamics_examples.html#c-examples){.reference
+            -   [Section 2 - Simulating open quantum systems with the
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                .internal}
+            -   [Exercise 2 - Adding additional jump operators
+                [\\(L_i\\)]{.math .notranslate
+                .nohighlight}](dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+                .internal}
+            -   [Section 3 - Many qubits coupled to the
+                resonator](dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+                .internal}
+        -   [Introduction to CUDA-Q Dynamics (Time Dependent
+            Hamiltonians)](dynamics/dynamics_intro_2.html){.reference
             .internal}
-            -   [Introduction: Single Qubit
-                Dynamics](../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
+            -   [The Landau-Zener
+                model](dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
                 .internal}
-            -   [Introduction: Cavity QED (Jaynes-Cummings
-                Model)](../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
+            -   [Section 1 - Implementing time dependent
+                terms](dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
                 .internal}
-            -   [Superconducting Qubits: Cross-Resonance
-                Gate](../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
+            -   [Section 2 - Implementing custom
+                operators](dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
                 .internal}
-            -   [Spin Qubits: Heisenberg Spin
-                Chain](../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
+            -   [Section 3 - Heisenberg Model with a time-varying
+                magnetic
+                field](dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
                 .internal}
-            -   [Control: Driven
-                Qubit](../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
+            -   [Exercise 1 - Define a time-varying magnetic
+                field](dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
                 .internal}
-            -   [State
-                Batching](../../using/examples/dynamics_examples.html#state-batching){.reference
+            -   [Exercise 2
+                (Optional)](dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
                 .internal}
-            -   [Numerical
-                Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
+        -   [Superconducting
+            Qubits](dynamics/superconducting.html){.reference .internal}
+            -   [Cavity
+                QED](dynamics/superconducting.html#Cavity-QED){.reference
+                .internal}
+            -   [Cross
+                Resonance](dynamics/superconducting.html#Cross-Resonance){.reference
+                .internal}
+            -   [Transmon
+                Resonator](dynamics/superconducting.html#Transmon-Resonator){.reference
+                .internal}
+        -   [Spin Qubits](dynamics/spinqubits.html){.reference
+            .internal}
+            -   [Silicon Spin
+                Qubit](dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
+                .internal}
+            -   [Heisenberg
+                Model](dynamics/spinqubits.html#Heisenberg-Model){.reference
+                .internal}
+        -   [Trapped Ion Qubits](dynamics/iontrap.html){.reference
+            .internal}
+            -   [GHZ state](dynamics/iontrap.html#GHZ-state){.reference
+                .internal}
+        -   [Control](dynamics/control.html){.reference .internal}
+            -   [Gate
+                Calibration](dynamics/control.html#Gate-Calibration){.reference
+                .internal}
+            -   [Pulse](dynamics/control.html#Pulse){.reference
+                .internal}
+            -   [Qubit
+                Control](dynamics/control.html#Qubit-Control){.reference
+                .internal}
+            -   [Qubit
+                Dynamics](dynamics/control.html#Qubit-Dynamics){.reference
+                .internal}
+            -   [Landau-Zenner](dynamics/control.html#Landau-Zenner){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
     -   [Max-Cut with
@@ -2087,14 +2132,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![49febeeedfa740e3af555ab90492bf77](../../_images/gate-fuse.png)
+![cb50295141e64a7db1b1974e7cb31b82](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![6ed869d58f3241e8803fb6d643feac87](../../_images/gatefusion.png)
+![083196419a9e4a67a72b88c89ac1229b](../../_images/gatefusion.png)
 :::
 :::
 :::

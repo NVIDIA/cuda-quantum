@@ -319,43 +319,80 @@ pr-4270
     -   [Dynamics
         Examples](../../../using/examples/dynamics_examples.html){.reference
         .internal}
-        -   [Python Examples (Jupyter
-            Notebooks)](../../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
+        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+            Model)](dynamics_intro_1.html){.reference .internal}
+            -   [Why dynamics simulations vs. circuit
+                simulations?](dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+                .internal}
+            -   [Functionality](dynamics_intro_1.html#Functionality){.reference
+                .internal}
+            -   [Performance](dynamics_intro_1.html#Performance){.reference
+                .internal}
+            -   [Section 1 - Simulating the Jaynes-Cummings
+                Hamiltonian](dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+                .internal}
+            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
+                Hamiltonian](dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+                .internal}
+            -   [Section 2 - Simulating open quantum systems with the
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                .internal}
+            -   [Exercise 2 - Adding additional jump operators
+                [\\(L_i\\)]{.math .notranslate
+                .nohighlight}](dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+                .internal}
+            -   [Section 3 - Many qubits coupled to the
+                resonator](dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+                .internal}
+        -   [Introduction to CUDA-Q Dynamics (Time Dependent
+            Hamiltonians)](dynamics_intro_2.html){.reference .internal}
+            -   [The Landau-Zener
+                model](dynamics_intro_2.html#The-Landau-Zener-model){.reference
+                .internal}
+            -   [Section 1 - Implementing time dependent
+                terms](dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+                .internal}
+            -   [Section 2 - Implementing custom
+                operators](dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+                .internal}
+            -   [Section 3 - Heisenberg Model with a time-varying
+                magnetic
+                field](dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+                .internal}
+            -   [Exercise 1 - Define a time-varying magnetic
+                field](dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+                .internal}
+            -   [Exercise 2
+                (Optional)](dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+                .internal}
+        -   [Superconducting Qubits](superconducting.html){.reference
             .internal}
-            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-                Model)](dynamics_intro_1.html){.reference .internal}
-            -   [Introduction to CUDA-Q Dynamics (Time Dependent
-                Hamiltonians)](dynamics_intro_2.html){.reference
+            -   [Cavity QED](superconducting.html#Cavity-QED){.reference
                 .internal}
-            -   [Superconducting
-                Qubits](superconducting.html){.reference .internal}
-            -   [Spin Qubits](spinqubits.html){.reference .internal}
-            -   [Trapped Ion Qubits](iontrap.html){.reference .internal}
-            -   [Control](#){.current .reference .internal}
-        -   [C++
-            Examples](../../../using/examples/dynamics_examples.html#c-examples){.reference
-            .internal}
-            -   [Introduction: Single Qubit
-                Dynamics](../../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
+            -   [Cross
+                Resonance](superconducting.html#Cross-Resonance){.reference
                 .internal}
-            -   [Introduction: Cavity QED (Jaynes-Cummings
-                Model)](../../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
+            -   [Transmon
+                Resonator](superconducting.html#Transmon-Resonator){.reference
                 .internal}
-            -   [Superconducting Qubits: Cross-Resonance
-                Gate](../../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
+        -   [Spin Qubits](spinqubits.html){.reference .internal}
+            -   [Silicon Spin
+                Qubit](spinqubits.html#Silicon-Spin-Qubit){.reference
                 .internal}
-            -   [Spin Qubits: Heisenberg Spin
-                Chain](../../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
+            -   [Heisenberg
+                Model](spinqubits.html#Heisenberg-Model){.reference
                 .internal}
-            -   [Control: Driven
-                Qubit](../../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
+        -   [Trapped Ion Qubits](iontrap.html){.reference .internal}
+            -   [GHZ state](iontrap.html#GHZ-state){.reference
                 .internal}
-            -   [State
-                Batching](../../../using/examples/dynamics_examples.html#state-batching){.reference
+        -   [Control](#){.current .reference .internal}
+            -   [Gate Calibration](#Gate-Calibration){.reference
                 .internal}
-            -   [Numerical
-                Integrators](../../../using/examples/dynamics_examples.html#numerical-integrators){.reference
-                .internal}
+            -   [Pulse](#Pulse){.reference .internal}
+            -   [Qubit Control](#Qubit-Control){.reference .internal}
+            -   [Qubit Dynamics](#Qubit-Dynamics){.reference .internal}
+            -   [Landau-Zenner](#Landau-Zenner){.reference .internal}
 -   [Applications](../../../using/applications.html){.reference
     .internal}
     -   [Max-Cut with
