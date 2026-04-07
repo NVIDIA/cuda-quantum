@@ -27,6 +27,7 @@ public:
                         const QpuProcessGroup &rootGroup);
   static int getGlobalMpiRank();
   static int getNumMpiRanks();
+  cudaqDistributedCommunicator_t *getCommunicator() const { return qpuComm; }
 };
 } // namespace details
 } // namespace cudaq

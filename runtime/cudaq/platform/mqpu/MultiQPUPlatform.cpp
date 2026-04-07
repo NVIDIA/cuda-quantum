@@ -16,7 +16,9 @@
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/simulators.h"
 #include "helpers/MQPUUtils.h"
+#include "nvqir/CircuitSimulator.h"
 #include "utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
 #include <filesystem>
@@ -86,107 +88,41 @@ public:
   }
 
   MultiQPUQuantumPlatform() {
-    // Environment variable CUDAQ_MQPU_BROADCAST_RESULTS controls whether QPUs
-    // on different ranks should broadcast their kernel results to each other.
-    // This might be useful for users (all ranks have the same results), but can
-    // be turned off for platforms where this is not necessary to avoid the
-    // overhead of broadcasting.
-    const char *broadcastEnvVal = std::getenv("CUDAQ_MQPU_BROADCAST_RESULTS");
-    if (broadcastEnvVal != nullptr) {
-      const std::string valStr = broadcastEnvVal;
-      if (valStr == "0" || valStr == "false" || valStr == "False" ||
-          valStr == "FALSE" || valStr == "off" || valStr == "OFF") {
-        m_broadcastKernelResults = false;
+    if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
+      int nDevices = cudaq::getCudaDeviceCount();
+      // Skipped if CUDA-Q was built with CUDA but no devices present at
+      // runtime.
+      if (nDevices > 0) {
+        const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
+        if (envVal != nullptr) {
+          int specifiedNDevices = 0;
+          try {
+            specifiedNDevices = std::stoi(envVal);
+          } catch (...) {
+            throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment"
+                                     " variable, must be integer.");
+          }
+
+          if (specifiedNDevices < nDevices)
+            nDevices = specifiedNDevices;
+        }
+
+        if (nDevices == 0)
+          throw std::runtime_error(
+              "No GPUs available to instantiate platform.");
+
+        // Add a QPU for each GPU.
+        for (int i = 0; i < nDevices; i++) {
+          platformQPUs.emplace_back(
+              cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
+          platformQPUs.back()->setId(i);
+        }
       }
     }
-
-    //   if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
-    //     int nDevices = cudaq::getCudaDeviceCount();
-    //     // Skipped if CUDA-Q was built with CUDA but no devices present at
-    //     // runtime.
-    //     if (nDevices > 0) {
-    //       const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
-    //       if (envVal != nullptr) {
-    //         int specifiedNDevices = 0;
-    //         try {
-    //           specifiedNDevices = std::stoi(envVal);
-    //         } catch (...) {
-    //           throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment
-    //           "
-    //                                    "variable, must be integer.");
-    //         }
-
-    //         if (specifiedNDevices < nDevices)
-    //           nDevices = specifiedNDevices;
-    //       }
-
-    //       if (nDevices == 0)
-    //         throw std::runtime_error(
-    //             "No GPUs available to instantiate platform.");
-
-    //       // Add a QPU for each GPU.
-    //       for (int i = 0; i < nDevices; i++) {
-    //         platformQPUs.emplace_back(
-    //             cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
-    //         platformQPUs.back()->setId(i);
-    //       }
-    //     }
-    //   }
   }
 
   bool supports_task_distribution() const override { return true; }
 
-  std::future<cudaq::sample_result>
-  enqueueAsyncTask(const std::size_t qpu_id,
-                   cudaq::KernelExecutionTask &t) override {
-    if (!m_qpuProcessGroups.empty()) {
-      const int localRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
-      const auto& qpuProcessGroup = m_qpuProcessGroups[qpu_id];
-      if (!qpuProcessGroup.contains(localRank)) {
-        if (!m_broadcastKernelResults) {
-          // Add a no-op task to keep the promise alive for this rank, even
-          // though it won't do any work since it's not assigned to this QPU.
-          cudaq::KernelExecutionTask emptyTask =
-              cudaq::detail::make_copyable_function([]() mutable {
-                // No-op task
-                return cudaq::sample_result();
-              });
-          return quantum_platform::enqueueAsyncTask(qpu_id, emptyTask);
-        } else {
-          cudaq::KernelExecutionTask waitForBroadcastTask =
-              cudaq::detail::make_copyable_function([&qpuProcessGroup]() mutable {
-                cudaq::sample_result result;
-                // Wait for the result to be broadcasted from the ranks that execute the task.
-                cudaq::details::QpuProcessGroup::broadcast(result, qpuProcessGroup);
-                return result;
-              });
-          return quantum_platform::enqueueAsyncTask(qpu_id, waitForBroadcastTask);
-        }
-      } else {
-        // Execute then broadcast results among ranks in the same QPU process group.
-        auto future = quantum_platform::enqueueAsyncTask(qpu_id, t);
-        if (m_broadcastKernelResults) {
-          // As std::future doesn't support continuations (i.e., `then()`), we
-          // need to wrap the future in another one to broadcast the results
-          // after the task is done.
-          cudaq::KernelExecutionTask wrappedTask =
-              cudaq::detail::make_copyable_function(
-                  [&qpuProcessGroup, future = std::move(future)]() mutable {
-                    auto result = future.get(); // Wait for the original task to
-                                                // complete and get the result.
-                    // Broadcast the result to other ranks in the same QPU
-                    // process group.
-                    cudaq::details::QpuProcessGroup::broadcast(result, qpuProcessGroup);
-                    return result;
-                  });
-          return quantum_platform::enqueueAsyncTask(qpu_id, wrappedTask);
-        } else {
-          return future;
-        }
-      }
-    }    
-    return quantum_platform::enqueueAsyncTask(qpu_id, t);
-  }
 protected:
   bool filterExecutionContext(const cudaq::ExecutionContext &ctx) const override {
     const auto qpuId = ctx.qpuId;
@@ -319,63 +255,88 @@ private:
               << " MPI ranks in the environment. Configuring platform QPUs for "
                  "MPI-based distributed execution."
               << std::endl;
-    if (numMpiRanks > 1) {
-      CUDAQ_INFO("MPI environment detected with {} ranks, configuring platform "
-                 "QPUs for distributed execution.",
-                 numMpiRanks);
-      // Default to using 1 QPU per MPI rank, but allow user to specify
-      // otherwise.
-      auto numQpus = numMpiRanks;
-      // Determine the number of QPUs based on user configurations
-      const auto numQpusStr = getOption(description, "nqpus");
-      if (!numQpusStr.empty()) {
-        try {
-          int numQpus = std::stoi(numQpusStr);
-          if (numQpus <= 0)
-            throw std::runtime_error(
-                "Invalid number of QPUs specified in target config, must be "
-                "positive integer.");
-          // Number of QPUs cannot exceed number of MPI ranks
-          if (numQpus > numMpiRanks)
-            throw std::runtime_error(
-                "Number of QPUs specified in target config cannot exceed "
-                "number of MPI ranks.");
-          // If we have fewer QPUs than MPI ranks, we will assign multiple
-          // ranks to each QPU. Required that this is evenly divisible.
-          if (numMpiRanks % numQpus != 0)
-            throw std::runtime_error("Number of MPI ranks must be evenly "
-                                     "divisible by the number of QPUs.");
-        } catch (const std::exception &e) {
+
+    // Default to using 1 QPU per MPI rank, but allow user to specify
+    // otherwise.
+    auto numQpus = numMpiRanks;
+    // Determine the number of QPUs based on user configurations
+    const auto numQpusStr = getOption(description, "nqpus");
+    if (!numQpusStr.empty()) {
+      try {
+        int numQpus = std::stoi(numQpusStr);
+        if (numQpus <= 0)
           throw std::runtime_error(
-              fmt::format("Invalid number of QPUs specified in target config: "
-                          "{}. Error: {}",
-                          numQpusStr, e.what()));
-        }
-
-        CUDAQ_INFO("Configuring platform with {} QPUs on MPI platform with "
-                   "{} ranks.",
-                   numQpus, numMpiRanks);
+              "Invalid number of QPUs specified in target config, must be "
+              "positive integer.");
+        // Number of QPUs cannot exceed number of MPI ranks
+        if (numQpus > numMpiRanks)
+          throw std::runtime_error(
+              "Number of QPUs specified in target config cannot exceed "
+              "number of MPI ranks.");
+        // If we have fewer QPUs than MPI ranks, we will assign multiple
+        // ranks to each QPU. Required that this is evenly divisible.
+        if (numMpiRanks % numQpus != 0)
+          throw std::runtime_error("Number of MPI ranks must be evenly "
+                                   "divisible by the number of QPUs.");
+      } catch (const std::exception &e) {
+        throw std::runtime_error(
+            fmt::format("Invalid number of QPUs specified in target config: "
+                        "{}. Error: {}",
+                        numQpusStr, e.what()));
       }
 
-      platformQPUs.clear();
-      // Split the comunicator evenly across all QPUs.
-      // For example, if we have 4 MPI ranks and 2 QPUs, ranks 0 and 1 will be
-      // assigned to QPU 0 and ranks 2 and 3 will be assigned to QPU 1.
-      std::vector<std::vector<int>> qpuRankAssignments(numQpus);
-      std::unordered_map<int, int> localRankToQpuId;
-      for (int rank = 0; rank < numMpiRanks; ++rank) {
-        qpuRankAssignments[rank % numQpus].push_back(rank);
-        localRankToQpuId[rank] = rank % numQpus;
-      }
-      for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
-        m_qpuProcessGroups.emplace_back(qpuRankAssignments[qId]);
-        platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
-        platformQPUs.back()->setId(qId);
-        platformQPUs.back()->setTargetBackend(description);
-      }
-
-      return;
+      CUDAQ_INFO("Configuring platform with {} QPUs on MPI platform with "
+                 "{} ranks.",
+                 numQpus, numMpiRanks);
     }
+
+    platformQPUs.clear();
+    // Split the comunicator evenly across all QPUs.
+    // For example, if we have 4 MPI ranks and 2 QPUs, ranks 0 and 1 will be
+    // assigned to QPU 0 and ranks 2 and 3 will be assigned to QPU 1.
+    std::vector<std::vector<int>> qpuRankAssignments(numQpus);
+    std::unordered_map<int, int> localRankToQpuId;
+    const auto ranksPerQpu = numMpiRanks / numQpus;
+    for (int rank = 0; rank < numMpiRanks; ++rank) {
+      // QPU 0: rank 0, 1, ... rank (numMpiRanks/numQpus - 1)
+      // QPU 1: rank (numMpiRanks/numQpus) ... rank (2*numMpiRanks/numQpus - 1)
+      // ... 
+      const int qpuId = rank / ranksPerQpu;
+      qpuRankAssignments[qpuId].push_back(rank);
+      localRankToQpuId[rank] = qpuId;
+    }
+    for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
+      m_qpuProcessGroups.emplace_back(qpuRankAssignments[qId]);
+      platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
+      platformQPUs.back()->setId(qId);
+      platformQPUs.back()->setTargetBackend(description);
+    }
+
+    auto *sim = cudaq::get_simulator();
+
+    auto mpiSimulator = dynamic_cast<nvqir::MpiCircuitSimulator *>(sim);
+    if (mpiSimulator) {
+      const auto thisRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
+      const auto thisQpuId = localRankToQpuId[thisRank];
+      auto *qpuComm = m_qpuProcessGroups[thisQpuId].getCommunicator();
+      std::cout << "Rank " << thisRank << " assigned to QPU ID " << thisQpuId
+                << " with local ranks: "
+                << m_qpuProcessGroups[thisQpuId].getLocalMpiRank() << std::endl;
+      mpiSimulator->setMpiCommunicator(qpuComm->commPtr, qpuComm->commSize);
+
+    } else {
+      if (numMpiRanks > numQpus) {
+        CUDAQ_WARN(
+            "MPI environment detected on simulator backend '{}', which does "
+            "not support MPI communication. The number of QPUs specified is "
+            "not sufficient to take advantage of it. Detected {} MPI ranks "
+            "but only {} QPUs specified. Consider increasing the number of "
+            "QPUs or choosing a different backend that supports MPI.",
+            sim->name(), numMpiRanks, numQpus);
+      }
+    }
+
+    return;
   }
 };
 } // namespace

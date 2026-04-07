@@ -31,6 +31,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-logger
     fmt::fmt-header-only
     cudaq
+    nvqir
     mqpu_util
     CUDAQTargetConfigUtil
     pthread

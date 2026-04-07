@@ -69,16 +69,9 @@ static std::string getMpiPluginFilePath() {
   return mpiPlugin->getPluginPath();
 }
 
-void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
+void initCuTensornetComm(cutensornetHandle_t cutnHandle, void *commPtr,
+                         int commSizeBytes) {
   cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
-  cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
-  assert(mpiInterface && comm);
-  cudaqDistributedCommunicator_t *dupComm = nullptr;
-  const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
-  if (dupStatus != 0 || dupComm == nullptr)
-    throw std::runtime_error("Failed to duplicate the MPI communicator when "
-                             "initializing cutensornet MPI");
-
   // If CUTENSORNET_COMM_LIB environment variable is not set,
   // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
   if (std::getenv("CUTENSORNET_COMM_LIB") == nullptr) {
@@ -88,6 +81,20 @@ void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
                getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUTENSORNET_COMM_LIB", getThisSharedLibFilePath(), 0);
   }
+
+  if (commPtr) {
+    HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
+        cutnHandle, commPtr, commSizeBytes));
+    return;
+  }
+
+  cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
+  assert(mpiInterface && comm);
+  cudaqDistributedCommunicator_t *dupComm = nullptr;
+  const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
+  if (dupStatus != 0 || dupComm == nullptr)
+    throw std::runtime_error("Failed to duplicate the MPI communicator when "
+                             "initializing cutensornet MPI");
 
   HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
       cutnHandle, dupComm->commPtr, dupComm->commSize));
@@ -177,6 +184,13 @@ int cutensornetMpiCommRank(const cutensornetDistributedCommunicator_t *comm,
 int cutensornetMpiBarrier(const cutensornetDistributedCommunicator_t *comm) {
   ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
+  int finalized = 0;
+  if (getMpiPluginInterface()->finalized(&finalized) == 0 && finalized) {
+    // If MPI is already finalized, we should not call MPI_Barrier and just
+    // return success.
+    return 0;
+  }
+
   return getMpiPluginInterface()->Barrier(&cudaqComm);
 }
 

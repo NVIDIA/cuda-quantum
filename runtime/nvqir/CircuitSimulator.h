@@ -967,7 +967,7 @@ public:
 
   /// @brief Reset the current execution context.
   void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
-    if (nQubitsAllocated == 0 && context.name != "sample")
+    if (nQubitsAllocated == 0)
       return;
 
     // Get the ExecutionContext name
@@ -1405,6 +1405,14 @@ private:
     return qubits;
   }
 };
+
+// A mixin intended to be used for simulators that want to support MPI-based
+// distributed simulation.
+struct MpiCircuitSimulator {
+  // Set the MPI communicator for the simulator
+  virtual bool setMpiCommunicator(void *comm, int commSize) = 0;
+};
+
 } // namespace nvqir
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
