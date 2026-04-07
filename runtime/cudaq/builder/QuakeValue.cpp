@@ -175,15 +175,13 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType, quake::MeasurementsType>(type))
+  if (!isa<cc::StdvecType, quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
   Value ret;
   if (isa<cc::StdvecType>(type))
     ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
-  else if (isa<quake::MeasurementsType>(type))
-    ret = opBuilder.create<quake::MeasurementsSizeOp>(i64Ty, vectorValue);
   else
     ret = opBuilder.create<quake::VeqSizeOp>(i64Ty, vectorValue);
 

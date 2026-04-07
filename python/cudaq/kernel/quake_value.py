@@ -51,12 +51,10 @@ class QuakeValue(object):
             # See if we know the size of the `veq`
             # return `stdvecsizeop` or `veqsizeop`
             type = self.mlirValue.type
-            if not quake.VeqType.isinstance(type) and \
-               not cc.StdvecType.isinstance(type) and \
-               not quake.MeasurementsType.isinstance(type):
+            if not quake.VeqType.isinstance(
+                    type) and not cc.StdvecType.isinstance(type):
                 raise RuntimeError(
-                    "QuakeValue.size only valid for veq, stdvec, and measurements types."
-                )
+                    "QuakeValue.size only valid for veq and stdvec types.")
 
             if quake.VeqType.isinstance(type):
                 size = quake.VeqType.getSize(type)
@@ -64,14 +62,6 @@ class QuakeValue(object):
                     return size
                 return QuakeValue(
                     quake.VeqSizeOp(self.intType, self.mlirValue).result,
-                    self.pyKernel)
-
-            if quake.MeasurementsType.isinstance(type):
-                if quake.MeasurementsType.hasSpecifiedSize(type):
-                    return quake.MeasurementsType.getSize(type)
-                return QuakeValue(
-                    quake.MeasurementsSizeOp(self.intType,
-                                             self.mlirValue).result,
                     self.pyKernel)
 
             # Must be a `stdvec` type
