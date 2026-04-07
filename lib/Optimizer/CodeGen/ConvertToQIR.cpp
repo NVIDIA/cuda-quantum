@@ -211,9 +211,6 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   typeConverter.addConversion([](quake::MeasurementsType type) {
     return getArrayType(type.getContext());
   });
-  typeConverter.addConversion([](quake::MeasurementsType type) {
-    return getArrayType(type.getContext());
-  });
   cudaq::opt::populateCCTypeConversions(&typeConverter);
 }
 

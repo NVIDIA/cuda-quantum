@@ -406,12 +406,12 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(%[[VAL_12]]* %[[VAL_15]])
 // QIR:         %[[VAL_16:.*]] = call %[[VAL_17:.*]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_13]])
 // QIR:         %[[VAL_21:.*]] = call %[[VAL_17]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_15]])
-// QIR:         %[[VAL_18:.*]] = bitcast %[[VAL_17]]* %[[VAL_16]] to i8*
-// QIR:         %[[VAL_19:.*]] = load i8, i8* %[[VAL_18]]{{.*}}
-// QIR:         %[[VAL_20:.*]] = and i8 %[[VAL_19]], 1
-// QIR:         %[[VAL_22:.*]] = bitcast %[[VAL_17]]* %[[VAL_21]] to i8*
-// QIR:         %[[VAL_23:.*]] = load i8, i8* %[[VAL_22]]{{.*}}
-// QIR:         %[[VAL_24:.*]] = and i8 %[[VAL_23]], 1
+// QIR:         %[[VAL_18:.*]] = bitcast %[[VAL_17]]* %[[VAL_16]] to i1*
+// QIR:         %[[VAL_19:.*]] = load i1, i1* %[[VAL_18]]
+// QIR:         %[[VAL_20:.*]] = zext i1 %[[VAL_19]] to i8
+// QIR:         %[[VAL_22:.*]] = bitcast %[[VAL_17]]* %[[VAL_21]] to i1*
+// QIR:         %[[VAL_23:.*]] = load i1, i1* %[[VAL_22]]
+// QIR:         %[[VAL_24:.*]] = zext i1 %[[VAL_23]] to i8
 // QIR:         %[[VAL_25:.*]] = call dereferenceable_or_null(2) i8* @malloc(i64 2)
 // QIR:         store i8 %[[VAL_20]], i8* %[[VAL_25]]
 // QIR:         %[[VAL_26:.*]] = getelementptr inbounds i8, i8* %[[VAL_25]], i64 1
@@ -448,12 +448,12 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(%[[VAL_12]]* %[[VAL_15]])
 // QIR:         %[[VAL_16:.*]] = call %[[VAL_17:.*]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_13]])
 // QIR:         %[[VAL_21:.*]] = call %[[VAL_17]]* @__quantum__qis__mz(%[[VAL_12]]* %[[VAL_15]])
-// QIR:         %[[VAL_18:.*]] = bitcast %[[VAL_17]]* %[[VAL_16]] to i8*
-// QIR:         %[[VAL_19:.*]] = load i8, i8* %[[VAL_18]]{{.*}}
-// QIR:         %[[VAL_20:.*]] = and i8 %[[VAL_19]], 1
-// QIR:         %[[VAL_22:.*]] = bitcast %[[VAL_17]]* %[[VAL_21]] to i8*
-// QIR:         %[[VAL_23:.*]] = load i8, i8* %[[VAL_22]]{{.*}}
-// QIR:         %[[VAL_24:.*]] = and i8 %[[VAL_23]], 1
+// QIR:         %[[VAL_18:.*]] = bitcast %[[VAL_17]]* %[[VAL_16]] to i1*
+// QIR:         %[[VAL_19:.*]] = load i1, i1* %[[VAL_18]]
+// QIR:         %[[VAL_20:.*]] = zext i1 %[[VAL_19]] to i8
+// QIR:         %[[VAL_22:.*]] = bitcast %[[VAL_17]]* %[[VAL_21]] to i1*
+// QIR:         %[[VAL_23:.*]] = load i1, i1* %[[VAL_22]]
+// QIR:         %[[VAL_24:.*]] = zext i1 %[[VAL_23]] to i8
 // QIR:         %[[VAL_25:.*]] = call dereferenceable_or_null(2) i8* @malloc(i64 2)
 // QIR:         store i8 %[[VAL_20]], i8* %[[VAL_25]]
 // QIR:         %[[VAL_26:.*]] = getelementptr inbounds i8, i8* %[[VAL_25]], i64 1
@@ -542,12 +542,10 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_21:.*]] = call %[[VAL_18]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 0)
 // QIR:         %[[VAL_22:.*]] = load %[[VAL_18]]*, %[[VAL_18]]** %[[VAL_21]]
 // QIR:         %[[VAL_23:.*]] = call %[[VAL_24:.*]]* @__quantum__qis__mz(%[[VAL_18]]* %[[VAL_22]])
-// QIR:         %[[VAL_25:.*]] = bitcast %[[VAL_24]]* %[[VAL_23]] to i8*
-// QIR:         %[[VAL_26:.*]] = load i8, i8* %[[VAL_25]]{{.*}}
-// QIR:         %[[VAL_27:.*]] = and i8 %[[VAL_26]], 1
-// QIR:         %[[VAL_28:.*]] = icmp ne i8 %[[VAL_27]], 0
+// QIR:         %[[VAL_25:.*]] = bitcast %[[VAL_24]]* %[[VAL_23]] to i1*
+// QIR:         %[[VAL_26:.*]] = load i1, i1* %[[VAL_25]]
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_9]]* %[[VAL_8]])
-// QIR:         ret i1 %[[VAL_28]]
+// QIR:         ret i1 %[[VAL_26]]
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__ChocolateMint()
@@ -577,12 +575,10 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_21:.*]] = call %[[VAL_18]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 0)
 // QIR:         %[[VAL_22:.*]] = load %[[VAL_18]]*, %[[VAL_18]]** %[[VAL_21]]
 // QIR:         %[[VAL_23:.*]] = call %[[VAL_24:.*]]* @__quantum__qis__mz(%[[VAL_18]]* %[[VAL_22]])
-// QIR:         %[[VAL_25:.*]] = bitcast %[[VAL_24]]* %[[VAL_23]] to i8*
-// QIR:         %[[VAL_26:.*]] = load i8, i8* %[[VAL_25]]{{.*}}
-// QIR:         %[[VAL_27:.*]] = and i8 %[[VAL_26]], 1
-// QIR:         %[[VAL_28:.*]] = icmp ne i8 %[[VAL_27]], 0
+// QIR:         %[[VAL_25:.*]] = bitcast %[[VAL_24]]* %[[VAL_23]] to i1*
+// QIR:         %[[VAL_26:.*]] = load i1, i1* %[[VAL_25]]
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_9]]* %[[VAL_8]])
-// QIR:         ret i1 %[[VAL_28]]
+// QIR:         ret i1 %[[VAL_26]]
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Neapolitan()
@@ -600,42 +596,42 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
 // QIR:         %[[VAL_11:.*]] = icmp sgt i64 %[[VAL_10]], 0
 // QIR:         br i1 %[[VAL_11]], label %[[VAL_12:.*]], label %[[VAL_13:.*]]
-// QIR:       ._crit_edge.thread:
-// QIR:         %[[VAL_21:.*]] = alloca i8, i64 %[[VAL_10]]
-// QIR:         br label %[[VAL_39:.*]]
-// QIR:       .lr.ph:                                           ; preds = %[[VAL_14:.*]], %[[VAL_12]]
-// QIR:         %[[VAL_15:.*]] = phi i64 [ %[[VAL_16:.*]], %[[VAL_12]] ], [ 0, %[[VAL_14]] ]
-// QIR:         %[[VAL_17:.*]] = call %[[VAL_18:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_15]])
-// QIR:         %[[VAL_19:.*]] = load %[[VAL_18]]*, %[[VAL_18]]** %[[VAL_17]]
-// QIR:         call void @__quantum__qis__h(%[[VAL_18]]* %[[VAL_19]])
-// QIR:         %[[VAL_16]] = add nuw nsw i64 %[[VAL_15]], 1
-// QIR:         %[[VAL_20:.*]] = icmp eq i64 %[[VAL_16]], %[[VAL_10]]
-// QIR:         br i1 %[[VAL_20]], label %[[VAL_22:.*]], label %[[VAL_12]]
-// QIR:       ._crit_edge:
-// QIR:         %[[VAL_23:.*]] = alloca i8, i64 %[[VAL_10]]
-// QIR:         br i1 %[[VAL_11]], label %[[VAL_24:.*]], label %[[VAL_39]]
-// QIR:       .lr.ph4:                                          ; preds = %[[VAL_22]], %[[VAL_24]]
-// QIR:         %[[VAL_25:.*]] = phi i64 [ %[[VAL_26:.*]], %[[VAL_24]] ], [ 0, %[[VAL_22]] ]
-// QIR:         %[[VAL_27:.*]] = call %[[VAL_18]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_25]])
-// QIR:         %[[VAL_28:.*]] = load %[[VAL_18]]*, %[[VAL_18]]** %[[VAL_27]]
-// QIR:         %[[VAL_29:.*]] = call %[[VAL_30:.*]]* @__quantum__qis__mz(%[[VAL_18]]* %[[VAL_28]])
-// QIR:         %[[VAL_31:.*]] = bitcast %[[VAL_30]]* %[[VAL_29]] to i8*
-// QIR:         %[[VAL_32:.*]] = load i8, i8* %[[VAL_31]]{{.*}}
-// QIR:         %[[VAL_34:.*]] = and i8 %[[VAL_32]], 1
-// QIR:         %[[VAL_33:.*]] = getelementptr i8, i8* %[[VAL_23]], i64 %[[VAL_25]]
-// QIR:         store i8 %[[VAL_34]], i8* %[[VAL_33]]
-// QIR:         %[[VAL_26]] = add nuw nsw i64 %[[VAL_25]], 1
-// QIR:         %[[VAL_35:.*]] = icmp eq i64 %[[VAL_26]], %[[VAL_10]]
-// QIR:         br i1 %[[VAL_35]], label %[[VAL_39]], label %[[VAL_24]]
-// QIR:       ._crit_edge5:
-// QIR:         %[[VAL_36:.*]] = phi i8*
-// QIR:         %[[VAL_49:.*]] = call i8* @malloc(i64 %[[VAL_10]])
-// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{.*}}%[[VAL_49]], i8* {{.*}}%[[VAL_36]], i64 %[[VAL_10]], i1 false)
-// QIR:         %[[VAL_50:.*]] = bitcast i8* %[[VAL_49]] to i1*
-// QIR:         %[[VAL_51:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_50]], 0
-// QIR:         %[[VAL_52:.*]] = insertvalue { i1*, i64 } %[[VAL_51]], i64 %[[VAL_10]], 1
+// QIR:       ._crit_edge.thread:                               ; preds = %[[VAL_14:.*]]
+// QIR:         %[[VAL_15:.*]] = alloca i8, i64 %[[VAL_10]]
+// QIR:         br label %[[VAL_16:.*]]
+// QIR:       .lr.ph:                                           ; preds = %[[VAL_14]], %[[VAL_12]]
+// QIR:         %[[VAL_17:.*]] = phi i64 [ %[[VAL_18:.*]], %[[VAL_12]] ], [ 0, %[[VAL_14]] ]
+// QIR:         %[[VAL_19:.*]] = call %[[VAL_20:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_17]])
+// QIR:         %[[VAL_21:.*]] = load %[[VAL_20]]*, %[[VAL_20]]** %[[VAL_19]]
+// QIR:         call void @__quantum__qis__h(%[[VAL_20]]* %[[VAL_21]])
+// QIR:         %[[VAL_18]] = add nuw nsw i64 %[[VAL_17]], 1
+// QIR:         %[[VAL_22:.*]] = icmp eq i64 %[[VAL_18]], %[[VAL_10]]
+// QIR:         br i1 %[[VAL_22]], label %[[VAL_23:.*]], label %[[VAL_12]]
+// QIR:       ._crit_edge:                                      ; preds = %[[VAL_12]]
+// QIR:         %[[VAL_24:.*]] = alloca i8, i64 %[[VAL_10]]
+// QIR:         br i1 %[[VAL_11]], label %[[VAL_25:.*]], label %[[VAL_16]]
+// QIR:       .lr.ph4:                                          ; preds = %[[VAL_23]], %[[VAL_25]]
+// QIR:         %[[VAL_26:.*]] = phi i64 [ %[[VAL_27:.*]], %[[VAL_25]] ], [ 0, %[[VAL_23]] ]
+// QIR:         %[[VAL_28:.*]] = call %[[VAL_20]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_26]])
+// QIR:         %[[VAL_29:.*]] = load %[[VAL_20]]*, %[[VAL_20]]** %[[VAL_28]]
+// QIR:         %[[VAL_30:.*]] = call %[[VAL_31:.*]]* @__quantum__qis__mz(%[[VAL_20]]* %[[VAL_29]])
+// QIR:         %[[VAL_32:.*]] = bitcast %[[VAL_31]]* %[[VAL_30]] to i1*
+// QIR:         %[[VAL_33:.*]] = load i1, i1* %[[VAL_32]]
+// QIR:         %[[VAL_34:.*]] = getelementptr i8, i8* %[[VAL_24]], i64 %[[VAL_26]]
+// QIR:         %[[VAL_35:.*]] = zext i1 %[[VAL_33]] to i8
+// QIR:         store i8 %[[VAL_35]], i8* %[[VAL_34]]
+// QIR:         %[[VAL_27]] = add nuw nsw i64 %[[VAL_26]], 1
+// QIR:         %[[VAL_36:.*]] = icmp eq i64 %[[VAL_27]], %[[VAL_10]]
+// QIR:         br i1 %[[VAL_36]], label %[[VAL_16]], label %[[VAL_25]]
+// QIR:       ._crit_edge5:                                     ; preds = %[[VAL_25]], %[[VAL_13]], %[[VAL_23]]
+// QIR:         %[[VAL_37:.*]] = phi i8* [ %[[VAL_15]], %[[VAL_13]] ], [ %[[VAL_24]], %[[VAL_23]] ], [ %[[VAL_24]], %[[VAL_25]] ]
+// QIR:         %[[VAL_38:.*]] = call i8* @malloc(i64 %[[VAL_10]])
+// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{.*}}%[[VAL_38]], i8* {{.*}}%[[VAL_37]], i64 %[[VAL_10]], i1 false)
+// QIR:         %[[VAL_39:.*]] = bitcast i8* %[[VAL_38]] to i1*
+// QIR:         %[[VAL_40:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_39]], 0
+// QIR:         %[[VAL_41:.*]] = insertvalue { i1*, i64 } %[[VAL_40]], i64 %[[VAL_10]], 1
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_9]]* %[[VAL_8]])
-// QIR:         ret { i1*, i64 } %[[VAL_52]]
+// QIR:         ret { i1*, i64 } %[[VAL_41]]
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__ButterPecan()
@@ -653,42 +649,42 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
 // QIR:         %[[VAL_11:.*]] = icmp sgt i64 %[[VAL_10]], 0
 // QIR:         br i1 %[[VAL_11]], label %[[VAL_12:.*]], label %[[VAL_13:.*]]
-// QIR:       ._crit_edge.thread:
-// QIR:         %[[VAL_21:.*]] = alloca i8, i64 %[[VAL_10]]
-// QIR:         br label %[[VAL_39:.*]]
-// QIR:       .lr.ph:                                           ; preds = %[[VAL_14:.*]], %[[VAL_12]]
-// QIR:         %[[VAL_15:.*]] = phi i64 [ %[[VAL_16:.*]], %[[VAL_12]] ], [ 0, %[[VAL_14]] ]
-// QIR:         %[[VAL_17:.*]] = call %[[VAL_18:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_15]])
-// QIR:         %[[VAL_19:.*]] = load %[[VAL_18]]*, %[[VAL_18]]** %[[VAL_17]]
-// QIR:         call void @__quantum__qis__h(%[[VAL_18]]* %[[VAL_19]])
-// QIR:         %[[VAL_16]] = add nuw nsw i64 %[[VAL_15]], 1
-// QIR:         %[[VAL_20:.*]] = icmp eq i64 %[[VAL_16]], %[[VAL_10]]
-// QIR:         br i1 %[[VAL_20]], label %[[VAL_22:.*]], label %[[VAL_12]]
-// QIR:       ._crit_edge:
-// QIR:         %[[VAL_23:.*]] = alloca i8, i64 %[[VAL_10]]
-// QIR:         br i1 %[[VAL_11]], label %[[VAL_24:.*]], label %[[VAL_39]]
-// QIR:       .lr.ph4:                                          ; preds = %[[VAL_22]], %[[VAL_24]]
-// QIR:         %[[VAL_25:.*]] = phi i64 [ %[[VAL_26:.*]], %[[VAL_24]] ], [ 0, %[[VAL_22]] ]
-// QIR:         %[[VAL_27:.*]] = call %[[VAL_18]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_25]])
-// QIR:         %[[VAL_28:.*]] = load %[[VAL_18]]*, %[[VAL_18]]** %[[VAL_27]]
-// QIR:         %[[VAL_29:.*]] = call %[[VAL_30:.*]]* @__quantum__qis__mz(%[[VAL_18]]* %[[VAL_28]])
-// QIR:         %[[VAL_31:.*]] = bitcast %[[VAL_30]]* %[[VAL_29]] to i8*
-// QIR:         %[[VAL_32:.*]] = load i8, i8* %[[VAL_31]]{{.*}}
-// QIR:         %[[VAL_34:.*]] = and i8 %[[VAL_32]], 1
-// QIR:         %[[VAL_33:.*]] = getelementptr i8, i8* %[[VAL_23]], i64 %[[VAL_25]]
-// QIR:         store i8 %[[VAL_34]], i8* %[[VAL_33]]
-// QIR:         %[[VAL_26]] = add nuw nsw i64 %[[VAL_25]], 1
-// QIR:         %[[VAL_35:.*]] = icmp eq i64 %[[VAL_26]], %[[VAL_10]]
-// QIR:         br i1 %[[VAL_35]], label %[[VAL_39]], label %[[VAL_24]]
-// QIR:       ._crit_edge5:
-// QIR:         %[[VAL_36:.*]] = phi i8*
-// QIR:         %[[VAL_49:.*]] = call i8* @malloc(i64 %[[VAL_10]])
-// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{.*}}%[[VAL_49]], i8* {{.*}}%[[VAL_36]], i64 %[[VAL_10]], i1 false)
-// QIR:         %[[VAL_50:.*]] = bitcast i8* %[[VAL_49]] to i1*
-// QIR:         %[[VAL_51:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_50]], 0
-// QIR:         %[[VAL_52:.*]] = insertvalue { i1*, i64 } %[[VAL_51]], i64 %[[VAL_10]], 1
+// QIR:       ._crit_edge.thread:                               ; preds = %[[VAL_14:.*]]
+// QIR:         %[[VAL_15:.*]] = alloca i8, i64 %[[VAL_10]]
+// QIR:         br label %[[VAL_16:.*]]
+// QIR:       .lr.ph:                                           ; preds = %[[VAL_14]], %[[VAL_12]]
+// QIR:         %[[VAL_17:.*]] = phi i64 [ %[[VAL_18:.*]], %[[VAL_12]] ], [ 0, %[[VAL_14]] ]
+// QIR:         %[[VAL_19:.*]] = call %[[VAL_20:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_17]])
+// QIR:         %[[VAL_21:.*]] = load %[[VAL_20]]*, %[[VAL_20]]** %[[VAL_19]]
+// QIR:         call void @__quantum__qis__h(%[[VAL_20]]* %[[VAL_21]])
+// QIR:         %[[VAL_18]] = add nuw nsw i64 %[[VAL_17]], 1
+// QIR:         %[[VAL_22:.*]] = icmp eq i64 %[[VAL_18]], %[[VAL_10]]
+// QIR:         br i1 %[[VAL_22]], label %[[VAL_23:.*]], label %[[VAL_12]]
+// QIR:       ._crit_edge:                                      ; preds = %[[VAL_12]]
+// QIR:         %[[VAL_24:.*]] = alloca i8, i64 %[[VAL_10]]
+// QIR:         br i1 %[[VAL_11]], label %[[VAL_25:.*]], label %[[VAL_16]]
+// QIR:       .lr.ph4:                                          ; preds = %[[VAL_23]], %[[VAL_25]]
+// QIR:         %[[VAL_26:.*]] = phi i64 [ %[[VAL_27:.*]], %[[VAL_25]] ], [ 0, %[[VAL_23]] ]
+// QIR:         %[[VAL_28:.*]] = call %[[VAL_20]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_9]]* %[[VAL_8]], i64 %[[VAL_26]])
+// QIR:         %[[VAL_29:.*]] = load %[[VAL_20]]*, %[[VAL_20]]** %[[VAL_28]]
+// QIR:         %[[VAL_30:.*]] = call %[[VAL_31:.*]]* @__quantum__qis__mz(%[[VAL_20]]* %[[VAL_29]])
+// QIR:         %[[VAL_32:.*]] = bitcast %[[VAL_31]]* %[[VAL_30]] to i1*
+// QIR:         %[[VAL_33:.*]] = load i1, i1* %[[VAL_32]]
+// QIR:         %[[VAL_34:.*]] = getelementptr i8, i8* %[[VAL_24]], i64 %[[VAL_26]]
+// QIR:         %[[VAL_35:.*]] = zext i1 %[[VAL_33]] to i8
+// QIR:         store i8 %[[VAL_35]], i8* %[[VAL_34]]
+// QIR:         %[[VAL_27]] = add nuw nsw i64 %[[VAL_26]], 1
+// QIR:         %[[VAL_36:.*]] = icmp eq i64 %[[VAL_27]], %[[VAL_10]]
+// QIR:         br i1 %[[VAL_36]], label %[[VAL_16]], label %[[VAL_25]]
+// QIR:       ._crit_edge5:                                     ; preds = %[[VAL_25]], %[[VAL_13]], %[[VAL_23]]
+// QIR:         %[[VAL_37:.*]] = phi i8* [ %[[VAL_15]], %[[VAL_13]] ], [ %[[VAL_24]], %[[VAL_23]] ], [ %[[VAL_24]], %[[VAL_25]] ]
+// QIR:         %[[VAL_38:.*]] = call i8* @malloc(i64 %[[VAL_10]])
+// QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{.*}}%[[VAL_38]], i8* {{.*}}%[[VAL_37]], i64 %[[VAL_10]], i1 false)
+// QIR:         %[[VAL_39:.*]] = bitcast i8* %[[VAL_38]] to i1*
+// QIR:         %[[VAL_40:.*]] = insertvalue { i1*, i64 } undef, i1* %[[VAL_39]], 0
+// QIR:         %[[VAL_41:.*]] = insertvalue { i1*, i64 } %[[VAL_40]], i64 %[[VAL_10]], 1
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_9]]* %[[VAL_8]])
-// QIR:         ret { i1*, i64 } %[[VAL_52]]
+// QIR:         ret { i1*, i64 } %[[VAL_41]]
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv() local_unnamed_addr {
@@ -704,12 +700,10 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_7:.*]] = call %[[VAL_8:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_5]], i64 0)
 // QIR:         %[[VAL_9:.*]] = load %[[VAL_8]]*, %[[VAL_8]]** %[[VAL_7]], align 8
 // QIR:         %[[VAL_10:.*]] = call %[[VAL_11:.*]]* @__quantum__qis__mz(%[[VAL_8]]* %[[VAL_9]])
-// QIR:         %[[VAL_12:.*]] = bitcast %[[VAL_11]]* %[[VAL_10]] to i8*
-// QIR:         %[[VAL_13:.*]] = load i8, i8* %[[VAL_12]]{{.*}}
-// QIR:         %[[VAL_14:.*]] = and i8 %[[VAL_13]], 1
-// QIR:         %[[VAL_15:.*]] = icmp ne i8 %[[VAL_14]], 0
+// QIR:         %[[VAL_12:.*]] = bitcast %[[VAL_11]]* %[[VAL_10]] to i1*
+// QIR:         %[[VAL_13:.*]] = load i1, i1* %[[VAL_12]], align 1
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_5]])
-// QIR:         ret i1 %[[VAL_15]]
+// QIR:         ret i1 %[[VAL_13]]
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__function_Peppermint._Z10Peppermintv()
@@ -727,10 +721,8 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 0)
 // QIR:         %[[VAL_10:.*]] = load %[[VAL_9]]*, %[[VAL_9]]** %[[VAL_8]]
 // QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]* @__quantum__qis__mz(%[[VAL_9]]* %[[VAL_10]])
-// QIR:         %[[VAL_13:.*]] = bitcast %[[VAL_12]]* %[[VAL_11]] to i8*
-// QIR:         %[[VAL_14:.*]] = load i8, i8* %[[VAL_13]]{{.*}}
-// QIR:         %[[VAL_15:.*]] = and i8 %[[VAL_14]], 1
-// QIR:         %[[VAL_16:.*]] = icmp ne i8 %[[VAL_15]], 0
+// QIR:         %[[VAL_13:.*]] = bitcast %[[VAL_12]]* %[[VAL_11]] to i1*
+// QIR:         %[[VAL_14:.*]] = load i1, i1* %[[VAL_13]]
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_7]]* %[[VAL_6]])
-// QIR:         ret i1 %[[VAL_16]]
+// QIR:         ret i1 %[[VAL_14]]
 // QIR:       }

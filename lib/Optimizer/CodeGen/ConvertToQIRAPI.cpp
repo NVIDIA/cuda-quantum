@@ -764,23 +764,22 @@ struct DiscriminateOpRewrite
       return success();
     }
 
-    // Single-qubit discriminate: m is a Result* (opaque pointer).
-    // Cast to i8*, load as i8 (byte-addressable), then truncate to result type.
-    auto i8Ty = rewriter.getI8Type();
-    auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
-    auto bytePtr = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, m);
-    Value byteVal = rewriter.create<cudaq::cc::LoadOp>(loc, bytePtr);
+    auto i1Ty = rewriter.getI1Type();
+    auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
     auto origResTy = disc.getResult().getType();
-    Value loaded = byteVal;
-    if (origResTy != i8Ty) {
-      auto origIntTy = cast<IntegerType>(origResTy);
-      if (origIntTy.getWidth() < 8)
-        loaded = rewriter.create<arith::TruncIOp>(loc, origResTy, byteVal);
-      else
-        loaded = rewriter
-                     .create<cudaq::cc::CastOp>(loc, origResTy, byteVal,
-                                                cudaq::cc::CastOpMode::Unsigned)
-                     .getResult();
+    Value loaded;
+    if (auto intTy = dyn_cast<IntegerType>(origResTy);
+        intTy && intTy.getWidth() > 1) {
+      // For wider-than-i1 types: use byte-addressable i8* load, then cc.cast
+      // to truncate to the target width.
+      auto i8Ty = rewriter.getI8Type();
+      auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
+      auto bytePtr = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, m);
+      Value byteVal = rewriter.create<cudaq::cc::LoadOp>(loc, bytePtr);
+      loaded = rewriter.create<cudaq::cc::CastOp>(loc, origResTy, byteVal);
+    } else {
+      auto ptrCast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
+      loaded = rewriter.create<cudaq::cc::LoadOp>(loc, ptrCast);
     }
     rewriter.replaceOp(disc, loaded);
     return success();
