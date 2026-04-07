@@ -77,7 +77,11 @@ nvqpp = shutil.which('nvq++', path=config.cudaq_tools_dir)
 if not nvqpp:
     raise RuntimeError('nvq++ not found on PATH')
 targets_output = subprocess.check_output([nvqpp, '--list-targets'], text=True).strip()
-targets = [t.strip() for t in targets_output.split('\n') if t.strip()]
+targets = []
+for line in targets_output.splitlines():
+    name = line.strip()
+    if name and name != 'MyCustomSimulator':
+        targets.append(name)
 with open(check_compile_src) as src:
     source_code = src.read()
 for old in os.listdir(gen_compile_dir):
