@@ -1320,6 +1320,14 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     auto svec = popValue();
     if (isa<cc::PointerType>(svec.getType()))
       svec = builder.create<cc::LoadOp>(loc, svec);
+    if (isa<quake::MeasurementsType>(svec.getType()) && funcName == "size")
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          return pushValue(builder.create<quake::MeasurementsSizeOp>(
+              loc, builder.getI64Type(), svec));
+        }
     auto ext =
         builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), svec);
     if (funcName == "size")
