@@ -120,19 +120,12 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
-    [[maybe_unused]] auto dynamicResult = launchKernelImpl(
-        name, nullptr, nullptr, 0, 0, &rawArgs, mlir::ModuleOp{});
-  }
-
   KernelThunkResultType
   launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
                std::uint64_t voidStarSize, std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
     return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
-                            nullptr, mlir::ModuleOp{});
+                            kernelFunc ? nullptr : &rawArgs, mlir::ModuleOp{});
   }
 
   KernelThunkResultType

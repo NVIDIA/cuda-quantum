@@ -69,9 +69,72 @@ void Resources::appendInstruction(const std::string &name,
   totalGates += count;
 }
 
+void Resources::appendInstruction(const std::string &name,
+                                  const std::vector<std::size_t> &controls,
+                                  const std::vector<std::size_t> &targets) {
+  appendInstruction(name, controls.size());
+
+  // Collect all qubit indices touched by this gate.
+  std::vector<std::size_t> allQubits;
+  allQubits.insert(allQubits.end(), controls.begin(), controls.end());
+  allQubits.insert(allQubits.end(), targets.begin(), targets.end());
+
+  // Update total depth: each qubit advances to max(touched depths) + 1.
+  std::size_t maxDepth = 0;
+  for (auto q : allQubits)
+    maxDepth = std::max(maxDepth, perQubitDepth[q]);
+  std::size_t newDepth = maxDepth + 1;
+  for (auto q : allQubits)
+    perQubitDepth[q] = newDepth;
+
+  // Update 2Q metrics only for exactly-2-qubit gates.
+  if (allQubits.size() == 2) {
+    twoQubitGateCount++;
+    std::size_t maxDepth2Q = 0;
+    for (auto q : allQubits)
+      maxDepth2Q = std::max(maxDepth2Q, perQubitDepth2Q[q]);
+    std::size_t newDepth2Q = maxDepth2Q + 1;
+    for (auto q : allQubits)
+      perQubitDepth2Q[q] = newDepth2Q;
+  }
+}
+
+std::size_t Resources::getNumQubits() const { return numQubits; }
+
+std::size_t Resources::getCircuitDepth() const {
+  std::size_t maxDepth = 0;
+  for (auto &[qubit, depth] : perQubitDepth)
+    maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+std::size_t Resources::getCircuitDepth2Q() const {
+  std::size_t maxDepth = 0;
+  for (auto &[qubit, depth] : perQubitDepth2Q)
+    maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+std::size_t Resources::getTwoQubitGateCount() const {
+  return twoQubitGateCount;
+}
+
+const std::unordered_map<std::size_t, std::size_t> &
+Resources::getPerQubitDepth() const {
+  return perQubitDepth;
+}
+
+const std::unordered_map<std::size_t, std::size_t> &
+Resources::getPerQubitDepth2Q() const {
+  return perQubitDepth2Q;
+}
+
 void Resources::dump(std::ostream &os) const {
   os << "Total # of gates: " << totalGates;
   os << ", total # of qubits: " << numQubits;
+  os << ", circuit depth: " << getCircuitDepth();
+  os << ", 2Q gate count: " << twoQubitGateCount;
+  os << ", 2Q depth: " << getCircuitDepth2Q();
   os << "\n";
   os << "{ ";
   os << "\n  ";
@@ -93,6 +156,9 @@ void Resources::clear() {
   instructions.clear();
   numQubits = 0;
   totalGates = 0;
+  perQubitDepth.clear();
+  perQubitDepth2Q.clear();
+  twoQubitGateCount = 0;
 }
 
 void Resources::addQubit() { numQubits++; }

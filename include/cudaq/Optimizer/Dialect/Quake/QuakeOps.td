@@ -377,6 +377,34 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
+def quake_MeasurementsSizeOp : QuakeOp<"measurements_size", [Pure]> {
+  let summary = "Return the size of a measurements collection.";
+  let description = [{
+    Returns the number of individual measurements in a `!quake.measurements<N>`
+    collection. If the collection has a static size, the static size is returned
+    (effectively as a constant). If the size is dynamic, the value will be an
+    SSA-value.
+
+    Examples:
+    ```mlir
+      %ms = quake.mz %qubits : (!quake.veq<4>) -> !quake.measurements<4>
+      %n = quake.measurements_size %ms : (!quake.measurements<4>) -> i64
+      
+      %ms2 = quake.mz %dyn_veq : (!quake.veq<?>) -> !quake.measurements<?>
+      %n2 = quake.measurements_size %ms2 : (!quake.measurements<?>) -> i64
+    ```
+  }];
+
+  let arguments = (ins MeasurementsType:$measurements);
+  let results = (outs AnySignlessIntegerOrIndex:$size);
+
+  let assemblyFormat = [{
+    $measurements `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasCanonicalizer = 1;
+}
+
 //===----------------------------------------------------------------------===//
 // Application, ComputeAction(Uncompute)
 //===----------------------------------------------------------------------===//

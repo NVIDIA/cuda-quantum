@@ -770,6 +770,15 @@ void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// MeasurementsSizeOp
+//===----------------------------------------------------------------------===//
+
+void quake::MeasurementsSizeOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardConstantMeasurementsSizePattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // WrapOp
 //===----------------------------------------------------------------------===//
 

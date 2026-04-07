@@ -170,6 +170,8 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
         run: |
           # The final image is scratch with only the .whl, so we target the
           # ccache-export stage. Uses buildx to hit the same builder cache
@@ -183,7 +185,7 @@ jobs:
             --build-arg python_version=${{ inputs.python_version }} \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
-            2>/dev/null || true
+            2>/dev/null
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push

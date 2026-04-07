@@ -985,6 +985,8 @@ func.func @measurements_ops(%ms4 : !quake.measurements<4>,
   %m_dyn = quake.get_measure %ms4[%idx] : (!quake.measurements<4>, index) -> !quake.measure
   %c2 = arith.constant 2 : i64
   %m_unsized = quake.get_measure %msd[%c2] : (!quake.measurements<?>, i64) -> !quake.measure
+  %n4 = quake.measurements_size %ms4 : (!quake.measurements<4>) -> i64
+  %nd = quake.measurements_size %msd : (!quake.measurements<?>) -> i64
   return
 }
 
@@ -996,5 +998,7 @@ func.func @measurements_ops(%ms4 : !quake.measurements<4>,
 // CHECK:           %[[VAL_4:.*]] = quake.get_measure %[[VAL_0]]{{\[}}%[[VAL_2]]] : (!quake.measurements<4>, index) -> !quake.measure
 // CHECK:           %[[VAL_5:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_6:.*]] = quake.get_measure %[[VAL_1]]{{\[}}%[[VAL_5]]] : (!quake.measurements<?>, i64) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.measurements_size %[[VAL_0]] : (!quake.measurements<4>) -> i64
+// CHECK:           %[[VAL_8:.*]] = quake.measurements_size %[[VAL_1]] : (!quake.measurements<?>) -> i64
 // CHECK:           return
 // CHECK:         }
