@@ -169,6 +169,7 @@ ancilla
 ansatz
 ansatzes
 archiver
+arities
 arity
 auxillary
 backend

@@ -29,8 +29,8 @@ def test_swap_decomposition():
     kernel.swap(q[0], q[1])
 
     resources = cudaq.estimate_resources(kernel)
-    assert resources.two_qubit_gate_count == 3
-    assert resources.depth_2q == 3
+    assert resources.gate_count_for_arity(2) == 3
+    assert resources.depth_for_arity(2) == 3
 
 
 def test_swap_no_decomposition_default_target():
@@ -42,8 +42,8 @@ def test_swap_no_decomposition_default_target():
     kernel.swap(q[0], q[1])
 
     resources = cudaq.estimate_resources(kernel)
-    assert resources.two_qubit_gate_count == 1
-    assert resources.depth_2q == 1
+    assert resources.gate_count_for_arity(2) == 1
+    assert resources.depth_for_arity(2) == 1
 
 
 def _make_nonlocal_cx_kernel():
@@ -67,8 +67,8 @@ def test_routing_inserts_swaps_on_path():
     cudaq.set_target('circuit-opt-bench', device='path(5)')
     routed = cudaq.estimate_resources(kernel)
 
-    assert unrouted.two_qubit_gate_count == 1
-    assert routed.two_qubit_gate_count > unrouted.two_qubit_gate_count
+    assert unrouted.gate_count_for_arity(2) == 1
+    assert routed.gate_count_for_arity(2) > unrouted.gate_count_for_arity(2)
 
 
 def test_routing_star_no_swaps():
@@ -78,7 +78,7 @@ def test_routing_star_no_swaps():
     cudaq.set_target('circuit-opt-bench', device='star(5)')
     resources = cudaq.estimate_resources(kernel)
 
-    assert resources.two_qubit_gate_count == 1
+    assert resources.gate_count_for_arity(2) == 1
 
 
 def test_routing_grid():
@@ -89,7 +89,7 @@ def test_routing_grid():
     resources = cudaq.estimate_resources(kernel)
 
     # q0 and q4 are 2 hops apart on a 3x3 grid (0->1->4), requiring SWAPs.
-    assert resources.two_qubit_gate_count > 1
+    assert resources.gate_count_for_arity(2) > 1
 
 
 def test_routing_ring():
@@ -100,4 +100,4 @@ def test_routing_ring():
     resources = cudaq.estimate_resources(kernel)
 
     # On ring 0-1-2-3-4-0, q0 and q4 are adjacent.
-    assert resources.two_qubit_gate_count == 1
+    assert resources.gate_count_for_arity(2) == 1
