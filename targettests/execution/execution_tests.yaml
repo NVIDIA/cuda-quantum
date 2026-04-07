@@ -1,0 +1,797 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Per-target execution test generation.
+#
+# Source templates (.cpp.inc) live in targettests/execution/.
+# lit.cfg.py reads this file and generates one .cpp per (source, target)
+# pair under targettests/generated/execution/.
+#
+# Each target entry has:
+#   compile   - the nvq++ compile command
+#   run       - one or more run commands (list)
+#   requires  - (optional) lit feature; test is skipped when absent
+
+
+tests:
+
+  - source: bug_qubit.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon --emulate %s -o %t"
+        run: ["%t"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t"]
+      - name: ionq
+        compile: "nvq++ --target ionq --emulate %s -o %t"
+        run: ["%t"]
+      - name: iqm
+        compile: "nvq++ --target iqm --emulate %s -o %t"
+        run:
+          - "IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t"
+          - "IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t"
+          - "IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t"
+      - name: oqc
+        compile: "nvq++ --target oqc --emulate %s -o %t"
+        run: ["%t"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t"]
+    extra_runs:
+      mlir:
+        - "cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s"
+
+  - source: callable_kernel_arg.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: cudaq_observe_qvector.cpp.inc
+    targets:
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: cudaq_observe_term.cpp.inc
+    targets:
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+  - source: swap_gate.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ --enable-mlir %s -o %t && %t | FileCheck %s"
+
+  - source: variable_size_qreg.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: load_value.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: int8_t_free_func.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: int8_t.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: custom_operation_basic.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq  --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm   --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc   --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ --enable-mlir %s -o %t && %t | FileCheck %s"
+
+  - source: custom_operation_adj.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq  --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm   --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc   --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ --enable-mlir %s -o %t && %t | FileCheck %s"
+
+  - source: custom_operation_ctrl.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq  --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm   --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc   --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ --enable-mlir %s -o %t && %t | FileCheck %s"
+
+  - source: if_jit.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: uccsd.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm  --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc  --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ --enable-mlir %s -o %t"
+
+  - source: explicit_measurement.cpp.inc
+    targets:
+      - name: stim
+        compile: "nvq++ --target stim %s -o %t"
+        run: ['CUDAQ_LOG_LEVEL=info %t 2>&1 | grep "Creating new Stim frame simulator" | wc -l | FileCheck %s']
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+      - name: iqm
+        compile: "nvq++ --target iqm --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t 2>&1 | FileCheck %s -check-prefix=FAIL"]
+
+  - source: sudoku_2x2.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: sudoku_2x2-1.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: sudoku_2x2-reg_name.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: sudoku_2x2-bit_name.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --target anyon      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: state_preparation.cpp.inc
+    targets:
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ %s -o %t && %t | FileCheck %s"
+
+  - source: state_preparation_vector.cpp.inc
+    targets:
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ %s -o %t && %t | FileCheck %s"
+
+  - source: state_preparation_vector_size.cpp.inc
+    targets:
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq       --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm        --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc        --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      extra:
+        - "nvq++ %s -o %t && %t | FileCheck %s"
+
+  - source: cudaq_observe.cpp.inc
+    targets:
+      - name: infleqtion
+        compile: "nvq++ --target infleqtion      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: anyon
+        compile: "nvq++ --target anyon           --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --target ionq            --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm             --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --target oqc             --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum      --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: braket
+        requires: braket
+        compile: "nvq++ --target braket --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: quantum_machines
+        requires: quantum_machines
+        compile: "nvq++ --target quantum_machines --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+
+  - source: qspan_slice.cpp.inc
+    targets:
+      - name: anyon
+        compile: "nvq++ --emulate %s -o %t --target anyon"
+        run: ["%t | FileCheck %s"]
+      - name: anyon-berkeley-25q
+        compile: "nvq++ --emulate %s -o %t --target anyon --anyon-machine berkeley-25q"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ --emulate %s -o %t --target ionq"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --emulate %s -o %t --target iqm"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ --emulate %s -o %t --target oqc"
+        run: ["%t | FileCheck %s"]
+      - name: quantinuum
+        compile: "nvq++ --emulate %s -o %t --target quantinuum"
+        run: ["%t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --emulate %s -o %t --target qci"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      disable-mapping-oqc:
+        - "nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping"
+        - "CUDAQ_MLIR_PRINT_EACH_PASS=1 %t 2>&1 | FileCheck --check-prefix=DISABLE %s"
+      disable-mapping-iqm:
+        - "nvq++ -v %s -o %t --target iqm --emulate --disable-qubit-mapping"
+        - "CUDAQ_MLIR_PRINT_EACH_PASS=1 IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck --check-prefix=DISABLE %s"
+
+  - source: trotter.cpp.inc
+    targets:
+      - name: quantinuum
+        compile: "nvq++ -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ -target ionq -emulate -fkernel-exec-kind=2 %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ -target oqc -emulate -fkernel-exec-kind=2 %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ --target iqm --emulate -fkernel-exec-kind=2 %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ --target qci -emulate -fkernel-exec-kind=2 %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      simulator:
+        - "nvq++ %s -o %t"
+        - "%t | FileCheck %s"
+
+  - source: exp_pauli.cpp.inc
+    targets:
+      - name: quantinuum
+        compile: "nvq++ -fkernel-exec-kind=2 -target quantinuum --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: ionq
+        compile: "nvq++ -fkernel-exec-kind=2 -target ionq --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: oqc
+        compile: "nvq++ -fkernel-exec-kind=2 -target oqc --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: anyon
+        compile: "nvq++ -fkernel-exec-kind=2 -target anyon --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+      - name: iqm
+        compile: "nvq++ -fkernel-exec-kind=2 -target iqm --emulate %s -o %t"
+        run: ["IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s"]
+      - name: qci
+        requires: qci
+        compile: "nvq++ -fkernel-exec-kind=2 -target qci --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      simulator:
+        - "nvq++ --enable-mlir %s -o %t"
+        - "%t | FileCheck %s"
+      remote-mqpu:
+        - "nvq++ -fkernel-exec-kind=2 --enable-mlir -target remote-mqpu %s -o %t"
+        - "%t | FileCheck %s"
+
+  - source: global_reg_run.cpp.inc
+    targets:
+      - name: quantinuum
+        compile: "nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t"
+        run: ["%t | FileCheck %s"]
+    extra_runs:
+      simulator:
+        - "nvq++ %s -o %t"
+        - "%t | FileCheck %s"
