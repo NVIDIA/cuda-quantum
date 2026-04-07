@@ -2047,8 +2047,9 @@ the same Hamiltonian simultaneously.</p>
 </div>
 <p>The Magnus expansion integrator:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Magnus expansion integrator.</span>
-<span class="w">  </span><span class="c1">// Uses a Taylor series to approximate the matrix exponential, which</span>
-<span class="w">  </span><span class="c1">// preserves unitarity of the evolution. Suitable for smooth, oscillatory</span>
+<span class="w">  </span><span class="c1">// Uses a finite Taylor series truncation to approximate the matrix</span>
+<span class="w">  </span><span class="c1">// exponential, approximating unitary evolution. Suitable for smooth,</span>
+<span class="w">  </span><span class="c1">// oscillatory</span>
 <span class="w">  </span><span class="c1">// Hamiltonians. Arguments: maximum number of Taylor terms (default: 10) and</span>
 <span class="w">  </span><span class="c1">// optional max sub-step size.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">integrators</span><span class="o">::</span><span class="n">magnus_expansion</span><span class="w"> </span><span class="nf">magnus_integrator</span><span class="p">(</span>

@@ -3071,11 +3071,11 @@ For C++, CUDA-Q provides the following integrators, to be used with the
 | .no               |                                                  |
 | translate}]{.pre} |                                                  |
 +-------------------+--------------------------------------------------+
-| [`magnus          | Approximates the matrix exponential via a Taylor |
-| _expansion`{.code | series, preserving unitarity of the evolution.   |
-| .docutils         | Suitable for smooth, oscillatory Hamiltonians.   |
-| .literal          | Configurable number of Taylor terms.             |
-| .no               |                                                  |
+| [`magnus          | Approximates the matrix exponential via a finite |
+| _expansion`{.code | Taylor series truncation, approximating unitary  |
+| .docutils         | evolution. Suitable for smooth, oscillatory      |
+| .literal          | Hamiltonians. Configurable number of Taylor      |
+| .no               | terms.                                           |
 | translate}]{.pre} |                                                  |
 +-------------------+--------------------------------------------------+
 
