@@ -714,8 +714,6 @@ LogicalResult quake::RelaxSizeOp::verify() {
       return emitOpError("result measurements type must not specify a size");
     if (!isa<quake::MeasurementsType>(inTy))
       return emitOpError("input and result must both be measurements types");
-  } else {
-    return emitOpError("result must be veq or measurements type");
   }
   return success();
 }
