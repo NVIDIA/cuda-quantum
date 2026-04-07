@@ -56,10 +56,12 @@ GPU_REQUIRED_NOTEBOOKS = [
 
 # Notebooks for which we set a longer timeout.
 LONG_RUNNING_NOTEBOOKS = [
+    "divisive_clustering_coresets.ipynb",
     "hybrid_quantum_neural_networks.ipynb",
     "unitary_compilation_diffusion_models.ipynb",
     "qm_mm_pe.ipynb",
     "qsci.ipynb",
+    "uccsd_wf_ansatz.ipynb",
     "vqe_advanced.ipynb",
 ]
 

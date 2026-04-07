@@ -315,96 +315,49 @@ pr-4265
     -   [Dynamics
         Examples](../../examples/dynamics_examples.html){.reference
         .internal}
-        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](../../../examples/python/dynamics/dynamics_intro_1.html){.reference
+        -   [Python Examples (Jupyter
+            Notebooks)](../../examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
             .internal}
-            -   [Why dynamics simulations vs. circuit
-                simulations?](../../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+                Model)](../../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
-            -   [Functionality](../../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Introduction to CUDA-Q Dynamics (Time Dependent
+                Hamiltonians)](../../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
-            -   [Performance](../../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Superconducting
+                Qubits](../../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](../../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Spin
+                Qubits](../../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](../../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Trapped Ion
+                Qubits](../../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Section 2 - Simulating open quantum systems with the
-                [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](../../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+            -   [Control](../../../examples/python/dynamics/control.html){.reference
                 .internal}
-            -   [Exercise 2 - Adding additional jump operators
-                [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](../../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
-                .internal}
-            -   [Section 3 - Many qubits coupled to the
-                resonator](../../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
-                .internal}
-        -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](../../../examples/python/dynamics/dynamics_intro_2.html){.reference
+        -   [C++
+            Examples](../../examples/dynamics_examples.html#c-examples){.reference
             .internal}
-            -   [The Landau-Zener
-                model](../../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+            -   [Introduction: Single Qubit
+                Dynamics](../../examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
                 .internal}
-            -   [Section 1 - Implementing time dependent
-                terms](../../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+            -   [Introduction: Cavity QED (Jaynes-Cummings
+                Model)](../../examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
-            -   [Section 2 - Implementing custom
-                operators](../../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+            -   [Superconducting Qubits: Cross-Resonance
+                Gate](../../examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
-            -   [Section 3 - Heisenberg Model with a time-varying
-                magnetic
-                field](../../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+            -   [Spin Qubits: Heisenberg Spin
+                Chain](../../examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
-            -   [Exercise 1 - Define a time-varying magnetic
-                field](../../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+            -   [Control: Driven
+                Qubit](../../examples/dynamics_examples.html#control-driven-qubit){.reference
                 .internal}
-            -   [Exercise 2
-                (Optional)](../../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+            -   [State
+                Batching](../../examples/dynamics_examples.html#state-batching){.reference
                 .internal}
-        -   [Superconducting
-            Qubits](../../../examples/python/dynamics/superconducting.html){.reference
-            .internal}
-            -   [Cavity
-                QED](../../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
-                .internal}
-            -   [Cross
-                Resonance](../../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
-                .internal}
-            -   [Transmon
-                Resonator](../../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
-                .internal}
-        -   [Spin
-            Qubits](../../../examples/python/dynamics/spinqubits.html){.reference
-            .internal}
-            -   [Silicon Spin
-                Qubit](../../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
-                .internal}
-            -   [Heisenberg
-                Model](../../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
-                .internal}
-        -   [Trapped Ion
-            Qubits](../../../examples/python/dynamics/iontrap.html){.reference
-            .internal}
-            -   [GHZ
-                state](../../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
-                .internal}
-        -   [Control](../../../examples/python/dynamics/control.html){.reference
-            .internal}
-            -   [Gate
-                Calibration](../../../examples/python/dynamics/control.html#Gate-Calibration){.reference
-                .internal}
-            -   [Pulse](../../../examples/python/dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](../../../examples/python/dynamics/control.html#Qubit-Control){.reference
-                .internal}
-            -   [Qubit
-                Dynamics](../../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
-                .internal}
-            -   [Landau-Zenner](../../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+            -   [Numerical
+                Integrators](../../examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../applications.html){.reference .internal}
     -   [Max-Cut with
@@ -934,8 +887,15 @@ pr-4265
         -   [Classical Post-Processing and
             Diagonalization](../../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
             .internal}
-            -   [The SKQD Algorithm: Matrix Construction
-                Details](../../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+            -   [Matrix Construction
+                Details](../../../applications/python/skqd.html#Matrix-Construction-Details){.reference
+                .internal}
+            -   [Approach 1: GPU-Vectorized CSR Sparse
+                Matrix](../../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix){.reference
+                .internal}
+            -   [Approach 2: Matrix-Free Lanczos via
+                [`distributed_eigsh`{.docutils .literal
+                .notranslate}]{.pre}](../../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh){.reference
                 .internal}
         -   [Results Analysis and
             Convergence](../../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
@@ -943,8 +903,21 @@ pr-4265
             -   [What to
                 Expect:](../../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
-        -   [GPU Acceleration for
-            Postprocessing](../../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+        -   [Postprocessing Acceleration: CSR matrix approach, single
+            GPU vs
+            CPU](../../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU){.reference
+            .internal}
+        -   [Postprocessing Scale-Up and Scale-Out: Linear Operator
+            Approach, Multi-GPU
+            Multi-Node](../../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node){.reference
+            .internal}
+            -   [Saving Hamiltonian
+                Data](../../../applications/python/skqd.html#Saving-Hamiltonian-Data){.reference
+                .internal}
+            -   [Running the Distributed
+                Solver](../../../applications/python/skqd.html#Running-the-Distributed-Solver){.reference
+                .internal}
+        -   [Summary](../../../applications/python/skqd.html#Summary){.reference
             .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
@@ -1160,8 +1133,8 @@ pr-4265
             .internal}
             -   [Architecture](../../realtime/host.html#architecture){.reference
                 .internal}
-            -   [Transport-Agnostic API, Transport-Specific
-                Implementation](../../realtime/host.html#transport-agnostic-api-transport-specific-implementation){.reference
+            -   [Transport-Agnostic
+                Design](../../realtime/host.html#transport-agnostic-design){.reference
                 .internal}
             -   [When to Use Which
                 Mode](../../realtime/host.html#when-to-use-which-mode){.reference
@@ -2267,14 +2240,9 @@ problems. The currently available Pasqal QPUs are analog quantum
 computers, and one, named Fresnel, is available through our cloud
 portal.
 
-In order to access Pasqal's devices you to sign up for an account on
-[Pasqal's cloud platform](https://portal.pasqal.cloud){.reference
-.external}.
-
-Although a different SDK, [Pasqal's Pulser
-library](https://pulser.readthedocs.io/en/latest/){.reference
-.external}, is a good resource for getting started with analog neutral
-atom quantum computing. For support you can also join the [Pasqal
+In order to access Pasqal's devices you need to sign up for an account
+on [Pasqal's cloud platform](https://portal.pasqal.cloud){.reference
+.external}. For support you can also join the [Pasqal
 Community](https://community.pasqal.com/){.reference .external}.
 
 ::: {#pasqal-backend .section}
@@ -2315,28 +2283,8 @@ directly.
 :::
 :::
 
-::: {#pasqal-via-qrmi .section}
-### Pasqal via QRMI[¶](#pasqal-via-qrmi "Permalink to this heading"){.headerlink}
-
-CUDA-Q's [`pasqal`{.docutils .literal .notranslate}]{.pre} target for
-routing Pasqal jobs through the vendor agnostic Quantum Resource
-Management Interface (QRMI), by specifying [`machine`{.docutils .literal
-.notranslate}]{.pre} as [`qrmi`{.docutils .literal .notranslate}]{.pre}.
-This target enables integration with resource managers like Slurm for
-scheduling. Select the Pasqal backend with the [`--qpu`{.docutils
-.literal .notranslate}]{.pre} option in [`sbatch`{.docutils .literal
-.notranslate}]{.pre} and let QRMI handle submission.
-
-For this route, credentials and project id are read by QRMI using either
-[`~/.pasqal/config`{.docutils .literal .notranslate}]{.pre} or other
-methods supported by your cluster's QRMI setup.
-
-The job submission process is the same as for the [`pasqal`{.docutils
-.literal .notranslate}]{.pre} target. For example:
-:::
-
-::: {#id2 .section}
-### Submitting[¶](#id2 "Permalink to this heading"){.headerlink}
+::: {#submitting-via-pasqal-cloud-direct .section}
+### Submitting via Pasqal Cloud (Direct)[¶](#submitting-via-pasqal-cloud-direct "Permalink to this heading"){.headerlink}
 
 ::: {.tab-set .docutils}
 Python
@@ -2353,10 +2301,10 @@ function.
 :::
 
 This accepts an optional argument, [`machine`{.docutils .literal
-.notranslate}]{.pre}, which is used in the cloud platform to select the
-corresponding Pasqal QPU or emulator to execute on. See the [Pasqal
-cloud portal](https://portal.pasqal.cloud/){.reference .external} for an
-up to date list. The default value is [`EMU_MPS`{.docutils .literal
+.notranslate}]{.pre}, which selects the Pasqal QPU or emulator to
+execute on. See the [Pasqal cloud
+portal](https://portal.pasqal.cloud/){.reference .external} for an up to
+date list. The default value is [`EMU_MPS`{.docutils .literal
 .notranslate}]{.pre} which is an open-source tensor network emulator
 based on the Matrix Product State formalism running in Pasqal's cloud
 platform. You can see the documentation for the publicly accessible
@@ -2364,9 +2312,17 @@ emulator
 [here](https://pasqal-io.github.io/emulators/latest/emu_mps/){.reference
 .external}.
 
-To target the QPU use the FRESNEL machine name. Note that there are
-restrictions regarding the values of the pulses as well as the register
-layout. We invite you to consult our
+To target the QPU, pass the [`FRESNEL`{.docutils .literal
+.notranslate}]{.pre} machine name:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('pasqal', machine='FRESNEL')
+:::
+:::
+
+Note that there are restrictions regarding the values of the pulses as
+well as the register layout. We invite you to consult our
 [documentation](https://docs.pasqal.com/cloud/fresnel-job){.reference
 .external}. Note that the CUDA-Q integration currently only works with
 [arbitrary
@@ -2497,6 +2453,62 @@ The number of shots for a kernel execution can be set through the
 To see a complete example, take a look at [[Pasqal examples]{.std
 .std-ref}](../../examples/hardware_providers.html#pasqal-examples){.reference
 .internal}.
+:::
+
+::: {#submitting-via-qrmi .section}
+### Submitting via QRMI[¶](#submitting-via-qrmi "Permalink to this heading"){.headerlink}
+
+::: {.admonition .note}
+Note
+
+QRMI mode is available only in Linux x86_64 builds of CUDA-Q, via the
+Python wheel or source build.
+:::
+
+CUDA-Q's [`pasqal`{.docutils .literal .notranslate}]{.pre} target
+supports routing Pasqal jobs through the vendor-agnostic Quantum
+Resource Management Interface (QRMI), by specifying [`machine`{.docutils
+.literal .notranslate}]{.pre} as [`qrmi`{.docutils .literal
+.notranslate}]{.pre}. This enables integration with resource managers
+like Slurm for scheduling. When configuring Slurm, select the Pasqal
+backend with the [`--qpu`{.docutils .literal .notranslate}]{.pre} option
+in [`sbatch`{.docutils .literal .notranslate}]{.pre} and let QRMI handle
+submission.
+
+For this route, credentials and project ID are read by QRMI using either
+[`~/.pasqal/config`{.docutils .literal .notranslate}]{.pre} or other
+methods supported by your cluster's QRMI setup.
+
+The job submission process is the same as for the [`pasqal`{.docutils
+.literal .notranslate}]{.pre} target.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    export SLURM_JOB_QPU_RESOURCES=EMU_FREE
+:::
+:::
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('pasqal', machine='qrmi')
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target pasqal --pasqal-machine qrmi src.cpp
+:::
+:::
+:::
+:::
 
 ::: {.admonition .note}
 Note
@@ -2512,7 +2524,7 @@ flag is not yet supported on the [`pasqal`{.code .docutils .literal
 ## QuEra Computing[¶](#quera-computing "Permalink to this heading"){.headerlink}
 
 ::: {#quera-backend .section}
-[]{#id3}
+[]{#id2}
 
 ### Setting Credentials[¶](#quera-backend "Permalink to this heading"){.headerlink}
 
@@ -2554,8 +2566,8 @@ Refer to QuEra's
 .external} for details.
 :::
 
-::: {#id4 .section}
-### Submitting[¶](#id4 "Permalink to this heading"){.headerlink}
+::: {#id3 .section}
+### Submitting[¶](#id3 "Permalink to this heading"){.headerlink}
 
 ::: {.tab-set .docutils}
 Python
