@@ -59,6 +59,32 @@ This includes all gate counts.)#")
           "to_dict", [](Resources &self) { return self.gateCounts(); },
           "Return a dictionary of the raw resource counts that are stored in "
           "`self`.\n")
+      .def_property_readonly("num_qubits", &Resources::getNumQubits,
+                             "The total number of qubits used in the kernel.\n")
+      .def_property_readonly(
+          "depth", &Resources::getCircuitDepth,
+          "The circuit depth (longest gate chain on any qubit).\n")
+      .def_property_readonly(
+          "depth_2q", &Resources::getCircuitDepth2Q,
+          "The 2-qubit circuit depth (longest chain of 2-qubit gates on any "
+          "qubit path).\n")
+      .def_property_readonly("two_qubit_gate_count",
+                             &Resources::getTwoQubitGateCount,
+                             "The total number of 2-qubit gates.\n")
+      .def_property_readonly(
+          "per_qubit_depth",
+          [](Resources &self) {
+            return py::dict(py::cast(self.getPerQubitDepth()));
+          },
+          "Per-qubit circuit depth (all gates), as a dict mapping qubit "
+          "index to depth.\n")
+      .def_property_readonly(
+          "per_qubit_depth_2q",
+          [](Resources &self) {
+            return py::dict(py::cast(self.getPerQubitDepth2Q()));
+          },
+          "Per-qubit 2-qubit depth, as a dict mapping qubit index to "
+          "2Q depth.\n")
       .def("clear", &Resources::clear, "Clear out all metadata from `self`.\n");
 }
 
