@@ -2203,7 +2203,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![d8f6000dadee42d9b00b6cd9daa283b0](../../_images/oracle.png){.no-scaled-link
+![0a573d83de6c4afaa2e069633e748636](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2309,7 +2309,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![d14bf34b8f8d45da9189c3ec56ce9f4c](../../_images/deutsch.png){.no-scaled-link
+![5080c12574ed46529a9c7cf0490b64a0](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}
