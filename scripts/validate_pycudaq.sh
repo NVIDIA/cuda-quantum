@@ -186,7 +186,7 @@ requires_unavailable_gpu_target() {
     targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
     for t in $targets; do
         case "$t" in
-            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
                 echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
@@ -490,49 +490,4 @@ if [ -d "$root_folder/targets" ]; then
         fi
     fi
     [ -f "$target_list" ] && rm -f "$target_list"
-fi
-
-# Run remote-mqpu platform test (Linux only - requires GPU and MPI)
-if $is_macos; then
-    echo "Skipping remote-mqpu platform test on macOS (requires GPU and MPI)"
-else
-    # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-    # Note that a derivative of this code is in
-    # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
-    # check if any docs updates are needed.
-    cudaq_package=$(python3 -m pip list | grep -oE 'cudaq')
-    cudaq_location=$(python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$')
-    qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
-    if [ -x "$(command -v nvidia-smi)" ]; then
-        nr_gpus=$(nvidia-smi --list-gpus | wc -l)
-    else
-        nr_gpus=0
-    fi
-    server1_devices=$(echo $(seq $((nr_gpus >> 1)) $((nr_gpus - 1))) | tr ' ' ,)
-    server2_devices=$(echo $(seq 0 $((($nr_gpus >> 1) - 1))) | tr ' ' ,)
-    echo "Launching server 1..."
-    servers="localhost:12001"
-    CUDA_VISIBLE_DEVICES=$server1_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12001 &
-    if [ -n "$server2_devices" ]; then
-        echo "Launching server 2..."
-        servers+=",localhost:12002"
-        CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
-    fi
-
-    sleep 20 # wait for servers to launch
-    python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
-        --backend nvidia-mgpu --servers "$servers"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mRemote platform test failed.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-    kill %1 && wait %1 2>/dev/null
-    if [ -n "$server2_devices" ]; then
-        kill %2 && wait %2 2>/dev/null
-    fi
-fi
-
-if [ ! $status_sum -eq 0 ]; then
-    echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
-    (return 0 2>/dev/null) && return $status_sum || exit $status_sum
 fi

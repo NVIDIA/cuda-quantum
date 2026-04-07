@@ -86,7 +86,7 @@ should_skip_python_example() {
             skip_reason="requires cupy (CUDA-only)"
             return 0
         fi
-        # Check for nvidia/tensornet targets (direct or via remote-mqpu)
+        # Check for nvidia/tensornet targets 
         if grep -q "set_target.*['\"]nvidia\|['\"]tensornet" "$file"; then
             skip_reason="requires GPU target"
             return 0
@@ -257,27 +257,6 @@ do
             echo "Skipping $t target."
             echo ":white_flag: $filename: Issue https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
-
-        elif [ "$t" == "remote-mqpu" ]; then
-
-            # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime manageable.
-            # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
-            # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel_mode"* || "$ex" == *"builder.cpp"* ]];
-            then
-                let "skipped+=1"
-                echo "Skipping $t target.";
-                echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
-                continue
-
-            # Don't run remote-mqpu if the MPI installation is incomplete (e.g., missing an ssh-client).            
-            elif [[ "$mpi_available" == true && "$ssh_available" == false ]];
-            then
-                let "skipped+=1"
-                echo "Skipping $t target due to incomplete MPI installation.";
-                echo ":white_flag: $filename: Incomplete MPI installation. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
-                continue
-            fi
         fi
 
         echo "Testing on $t target..."

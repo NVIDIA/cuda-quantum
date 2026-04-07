@@ -28,8 +28,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     throw std::runtime_error("`run` is not yet supported on this target.");
 
   // 2. Launch the kernel on the QPU.
-  if (platform.is_remote() || platform.is_emulated() ||
-      platform.get_remote_capabilities().isRemoteSimulator) {
+  if (platform.is_remote() || platform.is_emulated()) {
     // In a remote simulator execution or hardware emulation environment, set
     // the `run` context name and number of iterations (shots)
     cudaq::ExecutionContext ctx("run", shots, qpu_id);

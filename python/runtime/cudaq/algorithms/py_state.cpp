@@ -785,8 +785,7 @@ index pair.
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module, py::args args) {
         // Check for unsupported cases.
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "orca-photonics")
+        if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
               "get_state is not supported in this context.");
 
@@ -815,9 +814,7 @@ for more information on this programming pattern.)#")
       [&](const std::string &shortName, MlirModule module, std::size_t qpu_id,
           py::args args) {
         // Check for unsupported cases.
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "nvqc" ||
-            holder.getTarget().name == "orca-photonics" ||
+        if (holder.getTarget().name == "orca-photonics" ||
             is_remote_platform() || is_emulated_platform())
           throw std::runtime_error(
               "get_state_async is not supported in this context.");

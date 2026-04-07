@@ -12,7 +12,6 @@ add_subdirectory(TargetConfig/custom_sim)
 
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
-  CUDAQ_TEST_REMOTE_SIM
 )
 
 configure_lit_site_cfg(

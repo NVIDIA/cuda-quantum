@@ -44,4 +44,3 @@ if (CUDA_FOUND AND CUSTATEVEC_ROOT)
 endif()
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-add_target_config(remote-mqpu)
