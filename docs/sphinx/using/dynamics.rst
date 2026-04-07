@@ -417,7 +417,7 @@ backend target.
         *   - `crank_nicolson`
             - Implicit predictor-corrector method. Well-suited for stiff systems or when energy conservation is important. Configurable number of corrector iterations.
         *   - `magnus_expansion`
-            - Approximates the matrix exponential via a Taylor series, preserving unitarity of the evolution. Suitable for smooth, oscillatory Hamiltonians. Configurable number of Taylor terms.
+            - Approximates the matrix exponential via a finite Taylor series truncation, approximating unitary evolution. Suitable for smooth, oscillatory Hamiltonians. Configurable number of Taylor terms.
 
 Batch simulation
 ^^^^^^^^^^^^^^^^^

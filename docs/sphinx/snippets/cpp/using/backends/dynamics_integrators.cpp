@@ -50,8 +50,9 @@ int main() {
 
   // [Begin MagnusExpansion]
   // Magnus expansion integrator.
-  // Uses a Taylor series to approximate the matrix exponential, which
-  // preserves unitarity of the evolution. Suitable for smooth, oscillatory
+  // Uses a finite Taylor series truncation to approximate the matrix
+  // exponential, approximating unitary evolution. Suitable for smooth,
+  // oscillatory
   // Hamiltonians. Arguments: maximum number of Taylor terms (default: 10) and
   // optional max sub-step size.
   cudaq::integrators::magnus_expansion magnus_integrator(
