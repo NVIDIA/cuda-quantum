@@ -217,37 +217,17 @@ private:
 
     // Default to using 1 QPU per MPI rank, but allow user to specify
     // otherwise.
-    auto numQpus = numMpiRanks;
-    // Determine the number of QPUs based on user configurations
-    const auto numQpusStr = getOption(description, "nqpus");
-    if (!numQpusStr.empty()) {
-      try {
-        int numQpus = std::stoi(numQpusStr);
-        if (numQpus <= 0)
-          throw std::runtime_error(
-              "Invalid number of QPUs specified in target config, must be "
-              "positive integer.");
-        // Number of QPUs cannot exceed number of MPI ranks
-        if (numQpus > numMpiRanks)
-          throw std::runtime_error(
-              "Number of QPUs specified in target config cannot exceed "
-              "number of MPI ranks.");
-        // If we have fewer QPUs than MPI ranks, we will assign multiple
-        // ranks to each QPU. Required that this is evenly divisible.
-        if (numMpiRanks % numQpus != 0)
-          throw std::runtime_error("Number of MPI ranks must be evenly "
-                                   "divisible by the number of QPUs.");
-      } catch (const std::exception &e) {
-        throw std::runtime_error(
-            fmt::format("Invalid number of QPUs specified in target config: "
-                        "{}. Error: {}",
-                        numQpusStr, e.what()));
-      }
-
-      CUDAQ_INFO("Configuring platform with {} QPUs on MPI platform with "
-                 "{} ranks.",
-                 numQpus, numMpiRanks);
-    }
+    const auto numQpus = m_numQPUs.value_or(numMpiRanks);
+    // Number of QPUs cannot exceed number of MPI ranks
+    if (numQpus > numMpiRanks)
+      throw std::runtime_error(
+          "Number of QPUs specified in target config cannot exceed "
+          "number of MPI ranks.");
+    // If we have fewer QPUs than MPI ranks, we will assign multiple
+    // ranks to each QPU. Required that this is evenly divisible.
+    if (numMpiRanks % numQpus != 0)
+      throw std::runtime_error("Number of MPI ranks must be evenly "
+                               "divisible by the number of QPUs.");
 
     platformQPUs.clear();
     // Split the comunicator evenly across all QPUs.
@@ -282,9 +262,8 @@ private:
                 << " with local ranks: "
                 << m_qpuProcessGroups[thisQpuId].getLocalMpiRank() << std::endl;
       mpiSimulator->setMpiCommunicator(qpuComm->commPtr, qpuComm->commSize);
-
     } else {
-      if (numMpiRanks > numQpus) {
+      if (ranksPerQpu > 1) {
         CUDAQ_WARN(
             "MPI environment detected on simulator backend '{}', which does "
             "not support MPI communication. The number of QPUs specified is "
