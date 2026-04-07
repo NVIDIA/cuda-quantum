@@ -3444,8 +3444,8 @@ class PyASTBridge(ast.NodeVisitor):
                             veqTy = quake.VeqType.get()
                             qubits = quake.AllocaOp(veqTy,
                                                     size=numQubits).result
-                            init = quake.InitializeStateOp(veqTy, qubits,
-                                                           state).result
+                            init = quake.InitializeStateOp(
+                                veqTy, qubits, state).result
                             deleteState = quake.DeleteStateOp(state)
                             self.pushValue(init)
                             return
