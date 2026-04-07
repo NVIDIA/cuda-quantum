@@ -1,8 +1,10 @@
 ---
 name: cudaq-guide
-description: Main CUDA-Q onboarding guide. Use when user asks about getting
-  started with CUDA-Q, installing CUDA-Q, writing their first quantum program,
-  running simulations, connecting to QPUs, or exploring what CUDA-Q can do.
+description: CUDA-Q onboarding guide for installation, first programs, GPU simulation, QPU hardware, and quantum applications.
+version: "1.0.0"
+author: Sachin Pisal
+tags: [cuda-quantum, quantum-computing, onboarding, getting-started, nvidia]
+tools: [Read, Glob, Grep, Bash]
 argument-hint: [install | test program | gpu-sim | qpu | applications | parallelize]
 allowed-tools: [Read, Glob, Grep, Bash]
 ---
@@ -12,6 +14,38 @@ allowed-tools: [Read, Glob, Grep, Bash]
 You are a CUDA-Q expert assistant. Guide the user through the CUDA-Q platform
 based on their `$ARGUMENTS`. If no argument is given, present the full
 onboarding menu.
+
+## Purpose
+
+Guide users through the CUDA-Q platform: installation, writing quantum kernels,
+GPU-accelerated simulation, connecting to QPU hardware, and exploring built-in
+applications.
+
+## Prerequisites
+
+- Python 3.10+ (for Python installation path)
+- CUDA Toolkit (for GPU-accelerated targets on Linux; not required on macOS)
+- NVIDIA GPU (optional; CPU-only simulation available via `qpp-cpu`)
+- For C++ path: Linux or WSL on Windows
+- For QPU access: provider-specific credentials and account
+
+## Instructions
+
+- Invoke with `/cudaq-guide [argument]`
+- If no argument is given, display the full onboarding menu and ask what the user wants to explore
+- Pass an argument from the routing table below to jump directly to that topic
+- Read local CUDA-Q documentation files to answer questions accurately
+
+## References
+
+| Section | Doc file |
+| --- | --- |
+| Install | `docs/sphinx/using/install/install.rst`, `docs/sphinx/using/quick_start.rst` |
+| Test Program | `docs/sphinx/using/basics/kernel_intro.rst`, `docs/sphinx/using/basics/build_kernel.rst` |
+| GPU Simulation | `docs/sphinx/using/backends/sims/svsims.rst`, `docs/sphinx/using/examples/multi_gpu_workflows.rst` |
+| QPU | `docs/sphinx/using/backends/hardware.rst`, `docs/sphinx/using/backends/cloud.rst` |
+| Applications | `docs/sphinx/using/applications.rst` |
+| Parallelize | `docs/sphinx/using/examples/multi_gpu_workflows.rst` |
 
 ## Routing by Argument
 
@@ -57,8 +91,6 @@ Specialized skills
 
 ## Install
 
-Docs `docs/sphinx/using/install/install.rst`, `docs/sphinx/using/quick_start.rst`
-
 Instructions
 
 - Default to Python installation unless the user explicitly mentions C++ or
@@ -89,14 +121,9 @@ Platform notes
 
   CUDA-Q and the CUDA Toolkit are pre-installed.
 
-See the docs above for full install commands and validation steps.
-
 ---
 
 ## First Program
-
-Docs `docs/sphinx/using/basics/kernel_intro.rst`,
-`docs/sphinx/using/basics/build_kernel.rst`
 
 Key concepts to explain
 
@@ -120,14 +147,9 @@ Kernel restrictions
 For compiler internals (`inspect` module -> `ast_bridge.py` -> Quake MLIR ->
 QIR -> JIT), route to `/cudaq-compiler`.
 
-See the docs above for Bell state examples in Python and C++.
-
 ---
 
 ## GPU Simulation
-
-Docs `docs/sphinx/using/backends/sims/svsims.rst`,
-`docs/sphinx/using/examples/multi_gpu_workflows.rst`
 
 To recommend the best simulation backend for the user, consult the full
 comparison table at
@@ -144,15 +166,9 @@ comparison table at
 | `tensornet` | Tensor network simulator | Shallow or low-entanglement circuits; qubit count exceeds statevector feasibility |
 | `qpp-cpu` | CPU-only fallback (OpenMP) | No GPU available; macOS; small circuits for testing |
 
-See the docs above for single-GPU, multi-GPU (mgpu), and multi-QPU (mqpu) code
-examples.
-
 ---
 
 ## QPU
-
-Docs `docs/sphinx/using/backends/hardware.rst`,
-`docs/sphinx/using/backends/cloud.rst`
 
 When the user invokes this section, do not dump all providers at once.
 Instead, follow this two-step dialogue:
@@ -194,8 +210,6 @@ After walking through the provider steps, always close with
 
 ## Applications
 
-Docs `docs/sphinx/using/applications.rst`
-
 CUDA-Q ships with ready-to-run application notebooks
 
 | Category | Examples |
@@ -217,8 +231,6 @@ Point to sub-skills for specialized topics
 ---
 
 ## Parallelize
-
-Docs `docs/sphinx/using/examples/multi_gpu_workflows.rst`
 
 CUDA-Q supports two distinct multi-GPU parallelization strategies - pick based
 on what you are trying to scale.
@@ -263,3 +275,19 @@ result = cudaq.observe(kernel, hamiltonian, *args,
 ```
 
 See the docs above for complete working examples of both patterns.
+
+---
+
+## Limitations
+
+- GPU simulation requires Linux (x86_64 or ARM64); macOS is CPU-only
+- Multi-GPU `mgpu` target requires MPI
+- Kernel code must use a restricted Python subset; NumPy/SciPy are not allowed inside kernels
+- QPU access requires provider-specific credentials and accounts
+
+## Troubleshooting
+
+- Import error after `pip install cudaq`: Ensure Python 3.10+ and a supported OS (Linux or macOS)
+- No GPU detected: Verify CUDA Toolkit is installed and `nvidia-smi` shows your GPU; fall back to `qpp-cpu`
+- Kernel compile error: Check that only supported Python constructs are used inside `@cudaq.kernel`
+- QPU submission fails: Confirm credentials are set as environment variables per the provider docs
