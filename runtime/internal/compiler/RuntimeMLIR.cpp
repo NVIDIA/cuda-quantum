@@ -566,6 +566,28 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   return success();
 }
 
+// A codegen translation that simply dumps the CUDA-Q MLIR
+static void registerToQuakeTranslation() {
+  cudaq_internal::compiler::TranslateFromMLIRRegistration reg(
+      "nop", "dump raw CUDA-Q MLIR string",
+      [](mlir::Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
+         bool printIntermediateMLIR, bool printStats) {
+        std::string codeStr;
+        llvm::raw_string_ostream outStr(codeStr);
+        mlir::OpPrintingFlags opf;
+        opf.enableDebugInfo(/*enable=*/false,
+                            /*pretty=*/true);
+        op->print(outStr, opf);
+        outStr << '\n';
+        outStr.flush();
+        output << llvm::encodeBase64(codeStr);
+        if (printIR)
+          llvm::errs() << codeStr;
+        return mlir::success();
+      });
+}
+
 static void registerToQIRTranslation() {
 #define CREATE_QIR_REGISTRATION(_regName, _profile)                            \
   cudaq_internal::compiler::TranslateFromMLIRRegistration _regName(            \
@@ -665,6 +687,7 @@ void cudaq_internal::compiler::initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    registerToQuakeTranslation();
 
     mlirContext = createMLIRContext().release();
   });
