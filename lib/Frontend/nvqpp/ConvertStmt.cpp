@@ -289,8 +289,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                   : count;
       }
     } else {
-      TODO_x(toLocation(x), x, mangler,
-             "ranged for statement over unsized measurements");
+      iters = builder.create<quake::MeasurementsSizeOp>(loc, i64Ty, buffer);
     }
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
                            Block &block) {
