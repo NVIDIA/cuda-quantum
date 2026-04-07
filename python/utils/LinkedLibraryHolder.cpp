@@ -390,6 +390,21 @@ void LinkedLibraryHolder::setTarget(
 
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
              target.simulatorName, target.platformName);
+  // If "platform" config is specified, this platform should be used.
+  const auto platformIter = extraConfig.find("platform");
+  if (platformIter != extraConfig.end()) {
+    auto platformName = platformIter->second;
+    // Check if the specified platform is available.
+    auto iter = std::find(availablePlatforms.begin(), availablePlatforms.end(),
+                          platformName);
+    if (iter == availablePlatforms.end())
+      throw std::runtime_error("Invalid platform specified: " + platformName);
+
+    target.platformName = platformName;
+    CUDAQ_INFO("Overriding platform to {} for target {}", platformName,
+               targetName);
+  }
+
   std::string simName = target.simulatorName;
   if (simName.empty()) {
     // This target doesn't have a simulator defined, e.g., hardware targets.
