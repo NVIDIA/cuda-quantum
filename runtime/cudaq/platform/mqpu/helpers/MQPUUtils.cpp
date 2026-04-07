@@ -236,3 +236,14 @@ int cudaq::getCudaDeviceCount() {
   return 0;
 #endif
 }
+
+void cudaq::setCudaDevice(int deviceId) {
+#ifdef CUDAQ_ENABLE_CUDA
+  const auto status = cudaSetDevice(deviceId);
+  if (status != cudaSuccess) {
+    throw std::runtime_error("Failed to set CUDA device");
+  }
+#else
+  // No-op if CUDA is not enabled.
+#endif
+}

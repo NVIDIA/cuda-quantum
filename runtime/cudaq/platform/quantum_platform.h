@@ -186,10 +186,10 @@ public:
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) const;
 
   /// @brief Begin a new execution on this platform.
-  void beginExecution();
+  virtual void beginExecution();
 
   /// @brief End the current execution on this platform.
-  void endExecution();
+  virtual void endExecution();
 
   /// Enqueue an asynchronous sampling task.
   virtual std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,

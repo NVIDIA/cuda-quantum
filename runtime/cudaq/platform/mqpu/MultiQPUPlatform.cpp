@@ -12,7 +12,7 @@
 #include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfigYaml.h"
-#include "cudaq/platform/qpu.h"
+#include "DefaultQPU.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -27,58 +27,10 @@
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
-
-class DefaultQPU : public cudaq::QPU {
-public:
-  DefaultQPU() = default;
-  virtual ~DefaultQPU() = default;
-
-  void enqueue(cudaq::QuantumTask &task) override {
-    execution_queue->enqueue(task);
-  }
-
-  cudaq::KernelThunkResultType
-  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
-               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-    return kernelFunc(args, /*isRemote=*/false);
-  }
-
-  void
-  configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
-                           context.name);
-    if (noiseModel)
-      context.noiseModel = noiseModel;
-
-    context.executionManager = cudaq::getDefaultExecutionManager();
-    context.executionManager->configureExecutionContext(context);
-  }
-
-  void beginExecution() override {
-    cudaq::getExecutionContext()->executionManager->beginExecution();
-  }
-
-  void endExecution() override {
-    cudaq::getExecutionContext()->executionManager->endExecution();
-  }
-
-  void
-  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
-    ScopedTraceWithContext(
-        context.name == "observe" ? cudaq::TIMING_OBSERVE : 0,
-        "DefaultPlatform::finalizeExecutionContext", context.name);
-    handleObservation(context);
-
-    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
-        context);
-  }
-};
-
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<cudaq::details::QpuProcessGroup> m_qpuProcessGroups;
   bool m_broadcastKernelResults = true;
+  std::optional<int> m_numQPUs;
 public:
   ~MultiQPUQuantumPlatform() {
     // Make sure that we clean up the client QPUs first before cleaning up the
@@ -88,40 +40,47 @@ public:
   }
 
   MultiQPUQuantumPlatform() {
-    if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
-      int nDevices = cudaq::getCudaDeviceCount();
-      // Skipped if CUDA-Q was built with CUDA but no devices present at
-      // runtime.
-      if (nDevices > 0) {
-        const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
-        if (envVal != nullptr) {
-          int specifiedNDevices = 0;
-          try {
-            specifiedNDevices = std::stoi(envVal);
-          } catch (...) {
-            throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment"
-                                     " variable, must be integer.");
-          }
-
-          if (specifiedNDevices < nDevices)
-            nDevices = specifiedNDevices;
+    int nDevices = cudaq::getCudaDeviceCount();
+    // Skipped if CUDA-Q was built with CUDA but no devices present at
+    // runtime.
+    if (nDevices > 0) {
+      const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
+      if (envVal != nullptr) {
+        try {
+          m_numQPUs = std::stoi(envVal);
+        } catch (...) {
+          throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment"
+                                   " variable, must be integer.");
         }
 
-        if (nDevices == 0)
-          throw std::runtime_error(
-              "No GPUs available to instantiate platform.");
+        if (m_numQPUs.has_value() && m_numQPUs.value() < nDevices)
+          nDevices = m_numQPUs.value();
+      }
 
-        // Add a QPU for each GPU.
-        for (int i = 0; i < nDevices; i++) {
-          platformQPUs.emplace_back(
-              cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
-          platformQPUs.back()->setId(i);
-        }
+      if (nDevices == 0)
+        throw std::runtime_error("No GPUs available to instantiate platform.");
+
+      // Add a QPU for each GPU.
+      for (int i = 0; i < nDevices; i++) {
+        platformQPUs.emplace_back(
+            std::make_unique<cudaq::details::DefaultQPU>());
+        platformQPUs.back()->setId(i);
       }
     }
   }
 
   bool supports_task_distribution() const override { return true; }
+
+  void beginExecution() override {
+    if (m_qpuProcessGroups.empty()) {
+      // If this is a thread-based multi-QPqu platform, set the current CUDA
+      // device for this thread based on the QPU ID in the execution context.
+      auto qid = cudaq::getCurrentQpuId();
+      cudaq::setCudaDevice(qid);
+    }
+    // Base implementation of beginExecution will be called after this.
+    cudaq::quantum_platform::beginExecution();
+  }
 
 protected:
   bool filterExecutionContext(const cudaq::ExecutionContext &ctx) const override {
@@ -307,7 +266,7 @@ private:
     }
     for (std::size_t qId = 0; qId < qpuRankAssignments.size(); ++qId) {
       m_qpuProcessGroups.emplace_back(qpuRankAssignments[qId]);
-      platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
+      platformQPUs.emplace_back(std::make_unique<cudaq::details::DefaultQPU>());
       platformQPUs.back()->setId(qId);
       platformQPUs.back()->setTargetBackend(description);
     }

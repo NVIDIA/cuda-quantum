@@ -35,4 +35,7 @@ private:
 // If CUDA is present, returns the actual number of GPU devices. Otherwise,
 // returns 0.
 int getCudaDeviceCount();
+
+// Helper to set the current CUDA device for the calling thread.
+void setCudaDevice(int deviceId);
 } // namespace cudaq
