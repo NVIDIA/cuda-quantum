@@ -11,6 +11,11 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 
 add_library(cudaq-qpu-default OBJECT DefaultQPU.cpp)
 target_include_directories(cudaq-qpu-default INTERFACE .)
+target_include_directories(cudaq-qpu-default 
+  PRIVATE 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime> 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>)
 
 set(CUDAQ_DEFAULTPLATFORM_SRC
   DefaultQuantumPlatform.cpp

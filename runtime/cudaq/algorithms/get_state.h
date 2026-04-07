@@ -17,7 +17,6 @@
 #include "cudaq/platform/qpu_state.h"
 #include "cudaq/qis/kernel_utils.h"
 #include "cudaq/qis/qkernel.h"
-#include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
 #include <complex>
 #include <vector>
