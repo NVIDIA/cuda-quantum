@@ -163,6 +163,12 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
 # Instantiation of Python module
 ################################################################################
 
+# This variable is unused in cudaq but if it is not set, we hit a bug in  
+# add_mlir_python_modules whereby it is defined twice on the compilation line:
+# -DMLIR_BINDINGS_PYTHON_NB_DOMAIN "" -DMLIR_BINDINGS_PYTHON_NB_DOMAIN mlir
+# which results in a compilation error. 
+set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq")
+
 add_mlir_python_modules(CUDAQuantumPythonModules
   ROOT_PREFIX "${MLIR_BINARY_DIR}/python/cudaq/mlir"
   INSTALL_PREFIX "cudaq/mlir"

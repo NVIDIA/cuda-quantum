@@ -54,6 +54,7 @@
 # (specifically also CUDA_SEPARABLE_COMPILATION)
 
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
+NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
 
 # Process command line arguments
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
@@ -275,6 +276,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake \
   $extra_cmake_args"
 
 # Add CUDA-specific flags only on non-macOS systems
