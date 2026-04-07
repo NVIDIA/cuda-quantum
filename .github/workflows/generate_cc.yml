@@ -117,6 +117,8 @@ jobs:
             --output type=local,dest=${{ github.workspace }}/shared
 
       - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
         run: |
           mkdir -p /tmp/ccache-export
           docker buildx build --platform ${{ inputs.platform }} \
@@ -125,7 +127,7 @@ jobs:
             --build-arg base_image=${{ steps.cudaq_build.outputs.base_image }} \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
-            2>/dev/null || true
+            2>/dev/null
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
