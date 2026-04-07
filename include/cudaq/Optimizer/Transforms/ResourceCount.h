@@ -14,16 +14,10 @@
 
 namespace cudaq::opt {
 
-struct ResourceCountResult {
-  cudaq::Resources counts;
-  bool fullyStatic; ///< True if all gates were pre-counted (no dynamic ops).
-};
-
 /// Extract resource counts from a Quake IR module using static analysis.
 /// Runs ResourceCountPreprocess to count gates with qubit indices for depth.
-/// Counted gates are erased from the module. Returns the counts and whether
-/// the circuit is fully static (no dynamic quantum ops remain).
-mlir::FailureOr<ResourceCountResult>
-countResourcesFromIR(mlir::ModuleOp module);
+/// Counted gates are erased from the module. Returns the accumulated counts,
+/// or failure if the pass pipeline fails.
+mlir::FailureOr<cudaq::Resources> countResourcesFromIR(mlir::ModuleOp module);
 
 } // namespace cudaq::opt

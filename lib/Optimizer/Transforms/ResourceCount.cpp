@@ -7,21 +7,20 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
 
-mlir::FailureOr<cudaq::opt::ResourceCountResult>
+mlir::FailureOr<cudaq::Resources>
 cudaq::opt::countResourcesFromIR(ModuleOp module) {
-  ResourceCountResult result;
-  auto countGate = [&result](std::string gate,
+  cudaq::Resources counts;
+  auto countGate = [&counts](std::string gate,
                              std::vector<std::size_t> controls,
                              std::vector<std::size_t> targets, size_t count) {
     for (size_t i = 0; i < count; i++)
-      result.counts.appendInstruction(gate, controls, targets);
+      counts.appendInstruction(gate, controls, targets);
   };
   ResourceCountPreprocessOptions opt{countGate};
   PassManager pm(module.getContext());
@@ -29,15 +28,5 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   pm.addPass(createCanonicalizerPass());
   if (failed(pm.run(module)))
     return failure();
-
-  // Check if any quantum gate ops remain (dynamic gates that couldn't
-  // be pre-counted). If none remain, the circuit is fully static.
-  result.fullyStatic = true;
-  module.walk([&](Operation *op) {
-    if (dyn_cast<quake::OperatorInterface>(op) &&
-        !isa<quake::MeasurementInterface>(op))
-      result.fullyStatic = false;
-  });
-
-  return result;
+  return counts;
 }

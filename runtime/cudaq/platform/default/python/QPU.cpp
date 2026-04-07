@@ -31,6 +31,8 @@
 #include "mlir/Transforms/Passes.h"
 #include <unordered_set>
 
+// Declared in runtime/cudaq/algorithms/resource_estimation.h (not included
+// here to avoid pulling in cudaq/platform.h which creates circular deps).
 namespace nvqir {
 void setResourceCounts(cudaq::Resources &&);
 }
@@ -294,17 +296,16 @@ static void cacheJITForPerformance(JitEngine jit) {
 }
 
 /// When the execution context is "resource-count", extract gate counts and
-/// depth metrics from the optimized MLIR IR. Pre-counted gates are erased.
-/// Returns true if all gates were pre-counted and JIT can be skipped.
-static bool precountResources(ModuleOp module) {
+/// depth metrics from the optimized MLIR IR. Pre-counted gates are erased
+/// from the module, so the subsequent JIT compiles a near-empty module.
+static void precountResources(ModuleOp module) {
   auto *ctx = cudaq::getExecutionContext();
   if (!ctx || ctx->name != "resource-count")
-    return false;
-  auto result = cudaq::opt::countResourcesFromIR(module);
-  if (failed(result))
+    return;
+  auto counts = cudaq::opt::countResourcesFromIR(module);
+  if (failed(counts))
     throw std::runtime_error("Resource count preprocessing failed.");
-  nvqir::setResourceCounts(std::move(result->counts));
-  return result->fullyStatic;
+  nvqir::setResourceCounts(std::move(*counts));
 }
 
 namespace {

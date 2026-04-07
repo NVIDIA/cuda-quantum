@@ -129,3 +129,17 @@ def test_dynamic_circuit_with_choice():
     resources = cudaq.estimate_resources(dynamic_kernel, choice=lambda: True)
     assert resources.two_qubit_gate_count == 2
     assert resources.num_qubits == 3
+
+
+def test_multi_qvector_depth():
+    """Parallel CX across two qvectors: depth=1, not depth=2."""
+    kernel = cudaq.make_kernel()
+    q0 = kernel.qalloc(2)
+    q1 = kernel.qalloc(2)
+    kernel.cx(q0[0], q1[0])
+    kernel.cx(q0[1], q1[1])
+
+    resources = cudaq.estimate_resources(kernel)
+    assert resources.two_qubit_gate_count == 2
+    assert resources.depth_2q == 1
+    assert resources.num_qubits == 4

@@ -39,11 +39,26 @@ struct ResourceCountPreprocessPass
   DenseMap<Value, std::size_t> qubitIndexMap;
   std::size_t nextQubitIndex = 0;
 
-  /// Resolve a quake value to a concrete qubit index.
+  /// Assign a globally unique base index for a qvector Value.
+  std::size_t getVeqBase(Value veq) {
+    auto it = qubitIndexMap.find(veq);
+    if (it != qubitIndexMap.end())
+      return it->second;
+    auto base = nextQubitIndex;
+    if (auto veqTy = dyn_cast<quake::VeqType>(veq.getType()))
+      if (veqTy.hasSpecifiedSize())
+        nextQubitIndex += veqTy.getSize();
+    qubitIndexMap[veq] = base;
+    return base;
+  }
+
+  /// Resolve a quake value to a globally unique qubit index.
   std::optional<std::size_t> resolveQubitIndex(Value v) {
+    // extract_ref from a qvector: base offset + local index.
     if (auto extractRef = v.getDefiningOp<quake::ExtractRefOp>())
       if (extractRef.hasConstantIndex())
-        return extractRef.getConstantIndex();
+        return getVeqBase(extractRef.getVeq()) + extractRef.getConstantIndex();
+    // Wire semantics: concrete physical index from routing.
     if (auto borrow = v.getDefiningOp<quake::BorrowWireOp>())
       return static_cast<std::size_t>(borrow.getIdentity());
     // Single-qubit alloca: assign a unique index by declaration order.
@@ -75,16 +90,30 @@ struct ResourceCountPreprocessPass
     auto name = op->getName().stripDialect();
 
     std::vector<std::size_t> controlIndices, targetIndices;
-    for (auto ctrl : opi.getControls())
+    bool allResolved = true;
+    for (auto ctrl : opi.getControls()) {
       if (auto idx = resolveQubitIndex(ctrl))
         controlIndices.push_back(*idx);
-    for (auto tgt : opi.getTargets())
+      else
+        allResolved = false;
+    }
+    for (auto tgt : opi.getTargets()) {
       if (auto idx = resolveQubitIndex(tgt))
         targetIndices.push_back(*idx);
+      else
+        allResolved = false;
+    }
+
+    // If not all qubit indices resolved, use operand counts for the gate
+    // classification but skip depth tracking (indices are unreliable).
+    if (!allResolved) {
+      controlIndices.clear();
+      targetIndices.clear();
+    }
 
     if (dumpPreprocessed)
-      llvm::outs() << "Preprocessing " << name << "(" << controlIndices.size()
-                   << ")"
+      llvm::outs() << "Preprocessing " << name << "("
+                   << opi.getControls().size() << ")"
                    << " for " << to_add << " counts\n";
 
     countGate(name.str(), controlIndices, targetIndices, to_add);

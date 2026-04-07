@@ -366,8 +366,10 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   std::optional<cudaq::Resources> resourceCounts;
   if (executionContext && executionContext->name == "resource-count") {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
-    if (succeeded(result))
-      resourceCounts = std::move(result->counts);
+    if (failed(result))
+      throw std::runtime_error(
+          "Could not successfully apply resource count preprocess.");
+    resourceCounts = std::move(*result);
   }
 
   assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
