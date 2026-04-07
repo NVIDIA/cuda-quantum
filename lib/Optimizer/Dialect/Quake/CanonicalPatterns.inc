@@ -109,10 +109,7 @@ struct ForwardConstantMeasurementsSizePattern
 
   LogicalResult matchAndRewrite(quake::MeasurementsSizeOp msSize,
                                 PatternRewriter &rewriter) const override {
-    auto msTy =
-        dyn_cast<quake::MeasurementsType>(msSize.getMeasurements().getType());
-    if (!msTy)
-      return failure();
+    auto msTy = msSize.getMeasurements().getType();
     if (!msTy.hasSpecifiedSize())
       return failure();
     auto resTy = msSize.getType();

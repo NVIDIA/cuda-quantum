@@ -9,6 +9,7 @@
 #include "CodeGenOps.h"
 #include "PassDetails.h"
 #include "QuakeToCodegen.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -183,6 +184,14 @@ public:
     target.addLegalOp<ModuleOp>();
 
     auto op = getOperation();
+
+    // Pre-declare QIR runtime functions that patterns such as,
+    // `GetVeqSizeOpRewrite` and `GetMeasurementsSizeOpRewrite` reference, so
+    // that they don't need to update the `ModuleOp`.
+    cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRArrayGetSize, IntegerType::get(context, 64),
+        {cudaq::opt::getArrayType(context)}, op);
+
     LLVM_DEBUG(llvm::dbgs() << "Before conversion to QIR:\n"; op.dump());
     if (failed(applyFullConversion(op, target, std::move(patterns)))) {
       LLVM_DEBUG(getOperation().dump());
