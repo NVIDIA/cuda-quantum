@@ -113,6 +113,7 @@ struct PlaybackArgs {
   uint32_t vp_address = 0x1000;
   uint32_t hif_address = 0x0800;
   std::string bridge_ip = "10.0.0.1";
+  std::string function_name = "rpc_increment";
   bool verify = true;
   bool emulator = false;
   bool forward = false; ///< Forward (echo) mode: accept RPC_MAGIC_REQUEST
@@ -162,6 +163,8 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
       args.hif_address = std::stoul(val_of("--hif-address="), nullptr, 0);
     else if (a.find("--bridge-ip=") == 0)
       args.bridge_ip = val_of("--bridge-ip=");
+    else if (a.find("--function-name=") == 0)
+      args.function_name = val_of("--function-name=");
     else if (a == "--no-verify")
       args.verify = false;
     else if (a == "--emulator")
@@ -185,6 +188,8 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
           << "  --vp-address=ADDR     VP register base (default: 0x1000)\n"
           << "  --hif-address=ADDR    HIF register base (default: 0x0800)\n"
           << "  --bridge-ip=ADDR      Bridge IP for FPGA (default: 10.0.0.1)\n"
+          << "  --function-name=NAME  RPC function name (default: "
+             "rpc_increment)\n"
           << "  --emulator            Using emulator (skip FPGA reset)\n"
           << "  --no-verify           Skip ILA response verification\n"
           << "  --forward             Forward (echo) mode: accept echoed "
@@ -211,21 +216,19 @@ std::uint32_t load_le_u32(const std::uint8_t *p) {
          (std::uint32_t(p[2]) << 16) | (std::uint32_t(p[3]) << 24);
 }
 
-/// Build one RPC request for the increment handler.
+/// Build one RPC request.
 /// Layout: [RPCHeader (24 bytes, ptp_timestamp zeroed)][data bytes...]
 /// The FPGA overwrites header bytes 16-23 (ptp_timestamp field) with the PTP
 /// send timestamp at transmit time.
 std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
-                                            uint32_t payload_size) {
-  using cudaq::realtime::fnv1a_hash;
+                                            uint32_t payload_size,
+                                            uint32_t function_id) {
   using cudaq::realtime::RPCHeader;
-
-  constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
 
   std::vector<std::uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
   auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
   hdr->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
-  hdr->function_id = FUNC_ID;
+  hdr->function_id = function_id;
   hdr->arg_len = payload_size;
   hdr->request_id = msg_index;
   hdr->ptp_timestamp = 0;
@@ -290,6 +293,36 @@ void write_bram(hololink::Hololink &hl,
   }
 }
 
+// ============================================================================
+// Chunked block read helper
+// ============================================================================
+
+/// Hololink RD_BLOCK packets have a 6-byte header plus 8 bytes per address.
+/// With CONTROL_PACKET_SIZE=1472, the maximum registers per RD_BLOCK is
+/// (1472-6)/8 = 183.  This helper splits larger reads into multiple chunks.
+constexpr std::uint32_t kMaxBlockReadCount = 183;
+
+std::tuple<bool, std::vector<std::uint32_t>>
+chunked_read_uint32(hololink::Hololink &hl, std::uint32_t base_addr,
+                    std::uint32_t count,
+                    std::shared_ptr<hololink::Timeout> timeout =
+                        hololink::Timeout::default_timeout()) {
+  std::vector<std::uint32_t> result;
+  result.reserve(count);
+  std::uint32_t remaining = count;
+  std::uint32_t offset = 0;
+  while (remaining > 0) {
+    std::uint32_t chunk = std::min(remaining, kMaxBlockReadCount);
+    auto [ok, data] = hl.read_uint32(base_addr + offset * 4, chunk, timeout);
+    if (!ok)
+      return {false, {}};
+    result.insert(result.end(), data.begin(), data.end());
+    offset += chunk;
+    remaining -= chunk;
+  }
+  return {true, result};
+}
+
 /// Read back BRAM and verify contents.
 bool verify_bram(hololink::Hololink &hl,
                  const std::vector<std::vector<std::uint8_t>> &windows,
@@ -303,8 +336,7 @@ bool verify_bram(hololink::Hololink &hl,
 
   for (std::uint32_t i = 0; i < RAM_NUM; ++i) {
     std::uint32_t bank_base = RAM_ADDR + (i << (w_sample_addr + 2));
-    auto [ok, readback] = hl.read_uint32(bank_base, total_cycles,
-                                         hololink::Timeout::default_timeout());
+    auto [ok, readback] = chunked_read_uint32(hl, bank_base, total_cycles);
     if (!ok) {
       std::cerr << "BRAM readback: failed to read bank " << i << "\n";
       return false;
@@ -472,8 +504,13 @@ int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
 int main(int argc, char *argv[]) {
   auto args = parse_args(argc, argv);
 
+  const uint32_t function_id =
+      cudaq::realtime::fnv1a_hash(args.function_name.c_str());
+
   std::cout << "=== Hololink Generic RPC Playback ===" << std::endl;
   std::cout << "Hololink: " << args.hololink_ip << std::endl;
+  std::cout << "Function: " << args.function_name << " (0x" << std::hex
+            << function_id << std::dec << ")" << std::endl;
   std::cout << "Messages: " << args.num_messages << std::endl;
   std::cout << "Payload size: " << args.payload_size << " bytes" << std::endl;
 
@@ -559,7 +596,7 @@ int main(int argc, char *argv[]) {
   std::vector<std::vector<std::uint8_t>> windows;
   windows.reserve(args.num_messages);
   for (uint32_t i = 0; i < args.num_messages; i++) {
-    auto msg = build_rpc_message(i, args.payload_size);
+    auto msg = build_rpc_message(i, args.payload_size, function_id);
     msg.resize(bytes_per_window, 0); // pad to window boundary
     windows.push_back(std::move(msg));
   }
