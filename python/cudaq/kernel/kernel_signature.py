@@ -200,14 +200,16 @@ class KernelSignature:
 
 
 @overload
-def _mlir_type_from_annotation(
-        annotation, acceptNoneType: Literal[True] = ...) -> mlir.Type:
+def _mlir_type_from_annotation(annotation,
+                               acceptNoneType: Literal[True] = ...,
+                               cudaqAliases=None) -> mlir.Type:
     ...
 
 
 @overload
-def _mlir_type_from_annotation(
-        annotation, acceptNoneType: Literal[False]) -> Optional[mlir.Type]:
+def _mlir_type_from_annotation(annotation,
+                               acceptNoneType: Literal[False],
+                               cudaqAliases=None) -> Optional[mlir.Type]:
     ...
 
 

@@ -189,8 +189,7 @@ class PyKernelDecorator(object):
             for scope in (parentVars, self.parentFrame.f_globals):
                 for vname, var in scope.items():
                     if (isinstance(var, types.ModuleType) and
-                            getattr(var, '__name__', None) == 'cudaq' and
-                            vname != 'cudaq'):
+                            getattr(var, '__name__', None) == 'cudaq'):
                         self.cudaqAliases.add(vname)
 
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
