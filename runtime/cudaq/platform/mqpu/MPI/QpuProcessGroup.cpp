@@ -47,21 +47,6 @@ QpuProcessGroup::QpuProcessGroup(const std::vector<int> &globalRanks)
   int rank = 0;
   HANDLE_MPI_ERROR(mpiInterface->getProcRank(worldComm, &rank));
 
-  {
-    volatile int i = 5;
-    // ENV variable to control whether to wait for attach
-    const char *envVal = std::getenv("CUDAQ_MQPU_WAIT_FOR_ATTACH");
-    if (envVal != nullptr) {
-      i = 0;
-    }
-    char hostname[256];
-    gethostname(hostname, sizeof(hostname));
-    printf("Rank %d PID %d on %s ready for attach\n", rank, getpid(), hostname);
-    fflush(stdout);
-    while (0 == i)
-      sleep(5);
-  }
-
   if (std::find(globalRanks.begin(), globalRanks.end(), rank) ==
       globalRanks.end()) {
     // This rank is not part of this QPU's communicator group, so we can skip
@@ -126,7 +111,8 @@ bool QpuProcessGroup::contains(int globalRank) const {
          globalRanks.end();
 }
 
-void QpuProcessGroup::broadcast(cudaq::sample_result &data, const QpuProcessGroup &rootGroup) {
+void QpuProcessGroup::broadcast(cudaq::sample_result &data,
+                                const QpuProcessGroup &rootGroup) {
   const bool isInGroup = rootGroup.contains(getGlobalMpiRank());
   std::vector<std::size_t> serializedData;
   const auto sourceRank = rootGroup.globalRanks.front();
@@ -139,10 +125,11 @@ void QpuProcessGroup::broadcast(cudaq::sample_result &data, const QpuProcessGrou
                                          INT_64, sourceRank));
   } else {
     int size = 0;
-    HANDLE_MPI_ERROR(mpiInterface->Bcast(worldComm, &size, 1, INT_32, sourceRank));
-    serializedData.resize(size);
     HANDLE_MPI_ERROR(
-        mpiInterface->Bcast(worldComm, serializedData.data(), size, INT_64, sourceRank));
+        mpiInterface->Bcast(worldComm, &size, 1, INT_32, sourceRank));
+    serializedData.resize(size);
+    HANDLE_MPI_ERROR(mpiInterface->Bcast(worldComm, serializedData.data(), size,
+                                         INT_64, sourceRank));
     data.deserialize(serializedData);
   }
 }

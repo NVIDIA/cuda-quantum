@@ -6,20 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "DefaultQPU.h"
 #include "MPI/QpuProcessGroup.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
-#include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfigYaml.h"
-#include "DefaultQPU.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include "helpers/MQPUUtils.h"
-#include "nvqir/CircuitSimulator.h"
-#include "utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
 #include <filesystem>
 #include <fstream>
@@ -216,11 +212,6 @@ private:
       // Check for MPI first, i.e., if we're running with mpirun/mpiexec.
       const auto numMpiRanks =
           cudaq::details::QpuProcessGroup::getNumMpiRanks();
-      std::cout
-          << "Detected " << numMpiRanks
-          << " MPI ranks in the environment. Configuring platform QPUs for "
-             "MPI-based distributed execution."
-          << std::endl;
 
       // Default to using 1 QPU per MPI rank, but allow user to specify
       // otherwise.
@@ -268,10 +259,9 @@ private:
             cudaq::details::QpuProcessGroup::getGlobalMpiRank();
         const auto thisQpuId = localRankToQpuId[thisRank];
         auto *qpuComm = m_qpuProcessGroups[thisQpuId].getCommunicator();
-        std::cout << "Rank " << thisRank << " assigned to QPU ID " << thisQpuId
-                  << " with local ranks: "
-                  << m_qpuProcessGroups[thisQpuId].getLocalMpiRank()
-                  << std::endl;
+        CUDAQ_INFO("Rank {} assigned to QPU ID {} with local ranks: {}",
+                   thisRank, thisQpuId,
+                   m_qpuProcessGroups[thisQpuId].getLocalMpiRank());
         mpiSimulator->setMpiCommunicator(qpuComm->commPtr, qpuComm->commSize);
       } else {
         if (ranksPerQpu > 1) {
