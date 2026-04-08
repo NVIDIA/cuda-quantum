@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "common/CompiledKernel.h"
 #include "common/ThunkInterface.h"
-#include "cudaq_internal/compiler/JIT.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -71,7 +71,6 @@ streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
 [[nodiscard]] void *streamlinedSpecializeModule(
     const std::string &kernelName, mlir::ModuleOp moduleOp,
     const std::vector<void *> &rawArgs,
-    std::optional<cudaq_internal::compiler::JitEngine> &cachedEngine,
-    bool isEntryPoint);
+    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint);
 
 } // namespace cudaq
