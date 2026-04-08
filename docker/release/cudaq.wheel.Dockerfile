@@ -70,9 +70,14 @@ RUN cd /cuda-quantum && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 
 # Export ccache data so CI can extract it for persistence.
+# Tar inside the container to export a single file instead of thousands of
+# small ccache entries (avoids slow per-file gRPC export in BuildKit).
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-out
+FROM wheelbuild AS ccache-tar
+RUN tar cf /ccache.tar -C /root/.ccache .
+
 FROM scratch AS ccache-export
-COPY --from=wheelbuild /root/.ccache /ccache
+COPY --from=ccache-tar /ccache.tar /
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
