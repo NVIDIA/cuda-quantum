@@ -321,96 +321,49 @@ pr-4258
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
-        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+        -   [Python Examples (Jupyter
+            Notebooks)](../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
             .internal}
-            -   [Why dynamics simulations vs. circuit
-                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
-            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Introduction to CUDA-Q Dynamics (Time Dependent
+                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
-            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Superconducting
+                Qubits](../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Spin
+                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Trapped Ion
+                Qubits](../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Section 2 - Simulating open quantum systems with the
-                [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+            -   [Control](../../examples/python/dynamics/control.html){.reference
                 .internal}
-            -   [Exercise 2 - Adding additional jump operators
-                [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
-                .internal}
-            -   [Section 3 - Many qubits coupled to the
-                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
-                .internal}
-        -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
+        -   [C++
+            Examples](../../using/examples/dynamics_examples.html#c-examples){.reference
             .internal}
-            -   [The Landau-Zener
-                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+            -   [Introduction: Single Qubit
+                Dynamics](../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
                 .internal}
-            -   [Section 1 - Implementing time dependent
-                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+            -   [Introduction: Cavity QED (Jaynes-Cummings
+                Model)](../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
-            -   [Section 2 - Implementing custom
-                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+            -   [Superconducting Qubits: Cross-Resonance
+                Gate](../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
-            -   [Section 3 - Heisenberg Model with a time-varying
-                magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+            -   [Spin Qubits: Heisenberg Spin
+                Chain](../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
-            -   [Exercise 1 - Define a time-varying magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+            -   [Control: Driven
+                Qubit](../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
                 .internal}
-            -   [Exercise 2
-                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+            -   [State
+                Batching](../../using/examples/dynamics_examples.html#state-batching){.reference
                 .internal}
-        -   [Superconducting
-            Qubits](../../examples/python/dynamics/superconducting.html){.reference
-            .internal}
-            -   [Cavity
-                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
-                .internal}
-            -   [Cross
-                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
-                .internal}
-            -   [Transmon
-                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
-                .internal}
-        -   [Spin
-            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
-            .internal}
-            -   [Silicon Spin
-                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
-                .internal}
-            -   [Heisenberg
-                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
-                .internal}
-        -   [Trapped Ion
-            Qubits](../../examples/python/dynamics/iontrap.html){.reference
-            .internal}
-            -   [GHZ
-                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
-                .internal}
-        -   [Control](../../examples/python/dynamics/control.html){.reference
-            .internal}
-            -   [Gate
-                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
-                .internal}
-            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
-                .internal}
-            -   [Qubit
-                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
-                .internal}
-            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+            -   [Numerical
+                Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
     -   [Max-Cut with
@@ -3936,7 +3889,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1790023108]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3813306754]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8191,6 +8144,15 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         Get the number of occurrences of a given gate with the given
         number of controls
 
+    *[property]{.pre}[ ]{.w}*[[depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.depth "Permalink to this definition"){.headerlink}
+
+    :   The circuit depth (longest gate chain on any qubit).
+
+    *[property]{.pre}[ ]{.w}*[[depth_2q]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.depth_2q "Permalink to this definition"){.headerlink}
+
+    :   The 2-qubit circuit depth (longest chain of 2-qubit gates on any
+        qubit path).
+
     [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.dump "Permalink to this definition"){.headerlink}
 
     :   
@@ -8200,6 +8162,20 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   
 
         Print a string of the raw resource counts data to the terminal.
+
+    *[property]{.pre}[ ]{.w}*[[num_qubits]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.num_qubits "Permalink to this definition"){.headerlink}
+
+    :   The total number of qubits used in the kernel.
+
+    *[property]{.pre}[ ]{.w}*[[per_qubit_depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.per_qubit_depth "Permalink to this definition"){.headerlink}
+
+    :   Per-qubit circuit depth (all gates), as a dict mapping qubit
+        index to depth.
+
+    *[property]{.pre}[ ]{.w}*[[per_qubit_depth_2q]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.per_qubit_depth_2q "Permalink to this definition"){.headerlink}
+
+    :   Per-qubit 2-qubit depth, as a dict mapping qubit index to 2Q
+        depth.
 
     [[to_dict]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.to_dict "Permalink to this definition"){.headerlink}
 
@@ -8211,6 +8187,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         Return a dictionary of the raw resource counts that are stored
         in [`self`{.code .docutils .literal .notranslate}]{.pre}.
+
+    *[property]{.pre}[ ]{.w}*[[two_qubit_gate_count]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.two_qubit_gate_count "Permalink to this definition"){.headerlink}
+
+    :   The total number of 2-qubit gates.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}
