@@ -1,17 +1,4 @@
 # CUDA-Q Realtime Host API
-
-**Document metadata:**
-
-- **Title**: CUDA-Q Realtime Host API
-- **Shortname**: cudaq-realtime-host-api
-- **Date**: 2026-04-08
-- **Editor**: Chuck Ketcham, NVIDIA, cketcham@nvidia.com
-- **Local Boilerplate**: defaults yes
-- **Abstract**: Host API, wiring, and usage for CUDA-Q realtime dispatch.
-
----
-
-# CUDA-Q Realtime Host API
 This document explains the C host API for realtime dispatch, the RPC wire
 protocol, and complete wiring examples. It is written for external partners
 integrating CUDA-QX decoders with their own transport mechanisms. The API and 
@@ -29,7 +16,7 @@ using RDMA (Remote Direct Memory Access) via ConnectX NICs. In the context of
 quantum error correction, Hololink is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.
 
-**Repository**: [nvidia-holoscan/holoscan-sensor-bridge (nvqlink branch)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink)
+**Repository**: [nvidia-holoscan/holoscan-sensor-bridge (tag 2.6.0-EA2)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/2.6.0-EA2)
 
 Hololink handles:
 
