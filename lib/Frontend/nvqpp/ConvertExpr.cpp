@@ -690,7 +690,8 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
       return pushValue(i1Val);
     }
 
-    // Handle conversion of `std::vector<measure_result>` to `std::vector<bool>`
+    // Handle conversion of measurement collection to std::vector<bool>.
+    // TODO: will become measure_vector::operator std::vector<bool>().
     if (isa<quake::MeasurementsType>(sub.getType()))
       return pushValue(builder.create<quake::DiscriminateOp>(
           loc, cc::StdvecType::get(i1Type), sub));
@@ -2208,6 +2209,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return true;
     }
 
+    // TODO: will be replaced by measure_vector::operator std::int64_t().
     if (funcName == "toInteger" || funcName == "to_integer") {
       auto arg = args[0];
       assert(isa<quake::MeasurementsType>(arg.getType()) &&
@@ -2228,6 +2230,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                            .getResult(0));
     }
 
+    // TODO: will be replaced by measure_vector::operator std::vector<bool>().
     if (funcName == "to_bool_vector") {
       auto arg = args[0];
       assert(isa<quake::MeasurementsType>(arg.getType()) &&

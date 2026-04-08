@@ -21,6 +21,9 @@ bool __nvqpp__MeasureResultBoolConversion(int);
 /// `measure_result` type. This allows us to keep track of when the result is
 /// implicitly cast to a boolean (likely in the case of conditional feedback),
 /// and affect the simulation accordingly.
+///
+/// TODO: A companion `measure_vector` type will replace
+/// `std::vector<measure_result>` for multi-qubit measurements (see spec).
 class measure_result {
 public:
   /// The intrinsic measurement value

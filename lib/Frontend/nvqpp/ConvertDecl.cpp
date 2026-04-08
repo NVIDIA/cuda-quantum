@@ -192,6 +192,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
                               "std::vector element type is not supported");
         return false;
       }
+      // TODO: std::vector<measure_result> will be replaced by
+      // cudaq::measure_vector, recognized directly by class name (see spec).
       if (isa<quake::MeasureType>(ty))
         return pushType(quake::MeasurementsType::getUnsized(ctx));
       return pushType(cc::StdvecType::get(ctx, ty));

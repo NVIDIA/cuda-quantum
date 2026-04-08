@@ -446,7 +446,8 @@ inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
-// Measure all qubits in the range, return vector of 0,1
+// Measure all qubits in the range.
+// TODO: return type will change to cudaq::measure_vector (see spec).
 template <typename QubitRange>
   requires std::ranges::range<QubitRange>
 std::vector<measure_result> mz(QubitRange &q) {
@@ -512,8 +513,7 @@ inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 
-// Cast a measure register to an int64_t.
-// This function is classic control code that may run on a QPU.
+// TODO: will become measure_vector::operator std::int64_t() (see spec).
 inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   std::int64_t ret = 0;
   for (std::size_t i = 0; i < bits.size(); i++) {
@@ -540,7 +540,8 @@ inline std::int64_t to_integer(const std::string &arg) {
   return std::stoull(bitString, nullptr, 2);
 }
 
-// Convert a vector of `measure_result` to a vector of Boolean values.
+// TODO: will be replaced by measure_vector::operator std::vector<bool>() (see
+// spec).
 inline std::vector<bool>
 to_bool_vector(const std::vector<measure_result> &results) {
   std::vector<bool> out;
