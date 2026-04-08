@@ -17,9 +17,11 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/qis/measure_result.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
@@ -109,6 +111,8 @@ std::size_t cudaq::byteSize(Type ty) {
   }
   if (ty.isIntOrFloat())
     return opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
+  if (isa<quake::MeasureType>(ty))
+    return sizeof(cudaq::measure_result);
 
   ty.dump();
   throw std::runtime_error("Expected a complex, floating, or integral type");
@@ -747,6 +751,10 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           list.append(convertResult(module, eleTy, v->data + i));
         return list;
       })
+      .Case([&](quake::MeasureType) -> py::object {
+        auto *mr = reinterpret_cast<cudaq::measure_result *>(data);
+        return py::cast(cudaq::measure_result(mr->value, mr->unique_id));
+      })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
         auto name = ty.getName().str();
         // Handle tuples.
@@ -840,6 +848,19 @@ cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
   return args;
 }
 
+static bool containsMeasureResult(Type ty) {
+  if (isa<quake::MeasureType>(ty) || isa<quake::MeasurementsType>(ty))
+    return true;
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+    if (isa<quake::MeasureType>(vecTy.getElementType()))
+      return true;
+  if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty))
+    for (auto memberTy : structTy.getMembers())
+      if (containsMeasureResult(memberTy))
+        return true;
+  return false;
+}
+
 py::object cudaq::marshal_and_launch_module(const std::string &name,
                                             MlirModule module,
                                             py::args runtimeArgs) {
@@ -847,6 +868,10 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
+  if (retTy && containsMeasureResult(retTy))
+    throw std::runtime_error(
+        "Kernels returning `measure_result` cannot be invoked directly. "
+        "Use them as device-only kernels called from other kernels.");
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
   // FIXME: handle dynamic sized results!

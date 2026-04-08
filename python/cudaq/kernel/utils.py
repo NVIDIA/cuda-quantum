@@ -28,6 +28,7 @@ from cudaq.kernel_types import qubit, qvector, qview
 
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
+measure_result = cudaq_runtime.measure_result
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
@@ -321,6 +322,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                     return quake.RefType.get()
                 if annotation.attr == 'pauli_word':
                     return cc.CharspanType.get()
+                if annotation.attr == 'measure_result':
+                    return quake.MeasureType.get()
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
@@ -382,6 +385,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             eleTypeNode = annotation.slice
             # expected that slice is a Name node
             listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
+            if quake.MeasureType.isinstance(listEleTy):
+                return quake.MeasurementsType.get()
             return cc.StdvecType.get(listEleTy)
 
         if isinstance(annotation,
@@ -539,12 +544,16 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == measure_result:
+        return quake.MeasureType.get(ctx)
     if argType == State:
         return cc.PointerType.get(cc.StateType.get(ctx), ctx)
 
     if get_origin(argType) == list:
         pyEleTy = get_args(argType)
         if len(pyEleTy) == 1:
+            if pyEleTy[0] == measure_result:
+                return quake.MeasurementsType.get(ctx)
             eleTy = mlirTypeFromPyType(pyEleTy[0], ctx)
             return cc.StdvecType.get(eleTy, ctx)
         argType = list
@@ -688,6 +697,12 @@ def mlirTypeToPyType(argType):
         if F64Type.isinstance(ComplexType(argType).element_type):
             return complex
         return np.complex64
+
+    if quake.MeasureType.isinstance(argType):
+        return measure_result
+
+    if quake.MeasurementsType.isinstance(argType):
+        return list[measure_result]
 
     if cc.CharspanType.isinstance(argType):
         return pauli_word

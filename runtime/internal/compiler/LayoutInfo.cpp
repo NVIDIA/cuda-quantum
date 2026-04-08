@@ -10,6 +10,8 @@
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/qis/measure_result.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -146,6 +148,9 @@ LayoutInfoType cudaq_internal::compiler::getResultBufferLayout(ModuleOp mod,
           std::size_t length;
         };
         bufferSize = sizeof(vec);
+      })
+      .Case([&](quake::MeasureType) {
+        bufferSize = sizeof(cudaq::measure_result);
       })
       .Case([&](cudaq::cc::StructType ty) {
         auto [size, offsets] = getTargetLayout(mod, ty);
