@@ -2113,15 +2113,16 @@ struct CallableClosurePattern
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<
-      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
-      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
-      CallIndirectOpPattern, CallOpPattern, CallNoInlineOpPattern,
-      CallVarargOpPattern, CastOpPattern, CondBranchOpPattern,
-      CreateLambdaPattern, FuncConstantPattern, FuncSignaturePattern,
-      FuncToPtrPattern, InstantiateCallablePattern, LoadOpPattern,
-      LogOutputOpPattern, PoisonOpPattern, SelectOpPattern, StoreOpPattern,
-      UndefOpPattern>(typeConverter, ctx);
+  patterns
+      .insert<AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
+              CallableFuncPattern, CallCallableOpPattern,
+              CallIndirectCallableOpPattern, CallIndirectOpPattern,
+              CallOpPattern, CallNoInlineOpPattern, CallVarargOpPattern,
+              CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
+              FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
+              InstantiateCallablePattern, LoadOpPattern, LogOutputOpPattern,
+              PoisonOpPattern, SelectOpPattern, StoreOpPattern, UndefOpPattern>(
+          typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,

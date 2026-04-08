@@ -457,8 +457,8 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
-          quake::VeqType, quake::RefType, quake::StruqType,
-          quake::MeasureType, quake::MeasurementsType>(eleTy))
+          quake::VeqType, quake::RefType, quake::StruqType, quake::MeasureType,
+          quake::MeasurementsType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
