@@ -8,7 +8,10 @@
 #pragma once
 
 #include "common/ThunkInterface.h"
-#include "cudaq_internal/compiler/JIT.h"
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -23,9 +26,48 @@
 namespace mlir {
 class Type;
 class ModuleOp;
+class ExecutionEngine;
 } // namespace mlir
 
 namespace cudaq {
+class ResultInfo;
+} // namespace cudaq
+
+namespace cudaq_internal::compiler {
+cudaq::ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
+                                   mlir::ModuleOp module);
+} // namespace cudaq_internal::compiler
+
+namespace cudaq {
+
+/// JitEngine is a type-erased class that is wrapping an mlir::ExecutionEngine
+/// without introducing any link time dependency on MLIR for the client of the
+/// class. Memory management for of the mlir::ExecutionEngine is handled
+/// internally.
+class JitEngine {
+  using RawFnPtr = void (*)();
+  using LookupFn = std::function<RawFnPtr(const std::string &)>;
+
+  struct Base {
+    LookupFn lookupFn;
+    std::function<void(const std::string &)> runFn;
+  };
+
+public:
+  JitEngine(std::unique_ptr<mlir::ExecutionEngine>);
+
+  void run(const std::string &kernelName) const { impl->runFn(kernelName); }
+
+  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
+    return impl->lookupFn(kernelName);
+  }
+
+  std::size_t getKey() const;
+
+private:
+  class Impl;
+  std::shared_ptr<Base> impl;
+};
 
 /// Pre-computed result metadata, set at build time. Used at execution time
 /// for result buffer allocation and type conversion. Construct via
@@ -65,8 +107,6 @@ public:
 /// after construction.
 class CompiledKernel {
 public:
-  using JitEngine = cudaq_internal::compiler::JitEngine;
-
   // --- Construction ---
 
   CompiledKernel(std::string kernelName, ResultInfo resultInfo);
@@ -110,12 +150,14 @@ public:
   void (*getEntryPoint() const)();
   JitEngine getEngine() const;
 
-private:
-  // Friend functions to attach compiled representations after construction.
-  friend void cudaq_internal::compiler::attachJit(CompiledKernel &ck,
-                                                  JitEngine engine,
-                                                  bool isFullySpecialized);
+  /// @brief Populate the JIT representation of a `CompiledKernel`.
+  ///
+  /// Resolves the entry point and (optionally) `argsCreator` symbols from the
+  /// engine, using the kernel's name and result metadata to determine the
+  /// correct mangled symbol names.
+  void attachJit(JitEngine engine, bool isFullySpecialized);
 
+private:
   // --- Compiled representation formats ---
 
   /// JIT-compiled representation of a kernel, used for local execution.

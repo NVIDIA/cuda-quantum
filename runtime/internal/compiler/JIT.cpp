@@ -50,6 +50,7 @@
 
 using namespace mlir;
 using namespace cudaq_internal::compiler;
+using cudaq::JitEngine;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
@@ -241,12 +242,12 @@ void insertSetupAndCleanupOperations(Operation *module) {
 }
 } // namespace
 
-JitEngine
-cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
-                                             llvm::StringRef convertTo) {
+cudaq::JitEngine
+cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
+                                          llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
-  ScopedTraceWithContext(cudaq::TIMING_JIT, "createQIRJITEngine");
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
@@ -258,7 +259,7 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
-                           "createQIRJITEngine::llvmModuleBuilder");
+                           "createJITEngine::llvmModuleBuilder");
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
@@ -306,14 +307,14 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
     pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
-      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "
+      throw std::runtime_error("[createJITEngine] Lowering to QIR for "
                                "remote emulation failed.\n" +
                                error_msg);
     }
     if (auto mod = dyn_cast<ModuleOp>(module))
       if (failed(cudaq::verifier::checkQIRLLVMIRDialect(mod, profileName)))
         throw std::runtime_error(
-            "[createQIRJITEngine] QIR verification failed.\n");
+            "[createJITEngine] QIR verification failed.\n");
 
     timingScope.stop();
     engine.eraseHandler(handlerId);
@@ -325,8 +326,7 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
-      throw std::runtime_error(
-          "[createQIRJITEngine] Lowering to LLVM IR failed.");
+      throw std::runtime_error("[createJITEngine] Lowering to LLVM IR failed.");
 
     ExecutionEngine::setupTargetTriple(llvmModule.get());
     return llvmModule;
@@ -335,24 +335,6 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
   return JitEngine(std::move(jitOrError.get()));
-}
-
-void cudaq_internal::compiler::attachJit(cudaq::CompiledKernel &ck,
-                                         JitEngine engine,
-                                         bool isFullySpecialized) {
-  const auto &name = ck.name;
-  bool hasResult = ck.resultInfo.hasResult();
-  std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
-  std::string entryName =
-      (hasResult || !isFullySpecialized) ? name + ".thunk" : fullName;
-  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  int64_t (*argsCreator)(const void *, void **) = nullptr;
-  if (!isFullySpecialized)
-    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-        engine.lookupRawNameOrFail(name + ".argsCreator"));
-
-  ck.jitRepr = cudaq::CompiledKernel::JitRepr{std::move(engine), entryPoint,
-                                              argsCreator};
 }
 
 /// Build a `ResultInfo` from an MLIR return type.
@@ -372,7 +354,7 @@ cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(Type resultTy,
   return info;
 }
 
-class JitEngine::Impl : public JitEngine::Base {
+class cudaq::JitEngine::Impl : public cudaq::JitEngine::Base {
 public:
   Impl(std::unique_ptr<ExecutionEngine> jitEngine)
       : jitEngine(std::move(jitEngine)) {
@@ -397,9 +379,9 @@ private:
   std::unique_ptr<ExecutionEngine> jitEngine;
 };
 
-JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
+cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
     : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
 
-std::size_t JitEngine::getKey() const {
+std::size_t cudaq::JitEngine::getKey() const {
   return static_cast<const Impl *>(impl.get())->getKey();
 }

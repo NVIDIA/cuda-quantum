@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include <cstddef>
+#include "common/CompiledKernel.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -22,7 +22,6 @@ class LLJIT;
 } // namespace llvm
 
 namespace mlir {
-class ExecutionEngine;
 class ModuleOp;
 class Type;
 } // namespace mlir
@@ -43,46 +42,9 @@ std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
                     void *args, std::uint64_t argsSize);
 
-/// JitEngine is a type-erased class that is wrapping an mlir::ExecutionEngine
-/// without introducing any link time dependency on MLIR for the client of the
-/// class. Memory management for of the mlir::ExecutionEngine is handled
-/// internally.
-class JitEngine {
-  using RawFnPtr = void (*)();
-  using LookupFn = std::function<RawFnPtr(const std::string &)>;
-
-  struct Base {
-    LookupFn lookupFn;
-    std::function<void(const std::string &)> runFn;
-  };
-
-public:
-  JitEngine(std::unique_ptr<mlir::ExecutionEngine>);
-
-  void run(const std::string &kernelName) const { impl->runFn(kernelName); }
-
-  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
-    return impl->lookupFn(kernelName);
-  }
-
-  std::size_t getKey() const;
-
-private:
-  class Impl;
-  std::shared_ptr<Base> impl;
-};
-
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
-JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                             llvm::StringRef convertTo);
-
-/// @brief Populate the JIT representation of a `CompiledKernel`.
-///
-/// Resolves the entry point and (optionally) `argsCreator` symbols from the
-/// engine, using the kernel's name and result metadata to determine the
-/// correct mangled symbol names.
-void attachJit(cudaq::CompiledKernel &ck, JitEngine engine,
-               bool isFullySpecialized);
+cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
+                                 llvm::StringRef convertTo);
 
 /// @brief Create a `ResultInfo` from MLIR type and module.
 ///
