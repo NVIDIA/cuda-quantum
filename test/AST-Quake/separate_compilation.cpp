@@ -7,10 +7,6 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
-// XFAIL: *
-// TODO: Passing !quake.measurements<5> to a function expecting
-// !quake.measurements<?> requires a size-relaxation cast at the call site.
-// The frontend emits func.call directly without going through convertKernelArgs.
 
 #include "cudaq.h"
 
@@ -22,9 +18,14 @@ __qpu__ uint64_t test_entry_point() {
   return otherKernel(results);
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point._Z16test_entry_pointv() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point._Z16test_entry_pointv() -> i64
+// CHECK-SAME:      attributes {"cudaq-entrypoint", "cudaq-kernel", no_this}
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "results" : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_2:.*]] = call @{{.*otherKernel.*}}(%[[VAL_1]]) : (!cc.stdvec<!quake.measure>) -> i64
-// CHECK:           return %[[VAL_2]] : i64
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "results" : (!quake.veq<5>) -> !quake.measurements<5>
+// CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.measurements<5>) -> !quake.measurements<?>
+// CHECK:           %[[VAL_3:.*]] = call @{{.*otherKernel.*}}(%[[VAL_2]]) : (!quake.measurements<?>) -> i64
+// CHECK:           return %[[VAL_3]] : i64
 // CHECK:         }
+// CHECK:         func.func private @{{.*otherKernel.*}}(!quake.measurements<?>) -> i64
+// clang-format on

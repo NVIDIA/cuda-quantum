@@ -558,9 +558,8 @@ SmallVector<Value> QuakeBridgeVisitor::convertKernelArgs(
     if (auto vMeasTy = dyn_cast<quake::MeasurementsType>(vTy))
       if (auto kMeasTy = dyn_cast<quake::MeasurementsType>(kTy))
         if (vMeasTy.hasSpecifiedSize() && !kMeasTy.hasSpecifiedSize()) {
-          auto cast =
-              builder.create<UnrealizedConversionCastOp>(loc, kMeasTy, v);
-          result.push_back(cast.getResult(0));
+          auto relax = builder.create<quake::RelaxSizeOp>(loc, kMeasTy, v);
+          result.push_back(relax);
           continue;
         }
 
@@ -697,7 +696,6 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
           loc, cc::StdvecType::get(i1Type), sub));
 
     // Handle pointer to `measure_result` (from vector element access)
-    // TODO: Revisit after https://github.com/NVIDIA/cuda-quantum/pull/4208
     if (auto ptrTy = dyn_cast<cc::PointerType>(sub.getType()))
       if (ptrTy.getElementType() == measTy) {
         auto loaded = builder.create<cc::LoadOp>(loc, sub);
@@ -1475,21 +1473,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       }
     }
     TODO_loc(loc, "unhandled std::vector<bool> member function, " + funcName);
-  }
-
-  // Handle `measure_result` member functions
-  if (isInClassInNamespace(func, "measure_result", "cudaq")) {
-    if (func->isOverloadedOperator()) {
-      auto overloadedOperator = func->getOverloadedOperator();
-      if (isAssignmentOperator(overloadedOperator)) {
-        // resultVector[i] = mz(q0)
-        auto rhs = popValue();
-        auto lhs = popValue();
-        popValue();
-        builder.create<cc::StoreOp>(loc, rhs, lhs);
-        return pushValue(lhs);
-      }
-    }
   }
 
   if (isInClassInNamespace(func, "qreg", "cudaq") ||
@@ -3375,7 +3358,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   }
 
   // Handle `measure_result` copy and move constructors
-  // TODO: Revisit after https://github.com/NVIDIA/cuda-quantum/pull/4208
   if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
       isInClassInNamespace(ctor, "measure_result", "cudaq")) {
     assert(x->getNumArgs() == 1);
@@ -3386,6 +3368,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       if (isa<quake::MeasureType>(ptrTy.getElementType()))
         return pushValue(builder.create<cc::LoadOp>(loc, src));
     }
+    llvm_unreachable("unexpected source type for measure_result copy/move");
   }
 
   // TODO: remove this when we can handle ctors more generally.

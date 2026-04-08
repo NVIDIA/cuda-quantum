@@ -25,7 +25,7 @@ struct ak2 {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
 // CHECK:           cc.loop while
 // CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<5>) -> !quake.measurements<5>
-// CHECK:           %[[VAL_2:.*]] = builtin.unrealized_conversion_cast %[[VAL_1]] : !quake.measurements<5> to !quake.measurements<?>
+// CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.measurements<5>) -> !quake.measurements<?>
 // CHECK:           return %[[VAL_2]] : !quake.measurements<?>
 // CHECK:         }
 // CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1

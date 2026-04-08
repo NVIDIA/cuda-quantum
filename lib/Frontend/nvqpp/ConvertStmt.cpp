@@ -389,10 +389,8 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
           if (auto fnResMeasTy =
                   dyn_cast<quake::MeasurementsType>(fnTy.getResult(0)))
             if (measTy != fnResMeasTy)
-              result = builder
-                           .create<UnrealizedConversionCastOp>(loc, fnResMeasTy,
-                                                               result)
-                           .getResult(0);
+              result =
+                  builder.create<quake::RelaxSizeOp>(loc, fnResMeasTy, result);
       }
     }
     if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {

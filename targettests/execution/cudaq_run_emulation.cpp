@@ -38,7 +38,7 @@ __qpu__ bool return_mz() {
   return mz(q);
 }
 
-__qpu__ std::vector<bool> return_vector_mz() {
+__qpu__ auto return_vector_mz() {
   cudaq::qvector q(3);
   x(q);
   return cudaq::to_bool_vector(mz(q));

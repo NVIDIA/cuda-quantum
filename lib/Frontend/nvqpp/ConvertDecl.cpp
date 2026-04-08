@@ -739,14 +739,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   }
 
   if (isa<quake::MeasureType, quake::MeasurementsType>(type)) {
-    if (x->getInit()) {
-      auto initVal = popValue();
-      symbolTable.insert(x->getName(), initVal);
-      if (auto meas = initVal.getDefiningOp<quake::MeasurementInterface>())
-        meas.setRegisterName(builder.getStringAttr(x->getName()));
-      return true;
-    }
-    symbolTable.insert(name, peekValue());
+    assert(x->getInit() && "`measure_result` has no default constructor");
+    auto initVal = popValue();
+    symbolTable.insert(x->getName(), initVal);
+    if (auto meas = initVal.getDefiningOp<quake::MeasurementInterface>())
+      meas.setRegisterName(builder.getStringAttr(x->getName()));
     return true;
   }
   if (auto vecType = dyn_cast<cc::StdvecType>(type)) {

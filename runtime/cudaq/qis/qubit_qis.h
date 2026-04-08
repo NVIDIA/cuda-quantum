@@ -421,20 +421,20 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
-/// @brief Measure an individual qubit, return 0,1 as `bool`
+/// @brief Measure an individual qubit, return as `measure_result`
 inline measure_result mz(qubit &q) {
   return measure_result(
       getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
-/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
+/// @brief Measure an individual qubit in `x` basis, return as `measure_result`
 inline measure_result mx(qubit &q) {
   h(q);
   return measure_result(
       getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
-// Measure an individual qubit in `y` basis, return 0,1 as `bool`
+// Measure an individual qubit in `y` basis, return as `measure_result`
 inline measure_result my(qubit &q) {
   r1(-M_PI_2, q);
   h(q);
