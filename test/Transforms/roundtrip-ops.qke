@@ -71,6 +71,7 @@ func.func @quantum_ops() {
   %15 = quake.mx %4 : (!quake.ref) -> !quake.measure
   %16 = quake.my %5 : (!quake.veq<?>) -> !quake.measurements<?>
   %17 = quake.mz %6 : (!quake.veq<5>) -> !quake.measurements<5>
+  %ms_relaxed = quake.relax_size %17 : (!quake.measurements<5>) -> !quake.measurements<?>
   %z15 = quake.discriminate %15 : (!quake.measure) -> i1
   %z16 = quake.discriminate %16 : (!quake.measurements<?>) -> !cc.stdvec<i1>
 
@@ -218,6 +219,7 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           %[[VAL_23:.*]] = quake.mx %[[VAL_5]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_24:.*]] = quake.my %[[VAL_8]] : (!quake.veq<?>) -> !quake.measurements<?>
 // CHECK:           %[[VAL_25:.*]] = quake.mz %[[VAL_9]] : (!quake.veq<5>) -> !quake.measurements<5>
+// CHECK:           %[[VAL_125:.*]] = quake.relax_size %[[VAL_25]] : (!quake.measurements<5>) -> !quake.measurements<?>
 // CHECK:           %[[VAL_123:.*]] = quake.discriminate %[[VAL_23]] : (!quake.measure) -> i1
 // CHECK:           %[[VAL_124:.*]] = quake.discriminate %[[VAL_24]] : (!quake.measurements<?>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_26:.*]] = cc.undef i32 {wires = true}
@@ -983,6 +985,8 @@ func.func @measurements_ops(%ms4 : !quake.measurements<4>,
   %m_dyn = quake.get_measure %ms4[%idx] : (!quake.measurements<4>, index) -> !quake.measure
   %c2 = arith.constant 2 : i64
   %m_unsized = quake.get_measure %msd[%c2] : (!quake.measurements<?>, i64) -> !quake.measure
+  %n4 = quake.measurements_size %ms4 : (!quake.measurements<4>) -> i64
+  %nd = quake.measurements_size %msd : (!quake.measurements<?>) -> i64
   return
 }
 
@@ -994,5 +998,7 @@ func.func @measurements_ops(%ms4 : !quake.measurements<4>,
 // CHECK:           %[[VAL_4:.*]] = quake.get_measure %[[VAL_0]]{{\[}}%[[VAL_2]]] : (!quake.measurements<4>, index) -> !quake.measure
 // CHECK:           %[[VAL_5:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_6:.*]] = quake.get_measure %[[VAL_1]]{{\[}}%[[VAL_5]]] : (!quake.measurements<?>, i64) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.measurements_size %[[VAL_0]] : (!quake.measurements<4>) -> i64
+// CHECK:           %[[VAL_8:.*]] = quake.measurements_size %[[VAL_1]] : (!quake.measurements<?>) -> i64
 // CHECK:           return
 // CHECK:         }

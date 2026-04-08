@@ -702,8 +702,19 @@ LogicalResult quake::MakeStruqOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::RelaxSizeOp::verify() {
-  if (cast<quake::VeqType>(getType()).hasSpecifiedSize())
-    emitOpError("return veq type must not specify a size");
+  auto inTy = getInputVec().getType();
+  auto resTy = getType();
+  if (auto veqTy = dyn_cast<quake::VeqType>(resTy)) {
+    if (veqTy.hasSpecifiedSize())
+      return emitOpError("result veq type must not specify a size");
+    if (!isa<quake::VeqType>(inTy))
+      return emitOpError("input and result must both be veq types");
+  } else if (auto measTy = dyn_cast<quake::MeasurementsType>(resTy)) {
+    if (measTy.hasSpecifiedSize())
+      return emitOpError("result measurements type must not specify a size");
+    if (!isa<quake::MeasurementsType>(inTy))
+      return emitOpError("input and result must both be measurements types");
+  }
   return success();
 }
 
@@ -754,6 +765,15 @@ void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
   patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
       context);
+}
+
+//===----------------------------------------------------------------------===//
+// MeasurementsSizeOp
+//===----------------------------------------------------------------------===//
+
+void quake::MeasurementsSizeOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardConstantMeasurementsSizePattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

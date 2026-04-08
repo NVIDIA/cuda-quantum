@@ -175,7 +175,14 @@ Compiler::Compiler(cudaq::ServerHelper *serverHelper,
 
     // 5. Apply the target-agnostic finalization passes. This lowers the IR to
     // CFG form.
-    passPipelineConfig += ",jit-finalize-pipeline";
+    // If this is not emulation, and the codegen translation is nop (dumping
+    // CUDA-Q MLIR), then we want to keep device calls as-is, to be submitted to
+    // the server for lowering and execution.
+    passPipelineConfig +=
+        ",jit-finalize-pipeline{lower-device-calls=" +
+        std::string{(codegenTranslation == "nop" && !emulate) ? "false"
+                                                              : "true"} +
+        "}";
 
     // 6. Apply the target-specific low-level passes.
     if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
@@ -539,19 +546,6 @@ Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
       extractQuakeCodeAndContext(kernelName, kernelArgs);
   return lowerQuakeCodePart2(executionContext, kernelName, kernelArgs, rawArgs,
                              m_module, contextPtr.get(), updatedArgs);
-}
-
-std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, void *kernelArgs) {
-  return lowerQuakeCode(executionContext, kernelName, kernelArgs, {});
-}
-
-std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName,
-                         const std::vector<void *> &rawArgs) {
-  return lowerQuakeCode(executionContext, kernelName, nullptr, rawArgs);
 }
 
 std::vector<cudaq::KernelExecution>

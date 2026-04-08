@@ -24,8 +24,10 @@ void RemoteSimulationState::execute() const {
     // potential logging of the result of the API call.
     std::ostringstream remoteLogCout;
     platform.setLogStream(remoteLogCout);
-    platform.with_execution_context(
-        context, [&]() { platform.launchKernel(kernelName, args); });
+    platform.with_execution_context(context, [&]() {
+      [[maybe_unused]] auto r =
+          platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, args);
+    });
     platform.resetLogStream();
     // Cache the info log if any.
     platformExecutionLog = remoteLogCout.str();
@@ -150,8 +152,10 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   context.amplitudeMaps = std::move(amplitudeMaps);
   // Perform the usual pattern set the context,
   // execute and then reset
-  platform.with_execution_context(
-      context, [&]() { platform.launchKernel(kernelName, args); });
+  platform.with_execution_context(context, [&]() {
+    [[maybe_unused]] auto r =
+        platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, args);
+  });
   std::vector<std::complex<double>> amplitudes;
   amplitudes.reserve(basisStates.size());
   for (const auto &basisState : basisStates)

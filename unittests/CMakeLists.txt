@@ -373,6 +373,8 @@ if (CUDA_FOUND)
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES
     dynamics/test_RungeKuttaIntegrator.cpp
+    dynamics/test_CrankNicolsonIntegrator.cpp
+    dynamics/test_MagnusIntegrator.cpp
     dynamics/test_CuDensityMatState.cpp
     dynamics/test_CuDensityMatTimeStepper.cpp
     dynamics/test_CuDensityMatExpectation.cpp
