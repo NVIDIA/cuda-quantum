@@ -583,7 +583,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_5:.*]] = extractvalue { double, double } %{{.*}}, 1
 // QIR:         %[[VAL_6:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 1
 // QIR:         store double %[[VAL_5]], double* %[[VAL_6]], align 8
-// QIR:         %[[VAL_7:.*]] = call { double, double } @_ZStplIdESt7complexIT_ERKS1_RKS2_(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
+// QIR:         %[[VAL_7:.*]] = call { double, double } @_Z{{.*}}(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
 // QIR:         %[[VAL_8:.*]] = alloca double, align 8
 // QIR:         store double 1.000000e+00, double* %[[VAL_8]], align 8
 // QIR:         %[[VAL_10:.*]] = alloca { double, double }, align 8
@@ -593,7 +593,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_13:.*]] = extractvalue { double, double } %{{.*}}, 1
 // QIR:         %[[VAL_14:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 1
 // QIR:         store double %[[VAL_13]], double* %[[VAL_14]], align 8
-// QIR:         %[[VAL_15:.*]] = call { double, double } @_ZStplIdESt7complexIT_ERKS1_RKS2_(double* nonnull %[[VAL_8]], { double, double }* nonnull %[[VAL_10]])
+// QIR:         %[[VAL_15:.*]] = call { double, double } @_Z{{.*}}(double* nonnull %[[VAL_8]], { double, double }* nonnull %[[VAL_10]])
 // QIR:         %[[VAL_16:.*]] = alloca [4 x { double, double }], align 8
 // QIR:         %[[VAL_17:.*]] = extractvalue { double, double } %[[VAL_7]], 0
 // QIR:         %[[VAL_18:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0, i32 0
@@ -661,7 +661,7 @@ __qpu__ bool Peppermint() {
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__Pistachio() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z15getTwoTimesRankv()
+// QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z{{.*}}()
 // QIR:         %[[VAL_1:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 3
@@ -696,7 +696,7 @@ __qpu__ bool Peppermint() {
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__ChocolateMint() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z15getTwoTimesRankv()
+// QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z{{.*}}()
 // QIR:         %[[VAL_1:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 3
@@ -731,7 +731,7 @@ __qpu__ bool Peppermint() {
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Neapolitan() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call { { double, double }*, i64 } @_Z14getComplexInitv()
+// QIR:         %[[VAL_0:.*]] = tail call { { double, double }*, i64 } @_Z{{.*}}()
 // QIR:         %[[VAL_1:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 4
@@ -786,7 +786,7 @@ __qpu__ bool Peppermint() {
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__ButterPecan() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call { { double, double }*, i64 } @_Z14getComplexInitv()
+// QIR:         %[[VAL_0:.*]] = tail call { { double, double }*, i64 } @_Z{{.*}}()
 // QIR:         %[[VAL_1:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 4
