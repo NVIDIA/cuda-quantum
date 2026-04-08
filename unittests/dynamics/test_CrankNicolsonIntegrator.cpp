@@ -10,6 +10,7 @@
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/integrator.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "test_Mocks.h"
 #include <cmath>
 #include <gtest/gtest.h>

@@ -11,8 +11,9 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "common/FmtCore.h"
-#include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include "cudaq/cudaq_mpi.h"
+#include <dlfcn.h>
 
 namespace {
 // Hook to query this shared lib file location at runtime.

@@ -9,9 +9,8 @@
 #pragma once
 
 #include "common/SimulationState.h"
-#include "cudaq.h"
+#include "cudaq/builder/kernel_builder.h"
 #include "cudaq/utils/cudaq_utils.h"
-
 namespace cudaq {
 /// Implementation of `SimulationState` for remote simulator backends.
 // The state is represented by a quantum kernel.
