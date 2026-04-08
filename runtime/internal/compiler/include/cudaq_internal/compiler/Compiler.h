@@ -82,17 +82,17 @@ class Compiler {
   std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
   extractQuakeCodeAndContext(const std::string &kernelName, void *data);
 
+  mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
+                                           mlir::ModuleOp module,
+                                           mlir::MLIRContext *,
+                                           mlir::func::FuncOp);
+
 public:
   Compiler(cudaq::ServerHelper *,
            const std::map<std::string, std::string> &backendConfig,
            cudaq::config::TargetConfig &config,
            const cudaq::noise_model *noiseModel, bool emulate);
   ~Compiler();
-
-  mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
-                                           mlir::ModuleOp module,
-                                           mlir::MLIRContext *,
-                                           mlir::func::FuncOp);
 
   /// @brief Extract the Quake representation for the given kernel name and
   /// lower it to the code format required for the specific backend. The
@@ -101,15 +101,6 @@ public:
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, void *kernelArgs,
-                 const std::vector<void *> &rawArgs);
-
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, void *kernelArgs);
-
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName,
                  const std::vector<void *> &rawArgs);
 
   // Here the quake code is passed to us (via a ModuleOp), so unlike the other

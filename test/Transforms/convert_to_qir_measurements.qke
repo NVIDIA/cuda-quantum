@@ -168,3 +168,13 @@ func.func @multi_qubit_mz_ref_and_veq() attributes {"cudaq-kernel", "cudaq-entry
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
+
+func.func @relax_size_measurements(%ms : !quake.measurements<4>) -> !quake.measurements<?> attributes {"cudaq-kernel"} {
+  %relaxed = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<?>
+  return %relaxed : !quake.measurements<?>
+}
+
+// CHECK-LABEL:   func.func @relax_size_measurements(
+// CHECK-SAME:                                       %[[VAL_0:.*]]: !cc.ptr<!llvm.struct<"Array", opaque>>) -> !cc.ptr<!llvm.struct<"Array", opaque>> attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           return %[[VAL_0]] : !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         }

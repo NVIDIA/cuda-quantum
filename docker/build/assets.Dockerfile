@@ -363,9 +363,14 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
 # Export ccache data so CI can extract it for persistence.
+# Tar inside the container to export a single file instead of thousands of
+# small ccache entries (avoids slow per-file gRPC export in BuildKit).
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+FROM cpp_build AS ccache-tar
+RUN tar cf /ccache.tar -C /root/.ccache .
+
 FROM scratch AS ccache-export
-COPY --from=cpp_build /root/.ccache /ccache
+COPY --from=ccache-tar /ccache.tar /
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse

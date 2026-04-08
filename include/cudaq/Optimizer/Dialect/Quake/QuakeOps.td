@@ -261,21 +261,21 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
-  let summary = "Relax the constant size on a !veq to be unknown.";
+  let summary = "Relax the constant size on a sized type to be unknown.";
   let description = [{
-    At times, the IR needs to forget the length of an SSA-value of type
-    `!quake.veq<N>` and demote it to type `!quake.veq<?>` where the size is
-    said to be unknown. This demotion is required to preserve a valid,
-    strongly-typed IR.
+    Demotes a sized `!quake.veq<N>` to `!quake.veq<?>`, or a sized
+    `!quake.measurements<N>` to `!quake.measurements<?>`. Required to preserve
+    strongly-typed IR at function call/return boundaries.
 
-    Example:
+    Examples:
     ```mlir
       %uqv = quake.relax_size %qv : (!quake.veq<4>) -> !quake.veq<?>
+      %ums = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<?>
     ```
   }];
 
-  let arguments = (ins VeqType:$inputVec);
-  let results = (outs VeqType);
+  let arguments = (ins AnyTypeOf<[VeqType, MeasurementsType]>:$inputVec);
+  let results = (outs AnyTypeOf<[VeqType, MeasurementsType]>);
 
   let assemblyFormat = [{
     $inputVec `:` functional-type(operands, results) attr-dict
@@ -372,6 +372,34 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
 
   let assemblyFormat = [{
     $veq `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasCanonicalizer = 1;
+}
+
+def quake_MeasurementsSizeOp : QuakeOp<"measurements_size", [Pure]> {
+  let summary = "Return the size of a measurements collection.";
+  let description = [{
+    Returns the number of individual measurements in a `!quake.measurements<N>`
+    collection. If the collection has a static size, the static size is returned
+    (effectively as a constant). If the size is dynamic, the value will be an
+    SSA-value.
+
+    Examples:
+    ```mlir
+      %ms = quake.mz %qubits : (!quake.veq<4>) -> !quake.measurements<4>
+      %n = quake.measurements_size %ms : (!quake.measurements<4>) -> i64
+      
+      %ms2 = quake.mz %dyn_veq : (!quake.veq<?>) -> !quake.measurements<?>
+      %n2 = quake.measurements_size %ms2 : (!quake.measurements<?>) -> i64
+    ```
+  }];
+
+  let arguments = (ins MeasurementsType:$measurements);
+  let results = (outs AnySignlessIntegerOrIndex:$size);
+
+  let assemblyFormat = [{
+    $measurements `:` functional-type(operands, results) attr-dict
   }];
 
   let hasCanonicalizer = 1;

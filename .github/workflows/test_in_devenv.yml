@@ -134,6 +134,8 @@ jobs:
             --target test-mpi
 
       - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
         run: |
           mkdir -p /tmp/ccache-export
           docker buildx build \
@@ -144,7 +146,12 @@ jobs:
             --build-arg mpi="${{ inputs.mpi }}" \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
-            2>/dev/null || true
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
@@ -329,13 +336,15 @@ jobs:
             fi
 
       - name: Extract ccache from container
+        timeout-minutes: 15
+        continue-on-error: true
         run: |
           # The Python build runs inside a container (via run-in-docker),
           # so ccache data is in the most recently stopped container.
           mkdir -p /tmp/ccache-export/ccache
           container=$(docker ps -a -q --filter ancestor=dev_env:local --latest)
           if [ -n "$container" ]; then
-            docker cp "$container:/root/.ccache/." /tmp/ccache-export/ccache/ 2>/dev/null || true
+            docker cp "$container:/root/.ccache/." /tmp/ccache-export/ccache/ 2>/dev/null
           fi
 
       - name: Push ccache to GHCR

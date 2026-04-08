@@ -24,11 +24,13 @@ class LLJIT;
 namespace mlir {
 class ExecutionEngine;
 class ModuleOp;
+class Type;
 } // namespace mlir
 
 namespace cudaq {
 class CompiledKernel;
-}
+class ResultInfo;
+} // namespace cudaq
 
 namespace cudaq_internal::compiler {
 
@@ -61,14 +63,19 @@ private:
 JitEngine createQIRJITEngine(mlir::ModuleOp &moduleOp,
                              llvm::StringRef convertTo);
 
-/// @brief Create a CompiledKernel from JIT-compiled code.
+/// @brief Populate the JIT representation of a `CompiledKernel`.
 ///
-/// `hasResult` and `isFullySpecialized` affect how the mangled kernel name
-/// and the arguments buffer passed to the compiled kernel are constructed.
-/// See `CompiledKernel::getEntryPoint` for more details.
-cudaq::CompiledKernel createCompiledKernel(JitEngine engine,
-                                           std::string kernelName,
-                                           bool hasResult,
-                                           bool isFullySpecialized);
+/// Resolves the entry point and (optionally) `argsCreator` symbols from the
+/// engine, using the kernel's name and result metadata to determine the
+/// correct mangled symbol names.
+void attachJit(cudaq::CompiledKernel &ck, JitEngine engine,
+               bool isFullySpecialized);
+
+/// @brief Create a `ResultInfo` from MLIR type and module.
+///
+/// When `resultType` is null or `isEntryPoint` is false, returns an empty
+/// `ResultInfo`.
+cudaq::ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
+                                   mlir::ModuleOp module);
 
 } // namespace cudaq_internal::compiler
