@@ -224,10 +224,18 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // before the cache lookup so the cached path uses the correct value.
     bool isFullySpecialized = true;
     FunctionType fromFuncTy = funcOp.getFunctionType();
-    for (auto ty : fromFuncTy.getInputs())
-      if (!isa<cudaq::cc::CallableType>(ty)) {
-        isFullySpecialized = false;
-        break;
+    auto closureArgs = rawArgs;
+    // Specialization for direct calls will take care of partial specialization
+    // separately
+    if (isEntryPoint)
+      for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
+        // Special handling in case the arguments were already synthesized
+        if (funcOp.getArgument(i).getUses().empty())
+          continue;
+        if (!isa<cudaq::cc::CallableType>(ty)) {
+          isFullySpecialized = false;
+          closureArgs[i] = nullptr;
+        }
       }
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
@@ -255,13 +263,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     if (enablePythonCodegenDump)
       module.dump();
 
-    auto closureArgs = rawArgs;
-    // Specialization for direct calls will take care of partial specialization
-    // separately
-    if (isEntryPoint)
-      for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs()))
-        if (!isa<cudaq::cc::CallableType>(ty))
-          closureArgs[i] = nullptr;
     specializeKernel(name, module, closureArgs, resultTy,
                      enablePythonCodegenDump, isEntryPoint, isFullySpecialized);
 
