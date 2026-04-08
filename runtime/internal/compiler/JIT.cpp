@@ -9,7 +9,6 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "common/CompiledKernel.h"
 #include "common/Environment.h"
-#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -20,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -338,8 +338,8 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
 }
 
 void cudaq_internal::compiler::attachJit(cudaq::CompiledKernel &ck,
-                                          JitEngine engine,
-                                          bool isFullySpecialized) {
+                                         JitEngine engine,
+                                         bool isFullySpecialized) {
   const auto &name = ck.name;
   bool hasResult = ck.resultInfo.hasResult();
   std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
@@ -352,15 +352,15 @@ void cudaq_internal::compiler::attachJit(cudaq::CompiledKernel &ck,
         engine.lookupRawNameOrFail(name + ".argsCreator"));
 
   ck.jitRepr = cudaq::CompiledKernel::JitRepr{std::move(engine), entryPoint,
-                                               argsCreator};
+                                              argsCreator};
 }
 
 /// Build a `ResultInfo` from an MLIR return type.
 /// \p resultTy may be null (no return value). When \p isEntryPoint is false,
 /// the result is not marshaled — returns an empty `ResultInfo`.
-cudaq::ResultInfo
-cudaq_internal::compiler::createResultInfo(Type resultTy, bool isEntryPoint,
-                                           ModuleOp module) {
+cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(Type resultTy,
+                                                             bool isEntryPoint,
+                                                             ModuleOp module) {
   cudaq::ResultInfo info;
   if (!resultTy || !isEntryPoint)
     return info;

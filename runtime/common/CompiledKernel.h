@@ -32,10 +32,8 @@ namespace cudaq {
 /// `createResultInfo` (implemented in `cudaq-mlir-runtime`).
 class ResultInfo {
   // Friend factory function, to be used for construction.
-  friend cudaq::ResultInfo
-  cudaq_internal::compiler::createResultInfo(mlir::Type resultType,
-                                             bool isEntryPoint,
-                                             mlir::ModuleOp module);
+  friend cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(
+      mlir::Type resultType, bool isEntryPoint, mlir::ModuleOp module);
   friend class CompiledKernel;
 
   /// Opaque pointer to the `mlir::Type` of the result. Obtained via

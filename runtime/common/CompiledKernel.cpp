@@ -68,6 +68,4 @@ void (*cudaq::CompiledKernel::getEntryPoint() const)() {
   return getJit().entryPoint;
 }
 
-JitEngine cudaq::CompiledKernel::getEngine() const {
-  return getJit().engine;
-}
+JitEngine cudaq::CompiledKernel::getEngine() const { return getJit().engine; }
