@@ -199,7 +199,12 @@ jobs:
             --build-arg cuda_version=${{ inputs.cuda_version }} \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
-            2>/dev/null
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push
