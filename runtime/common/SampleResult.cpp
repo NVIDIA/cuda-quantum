@@ -207,10 +207,13 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
     std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
 
-    std::optional<double> expectationValue = deserializeExpectationValue(data, stride);
+    std::optional<double> expectationValue =
+        deserializeExpectationValue(data, stride);
     std::vector<std::string> sequentialData;
     deserializeSequentialData(data, stride, sequentialData);
-    sampleResults.insert({name, ExecutionResult{localCounts, name, expectationValue, sequentialData}});
+    sampleResults.insert(
+        {name,
+         ExecutionResult{localCounts, name, expectationValue, sequentialData}});
 
     if (stride >= data.size()) {
       totalShots = std::accumulate(

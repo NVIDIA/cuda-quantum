@@ -27,6 +27,7 @@ class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<cudaq::details::QpuProcessGroup> m_qpuProcessGroups;
   bool m_broadcastKernelResults = true;
   std::optional<int> m_numQPUs;
+
 public:
   ~MultiQPUQuantumPlatform() {
     // Make sure that we clean up the client QPUs first before cleaning up the
@@ -79,13 +80,15 @@ public:
   }
 
 protected:
-  bool filterExecutionContext(const cudaq::ExecutionContext &ctx) const override {
+  bool
+  filterExecutionContext(const cudaq::ExecutionContext &ctx) const override {
     const auto qpuId = ctx.qpuId;
     if (!m_qpuProcessGroups.empty()) {
       const int myRank = cudaq::details::QpuProcessGroup::getGlobalMpiRank();
-      const auto& qpuProcessGroup = m_qpuProcessGroups[qpuId];
+      const auto &qpuProcessGroup = m_qpuProcessGroups[qpuId];
       if (!qpuProcessGroup.contains(myRank)) {
-        CUDAQ_INFO("Filtering out execution context '{}' on rank {} since it's not part of the assigned QPU process group for QPU ID {}",
+        CUDAQ_INFO("Filtering out execution context '{}' on rank {} since it's "
+                   "not part of the assigned QPU process group for QPU ID {}",
                    ctx.name, myRank, qpuId);
         return false;
       }

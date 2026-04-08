@@ -193,10 +193,11 @@ public:
 
   /// Enqueue an asynchronous sampling task.
   virtual std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
-                                              KernelExecutionTask &t);
+                                                      KernelExecutionTask &t);
 
   /// @brief Enqueue a general task that runs on the specified QPU
-  virtual void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
+  virtual void enqueueAsyncTask(const std::size_t qpu_id,
+                                std::function<void()> &f);
 
   /// @brief Launch a VQE operation on the platform.
   void launchVQE(const std::string kernelName, const void *kernelArgs,
@@ -237,7 +238,7 @@ public:
   virtual void onRandomSeedSet(std::size_t seed);
 
   /// @brief Called by the runtime to notify that MPI is about to be finalized.
-  virtual void tearDownBeforeMPIFinalize() {};
+  virtual void tearDownBeforeMPIFinalize(){};
 
 protected:
   friend class cudaq::LinkedLibraryHolder;

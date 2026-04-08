@@ -196,7 +196,7 @@ private:
 #endif
   /// @brief Has cuTensorNet MPI been initialized?
   bool m_cutnMpiInitialized = false;
-  static inline void* mpiCommPtr = nullptr;
+  static inline void *mpiCommPtr = nullptr;
   static inline int mpiCommSizeBytes = 0;
 };
 } // namespace nvqir

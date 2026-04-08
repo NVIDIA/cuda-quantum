@@ -413,7 +413,7 @@ static int mpi_CommGroup(const cudaqDistributedCommunicator_t *comm,
   if (comm == nullptr || out_group == nullptr) {
     return -1; // Invalid arguments
   }
-  MPI_Group* group = new MPI_Group;
+  MPI_Group *group = new MPI_Group;
   int res = MPI_Comm_group(unpackMpiCommunicator(comm), group);
   if (res != MPI_SUCCESS) {
     delete group;
@@ -430,8 +430,8 @@ static int mpi_GroupIncl(const cudaqDistributedGroup_t parentGroup,
   if (parentGroup == nullptr || newGroup == nullptr || ranks == nullptr) {
     return -1; // Invalid arguments
   }
-  MPI_Group* new_group = new MPI_Group;
-  MPI_Group* orig_group = (MPI_Group*)parentGroup;
+  MPI_Group *new_group = new MPI_Group;
+  MPI_Group *orig_group = (MPI_Group *)parentGroup;
   int res = MPI_Group_incl(*orig_group, numRanks, ranks, new_group);
   if (res != MPI_SUCCESS) {
     delete new_group;
@@ -514,8 +514,7 @@ cudaqDistributedInterface_t *getDistributedInterface() {
       mpi_GroupIncl,
       mpi_CommCreateGroup,
       mpi_GroupFree,
-      mpi_CommFree
-  };
+      mpi_CommFree};
   return &cudaqDistributedInterface;
 }
 }
