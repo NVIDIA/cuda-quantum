@@ -288,6 +288,8 @@ private:
       return;
     }
   }
+
+  void tearDownBeforeMPIFinalize() override { m_qpuProcessGroups.clear(); }
 };
 } // namespace
 

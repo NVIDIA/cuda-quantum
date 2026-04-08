@@ -238,15 +238,8 @@ public:
   /// set.
   virtual void onRandomSeedSet(std::size_t seed);
 
-  /// @brief Turn off any custom logging stream.
-  void resetLogStream();
-
-  /// @brief Get the stream for info logging.
-  // Returns null if no specific stream was set.
-  std::ostream *getLogStream();
-
-  /// @brief Set the info logging stream.
-  void setLogStream(std::ostream &logStream);
+  /// @brief Called by the runtime to notify that MPI is about to be finalized.
+  virtual void tearDownBeforeMPIFinalize() {};
 
 protected:
   friend class cudaq::LinkedLibraryHolder;
@@ -274,11 +267,6 @@ protected:
 
   /// Name of the platform.
   std::string platformName;
-
-  /// Optional logging stream for platform output.
-  // If set, the platform and its QPUs will print info log to this stream.
-  // Otherwise, default output stream (std::cout) will be used.
-  std::ostream *platformLogStream = nullptr;
 
 private:
   // Helper to validate QPU Id

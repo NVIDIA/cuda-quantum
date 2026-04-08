@@ -21,6 +21,7 @@ class QpuProcessGroup {
 
 public:
   QpuProcessGroup(const std::vector<int> &globalRanks);
+  ~QpuProcessGroup();
   int getLocalMpiRank() const;
   bool contains(int globalRank) const;
   static void broadcast(cudaq::sample_result &data,

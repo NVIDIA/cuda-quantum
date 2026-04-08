@@ -74,22 +74,17 @@ QpuProcessGroup::QpuProcessGroup(const std::vector<int> &globalRanks)
   // global ranks for this QPU.
   cudaqDistributedGroup_t world_group;
   HANDLE_MPI_ERROR(mpiInterface->CommGroup(worldComm, &world_group));
-  std::cout << "Rank " << rank
-            << " Creating QpuProcessGroup with global ranks: ";
-  for (int rank : globalRanks) {
-    std::cout << rank << " ";
-  }
-  std::cout << std::endl;
-  int num_ranks = 0;
-  HANDLE_MPI_ERROR(mpiInterface->getNumRanks(worldComm, &num_ranks));
-  std::cout << "Rank " << rank
-            << " Total number of ranks in world communicator: " << num_ranks
-            << std::endl;
-
   HANDLE_MPI_ERROR(mpiInterface->GroupIncl(world_group, globalRanks.size(),
                                            globalRanks.data(), &qpuGroup));
   HANDLE_MPI_ERROR(
       mpiInterface->CommCreateGroup(worldComm, qpuGroup, 0, &qpuComm));
+}
+
+QpuProcessGroup::~QpuProcessGroup() {
+  if (qpuComm) {
+    HANDLE_MPI_ERROR(mpiInterface->CommFree(&qpuComm));
+    HANDLE_MPI_ERROR(mpiInterface->GroupFree(&qpuGroup));
+  }
 }
 
 int QpuProcessGroup::getLocalMpiRank() const {

@@ -466,7 +466,6 @@ static int mpi_GroupFree(cudaqDistributedGroup_t *group) {
     return -1; // Invalid arguments
   }
   int res = MPI_Group_free((MPI_Group *)group);
-  delete group;
   return res;
 }
 
@@ -475,9 +474,9 @@ static int mpi_CommFree(cudaqDistributedCommunicator_t **comm) {
   if (comm == nullptr || *comm == nullptr) {
     return -1; // Invalid arguments
   }
-  int res = MPI_Comm_free((MPI_Comm *)&(*comm)->commPtr);
-  delete *comm;
-  *comm = nullptr;
+
+  MPI_Comm mpiComm = unpackMpiCommunicator(*comm);
+  int res = MPI_Comm_free(&mpiComm);
   return res;
 }
 
