@@ -83,6 +83,8 @@ if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.4")
     mpi_support.cpp
     CuDensityMatTimeStepper.cpp
     RungeKuttaIntegrator.cpp
+    CrankNicolsonIntegrator.cpp
+    MagnusIntegrator.cpp
     CuDensityMatExpectation.cpp
     CuDensityMatEvolution.cpp
     CuDensityMatState.cpp

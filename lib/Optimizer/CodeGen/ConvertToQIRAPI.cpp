@@ -895,6 +895,20 @@ struct VeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
   }
 };
 
+struct MeasurementsSizeOpRewrite
+    : public OpConversionPattern<quake::MeasurementsSizeOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MeasurementsSizeOp msize, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::CallOp>(msize, TypeRange{msize.getType()},
+                                              cudaq::opt::QIRArrayGetSize,
+                                              adaptor.getOperands());
+    return success();
+  }
+};
+
 struct MakeStruqOpRewrite : public OpConversionPattern<quake::MakeStruqOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -2086,9 +2100,11 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMeasureOpRewrite,
-                  GetMemberOpRewrite, MakeStruqOpRewrite, ReturnOpPattern,
-                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns
+      .insert<ApplyOpTrap, CallByRefOpRewrite, GetMeasureOpRewrite,
+              GetMemberOpRewrite, MakeStruqOpRewrite, MeasurementsSizeOpRewrite,
+              ReturnOpPattern, RelaxSizeOpErase, VeqSizeOpRewrite>(
+          typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//

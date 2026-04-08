@@ -66,6 +66,12 @@ struct ExternallyProvidedSimGenerator {
 };
 static std::unique_ptr<ExternallyProvidedSimGenerator> externSimGenerator;
 
+// Callback for lazy simulator initialization. When set, NVQIR calls this
+// before falling back to dlsym when no simulator has been configured yet.
+// Used by the Python LinkedLibraryHolder to defer target initialization
+// until the simulator is actually needed.
+static void (*simulatorInitCallback)() = nullptr;
+
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   simulator = sim;
@@ -76,6 +82,10 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   }
   externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
   CUDAQ_INFO("[runtime] Setting the circuit simulator to {}.", sim->name());
+}
+
+void __nvqir__setSimulatorInitCallback(void (*callback)()) {
+  simulatorInitCallback = callback;
 }
 }
 
@@ -94,6 +104,20 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   if (externSimGenerator) {
     simulator = (*externSimGenerator)();
     return simulator;
+  }
+
+  // Lazy init: let the caller (e.g., Python LinkedLibraryHolder) load
+  // and configure the default simulator on demand.
+  if (simulatorInitCallback) {
+    auto callback = simulatorInitCallback;
+    simulatorInitCallback = nullptr;
+    callback();
+    if (simulator)
+      return simulator;
+    if (externSimGenerator) {
+      simulator = (*externSimGenerator)();
+      return simulator;
+    }
   }
 
   simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
@@ -712,6 +736,8 @@ void __quantum__qis__trap(std::int64_t code) {
     CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
   } else if (code == 1) {
     CUDAQ_ERROR("unsupported return type from entry-point kernel");
+  } else if (code == 2) {
+    CUDAQ_ERROR("illegal execution of unreachable code");
   } else {
     CUDAQ_ERROR("code generation failure for target");
   }

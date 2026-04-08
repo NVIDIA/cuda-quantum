@@ -133,23 +133,21 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("{}: Launch kernel named '{}' remote QPU {} (simulator = {})",
-               Derived::class_name, name, this->qpu_id, this->m_simName);
-    ::launchKernelImpl(cudaq::getExecutionContext(), this->m_client,
-                       this->m_simName, name,
-                       make_degenerate_kernel_type(kernelFunc), args,
-                       voidStarSize, resultOffset, rawArgs);
-    // TODO: Python should probably support return values too.
+    if (kernelFunc) {
+      CUDAQ_INFO("{}: Launch kernel named '{}' remote QPU {} (simulator = {})",
+                 Derived::class_name, name, this->qpu_id, this->m_simName);
+      ::launchKernelImpl(cudaq::getExecutionContext(), this->m_client,
+                         this->m_simName, name,
+                         make_degenerate_kernel_type(kernelFunc), args,
+                         voidStarSize, resultOffset, rawArgs);
+    } else {
+      CUDAQ_INFO("{}: Streamline launch kernel named '{}' remote QPU {} "
+                 "(simulator = {})",
+                 Derived::class_name, name, this->qpu_id, this->m_simName);
+      ::launchKernelStreamlineImpl(cudaq::getExecutionContext(), this->m_client,
+                                   this->m_simName, name, rawArgs);
+    }
     return {};
-  }
-
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("{}: Streamline launch kernel named '{}' remote QPU {} "
-               "(simulator = {})",
-               Derived::class_name, name, this->qpu_id, this->m_simName);
-    ::launchKernelStreamlineImpl(cudaq::getExecutionContext(), this->m_client,
-                                 this->m_simName, name, rawArgs);
   }
 };
 
