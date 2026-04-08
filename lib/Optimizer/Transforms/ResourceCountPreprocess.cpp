@@ -91,18 +91,27 @@ struct ResourceCountPreprocessPass
 
     std::vector<std::size_t> controlIndices, targetIndices;
     bool allResolved = true;
-    for (auto ctrl : opi.getControls()) {
-      if (auto idx = resolveQubitIndex(ctrl))
-        controlIndices.push_back(*idx);
-      else
-        allResolved = false;
-    }
-    for (auto tgt : opi.getTargets()) {
-      if (auto idx = resolveQubitIndex(tgt))
-        targetIndices.push_back(*idx);
-      else
-        allResolved = false;
-    }
+
+    // Resolve qubit indices. Operands may be ref (single qubit) or veq
+    // (e.g. from ConcatOp when Python passes a list of controls).
+    auto resolveOperands = [&](auto operands, std::vector<std::size_t> &out) {
+      for (auto val : operands) {
+        if (auto concat = val.template getDefiningOp<quake::ConcatOp>()) {
+          for (auto operand : concat.getTargets()) {
+            if (auto idx = resolveQubitIndex(operand))
+              out.push_back(*idx);
+            else
+              allResolved = false;
+          }
+        } else if (auto idx = resolveQubitIndex(val)) {
+          out.push_back(*idx);
+        } else {
+          allResolved = false;
+        }
+      }
+    };
+    resolveOperands(opi.getControls(), controlIndices);
+    resolveOperands(opi.getTargets(), targetIndices);
 
     // If not all qubit indices resolved, use operand counts for the gate
     // classification but skip depth tracking (indices are unreliable).
