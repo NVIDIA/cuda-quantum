@@ -98,12 +98,18 @@ protected:
   }
 
 private:
+  static std::string getTargetName(const std::string &description) {
+    // Target name is the first one in the target config string
+    // or the whole string if this is the only config.
+    return description.find(";") != std::string::npos
+               ? cudaq::split(description, ';').front()
+               : description;
+  }
+
   static std::string getQpuType(const std::string &description) {
     // Target name is the first one in the target config string
     // or the whole string if this is the only config.
-    const auto targetName = description.find(";") != std::string::npos
-                                ? cudaq::split(description, ';').front()
-                                : description;
+    const auto targetName = getTargetName(description);
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string targetConfigFileName = targetName + std::string(".yml");
@@ -167,19 +173,16 @@ private:
     return formatted;
   }
 
-  static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
-    auto mpiPlugin = cudaq::mpi::getMpiPlugin();
-    if (!mpiPlugin)
-      throw std::runtime_error("Failed to retrieve MPI plugin");
-    cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
-    if (!comm)
-      throw std::runtime_error("Invalid MPI distributed plugin encountered");
-    return comm;
-  }
-
   void setTargetBackend(const std::string &description) override {
-    std::cout << "Configuring MultiQPU platform with target description: "
-              << description << std::endl;
+    // nvidia-mqpu-mps, nvidia-mqpu, nvidia-mqpu-fp64 are thread-based multi-QPU
+    // platforms and do not require any special handling here. since
+    static const std::vector<std::string> threadBasedMultiQpuTargets = {
+        "nvidia-mqpu-mps", "nvidia-mqpu", "nvidia-mqpu-fp64"};
+    if (std::find(threadBasedMultiQpuTargets.begin(),
+                  threadBasedMultiQpuTargets.end(),
+                  getTargetName(description)) !=
+        threadBasedMultiQpuTargets.end())
+      return;
     const auto qpuSubType = getQpuType(description);
     if (!qpuSubType.empty()) {
       if (!cudaq::registry::isRegistered<cudaq::QPU>(qpuSubType))
