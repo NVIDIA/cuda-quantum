@@ -228,12 +228,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // Specialization for direct calls will take care of partial specialization
     // separately
     bool isLocalSimulator =
-      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
-    if (isEntryPoint && isLocalSimulator)
+        !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
+    // Special handling in case the arguments were already synthesized
+    if (isEntryPoint && isLocalSimulator && closureArgs.size() == fromFuncTy.getNumInputs())
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
-        // Special handling in case the arguments were already synthesized
-        if (funcOp.getArgument(i).getUses().empty())
-          continue;
         if (!isa<cudaq::cc::CallableType>(ty)) {
           isFullySpecialized = false;
           closureArgs[i] = nullptr;

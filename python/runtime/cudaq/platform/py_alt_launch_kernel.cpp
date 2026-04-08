@@ -1005,8 +1005,9 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   SmallVector<StringRef> substRefs{substs.begin(), substs.end()};
 
   PassManager pm(context);
-  pm.addPass(cudaq::opt::createArgumentSynthesisPass(kernelRefs, substRefs,
-                                                     /*changeSemantics=*/false));
+  pm.addPass(
+      cudaq::opt::createArgumentSynthesisPass(kernelRefs, substRefs,
+                                              /*changeSemantics=*/false));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
 
