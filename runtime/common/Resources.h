@@ -89,8 +89,15 @@ public:
   /// @brief Returns a dictionary mapping gate names to counts
   std::unordered_map<std::string, std::size_t> gateCounts() const;
 
-  /// @brief Return the total number of qubits used.
+  /// @brief Return the total number of qubits allocated.
   std::size_t getNumQubits() const;
+
+  /// @brief Set the total number of qubits allocated.
+  void setNumQubits(std::size_t n);
+
+  /// @brief Return the number of qubits touched by at least one quantum
+  /// operation.
+  std::size_t getNumUsedQubits() const;
 
   /// @brief Return the circuit depth (longest gate chain on any qubit).
   std::size_t getCircuitDepth() const;

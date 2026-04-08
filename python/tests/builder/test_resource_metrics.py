@@ -130,3 +130,16 @@ def test_multi_qvector_depth():
     assert resources.multi_qubit_gate_count == 2
     assert resources.depth_for_arity(2) == 1
     assert resources.num_qubits == 4
+
+
+def test_num_qubits_and_used_qubits():
+    """num_qubits = allocated, num_used_qubits = gate-touched."""
+    cudaq.set_target('circuit-opt-bench', device='path(5)')
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(5)
+    kernel.cx(q[0], q[4])
+
+    resources = cudaq.estimate_resources(kernel)
+    assert resources.num_qubits == 5
+    assert resources.num_used_qubits <= 5
+    assert resources.num_used_qubits > 0

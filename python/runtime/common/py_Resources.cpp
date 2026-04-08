@@ -59,8 +59,13 @@ This includes all gate counts.)#")
           "to_dict", [](Resources &self) { return self.gateCounts(); },
           "Return a dictionary of the raw resource counts that are stored in "
           "`self`.\n")
-      .def_property_readonly("num_qubits", &Resources::getNumQubits,
-                             "The total number of qubits used in the kernel.\n")
+      .def_property_readonly(
+          "num_qubits", &Resources::getNumQubits,
+          "The total number of qubits allocated in the kernel.\n")
+      .def_property_readonly(
+          "num_used_qubits", &Resources::getNumUsedQubits,
+          "The number of qubits touched by at least one quantum "
+          "operation.\n")
       .def_property_readonly(
           "depth", &Resources::getCircuitDepth,
           "The circuit depth (longest gate chain on any qubit).\n")

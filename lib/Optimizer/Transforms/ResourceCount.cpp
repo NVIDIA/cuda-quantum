@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/Passes.h"
@@ -28,5 +29,17 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   pm.addPass(createCanonicalizerPass());
   if (failed(pm.run(module)))
     return failure();
+
+  // Count allocated qubits from the IR.
+  std::size_t allocated = 0;
+  module.walk([&](quake::AllocaOp alloc) {
+    if (isa<quake::RefType>(alloc.getType()))
+      allocated++;
+    else if (auto veqTy = dyn_cast<quake::VeqType>(alloc.getType()))
+      if (veqTy.hasSpecifiedSize())
+        allocated += veqTy.getSize();
+  });
+  counts.setNumQubits(allocated);
+
   return counts;
 }

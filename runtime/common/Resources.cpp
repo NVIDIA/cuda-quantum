@@ -102,6 +102,10 @@ void Resources::appendInstruction(const std::string &name,
 
 std::size_t Resources::getNumQubits() const { return numQubits; }
 
+void Resources::setNumQubits(std::size_t n) { numQubits = n; }
+
+std::size_t Resources::getNumUsedQubits() const { return perQubitDepth.size(); }
+
 std::size_t Resources::getCircuitDepth() const {
   std::size_t maxDepth = 0;
   for (auto &[qubit, depth] : perQubitDepth)
