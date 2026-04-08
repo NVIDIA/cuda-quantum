@@ -60,7 +60,8 @@ void initCuDensityMatCommLib() {
   }
 }
 
-class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
+class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double>,
+                        public nvqir::MpiCircuitSimulator {
 private:
   static constexpr int INVALID_CUDA_DEVICE = -1;
 
@@ -123,6 +124,12 @@ public:
 
   /// The destructor
   virtual ~CuDensityMatSim() {}
+
+  bool setMpiCommunicator(void *comm, int commSizeBytes) override {
+    return cudaq::dynamics::Context::getCurrentContext()->setMpiCommunicator(
+        comm, commSizeBytes);
+  }
+
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
   }

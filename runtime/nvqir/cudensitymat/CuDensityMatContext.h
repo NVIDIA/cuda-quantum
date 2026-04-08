@@ -59,6 +59,9 @@ public:
   /// Always returns 0 if not in distributed mode
   int getRank() const;
 
+  /// @brief Set the MPI communicator for distributed execution.
+  bool setMpiCommunicator(void *comm, int commSizeBytes);
+
 private:
   /// @brief Construct a new Context object for a specific device.
   /// @param deviceId ID of the CUDA device.
