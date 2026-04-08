@@ -898,9 +898,8 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
-  auto &platform = cudaq::get_platform();
   bool isLocalSimulator =
-      platform.is_simulator() && !cudaq::is_remote_platform();
+      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
   auto args =
       marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc,
                                           /*specialize=*/!isLocalSimulator);

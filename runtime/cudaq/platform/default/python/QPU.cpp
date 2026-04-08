@@ -227,7 +227,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     auto closureArgs = rawArgs;
     // Specialization for direct calls will take care of partial specialization
     // separately
-    if (isEntryPoint)
+    bool isLocalSimulator =
+      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
+    if (isEntryPoint && isLocalSimulator)
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         // Special handling in case the arguments were already synthesized
         if (funcOp.getArgument(i).getUses().empty())
