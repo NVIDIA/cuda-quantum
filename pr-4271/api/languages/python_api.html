@@ -2562,7 +2562,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">864201749</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">758240461</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>
@@ -6137,6 +6137,18 @@ This includes all gate counts.</p>
 <p>Get the number of occurrences of a given gate with the given number of controls</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Resources.depth">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">depth</span></span><a class="headerlink" href="#cudaq.Resources.depth" title="Permalink to this definition">¶</a></dt>
+<dd><p>The circuit depth (longest gate chain on any qubit).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Resources.depth_2q">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">depth_2q</span></span><a class="headerlink" href="#cudaq.Resources.depth_2q" title="Permalink to this definition">¶</a></dt>
+<dd><p>The 2-qubit circuit depth (longest chain of 2-qubit gates on any qubit path).</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.Resources.dump">
 <span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Resources.dump" title="Permalink to this definition">¶</a></dt>
@@ -6148,6 +6160,24 @@ This includes all gate counts.</p>
 <p>Print a string of the raw resource counts data to the terminal.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Resources.num_qubits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_qubits</span></span><a class="headerlink" href="#cudaq.Resources.num_qubits" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total number of qubits used in the kernel.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Resources.per_qubit_depth">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">per_qubit_depth</span></span><a class="headerlink" href="#cudaq.Resources.per_qubit_depth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Per-qubit circuit depth (all gates), as a dict mapping qubit index to depth.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Resources.per_qubit_depth_2q">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">per_qubit_depth_2q</span></span><a class="headerlink" href="#cudaq.Resources.per_qubit_depth_2q" title="Permalink to this definition">¶</a></dt>
+<dd><p>Per-qubit 2-qubit depth, as a dict mapping qubit index to 2Q depth.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.Resources.to_dict">
 <span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Resources.to_dict" title="Permalink to this definition">¶</a></dt>
@@ -6157,6 +6187,12 @@ This includes all gate counts.</p>
 <dd></dd></dl>
 
 <p>Return a dictionary of the raw resource counts that are stored in <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Resources.two_qubit_gate_count">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">two_qubit_gate_count</span></span><a class="headerlink" href="#cudaq.Resources.two_qubit_gate_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total number of 2-qubit gates.</p>
 </dd></dl>
 
 </dd></dl>
