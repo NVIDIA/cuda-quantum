@@ -458,7 +458,7 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
           quake::VeqType, quake::RefType, quake::StruqType,
-          quake::MeasurementsType>(eleTy))
+          quake::MeasureType, quake::MeasurementsType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -471,8 +471,8 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
           cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
-          quake::StruqType, quake::MeasurementsType, LLVM::LLVMStructType>(
-          eleTy))
+          quake::StruqType, quake::MeasureType, quake::MeasurementsType,
+          LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }

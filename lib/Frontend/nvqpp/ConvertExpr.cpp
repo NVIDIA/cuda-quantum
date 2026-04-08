@@ -3360,18 +3360,15 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
   }
 
-  // Handle `measure_result` copy and move constructors
+  // Handle `measure_result` copy and move constructors.
+  // The source is always a `!quake.measure` SSA value
   if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
       isInClassInNamespace(ctor, "measure_result", "cudaq")) {
     assert(x->getNumArgs() == 1);
     auto src = popValue();
-    if (isa<quake::MeasureType>(src.getType()))
-      return pushValue(src);
-    if (auto ptrTy = dyn_cast<cc::PointerType>(src.getType())) {
-      if (isa<quake::MeasureType>(ptrTy.getElementType()))
-        return pushValue(builder.create<cc::LoadOp>(loc, src));
-    }
-    llvm_unreachable("unexpected source type for measure_result copy/move");
+    assert(isa<quake::MeasureType>(src.getType()) &&
+           "`measure_result` copy/move source must be `!quake.measure`");
+    return pushValue(src);
   }
 
   // TODO: remove this when we can handle ctors more generally.

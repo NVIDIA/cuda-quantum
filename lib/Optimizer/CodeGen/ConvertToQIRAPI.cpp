@@ -2004,9 +2004,6 @@ using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
 using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
-using ComputePtrOpPattern = OpInterfacePattern<cudaq::cc::ComputePtrOp>;
-using StdvecInitOpPattern = OpInterfacePattern<cudaq::cc::StdvecInitOp>;
-using StdvecDataOpPattern = OpInterfacePattern<cudaq::cc::StdvecDataOp>;
 
 struct InstantiateCallablePattern
     : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
@@ -2025,33 +2022,22 @@ struct InstantiateCallablePattern
   }
 };
 
-struct StoreOpPattern : public OpConversionPattern<cudaq::cc::StoreOp> {
-  using Base = OpConversionPattern;
+template <typename OP>
+struct ZeroResultOpPattern : public OpConversionPattern<OP> {
+  using Base = OpConversionPattern<OP>;
   using Base::Base;
-  using Base::getTypeConverter;
 
   LogicalResult
-  matchAndRewrite(cudaq::cc::StoreOp op, OpAdaptor adaptor,
+  matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<cudaq::cc::StoreOp>(
-        op, TypeRange{}, adaptor.getOperands(), op->getAttrs());
+    rewriter.replaceOpWithNewOp<OP>(op, TypeRange{}, adaptor.getOperands(),
+                                    op->getAttrs());
     return success();
   }
 };
 
-// Not an OpInterfacePattern: LogOutputOp has no result type, so op.getType()
-// is not available. Same zero-result pattern as StoreOpPattern above.
-struct LogOutputOpPattern : public OpConversionPattern<cudaq::cc::LogOutputOp> {
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::LogOutputOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<cudaq::cc::LogOutputOp>(
-        op, TypeRange{}, adaptor.getOperands(), op->getAttrs());
-    return success();
-  }
-};
+using StoreOpPattern = ZeroResultOpPattern<cudaq::cc::StoreOp>;
+using LogOutputOpPattern = ZeroResultOpPattern<cudaq::cc::LogOutputOp>;
 
 template <typename CALLOP>
 struct CallOpInterfacePattern : public OpConversionPattern<CALLOP> {
@@ -2131,12 +2117,11 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
       AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
       CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
       CallIndirectOpPattern, CallOpPattern, CallNoInlineOpPattern,
-      CallVarargOpPattern, CastOpPattern, ComputePtrOpPattern,
-      CondBranchOpPattern, CreateLambdaPattern, FuncConstantPattern,
-      FuncSignaturePattern, FuncToPtrPattern, InstantiateCallablePattern,
-      LoadOpPattern, LogOutputOpPattern, PoisonOpPattern, SelectOpPattern,
-      StdvecInitOpPattern, StdvecDataOpPattern, StoreOpPattern, UndefOpPattern>(
-      typeConverter, ctx);
+      CallVarargOpPattern, CastOpPattern, CondBranchOpPattern,
+      CreateLambdaPattern, FuncConstantPattern, FuncSignaturePattern,
+      FuncToPtrPattern, InstantiateCallablePattern, LoadOpPattern,
+      LogOutputOpPattern, PoisonOpPattern, SelectOpPattern, StoreOpPattern,
+      UndefOpPattern>(typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
