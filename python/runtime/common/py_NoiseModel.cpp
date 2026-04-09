@@ -132,6 +132,7 @@ void bindNoiseModel(nanobind::module_ &mod) {
             auto key = nanobind::hash(krausT);
             std::function<kraus_channel(const std::vector<double> &)> lambda =
                 [krausT](const std::vector<double> &p) -> kraus_channel {
+              nanobind::gil_scoped_acquire acquire;
               return nanobind::cast<kraus_channel>(krausT(p));
             };
             self.register_channel(key, lambda);
