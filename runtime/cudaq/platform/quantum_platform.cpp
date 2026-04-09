@@ -33,6 +33,12 @@ static quantum_platform *platform;
 static constexpr std::string_view GetQuantumPlatformSymbol =
     "getQuantumPlatform";
 
+static void (*platformInitCallback)() = nullptr;
+
+extern "C" void setQuantumPlatformInitCallback(void (*callback)()) {
+  platformInitCallback = callback;
+}
+
 void setQuantumPlatformInternal(quantum_platform *p) {
   info("external caller setting the platform.");
   platform = p;
@@ -43,6 +49,15 @@ void setQuantumPlatformInternal(quantum_platform *p) {
 quantum_platform *getQuantumPlatformInternal() {
   if (platform)
     return platform;
+
+  if (platformInitCallback) {
+    auto callback = platformInitCallback;
+    platformInitCallback = nullptr;
+    callback();
+    if (platform)
+      return platform;
+  }
+
   platform =
       getUniquePluginInstance<quantum_platform>(GetQuantumPlatformSymbol);
   return platform;
@@ -208,14 +223,6 @@ KernelThunkResultType quantum_platform::launchKernel(
                            resultOffset, rawArgs);
 }
 
-void quantum_platform::launchKernel(const std::string &kernelName,
-                                    const std::vector<void *> &rawArgs,
-                                    std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  auto &qpu = platformQPUs[qpu_id];
-  qpu->launchKernel(kernelName, rawArgs);
-}
-
 KernelThunkResultType quantum_platform::launchModule(
     const std::string &kernelName, mlir::ModuleOp module,
     const std::vector<void *> &rawArgs, std::size_t qpu_id) {
@@ -302,7 +309,8 @@ cudaq::streamlinedLaunchKernel(const char *kernelName,
   auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
   std::size_t qpu_id = cudaq::getCurrentQpuId();
-  platform.launchKernel(kernName, rawArgs, qpu_id);
+  [[maybe_unused]] auto r =
+      platform.launchKernel(kernName, nullptr, nullptr, 0, 0, rawArgs, qpu_id);
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
@@ -353,7 +361,8 @@ cudaq::hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
   std::size_t qpu_id = cudaq::getCurrentQpuId();
   if (platform.is_remote(qpu_id)) {
     // This path should never call a kernel that returns results.
-    platform.launchKernel(kernName, rawArgs, qpu_id);
+    [[maybe_unused]] auto r = platform.launchKernel(kernName, nullptr, nullptr,
+                                                    0, 0, rawArgs, qpu_id);
     return {};
   }
   return platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,

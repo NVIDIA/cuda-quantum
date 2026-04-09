@@ -239,25 +239,6 @@ public:
     serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-    auto executionContext = cudaq::getExecutionContext();
-
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    // Get the Quake code, lowered according to config file.
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    auto codes = compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
-    completeLaunchKernel(kernelName, std::move(codes));
-  }
-
   /// @brief Launch the kernel. Extract the Quake code and lower to the
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
@@ -285,8 +266,9 @@ public:
                       noiseModel, emulate);
     auto codes =
         rawArgs.empty()
-            ? compiler.lowerQuakeCode(executionContext, kernelName, args)
-            : compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
+            ? compiler.lowerQuakeCode(executionContext, kernelName, args, {})
+            : compiler.lowerQuakeCode(executionContext, kernelName, nullptr,
+                                      rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
@@ -314,11 +296,10 @@ public:
     return {};
   }
 
-  void *specializeModule(
-      const std::string &kernelName, mlir::ModuleOp module,
-      const std::vector<void *> &rawArgs,
-      std::optional<cudaq_internal::compiler::JitEngine> &cachedEngine,
-      bool isEntryPoint) override {
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     throw std::runtime_error(
         "NYI: Remote rest execution via Python/C++ interop.");

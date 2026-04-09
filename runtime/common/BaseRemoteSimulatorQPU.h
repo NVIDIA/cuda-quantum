@@ -120,19 +120,12 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
-    [[maybe_unused]] auto dynamicResult = launchKernelImpl(
-        name, nullptr, nullptr, 0, 0, &rawArgs, mlir::ModuleOp{});
-  }
-
   KernelThunkResultType
   launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
                std::uint64_t voidStarSize, std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
     return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
-                            nullptr, mlir::ModuleOp{});
+                            kernelFunc ? nullptr : &rawArgs, mlir::ModuleOp{});
   }
 
   KernelThunkResultType
@@ -150,11 +143,10 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  void *specializeModule(
-      const std::string &kernelName, mlir::ModuleOp module,
-      const std::vector<void *> &rawArgs,
-      std::optional<cudaq_internal::compiler::JitEngine> &cachedEngine,
-      bool isEntryPoint) override {
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs,
+                         std::optional<cudaq::JitEngine> &cachedEngine,
+                         bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(
@@ -197,8 +189,8 @@ public:
                                      0, rawArgs);
       }();
 
-      auto jit = cudaq_internal::compiler::createQIRJITEngine(moduleOp,
-                                                              "qir-adaptive");
+      auto jit =
+          cudaq_internal::compiler::createJITEngine(moduleOp, "qir-adaptive");
 
       ExecutionContext ctx(executionContextPtr->name,
                            executionContextPtr->shots,

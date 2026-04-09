@@ -24,13 +24,6 @@ public:
   virtual bool isEmulated() override { return false; }
 
   /// @brief Launch a kernel with the given arguments
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error(
-        "Arbitrary kernel execution is not supported on this target.");
-  }
-
-  /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
   KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,

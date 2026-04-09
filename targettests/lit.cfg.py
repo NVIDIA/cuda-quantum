@@ -67,8 +67,7 @@ llvm_config.with_system_environment(
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
 
-# Generate test cases
-
+# Generate phase-folding tests
 gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'phase-folding')
 os.makedirs(gen_tests_dir, exist_ok=True) # mode=0o777
 def generate_phasefolding_test(filename, seed, min_block_length, max_block_length, rz_weight):
