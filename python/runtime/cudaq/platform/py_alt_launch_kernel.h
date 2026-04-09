@@ -60,7 +60,6 @@ KernelThunkResultType clean_launch_module(const std::string &kernelName,
 /// other targets. `marshal_and_launch_module` derives this from the platform.
 OpaqueArguments
 marshal_arguments_for_module_launch(mlir::ModuleOp mod, py::args runtimeArgs,
-                                    mlir::func::FuncOp kernelFunc,
-                                    bool specialize = true);
+                                    mlir::func::FuncOp kernelFunc);
 
 } // namespace cudaq

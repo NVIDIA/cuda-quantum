@@ -878,16 +878,16 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
 
 cudaq::OpaqueArguments
 cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
-                                           func::FuncOp kernelFunc,
-                                           bool specialize) {
+                                           func::FuncOp kernelFunc) {
   // Convert python arguments to opaque form.
   cudaq::OpaqueArguments args;
+  bool isLocalSimulator = !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
   cudaq::packArgs(
       args, runtimeArgs, kernelFunc,
       [&](cudaq::OpaqueArguments &args, py::object &pyArg, unsigned pos) {
         return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
       },
-      /*startingArgIdx=*/0, specialize);
+      /*startingArgIdx=*/0, !isLocalSimulator);
   return args;
 }
 
@@ -898,11 +898,8 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
-  bool isLocalSimulator =
-      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
   auto args =
-      marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc,
-                                          /*specialize=*/!isLocalSimulator);
+      marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
 
   if (!retTy)
