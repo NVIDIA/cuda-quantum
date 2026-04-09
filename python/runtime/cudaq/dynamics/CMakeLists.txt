@@ -35,7 +35,6 @@ target_link_libraries(nvqir_dynamics_bindings PRIVATE
     cudaq-logger
     nvqir-dynamics
     fmt::fmt-header-only
-    cudaq-mlir-runtime-headers
 )
 
 if(APPLE)
