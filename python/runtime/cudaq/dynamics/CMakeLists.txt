@@ -56,6 +56,7 @@ else()
   )
 endif()
 
+# Set output directory for ctest-based python test invocation, which uses cudaq python from the build directory.
 set_target_properties(nvqir_dynamics_bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/python/cudaq/dynamics)
 install(TARGETS nvqir_dynamics_bindings DESTINATION cudaq/dynamics)
 
