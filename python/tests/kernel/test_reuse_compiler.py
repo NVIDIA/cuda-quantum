@@ -158,3 +158,59 @@ def test_reuse_of_builder():
     with cudaq.cudaq_runtime.reuse_compiler_artifacts():
         cudaq.sample(kernel, 5, shots_count=1)
         cudaq.sample(kernel, 5, shots_count=1)
+
+
+def test_reuse_with_result_no_args():
+    @cudaq.kernel
+    def flip() -> bool:
+        q = cudaq.qubit()
+        x(q)
+        return mz(q)
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        result = flip()
+        assert result == True
+        result = flip()  # cached kernel
+        assert result == True
+
+
+def test_reuse_with_result_and_args():
+    @cudaq.kernel
+    def count_ones(n: int) -> int:
+        qubits = cudaq.qvector(n)
+        for qubit in qubits:
+            x(qubit)
+        result = 0
+        for i in range(n):
+            if mz(qubits[i]):
+                result += 1
+        return result
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        result = count_ones(3)
+        assert result == 3
+        result = count_ones(3)  # cached kernel, same arg
+        assert result == 3
+        result = count_ones(4)  # cached kernel, different arg
+        assert result == 4
+
+
+def test_reuse_via_run_with_result():
+    @cudaq.kernel
+    def count_ones(n: int) -> int:
+        qubits = cudaq.qvector(n)
+        for qubit in qubits:
+            x(qubit)
+        result = 0
+        for i in range(n):
+            if mz(qubits[i]):
+                result += 1
+        return result
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        results = cudaq.run(count_ones, 3, shots_count=2)
+        assert len(results) == 2
+        assert all(r == 3 for r in results)
+        results = cudaq.run(count_ones, 4, shots_count=2)  # cached kernel
+        assert len(results) == 2
+        assert all(r == 4 for r in results)

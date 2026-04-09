@@ -15,13 +15,19 @@
 #include "cudaq/host_config.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/kernel_utils.h"
-#include "cudaq_internal/compiler/LayoutInfo.h"
 #include <cstdint>
 
 extern "C" {
 void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
                                              std::size_t);
 }
+
+namespace cudaq_internal::compiler {
+
+using LayoutInfoType = std::pair<std::size_t, std::vector<std::size_t>>;
+
+LayoutInfoType getLayoutInfo(const std::string &name, void *opt_module);
+} // namespace cudaq_internal::compiler
 
 namespace cudaq {
 
@@ -132,7 +138,7 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   // Launch the kernel in the appropriate context.
   std::string kernelName{details::getKernelName(kernel)};
   cudaq_internal::compiler::LayoutInfoType layoutInfo =
-      cudaq_internal::compiler::getLayoutInfo(kernelName);
+      cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
         auto *runKernel =
@@ -186,7 +192,7 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
   platform.set_noise(&noise_model);
   std::string kernelName{details::getKernelName(kernel)};
   cudaq_internal::compiler::LayoutInfoType layoutInfo =
-      cudaq_internal::compiler::getLayoutInfo(kernelName);
+      cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
         auto *runKernel =
@@ -248,7 +254,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #else
         const std::string kernelName{details::getKernelName(kernel)};
         cudaq_internal::compiler::LayoutInfoType layoutInfo =
-            cudaq_internal::compiler::getLayoutInfo(kernelName);
+            cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               auto *runKernel =
@@ -321,7 +327,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         platform.set_noise(&noise_model);
         const std::string kernelName{details::getKernelName(kernel)};
         cudaq_internal::compiler::LayoutInfoType layoutInfo =
-            cudaq_internal::compiler::getLayoutInfo(kernelName);
+            cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               auto *runKernel =

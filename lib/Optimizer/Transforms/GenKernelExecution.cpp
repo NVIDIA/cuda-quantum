@@ -1081,10 +1081,6 @@ public:
           // Generate the function that computes the return offset.
           cudaq::opt::marshal::genReturnOffsetFunction(
               loc, builder, thunkFuncTy, thunkStructTy, classNameStr);
-          // Generate the function that returns the size of the return value.
-          cudaq::opt::marshal::genResultSizeFunction(
-              loc, builder, thunkFuncTy, thunkStructTy, classNameStr);
-
           // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
           thunk = genThunkFunction(loc, builder, classNameStr, thunkStructTy,
                                    thunkFuncTy, funcOp);

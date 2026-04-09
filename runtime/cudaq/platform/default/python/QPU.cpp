@@ -8,6 +8,7 @@
 
 #include "QPU.h"
 #include "common/ArgumentWrapper.h"
+#include "common/CompiledKernel.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -30,6 +31,7 @@
 
 using namespace mlir;
 using namespace cudaq_internal::compiler;
+using cudaq::JitEngine;
 
 static void specializeKernel(const std::string &name, ModuleOp module,
                              const std::vector<void *> &rawArgs,
@@ -171,20 +173,21 @@ static std::optional<JitEngine>
 alreadyBuiltJITCode(const std::string &name,
                     const std::vector<void *> &rawArgs) {
   auto *currentExecCtx = cudaq::getExecutionContext();
-  if (!currentExecCtx || !currentExecCtx->allowJitEngineCaching)
-    return std::nullopt;
-
-  auto jit = currentExecCtx->jitEng;
-  if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
-    CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
-               "re-run the previous job, discarding any changes to the kernel, "
-               "arguments or launch configuration.",
-               currentExecCtx->kernelName);
-
-    cudaq::compiler_artifact::checkArtifactReuse(name, jit.value());
+  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
+    auto jit = currentExecCtx->jitEng;
+    if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
+      CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
+                 "re-run the previous job, discarding any changes to the "
+                 "kernel, arguments or launch configuration.",
+                 currentExecCtx->kernelName);
+      cudaq::compiler_artifact::checkArtifactReuse(name, jit.value());
+    }
+    return jit;
   }
 
-  return jit;
+  // Fallback for callers without an ExecutionContext (e.g. direct kernel
+  // calls): look up the artifact saved by a previous compilation.
+  return cudaq::compiler_artifact::getArtifactJit(name);
 }
 
 /// In a sample launch context, the (`JIT` compiled) execution engine may be
@@ -218,6 +221,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     Type resultTy = cudaq::runtime::getReturnType(funcOp);
 
     const bool hasResult = !!resultTy;
+    auto resultInfo = createResultInfo(resultTy, isEntryPoint, module);
 
     // Determine whether the kernel needs argument packing (argsCreator) by
     // checking if any non-callable arguments are present. This must be done
@@ -241,8 +245,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       }
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      return createCompiledKernel(*jit, name, hasResult, isFullySpecialized,
-                                  isEntryPoint);
+      cudaq::CompiledKernel ck(name, resultInfo);
+      ck.attachJit(*jit, isFullySpecialized);
+      return ck;
     }
 
     // 1. Check that this call is sane.
@@ -269,12 +274,13 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
                      enablePythonCodegenDump, isEntryPoint, isFullySpecialized);
 
     // 4. Lower to QIR and JIT compile.
-    auto jit = createQIRJITEngine(module, "qir:");
+    auto jit = createJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
     cudaq::compiler_artifact::saveArtifact(name, jit);
 
-    return createCompiledKernel(jit, name, hasResult, isFullySpecialized,
-                                isEntryPoint);
+    cudaq::CompiledKernel ck(name, resultInfo);
+    ck.attachJit(jit, isFullySpecialized);
+    return ck;
   }
 };
 } // namespace

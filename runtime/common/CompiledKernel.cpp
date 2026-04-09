@@ -7,55 +7,99 @@
  ******************************************************************************/
 
 #include "CompiledKernel.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include <cstring>
+#include <memory>
+#include <stdexcept>
 
 using namespace cudaq_internal::compiler;
 
-cudaq::CompiledKernel::CompiledKernel(
-    JitEngine engine, std::string kernelName, void (*entryPoint)(),
-    ArgsCreatorFunc argsCreator, ReturnOffsetFunc returnOffset,
-    ResultSizeFunc resultSize, HybridLaunchFunc hybridLauncher, bool hasResult)
-    : engine(engine), name(std::move(kernelName)), entryPoint(entryPoint),
-      argsCreator(argsCreator), returnOffset(returnOffset),
-      resultSize(resultSize), hybridLauncher(hybridLauncher),
-      hasResult(hasResult) {}
+cudaq::CompiledKernel::CompiledKernel(std::string kernelName,
+                                      ResultInfo resultInfo)
+    : name(std::move(kernelName)), resultInfo(std::move(resultInfo)) {}
+
+const cudaq::CompiledKernel::JitRepr &cudaq::CompiledKernel::getJit() const {
+  if (!jitRepr)
+    throw std::runtime_error("CompiledKernel has no JIT representation.");
+  return *jitRepr;
+}
+
+const cudaq::CompiledKernel::MlirRepr &cudaq::CompiledKernel::getMlir() const {
+  if (!mlirRepr)
+    throw std::runtime_error("CompiledKernel has no MLIR representation.");
+  return *mlirRepr;
+}
 
 cudaq::KernelThunkResultType
 cudaq::CompiledKernel::execute(const std::vector<void *> &rawArgs) const {
-  auto kernelThunk = reinterpret_cast<KernelThunkType>(getEntryPoint());
-  // If there's a result, we must go through the hybrid launcher
-  if (hasResult) {
-    // TODO: Is this performance hack really buying us anything?
-    if (!argsCreator) {
-      void *buff = const_cast<void *>(rawArgs.back());
-      return kernelThunk(buff, /*client_server=*/false);
+  auto funcPtr = getEntryPoint();
+  if (!isFullySpecialized()) {
+    // Pack args at runtime via argsCreator, then call the thunk.
+    void *buff = nullptr;
+    jitRepr->argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
+    reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
+        buff, /*client_server=*/false);
+    // If the kernel has a result, copy it from the packed buffer into
+    // rawArgs.back() (where the caller expects to find it).
+    if (resultInfo.hasResult()) {
+      auto offset = jitRepr->returnOffset();
+      std::memcpy(rawArgs.back(), static_cast<char *>(buff) + offset,
+                  resultInfo.bufferSize);
     }
-
-    void *buff = nullptr;
-    auto buffSize =
-        argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
-    auto resSize = resultSize();
-    auto offset = returnOffset();
-    hybridLauncher(name.c_str(), kernelThunk, buff, buffSize, offset, rawArgs);
-    memcpy(rawArgs.back(), (char *)buff + offset, resSize);
     std::free(buff);
     return {nullptr, 0};
   }
-
-  // No return value, build the argument message buffer and launch the thunk
-  if (argsCreator) {
-    void *buff = nullptr;
-    argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
-    kernelThunk(buff, false);
-    std::free(buff);
-    return {nullptr, 0};
+  if (resultInfo.hasResult()) {
+    // Fully specialized with result: rawArgs.back() is the pre-allocated
+    // result buffer; pass it directly to the thunk.
+    void *buff = const_cast<void *>(rawArgs.back());
+    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
+        buff, /*client_server=*/false);
   }
-
-  // No return value or arguments, just launch the entry function directly
+  // Fully specialized, no result.
   getEntryPoint()();
   return {nullptr, 0};
 }
 
-void (*cudaq::CompiledKernel::getEntryPoint() const)() { return entryPoint; }
+cudaq::KernelThunkResultType cudaq::CompiledKernel::execute() const {
+  if (!isFullySpecialized())
+    throw std::runtime_error(
+        "Kernel has unspecialized parameters; call execute(rawArgs) instead.");
+  if (!resultInfo.hasResult()) {
+    getEntryPoint()();
+    return {nullptr, 0};
+  }
+  // Allocate a result buffer on-the-fly.
+  auto buf = std::make_unique<char[]>(resultInfo.bufferSize);
+  std::vector<void *> rawArgs = {buf.get()};
+  execute(rawArgs);
+  return {buf.release(), resultInfo.bufferSize};
+}
 
-JitEngine cudaq::CompiledKernel::getEngine() const { return engine; }
+void (*cudaq::CompiledKernel::getEntryPoint() const)() {
+  return getJit().entryPoint;
+}
+
+cudaq::JitEngine cudaq::CompiledKernel::getEngine() const {
+  return getJit().engine;
+}
+
+void cudaq::CompiledKernel::attachJit(JitEngine engine,
+                                      bool isFullySpecialized) {
+  bool hasResult = resultInfo.hasResult();
+  std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
+  std::string entryName =
+      (hasResult || !isFullySpecialized) ? name + ".thunk" : fullName;
+  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
+  int64_t (*argsCreator)(const void *, void **) = nullptr;
+  int64_t (*returnOffset)() = nullptr;
+  if (!isFullySpecialized) {
+    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
+        engine.lookupRawNameOrFail(name + ".argsCreator"));
+    if (hasResult)
+      returnOffset = reinterpret_cast<int64_t (*)()>(
+          engine.lookupRawNameOrFail(name + ".returnOffset"));
+  }
+  jitRepr = cudaq::CompiledKernel::JitRepr{std::move(engine), entryPoint,
+                                           argsCreator, returnOffset};
+}

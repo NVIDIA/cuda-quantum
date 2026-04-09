@@ -226,3 +226,36 @@ func.func private @wonk(!quake.veq<18>, i32) -> f64
 
 // expected-error@+1 {{cannot classically allocate quake abstract type}}
 %0 = cc.alloca !quake.measure
+
+// -----
+
+func.func @relax_size_measurements_sized_result(%q : !quake.veq<4>) {
+  %ms = quake.mz %q : (!quake.veq<4>) -> !quake.measurements<4>
+  // expected-error@+1 {{result measurements type must not specify a size}}
+  %bad = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<4>
+  return
+}
+
+// -----
+
+func.func @relax_size_type_mismatch(%q : !quake.veq<4>) {
+  // expected-error@+1 {{input and result must both be measurements types}}
+  %bad = quake.relax_size %q : (!quake.veq<4>) -> !quake.measurements<?>
+  return
+}
+
+// -----
+
+func.func @relax_size_veq_sized_result(%q : !quake.veq<4>) {
+  // expected-error@+1 {{result veq type must not specify a size}}
+  %bad = quake.relax_size %q : (!quake.veq<4>) -> !quake.veq<4>
+  return
+}
+
+// -----
+
+func.func @relax_size_veq_type_mismatch(%ms : !quake.measurements<4>) {
+  // expected-error@+1 {{input and result must both be veq types}}
+  %bad = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.veq<?>
+  return
+}

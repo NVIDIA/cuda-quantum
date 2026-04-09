@@ -48,8 +48,6 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
-    # TODO: This is because the JitEngine is in the ExecutionContext
-    cudaq-mlir-runtime-headers
   PRIVATE
     cudaq-logger
     fmt::fmt-header-only

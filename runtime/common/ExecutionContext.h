@@ -8,13 +8,13 @@
 
 #pragma once
 
+#include "CompiledKernel.h"
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
-#include "cudaq_internal/compiler/JIT.h"
 #include <optional>
 #include <string_view>
 
@@ -166,7 +166,7 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<cudaq_internal::compiler::JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
 
   /// @endcond
 };
@@ -221,9 +221,14 @@ bool isPersistingJITEngine();
 /// Checks that the compiler artifact (if present) can be reused for the
 /// given kernel. Throws if a different kernel name was previously saved.
 void checkArtifactReuse(const std::string kernelName,
-                        const cudaq_internal::compiler::JitEngine jit);
+                        const cudaq::JitEngine jit);
 
 void saveArtifact(const std::string kernelName,
-                  const cudaq_internal::compiler::JitEngine jit);
+                  const cudaq::JitEngine jit);
+
+/// Returns the saved JIT engine if one is present for \p kernelName.
+/// Throws if a different kernel name was previously saved.
+/// Returns std::nullopt if no artifact has been saved yet.
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
 }; // namespace compiler_artifact
 } // namespace cudaq

@@ -66,12 +66,6 @@ void genReturnOffsetFunction(mlir::Location loc, mlir::OpBuilder &builder,
                              cc::StructType msgStructTy,
                              const std::string &classNameStr);
 
-/// Create a function that returns the size in bytes of the return value as
-/// stored in the message buffer. Returns 0 if the kernel has no return value.
-void genResultSizeFunction(mlir::Location loc, mlir::OpBuilder &builder,
-                           mlir::FunctionType devKernelTy,
-                           cc::StructType msgStructTy,
-                           const std::string &classNameStr);
 
 cc::PointerType getPointerToPointerType(mlir::OpBuilder &builder);
 

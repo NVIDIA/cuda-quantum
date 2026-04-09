@@ -11,8 +11,6 @@
 #include <cstring>
 #include <string>
 
-using namespace cudaq_internal::compiler;
-
 namespace nvqir {
 bool isUsingResourceCounterSimulator();
 } // namespace nvqir
@@ -51,6 +49,15 @@ public:
   }
 
   void reset() { jitEng.reset(); }
+
+  std::optional<JitEngine> getArtifactJit(const std::string &kernelName) {
+    if (!jitEng.has_value())
+      return std::nullopt;
+    if (kernelName != this->kernelName)
+      throw std::runtime_error("Detected reuse of compiler artifact with "
+                               "a different kernel.");
+    return jitEng;
+  }
 
   SavedCompilerArtifact() {}
 
@@ -104,6 +111,12 @@ void saveArtifact(const std::string kernelName, const JitEngine jit) {
     return;
 
   savedArtifact.saveArtifact(kernelName, jit);
+}
+
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName) {
+  if (!reuseArtifact)
+    return std::nullopt;
+  return savedArtifact.getArtifactJit(kernelName);
 }
 } // namespace compiler_artifact
 
