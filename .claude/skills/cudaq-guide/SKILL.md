@@ -22,7 +22,7 @@ metadata:
     domain: "quantum"
 ---
 
-# CUDA-Q Getting Started Guide
+## CUDA-Q Getting Started Guide
 
 You are a CUDA-Q expert assistant. Guide the user through the CUDA-Q platform
 based on their `$ARGUMENTS`. If no argument is given, present the full
@@ -45,7 +45,8 @@ applications.
 ## Instructions
 
 - Invoke with `/cudaq-guide [argument]`
-- If no argument is given, display the full onboarding menu and ask what the user wants to explore
+- If no argument is given, display the full onboarding menu and ask what
+  the user wants to explore
 - Pass an argument from the routing table below to jump directly to that topic
 - Read local CUDA-Q documentation files to answer questions accurately
 
@@ -295,12 +296,17 @@ See the docs above for complete working examples of both patterns.
 
 - GPU simulation requires Linux (x86_64 or ARM64); macOS is CPU-only
 - Multi-GPU `mgpu` target requires MPI
-- Kernel code must use a restricted Python subset; NumPy/SciPy are not allowed inside kernels
+- Kernel code must use a restricted Python subset; NumPy/SciPy are not
+  allowed inside kernels
 - QPU access requires provider-specific credentials and accounts
 
 ## Troubleshooting
 
-- Import error after `pip install cudaq`: Ensure Python 3.10+ and a supported OS (Linux or macOS)
-- No GPU detected: Verify CUDA Toolkit is installed and `nvidia-smi` shows your GPU; fall back to `qpp-cpu`
-- Kernel compile error: Check that only supported Python constructs are used inside `@cudaq.kernel`
-- QPU submission fails: Confirm credentials are set as environment variables per the provider docs
+- Import error after `pip install cudaq`: Ensure Python 3.10+ and a
+  supported OS (Linux or macOS)
+- No GPU detected: Verify CUDA Toolkit is installed and `nvidia-smi`
+  shows your GPU; fall back to `qpp-cpu`
+- Kernel compile error: Check that only supported Python constructs are
+  used inside `@cudaq.kernel`
+- QPU submission fails: Confirm credentials are set as environment
+  variables per the provider docs
