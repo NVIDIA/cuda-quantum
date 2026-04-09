@@ -1576,15 +1576,17 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto lhs = args[0];
       auto rhs = args[1];
       auto measTy = quake::MeasureType::get(builder.getContext());
-      auto i1Type = builder.getI1Type();
-      if (lhs.getType() == measTy)
-        lhs = builder.create<quake::DiscriminateOp>(loc, i1Type, lhs);
-      if (rhs.getType() == measTy)
-        rhs = builder.create<quake::DiscriminateOp>(loc, i1Type, rhs);
-      // Choose predicate based on operator
-      auto pred = (opKind == clang::OO_EqualEqual) ? arith::CmpIPredicate::eq
-                                                   : arith::CmpIPredicate::ne;
-      return pushValue(builder.create<arith::CmpIOp>(loc, pred, lhs, rhs));
+      if (lhs.getType() == measTy || rhs.getType() == measTy) {
+        auto i1Type = builder.getI1Type();
+        if (lhs.getType() == measTy)
+          lhs = builder.create<quake::DiscriminateOp>(loc, i1Type, lhs);
+        if (rhs.getType() == measTy)
+          rhs = builder.create<quake::DiscriminateOp>(loc, i1Type, rhs);
+        // Choose predicate based on operator
+        auto pred = (opKind == clang::OO_EqualEqual) ? arith::CmpIPredicate::eq
+                                                     : arith::CmpIPredicate::ne;
+        return pushValue(builder.create<arith::CmpIOp>(loc, pred, lhs, rhs));
+      }
     }
   }
 
