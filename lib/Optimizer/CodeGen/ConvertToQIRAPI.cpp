@@ -67,9 +67,9 @@ inline static void splitTransportTriple(SmallVectorImpl<StringRef> &results,
 constexpr std::array<std::string_view, 2> filterAdjointNames = {"s", "t"};
 
 static SmallVector<Value> filterArgs(Operation *op, ValueRange adaptedArgs) {
-  if (!op->hasAttr(InitialArgTypesAttrName))
-    return {};
   auto arrAttr = op->getAttrOfType<ArrayAttr>(InitialArgTypesAttrName);
+  if (!arrAttr)
+    return {};
   SmallVector<Value> result;
   assert(arrAttr.size() == adaptedArgs.size());
   for (auto [tyAttr, argval] : llvm::zip(arrAttr, adaptedArgs))
@@ -356,12 +356,12 @@ struct NullWireOpToIntRewrite : public OpConversionPattern<quake::NullWireOp> {
   LogicalResult
   matchAndRewrite(quake::NullWireOp nullwire, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    if (!nullwire->hasAttr(cudaq::opt::StartingOffsetAttrName))
+    auto startingOffsetAttr =
+        nullwire->getAttr(cudaq::opt::StartingOffsetAttrName);
+    if (!startingOffsetAttr)
       return nullwire.emitOpError("allocation must be annotated.");
 
     auto loc = nullwire.getLoc();
-    auto startingOffsetAttr =
-        nullwire->getAttr(cudaq::opt::StartingOffsetAttrName);
     auto startingOffset = cast<IntegerAttr>(startingOffsetAttr).getInt();
 
     // In this case this is allocating a single qubit, so we can just substitute
@@ -384,12 +384,12 @@ struct NullCableOpToIntRewrite
   LogicalResult
   matchAndRewrite(quake::NullCableOp nullcable, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    if (!nullcable->hasAttr(cudaq::opt::StartingOffsetAttrName))
+    auto startingOffsetAttr =
+        nullcable->getAttr(cudaq::opt::StartingOffsetAttrName);
+    if (!startingOffsetAttr)
       return nullcable.emitOpError("allocation must be annotated.");
 
     auto loc = nullcable.getLoc();
-    auto startingOffsetAttr =
-        nullcable->getAttr(cudaq::opt::StartingOffsetAttrName);
     auto startingOffset = cast<IntegerAttr>(startingOffsetAttr).getInt();
 
     quake::CableType cableTy = nullcable.getType();
