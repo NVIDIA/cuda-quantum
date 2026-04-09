@@ -1,12 +1,25 @@
 ---
-name: cudaq-guide
-description: CUDA-Q onboarding guide for installation, first programs, GPU simulation, QPU hardware, and quantum applications.
+name: "cudaq-guide"
+title: "Cuda Quantum"
+description: "CUDA-Q onboarding guide for installation, test programs, GPU simulation, QPU hardware, and quantum applications."
 version: "1.0.0"
-author: Sachin Pisal
+author: "Sachin Pisal <spisal@nvidia.com>"
 tags: [cuda-quantum, quantum-computing, onboarding, getting-started, nvidia]
 tools: [Read, Glob, Grep, Bash]
-argument-hint: [install | test program | gpu-sim | qpu | applications | parallelize]
-allowed-tools: [Read, Glob, Grep, Bash]
+license: "Apache License 2.0"
+compatibility: "Python 3.10+, C++ 20"
+metadata:
+    author: "Sachin Pisal <spisal@nvidia.com>"
+    tags:
+        - cuda-quantum
+        - quantum-computing
+        - onboarding
+        - getting-started
+        - nvidia
+    languages:
+        - python
+        - c++
+    domain: "quantum"
 ---
 
 # CUDA-Q Getting Started Guide
@@ -32,8 +45,7 @@ applications.
 ## Instructions
 
 - Invoke with `/cudaq-guide [argument]`
-- If no argument is given, display the full onboarding menu and ask what
-  the user wants to explore
+- If no argument is given, display the full onboarding menu and ask what the user wants to explore
 - Pass an argument from the routing table below to jump directly to that topic
 - Read local CUDA-Q documentation files to answer questions accurately
 
@@ -53,7 +65,7 @@ applications.
 | Argument | Action |
 |---|---|
 | `install` | Walk through installation (see Install section) |
-| `test program` | Build and run a Bell state kernel to verify CUDA-Q is working properly |
+| `test-program` | Build and run a Bell state kernel to verify CUDA-Q is working properly |
 | `gpu-sim` | Explain GPU-accelerated simulation targets (see GPU Simulation section) |
 | `qpu` | Explain how to run on real QPU hardware (see QPU section) |
 | `applications` | Showcase what can be built with CUDA-Q (see Applications section) |
@@ -74,7 +86,7 @@ Supports Python and C++. Docs https://nvidia.github.io/cuda-quantum/
 
 Choose a topic
   /cudaq-guide install         Install CUDA-Q (Python pip or C++ binary)
-  /cudaq-guide first-program   Write and run your first quantum kernel
+  /cudaq-guide test-program    Write and run your quantum kernel
   /cudaq-guide gpu-sim         Accelerate simulation on NVIDIA GPUs
   /cudaq-guide qpu             Connect to real QPU hardware
   /cudaq-guide applications    Explore what you can build
@@ -117,14 +129,14 @@ Platform notes
   open a CUDA-Q workspace, then SSH in with the Brev CLI:
 
   ```bash
-  brev open <workspace-name>
+  brev open ${WORKSPACE_NAME}
   ```
 
   CUDA-Q and the CUDA Toolkit are pre-installed.
 
 ---
 
-## First Program
+## Test Program
 
 Key concepts to explain
 
@@ -283,17 +295,12 @@ See the docs above for complete working examples of both patterns.
 
 - GPU simulation requires Linux (x86_64 or ARM64); macOS is CPU-only
 - Multi-GPU `mgpu` target requires MPI
-- Kernel code must use a restricted Python subset; NumPy/SciPy are not
-  allowed inside kernels
+- Kernel code must use a restricted Python subset; NumPy/SciPy are not allowed inside kernels
 - QPU access requires provider-specific credentials and accounts
 
 ## Troubleshooting
 
-- Import error after `pip install cudaq`: Ensure Python 3.10+ and a
-  supported OS (Linux or macOS)
-- No GPU detected: Verify CUDA Toolkit is installed and `nvidia-smi` shows
-  your GPU; fall back to `qpp-cpu`
-- Kernel compile error: Check that only supported Python constructs are
-  used inside `@cudaq.kernel`
-- QPU submission fails: Confirm credentials are set as environment
-  variables per the provider docs
+- Import error after `pip install cudaq`: Ensure Python 3.10+ and a supported OS (Linux or macOS)
+- No GPU detected: Verify CUDA Toolkit is installed and `nvidia-smi` shows your GPU; fall back to `qpp-cpu`
+- Kernel compile error: Check that only supported Python constructs are used inside `@cudaq.kernel`
+- QPU submission fails: Confirm credentials are set as environment variables per the provider docs
