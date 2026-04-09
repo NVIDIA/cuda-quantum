@@ -30,6 +30,7 @@
 
 using namespace mlir;
 using namespace cudaq_internal::compiler;
+using cudaq::JitEngine;
 
 static void
 specializeKernel(const std::string &name, ModuleOp module,
@@ -265,7 +266,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
       cudaq::CompiledKernel ck(name, resultInfo);
-      attachJit(ck, *jit, isFullySpecialized);
+      ck.attachJit(*jit, isFullySpecialized);
       return ck;
     }
 
@@ -292,7 +293,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
                      isEntryPoint, varArgIndices);
 
     // 4. Lower to QIR and JIT compile.
-    auto jit = createQIRJITEngine(module, "qir:");
+    auto jit = createJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
     auto argsCreatorThunk = [&jit, &name]() {
       return (void *)jit.lookupRawNameOrFail(name + ".argsCreator");
@@ -301,7 +302,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
                                            argsCreatorThunk);
 
     cudaq::CompiledKernel ck(name, resultInfo);
-    attachJit(ck, jit, isFullySpecialized);
+    ck.attachJit(jit, isFullySpecialized);
     return ck;
   }
 };

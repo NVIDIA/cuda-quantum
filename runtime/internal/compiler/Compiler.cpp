@@ -22,6 +22,7 @@
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -485,7 +486,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
       jitEngines.emplace_back(
-          createQIRJITEngine(clonedModule, codegenTranslation));
+          createJITEngine(clonedModule, codegenTranslation));
     }
   }
 

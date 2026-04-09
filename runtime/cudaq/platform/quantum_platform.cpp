@@ -33,6 +33,12 @@ static quantum_platform *platform;
 static constexpr std::string_view GetQuantumPlatformSymbol =
     "getQuantumPlatform";
 
+static void (*platformInitCallback)() = nullptr;
+
+extern "C" void setQuantumPlatformInitCallback(void (*callback)()) {
+  platformInitCallback = callback;
+}
+
 void setQuantumPlatformInternal(quantum_platform *p) {
   info("external caller setting the platform.");
   platform = p;
@@ -43,6 +49,15 @@ void setQuantumPlatformInternal(quantum_platform *p) {
 quantum_platform *getQuantumPlatformInternal() {
   if (platform)
     return platform;
+
+  if (platformInitCallback) {
+    auto callback = platformInitCallback;
+    platformInitCallback = nullptr;
+    callback();
+    if (platform)
+      return platform;
+  }
+
   platform =
       getUniquePluginInstance<quantum_platform>(GetQuantumPlatformSymbol);
   return platform;
