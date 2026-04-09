@@ -11,8 +11,8 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "common/FmtCore.h"
-#include "cudaq/distributed/mpi_plugin.h"
 #include "cudaq/cudaq_mpi.h"
+#include "cudaq/distributed/mpi_plugin.h"
 #include <dlfcn.h>
 
 namespace {
