@@ -696,14 +696,6 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
       return pushValue(builder.create<quake::DiscriminateOp>(
           loc, cc::StdvecType::get(i1Type), sub));
 
-    // Handle pointer to `measure_result` (from vector element access)
-    if (auto ptrTy = dyn_cast<cc::PointerType>(sub.getType()))
-      if (ptrTy.getElementType() == measTy) {
-        auto loaded = builder.create<cc::LoadOp>(loc, sub);
-        return pushValue(
-            builder.create<quake::DiscriminateOp>(loc, i1Type, loaded));
-      }
-
     TODO_loc(loc, "unhandled user-defined implicit conversion");
   }
   case clang::CastKind::CK_ConstructorConversion: {
@@ -1568,11 +1560,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   if (isa<clang::CXXMethodDecl>(func)) {
     auto thisPtrValue = popValue();
 
-    // Handle `measure_result` conversion operators
+    // For `measure_result`, the implicit "this" value is the `!quake.measure`
+    // SSA value; forward it unchanged
     if (isa<clang::CXXConversionDecl>(func) &&
-        isInClassInNamespace(func, "measure_result", "cudaq")) {
+        isInClassInNamespace(func, "measure_result", "cudaq"))
       return pushValue(thisPtrValue);
-    }
   }
   auto calleeOp = popValue();
 
@@ -1583,11 +1575,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         args.size() == 2) {
       auto lhs = args[0];
       auto rhs = args[1];
-      // Load from pointers if needed
-      if (isa<cc::PointerType>(lhs.getType()))
-        lhs = builder.create<cc::LoadOp>(loc, lhs);
-      if (isa<cc::PointerType>(rhs.getType()))
-        rhs = builder.create<cc::LoadOp>(loc, rhs);
       auto measTy = quake::MeasureType::get(builder.getContext());
       auto i1Type = builder.getI1Type();
       if (lhs.getType() == measTy)
@@ -3360,8 +3347,11 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
   }
 
-  // Handle `measure_result` copy and move constructors.
-  // The source is always a `!quake.measure` SSA value
+  // For `measure_result`, the implicit "this" value is the `!quake.measure`
+  // SSA value; forward it unchanged.
+  // Note: Copy support is a temporary concession while
+  // `std::vector<measure_result>` exists (its `operator[]` returns by
+  // reference, forcing copies). Once replaced, it becomes move-only.
   if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
       isInClassInNamespace(ctor, "measure_result", "cudaq")) {
     assert(x->getNumArgs() == 1);
