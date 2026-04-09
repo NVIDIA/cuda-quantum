@@ -50,6 +50,7 @@
 namespace py = pybind11;
 using namespace mlir;
 using namespace cudaq_internal::compiler;
+using cudaq::JitEngine;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");

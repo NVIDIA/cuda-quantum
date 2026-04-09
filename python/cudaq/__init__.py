@@ -334,8 +334,8 @@ def __getattr__(name):
             globals()[name] = val
             return val
 
-    # Fallback: try importing as a cudaq submodule (e.g., `cudaq.kernels``,
-    # `cudaq.dynamics``). This handles sub-packages that were previously
+    # Fallback: try importing as a cudaq submodule (e.g., `cudaq.kernels`,
+    # `cudaq.dynamics`). This handles sub-packages that were previously
     # accessible as side effects of eager imports.
     try:
         mod = importlib.import_module(f'.{name}', __name__)
