@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CompiledKernel.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include <memory>
 #include <stdexcept>
 
@@ -68,4 +69,22 @@ void (*cudaq::CompiledKernel::getEntryPoint() const)() {
   return getJit().entryPoint;
 }
 
-JitEngine cudaq::CompiledKernel::getEngine() const { return getJit().engine; }
+cudaq::JitEngine cudaq::CompiledKernel::getEngine() const {
+  return getJit().engine;
+}
+
+void cudaq::CompiledKernel::attachJit(JitEngine engine,
+                                      bool isFullySpecialized) {
+  bool hasResult = resultInfo.hasResult();
+  std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
+  std::string entryName =
+      (hasResult || !isFullySpecialized) ? name + ".thunk" : fullName;
+  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
+  int64_t (*argsCreator)(const void *, void **) = nullptr;
+  if (!isFullySpecialized)
+    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
+        engine.lookupRawNameOrFail(name + ".argsCreator"));
+
+  jitRepr = cudaq::CompiledKernel::JitRepr{std::move(engine), entryPoint,
+                                           argsCreator};
+}
