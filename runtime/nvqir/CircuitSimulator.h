@@ -1411,6 +1411,8 @@ private:
 struct MpiCircuitSimulator {
   // Set the MPI communicator for the simulator
   virtual bool setMpiCommunicator(void *comm, int commSize) = 0;
+
+  virtual ~MpiCircuitSimulator() = default;
 };
 
 } // namespace nvqir
