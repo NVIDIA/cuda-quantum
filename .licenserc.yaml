@@ -22,6 +22,7 @@ header:
     - '**/*.rst'
     - '**/*.patch'
     - '**/*.config'
+    - '**/*.svg'
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'
