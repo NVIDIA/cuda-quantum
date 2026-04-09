@@ -230,7 +230,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     bool isLocalSimulator =
         !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
     // Special handling in case the arguments were already synthesized
-    if (isEntryPoint && isLocalSimulator && closureArgs.size() == fromFuncTy.getNumInputs())
+    // TODO: should ensure args have no uses if this is the case?
+    size_t numArgs = closureArgs.size() - (hasResult ? 1 : 0);
+    if (isEntryPoint && isLocalSimulator && numArgs == fromFuncTy.getNumInputs())
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
           isFullySpecialized = false;
