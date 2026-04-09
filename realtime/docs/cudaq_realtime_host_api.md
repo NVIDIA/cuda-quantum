@@ -1,68 +1,82 @@
 # CUDA-Q Realtime Host API
+
 This document explains the C host API for realtime dispatch, the RPC wire
 protocol, and complete wiring examples. It is written for external partners
-integrating CUDA-QX decoders with their own transport mechanisms. The API and 
-protocol are **transport-agnostic** and support multiple data transport options, 
-including NVIDIA Hololink (RDMA via ConnectX NICs), libibverbs, and proprietary 
-transport layers. Handlers can execute on GPU (via CUDA kernels) or CPU (via 
-host threads). Examples in this document use Hololink's 3-kernel workflow (RX 
-kernel/dispatch/TX kernel) for illustration, but the same principles apply to 
+integrating CUDA-QX decoders with their own transport mechanisms. The API and
+protocol are **transport-agnostic** and support multiple data transport options,
+including NVIDIA Hololink (RDMA via ConnectX NIC's), `libibverbs`, and proprietary
+transport layers. Handlers can execute on GPU (via CUDA kernels) or CPU (via
+host threads). Examples in this document use Hololink's 3-kernel workflow (RX
+kernel/dispatch/TX kernel) for illustration, but the same principles apply to
 other transport mechanisms.
 
 ## What is Hololink?
+
 **Hololink** is NVIDIA's low-latency sensor bridge framework that enables
 direct GPU memory access from external devices (FPGAs, sensors) over Ethernet
-using RDMA (Remote Direct Memory Access) via ConnectX NICs. In the context of
+using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
 quantum error correction, Hololink is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.
 
-**Repository**: [nvidia-holoscan/holoscan-sensor-bridge (tag 2.6.0-EA2)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/2.6.0-EA2)
+**Repository**: [`nvidia-holoscan/holoscan-sensor-bridge (tag 2.6.0-EA2)`](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/2.6.0-EA2)
 
 Hololink handles:
 
-* **RX (Receive)**: RX kernel receives data from the FPGA directly into GPU memory via RDMA
-* **TX (Transmit)**: TX kernel sends results back to the FPGA via RDMA
-* **RDMA transport**: Zero-copy data movement using ConnectX-7 NICs with GPUDirect support
+- **RX (Receive)**: RX kernel receives data from the FPGA directly into GPU memory
+ via RDMA
+- **TX (Transmit)**: TX kernel sends results back to the FPGA via RDMA
+- **RDMA transport**: Zero-copy data movement using ConnectX-7 NIC's
+with GPUDirect support
 
-The CUDA-Q Realtime Host API provides the **middle component** (dispatch kernel or thread) that
-sits between the transport's RX and TX components, executing the actual decoder logic.
+The CUDA-Q Realtime Host API provides the **middle component**
+(dispatch kernel or thread) that sits between the transport's
+RX and TX components, executing the actual decoder logic.
 
 ## Transport Mechanisms
+
 The realtime dispatch API is designed to work with multiple transport mechanisms
 that move data between the quantum control system (FPGA) and the decoder. The
 transport mechanism handles getting RPC messages into RX ring buffer slots and
 sending responses from TX ring buffer slots back to the FPGA.
 
 ### Supported Transport Options
-**Hololink (GPU-based with GPUDirect)**:
-* Uses ConnectX-7 NICs with RDMA for zero-copy data movement
-* RX and TX are persistent GPU kernels that directly access GPU memory
-* Requires GPUDirect support
-* Lowest latency option for GPU-based decoders
 
-**libibverbs (CPU-based)**:
-* Standard InfiniBand Verbs API for RDMA on the CPU
-* RX and TX are host threads that poll CPU-accessible memory
-* Works with CPU-based dispatchers
-* Ring buffers reside in host memory (cudaHostAlloc or regular malloc)
+**Hololink (GPU-based with GPUDirect)**:
+
+- Uses ConnectX-7 NIC's with RDMA for zero-copy data movement
+- RX and TX are persistent GPU kernels that directly access GPU memory
+- Requires GPUDirect support
+- Lowest latency option for GPU-based decoders
+
+**`libibverbs` (CPU-based)**:
+
+- Standard InfiniBand Verbs API for RDMA on the CPU
+- RX and TX are host threads that poll CPU-accessible memory
+- Works with CPU-based dispatchers
+- Ring buffers reside in host memory (`cudaHostAlloc` or regular `malloc`)
 
 **Proprietary Transport Mechanisms**:
-* Custom implementations with or without GPUDirect support
-* May use different networking technologies or memory transfer methods
-* Must implement the ring buffer + flag protocol defined in this document
-* Can target either GPU (with suitable memory access) or CPU execution
+
+- Custom implementations with or without GPUDirect support
+- May use different networking technologies or memory transfer methods
+- Must implement the ring buffer + flag protocol defined in this document
+- Can target either GPU (with suitable memory access) or CPU execution
 
 The key requirement is that the transport mechanism implements the ring buffer
 slot + flag protocol: writing RPC messages to RX slots and setting `rx_flags`,
 then reading TX slots after `tx_flags` are set.
 
 ## The 3-Kernel Architecture (Hololink Example)
+
 The Hololink workflow separates concerns into three persistent GPU kernels that
 communicate via shared ring buffers:
 
 ![3-kernel architecture](assets/three_kernel_architecture.svg)
 
 ### Data Flow Summary
+
+<!-- markdownlint-disable -->
+
 <table class="data">
   <thead>
     <tr>
@@ -105,19 +119,25 @@ communicate via shared ring buffers:
   </tbody>
 </table>
 
+<!-- markdownlint-enable -->
+
 ### Why 3 Kernels?
-1. **Separation of concerns**: Transport (RX/TX kernels) vs. compute (dispatch) are decoupled
+
+1. **Separation of concerns**: Transport (RX/TX kernels) vs. compute (dispatch)
+are decoupled
 2. **Reusability**: Same dispatch kernel works with any decoder handler
 3. **Testability**: Dispatch kernel can be tested without Hololink hardware
 4. **Flexibility**: RX/TX kernels can be replaced with different transport mechanisms
-5. **Transport independence**: The protocol works with Hololink, libibverbs, or proprietary transports
+5. **Transport independence**: The protocol works with Hololink, `libibverbs`,
+or proprietary transports
 
 For use cases where lowest possible latency is needed, see
-[Unified Dispatch Mode](#unified-dispatch) which combines all three kernels
+[Unified Dispatch Mode](#unified-dispatch-mode) which combines all three kernels
 into one while retaining transport independence through a pluggable launch
 function.
 
 ## Unified Dispatch Mode
+
 The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
 3-kernel architecture that combines receive, RPC dispatch, and transmit into a
 single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
@@ -125,6 +145,7 @@ between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
 latency for simple (non-cooperative) RPC handlers.
 
 ### Architecture
+
 In unified mode, a single GPU thread runs a transport-provided kernel that
 combines receive, dispatch, and transmit into one tight loop:
 
@@ -133,32 +154,33 @@ combines receive, dispatch, and transmit into one tight loop:
 3. Looks up and calls the registered handler in-place
 4. Writes the `RPCResponse` header (overwriting the request header)
 5. Sends the response (transport-specific mechanism)
-6. Reposts the receive buffer for the next message
+6. Re-posts the receive buffer for the next message
 
 The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
 registers before the handler runs.
 
-For example, the Hololink/DOCA transport implementation polls a DOCA completion
-queue (CQ) in step 1, sends via DOCA BlueFlame in step 5, and reposts a DOCA
-receive WQE in step 6.  Other transports would substitute their own receive and
+For example, the Hololink/`DOCA` transport implementation polls a `DOCA` completion
+queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
+receive `WQE` in step 6.  Other transports would substitute their own receive and
 send primitives.
 
 ### Transport-Agnostic Design
+
 The unified dispatch mode is fully transport-agnostic, just like the 3-kernel
 mode.  The core dispatcher library (`libcudaq-realtime.so`) has no dependency
-on any specific transport (no DOCA, no Hololink).  Unified mode introduces:
+on any specific transport (no `DOCA`, no Hololink).  Unified mode introduces:
 
-* `CUDAQ_KERNEL_UNIFIED` -- a new `cudaq_kernel_type_t` enum value
-* `cudaq_unified_launch_fn_t` -- a launch function type that receives an opaque
+- `CUDAQ_KERNEL_UNIFIED` -- a new `cudaq_kernel_type_t` enum value
+- `cudaq_unified_launch_fn_t` -- a launch function type that receives an opaque
     `void* transport_ctx` instead of ring-buffer pointers
-* `cudaq_dispatcher_set_unified_launch()` -- wires the launch function and
+- `cudaq_dispatcher_set_unified_launch()` -- wires the launch function and
     transport context to the dispatcher
 
 Transport-specific details are packed into an opaque struct and passed through
 the `void* transport_ctx` pointer.  The transport provider supplies both the
 context struct and the launch function implementation.  For example, the
-Hololink/DOCA transport packs DOCA QP handles, memory keys, and ring buffer
+Hololink/`DOCA` transport packs `DOCA` `QP` handles, memory keys, and ring buffer
 addresses into a `doca_transport_ctx` and provides
 `hololink_launch_unified_dispatch` as the launch function (compiled into
 `libcudaq-realtime-bridge-hololink.so`).  A different transport would define
@@ -166,20 +188,24 @@ its own context struct and launch function; the dispatcher manages them
 identically without any transport-specific knowledge.
 
 ### When to Use Which Mode
+
 **3-kernel mode** (`CUDAQ_KERNEL_REGULAR` or `CUDAQ_KERNEL_COOPERATIVE`):
-* Transport-agnostic -- works with any transport that implements the ring-buffer
+
+- Transport-agnostic -- works with any transport that implements the ring-buffer
     flag protocol
-* Required for cooperative handlers that use `grid.sync()`
-* Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
+- Required for cooperative handlers that use `grid.sync()`
+- Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
 
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
-* Lowest latency for regular (non-cooperative) handlers
-* Transport-agnostic API -- the transport provides a pluggable launch function
-    and opaque context (e.g., Hololink/DOCA supplies `hololink_launch_unified_dispatch`)
-* Single-thread, single-block kernel -- no inter-kernel synchronization overhead
-* Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
+
+- Lowest latency for regular (non-cooperative) handlers
+- Transport-agnostic API -- the transport provides a pluggable launch function
+    and opaque context (e.g., Hololink/`DOCA` supplies `hololink_launch_unified_dispatch`)
+- Single-thread, single-block kernel -- no inter-kernel synchronization overhead
+- Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
+
 ```cpp
 typedef enum {
   CUDAQ_KERNEL_REGULAR     = 0,
@@ -200,13 +226,15 @@ cudaq_status_t cudaq_dispatcher_set_unified_launch(
 ```
 
 When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
-* `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
+
+- `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
-* `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-* `num_slots` and `slot_size` in the config may be zero
-* All other wiring (`set_function_table`, `set_control`) remains the same
+- `cudaq_dispatcher_set_unified_launch()` **must** be called instead
+- `num_slots` and `slot_size` in the `config` may be zero
+- All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with Hololink)
+
 ```cpp
 // Pack DOCA transport handles
 doca_transport_ctx ctx;
@@ -232,9 +260,10 @@ cudaq_dispatcher_start(dispatcher);
 ```
 
 ## What This API Does (In One Paragraph)
+
 The host API wires a dispatcher (GPU kernel or CPU thread) to shared ring buffers.
-The transport mechanism (e.g., Hololink RX/TX kernels, libibverbs threads, or
-proprietary transport) places incoming RPC messages into RX slots and retrieves 
+The transport mechanism (e.g., Hololink RX/TX kernels, `libibverbs` threads, or
+proprietary transport) places incoming RPC messages into RX slots and retrieves
 responses from TX slots.
 The dispatcher polls RX flags (see Message completion note), looks up a
 handler by `function_id`, executes it on the GPU, and writes a response into the
@@ -242,24 +271,30 @@ same slot. The transport's RX/TX components handle I/O; the dispatch kernel sits
 in the middle and runs the decoder handler.
 
 ## Scope
-* C host API in `cudaq_realtime.h`
-* RPC messaging protocol (header + payload + response)
-* End-to-end example using the mock decoder in `cudaqx`
-* NIC-free testing path
+
+- C host API in `cudaq_realtime.h`
+- RPC messaging protocol (header + payload + response)
+- End-to-end example using the mock decoder in `cudaqx`
+- NIC-free testing path
 
 ## Terms and Components
-* **Ring buffer**: Fixed-size slots holding RPC messages (see Message completion note). Each slot has an RX flag and a TX flag.
-* **RX flag**: Nonzero means a slot is ready to be processed.
-* **TX flag**: Nonzero means a response is ready to send.
-* **Dispatcher**: Component that processes RPC messages (GPU kernel or CPU thread).
-* **Handler**: Function registered in the function table that processes specific message types.
-* **Function table**: Array of handler function pointers + IDs + schemas.
+
+- **Ring buffer**: Fixed-size slots holding RPC messages
+(see Message completion note). Each slot has an RX flag and a TX flag.
+- **RX flag**: Nonzero means a slot is ready to be processed.
+- **TX flag**: Nonzero means a response is ready to send.
+- **Dispatcher**: Component that processes RPC messages (GPU kernel or CPU thread).
+- **Handler**: Function registered in the function table that
+processes specific message types.
+- **Function table**: Array of handler function pointers + IDs + schemas.
 
 ## Schema Data Structures
+
 Each handler registered in the function table includes a schema that describes
 its argument and result types.
 
 ### Type Descriptors
+
 ```cpp
 // Standardized payload type identifiers
 typedef enum {
@@ -285,11 +320,13 @@ struct cudaq_type_desc_t {
 
 The `num_elements` field interpretation:
 
-* **Scalar types** (CUDAQ_TYPE_UINT8, CUDAQ_TYPE_INT32, etc.): unused, set to 1
-* **Array types** (CUDAQ_TYPE_ARRAY_*): number of array elements
-* **CUDAQ_TYPE_BIT_PACKED**: number of bits (not bytes)
+- **Scalar types** (`CUDAQ_TYPE_UINT8`, `CUDAQ_TYPE_INT32`, etc.): unused,
+set to 1
+- **Array types** (`CUDAQ_TYPE_ARRAY_*`): number of array elements
+- **CUDAQ_TYPE_BIT_PACKED**: number of bits (not bytes)
 
 ### Handler Schema
+
 ```cpp
 struct cudaq_handler_schema_t {
   uint8_t  num_args;              // Number of input arguments
@@ -303,15 +340,16 @@ struct cudaq_handler_schema_t {
 
 Limits:
 
-* Maximum 8 arguments per handler
-* Maximum 4 results per handler
-* Total payload size must fit in slot: `slot_size - sizeof(RPCHeader)`
+- Maximum 8 arguments per handler
+- Maximum 4 results per handler
+- Total payload size must fit in slot: `slot_size - sizeof(RPCHeader)`
 
 ## RPC Messaging Protocol
+
 Each RX ring buffer slot contains an RPC request. The dispatcher writes the
 response to the corresponding TX ring buffer slot.
 
-```
+```text
 RX Slot: | RPCHeader | request payload bytes |
 TX Slot: | RPCResponse | response payload bytes |
 ```
@@ -321,8 +359,8 @@ and QEC-specific examples) are defined in `cudaq_realtime_message_protocol.bs`.
 
 Magic values (little-endian 32-bit):
 
-* `RPC_MAGIC_REQUEST = 0x43555152` (`'CUQR'`)
-* `RPC_MAGIC_RESPONSE = 0x43555153` (`'CUQS'`)
+- `RPC_MAGIC_REQUEST = 0x43555152` (`'CUQR'`)
+- `RPC_MAGIC_RESPONSE = 0x43555153` (`'CUQS'`)
 
 ```cpp
 // Wire format (byte layout must match dispatch_kernel_launch.h)
@@ -348,15 +386,19 @@ for `request_id` and `ptp_timestamp` semantics.
 
 Payload conventions:
 
-* **Request payload**: argument data as specified by handler schema.
-* **Response payload**: result data as specified by handler schema.
-* **Size limit**: payload must fit in one slot. `max_payload_bytes = slot_size - sizeof(RPCHeader)`.
-* **Multi-argument encoding**: arguments concatenated in schema order (see message protocol doc).
+- **Request payload**: argument data as specified by handler schema.
+- **Response payload**: result data as specified by handler schema.
+- **Size limit**: payload must fit in one slot.
+`max_payload_bytes = slot_size - sizeof(RPCHeader)`.
+- **Multi-argument encoding**: arguments concatenated in schema order
+(see message protocol doc).
 
 ## Host API Overview
+
 Header: `realtime/include/cudaq/realtime/daemon/dispatcher/cudaq_realtime.h`
 
 ## Manager and Dispatcher Topology
+
 The manager is a lightweight owner for one or more dispatchers. Each dispatcher
 is configured independently (e.g., `vp_id`, `kernel_type`, `dispatch_mode`) and
 can target different workloads.
@@ -364,6 +406,7 @@ can target different workloads.
 ![Manager and dispatcher topology](assets/manager_dispatcher_topology.svg)
 
 ## Host API Functions
+
 Function usage:
 
 **`cudaq_dispatch_manager_create`** creates the top-level manager that owns
@@ -371,7 +414,7 @@ dispatchers.
 
 Parameters:
 
-* `out_mgr`: receives the created manager handle.
+- `out_mgr`: receives the created manager handle.
 
 Call this once near program startup and keep the manager alive for the
 lifetime of the dispatch subsystem.
@@ -381,7 +424,7 @@ resources.
 
 Parameters:
 
-* `mgr`: manager handle to destroy.
+- `mgr`: manager handle to destroy.
 
 Call this after all dispatchers have been destroyed and the program is
 shutting down.
@@ -391,44 +434,59 @@ configuration.
 
 Parameters:
 
-* `mgr`: owning manager.
-* `config`: filled `cudaq_dispatcher_config_t` with:
-  * `device_id` (default 0): selects the CUDA device for the dispatcher
-  * `num_blocks` (default 1)
-  * `threads_per_block` (default 32)
-  * `num_slots` (required)
-  * `slot_size` (required)
-  * `vp_id` (default 0): tags a dispatcher to a transport channel. Queue pair selection and NIC port/IP binding are configured in Hololink, not in this API.
-  * `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
-    * `CUDAQ_KERNEL_REGULAR`: standard kernel launch
-    * `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
-    * `CUDAQ_KERNEL_UNIFIED`: single-kernel dispatch with integrated transport (see [Unified Dispatch Mode](#unified-dispatch))
-  * `dispatch_mode` (default `CUDAQ_DISPATCH_DEVICE_CALL`)
-    * `CUDAQ_DISPATCH_DEVICE_CALL`: direct `__device__` handler call (lowest latency)
-    * `CUDAQ_DISPATCH_GRAPH_LAUNCH`: CUDA graph launch from device code (requires sm_90+, Hopper or later GPUs)
-    * `CUDAQ_DISPATCH_HOST_CALL`: host RPC callback (reserved; currently dropped by both device and host dispatch paths -- see note below)
-  * `dispatch_path` (default `CUDAQ_DISPATCH_PATH_DEVICE`): selects the top-level dispatch control path
+- `mgr`: owning manager.
+- `config`: filled `cudaq_dispatcher_config_t` with:
+  - `device_id` (default 0): selects the CUDA device for the dispatcher
+  - `num_blocks` (default 1)
+  - `threads_per_block` (default 32)
+  - `num_slots` (required)
+  - `slot_size` (required)
+  - `vp_id` (default 0): tags a dispatcher to a transport channel.
+  Queue pair selection and NIC port/IP binding are configured in Hololink,
+  not in this API.
+  - `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
+    - `CUDAQ_KERNEL_REGULAR`: standard kernel launch
+    - `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
+    - `CUDAQ_KERNEL_UNIFIED`: single-kernel dispatch with integrated transport
+    (see [Unified Dispatch Mode](#unified-dispatch-mode))
+  - `dispatch_mode` (default `CUDAQ_DISPATCH_DEVICE_CALL`)
+    - `CUDAQ_DISPATCH_DEVICE_CALL`: direct `__device__` handler call (lowest latency)
+    - `CUDAQ_DISPATCH_GRAPH_LAUNCH`: CUDA graph launch from device code
+    (requires `sm_90`+, Hopper or later GPUs)
+    - `CUDAQ_DISPATCH_HOST_CALL`: host RPC callback (reserved; currently dropped
+    by both device and host dispatch paths -- see note below)
+  - `dispatch_path` (default `CUDAQ_DISPATCH_PATH_DEVICE`):
+  selects the top-level dispatch control path
 
-        ```cpp
-        typedef enum {
-          CUDAQ_DISPATCH_PATH_DEVICE = 0,  // GPU persistent kernel
-          CUDAQ_DISPATCH_PATH_HOST   = 1   // CPU host thread
-        } cudaq_dispatch_path_t;
-        ```
+  ```cpp
+  typedef enum {
+    CUDAQ_DISPATCH_PATH_DEVICE = 0,  // GPU persistent kernel
+    CUDAQ_DISPATCH_PATH_HOST   = 1   // CPU host thread
+  } cudaq_dispatch_path_t;
+  ```
 
-    * `CUDAQ_DISPATCH_PATH_DEVICE`: dispatch loop runs as a GPU-resident persistent kernel (all existing modes)
-    * `CUDAQ_DISPATCH_PATH_HOST`: dispatch loop runs as a CPU host thread launching CUDA graphs (see [Host Dispatch Path](#host-dispatch-path))
-  * `skip_tx_markers` (default 0): when non-zero, the host dispatcher does **not** write the `CUDAQ_TX_FLAG_IN_FLIGHT` sentinel to `tx_flags` before graph launch. Set this when an external GPU kernel (e.g., Hololink TX) polls the same `tx_flags` array, since the sentinel would be misinterpreted as a valid buffer address. Only meaningful when `dispatch_path == CUDAQ_DISPATCH_PATH_HOST`.
+  - `CUDAQ_DISPATCH_PATH_DEVICE`: dispatch loop runs as a GPU-resident
+  persistent kernel (all existing modes)
+  - `CUDAQ_DISPATCH_PATH_HOST`: dispatch loop runs as a CPU host thread
+  launching CUDA graphs (see [Host Dispatch Path](#host-dispatch-path-cpu-graph-launch))
+  - `skip_tx_markers` (default 0): when non-zero, the host dispatcher
+  does **not** write the `CUDAQ_TX_FLAG_IN_FLIGHT` sentinel to `tx_flags`
+  before graph launch. Set this when an external GPU kernel
+  (e.g., Hololink TX) polls the same `tx_flags` array,
+  since the sentinel would be misinterpreted as a valid buffer address.
+  Only meaningful when `dispatch_path == CUDAQ_DISPATCH_PATH_HOST`.
 
 Note: `CUDAQ_DISPATCH_HOST_CALL` is defined in the `cudaq_dispatch_mode_t` enum
 and the `host_fn` union member exists in `cudaq_function_entry_t`, but
 **neither dispatch path currently processes HOST_CALL entries**.  The device
 path has no awareness of host callbacks, and the host path drops any entry
 whose `dispatch_mode` is not `CUDAQ_DISPATCH_GRAPH_LAUNCH` (see
-[§host-path-architecture](#host-path-architecture), step 4).  A future revision will add CPU worker
-thread support so that HOST_CALL handlers run on dedicated threads without
-blocking the monitor loop or tying up GPU graph workers.
-* `out_dispatcher`: receives the created dispatcher handle.
+[host-path-architecture](#host-path-architecture), step 4).  
+A future revision will add CPU worker thread support so that HOST_CALL handlers
+run on dedicated threads without blocking the monitor loop
+or tying up GPU graph workers.
+
+- `out_dispatcher`: receives the created dispatcher handle.
 
 Call this before wiring ring buffers, function tables, or control state.
 
@@ -436,7 +494,7 @@ Call this before wiring ring buffers, function tables, or control state.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle to destroy.
+- `dispatcher`: dispatcher handle to destroy.
 
 Call this when the dispatcher is no longer needed.
 
@@ -445,18 +503,22 @@ pointers the dispatch kernel will poll and use for request/response slots.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `ringbuffer`: `cudaq_ringbuffer_t` with:
-  * `rx_flags`: device-visible pointer to RX flags.
-  * `tx_flags`: device-visible pointer to TX flags.
-  * `rx_data`: device-visible pointer to RX slot data (request payloads).
-  * `tx_data`: device-visible pointer to TX slot data (response payloads).
-  * `rx_stride_sz`: size in bytes of each RX slot.
-  * `tx_stride_sz`: size in bytes of each TX slot.
-  * `rx_flags_host`: host pointer to RX flags (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
-  * `tx_flags_host`: host pointer to TX flags (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
-  * `rx_data_host`: host pointer to RX data (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
-  * `tx_data_host`: host pointer to TX data (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
+- `dispatcher`: dispatcher handle.
+- `ringbuffer`: `cudaq_ringbuffer_t` with:
+  - `rx_flags`: device-visible pointer to RX flags.
+  - `tx_flags`: device-visible pointer to TX flags.
+  - `rx_data`: device-visible pointer to RX slot data (request payloads).
+  - `tx_data`: device-visible pointer to TX slot data (response payloads).
+  - `rx_stride_sz`: size in bytes of each RX slot.
+  - `tx_stride_sz`: size in bytes of each TX slot.
+  - `rx_flags_host`: host pointer to RX flags
+  (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
+  - `tx_flags_host`: host pointer to TX flags
+  (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
+  - `rx_data_host`: host pointer to RX data
+  (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
+  - `tx_data_host`: host pointer to TX data
+  (required for `CUDAQ_DISPATCH_PATH_HOST`; NULL otherwise).
 
 When `dispatch_path == CUDAQ_DISPATCH_PATH_HOST`, the host-side pointers must
 refer to the same pinned-mapped allocation as the device pointers
@@ -471,10 +533,10 @@ containing handler pointers, IDs, and schemas.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `table`: `cudaq_function_table_t` with:
-  * `entries`: device pointer to array of `cudaq_function_entry_t`.
-  * `count`: number of entries in the table.
+- `dispatcher`: dispatcher handle.
+- `table`: `cudaq_function_table_t` with:
+  - `entries`: device pointer to array of `cudaq_function_entry_t`.
+  - `count`: number of entries in the table.
 
 ```cpp
 // Host RPC callback type (for CUDAQ_DISPATCH_HOST_CALL -- reserved, not yet dispatched)
@@ -508,19 +570,20 @@ and schema describing the handler's interface.
 
 Function ID semantics:
 
-* `function_id` is the 32-bit **FNV-1a hash** of the handler name string.
-* The handler name is the string you hash when populating entries; there is no separate runtime registration call.
-* If no entry matches, the dispatcher clears the slot without a response.
-* Suggested: use stable, human-readable handler names (e.g., `"mock_decode"`).
+- `function_id` is the 32-bit **`FNV-1a` hash** of the handler name string.
+- The handler name is the string you hash when populating entries; there is
+no separate runtime registration call.
+- If no entry matches, the dispatcher clears the slot without a response.
+- Suggested: use stable, human-readable handler names (e.g., `"mock_decode"`).
 
 **`cudaq_dispatcher_set_control`** supplies the shutdown flag and stats buffer
 the dispatch kernel uses for termination and bookkeeping.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `shutdown_flag`: device-visible flag used to signal shutdown.
-* `stats`: device-visible stats buffer.
+- `dispatcher`: dispatcher handle.
+- `shutdown_flag`: device-visible flag used to signal shutdown.
+- `stats`: device-visible stats buffer.
 
 Call this before starting the dispatcher; both buffers must remain valid for
 the dispatcher’s lifetime.
@@ -530,19 +593,20 @@ invokes the dispatch kernel with the correct grid/block dimensions.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `launch_fn`: host launch function pointer.
+- `dispatcher`: dispatcher handle.
+- `launch_fn`: host launch function pointer.
 
 Call this once during setup. Typically you pass one of the provided launch functions:
-* `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
-* `cudaq_launch_dispatch_kernel_cooperative` - for `CUDAQ_KERNEL_COOPERATIVE` mode
+
+- `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
+- `cudaq_launch_dispatch_kernel_cooperative` - for `CUDAQ_KERNEL_COOPERATIVE` mode
 
 **`cudaq_dispatcher_start`** launches the persistent dispatch kernel and begins
 processing slots.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
+- `dispatcher`: dispatcher handle.
 
 Call this only after ring buffers, function table, control buffers, and launch
 function are set.
@@ -552,19 +616,20 @@ to shut down.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
+- `dispatcher`: dispatcher handle.
 
-Call this during teardown before destroying the dispatcher.
+Call this during tear-down before destroying the dispatcher.
 
 **`cudaq_dispatcher_get_processed`** reads the processed‑packet counter from the
 stats buffer to support debugging or throughput tracking.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `out_packets`: receives the processed packet count.
+- `dispatcher`: dispatcher handle.
+- `out_packets`: receives the processed packet count.
 
 ### Occupancy Query and Eager Module Loading
+
 Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
 deadlocks when the dispatch kernel and transport kernels (e.g., Hololink RX/TX)
@@ -576,8 +641,8 @@ kernel.
 
 Parameters:
 
-* `out_blocks`: receives the max blocks per SM (or 0 on error).
-* `threads_per_block`: block size used for the occupancy calculation.
+- `out_blocks`: receives the max blocks per SM (or 0 on error).
+- `threads_per_block`: block size used for the occupancy calculation.
 
 Returns `cudaSuccess` on success. Call this when `kernel_type` is
 `CUDAQ_KERNEL_REGULAR`.
@@ -588,115 +653,133 @@ returns the maximum number of active blocks per multiprocessor for the
 
 Parameters:
 
-* `out_blocks`: receives the max blocks per SM (or 0 on error).
-* `threads_per_block`: block size used for the occupancy calculation (e.g., 128 for cooperative decoders).
+- `out_blocks`: receives the max blocks per SM (or 0 on error).
+- `threads_per_block`: block size used for the occupancy calculation
+(e.g., 128 for cooperative decoders).
 
 Returns `cudaSuccess` on success. Call this when `kernel_type` is
 `CUDAQ_KERNEL_COOPERATIVE`. Use the same `threads_per_block` value that will
-be passed to the dispatcher config and launch function.
+be passed to the dispatcher configuration and launch function.
 
 Call the occupancy function that matches the dispatcher's `kernel_type` once
 before `cudaq_dispatcher_start`; the result can be used to size the dispatch
-grid (e.g., to reserve SMs for transport kernels).
+grid (e.g., to reserve `SMs` for transport kernels).
 
 Lifetime/ownership:
 
-* All resources are assumed to live for the program lifetime.
-* The API does not take ownership of host-allocated memory.
+- All resources are assumed to live for the program lifetime.
+- The API does not take ownership of host-allocated memory.
 
 Threading:
 
-* Single-threaded host usage; create/wire/start/stop from one thread.
+- Single-threaded host usage; create/wire/start/stop from one thread.
 
 Error handling:
 
-* All calls return `cudaq_status_t`.
-* `CUDAQ_ERR_INVALID_ARG` for missing pointers or invalid config.
-* `CUDAQ_ERR_CUDA` for CUDA API failures during start/stop.
+- All calls return `cudaq_status_t`.
+- `CUDAQ_ERR_INVALID_ARG` for missing pointers or invalid configuration.
+- `CUDAQ_ERR_CUDA` for CUDA API failures during start/stop.
 
 ### Graph-Based Dispatch Functions
-The following functions are only available when using `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode with sm_90+ GPUs:
 
-**`cudaq_create_dispatch_graph_regular`** creates a graph-based dispatch context that enables device-side graph launching.
+The following functions are only available when using `CUDAQ_DISPATCH_GRAPH_LAUNCH`
+mode with `sm_90`+ GPUs:
 
-Parameters:
-
-* `rx_flags`: device-visible pointer to RX ring buffer flags
-* `tx_flags`: device-visible pointer to TX ring buffer flags
-* `rx_data`: device-visible pointer to RX slot data (request payloads)
-* `tx_data`: device-visible pointer to TX slot data (response payloads)
-* `rx_stride_sz`: size in bytes of each RX slot
-* `tx_stride_sz`: size in bytes of each TX slot
-* `function_table`: device pointer to function table entries
-* `func_count`: number of function table entries
-* `graph_io_ctx`: device pointer to a `GraphIOContext` struct for graph buffer communication
-* `shutdown_flag`: device-visible shutdown flag
-* `stats`: device-visible stats buffer
-* `num_slots`: number of ring buffer slots
-* `num_blocks`: grid size for dispatch kernel
-* `threads_per_block`: block size for dispatch kernel
-* `stream`: CUDA stream for graph operations
-* `out_context`: receives the created graph context handle
-
-Returns `cudaSuccess` on success, or CUDA error code on failure.
-
-This function creates a graph containing the dispatch kernel, instantiates it with `cudaGraphInstantiateFlagDeviceLaunch`, and uploads it to the device. The resulting graph context enables device-side `cudaGraphLaunch()` calls from within handlers.
-
-**`cudaq_launch_dispatch_graph`** launches the dispatch graph to begin processing RPC messages.
+**`cudaq_create_dispatch_graph_regular`** creates a graph-based dispatch context
+that enables device-side graph launching.
 
 Parameters:
 
-* `context`: graph context handle from `cudaq_create_dispatch_graph_regular`
-* `stream`: CUDA stream for graph launch
+- `rx_flags`: device-visible pointer to RX ring buffer flags
+- `tx_flags`: device-visible pointer to TX ring buffer flags
+- `rx_data`: device-visible pointer to RX slot data (request payloads)
+- `tx_data`: device-visible pointer to TX slot data (response payloads)
+- `rx_stride_sz`: size in bytes of each RX slot
+- `tx_stride_sz`: size in bytes of each TX slot
+- `function_table`: device pointer to function table entries
+- `func_count`: number of function table entries
+- `graph_io_ctx`: device pointer to a `GraphIOContext` struct for graph buffer communication
+- `shutdown_flag`: device-visible shutdown flag
+- `stats`: device-visible stats buffer
+- `num_slots`: number of ring buffer slots
+- `num_blocks`: grid size for dispatch kernel
+- `threads_per_block`: block size for dispatch kernel
+- `stream`: CUDA stream for graph operations
+- `out_context`: receives the created graph context handle
 
 Returns `cudaSuccess` on success, or CUDA error code on failure.
 
-Call this to start the persistent dispatch kernel. The kernel will continue running until the shutdown flag is set.
+This function creates a graph containing the dispatch kernel, instantiates it
+with `cudaGraphInstantiateFlagDeviceLaunch`, and uploads it to the device.
+The resulting graph context enables device-side `cudaGraphLaunch()` calls from
+within handlers.
 
-**`cudaq_destroy_dispatch_graph`** destroys the graph context and releases all associated resources.
+**`cudaq_launch_dispatch_graph`** launches the dispatch graph to begin processing
+RPC messages.
 
 Parameters:
 
-* `context`: graph context handle to destroy
+- `context`: graph context handle from `cudaq_create_dispatch_graph_regular`
+- `stream`: CUDA stream for graph launch
 
 Returns `cudaSuccess` on success, or CUDA error code on failure.
 
-Call this after the dispatch kernel has exited (shutdown flag was set) to clean up graph resources.
+Call this to start the persistent dispatch kernel. The kernel will continue
+running until the shutdown flag is set.
+
+**`cudaq_destroy_dispatch_graph`** destroys the graph context and releases
+all associated resources.
+
+Parameters:
+
+- `context`: graph context handle to destroy
+
+Returns `cudaSuccess` on success, or CUDA error code on failure.
+
+Call this after the dispatch kernel has exited (shutdown flag was set) to
+clean up graph resources.
 
 ### Kernel Launch Helper Functions
+
 The following helper functions are provided for use with `cudaq_dispatcher_set_launch_fn()`:
 
-**`cudaq_launch_dispatch_kernel_regular`** launches the dispatch kernel in regular (non-cooperative) mode.
+**`cudaq_launch_dispatch_kernel_regular`** launches the dispatch kernel in
+regular (non-cooperative) mode.
 
 Parameters:
 
-* `rx_flags`: device-visible pointer to RX ring buffer flags
-* `tx_flags`: device-visible pointer to TX ring buffer flags
-* `rx_data`: device-visible pointer to RX slot data (request payloads)
-* `tx_data`: device-visible pointer to TX slot data (response payloads)
-* `rx_stride_sz`: size in bytes of each RX slot
-* `tx_stride_sz`: size in bytes of each TX slot
-* `function_table`: device pointer to function table entries
-* `func_count`: number of function table entries
-* `shutdown_flag`: device-visible shutdown flag
-* `stats`: device-visible stats buffer
-* `num_slots`: number of ring buffer slots
-* `num_blocks`: grid size for dispatch kernel
-* `threads_per_block`: block size for dispatch kernel
-* `stream`: CUDA stream for kernel launch
+- `rx_flags`: device-visible pointer to RX ring buffer flags
+- `tx_flags`: device-visible pointer to TX ring buffer flags
+- `rx_data`: device-visible pointer to RX slot data (request payloads)
+- `tx_data`: device-visible pointer to TX slot data (response payloads)
+- `rx_stride_sz`: size in bytes of each RX slot
+- `tx_stride_sz`: size in bytes of each TX slot
+- `function_table`: device pointer to function table entries
+- `func_count`: number of function table entries
+- `shutdown_flag`: device-visible shutdown flag
+- `stats`: device-visible stats buffer
+- `num_slots`: number of ring buffer slots
+- `num_blocks`: grid size for dispatch kernel
+- `threads_per_block`: block size for dispatch kernel
+- `stream`: CUDA stream for kernel launch
 
 Use this when `kernel_type` is set to `CUDAQ_KERNEL_REGULAR` in the dispatcher configuration.
 
-**`cudaq_launch_dispatch_kernel_cooperative`** launches the dispatch kernel in cooperative mode.
+**`cudaq_launch_dispatch_kernel_cooperative`** launches the dispatch kernel in
+cooperative mode.
 
 Parameters: Same as `cudaq_launch_dispatch_kernel_regular`.
 
-Use this when `kernel_type` is set to `CUDAQ_KERNEL_COOPERATIVE` in the dispatcher configuration. This enables the dispatch kernel and handlers to use grid-wide synchronization via `cooperative_groups::this_grid().sync()`.
+Use this when `kernel_type` is set to `CUDAQ_KERNEL_COOPERATIVE`
+in the dispatcher configuration.
+This enables the dispatch kernel and handlers to use
+grid-wide synchronization via `cooperative_groups::this_grid().sync()`.
 
 ## Memory Layout and Ring Buffer Wiring
+
 Each slot is a fixed-size byte region:
 
-```
+```text
 | RPCHeader | payload bytes (arg_len) | unused padding (slot_size - header - payload) |
 ```
 
@@ -705,8 +788,9 @@ and payload.
 
 Flags (both are `uint64_t` arrays of slot flags):
 
-* `rx_flags[slot]` is set by the producer to a non-zero value when a slot is ready.
-* `tx_flags[slot]` is set by the dispatch kernel to a non-zero value when the response is ready.
+- `rx_flags[slot]` is set by the producer to a non-zero value when a slot is ready.
+- `tx_flags[slot]` is set by the dispatch kernel to a non-zero value when
+the response is ready.
 
 Message completion note:
 An RPC message may be delivered as multiple RDMA writes into a single slot.
@@ -718,6 +802,7 @@ In the NIC-free path, flags and data are allocated with
 `cudaHostAllocMapped` so the device and host see the same memory.
 
 ## Step-by-Step: Wiring the Host API (Minimal)
+
 The snippet below is real code from
 `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`:
 
@@ -770,6 +855,7 @@ ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
 ```
 
 ## Device Handler and Function ID
+
 Adapted from `test_realtime_decoding.cu` (the actual test uses a library helper,
 `setup_mock_decode_function_table`, that performs equivalent setup via
 `cudaMemcpy`):
@@ -798,6 +884,7 @@ __global__ void init_function_table(cudaq_function_entry_t* entries) {
 ```
 
 ### Multi-Argument Handler Example
+
 ```cpp
 constexpr std::uint32_t ADVANCED_DECODE_FUNCTION_ID =
     cudaq::realtime::fnv1a_hash("advanced_decode");
@@ -821,15 +908,23 @@ __global__ void init_advanced_handler(cudaq_function_entry_t* entries,
 ```
 
 ## CUDA Graph Dispatch Mode
-The `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode enables handlers to be executed as pre-captured CUDA graphs launched from device code. This is useful for complex multi-kernel workflows that benefit from graph optimization and can reduce kernel launch overhead for sophisticated decoders.
+
+The `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode enables handlers to be executed as
+pre-captured CUDA graphs launched from device code.
+This is useful for complex multi-kernel workflows that benefit
+from graph optimization and can reduce kernel launch overhead
+for sophisticated decoders.
 
 ### Requirements
-* **GPU Architecture**: Compute capability 9.0 or higher (Hopper H100 or later)
-* **CUDA Version**: CUDA 12.0+ with device-side graph launch support
-* **Graph Setup**: Handler graphs must be captured and instantiated with `cudaGraphInstantiateFlagDeviceLaunch`
+
+- **GPU Architecture**: Compute capability 9.0 or higher (Hopper H100 or later)
+- **CUDA Version**: CUDA 12.0+ with device-side graph launch support
+- **Graph Setup**: Handler graphs must be captured and instantiated with `cudaGraphInstantiateFlagDeviceLaunch`
 
 ### Graph-Based Dispatch API
-The API provides functions to properly wrap the dispatch kernel in a graph context that enables device-side `cudaGraphLaunch()`:
+
+The API provides functions to properly wrap the dispatch kernel in
+a graph context that enables device-side `cudaGraphLaunch()`:
 
 ```cpp
 // Opaque handle for graph-based dispatch context
@@ -854,6 +949,7 @@ cudaError_t cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 ```
 
 ### Graph Handler Setup Example
+
 ```cpp
 /// @brief Initialize function table with CUDA graph handler
 __global__ void init_function_table_graph(cudaq_function_entry_t* entries) {
@@ -872,6 +968,7 @@ __global__ void init_function_table_graph(cudaq_function_entry_t* entries) {
 ```
 
 ### Graph Capture and Instantiation
+
 Handler graphs must be captured and instantiated with the device launch flag:
 
 ```cpp
@@ -895,22 +992,32 @@ cudaStreamDestroy(capture_stream);
 ```
 
 ### When to Use Graph Dispatch
-Use `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode with the graph-based dispatch API when handlers need to launch CUDA graphs from device code. The graph-based dispatch API (`cudaq_create_dispatch_graph_regular()` + `cudaq_launch_dispatch_graph()`) wraps the dispatch kernel in a graph execution context, enabling device-side `cudaGraphLaunch()` calls from within handlers.
+
+Use `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode with the graph-based dispatch API when
+handlers need to launch CUDA graphs from device code.
+The graph-based dispatch API
+(`cudaq_create_dispatch_graph_regular()` + `cudaq_launch_dispatch_graph()`)
+wraps the dispatch kernel in a graph execution context,
+enabling device-side `cudaGraphLaunch()` calls from within handlers.
 
 ### Graph vs Device Call Dispatch
+
 **Device Call Mode** (`CUDAQ_DISPATCH_DEVICE_CALL`):
-* Lowest latency for simple handlers
-* Direct `__device__` function call from dispatcher
-* Suitable for lightweight decoders and data transformations
-* No special hardware requirements
+
+- Lowest latency for simple handlers
+- Direct `__device__` function call from dispatcher
+- Suitable for lightweight decoders and data transformations
+- No special hardware requirements
 
 **Graph Launch Mode** (`CUDAQ_DISPATCH_GRAPH_LAUNCH`):
-* Enables complex multi-kernel workflows
-* Benefits from CUDA graph optimizations
-* Requires sm_90+ hardware (Hopper or later)
-* Higher setup overhead but can reduce per-invocation latency for complex pipelines
+
+- Enables complex multi-kernel workflows
+- Benefits from CUDA graph optimizations
+- Requires `sm_90`+ hardware (Hopper or later)
+- Higher setup overhead but can reduce per-invocation latency for complex pipelines
 
 ## Host Dispatch Path (CPU Graph Launch)
+
 The **host dispatch path** (`CUDAQ_DISPATCH_PATH_HOST`) is an alternative to
 the GPU-resident dispatch kernel.  Instead of a persistent GPU kernel polling
 ring buffer flags, a single CPU monitor thread polls `rx_flags_host`, matches
@@ -922,6 +1029,7 @@ Select this path by setting `dispatch_path = CUDAQ_DISPATCH_PATH_HOST` in
 remains the default and continues to work exactly as described above.
 
 ### When to Use the Host Path
+
 The primary reason to choose `CUDAQ_DISPATCH_PATH_HOST` is the **120
 fire-and-forget launch limit** on device-side graph launch.  A parent graph
 can launch at most 120 fire-and-forget child graphs during a single
@@ -934,21 +1042,22 @@ graph-based handlers must therefore use the host path.
 
 Additional reasons to prefer the host path:
 
-* The graph needs to be launched from the host (e.g., it uses libraries or
+- The graph needs to be launched from the host (e.g., it uses libraries or
     memory allocations that require host-side API calls)
-* The deployment requires standard CUDA tooling for profiling and debugging
-    (host-launched graphs appear in Nsight Systems timelines)
+- The deployment requires standard CUDA tooling for profiling and debugging
+    (host-launched graphs appear in `Nsight Systems` timelines)
 
 Use `CUDAQ_DISPATCH_PATH_DEVICE` when:
 
-* Sub-microsecond dispatch latency is required (GPU-resident kernel avoids
+- Sub-microsecond dispatch latency is required (GPU-resident kernel avoids
     CPU round-trip)
-* Handlers are simple `__device__` functions or cooperative kernels
-* Transport uses GPU-polled RDMA (e.g., Hololink 3-kernel or unified mode)
-* Graph-based handlers are not needed, or the workload is limited to at most
+- Handlers are simple `__device__` functions or cooperative kernels
+- Transport uses GPU-polled RDMA (e.g., Hololink 3-kernel or unified mode)
+- Graph-based handlers are not needed, or the workload is limited to at most
     120 messages per session
 
-### Architecture
+### Host Path Architecture
+
 The host dispatch path consists of a single CPU monitor thread that runs a
 tight poll loop.  On each iteration:
 
@@ -970,17 +1079,18 @@ tight poll loop.  On each iteration:
 8. It clears `rx_flags_host[current_slot]` and advances to the next slot.
 
 ### Workers
+
 Workers are **not** OS threads.  Each worker is a logical unit consisting of:
 
-* A `cudaGraphExec_t` -- the pre-captured, pre-instantiated CUDA graph
-* A dedicated `cudaStream_t` -- used exclusively by this worker
-* A `function_id` -- used for routing incoming RPCs to the correct graph
+- A `cudaGraphExec_t` -- the pre-captured, pre-instantiated CUDA graph
+- A dedicated `cudaStream_t` -- used exclusively by this worker
+- A `function_id` -- used for routing incoming `RPCs` to the correct graph
 
 The number of workers equals the number of `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 entries in the function table.  If multiple entries share a `function_id`,
 each gets its own worker, enabling pipelined execution.
 
-Worker availability is tracked by a 64-bit atomic bitmask (`idle_mask`).
+Worker availability is tracked by a 64-bit atomic bit-mask (`idle_mask`).
 Bit *i* set means worker *i* is idle.  The monitor acquires a worker by
 finding a set bit whose `function_id` matches the incoming RPC, then atomically
 clearing that bit.  The function `sweep_completed_workers()` periodically
@@ -988,6 +1098,7 @@ queries `cudaStreamQuery()` on each busy worker's stream; when
 `cudaSuccess` is returned, the worker's bit is set again.
 
 ### Pinned Mailbox
+
 The monitor thread and graph kernels communicate via a pinned mailbox -- a
 `void**` array allocated with `cudaHostAllocMapped`.  The host writes to
 `h_mailbox_bank[worker_id]`; the graph kernel reads the same physical
@@ -996,7 +1107,7 @@ location via `d_mailbox_bank[worker_id]` (obtained from
 
 When `rx_data == tx_data` (shared buffers, response written in-place), the
 mailbox entry contains the device pointer to the RX slot.  The graph kernel
-dereferences `d_mailbox_bank[worker_id]` to find the slot, processes the
+de-references `d_mailbox_bank[worker_id]` to find the slot, processes the
 request, and writes the `RPCResponse` in-place.
 
 When `rx_data != tx_data` (separate RX/TX buffers, the Hololink
@@ -1004,7 +1115,8 @@ configuration), the mailbox entry contains a device pointer to a
 `GraphIOContext` struct (described below).  The graph kernel reads its
 fields to find the input slot, output slot, and TX flag.
 
-### GraphIOContext
+### `GraphIOContext`
+
 When separate RX/TX buffers are used, the host dispatcher fills a
 `GraphIOContext` before each graph launch:
 
@@ -1031,7 +1143,8 @@ The `tx_flag_value` is set to the device address of `tx_slot` (the
 a ready signal.
 
 ### TX Flag State Machine
-The host dispatch path introduces a richer TX flag lifecycle.  The helper
+
+The host dispatch path introduces a richer TX flag life cycle.  The helper
 function `cudaq_host_ringbuffer_poll_tx_flag()` classifies the current
 value into one of four states:
 
@@ -1046,14 +1159,14 @@ typedef enum {
 
 Sentinel constants (from `rpc_wire_format.h`):
 
-* `CUDAQ_TX_FLAG_IN_FLIGHT = 0xEEEEEEEEEEEEEEEE` -- written by the host
+- `CUDAQ_TX_FLAG_IN_FLIGHT = 0xEEEEEEEEEEEEEEEE` -- written by the host
     dispatcher before `cudaGraphLaunch()` (unless `skip_tx_markers` is set).
     Tells consumers that a graph is running but the response is not yet ready.
-* `CUDAQ_TX_FLAG_ERROR_TAG = 0xDEAD` -- the high 16 bits of an error flag.
+- `CUDAQ_TX_FLAG_ERROR_TAG = 0xDEAD` -- the high 16 bits of an error flag.
     The low 48 bits contain the `cudaError_t` value.  Written when
     `cudaGraphLaunch()` fails.
 
-When `skip_tx_markers` is set in the config, the dispatcher skips writing
+When `skip_tx_markers` is set in the configuration, the dispatcher skips writing
 `CUDAQ_TX_FLAG_IN_FLIGHT`.  The TX flag transitions directly from 0
 (empty) to the buffer address (ready) once the graph kernel sets it.  This
 is required when an external GPU kernel (e.g., Hololink TX) polls the same
@@ -1061,13 +1174,14 @@ is required when an external GPU kernel (e.g., Hololink TX) polls the same
 address.
 
 ### Host Dispatch API Functions
+
 **`cudaq_dispatcher_set_mailbox`** provides a caller-managed pinned
 mailbox for `CUDAQ_DISPATCH_GRAPH_LAUNCH` workers.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `h_mailbox_bank`: host pointer to a `void*` array allocated with
+- `dispatcher`: dispatcher handle.
+- `h_mailbox_bank`: host pointer to a `void*` array allocated with
     `cudaHostAlloc(..., cudaHostAllocMapped)`, sized to at least
     `num_graph_launch_entries * sizeof(void*)`.
 
@@ -1080,15 +1194,16 @@ pool after the graph has completed.
 
 Parameters:
 
-* `dispatcher`: dispatcher handle.
-* `worker_id`: index of the worker to release.
+- `dispatcher`: dispatcher handle.
+- `worker_id`: index of the worker to release.
 
 This is the consumer-side counterpart to the dispatcher's internal
 `idle_mask` acquisition.  Without this call, the worker stays "busy"
 indefinitely.
 
 ### Ring Buffer Slot Helpers
-These functions encapsulate the RPC wire format and flag-signalling protocol
+
+These functions encapsulate the RPC wire format and flag-signaling protocol
 so that producers and consumers do not need to know about magic constants,
 the "address-as-flag" convention, or the TX flag state machine.
 
@@ -1102,8 +1217,8 @@ cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
     uint32_t request_id, uint64_t ptp_timestamp);
 ```
 
-The function writes an `RPCHeader` (magic, function_id, arg_len, request_id,
-ptp_timestamp) followed by `payload_len` bytes of payload data into
+The function writes an `RPCHeader` (`magic`, `function_id`, `arg_len`, `request_id`,
+`ptp_timestamp`) followed by `payload_len` bytes of payload data into
 `rb->rx_data_host + slot_idx * rb->rx_stride_sz`.  Returns
 `CUDAQ_ERR_INVALID_ARG` if the total size exceeds `rx_stride_sz`.
 
@@ -1155,6 +1270,7 @@ Zeroes `tx_flags_host[slot_idx]`.  Call this after reading the response data
 so the slot can be reused.
 
 ### Host Path Wiring Example
+
 The following example shows end-to-end wiring for the host dispatch path,
 based on `test_host_dispatcher.cu` (`FullRpcRoundTripViaPinnedMailbox`).
 
@@ -1277,6 +1393,7 @@ cudaFreeHost(h_mailbox_bank);
 ```
 
 ## Building and Sending an RPC Message
+
 Real code from `test_realtime_decoding.cu`:
 
 Note: this host-side snippet emulates what the external device/FPGA would do
@@ -1303,6 +1420,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
 ```
 
 ## Reading the Response
+
 Real code from `test_realtime_decoding.cu`:
 
 Note: this host-side snippet emulates what the external device/FPGA would do
@@ -1347,7 +1465,8 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
 ```
 
 ## Schema-Driven Argument Parsing
-The dispatcher uses the handler schema to interpret the typeless payload bytes.
+
+The dispatcher uses the handler schema to interpret the type-less payload bytes.
 This example shows conceptual parsing logic:
 
 ```cpp
@@ -1386,7 +1505,7 @@ __device__ void dispatch_with_schema(
 
 For multi-argument payloads, arguments are **concatenated in schema order**:
 
-```
+```text
 | RPCHeader | arg0_bytes | arg1_bytes | arg2_bytes | ... |
              ^            ^            ^
              offset=0     offset=16    offset=80
@@ -1396,8 +1515,10 @@ The schema specifies the size of each argument, allowing the dispatcher to
 compute offsets.
 
 ## Hololink 3-Kernel Workflow (Primary)
-See the [3-Kernel Architecture](#three-kernel-architecture) diagram above for
-the complete data flow. The key integration points are:
+
+See the [3-Kernel Architecture](#the-3-kernel-architecture-hololink-example)
+diagram above for the complete data flow.
+The key integration points are:
 
 **Ring buffer handoff (RX → Dispatch)**:
 
@@ -1415,41 +1536,49 @@ tx_flags[slot] = device_ptr_to_slot_data;
 
 **Latency path**: The critical path is:
 
-1. RDMA write completes → RX kernel signals → Dispatch polls and processes → TX kernel polls and sends → RDMA read completes
+1. RDMA write completes → RX kernel signals → Dispatch polls and processes →
+TX kernel polls and sends → RDMA read completes
 
 All three kernels are **persistent** (launched once, run indefinitely), so
 there is no kernel launch overhead in the hot path.
 
 ## NIC-Free Testing (No Hololink / No ConnectX-7)
+
 Emulate RX/TX with mapped host memory:
 
-* `cudaqx` mock-decoder test:
-  * `libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
-* `cuda-quantum` host API test:
-  * `realtime/unittests/test_dispatch_kernel.cu`
+- `cudaqx` mock-decoder test:
+  - `libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+- `cuda-quantum` host API test:
+  - `realtime/unittests/test_dispatch_kernel.cu`
 
 Detection event file convention used by the tests:
 
-* Each `ROUND_START` block represents one decoding round.
-* Only the numeric detection event values are encoded into the payload (do not send the `ROUND_START` tokens).
+- Each `ROUND_START` block represents one decoding round.
+- Only the numeric detection event values are encoded into the payload
+(do not send the `ROUND_START` tokens).
 
-Note: <span class=allow-2119>Existing test files may use `SHOT_START` for backwards compatibility; this should be interpreted as `ROUND_START` in the context of realtime decoding.</span>
+Note: Existing test files may use `SHOT_START` for
+backwards compatibility; this should be interpreted as `ROUND_START`
+in the context of realtime decoding.
 
-## Mock Decoder Example (cudaqx)
+## Mock Decoder Example (`cudaqx`)
+
 The mock decoder is registered as an RPC handler and invoked by the dispatch
 kernel. The tests show end-to-end wiring with detection events loaded from
 the detection event file.
 
 See:
 
-* `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+- `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
 
 ## Troubleshooting
-* **Timeout waiting for TX**: ensure the RX flag points to device-mapped memory.
-* **Invalid arg**: check `slot_size`, `num_slots`, function table pointers.
-* **CUDA errors**: verify `device_id`, and that CUDA is initialized.
+
+- **Timeout waiting for TX**: ensure the RX flag points to device-mapped memory.
+- **Invalid `arg`**: check `slot_size`, `num_slots`, function table pointers.
+- **CUDA errors**: verify `device_id`, and that CUDA is initialized.
 
 ## References
-* `cuda-quantum/realtime/unittests/test_dispatch_kernel.cu`
-* `cuda-quantum/realtime/unittests/test_host_dispatcher.cu`
-* `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+
+- `cuda-quantum/realtime/unittests/test_dispatch_kernel.cu`
+- `cuda-quantum/realtime/unittests/test_host_dispatcher.cu`
+- `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
