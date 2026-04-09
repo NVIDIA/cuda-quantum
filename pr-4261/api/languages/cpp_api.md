@@ -12121,15 +12121,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1state_1a63a0a5611121086e818c6f8df3561dee .target}[[inline]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[::]{.pre}]{.p}[[[HostBuffer]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationState10HostBufferE "cudaq::SimulationState::HostBuffer"){.reference .internal}[ ]{.w}[[[toHostBuffer]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[numElements]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5state12toHostBufferENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Allocate a host buffer and copy state data from device. GPU
-        backends use pinned memory for optimal transfer speed.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1state_1a8b3cca5e2ba7672a8fc23a92f33700ca .target}[[void]{.pre}]{.kt}[ ]{.w}[[[dump]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5state4dumpEv "Permalink to this definition"){.headerlink}\
 
     :   Dump the state to standard out.
