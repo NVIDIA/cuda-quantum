@@ -321,96 +321,49 @@ pr-4229
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
-        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+        -   [Python Examples (Jupyter
+            Notebooks)](../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
             .internal}
-            -   [Why dynamics simulations vs. circuit
-                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
-            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Introduction to CUDA-Q Dynamics (Time Dependent
+                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
-            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Superconducting
+                Qubits](../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Spin
+                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Trapped Ion
+                Qubits](../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Section 2 - Simulating open quantum systems with the
-                [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+            -   [Control](../../examples/python/dynamics/control.html){.reference
                 .internal}
-            -   [Exercise 2 - Adding additional jump operators
-                [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
-                .internal}
-            -   [Section 3 - Many qubits coupled to the
-                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
-                .internal}
-        -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
+        -   [C++
+            Examples](../../using/examples/dynamics_examples.html#c-examples){.reference
             .internal}
-            -   [The Landau-Zener
-                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+            -   [Introduction: Single Qubit
+                Dynamics](../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
                 .internal}
-            -   [Section 1 - Implementing time dependent
-                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+            -   [Introduction: Cavity QED (Jaynes-Cummings
+                Model)](../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
-            -   [Section 2 - Implementing custom
-                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+            -   [Superconducting Qubits: Cross-Resonance
+                Gate](../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
-            -   [Section 3 - Heisenberg Model with a time-varying
-                magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+            -   [Spin Qubits: Heisenberg Spin
+                Chain](../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
-            -   [Exercise 1 - Define a time-varying magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+            -   [Control: Driven
+                Qubit](../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
                 .internal}
-            -   [Exercise 2
-                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+            -   [State
+                Batching](../../using/examples/dynamics_examples.html#state-batching){.reference
                 .internal}
-        -   [Superconducting
-            Qubits](../../examples/python/dynamics/superconducting.html){.reference
-            .internal}
-            -   [Cavity
-                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
-                .internal}
-            -   [Cross
-                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
-                .internal}
-            -   [Transmon
-                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
-                .internal}
-        -   [Spin
-            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
-            .internal}
-            -   [Silicon Spin
-                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
-                .internal}
-            -   [Heisenberg
-                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
-                .internal}
-        -   [Trapped Ion
-            Qubits](../../examples/python/dynamics/iontrap.html){.reference
-            .internal}
-            -   [GHZ
-                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
-                .internal}
-        -   [Control](../../examples/python/dynamics/control.html){.reference
-            .internal}
-            -   [Gate
-                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
-                .internal}
-            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
-                .internal}
-            -   [Qubit
-                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
-                .internal}
-            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+            -   [Numerical
+                Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
     -   [Max-Cut with
@@ -12825,14 +12778,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a5a02ed81eab2209910562c4161660404 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[launchKernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[name]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[\*]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[rawArgs]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringERKNSt6vectorIPvEE "Permalink to this definition"){.headerlink}\
-
-    :   Launch the kernel with given name and argument arrays.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Notify the [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
@@ -13506,7 +13451,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a9d165737129a8ca7423ce1e0b0c9ca7e .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEv "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1a9d165737129a8ca7423ce1e0b0c9ca7e .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEv "Permalink to this definition"){.headerlink}\
 
 :   Initialize MPI if available. This function is a no-op if there
     CUDA-Q has not been built against MPI.
@@ -13515,7 +13460,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a6c944ecd26dfb16504034fb023a04a99 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[int]{.pre}]{.kt}[ ]{.w}[[argc]{.pre}]{.n .sig-param}, [[char]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[\*]{.pre}]{.p}[[argv]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEiPPc "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1a6c944ecd26dfb16504034fb023a04a99 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[int]{.pre}]{.kt}[ ]{.w}[[argc]{.pre}]{.n .sig-param}, [[char]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[\*]{.pre}]{.p}[[argv]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEiPPc "Permalink to this definition"){.headerlink}\
 
 :   Initialize MPI if available. This function is a no-op if there
     CUDA-Q has not been built against MPI. Takes program arguments as
@@ -13525,7 +13470,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a2c7d083e6db96bf244206e1da6f44774 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[is_initialized]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi14is_initializedEv "Permalink to this definition"){.headerlink}\
+[]{#observe_8h_1a2c7d083e6db96bf244206e1da6f44774 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[is_initialized]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi14is_initializedEv "Permalink to this definition"){.headerlink}\
 
 :   Return true if MPI is already initialized, false otherwise.
 
@@ -13533,7 +13478,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1adbce8f0a621b7c6073e3f358d452b5ed .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[finalize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi8finalizeEv "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1adbce8f0a621b7c6073e3f358d452b5ed .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[finalize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi8finalizeEv "Permalink to this definition"){.headerlink}\
 
 :   Finalize MPI. This function is a no-op if there CUDA-Q has not been
     built against MPI.
@@ -13542,7 +13487,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1ae314e6dc9f293eebe6b9dcb44efef7c3 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[rank]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi4rankEv "Permalink to this definition"){.headerlink}\
+[]{#observe_8h_1ae314e6dc9f293eebe6b9dcb44efef7c3 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[rank]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi4rankEv "Permalink to this definition"){.headerlink}\
 
 :   Return the rank of the calling process.
 
@@ -13550,7 +13495,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1ae3a3c06ca899063fbabb0f0c936d3c41 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[num_ranks]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9num_ranksEv "Permalink to this definition"){.headerlink}\
+[]{#observe_8h_1ae3a3c06ca899063fbabb0f0c936d3c41 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[num_ranks]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9num_ranksEv "Permalink to this definition"){.headerlink}\
 
 :   Return the number of MPI ranks.
 
@@ -13558,7 +13503,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1aaa5aebe9903c057fa3f1ae8fce98a50b .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIdEERKNSt6vectorIdEE "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1aaa5aebe9903c057fa3f1ae8fce98a50b .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIdEERKNSt6vectorIdEE "Permalink to this definition"){.headerlink}\
 
 :   Gather all vector data (floating point numbers) locally into the
     provided global vector.
@@ -13570,7 +13515,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1ac382bb3637b38312a88615b20a4f8b3f .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIiEERKNSt6vectorIiEE "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1ac382bb3637b38312a88615b20a4f8b3f .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIiEERKNSt6vectorIiEE "Permalink to this definition"){.headerlink}\
 
 :   Gather all vector data (integers) locally into the provided global
     vector.
@@ -13592,7 +13537,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ```
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[[BinaryFunction]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#cudaq_8h_1acf510f9fe029c39b4d475c75fb876dc3 .target}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_reduce]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[localValue]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[BinaryFunction]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::BinaryFunction"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[function]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1acf510f9fe029c39b4d475c75fb876dc3 .target}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_reduce]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[localValue]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[BinaryFunction]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::BinaryFunction"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[function]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "Permalink to this definition"){.headerlink}\
 
 :   Reduce all values across ranks with the specified binary function.
 
@@ -13600,7 +13545,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a16e7663348b7ff4e38d5a2177881c232 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1a16e7663348b7ff4e38d5a2177881c232 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi "Permalink to this definition"){.headerlink}\
 
 :   Broadcast a vector from a process (rootRank) to all other processes.
 
@@ -13608,7 +13553,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1abf82bc930287d1b8f8411c98bb38a384 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6stringEi "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1abf82bc930287d1b8f8411c98bb38a384 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6stringEi "Permalink to this definition"){.headerlink}\
 
 :   Broadcast a string from a process (rootRank) to all other processes.
 
