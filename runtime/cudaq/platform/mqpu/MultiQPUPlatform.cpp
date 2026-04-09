@@ -25,7 +25,6 @@ LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 namespace {
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<cudaq::details::QpuProcessGroup> m_qpuProcessGroups;
-  bool m_broadcastKernelResults = true;
   std::optional<int> m_numQPUs;
 
 public:
