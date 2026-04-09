@@ -4224,7 +4224,7 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         # MeasureType values are SSA-only (no memory representation) and
-        # cannot be stored in a stdvec. When the context demands a classical
+        # cannot be stored in a `stdvec`. When the context demands a classical
         # element type (e.g. return list[bool]), discriminate here.
         if quake.MeasureType.isinstance(listElementValues[0].type):
             targetEleTy = None
