@@ -454,7 +454,11 @@ std::vector<std::string> sample_result::register_names() const {
 
 CountsDictionary
 sample_result::to_map(const std::string_view registerName) const {
-  return retrieve_result(registerName.data()).counts;
+  auto [found, result] = try_retrieve_result(registerName.data());
+  if (!found)
+    return {};
+
+  return result.counts;
 }
 
 sample_result
