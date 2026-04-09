@@ -32,13 +32,18 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
 
   // Count allocated qubits from the IR.
   std::size_t allocated = 0;
+  bool unresolvedVeq = false;
   module.walk([&](quake::AllocaOp alloc) {
-    if (isa<quake::RefType>(alloc.getType()))
+    if (isa<quake::RefType>(alloc.getType())) {
       allocated++;
-    else if (auto veqTy = dyn_cast<quake::VeqType>(alloc.getType()))
-      if (veqTy.hasSpecifiedSize())
-        allocated += veqTy.getSize();
+    } else if (auto size = quake::getVeqSize(alloc.getResult())) {
+      allocated += *size;
+    } else {
+      unresolvedVeq = true;
+    }
   });
+  if (unresolvedVeq)
+    return failure();
   counts.setNumQubits(allocated);
 
   return counts;

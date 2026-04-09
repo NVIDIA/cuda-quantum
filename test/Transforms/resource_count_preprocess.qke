@@ -151,6 +151,27 @@ func.func @kernel5() {
 
 // -----
 
+// CHECK: Preprocessing h(0) for 1 counts
+// CHECK-LABEL: func.func @kernel_relaxed_veq() {
+// CHECK:   %0 = quake.alloca !quake.veq<4>
+// CHECK:   return
+// CHECK: }
+
+// Veq<?> from RelaxSizeOp (SubVeqOp canonicalization with constant bounds).
+// The extract_ref uses %relaxed (veq<?>) to exercise the RelaxSizeOp
+// look-through in getVeqBase.
+func.func @kernel_relaxed_veq() {
+  %c0 = arith.constant 0 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %sub = quake.subveq %0, 0, 1 : (!quake.veq<4>) -> !quake.veq<2>
+  %relaxed = quake.relax_size %sub : (!quake.veq<2>) -> !quake.veq<?>
+  %1 = quake.extract_ref %relaxed[%c0] : (!quake.veq<?>, i64) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
 // CHECK: Preprocessing x(0) for 1 counts
 // CHECK: Preprocessing x(1) for 1 counts
 

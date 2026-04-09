@@ -45,9 +45,8 @@ struct ResourceCountPreprocessPass
     if (it != qubitIndexMap.end())
       return it->second;
     auto base = nextQubitIndex;
-    if (auto veqTy = dyn_cast<quake::VeqType>(veq.getType()))
-      if (veqTy.hasSpecifiedSize())
-        nextQubitIndex += veqTy.getSize();
+    if (auto size = quake::getVeqSize(veq))
+      nextQubitIndex += *size;
     qubitIndexMap[veq] = base;
     return base;
   }
