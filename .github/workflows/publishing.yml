@@ -496,7 +496,7 @@ jobs:
 
       - name: Build cuda-quantum image
         id: cudaq_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/release/cudaq.ext.Dockerfile
@@ -650,7 +650,7 @@ jobs:
           enable-apt: true
 
       - name: Build installer
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/release/installer.Dockerfile
@@ -792,7 +792,7 @@ jobs:
 
       - name: Build cuda-quantum wheel
         id: build_wheel
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/release/cudaq.wheel.Dockerfile
