@@ -8,10 +8,11 @@
 
 #include "py_AnalogHamiltonian.h"
 #include "common/AnalogHamiltonian.h"
-#include "common/JsonConvert.h"
+#include "nlohmann/json.hpp"
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+using json = nlohmann::json;
 
 namespace cudaq {
 

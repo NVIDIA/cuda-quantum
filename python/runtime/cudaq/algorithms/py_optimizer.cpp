@@ -8,7 +8,6 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
-#include "common/JsonConvert.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
@@ -37,18 +36,6 @@ void bindGradientStrategies(py::module &mod) {
                                                       "CentralDifference")
       .def(py::init<>())
       .def(
-          "to_json",
-          [](const gradients::central_difference &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::central_difference p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
-      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              py::function &func, double funcAtX) {
@@ -64,18 +51,6 @@ void bindGradientStrategies(py::module &mod) {
                                                       "ForwardDifference")
       .def(py::init<>())
       .def(
-          "to_json",
-          [](const gradients::forward_difference &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::forward_difference p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
-      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              py::function &func, double funcAtX) {
@@ -90,18 +65,6 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                    "ParameterShift")
       .def(py::init<>())
-      .def(
-          "to_json",
-          [](const gradients::parameter_shift &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::parameter_shift p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -124,17 +87,6 @@ template <typename OptimizerT>
 py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
   return py::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(py::init<>())
-      .def(
-          "to_json", [](const OptimizerT &p) { return json(p).dump(); },
-          "Convert optimizer to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            OptimizerT p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to optimizer")
       .def_readwrite("max_iterations", &OptimizerT::max_eval, R"doc(
           int: Maximum number of optimizer iterations (default: unlimited).
 
