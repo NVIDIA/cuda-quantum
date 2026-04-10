@@ -948,7 +948,7 @@ LogicalResult quake::SplitCableOp::verify() {
   return success();
 }
 
-LogicalResult quake::LeftTeeOp::verify() {
+LogicalResult quake::DetachWireOp::verify() {
   if (!getCable().getType().getSize())
     return emitOpError("cannot remove a wire from an empty bundle.");
   if (getIndex() >= getCable().getType().getSize())
@@ -959,7 +959,7 @@ LogicalResult quake::LeftTeeOp::verify() {
   return success();
 }
 
-LogicalResult quake::RightTeeOp::verify() {
+LogicalResult quake::AttachWireOp::verify() {
   if (getIndex() > getCable().getType().getSize())
     return emitOpError("index into the bundle is out of bounds.");
   if (getCableOut().getType().getSize() != getCable().getType().getSize() + 1)
