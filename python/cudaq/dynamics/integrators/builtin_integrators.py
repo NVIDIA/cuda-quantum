@@ -20,15 +20,20 @@ try:
 except ImportError:
     has_cupy = False
 
+_bindings = None
+
 
 def _get_bindings():
-    try:
-        from .. import nvqir_dynamics_bindings as b
-        return b
-    except ImportError:
-        raise ImportError(
-            'CUDA-Q is missing dynamics support. Please check your installation'
-        )
+    global _bindings
+    if _bindings is None:
+        try:
+            from .. import nvqir_dynamics_bindings as b
+            _bindings = b
+        except ImportError:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
+    return _bindings
 
 
 class cuDensityMatTimeStepper(BaseTimeStepper[State]):
