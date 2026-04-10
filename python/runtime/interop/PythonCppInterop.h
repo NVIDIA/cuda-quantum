@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/CompiledKernel.h"
 #include "cudaq/qis/qkernel.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include <optional>
@@ -28,7 +29,7 @@ public:
                                "annotated with cudaq.kernel");
   }
 
-  ~CppPyKernelDecorator();
+  ~CppPyKernelDecorator() = default;
 
   /// Fully compiles this python kernel, returning a `qkernel` that can
   /// be directly invoked by host code. Do not pass the returned `qkernel`
@@ -55,17 +56,19 @@ public:
 
 private:
   py::object kernel;
-  std::optional<std::size_t> cachedEngineKey;
+  std::optional<cudaq::CompiledKernel> cachedKernel;
 
   template <typename... As>
   void *getKernelHelper(bool isEntryPoint, As... as) {
     // Perform beta reduction on the kernel decorator.
-    auto [p, cachedEngineHandle] =
+    cachedKernel =
         kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...)
-            .template cast<std::pair<void *, std::size_t>>();
+            .template cast<cudaq::CompiledKernel>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
-    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
-    cachedEngineKey = cachedEngineHandle;
+    auto *p =
+        reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(
+                                     cachedKernel->getJit().getEntryPoint()) |
+                                 1);
     // Translate the pointer to the entry point code buffer to a `qkernel`.
     return p;
   }

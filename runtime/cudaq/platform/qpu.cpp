@@ -26,20 +26,15 @@ cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
   return compiled.execute(rawArgs);
 }
 
-void *cudaq::QPU::specializeModule(const std::string &name,
-                                   mlir::ModuleOp module,
-                                   const std::vector<void *> &rawArgs,
-                                   std::optional<JitEngine> &cachedEngine,
-                                   bool isEntryPoint) {
+cudaq::CompiledKernel
+cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
+                             const std::vector<void *> &rawArgs,
+                             bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `specializeModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::specializeModule", name);
-  auto compiled = launcher->compileModule(name, module, rawArgs, isEntryPoint);
-  if (cachedEngine)
-    throw std::runtime_error("cache must not be populated");
-  cachedEngine = compiled.getJit().getEngine();
-  return reinterpret_cast<void *>(compiled.getJit().getEntryPoint());
+  return launcher->compileModule(name, module, rawArgs, isEntryPoint);
 }
