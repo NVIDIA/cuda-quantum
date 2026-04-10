@@ -57,4 +57,4 @@ int main() {
 // toolchain.
 
 // COMPILE_ERROR: undefined {{.*}}add_op
-// COMPILE_ERROR_MACOS: Undefined symbols for architecture
+// COMPILE_ERROR_MACOS: {{undefined symbol|Undefined symbols}}{{.*}}add_op

@@ -12,3 +12,6 @@ add_library(${LIBRARY_NAME} OBJECT RestServer.cpp)
 target_link_libraries(${LIBRARY_NAME} PRIVATE Crow::Crow)
 target_include_directories(${LIBRARY_NAME} PRIVATE
   ../ ${Crow_SOURCE_DIR}/include ${asio_SOURCE_DIR}/asio/include)
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
+  target_compile_options(${LIBRARY_NAME} PRIVATE -Wno-deprecated-literal-operator)
+endif()

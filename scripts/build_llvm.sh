@@ -321,11 +321,15 @@ if [ -n "$llvm_runtimes" ]; then
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
     echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' > "$clang_config_file"
     echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
-    target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
-    for libdir in $target_specific_libs; do
-      echo '-L"'$libdir'"' >> "$clang_config_file"
-      echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
-    done
+    # On macOS, sysroot paths are NOT baked into the cfg because they become
+    # stale after Xcode/SDK updates. nvq++ resolves them at runtime instead.
+    if [ "$(uname)" != "Darwin" ]; then
+      target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
+      for libdir in $target_specific_libs; do
+        echo '-L"'$libdir'"' >> "$clang_config_file"
+        echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
+      done
+    fi
     echo "Added default configuration $clang_config_file."
   fi
 fi
