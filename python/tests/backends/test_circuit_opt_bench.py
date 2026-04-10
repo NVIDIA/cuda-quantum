@@ -21,7 +21,7 @@ def reset():
 
 
 def test_swap_decomposition():
-    """SWAP decomposes into 3 CX gates under circuit-opt-bench."""
+    """SWAP decomposes into 3 CZ gates under circuit-opt-bench."""
     cudaq.set_target('circuit-opt-bench')
 
     kernel = cudaq.make_kernel()
