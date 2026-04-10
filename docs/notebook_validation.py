@@ -69,6 +69,9 @@ LONG_RUNNING_NOTEBOOKS = [
     "vqe_advanced.ipynb",
 ]
 
+DISABLED_NOTEBOOKS = [
+    "krylov.ipynb",
+]
 
 def validate(notebook_filename, available_backends):
     """
@@ -199,13 +202,9 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
 
-        notebooks_skipped = ['krylov.ipynb']
-
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)
-            if base_name in notebooks_skipped:
-                continue  # Already skipped, no need to re-check
-            if not validate(notebook_filename, available_backends):
+            if base_name in DISABLED_NOTEBOOKS or not validate(notebook_filename, available_backends):
                 notebooks_skipped.append(base_name)
                 continue
             if execute(notebook_filename, jupyter_kernel=jupyter_kernel):
