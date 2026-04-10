@@ -8,7 +8,6 @@
 
 // RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t \
 // RUN:   && %t 2>&1 | FileCheck %s
-// RUN:   -fkernel-exec-kind=1 %s -o %t && %t 2>&1 | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
