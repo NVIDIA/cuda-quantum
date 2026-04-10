@@ -34,13 +34,11 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   PassManager pm(ctx);
   pm.addNestedPass<func::FuncOp>(createResourceCountPreprocess(opt));
   pm.addPass(createCanonicalizerPass());
-  if (failed(pm.run(module))) {
-    if (wasThreadingEnabled)
-      ctx->enableMultithreading();
-    return failure();
-  }
+  auto pmResult = pm.run(module);
   if (wasThreadingEnabled)
     ctx->enableMultithreading();
+  if (failed(pmResult))
+    return failure();
 
   // Count allocated qubits from the IR.
   std::size_t allocated = 0;

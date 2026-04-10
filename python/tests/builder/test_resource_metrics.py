@@ -68,6 +68,20 @@ def test_parallel_cx_disjoint_qubits():
     assert resources.depth_for_arity(2) == 1
 
 
+def test_ccx_arity():
+    """CCX is arity-3, not arity-2."""
+
+    @cudaq.kernel
+    def toffoli_kernel():
+        q = cudaq.qvector(3)
+        x.ctrl([q[0], q[1]], q[2])
+
+    resources = cudaq.estimate_resources(toffoli_kernel)
+    assert resources.gate_count_for_arity(2) == 0
+    assert resources.gate_count_for_arity(3) == 1
+    assert resources.gate_count_by_arity == {3: 1}
+
+
 def test_mixed_gates():
     """1Q and 2Q gates mixed together."""
     kernel = cudaq.make_kernel()

@@ -111,7 +111,7 @@ public:
   /// @brief Return total gate count for all multi-qubit gates (arity >= 2).
   std::size_t getMultiQubitGateCount() const;
 
-  /// @brief Return max depth across all multi-qubit arities (>= 2).
+  /// @brief Return max depth across all gate widths >= 2.
   std::size_t getMultiQubitDepth() const;
 
   /// @brief Return gate counts by arity: {arity -> count}.

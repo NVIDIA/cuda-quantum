@@ -88,7 +88,7 @@ This includes all gate counts.)#")
                              "Total count of gates with 2 or more qubits.\n")
       .def_property_readonly("multi_qubit_depth",
                              &Resources::getMultiQubitDepth,
-                             "Max depth across all multi-qubit arities.\n")
+                             "Max depth across all gate widths >= 2.\n")
       .def_property_readonly(
           "per_qubit_depth",
           [](Resources &self) {
