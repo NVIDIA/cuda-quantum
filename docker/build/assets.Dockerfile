@@ -152,7 +152,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumCppBuild]
-    CUDAQ_ENABLE_STATIC_LINKING=TRUE \
+    CUDAQ_STATIC_CXX_RUNTIME=TRUE \
+    CUDAQ_STATIC_DEPS=TRUE \
     CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \

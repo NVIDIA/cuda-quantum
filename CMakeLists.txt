@@ -173,6 +173,21 @@ option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Fron
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
+# Backward compatibility: map the old CUDAQ_ENABLE_STATIC_LINKING env variable
+# to the two new flags. Setting cache variables here means the option() calls
+# below will respect them (option() does not overwrite existing cache entries).
+if(DEFINED ENV{CUDAQ_ENABLE_STATIC_LINKING} AND "$ENV{CUDAQ_ENABLE_STATIC_LINKING}")
+  if(NOT DEFINED CUDAQ_STATIC_CXX_RUNTIME)
+    set(CUDAQ_STATIC_CXX_RUNTIME ON CACHE BOOL "Set via deprecated CUDAQ_ENABLE_STATIC_LINKING")
+  endif()
+  if(NOT DEFINED CUDAQ_STATIC_DEPS)
+    set(CUDAQ_STATIC_DEPS ON CACHE BOOL "Set via deprecated CUDAQ_ENABLE_STATIC_LINKING")
+  endif()
+  message(DEPRECATION "CUDAQ_ENABLE_STATIC_LINKING is deprecated. "
+    "Use CUDAQ_STATIC_CXX_RUNTIME and/or CUDAQ_STATIC_DEPS instead.")
+endif()
+option(CUDAQ_STATIC_CXX_RUNTIME "Statically link libstdc++ and libgcc into CUDA-Q libraries." OFF)
+option(CUDAQ_STATIC_DEPS "Prefer static archives for external dependencies (zlib, OpenSSL, curl, BLAS)." OFF)
 option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${CUDAQ_FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
@@ -188,23 +203,14 @@ endif ()
 if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
   SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
 endif()
-if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
-  # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
-  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
-endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
 if(NOT OPENSSL_ROOT_DIR)
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}" CACHE PATH "Path to OpenSSL installation")
 endif()
-if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
-  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE INTERNAL "")
-elseif(NOT crypto_LIBRARY AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a")
-  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a" CACHE INTERNAL "")
-endif()
-if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
-  SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
+if(DEFINED ENV{OPENSSL_INSTALL_PREFIX} AND NOT "$ENV{OPENSSL_INSTALL_PREFIX}" STREQUAL "")
+  list(APPEND CMAKE_PREFIX_PATH "$ENV{OPENSSL_INSTALL_PREFIX}")
 endif()
 if(NOT CURL_ROOT AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/cmake/CURL/CURLConfig.cmake")
   # Point to custom curl installation - CMake will use its config files
@@ -232,14 +238,6 @@ if(APPLE)
   SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins")
 else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
-endif()
-
-SET(BLA_STATIC ON)
-if(NOT DEFINED ZLIB_USE_STATIC_LIBS)
-  SET(ZLIB_USE_STATIC_LIBS TRUE)
-endif()
-if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
 endif()
 
 # Platform-specific linker flags
@@ -275,10 +273,7 @@ if(NOT DEFINED CUDAQ_SYSROOT_PATH AND APPLE)
   )
 endif()
 
-if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
-  SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
-endif()
-if (CUDAQ_ENABLE_STATIC_LINKING)
+if (CUDAQ_STATIC_CXX_RUNTIME)
   # Using -static-libgcc -static-libstdc++ offers more fine grained control here
   # then using -static (for exe) and -staic-pie (for linker).
   # At the time of writing, there wasn't any benefit to using those over -static.
@@ -297,14 +292,17 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # to 1, to avoid some of these issues.
   # We don't set these configurations here, since the LLVM runtime libraries that we
   # build from source are already configured to hide symbols and include dependencies.
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
-  SET(ZLIB_USE_STATIC_LIBS TRUE)
-  set(CURL_STATICLIB ON)
-  message(STATUS "CUDA Quantum static linking enabled.")
-else()
-  message(STATUS "CUDA Quantum static linking disabled.")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  message(STATUS "Static C++ runtime linking enabled.")
+endif()
+
+if (CUDAQ_STATIC_DEPS)
+  set(BLA_STATIC ON)
+  set(ZLIB_USE_STATIC_LIBS TRUE)
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  set(CURL_USE_STATIC_LIBS TRUE)
+  message(STATUS "Static external dependencies enabled.")
 endif()
 
 # ZLIB is required when we build LLVM with zlib support.
@@ -556,8 +554,6 @@ target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # Look for CURL
-  set(CURL_STATICLIB ON)
-  set(CURL_USE_STATIC_LIBS TRUE)
   find_package(CURL COMPONENTS HTTP HTTPS)
 
   if (CURL_FOUND)
