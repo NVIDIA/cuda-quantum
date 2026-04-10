@@ -88,10 +88,10 @@ LogicalResult cudaq::verifier::checkNvqirCalls(ModuleOp module) {
       op->emitOpError("unexpected op in NVQIR");
       return WalkResult::interrupt();
     }
-    if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp,
-             LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::InsertValueOp,
-             LLVM::IntToPtrOp, LLVM::SelectOp, LLVM::LoadOp, LLVM::StoreOp>(
-            op)) {
+    if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp, LLVM::BrOp,
+             LLVM::CondBrOp, LLVM::ExtractValueOp, LLVM::GEPOp,
+             LLVM::InsertValueOp, LLVM::IntToPtrOp, LLVM::SelectOp,
+             LLVM::LoadOp, LLVM::StoreOp>(op)) {
       // No pointers allowed except for the above operations.
       for (auto oper : op->getOperands())
         if (isa<LLVM::LLVMPointerType>(oper.getType())) {
