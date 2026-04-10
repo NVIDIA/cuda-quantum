@@ -99,35 +99,6 @@ public:
   bool hasResult() const { return typeOpaquePtr != nullptr; }
 };
 
-// === Compiled artifact types =============================================
-
-/// JIT-compiled artifact, ready for local execution.
-struct JitArtifact {
-  JitEngine engine;
-  void (*entryPoint)() = nullptr;
-  int64_t (*argsCreator)(const void *, void **) = nullptr;
-  std::optional<Resources> resourceCounts;
-};
-
-/// Optimized MLIR module artifact, for deferred code generation or
-/// re-targeting.
-/// Type-erased to keep this header MLIR-free.
-struct MlirArtifact {
-  /// Owning reference to the MLIRContext.
-  ///
-  /// Required for observe artifacts as they share the same
-  /// MLIRContext across artifacts.
-  ///
-  /// May be `nullptr` if the context lifetime is managed elsewhere.
-  std::shared_ptr<void> contextOwner;
-  /// Opaque ModuleOp pointer (via `ModuleOp::getAsOpaquePointer()`).
-  /// Lifetime: the MLIRContext owned by `contextOwner` must outlive this.
-  const void *modulePtr = nullptr;
-};
-
-/// A compiled artifact is either a JIT binary or an MLIR module.
-using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
-
 // =========================================================================
 
 /// @brief A compiled, ready-to-execute kernel.
@@ -144,6 +115,35 @@ using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
 /// artifact after construction.
 class CompiledKernel {
 public:
+  // === Compiled artifact types =============================================
+
+  /// JIT-compiled artifact, ready for local execution.
+  struct JitArtifact {
+    JitEngine engine;
+    void (*entryPoint)() = nullptr;
+    int64_t (*argsCreator)(const void *, void **) = nullptr;
+    std::optional<Resources> resourceCounts;
+  };
+
+  /// Optimized MLIR module artifact, for deferred code generation or
+  /// re-targeting.
+  /// Type-erased to keep this header MLIR-free.
+  struct MlirArtifact {
+    /// Owning reference to the MLIRContext.
+    ///
+    /// Required for observe artifacts as they share the same
+    /// MLIRContext across artifacts.
+    ///
+    /// May be `nullptr` if the context lifetime is managed elsewhere.
+    std::shared_ptr<void> contextOwner;
+    /// Opaque ModuleOp pointer (via `ModuleOp::getAsOpaquePointer()`).
+    /// Lifetime: the MLIRContext owned by `contextOwner` must outlive this.
+    const void *modulePtr = nullptr;
+  };
+
+  /// A compiled artifact is either a JIT binary or an MLIR module.
+  using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
+
   // --- Construction ---
 
   CompiledKernel(std::string kernelName, ResultInfo resultInfo);

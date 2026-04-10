@@ -17,14 +17,16 @@ cudaq::CompiledKernel::CompiledKernel(std::string kernelName,
                                       ResultInfo resultInfo)
     : name(std::move(kernelName)), resultInfo(std::move(resultInfo)) {}
 
-const cudaq::JitArtifact &cudaq::CompiledKernel::getJit() const {
+const cudaq::CompiledKernel::JitArtifact &
+cudaq::CompiledKernel::getJit() const {
   for (auto &[key, artifact] : artifacts)
     if (auto *jit = std::get_if<JitArtifact>(&artifact))
       return *jit;
   throw std::runtime_error("CompiledKernel has no JIT artifact.");
 }
 
-const cudaq::MlirArtifact &cudaq::CompiledKernel::getMlir() const {
+const cudaq::CompiledKernel::MlirArtifact &
+cudaq::CompiledKernel::getMlir() const {
   for (auto &[key, artifact] : artifacts)
     if (auto *mlir = std::get_if<MlirArtifact>(&artifact))
       return *mlir;
