@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import logging
 import re
 import subprocess
 import sys
@@ -14,8 +15,10 @@ import time
 from pathlib import Path
 from shutil import which
 
+logger = logging.getLogger(__name__)
+
 if which('jupyter') is None:
-    print("Please install jupyter, e.g. with `pip install notebook`.")
+    logger.error("Please install jupyter, e.g. with `pip install notebook`.")
     exit(1)
 
 
@@ -70,7 +73,7 @@ LONG_RUNNING_NOTEBOOKS = [
 def validate(notebook_filename, available_backends):
     """
     Validate if a notebook can run with the available backends.
-    
+
     This function is fallback-aware: if a notebook has multiple set_target()
     calls (e.g., `nvidia` with `qpp-cpu` fallback), it will return True if ANY
     of the targets is available.
@@ -130,11 +133,11 @@ def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
 
         subprocess.run(cmd, check=True)
         elapsed = time.perf_counter() - start_time
-        print(f"  ✓  {notebook_basename}: {elapsed:.1f}s")
+        logger.info(f"✓ {notebook_basename}: {elapsed:.1f}s")
         return True
     except subprocess.CalledProcessError:
         elapsed = time.perf_counter() - start_time
-        print(f"  ✗  {notebook_basename}: FAILED after {elapsed:.1f}s")
+        logger.error(f"✗ {notebook_basename}: FAILED after {elapsed:.1f}s")
         return False
     finally:
         if os.path.exists(notebook_filename_out):
@@ -143,20 +146,20 @@ def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
 
 def print_results(success, failed, skipped=[]):
     if success:
-        print("Success! The following notebook(s) executed successfully:\n" +
+        logger.info("Success! The following notebook(s) executed successfully:\n" +
               " ".join(success))
 
     if failed:
-        print(
+        logger.error(
             "::error::The following notebook(s) raised one or more errors:\n" +
             " ".join(failed))
 
     if skipped:
-        print("::warning::Skipped validation for the following notebook(s):\n" +
+        logger.warning("::warning::Skipped validation for the following notebook(s):\n" +
               " ".join(skipped))
 
     if not failed and not skipped:
-        print("Success! All the notebook(s) executed successfully.")
+        logger.info("Success! All the notebook(s) executed successfully.")
     elif failed:
         exit(1)
 
@@ -190,7 +193,7 @@ if __name__ == "__main__":
         ]
 
         if not notebook_filenames:
-            print('Failed! No notebook(s) found.')
+            logger.error('Failed! No notebook(s) found.')
             exit(10)
 
         notebooks_success, notebooks_skipped, notebooks_failed = (
