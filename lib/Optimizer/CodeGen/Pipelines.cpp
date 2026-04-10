@@ -94,10 +94,18 @@ void createCommonTargetCodegenPipeline(
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
-template <bool isJIT>
+template <bool isJIT, bool useValueSemantics = false>
 void createTargetCodegenPipeline(PassManager &pm,
                                  const TargetCodegenPipelineOptions &options) {
   createCommonTargetCodegenPipeline<isJIT>(pm, options);
+  if (useValueSemantics) {
+    pm.addNestedPass<func::FuncOp>(
+        cudaq::opt::createFactorQuantumAllocations());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createCableRoughIn());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  }
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);

@@ -136,7 +136,7 @@ create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim backends/StimTester.cpp)
 
-if (CUSTATEVEC_ROOT AND CUDA_FOUND)
+if (cuStateVec_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")
   if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
     # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
@@ -348,27 +348,7 @@ target_link_libraries(test_operators
   cudaq-platform-default)
 gtest_discover_tests(test_operators DISCOVERY_TIMEOUT 120)
 
-if (CUDA_FOUND)
-  find_package(CUDAToolkit REQUIRED)
-
-  find_library(CUTENSOR_LIB
-    NAMES   cutensor libcutensor.so.2
-    HINTS
-        ${CUTENSOR_ROOT}/lib64
-        ${CUTENSOR_ROOT}/lib
-        ${CUTENSOR_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
-        ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
-  )
-
-  find_library(CUTENSORNET_LIB
-    NAMES   cutensornet libcutensornet.so.2
-    HINTS   
-        ${CUTENSORNET_ROOT}/lib64
-        ${CUTENSORNET_ROOT}/lib
-        ${CUTENSORNET_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
-        ${CUTENSORNET_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
-        ${CUDENSITYMAT_ROOT}/lib/
-)
+if (CUDA_FOUND AND TARGET nvqir-dynamics)
 
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES
@@ -395,12 +375,12 @@ if (CUDA_FOUND)
    cudaq
    cudaq-logger
    nvqir-dynamics
-   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   cuDensityMat::cuDensityMat
    CUDA::cudart
    CUDA::cublas
-   ${CUTENSOR_LIB}
+   cuTensor::cuTensor
    CUDA::cusparse
-   ${CUTENSORNET_LIB}
+   cuTensorNet::cuTensorNet
    gtest_main
    )
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
@@ -418,12 +398,12 @@ if (CUDA_FOUND)
    cudaq
    cudaq-platform-mqpu
    nvqir-dynamics
-   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   cuDensityMat::cuDensityMat
    CUDA::cudart
    CUDA::cublas
-   ${CUTENSOR_LIB}
+   cuTensor::cuTensor
    CUDA::cusparse
-   ${CUTENSORNET_LIB}
+   cuTensorNet::cuTensorNet
    gtest_main
    )
   # Count the number of GPUs
@@ -447,12 +427,12 @@ if (CUDA_FOUND)
           cudaq
           cudaq-platform-mqpu
           nvqir-dynamics
-          ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+          cuDensityMat::cuDensityMat
           CUDA::cudart
           CUDA::cublas
-          ${CUTENSOR_LIB}
+          cuTensor::cuTensor
           CUDA::cusparse
-          ${CUTENSORNET_LIB}
+          cuTensorNet::cuTensorNet
           gtest_main
           )
 
