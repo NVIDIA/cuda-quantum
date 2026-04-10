@@ -485,6 +485,66 @@ void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
   quantumRTGenericRecordOutput("ARRAY", len, label);
 }
 
+// Runtime helpers for logging a dynamic-size span of primitive values. These
+// are called from kernels whose return type is a vector with a size that is
+// only known at runtime (i.e. not a compile-time constant).
+void __nvqpp_log_bool_span(int8_t *data, int64_t count) {
+  std::string arrLabel =
+      std::string("array<i1 x ") + std::to_string(count) + ">";
+  __quantum__rt__array_record_output(count, arrLabel.c_str());
+  for (int64_t i = 0; i < count; ++i) {
+    std::string elemLabel = std::string("[") + std::to_string(i) + "]";
+    __quantum__rt__bool_record_output(data[i] != 0, elemLabel.c_str());
+  }
+}
+
+void __nvqpp_log_int_span(int8_t *data, int64_t count, int32_t elemSizeBytes) {
+  std::string typeStr = std::string("i") + std::to_string(elemSizeBytes * 8);
+  std::string arrLabel =
+      std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
+  __quantum__rt__array_record_output(count, arrLabel.c_str());
+  for (int64_t i = 0; i < count; ++i) {
+    std::string elemLabel = std::string("[") + std::to_string(i) + "]";
+    int64_t val = 0;
+    switch (elemSizeBytes) {
+    case 1:
+      val = static_cast<int64_t>(data[i]);
+      break;
+    case 2:
+      val = static_cast<int64_t>(*reinterpret_cast<int16_t *>(data + i * 2));
+      break;
+    case 4:
+      val = static_cast<int64_t>(*reinterpret_cast<int32_t *>(data + i * 4));
+      break;
+    case 8:
+      val = *reinterpret_cast<int64_t *>(data + i * 8);
+      break;
+    }
+    __quantum__rt__int_record_output(val, elemLabel.c_str());
+  }
+}
+
+void __nvqpp_log_float_span(int8_t *data, int64_t count,
+                            int32_t elemSizeBytes) {
+  std::string typeStr = std::string("f") + std::to_string(elemSizeBytes * 8);
+  std::string arrLabel =
+      std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
+  __quantum__rt__array_record_output(count, arrLabel.c_str());
+  for (int64_t i = 0; i < count; ++i) {
+    std::string elemLabel = std::string("[") + std::to_string(i) + "]";
+    double val = 0.0;
+    switch (elemSizeBytes) {
+    case 4:
+      val = static_cast<double>(*reinterpret_cast<float *>(data + i * 4));
+      break;
+    case 8:
+      val = *reinterpret_cast<double *>(data + i * 8);
+      break;
+    }
+    __quantum__rt__double_record_output(val, elemLabel.c_str());
+  }
+}
+
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \

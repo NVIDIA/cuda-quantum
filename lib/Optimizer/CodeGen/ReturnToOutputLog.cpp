@@ -130,8 +130,6 @@ public:
         .Case([&](cudaq::cc::StdvecType vecTy) {
           // For this type, we expect a cc.stdvec_init operation as the input.
           // The data will be in a variable.
-          // If we reach here and we cannot determine the constant size of the
-          // buffer, then we will not generate any output logging.
           if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>())
             if (auto maybeLen = cudaq::opt::factory::maybeValueOfIntConstant(
                     vecInit.getLength())) {
@@ -158,7 +156,42 @@ public:
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
                 genOutputLog(loc, rewriter, w, offset);
               }
+              return;
             }
+          // Dynamic size: use runtime span logging helpers.
+          auto eleTy = vecTy.getElementType();
+          auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+          Value size = rewriter.create<cudaq::cc::StdvecSizeOp>(
+              loc, rewriter.getI64Type(), val);
+          Value rawData =
+              rewriter.create<cudaq::cc::StdvecDataOp>(loc, i8PtrTy, val);
+          if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
+            if (intTy.getWidth() == 1) {
+              rewriter.create<func::CallOp>(loc, TypeRange{},
+                                            cudaq::opt::NVQPPLogBoolSpan,
+                                            ArrayRef<Value>{rawData, size});
+            } else {
+              std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
+              Value elemSize =
+                  rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
+              rewriter.create<func::CallOp>(
+                  loc, TypeRange{}, cudaq::opt::NVQPPLogIntSpan,
+                  ArrayRef<Value>{rawData, size, elemSize});
+            }
+          } else if (isa<FloatType>(eleTy)) {
+            auto floatTy = cast<FloatType>(eleTy);
+            std::int32_t byteSize = floatTy.getWidth() / 8;
+            Value elemSize =
+                rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
+            rewriter.create<func::CallOp>(
+                loc, TypeRange{}, cudaq::opt::NVQPPLogFloatSpan,
+                ArrayRef<Value>{rawData, size, elemSize});
+          } else {
+            // Unsupported element type — trap.
+            Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+            rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                          ValueRange{one});
+          }
         })
         .Default([&](Type) {
           // If we reach here, we don't know how to handle this type.
@@ -226,6 +259,14 @@ struct ReturnToOutputLogPass
     }
     if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::QISTrap))) {
       module.emitError("could not load QIR trap function.");
+      signalPassFailure();
+      return;
+    }
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::NVQPPLogBoolSpan)) ||
+        failed(irBuilder.loadIntrinsic(module, cudaq::opt::NVQPPLogIntSpan)) ||
+        failed(
+            irBuilder.loadIntrinsic(module, cudaq::opt::NVQPPLogFloatSpan))) {
+      module.emitError("could not load NVQPP span logging functions.");
       signalPassFailure();
       return;
     }

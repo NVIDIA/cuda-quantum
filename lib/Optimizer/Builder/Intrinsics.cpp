@@ -393,6 +393,21 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::stdvecBoolCtorFromInitList, {}, R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
+    // __nvqpp_log_bool_span
+    {cudaq::opt::NVQPPLogBoolSpan, {}, R"#(
+  func.func private @__nvqpp_log_bool_span(!cc.ptr<i8>, i64)
+)#"},
+
+    // __nvqpp_log_float_span
+    {cudaq::opt::NVQPPLogFloatSpan, {}, R"#(
+  func.func private @__nvqpp_log_float_span(!cc.ptr<i8>, i64, i32)
+)#"},
+
+    // __nvqpp_log_int_span
+    {cudaq::opt::NVQPPLogIntSpan, {}, R"#(
+  func.func private @__nvqpp_log_int_span(!cc.ptr<i8>, i64, i32)
+)#"},
+
     // This helper function copies a buffer off the stack to the heap. This is
     // required when the data on the stack is about to go out of scope but is
     // still live.

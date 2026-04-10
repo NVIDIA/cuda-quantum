@@ -72,9 +72,13 @@ public:
     if (!reuseArtifact || !ctx || !jitEng.has_value())
       return;
 
-    if (launchMode != ctx->name)
+    // Allow launchMode == "" when the artifact was saved before any execution
+    // context was set (e.g., via precompile_module). In that case, accept any
+    // context and record the mode for future checks.
+    if (!launchMode.empty() && launchMode != ctx->name)
       throw std::runtime_error(
           "Detected reuse of compiler artifact with different launch mode");
+    launchMode = ctx->name;
     ctx->jitEng = jitEng.value();
   }
 

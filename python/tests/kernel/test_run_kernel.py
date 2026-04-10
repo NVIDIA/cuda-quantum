@@ -326,8 +326,6 @@ def test_return_list_from_device_kernel():
     assert results[0] == 15  # 4 + 5 + 6 = 15
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_bool():
 
     @cudaq.kernel
@@ -373,8 +371,6 @@ def test_return_list_bool():
     assert results[1] == [True, False, True]
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int():
 
     @cudaq.kernel
@@ -397,8 +393,6 @@ def test_return_list_int():
     assert results[1] == [-13, 5, 42]
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int8():
 
     @cudaq.kernel
@@ -421,8 +415,6 @@ def test_return_list_int8():
     assert results[1] == [-13, 5, 42]
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int16():
 
     @cudaq.kernel
@@ -445,8 +437,6 @@ def test_return_list_int16():
     assert results[1] == [-13, 5, 42]
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int32():
 
     @cudaq.kernel
@@ -469,8 +459,6 @@ def test_return_list_int32():
     assert results[1] == [-13, 5, 42]
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_int64():
 
     @cudaq.kernel
@@ -493,8 +481,6 @@ def test_return_list_int64():
     assert results[1] == [-13, 5, 42]
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_float():
 
     @cudaq.kernel
@@ -519,8 +505,6 @@ def test_return_list_float():
     assert is_close_array(results[1], [-13.2, 5., 42.99])
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_float32():
 
     @cudaq.kernel
@@ -545,8 +529,6 @@ def test_return_list_float32():
     assert is_close_array(results[1], [-13.2, 5., 42.99])
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_float64():
 
     @cudaq.kernel
@@ -571,8 +553,6 @@ def test_return_list_float64():
     assert is_close_array(results[1], [-13.2, 5., 42.99])
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_list_large_size():
     # Returns a large list (dynamic size) to stress test the code generation
 
@@ -626,8 +606,6 @@ def test_return_list_large_size():
         assert results[1] == input_array_bool
 
 
-@pytest.mark.skip(
-    reason="Dynamic-size list return not currently support by run")
 def test_return_dynamics_measure_results():
 
     @cudaq.kernel
