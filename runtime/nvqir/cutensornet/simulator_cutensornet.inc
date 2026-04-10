@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
 

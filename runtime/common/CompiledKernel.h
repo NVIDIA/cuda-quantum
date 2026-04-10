@@ -129,13 +129,6 @@ public:
   /// re-targeting.
   /// Type-erased to keep this header MLIR-free.
   struct MlirArtifact {
-    /// Owning reference to the MLIRContext.
-    ///
-    /// Required for observe artifacts as they share the same
-    /// MLIRContext across artifacts.
-    ///
-    /// May be `nullptr` if the context lifetime is managed elsewhere.
-    std::shared_ptr<void> contextOwner;
     /// Opaque ModuleOp pointer (via `ModuleOp::getAsOpaquePointer()`).
     /// Lifetime: the MLIRContext owned by `contextOwner` must outlive this.
     const void *modulePtr = nullptr;
