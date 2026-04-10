@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 if which('jupyter') is None:
     logger.error("Please install jupyter, e.g. with `pip install notebook`.")
-    exit(1)
+    sys.exit(1)
 
 
 def read_available_backends():
@@ -164,7 +164,7 @@ def print_results(success, failed, skipped=[]):
     if not failed and not skipped:
         logger.info("Success! All the notebook(s) executed successfully.")
     elif failed:
-        exit(1)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
         if not notebook_filenames:
             logger.error('Failed! No notebook(s) found.')
-            exit(10)
+            sys.exit(10)
 
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
