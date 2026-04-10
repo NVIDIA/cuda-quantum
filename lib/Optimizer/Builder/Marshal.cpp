@@ -129,7 +129,6 @@ void cudaq::opt::marshal::genReturnOffsetFunction(
   builder.create<func::ReturnOp>(loc, result);
 }
 
-
 static cudaq::cc::PointerType getByteAddressableType(OpBuilder &builder) {
   return cudaq::cc::PointerType::get(
       cudaq::cc::ArrayType::get(builder.getI8Type()));

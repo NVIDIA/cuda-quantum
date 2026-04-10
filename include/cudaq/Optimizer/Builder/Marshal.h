@@ -66,7 +66,6 @@ void genReturnOffsetFunction(mlir::Location loc, mlir::OpBuilder &builder,
                              cc::StructType msgStructTy,
                              const std::string &classNameStr);
 
-
 cc::PointerType getPointerToPointerType(mlir::OpBuilder &builder);
 
 bool isDynamicSignature(mlir::FunctionType devFuncTy);

@@ -236,7 +236,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // Special handling in case the arguments were already synthesized
     // TODO: should ensure args have no uses if this is the case?
     size_t numArgs = closureArgs.size() - (hasResult ? 1 : 0);
-    if (isEntryPoint && isLocalSimulator && numArgs == fromFuncTy.getNumInputs())
+    if (isEntryPoint && isLocalSimulator &&
+        numArgs == fromFuncTy.getNumInputs())
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
           isFullySpecialized = false;

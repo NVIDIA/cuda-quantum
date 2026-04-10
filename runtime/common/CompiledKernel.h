@@ -96,7 +96,6 @@ public:
   bool hasResult() const { return typeOpaquePtr != nullptr; }
 };
 
-
 /// @brief A compiled, ready-to-execute kernel.
 ///
 /// Bundles one or more representations of a compiled kernel (JIT binary, MLIR

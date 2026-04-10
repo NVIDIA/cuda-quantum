@@ -161,6 +161,7 @@ def test_reuse_of_builder():
 
 
 def test_reuse_with_result_no_args():
+
     @cudaq.kernel
     def flip() -> bool:
         q = cudaq.qubit()
@@ -175,6 +176,7 @@ def test_reuse_with_result_no_args():
 
 
 def test_reuse_with_result_and_args():
+
     @cudaq.kernel
     def count_ones(n: int) -> int:
         qubits = cudaq.qvector(n)
@@ -196,6 +198,7 @@ def test_reuse_with_result_and_args():
 
 
 def test_reuse_via_run_with_result():
+
     @cudaq.kernel
     def count_ones(n: int) -> int:
         qubits = cudaq.qvector(n)

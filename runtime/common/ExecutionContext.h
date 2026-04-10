@@ -223,8 +223,7 @@ bool isPersistingJITEngine();
 void checkArtifactReuse(const std::string kernelName,
                         const cudaq::JitEngine jit);
 
-void saveArtifact(const std::string kernelName,
-                  const cudaq::JitEngine jit);
+void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
 
 /// Returns the saved JIT engine if one is present for \p kernelName.
 /// Throws if a different kernel name was previously saved.
