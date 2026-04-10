@@ -65,6 +65,7 @@ if (CUDA_FOUND)
       fmt::fmt-header-only
       CUDA::cudart_static
       CUDAQTargetConfigUtil
+      cudaq-mlir-runtime-headers
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -88,6 +89,7 @@ else()
       cudaq-logger
       fmt::fmt-header-only
       CUDAQTargetConfigUtil
+      cudaq-mlir-runtime-headers
   )
 endif()
 

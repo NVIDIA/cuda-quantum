@@ -9,9 +9,9 @@
 #pragma once
 #include <complex>
 #include <cstddef>
-#include <cudaq.h>
 #include <functional>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
