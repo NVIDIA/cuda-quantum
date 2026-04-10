@@ -109,7 +109,11 @@ void createTargetCodegenPipeline(PassManager &pm,
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
-  pm.addPass(cudaq::opt::createReturnToOutputLog());
+  cudaq::opt::ReturnToOutputLogOptions opts;
+  // Only allow dynamic results with full QIR (local simulator targets).
+  auto tgt = StringRef(options.target).split(':').first;
+  opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
+  pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());
