@@ -3889,7 +3889,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3221819741]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3357076729]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8144,6 +8144,15 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         Get the number of occurrences of a given gate with the given
         number of controls
 
+    *[property]{.pre}[ ]{.w}*[[depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.depth "Permalink to this definition"){.headerlink}
+
+    :   The circuit depth (longest gate chain on any qubit).
+
+    *[property]{.pre}[ ]{.w}*[[depth_2q]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.depth_2q "Permalink to this definition"){.headerlink}
+
+    :   The 2-qubit circuit depth (longest chain of 2-qubit gates on any
+        qubit path).
+
     [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.dump "Permalink to this definition"){.headerlink}
 
     :   
@@ -8153,6 +8162,20 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   
 
         Print a string of the raw resource counts data to the terminal.
+
+    *[property]{.pre}[ ]{.w}*[[num_qubits]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.num_qubits "Permalink to this definition"){.headerlink}
+
+    :   The total number of qubits used in the kernel.
+
+    *[property]{.pre}[ ]{.w}*[[per_qubit_depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.per_qubit_depth "Permalink to this definition"){.headerlink}
+
+    :   Per-qubit circuit depth (all gates), as a dict mapping qubit
+        index to depth.
+
+    *[property]{.pre}[ ]{.w}*[[per_qubit_depth_2q]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.per_qubit_depth_2q "Permalink to this definition"){.headerlink}
+
+    :   Per-qubit 2-qubit depth, as a dict mapping qubit index to 2Q
+        depth.
 
     [[to_dict]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.to_dict "Permalink to this definition"){.headerlink}
 
@@ -8164,6 +8187,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         Return a dictionary of the raw resource counts that are stored
         in [`self`{.code .docutils .literal .notranslate}]{.pre}.
+
+    *[property]{.pre}[ ]{.w}*[[two_qubit_gate_count]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.two_qubit_gate_count "Permalink to this definition"){.headerlink}
+
+    :   The total number of 2-qubit gates.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}
