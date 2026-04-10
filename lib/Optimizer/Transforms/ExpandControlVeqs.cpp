@@ -46,8 +46,7 @@ public:
         // Use the inner sized veq for extract_ref when looking through
         // RelaxSizeOp (extract_ref needs a sized veq operand).
         Value veqVal = control;
-        if (auto relaxOp =
-                dyn_cast_or_null<quake::RelaxSizeOp>(control.getDefiningOp()))
+        if (auto relaxOp = control.template getDefiningOp<quake::RelaxSizeOp>())
           veqVal = relaxOp.getInputVec();
 
         // For each of the qubits in the veq, create an extraction instruction

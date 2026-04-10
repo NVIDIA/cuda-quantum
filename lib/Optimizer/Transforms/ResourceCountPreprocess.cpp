@@ -39,7 +39,10 @@ struct ResourceCountPreprocessPass
   DenseMap<Value, std::size_t> qubitIndexMap;
   std::size_t nextQubitIndex = 0;
 
-  /// Assign a globally unique base index for a qvector Value.
+  /// Assign a base qubit index for a qvector Value. For sized veqs, advances
+  /// nextQubitIndex by the veq size so each qubit gets a unique index. For
+  /// unsized veqs, the base index is shared (nextQubitIndex is not advanced)
+  /// since individual qubits cannot be resolved.
   std::size_t getVeqBase(Value veq) {
     auto it = qubitIndexMap.find(veq);
     if (it != qubitIndexMap.end())
