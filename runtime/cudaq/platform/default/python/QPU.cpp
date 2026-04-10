@@ -165,7 +165,16 @@ static void runTargetPassPipeline(ModuleOp module) {
     return;
   auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
   substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
-  PassManager pm(module.getContext());
+  auto *ctx = module.getContext();
+  auto enablePrintEachPass =
+      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  auto disableThreading =
+      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+  if (enablePrintEachPass || disableThreading)
+    ctx->disableMultithreading();
+  PassManager pm(ctx);
+  if (enablePrintEachPass)
+    pm.enableIRPrinting();
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
   if (failed(parsePassPipeline(pipeline, pm, errOS)))

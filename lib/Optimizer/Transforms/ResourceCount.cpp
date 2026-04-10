@@ -24,11 +24,23 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
       counts.appendInstruction(gate, controls, targets);
   };
   ResourceCountPreprocessOptions opt{countGate};
-  PassManager pm(module.getContext());
+  // The countGate callback captures &counts, a shared mutable Resources.
+  // createResourceCountPreprocess runs as addNestedPass<func::FuncOp>, which
+  // MLIR executes in parallel across functions. Disable threading for this
+  // PassManager so the callback is called sequentially.
+  auto *ctx = module.getContext();
+  bool wasThreadingEnabled = ctx->isMultithreadingEnabled();
+  ctx->disableMultithreading();
+  PassManager pm(ctx);
   pm.addNestedPass<func::FuncOp>(createResourceCountPreprocess(opt));
   pm.addPass(createCanonicalizerPass());
-  if (failed(pm.run(module)))
+  if (failed(pm.run(module))) {
+    if (wasThreadingEnabled)
+      ctx->enableMultithreading();
     return failure();
+  }
+  if (wasThreadingEnabled)
+    ctx->enableMultithreading();
 
   // Count allocated qubits from the IR.
   std::size_t allocated = 0;
