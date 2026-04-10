@@ -207,11 +207,11 @@ public:
   launchModule(const std::string &kernelName, mlir::ModuleOp module,
                const std::vector<void *> &rawArgs, std::size_t qpu_id);
 
-  [[nodiscard]] void *specializeModule(
-      const std::string &kernelName, mlir::ModuleOp module,
-      const std::vector<void *> &rawArgs,
-      std::optional<cudaq_internal::compiler::JitEngine> &cachedEngine,
-      std::size_t qpu_id, bool isEntryPoint);
+  [[nodiscard]] void *
+  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                   const std::vector<void *> &rawArgs,
+                   std::optional<cudaq::JitEngine> &cachedEngine,
+                   std::size_t qpu_id, bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

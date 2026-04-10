@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -49,6 +50,7 @@
 
 using namespace mlir;
 using namespace cudaq_internal::compiler;
+using cudaq::JitEngine;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
@@ -240,12 +242,12 @@ void insertSetupAndCleanupOperations(Operation *module) {
 }
 } // namespace
 
-JitEngine
-cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
-                                             llvm::StringRef convertTo) {
+cudaq::JitEngine
+cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
+                                          llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
-  ScopedTraceWithContext(cudaq::TIMING_JIT, "createQIRJITEngine");
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
@@ -257,7 +259,7 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
-                           "createQIRJITEngine::llvmModuleBuilder");
+                           "createJITEngine::llvmModuleBuilder");
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
@@ -305,14 +307,14 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
     pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
-      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "
+      throw std::runtime_error("[createJITEngine] Lowering to QIR for "
                                "remote emulation failed.\n" +
                                error_msg);
     }
     if (auto mod = dyn_cast<ModuleOp>(module))
       if (failed(cudaq::verifier::checkQIRLLVMIRDialect(mod, profileName)))
         throw std::runtime_error(
-            "[createQIRJITEngine] QIR verification failed.\n");
+            "[createJITEngine] QIR verification failed.\n");
 
     timingScope.stop();
     engine.eraseHandler(handlerId);
@@ -324,8 +326,7 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
-      throw std::runtime_error(
-          "[createQIRJITEngine] Lowering to LLVM IR failed.");
+      throw std::runtime_error("[createJITEngine] Lowering to LLVM IR failed.");
 
     ExecutionEngine::setupTargetTriple(llvmModule.get());
     return llvmModule;
@@ -336,40 +337,41 @@ cudaq_internal::compiler::createQIRJITEngine(ModuleOp &moduleOp,
   return JitEngine(std::move(jitOrError.get()));
 }
 
-cudaq::CompiledKernel cudaq_internal::compiler::createCompiledKernel(
-    JitEngine engine, std::string kernelName, bool hasResult,
-    bool isFullySpecialized) {
-  std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-  std::string entryName =
-      (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
-  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  int64_t (*argsCreator)(const void *, void **) = nullptr;
-  if (!isFullySpecialized)
-    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-        engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
-  return cudaq::CompiledKernel(engine, std::move(kernelName), entryPoint,
-                               argsCreator, hasResult);
+/// Build a `ResultInfo` from an MLIR return type.
+/// \p resultTy may be null (no return value). When \p isEntryPoint is false,
+/// the result is not marshaled — returns an empty `ResultInfo`.
+cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(Type resultTy,
+                                                             bool isEntryPoint,
+                                                             ModuleOp module) {
+  cudaq::ResultInfo info;
+  if (!resultTy || !isEntryPoint)
+    return info;
+
+  info.typeOpaquePtr = resultTy.getAsOpaquePointer();
+  auto [size, offsets] = getResultBufferLayout(module, resultTy);
+  info.bufferSize = size;
+  info.fieldOffsets = std::move(offsets);
+  return info;
 }
 
-class JitEngine::Impl {
+class cudaq::JitEngine::Impl : public cudaq::JitEngine::Base {
 public:
   Impl(std::unique_ptr<ExecutionEngine> jitEngine)
-      : jitEngine(std::move(jitEngine)) {}
-  void run(const std::string &kernelName) const {
-    auto funcPtr = lookupRawNameOrFail(
-        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
-    funcPtr();
+      : jitEngine(std::move(jitEngine)) {
+    lookupFn = [this](const std::string &name) -> RawFnPtr {
+      auto funcPtr = this->jitEngine->lookup(name);
+      if (!funcPtr)
+        throw std::runtime_error("Failed looking function up in jitted module");
+      return reinterpret_cast<RawFnPtr>(*funcPtr);
+    };
+    runFn = [this](const std::string &kernelName) {
+      auto funcPtr = lookupFn(std::string(cudaq::runtime::cudaqGenPrefixName) +
+                              kernelName);
+      funcPtr();
+    };
   }
 
-  void (*lookupRawNameOrFail(const std::string &kernelName) const)() {
-    auto funcPtr = jitEngine->lookup(kernelName);
-    if (!funcPtr) {
-      throw std::runtime_error("Failed looking function up in jitted module");
-    }
-    return reinterpret_cast<void (*)()>(*funcPtr);
-  }
-
-  std::size_t getKey() {
+  std::size_t getKey() const {
     return reinterpret_cast<std::size_t>(jitEngine.get());
   }
 
@@ -377,15 +379,9 @@ private:
   std::unique_ptr<ExecutionEngine> jitEngine;
 };
 
-JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
+cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
     : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
 
-void JitEngine::run(const std::string &kernelName) const {
-  return impl->run(kernelName);
-}
-
-std::size_t JitEngine::getKey() const { return impl->getKey(); }
-
-void (*JitEngine::lookupRawNameOrFail(const std::string &kernelName) const)() {
-  return impl->lookupRawNameOrFail(kernelName);
+std::size_t cudaq::JitEngine::getKey() const {
+  return static_cast<const Impl *>(impl.get())->getKey();
 }

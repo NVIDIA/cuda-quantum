@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "cudaq_internal/compiler/JIT.h"
+#include "common/CompiledKernel.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -64,7 +64,7 @@ class Compiler {
 
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
-  std::vector<JitEngine> jitEngines;
+  std::vector<cudaq::JitEngine> jitEngines;
 
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;

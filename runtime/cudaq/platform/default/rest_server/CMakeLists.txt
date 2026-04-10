@@ -110,7 +110,7 @@ target_link_libraries(rest-remote-platform-server
     fmt::fmt-header-only
 )
 
-if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+if (cuStateVec_FOUND)
   target_compile_definitions(rest-remote-platform-server PRIVATE CUDAQ_ENABLE_CUDA)
   target_link_libraries(rest-remote-platform-server PRIVATE CUDA::cudart_static)
 endif()

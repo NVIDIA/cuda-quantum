@@ -11,8 +11,6 @@
 #include <cstring>
 #include <string>
 
-using namespace cudaq_internal::compiler;
-
 namespace nvqir {
 bool isUsingResourceCounterSimulator();
 } // namespace nvqir
