@@ -116,22 +116,16 @@ jobs:
             --target coverage-export \
             --output type=local,dest=${{ github.workspace }}/shared
 
-      - name: Extract ccache from build
-        timeout-minutes: 15
+      - name: Extract ccache from coverage build
+        timeout-minutes: 5
         continue-on-error: true
         run: |
-          mkdir -p /tmp/ccache-export
-          docker buildx build --platform ${{ inputs.platform }} \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-arg base_image=${{ steps.cudaq_build.outputs.base_image }} \
-            --target ccache-export \
-            --output type=local,dest=/tmp/ccache-export \
-            2>&1 | tail -20
-          if [ -f /tmp/ccache-export/ccache.tar ]; then
-            mkdir -p /tmp/ccache-export/ccache
-            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
-            rm -f /tmp/ccache-export/ccache.tar
+          # ccache.tar is now exported alongside coverage files from the
+          # coverage-export stage, so no second docker buildx call is needed.
+          mkdir -p /tmp/ccache-export/ccache
+          if [ -f ${{ github.workspace }}/shared/ccache.tar ]; then
+            tar xf ${{ github.workspace }}/shared/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f ${{ github.workspace }}/shared/ccache.tar
           fi
 
       - name: Push ccache to GHCR

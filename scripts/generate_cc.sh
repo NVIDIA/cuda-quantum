@@ -92,15 +92,33 @@ gen_cplusplus_report() {
 if $gen_cpp_coverage; then
     use_llvm_cov=true
 
+    # Thread budget to avoid OpenMP oversubscription (mirrors run_tests.sh).
+    num_jobs=$(nproc)
+    if [ -z "${OMP_NUM_THREADS:-}" ]; then
+        if [ "$num_jobs" -le 4 ]; then
+            omp_threads=1
+            parallel_jobs=$num_jobs
+        else
+            omp_threads=2
+            parallel_jobs=$((num_jobs / omp_threads))
+        fi
+        export OMP_NUM_THREADS=$omp_threads
+    else
+        omp_threads=$OMP_NUM_THREADS
+        parallel_jobs=$((num_jobs / omp_threads))
+        if [ "$parallel_jobs" -lt 1 ]; then parallel_jobs=1; fi
+    fi
+    echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
+
     # Run tests (C++ Unittests)
     python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
-    ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-nvqpp -E ctest-targettests
+    ctest --output-on-failure --test-dir ${repo_root}/build -j ${num_jobs} -E "ctest-nvqpp|ctest-targettests"
     ctest_status=$?
-    /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
+    /usr/local/llvm/bin/llvm-lit -v --time-tests -j ${num_jobs} --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
     lit_status=$?
-    /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
+    /usr/local/llvm/bin/llvm-lit -v --time-tests -j ${parallel_jobs} --param nvqpp_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
     targ_status=$?
-    /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/python/tests/mlir/lit.site.cfg.py ${repo_root}/build/python/tests/mlir
+    /usr/local/llvm/bin/llvm-lit -v --time-tests -j ${parallel_jobs} --param nvqpp_site_config=${repo_root}/build/python/tests/mlir/lit.site.cfg.py ${repo_root}/build/python/tests/mlir
     pymlir_status=$?
     if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
         echo "::error C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
@@ -109,11 +127,30 @@ if $gen_cpp_coverage; then
     fi
 
     # Run tests (Python tests)
+    # Install pytest-cov so we can collect Python line coverage in the same
+    # run that generates C++ profraw data (LLVM_PROFILE_FILE is already set).
     rm -rf ${repo_root}/_skbuild
     pip install ${repo_root} --user -vvv
-    python3 -m pytest -v ${repo_root}/python/tests/ --ignore ${repo_root}/python/tests/backends
+    if $gen_py_coverage; then
+        pip install pytest-cov --break-system-packages
+        mkdir -p ${repo_root}/build/pycoverage
+        cov_args=(--cov=cudaq --cov-append)
+        if $is_codecov_format; then
+            cov_args+=(--cov-report="xml:${repo_root}/build/pycoverage/coverage.xml")
+        else
+            cov_args+=(--cov-report="html:${repo_root}/build/pycoverage")
+        fi
+    else
+        cov_args=()
+    fi
+    python3 -m pytest -v "${repo_root}/python/tests/" --ignore "${repo_root}/python/tests/backends" "${cov_args[@]}"
+    pytest_main_status=$?
+    if [ $pytest_main_status -ne 0 ]; then
+        echo "::error Python main tests failed with status $pytest_main_status."
+        exit 1
+    fi
     for backendTest in ${repo_root}/python/tests/backends/*.py; do
-        python3 -m pytest -v $backendTest
+        python3 -m pytest -v "$backendTest" "${cov_args[@]}"
         pytest_status=$?
         if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
             echo "::error $backendTest tests failed with status $pytest_status."
@@ -179,31 +216,29 @@ if $gen_cpp_coverage; then
     fi
 fi
 
-if $gen_py_coverage; then
-    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-    apt install -y python${PY_VER}-venv
- 
-    # Needs to be installed outside of venv
+# Standalone Python coverage: only needed when -p is passed without -c,
+# since the combined C++ coverage section above already collects Python
+# line coverage when both flags are active.
+if $gen_py_coverage && ! $gen_cpp_coverage; then
     python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
-
-    venv_dir=${repo_root}/build/venv-coverage
-    python3 -m venv "$venv_dir"
-    . "${venv_dir}/bin/activate"
-    pip install pytest-cov
+    pip install pytest-cov --break-system-packages
     rm -rf ${repo_root}/_skbuild
-    pip install . -vvv
+    pip install ${repo_root} --user -vvv
     mkdir -p ${repo_root}/build/pycoverage
+    cov_args=(--cov=cudaq --cov-append)
     if $is_codecov_format; then
-        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+        cov_args+=(--cov-report="xml:${repo_root}/build/pycoverage/coverage.xml")
     else
-        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+        cov_args+=(--cov-report="html:${repo_root}/build/pycoverage")
     fi
-    for backendTest in python/tests/backends/*.py; do
-        if $is_codecov_format; then
-            python -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
-        else
-            python -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
-        fi
+    python3 -m pytest -v "${repo_root}/python/tests/" --ignore "${repo_root}/python/tests/backends" "${cov_args[@]}"
+    pytest_main_status=$?
+    if [ $pytest_main_status -ne 0 ]; then
+        echo "::error Python main tests failed with status $pytest_main_status."
+        exit 1
+    fi
+    for backendTest in ${repo_root}/python/tests/backends/*.py; do
+        python3 -m pytest -v "$backendTest" "${cov_args[@]}"
         pytest_status=$?
         if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
             echo "::error $backendTest tests failed with status $pytest_status."
