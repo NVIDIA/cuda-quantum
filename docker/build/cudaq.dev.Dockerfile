@@ -132,11 +132,10 @@ COPY --from=coverage /workspaces/cuda-quantum/build/ccoverage/coverage.txt /cove
 COPY --from=coverage /workspaces/cuda-quantum/build/pycoverage/coverage.xml /coverage.xml
 COPY --from=coverage-ccache-tar /ccache.tar /ccache.tar
 
-# Export ccache data so CI can extract it for persistence.
-# Tar inside the container to export a single file instead of thousands of
-# small ccache entries. This avoids pathological slowness in BuildKit's
-# per-file gRPC export through the docker-container driver.
-# Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+# Export ccache from the devbuild stage for non-coverage workflows
+# (prebuilt_binaries.yml, test_in_devenv.yml, etc.). generate_cc.yml uses
+# coverage-ccache-tar above instead. Tar avoids pathological slowness in
+# BuildKit's per-file gRPC export through the docker-container driver.
 FROM devbuild AS ccache-tar
 RUN tar cf /ccache.tar -C /root/.ccache .
 

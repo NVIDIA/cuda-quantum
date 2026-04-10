@@ -92,7 +92,7 @@ gen_cplusplus_report() {
 if $gen_cpp_coverage; then
     use_llvm_cov=true
 
-    # Thread budget to avoid OpenMP oversubscription (mirrors run_tests.sh).
+    # Thread budget to avoid OpenMP oversubscription (same logic as run_tests.sh).
     num_jobs=$(nproc)
     if [ -z "${OMP_NUM_THREADS:-}" ]; then
         if [ "$num_jobs" -le 4 ]; then
@@ -112,7 +112,14 @@ if $gen_cpp_coverage; then
 
     # Run tests (C++ Unittests)
     python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
-    ctest --output-on-failure --test-dir ${repo_root}/build -j ${num_jobs} -E "ctest-nvqpp|ctest-targettests"
+    # Exclude test suites run separately via llvm-lit below, and GPU tests
+    # (coverage CI runs on CPU-only runners).
+    gpu_excludes=""
+    if ! nvidia-smi > /dev/null 2>&1; then
+        gpu_excludes="--label-exclude gpu_required"
+    fi
+    ctest --output-on-failure --test-dir ${repo_root}/build -j ${num_jobs} \
+        -E "ctest-nvqpp|ctest-targettests|pycudaq-mlir" $gpu_excludes
     ctest_status=$?
     /usr/local/llvm/bin/llvm-lit -v --time-tests -j ${num_jobs} --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
     lit_status=$?
@@ -127,8 +134,8 @@ if $gen_cpp_coverage; then
     fi
 
     # Run tests (Python tests)
-    # Install pytest-cov so we can collect Python line coverage in the same
-    # run that generates C++ profraw data (LLVM_PROFILE_FILE is already set).
+    # Collect Python line coverage in the same run that generates C++ profraw
+    # data. LLVM_PROFILE_FILE is already set above.
     rm -rf ${repo_root}/_skbuild
     pip install ${repo_root} --user -vvv
     if $gen_py_coverage; then
