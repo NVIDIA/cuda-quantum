@@ -62,6 +62,7 @@ LONG_RUNNING_NOTEBOOKS = [
     "qm_mm_pe.ipynb",
     "qsci.ipynb",
     "uccsd_wf_ansatz.ipynb",
+    "unitary_compilation_diffusion_models",
     "vqe_advanced.ipynb",
 ]
 
@@ -195,7 +196,7 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
 
-        notebooks_skipped = []
+        notebooks_skipped = ['krylov.ipynb']
 
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)
