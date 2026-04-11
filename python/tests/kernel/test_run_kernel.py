@@ -73,18 +73,19 @@ def test_simple_run_ghz_with_noise():
     depol = cudaq.Depolarization2(.5)
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("cx", depol)
-    results = cudaq.run(simple,
-                        qubitCount,
-                        shots_count=shots,
-                        noise_model=noise)
-    print(results)
-    assert len(results) == shots
-    noisy_count = 0
-    for result in results:
-        if result != 0 and result != qubitCount:
-            noisy_count += 1
-    assert noisy_count > 0
-    cudaq.reset_target()
+    try:
+        # Materialize results before resetting the simulation target.
+        results = list(
+            cudaq.run(simple, qubitCount, shots_count=shots, noise_model=noise))
+        print(results)
+        assert len(results) == shots
+        noisy_count = 0
+        for result in results:
+            if result != 0 and result != qubitCount:
+                noisy_count += 1
+        assert noisy_count > 0
+    finally:
+        cudaq.reset_target()
 
 
 def test_return_bool():
