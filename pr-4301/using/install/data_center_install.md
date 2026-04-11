@@ -2418,7 +2418,6 @@ following command to build the CUDA-Q Python wheel:
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
-    CMAKE_ARGS="-DCUDAQ_STATIC_CXX_RUNTIME=ON -DCUDAQ_STATIC_DEPS=ON" \
     python3 -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
 :::
