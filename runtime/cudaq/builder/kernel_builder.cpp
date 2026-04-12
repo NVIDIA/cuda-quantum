@@ -500,15 +500,19 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
     // get the size
-    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
-    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
-    auto veqTy = quake::VeqType::getUnsized(context);
-    // allocate the number of qubits we need
-    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
-
     auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
     Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
-    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    auto i64Ty = builder.getI64Type();
+    Value size = builder.create<cc::StdvecSizeOp>(i64Ty, value);
+    auto stateTy = cc::PointerType::get(quake::StateType::get(context));
+    auto state = builder.create<quake::CreateStateOp>(stateTy, initials, size);
+    Value numQubits = builder.create<quake::GetNumberOfQubitsOp>(i64Ty, state);
+    // allocate the number of qubits we need
+    auto veqTy = quake::VeqType::getUnsized(context);
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, state);
+    builder.create<quake::DeleteStateOp>(state);
     return QuakeValue(builder, qubits);
   }
 

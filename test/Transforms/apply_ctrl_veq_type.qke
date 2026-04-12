@@ -51,21 +51,29 @@ module {
   }
 }
 
-// Verify that the .ctrl variant is created and veq type is NOT specialized
-// (remains !quake.veq<?>) because the function has inner func.call operations.
+// CHECK-LABEL:   func.func private @thunk_kernel.0.ctrl(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<2>) {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e-01 : f64
+// CHECK:           %[[VAL_3:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @inner_kernel(%[[VAL_3]], %[[VAL_2]]) : (!quake.veq<?>, f64) -> ()
 
-// CHECK-LABEL: func.func private @thunk_kernel.0.ctrl(
-// CHECK-SAME:    %[[CTRL:.*]]: !quake.veq<?>,
-// CHECK-SAME:    %[[QUBITS:.*]]: !quake.veq<?>)
-// The veq argument keeps its dynamic type, so no relax_size is needed
-// CHECK:         call @inner_kernel(%[[QUBITS]],
-// CHECK-SAME:      : (!quake.veq<?>, f64) -> ()
-// CHECK:         return
+// CHECK-LABEL:   func.func @inner_kernel(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64)
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%[[VAL_1]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
 
-// CHECK-LABEL: func.func @main_kernel()
-// CHECK:         %[[ANCILLA:.*]] = quake.alloca !quake.ref
-// CHECK:         %[[QREG:.*]] = quake.alloca !quake.veq<2>
-// CHECK:         %[[RELAXED:.*]] = quake.relax_size %[[QREG]]
-// CHECK:         quake.h %[[ANCILLA]]
-// CHECK:         %[[CONCAT:.*]] = quake.concat %[[ANCILLA]]
-// CHECK:         call @thunk_kernel.0.ctrl(%[[CONCAT]], %[[RELAXED]])
+// CHECK-LABEL:   func.func @thunk_kernel(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64)
+// CHECK:           call @inner_kernel(%[[VAL_0]], %[[VAL_1]]) : (!quake.veq<?>, f64) -> ()
+
+// CHECK-LABEL:   func.func @main_kernel()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_0]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @thunk_kernel.0.ctrl(%[[VAL_2]], %[[VAL_1]]) : (!quake.veq<?>, !quake.veq<2>) -> ()
+
+// CHECK-LABEL:   func.func private @thunk_kernel.0(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<2>)
+// CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @inner_kernel(%[[VAL_2]], %{{.*}}) : (!quake.veq<?>, f64) -> ()

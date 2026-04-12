@@ -866,15 +866,18 @@ class PyKernel(object):
                                        size=initializer.mlirValue).result)
 
                 if cc.StdvecType.isinstance(initializer.mlirValue.type):
-                    size = cc.StdvecSizeOp(self.getIntegerType(),
-                                           initializer.mlirValue).result
                     value = initializer.mlirValue
                     eleTy = cc.StdvecType.getElementType(value.type)
-                    numQubits = math.CountTrailingZerosOp(size).result
-                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
                     ptrTy = cc.PointerType.get(eleTy)
                     data = cc.StdvecDataOp(ptrTy, value).result
-                    init = quake.InitializeStateOp(veqTy, qubits, data).result
+                    intTy = self.getIntegerType()
+                    size = cc.StdvecSizeOp(intTy, value).result
+                    stateTy = cc.PointerType.get(cc.StateType.get())
+                    state = quake.CreateStateOp(stateTy, data, size).result
+                    numQubits = quake.GetNumberOfQubitsOp(intTy, state).result
+                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                    init = quake.InitializeStateOp(veqTy, qubits, state).result
+                    deleteState = quake.DeleteStateOp(state)
                     return self.__createQuakeValue(init)
 
                 # State pointer
