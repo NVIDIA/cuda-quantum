@@ -2201,11 +2201,14 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     // TODO: will be replaced by measure_vector::operator std::int64_t().
     if (funcName == "toInteger" || funcName == "to_integer") {
       auto arg = args[0];
-      assert(isa<quake::MeasurementsType>(arg.getType()) &&
-             "`to_integer` requires measurements type as argument");
       auto i1Ty = builder.getI1Type();
-      arg = builder.create<quake::DiscriminateOp>(
-          loc, cc::StdvecType::get(i1Ty), arg);
+      auto boolVecTy = cc::StdvecType::get(i1Ty);
+      if (isa<quake::MeasurementsType>(arg.getType()))
+        arg = builder.create<quake::DiscriminateOp>(loc, boolVecTy, arg);
+      else if (arg.getType() != boolVecTy)
+        reportClangError(x, mangler,
+                         "`to_integer` requires measurements or "
+                         "std::vector<bool> argument");
       IRBuilder irBuilder(builder.getContext());
       if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
