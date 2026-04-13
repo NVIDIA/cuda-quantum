@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace cudaq {
 /// @brief Binds `cudaq.ObserveResult` and `cudaq.AsyncObserveResult`.
-void bindObserveResult(py::module &mod);
+void bindObserveResult(nb::module_ &mod);
 } // namespace cudaq

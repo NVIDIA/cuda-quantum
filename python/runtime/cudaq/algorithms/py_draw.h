@@ -9,8 +9,10 @@
 #pragma once
 
 #include "utils/OpaqueArguments.h"
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+
+namespace nb = nanobind;
 
 namespace cudaq {
-void bindPyDraw(pybind11::module &mod);
+void bindPyDraw(nb::module_ &mod);
 }

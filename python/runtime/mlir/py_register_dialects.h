@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace cudaq {
-void bindRegisterDialects(py::module &mod);
+void bindRegisterDialects(nb::module_ &mod);
 } // namespace cudaq

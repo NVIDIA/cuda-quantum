@@ -27,10 +27,12 @@
 #include <complex>
 #include <functional>
 #include <future>
-#include <pybind11/complex.h>
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/string.h>
 
-namespace py = pybind11;
+namespace py = nanobind;
+namespace nb = nanobind;
 
 namespace cudaq {
 
@@ -82,8 +84,8 @@ void checkArgumentType(py::handle arg, int index, const std::string &word) {
         "kernel argument" + word + " type is '" +
         std::string(py_ext::typeName<T>()) + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
-        ", value=" + py::str(arg).cast<std::string>() +
-        ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+        ", value=" + nb::cast<std::string>(nb::str(arg)) +
+        ", type=" + nb::cast<std::string>(nb::str(arg.type())) + ").");
   }
 }
 
@@ -155,7 +157,7 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
     if (!py::hasattr(arg, "shape"))
       return false;
 
-    auto shape = arg.attr("shape").cast<py::tuple>();
+    auto shape = nb::cast<nb::tuple>(arg.attr("shape"));
     if (shape.size() == 1 && !builder.isArgStdVec(0))
       return true;
 

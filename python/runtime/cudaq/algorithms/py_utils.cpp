@@ -8,52 +8,55 @@
 
 #include "py_utils.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 namespace cudaq {
 
-py::dict get_serializable_var_dict() {
-  py::object json = py::module_::import("json");
-  py::dict serialized_dict;
+nb::dict get_serializable_var_dict() {
+  nb::object json = nb::module_::import_("json");
+  nb::dict serialized_dict;
 
   auto try_to_add_item = [&](const auto item) {
     try {
       auto key = item.first;
       auto value = item.second;
 
-      if (key.template cast<std::string>().starts_with("__")) {
+      if (nb::cast<std::string>(key).starts_with("__")) {
         // Ignore items that start with "__" (like Python __builtins__, etc.)
-      } else if (py::hasattr(value, "to_json")) {
-        auto type = value.get_type();
-        std::string module =
-            type.attr("__module__").template cast<std::string>();
-        std::string name = type.attr("__name__").template cast<std::string>();
-        auto type_name = py::str(module + "." + name);
-        auto json_key_name = py::str(key) + py::str("/") + type_name;
+      } else if (nb::hasattr(value, "to_json")) {
+        auto type = value.type();
+        std::string module = nb::cast<std::string>(type.attr("__module__"));
+        std::string name = nb::cast<std::string>(type.attr("__name__"));
+        auto type_name = nb::str((module + "." + name).c_str());
+        auto json_key_name =
+            nb::str(nb::str(key).c_str()) + nb::str("/") + type_name;
         serialized_dict[json_key_name] =
             json.attr("loads")(value.attr("to_json")());
-      } else if (py::hasattr(value, "tolist")) {
+      } else if (nb::hasattr(value, "tolist")) {
         serialized_dict[key] =
             json.attr("loads")(json.attr("dumps")(value.attr("tolist")()));
       } else {
         serialized_dict[key] = json.attr("loads")(json.attr("dumps")(value));
       }
-    } catch (const py::error_already_set &e) {
+    } catch (const nb::python_error &e) {
       // Uncomment the following lines for debug, but all this really means is
       // that we won't send this to the remote server.
 
       // std::cout << "Failed to serialize key '"
-      //           << item.first.template cast<std::string>()
+      //           << nb::cast<std::string>(item.first)
       //           << "' : " + std::string(e.what()) << std::endl;
     }
   };
 
-  for (const auto item : py::globals())
+  for (const auto item : nb::globals())
     try_to_add_item(item);
 
-  py::object inspect = py::module::import("inspect");
-  std::vector<py::object> frame_vec;
+  nb::object inspect = nb::module_::import_("inspect");
+  std::vector<nb::object> frame_vec;
   auto current_frame = inspect.attr("currentframe")();
   while (current_frame && !current_frame.is_none()) {
     frame_vec.push_back(current_frame);
@@ -64,7 +67,7 @@ py::dict get_serializable_var_dict() {
   // globals first to locals last. This ensures that the overwrites give
   // precedence to closest-to-locals.
   for (auto it = frame_vec.rbegin(); it != frame_vec.rend(); ++it) {
-    py::dict f_locals = it->attr("f_locals");
+    nb::dict f_locals = nb::cast<nb::dict>(it->attr("f_locals"));
     for (const auto item : f_locals)
       try_to_add_item(item);
   }
@@ -104,49 +107,49 @@ static std::size_t strip_leading_whitespace(std::string &source_code) {
   return min_indent;
 }
 
-std::string get_source_code(const py::function &func) {
+std::string get_source_code(const nb::callable &func) {
   // Get the source code
-  py::module_ analysis = py::module_::import("cudaq.kernel.analysis");
-  py::object FetchDepFuncsSourceCode = analysis.attr("FetchDepFuncsSourceCode");
-  py::object source_code;
+  nb::module_ analysis = nb::module_::import_("cudaq.kernel.analysis");
+  nb::object FetchDepFuncsSourceCode = analysis.attr("FetchDepFuncsSourceCode");
+  nb::object source_code;
   try {
     source_code = FetchDepFuncsSourceCode.attr("fetch")(func);
-  } catch (py::error_already_set &e) {
+  } catch (nb::python_error &e) {
     throw std::runtime_error("Failed to get source code: " +
                              std::string(e.what()));
   }
 
-  std::string source = source_code.cast<std::string>();
+  std::string source = nb::cast<std::string>(source_code);
   strip_leading_whitespace(source);
   return source;
 }
 
-std::string get_var_name_for_handle(const py::handle &h) {
-  py::object inspect = py::module::import("inspect");
+std::string get_var_name_for_handle(const nb::handle &h) {
+  nb::object inspect = nb::module_::import_("inspect");
   // Search locals first, walking up the call stack
   auto current_frame = inspect.attr("currentframe")();
   while (current_frame && !current_frame.is_none()) {
-    py::dict f_locals = current_frame.attr("f_locals");
+    nb::dict f_locals = nb::cast<nb::dict>(current_frame.attr("f_locals"));
     for (auto item : f_locals)
       if (item.second.is(h))
-        return py::str(item.first);
+        return nb::cast<std::string>(nb::str(item.first));
     current_frame = current_frame.attr("f_back");
   }
   // Search globals now
   current_frame = inspect.attr("currentframe")();
-  py::dict f_globals = current_frame.attr("f_globals");
+  nb::dict f_globals = nb::cast<nb::dict>(current_frame.attr("f_globals"));
   for (auto item : f_globals)
     if (item.second.is(h))
-      return py::str(item.first);
+      return nb::cast<std::string>(nb::str(item.first));
   return std::string();
 }
 
-std::unordered_map<std::string, std::tuple<py::object, py::dict>>
+std::unordered_map<std::string, std::tuple<nb::object, nb::dict>>
     DataClassRegistry::classes{};
 
 /// @brief Bind the dataclass registry
-void bindPyDataClassRegistry(py::module &mod) {
-  py::class_<DataClassRegistry>(mod, "DataClassRegistry",
+void bindPyDataClassRegistry(nb::module_ &mod) {
+  nb::class_<DataClassRegistry>(mod, "DataClassRegistry",
                                 R"#(Registry for dataclasses used in kernels)#")
       .def_static("registerClass", &DataClassRegistry::registerClass,
                   "Register class\n")
@@ -154,6 +157,6 @@ void bindPyDataClassRegistry(py::module &mod) {
                   "Is class registered\n")
       .def_static("getClassAttributes", &DataClassRegistry::getClassAttributes,
                   "Find registered class and its attributes\n")
-      .def_readonly_static("classes", &DataClassRegistry::classes);
+      .def_ro_static("classes", &DataClassRegistry::classes);
 }
 } // namespace cudaq

@@ -9,36 +9,37 @@
 #include "py_EvolveResult.h"
 #include "common/EvolveResult.h"
 #include "cudaq/algorithms/evolve_internal.h"
-#include <optional>
-#include <pybind11/stl.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace cudaq {
 /// @brief Bind the `cudaq::evolve_result` and `cudaq::async_evolve_result`
 /// data classes to python as `cudaq.EvolveResult` and
 /// `cudaq.AsyncEvolveResult`.
-void bindEvolveResult(py::module &mod) {
-  py::class_<evolve_result>(
+void bindEvolveResult(nb::module_ &mod) {
+  nb::class_<evolve_result>(
       mod, "EvolveResult",
       "Stores the execution data from an invocation of :func:`evolve`.\n")
       // IMPORTANT: state overloads must be provided before vector<state>
       // overloads. Otherwise, Python might try to access the __len__ of state
       // during overload resolution. __len__ is not always well-defined for all
       // state types and may raise an exception.
-      .def(py::init<state>())
-      .def(py::init<state, std::vector<observe_result>>())
-      .def(py::init<state, std::vector<double>>())
-      .def(py::init<std::vector<state>>())
-      .def(py::init<std::vector<state>,
+      .def(nb::init<state>())
+      .def(nb::init<state, std::vector<observe_result>>())
+      .def(nb::init<state, std::vector<double>>())
+      .def(nb::init<std::vector<state>>())
+      .def(nb::init<std::vector<state>,
                     std::vector<std::vector<observe_result>>>())
-      .def(py::init<std::vector<state>, std::vector<std::vector<double>>>())
+      .def(nb::init<std::vector<state>, std::vector<std::vector<double>>>())
       .def(
           "final_state",
-          [](evolve_result &self) -> py::object {
+          [](evolve_result &self) -> nb::object {
             if (!self.states.has_value() || self.states->empty())
-              return py::none();
-            return py::cast(self.states->back());
+              return nb::none();
+            return nb::cast(self.states->back());
           },
           "Stores the final state produced by a call to :func:`evolve`. "
           "Represent the state of a quantum system after time evolution under "
@@ -54,11 +55,11 @@ void bindEvolveResult(py::module &mod) {
           ":func:`evolve`.\n")
       .def(
           "final_expectation_values",
-          [](evolve_result &self) -> py::object {
+          [](evolve_result &self) -> nb::object {
             if (!self.expectation_values.has_value() ||
                 self.expectation_values->empty())
-              return py::none();
-            return py::cast(self.expectation_values->back());
+              return nb::none();
+            return nb::cast(self.expectation_values->back());
           },
           "Stores the final expectation values, that is the results produced "
           "by "
@@ -81,12 +82,12 @@ void bindEvolveResult(py::module &mod) {
           "if no intermediate results were requested, or if no observables "
           "were specified in the call.\n");
 
-  py::class_<async_evolve_result>(
+  nb::class_<async_evolve_result>(
       mod, "AsyncEvolveResult",
       "Stores the execution data from an invocation of :func:`evolve_async`.\n")
       .def(
           "get", [](async_evolve_result &self) { return self.get(); },
-          py::call_guard<py::gil_scoped_release>(),
+          nb::call_guard<nb::gil_scoped_release>(),
           "Retrieve the evolution result from the asynchronous evolve "
           "execution\n.");
 }

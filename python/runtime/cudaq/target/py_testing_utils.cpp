@@ -11,9 +11,11 @@
 #include "cudaq.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+
+namespace nb = nanobind;
 
 namespace nvqir {
 void toggleDynamicQubitManagement();
@@ -21,7 +23,7 @@ void toggleDynamicQubitManagement();
 
 namespace cudaq {
 
-void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
+void bindTestUtils(nb::module_ &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
 
   testingSubmodule.def(
@@ -34,7 +36,7 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
         auto simName = holder.getTarget().simulatorName;
         return holder.getSimulator(simName)->allocateQubits(numQubits);
       },
-      py::arg("numQubits"));
+      nb::arg("numQubits"));
 
   testingSubmodule.def("deallocateQubits",
                        [&](const std::vector<std::size_t> &qubits) {

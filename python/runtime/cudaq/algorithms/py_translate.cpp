@@ -13,8 +13,8 @@
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 
@@ -23,7 +23,7 @@ using namespace mlir;
 /// @brief Run `cudaq::translate` on the provided kernel.
 static std::string translate_impl(const std::string &shortName,
                                   MlirModule module, const std::string &format,
-                                  py::args runtimeArguments) {
+                                  nb::args runtimeArguments) {
   StringRef format_ = format;
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);
@@ -66,7 +66,7 @@ static std::string translate_impl(const std::string &shortName,
 }
 
 /// @brief Bind the translate cudaq function
-void cudaq::bindPyTranslate(py::module &mod) {
+void cudaq::bindPyTranslate(nb::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
   // Internal translation to QIR for testing and internal use. Not intended to

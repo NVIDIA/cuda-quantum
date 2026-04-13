@@ -11,13 +11,17 @@
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 namespace cudaq {
 
@@ -26,17 +30,17 @@ using spin_op_creator =
     std::function<spin_op(std::map<std::string, numeric_type>)>;
 
 // Helper to determine if an object is a Python kernel builder object (PyKernel)
-static bool isPyKernelObject(py::object &kernel) {
+static bool isPyKernelObject(nb::object &kernel) {
   const std::string kernelTypeName =
-      py::hasattr(kernel, "__class__")
-          ? kernel.attr("__class__").attr("__name__").cast<std::string>()
+      nb::hasattr(kernel, "__class__")
+          ? nb::cast<std::string>(kernel.attr("__class__").attr("__name__"))
           : "";
   return (kernelTypeName == "PyKernel");
 }
 
 template <typename numeric_type>
 evolve_result
-pyEvolve(state initial_state, py::object kernel,
+pyEvolve(state initial_state, nb::object kernel,
          std::map<std::string, numeric_type> params,
          std::vector<spin_op_creator<numeric_type>> observables = {},
          int shots_count = -1) {
@@ -44,11 +48,11 @@ pyEvolve(state initial_state, py::object kernel,
     throw std::runtime_error(
         "The provided kernel to pyEvolve is not a valid PyKernel object.");
 
-  if (py::hasattr(kernel, "compile"))
+  if (nb::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>());
+  auto kernelName = nb::cast<std::string>(kernel.attr("name"));
+  auto kernelMod = unwrap(nb::cast<MlirModule>(kernel.attr("module")));
 
   std::vector<spin_op> spin_ops = {};
   for (auto &observable : observables) {
@@ -70,23 +74,23 @@ pyEvolve(state initial_state, py::object kernel,
 
 template <typename numeric_type>
 evolve_result
-pyEvolve(state initial_state, std::vector<py::object> kernels,
+pyEvolve(state initial_state, std::vector<nb::object> kernels,
          std::vector<std::map<std::string, numeric_type>> params,
          std::vector<spin_op_creator<numeric_type>> observables = {},
          int shots_count = -1, bool save_intermediate_states = true) {
   if (!std::all_of(kernels.begin(), kernels.end(),
-                   [](py::object &kernel) { return isPyKernelObject(kernel); }))
+                   [](nb::object &kernel) { return isPyKernelObject(kernel); }))
     throw std::runtime_error(
         "One or more of the provided kernels to pyEvolve is not a valid "
         "PyKernel object.");
 
   std::vector<std::function<void(state)>> launchFcts = {};
-  for (py::object kernel : kernels) {
-    if (py::hasattr(kernel, "compile"))
+  for (nb::object kernel : kernels) {
+    if (nb::hasattr(kernel, "compile"))
       kernel.attr("compile")();
 
-    auto kernelName = kernel.attr("name").cast<std::string>();
-    auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>());
+    auto kernelName = nb::cast<std::string>(kernel.attr("name"));
+    auto kernelMod = unwrap(nb::cast<MlirModule>(kernel.attr("module")));
 
     launchFcts.push_back([kernelMod, kernelName](state state) mutable {
       auto *argData = new cudaq::OpaqueArguments();
@@ -112,7 +116,7 @@ pyEvolve(state initial_state, std::vector<py::object> kernels,
 
 template <typename numeric_type>
 async_evolve_result
-pyEvolveAsync(state initial_state, py::object kernel,
+pyEvolveAsync(state initial_state, nb::object kernel,
               std::map<std::string, numeric_type> params,
               std::vector<spin_op_creator<numeric_type>> observables = {},
               std::size_t qpu_id = 0,
@@ -122,18 +126,18 @@ pyEvolveAsync(state initial_state, py::object kernel,
     throw std::runtime_error(
         "The provided kernel to pyEvolveAsync is not a valid PyKernel object.");
 
-  if (py::hasattr(kernel, "compile"))
+  if (nb::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>()).clone();
-  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = unwrap(nb::cast<MlirModule>(kernel.attr("module"))).clone();
+  auto kernelName = nb::cast<std::string>(kernel.attr("name"));
 
   std::vector<spin_op> spin_ops = {};
   for (auto observable : observables) {
     spin_ops.push_back(observable(params));
   }
 
-  py::gil_scoped_release release;
+  nb::gil_scoped_release release;
   return __internal__::evolve_async(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
@@ -148,27 +152,28 @@ pyEvolveAsync(state initial_state, py::object kernel,
 
 template <typename numeric_type>
 async_evolve_result
-pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
+pyEvolveAsync(state initial_state, std::vector<nb::object> kernels,
               std::vector<std::map<std::string, numeric_type>> params,
               std::vector<spin_op_creator<numeric_type>> observables = {},
               std::size_t qpu_id = 0,
               std::optional<cudaq::noise_model> noise_model = std::nullopt,
               int shots_count = -1, bool save_intermediate_states = true) {
   if (!std::all_of(kernels.begin(), kernels.end(),
-                   [](py::object &kernel) { return isPyKernelObject(kernel); }))
+                   [](nb::object &kernel) { return isPyKernelObject(kernel); }))
     throw std::runtime_error(
         "One or more of the provided kernels to pyEvolveAsync is not a valid "
         "PyKernel object.");
 
   std::vector<std::function<void(state)>> launchFcts = {};
-  for (py::object kernel : kernels) {
-    if (py::hasattr(kernel, "compile"))
+  for (nb::object kernel : kernels) {
+    if (nb::hasattr(kernel, "compile"))
       kernel.attr("compile")();
 
     // IMPORTANT: we need to make sure no Python data is accessed in the async.
     // functor.
-    auto kernelMod = unwrap(kernel.attr("module").cast<MlirModule>()).clone();
-    auto kernelName = kernel.attr("name").cast<std::string>();
+    auto kernelMod =
+        unwrap(nb::cast<MlirModule>(kernel.attr("module"))).clone();
+    auto kernelName = nb::cast<std::string>(kernel.attr("name"));
     launchFcts.push_back(
         [kernelMod = std::move(kernelMod), kernelName](state state) mutable {
           cudaq::OpaqueArguments argData;
@@ -187,7 +192,7 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
     spin_ops.push_back(std::move(ops));
   }
 
-  py::gil_scoped_release release;
+  nb::gil_scoped_release release;
   return __internal__::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
                                     noise_model, shots_count,
                                     save_intermediate_states);
@@ -196,7 +201,7 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
 #define DEFINE_PARAM_TYPE_OVERLOAD_VEC(type, pyMod)                            \
   pyMod.def(                                                                   \
       "evolve",                                                                \
-      [](state initial_state, std::vector<py::object> kernels,                 \
+      [](state initial_state, std::vector<nb::object> kernels,                 \
          std::vector<std::map<std::string, type>> params = {},                 \
          std::vector<spin_op_creator<type>> observables = {},                  \
          int shots_count = -1, bool save_intermediate_states = true) {         \
@@ -205,16 +210,16 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
       },                                                                       \
       "Evolve the given initial_state with the provided kernel and "           \
       "parameters.",                                                           \
-      py::arg("initial_state"), py::arg("kernels"),                            \
-      py::arg("params") = std::vector<std::map<std::string, type>>{},          \
-      py::arg("observables") = std::vector<spin_op_creator<type>>{},           \
-      py::arg("shots_count") = -1,                                             \
-      py::arg("save_intermediate_states") = true);
+      nb::arg("initial_state"), nb::arg("kernels"),                            \
+      nb::arg("params") = std::vector<std::map<std::string, type>>{},          \
+      nb::arg("observables") = std::vector<spin_op_creator<type>>{},           \
+      nb::arg("shots_count") = -1,                                             \
+      nb::arg("save_intermediate_states") = true);
 
 #define DEFINE_PARAM_TYPE_OVERLOAD(type, pyMod)                                \
   pyMod.def(                                                                   \
       "evolve",                                                                \
-      [](state initial_state, py::object kernel,                               \
+      [](state initial_state, nb::object kernel,                               \
          std::map<std::string, type> params = {},                              \
          std::vector<spin_op_creator<type>> observables = {},                  \
          int shots_count = -1) {                                               \
@@ -223,15 +228,15 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
       },                                                                       \
       "Evolve the given initial_state with the provided kernel and "           \
       "parameters.",                                                           \
-      py::arg("initial_state"), py::arg("kernels"),                            \
-      py::arg("params") = std::map<std::string, type>{},                       \
-      py::arg("observables") = std::vector<spin_op_creator<type>>{},           \
-      py::arg("shots_count") = -1);
+      nb::arg("initial_state"), nb::arg("kernels"),                            \
+      nb::arg("params") = std::map<std::string, type>{},                       \
+      nb::arg("observables") = std::vector<spin_op_creator<type>>{},           \
+      nb::arg("shots_count") = -1);
 
 #define DEFINE_ASYNC_PARAM_TYPE_OVERLOAD_VEC(type, pyMod)                      \
   pyMod.def(                                                                   \
       "evolve_async",                                                          \
-      [](state initial_state, std::vector<py::object> kernels,                 \
+      [](state initial_state, std::vector<nb::object> kernels,                 \
          std::vector<std::map<std::string, type>> params = {},                 \
          std::vector<spin_op_creator<type>> observables = {},                  \
          std::size_t qpu_id = 0,                                               \
@@ -243,17 +248,17 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
       },                                                                       \
       "Asynchronously evolve the given initial_state with "                    \
       "the provided kernel and parameters.",                                   \
-      py::arg("initial_state"), py::arg("kernels"),                            \
-      py::arg("params") = std::vector<std::map<std::string, type>>{},          \
-      py::arg("observables") = std::vector<spin_op_creator<type>>{},           \
-      py::arg("qpu_id") = 0, py::arg("noise_model") = std::nullopt,            \
-      py::arg("shots_count") = -1,                                             \
-      py::arg("save_intermediate_states") = true);
+      nb::arg("initial_state"), nb::arg("kernels"),                            \
+      nb::arg("params") = std::vector<std::map<std::string, type>>{},          \
+      nb::arg("observables") = std::vector<spin_op_creator<type>>{},           \
+      nb::arg("qpu_id") = 0, nb::arg("noise_model") = std::nullopt,            \
+      nb::arg("shots_count") = -1,                                             \
+      nb::arg("save_intermediate_states") = true);
 
 #define DEFINE_ASYNC_PARAM_TYPE_OVERLOAD(type, pyMod)                          \
   pyMod.def(                                                                   \
       "evolve_async",                                                          \
-      [](state initial_state, py::object kernel,                               \
+      [](state initial_state, nb::object kernel,                               \
          std::map<std::string, type> params = {},                              \
          std::vector<spin_op_creator<type>> observables = {},                  \
          std::size_t qpu_id = 0,                                               \
@@ -264,14 +269,14 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
       },                                                                       \
       "Asynchronously evolve the given initial_state with "                    \
       "the provided kernel and parameters.",                                   \
-      py::arg("initial_state"), py::arg("kernels"),                            \
-      py::arg("params") = std::map<std::string, type>{},                       \
-      py::arg("observables") = std::vector<spin_op_creator<type>>{},           \
-      py::arg("qpu_id") = 0, py::arg("noise_model") = std::nullopt,            \
-      py::arg("shots_count") = -1);
+      nb::arg("initial_state"), nb::arg("kernels"),                            \
+      nb::arg("params") = std::map<std::string, type>{},                       \
+      nb::arg("observables") = std::vector<spin_op_creator<type>>{},           \
+      nb::arg("qpu_id") = 0, nb::arg("noise_model") = std::nullopt,            \
+      nb::arg("shots_count") = -1);
 
 /// @brief Bind the evolve cudaq function for circuit simulator
-void bindPyEvolve(py::module &mod) {
+void bindPyEvolve(nb::module_ &mod) {
   // Sync evolve overloads
   DEFINE_PARAM_TYPE_OVERLOAD_VEC(long, mod);
   DEFINE_PARAM_TYPE_OVERLOAD_VEC(double, mod);

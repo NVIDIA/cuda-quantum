@@ -10,11 +10,15 @@
 #include <functional>
 #include <unordered_map>
 
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -23,47 +27,49 @@
 
 namespace cudaq {
 
-void bindScalarOperator(py::module &mod) {
+void bindScalarOperator(nb::module_ &mod) {
   using scalar_callback =
       std::function<std::complex<double>(const parameter_map &)>;
 
-  py::class_<scalar_operator>(mod, "ScalarOperator")
+  nb::class_<scalar_operator>(mod, "ScalarOperator")
 
       // properties
 
-      .def_property_readonly("parameters",
-                             &scalar_operator::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+      .def_prop_ro("parameters", &scalar_operator::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
 
       // constructors
 
-      .def(py::init<>(), "Creates a scalar operator with constant value 1.")
-      .def(py::init<double>(),
+      .def(nb::init<>(), "Creates a scalar operator with constant value 1.")
+      .def(nb::init<double>(),
            "Creates a scalar operator with the given constant value.")
-      .def(py::init<std::complex<double>>(),
+      .def(nb::init<std::complex<double>>(),
            "Creates a scalar operator with the given constant value.")
-      .def(py::init([](const scalar_callback &func, const py::kwargs &kwargs) {
-             return scalar_operator(
-                 func, details::kwargs_to_param_description(kwargs));
-           }),
-           py::arg("callback"),
-           "Creates a scalar operator where the given callback function is "
-           "invoked during evaluation.")
-      .def(py::init<const scalar_operator &>(), "Copy constructor.")
+      .def(
+          "__init__",
+          [](scalar_operator *self, const scalar_callback &func,
+             const nb::kwargs &kwargs) {
+            new (self) scalar_operator(
+                func, details::kwargs_to_param_description(kwargs));
+          },
+          nb::arg("callback"), nb::arg("kwargs"),
+          "Creates a scalar operator where the given callback function is "
+          "invoked during evaluation.")
+      .def(nb::init<const scalar_operator &>(), "Copy constructor.")
 
       // evaluations
 
       .def(
           "evaluate",
-          [](const scalar_operator &self, const py::kwargs &kwargs) {
+          [](const scalar_operator &self, const nb::kwargs &kwargs) {
             return self.evaluate(details::kwargs_to_param_map(kwargs));
           },
           "Evaluated value of the operator.")
 
       // comparisons
 
-      .def("__eq__", &scalar_operator::operator==, py::is_operator())
+      .def("__eq__", &scalar_operator::operator==, nb::is_operator())
 
       // general utility functions
 
@@ -73,10 +79,10 @@ void bindScalarOperator(py::module &mod) {
            "Returns the string representation of the operator.");
 }
 
-void bindScalarWrapper(py::module &mod) {
+void bindScalarWrapper(nb::module_ &mod) {
   bindScalarOperator(mod);
-  py::implicitly_convertible<double, scalar_operator>();
-  py::implicitly_convertible<std::complex<double>, scalar_operator>();
+  nb::implicitly_convertible<double, scalar_operator>();
+  nb::implicitly_convertible<std::complex<double>, scalar_operator>();
 }
 
 } // namespace cudaq

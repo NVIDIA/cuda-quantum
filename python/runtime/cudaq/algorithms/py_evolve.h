@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace cudaq {
-void bindPyEvolve(py::module &mod);
+void bindPyEvolve(nb::module_ &mod);
 } // namespace cudaq
