@@ -53,4 +53,4 @@ set_tests_properties(pycudaq-mlir PROPERTIES
   TIMEOUT 1200
   PROCESSORS ${NPROC})
 
-add_subdirectory(phase_folding) 
+add_subdirectory(phase_folding)
