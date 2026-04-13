@@ -570,6 +570,64 @@ def test_decrementing_range():
     assert '1010' in counts
 
 
+def test_dbg_ast_strict_path():
+    """Only the exact cudaq.dbg.ast.print_i64/f64 form is valid.
+
+    Lazy module aliases (cudaq.ast resolves to cudaq.dbg.ast via
+    _LAZY_SUBMODULES) and component reorderings must all be rejected
+    with a compile-time RuntimeError.
+
+    See https://github.com/NVIDIA/cuda-quantum/issues/2342
+    """
+
+    @cudaq.kernel
+    def valid_kernel(n: int):
+        q = cudaq.qvector(n)
+        h(q[0])
+        cudaq.dbg.ast.print_i64(n)
+        mz(q)
+
+    counts = cudaq.sample(valid_kernel, 2)
+    assert len(counts) > 0
+
+    # https://github.com/NVIDIA/cuda-quantum/issues/2342 - cudaq.ast is a lazy
+    # alias for cudaq.dbg.ast but must not be accepted as a debug call
+    with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def invalid_cudaq_ast(n: int):
+            q = cudaq.qvector(n)
+            h(q[0])
+            cudaq.ast.print_i64(n)
+            mz(q)
+
+        cudaq.sample(invalid_cudaq_ast, 2)
+
+    # https://github.com/NVIDIA/cuda-quantum/issues/2342 - wrong component order
+    with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def invalid_dbg_cudaq_ast(n: int):
+            q = cudaq.qvector(n)
+            h(q[0])
+            dbg.cudaq.ast.print_i64(n)
+            mz(q)
+
+        cudaq.sample(invalid_dbg_cudaq_ast, 2)
+
+    # https://github.com/NVIDIA/cuda-quantum/issues/2342 - wrong component order
+    with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def invalid_ast_cudaq_dbg(n: int):
+            q = cudaq.qvector(n)
+            h(q[0])
+            ast.cudaq.dbg.print_i64(n)
+            mz(q)
+
+        cudaq.sample(invalid_ast_cudaq_dbg, 2)
+
+
 def test_no_dynamic_Lists():
     with pytest.raises(RuntimeError) as error:
 
