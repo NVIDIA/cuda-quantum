@@ -366,7 +366,8 @@ class PyASTBridge(ast.NodeVisitor):
                  uniqueId=None,
                  kernelModuleName=None,
                  locationOffset=('', 0),
-                 verbose=False):
+                 verbose=False,
+                 cudaqAliases=None):
         """The constructor. Initializes the `mlir.Value` stack, the
         `mlir.Context`, and the `mlir.Module` that we will be building upon.
         This class keeps track of a symbol table, which maps variable names to
@@ -385,6 +386,9 @@ class PyASTBridge(ast.NodeVisitor):
         self.uniqueId = uniqueId
         self.defFrame = defFrame
         self.kernelModuleName = kernelModuleName
+        # Set of names that refer to the cudaq module, including aliases
+        # from `import cudaq as <alias>`.
+        self.cudaqAliases = cudaqAliases if cudaqAliases else {'cudaq'}
         self.ctx = getMLIRContext()
         self.loc = Location.unknown(context=self.ctx)
         self.module = Module.create(self.loc)
@@ -402,6 +406,11 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
+
+    def isCudaqName(self, name):
+        """Return True if `name` is 'cudaq' or a known alias for the cudaq
+        module (e.g. from ``import cudaq as cq``)."""
+        return name in self.cudaqAliases
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -1251,7 +1260,10 @@ class PyASTBridge(ast.NodeVisitor):
         """
         msg = None
         try:
-            return mlirTypeFromAnnotation(annotation, self.ctx, raiseError=True)
+            return mlirTypeFromAnnotation(annotation,
+                                          self.ctx,
+                                          raiseError=True,
+                                          cudaqAliases=self.cudaqAliases)
         except RuntimeError as e:
             msg = str(e)
 
@@ -1649,7 +1661,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         if self.buildingFunctionBody:
             for decorator in getattr(node, 'decorator_list', []):
-                if _get_qualified_name(decorator) in ('cudaq.kernel', 'kernel'):
+                qname = _get_qualified_name(decorator)
+                if qname == 'kernel' or (
+                        qname is not None and qname.endswith('.kernel') and
+                        self.isCudaqName(qname[:qname.rfind('.kernel')])):
                     self.emitFatalError(
                         "nested @cudaq.kernel definitions are not allowed",
                         node)
@@ -2183,7 +2198,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                         node.attr), node)
                 return
 
-            if node.value.id == 'cudaq':
+            if self.isCudaqName(node.value.id):
                 if node.attr in [
                         'DepolarizationChannel', 'AmplitudeDampingChannel',
                         'PhaseFlipChannel', 'BitFlipChannel', 'PhaseDamping',
@@ -2653,9 +2668,8 @@ class PyASTBridge(ast.NodeVisitor):
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
-            if hasattr(
-                    node.func.value, 'id'
-            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+            if hasattr(node.func.value, 'id') and self.isCudaqName(
+                    node.func.value.id) and node.func.attr == 'kernel':
                 return
 
             devKey, name = resolveQualifiedName(node.func)
@@ -3344,7 +3358,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                if node.func.value.id == 'cudaq':
+                if self.isCudaqName(node.func.value.id):
                     if node.func.attr == 'complex':
                         self.__groupValues(node.args, [0])
                         self.pushValue(self.simulationDType())
@@ -3418,16 +3432,21 @@ class PyASTBridge(ast.NodeVisitor):
                             arrTy = cc.ArrayType.get(eleTy)
                             ptrArrTy = cc.PointerType.get(arrTy)
                             data = cc.StdvecDataOp(ptrArrTy, value).result
-                            size = cc.StdvecSizeOp(self.getIntegerType(),
-                                                   value).result
-                            numQubits = math.CountTrailingZerosOp(size).result
+                            intTy = self.getIntegerType()
+                            size = cc.StdvecSizeOp(intTy, value).result
+                            stateTy = cc.PointerType.get(cc.StateType.get())
+                            state = quake.CreateStateOp(stateTy, data,
+                                                        size).result
+                            numQubits = quake.GetNumberOfQubitsOp(intTy,
+                                                                  state).result
                             # Dynamic checking that the state is normalized is
                             # done at the library layer.
                             veqTy = quake.VeqType.get()
                             qubits = quake.AllocaOp(veqTy,
                                                     size=numQubits).result
-                            init = quake.InitializeStateOp(veqTy, qubits,
-                                                           data).result
+                            init = quake.InitializeStateOp(
+                                veqTy, qubits, state).result
+                            deleteState = quake.DeleteStateOp(state)
                             self.pushValue(init)
                             return
 
@@ -3572,7 +3591,7 @@ class PyASTBridge(ast.NodeVisitor):
                         # The first argument must be the Kraus channel
                         numParams, key = 0, None
                         if (isinstance(node.args[0], ast.Attribute) and
-                                node.args[0].value.id == 'cudaq' and
+                                self.isCudaqName(node.args[0].value.id) and
                                 node.args[0].attr in supportedChannels):
 
                             cudaq_module = importlib.import_module('cudaq')
@@ -5379,6 +5398,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
+    cudaqAliases = kwargs.get('cudaqAliases', None)
 
     # Initialize the captured arguments list to be populated by the AST Bridge.
     signature.captured_args = []
@@ -5388,7 +5408,8 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
                          uniqueId=uniqueId,
                          verbose=verbose,
                          locationOffset=lineNumberOffset,
-                         kernelModuleName=kernelModuleName)
+                         kernelModuleName=kernelModuleName,
+                         cudaqAliases=cudaqAliases)
 
     ValidateArgumentAnnotations(bridge).visit(astModule)
     ValidateReturnStatements(bridge).visit(astModule)
